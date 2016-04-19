@@ -128,7 +128,7 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi
   # only one design variable
   if multi_d == 1 and len(numpy_array.shape) == 3: 
     nx, ny, nz = numpy_array.shape   
-    create_3d_mesh('bulk3d', x_res = numpy_array.shape[0], data = numpy_array, threshold = threshold, ext_mesh = mesh)
+    create_3d_mesh('bulk3d', x_res = nx, y_res = ny, z_res = nz, data = numpy_array, threshold = threshold, ext_mesh = mesh, scale = scale)
   else:
     if multi_d == 1:
       nx, ny = numpy_array.shape
@@ -458,7 +458,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load')
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -497,6 +497,9 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   if type == 'msfem_two_load':
     width= 2.
     height = 1.
+  if type == 'gripper_half' or type == 'force_inverter_half':
+    height = 0.5
+    ny = int(nx/2)
     
      
   dx = width / nx
@@ -529,6 +532,20 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
       elif type == 'mbb_reinforced' and (x + 1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y + 1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
         e.region = 'reinforce'
+      elif type == 'force_inverter' and (((x == 0 or x < int(round(nx/100))) and (y <= 2*(ny-1)/25+1e-15 or y >= (ny-1)-2*(ny-1)/25-1e-15 or (y >= (ny-1)/2-(ny-1)/50-1e-15 and y <= (ny-1)/2+(ny-1)/50+1e-15))) or (x >= nx-int(round(nx/100)) and (y >= (ny-1)/2-(ny-1)/50-1e-15 and y <= (ny-1)/2+(ny-1)/50+1e-15))):
+        e.region = 'reinforce'
+      elif type == 'force_inverter_half' and (((x == 0 or x < int(round(nx/100))) and (y <= 4*(ny-1)/25+1e-15 or y >= (ny-1)-2*(ny-1)/50-1e-15)) or (x >= nx-int(round(nx/100)) and y >= (ny-1)-2*(ny-1)/50-1e-15)):
+        e.region = 'reinforce'
+      elif type == 'gripper' and (((x == 0 or x < int(round(nx/100))) and (y <= 2*(ny-1)/25+1e-15 or y >= (ny-1)-2*(ny-1)/25-1e-15 or (y >= (ny-1)/2-(ny-1)/50-1e-15 and y <= (ny-1)/2+(ny-1)/50+1e-15))) \
+                                  or (x >= int(round(.7*(nx-1))) and ((y >= .35*(ny-1)-(ny-1)/50-1e-15 and y <= .35*(ny-1)+1e-15) or (y >= .65*(ny-1) and y <= .65*(ny-1)+(ny-1)/50+1e-15)))):
+        e.region = 'reinforce'
+      elif type == 'gripper_half' and (((x == 0 or x < int(round(nx/40))) and (y <= 4*(ny-1)/25+1e-15 or y >= (ny-1)-2*(ny-1)/50-1e-15 )) \
+                                  or (x >= int(round(.7*(nx-1))) and ((y >= .7*(ny-1)-2*(ny-1)/40-1 and y <= .7*(ny-1)+1e-15)))):
+        e.region = 'reinforce'
+      elif type == 'gripper' and (x >= int(round(.7*(nx-1))) and y >= .35*(ny-1) and y <= .65*(ny-1)):
+        e.region = 'void'
+      elif type == 'gripper_half' and (x >= int(round(.7*(nx-1))) and y >= .7*(ny-1)):
+        e.region = 'void'
       elif type == 'ghost':
         if (x == nx - 1 or y == ny - 1):
           e.region = 'ghost'
@@ -657,6 +674,15 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     # support upper left
     mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
     mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
+  elif type.startswith('force_inverter') or type.startswith('gripper'): 
+    if type.endswith('half'):
+      factor = 2
+    else:
+      factor = 1
+      mesh.bc.append(("left_upper", numpy.arange(int(round((nx+1)*ny-2*(ny-1)/25*(nx+1))),(nx+1)*ny,nx+1)))
+    mesh.bc.append(("left_lower", numpy.arange(0,int(round(factor*2*(ny-1)/25*(nx+1))),nx+1)))
+    mesh.bc.append(("right_lower", [nx]))
+    mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   else: 
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
@@ -737,7 +763,7 @@ def create_regular3d_mesh(type, resolution):
 # data and threshold for sparse mesh from create_density. data is a numpy.array in 3D! 
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
-def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None): 
+def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
   assert(type == "bulk3d" or type == "cantilever3d")
 
   nx = x_res  
@@ -745,9 +771,9 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   if type == "bulk3d": 
       ny = y_res if y_res <> None else x_res 
       nz = z_res if z_res <> None else x_res 
-      width = 1.0 
-      height = float(ny)/nx 
-      depth = float(nz)/nx 
+      width = scale
+      height = scale*float(ny)/nx 
+      depth = scale*float(nz)/nx 
   else: 
     ny = int(nx * (2./3.)) 
     nz = int(nx * (2./3.)) 
@@ -803,6 +829,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
  
   # count second region
   second = 0 
+  mech_count = 0
   
   for z in range(nz):
     for y in range(ny):
@@ -819,8 +846,12 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
             e.region = 'inner' if not threshold or e.density > threshold else 'void'  
             second += 1     
         else: 
-            e.region = 'mech' if not threshold or e.density > threshold else 'void' 
-   
+            if not threshold or e.density > threshold:
+              e.region = 'mech'
+              mech_count += 1 
+            else:
+              e.region = 'void'
+            
             # assign nodes 
             # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
             ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
@@ -859,6 +890,10 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  print "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements ",
+  print " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)",
+  print " with threshold " + str(threshold) 
   
   if second > 0: 
     print str(second) + ' elements of secondary region (' + str(100.0 * second / (nnx * nny * nnz)) + '%)' 

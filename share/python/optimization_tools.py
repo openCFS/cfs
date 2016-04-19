@@ -83,7 +83,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
       nt = x * y * z
       for c in range(len(num)):
         n = int(num[c] -1)
-        setNDArrayEntry(ret, n % x, n/y, n/(x*y), vals[c]) # 'nr' is one base in general
+        setNDArrayEntry(ret, n % x, n/x, n/(x*y), vals[c]) # 'nr' is one base in general
         
   return ret
 
@@ -103,6 +103,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   
     assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
+  print len(sett)
   
   designs = 1
   if design2:
