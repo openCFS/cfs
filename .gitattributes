@@ -1108,6 +1108,7 @@ share/matlab/material_catalogue/+Homogenization/Veraltet/verybad.png -text svneo
 share/matlab/material_catalogue/+Homogenization/Veraltet/verybad_c.png -text svneol=unset#image/png
 share/matlab/material_catalogue/+Homogenization/computeInterpolationValues.m -text
 share/matlab/material_catalogue/+Homogenization/generateCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateCross3DExact.m -text
 share/matlab/material_catalogue/+Homogenization/generateCrossWithVertBar.m -text
 share/matlab/material_catalogue/+Homogenization/generateFrame.m -text
 share/matlab/material_catalogue/+Homogenization/generateFramedCross.m -text
