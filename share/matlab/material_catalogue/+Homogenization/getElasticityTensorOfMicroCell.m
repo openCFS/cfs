@@ -26,12 +26,16 @@ function [Tensor, volume, meshfilename] = getElasticityTensorOfMicroCell(point, 
 % 
 
 % Generate sparse mesh
-[meshfile, volume] = meshgenerationfunc(point, cfsworkingdirectory);
+[meshfile, volume, dimension] = meshgenerationfunc(point, cfsworkingdirectory);
 %close;Homogenization.plotmesh(meshfile);
 [meshfilepath, meshfilename, ext] = fileparts(meshfile);
 % For an empty grid Eh equals the all zero tensor.
 if volume < 1e-14
-    Tensor = zeros(3,3);
+    if dimension == 2
+        Tensor = zeros(3,3);
+    else
+        Tensor = zeros(6,6);
+    end
     delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
     delete( meshfile );
     return
@@ -48,7 +52,13 @@ path = pwd;
 cd(cfsworkingdirectory);
 invfilename = sprintf('inv_tensor_%s', meshfilename);
 invfile = strcat(invfilename, '.xml');
-[status,message] = copyfile('inv_tensor.xml', invfile);
+
+if dimension == 2
+    [status,message] = copyfile('inv_tensor.xml', invfile);
+else
+    [status,message] = copyfile('inv_tensor_3D.xml', invfile);
+end
+
 if status ~= 1
     disp('Fehler beim Kopieren von inv_tensor.xml');
     disp(message);
@@ -77,12 +87,15 @@ else
 end
 densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
 infofile = sprintf('%s/%s.info', cfsworkingdirectory, invfilename);
+lasfile = sprintf('%s/%s.las', cfsworkingdirectory, invfilename);
 if exist(densfile, 'file')
     delete(densfile);
 end
 delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
 delete( sprintf('%s/%s', cfsworkingdirectory, invfile) );
-delete( sprintf('%s/%s.las', cfsworkingdirectory, invfilename) );
+if exist(lasfile, 'file')
+    delete(lasfile);
+end
 if exist(infofile, 'file')
     delete(infofile);
 end

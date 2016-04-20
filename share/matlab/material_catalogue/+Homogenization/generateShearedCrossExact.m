@@ -1,4 +1,4 @@
-function [ file, volume ] = generateShearedCrossExact(point,filepath,nx,ny)
+function [ file, volume, dimension ] = generateShearedCrossExact(point,filepath,nx,ny)
 % GENERATECROSS  -  Generates a sheared cross.
 %
 % @param:
@@ -62,12 +62,14 @@ s3 = (.5-point(3))*pi;
 
 volume = s1 + s2 - s1*s2;
 
+dimension = 2;
+
 % Initial number of elements
 % nx = 30;
 % ny = nx;
 
 % Nodes
-% Nodes are now separated into three parts:
+% Nodes are separated into three parts:
 % 0 to remainder / remainder to remainder + s / remainder + s to 1
 % Thus the second part has excactly the width s.
 

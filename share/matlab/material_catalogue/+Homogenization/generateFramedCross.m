@@ -1,4 +1,4 @@
-function [ file, volume ] = generateFramedCross(point,filepath,nx)
+function [ file, volume, dimension ] = generateFramedCross(point,filepath,nx)
 % GENERATEFRAMEDCROSS  -  Generates a quadratic frame overlayed with an
 % orthogonal cross, which is rotated by 45 degrees.
 %
@@ -57,6 +57,8 @@ nx = nx - 1;
 
 s3 = point(3)*nx;
 s4 = point(4)*nx;
+
+dimension = 2;
 
 % Cross
 for i = 1:nx
