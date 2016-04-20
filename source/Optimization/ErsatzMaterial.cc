@@ -1478,7 +1478,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
 //        assert(g != NULL);
         Vector<double> res;
-        result = CalcTempTrackingAtInterface(excite, f, derivative, f->GetParameter());
+        result = CalcStateTrackingAtInterface(excite, f, derivative, f->GetParameter());
         break;
       }
 
@@ -2555,7 +2555,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return upper_freq - lower_freq;
   }
 
-  double ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
+  double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
     unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
@@ -2602,7 +2602,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return res;
   }
 
-  void ErsatzMaterial::CalcAdjointRHSTempTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
+  void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
   {
     Vector<double> stateSol = forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize());
@@ -3689,7 +3689,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       }
       case Function::TEMP_TRACKING_AT_INTERFACE:
       {
-        CalcAdjointRHSTempTracking(excite, f, f->GetParameter(), rhs);
+        CalcAdjointRHSStateTracking(excite, f, f->GetParameter(), rhs);
         break;
       }
       default:
