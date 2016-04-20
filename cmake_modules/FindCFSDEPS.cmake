@@ -484,7 +484,7 @@ IF(USE_SGPP)
   SET(SGPP_VER "1.0.0")
   SET(SGPP_TGZ "${SGPP_BASE}_${SGPP_VER}.tgz")
   #SET(SGPP_BASE "sgopt")
-  #SET(SGPP_VER "r4892")
+  #SET(SGPP_VER "2016-03-04_166a3d9")
   #SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
   
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
