@@ -51,9 +51,9 @@ if opt
     da_p = a(2)/m_p;
     db_p = b(2)/n_p;
     %a(2) and b(2) is e.g. 0.1 if material catalogue is [0:0.1:1]
-    a_p = [0:da_p:a(2)];
-    b_p = [0:db_p:b(2)];
-    E11_p = zeros(m_p+1,n_p+1);
+    a_p = [0:da_p:1];
+    b_p = [0:db_p:1];
+    E11_p = zeros(m*m_p+1,n*n_p+1);
     for i=1:m_p+1
        for j=1:n_p+1
           E11_p(i,j) = E11(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
