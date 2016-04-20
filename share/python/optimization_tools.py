@@ -210,7 +210,7 @@ def read_density_as_vector(filename, attribute="design", set=None):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  
+  assert(set == None)
   root = tree.getroot()
   query = '//set[last()]/element' if set is None else '//set[@id="' + set + '"]/element'
   sett = root.xpath(query)
