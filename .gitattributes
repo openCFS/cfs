@@ -1298,6 +1298,7 @@ share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/process_density.py -text
 share/python/process_image.py -text
+share/python/shape_map.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
 share/python/spy.py -text
