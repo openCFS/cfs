@@ -271,21 +271,18 @@ protected:
 
   /** Handles tracking constraint/objective for given temperature at interfaces between solid and void
    *  @param excite The used excitation
-   *  @param f objectiv
-   *  @param g condition
+   *  @param f function
    *  @param derivative flag for calculating derivative
-   *  @param refVal the reference value that we want to track
-   *  @param adjoint Are we calculating adjoint rhs?
-   *  @param adjointRHS If adjoint RHS should be calculated, this is the output
+   *  @param trackVal the value that we want to track
    *  @return sum over all tracked values at interface nodes
    */
-  virtual double CalcTempTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
+  virtual double CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
 
   /**
    * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
    * K*l^T = -2 * F' * (u - u_track)
    */
-  virtual void CalcAdjointRHSTempTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
+  virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
 
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
