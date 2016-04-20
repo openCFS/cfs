@@ -854,8 +854,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
             
             # assign nodes 
             # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
-            ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
-            # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane 
+            ll = nnx*nny*z + nnx*y + x  # lower-left-back of current element 
+            # start with upper-left-back counterclockwise in the x-z plane. Repeat in the lower plane 
             # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
             e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
               
