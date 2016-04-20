@@ -25,6 +25,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
+#include <boost/lexical_cast.hpp>
 
 using std::string;
 using std::pair;
@@ -92,6 +93,12 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // default is set in Function, may this moves later to Function, too
   if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
+
+  // set number of displacement constraints realized by multiple output constraints
+  if (pn->Has("output") && pn->Get("output")->Has("displacement") && pn->Get("output")->Get("displacement")->Has("multiple_nodes"))
+    output_multiple_nodes = pn->Get("output")->Get("displacement")->Get("multiple_nodes")->As<double>();
+  else
+    output_multiple_nodes = 0;
 
   bloch_extremal_ = false; // set in the proper case
 
@@ -191,7 +198,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 
 
 
-void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
+void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, UInt i, std::string entName)
 {
   Type t = type.Parse(pn->Get("type")->As<string>());
   list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
@@ -208,12 +215,34 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 
+  // if OUTPUT is defined and the multiple_node option is turned on, multiple constraints are added to represent displacement constraints
+  if(g->type_ == OUTPUT)
+    AddOutputConstraints(pn,list,g,i,entName);
+
+
 
   //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || POS_DEF_DET_MINOR_3)
   //  AddFMOPosDefConstraints(pn, list, g);
 }
 
+// modify ParamNode pn of constraint, add number i to node name of output constraint. Necessary for displacement contstraints
+void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g,UInt i,std::string entName) {
+  assert(g->GetType() == OUTPUT && i >= 1);
 
+  PtrParamNode output;
+  ParamNodeList elems;
+  if (pn->Has("output"))
+    output = pn->Get("output");
+  if (output->Has("displacement"))
+    elems = output->GetList ("displacement");
+
+  // add number i to node name of output constraint
+  assert(elems.GetSize() == 1);
+  PtrParamNode xml = elems[0];
+  //std::string entName = xml->Get("name")->As<std::string>();
+  entName.assign(entName + boost::lexical_cast<std::string>(i));
+  xml ->Get("name")->SetValue(entName);
+}
 
 
 void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
@@ -1104,11 +1133,37 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   assert(all.IsEmpty());
 
   // slope constraints need to be post processed in ErsatzMaterial
+  bool displacement_constr;
   for(unsigned int i = 0; i < pn_list.GetSize(); i++)
   {
     PtrParamNode pn = pn_list[i];
     bool act = pn->Get("mode")->As<string>() == "constraint";
-    Condition::AddCondition(pn, act ? active : observe);
+
+    // Add multiple displacement constraints using output displacement constraint on multiple numbered nodes
+    PtrParamNode output;
+    ParamNodeList elems;
+    displacement_constr = false;
+    if (pn->Has("output")) {
+      output = pn->Get("output");
+      if (output->Has("displacement")) {
+        elems = output->GetList ("displacement");
+        assert(elems.GetSize() == 1);
+        PtrParamNode xml = elems[0];
+       if (xml->Has("multiple_nodes")) {
+          UInt end = xml->Get("multiple_nodes")->As<UInt>();
+          displacement_constr = true;
+          std::string entName = xml->Get("name")->As<std::string>();
+
+          for (UInt j = 0; j < end; j++) {
+            Condition::AddCondition(pn, act ? active : observe,j+1,entName);
+          }
+        }
+      }
+    }
+
+    // General constraint (Non displacement constraint case)
+    if (!displacement_constr)
+      Condition::AddCondition(pn, act ? active : observe);
   }
 
   // process the virtual containers

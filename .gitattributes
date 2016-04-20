@@ -1278,6 +1278,7 @@ share/python/material_catalogue/interpolation3D/wrapper_3D.m -text
 share/python/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/python/material_catalogue/inv_tensor.xml -text
 share/python/material_catalogue/inv_tensor_3D.xml -text
+share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/mat.xml -text
 share/python/material_catalogue/process_sparse.py -text
 share/python/matviz.py -text
