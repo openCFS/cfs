@@ -38,7 +38,7 @@ def num_nodes_by_type(type_id):
 # # give back elements with barycenters
 # works 2D and 3D
 # @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
-def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None):
+def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
   types = hdf5_file['/Mesh/Elements/Types'].value
@@ -83,17 +83,22 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   max_dim = max(nodes[:, 0]), max(nodes[:, 1]), max(nodes[:, 2])   
     
   result = []
-  for e in range(len(reg_elements)):
-    idx = reg_elements[e] - 1  # cfs writes one based
-    nod = all_elements[idx]
-    center = numpy.array([0.0, 0.0, 0.0])
-    len_nod = num_nodes_by_type(types[idx])
-    for n in range(len_nod):
-      center += all_nodes[nod[n] - 1]  # numbers are one-based
-      # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
-    center *= 1.0 / len_nod
-    result.append(center)
-    # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center)
+  if centered:
+    for e in range(len(reg_elements)):
+      idx = reg_elements[e] - 1  # cfs writes one based
+      nod = all_elements[idx]
+      center = numpy.array([0.0, 0.0, 0.0])
+      len_nod = num_nodes_by_type(types[idx])
+      for n in range(len_nod):
+        center += all_nodes[nod[n] - 1]  # numbers are one-based
+        # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
+      center *= 1.0 / len_nod
+      result.append(center)
+      # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center)
+  else:
+    # append nodes to result instead of element centers
+    for i in range(len(nodes[:,0])):
+      result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
   return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support 
                 
 # # find minimal and maximal coordinate

@@ -42,6 +42,7 @@ parser.add_argument('--noshow', action='store_true', help='do not pop up the ima
 parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type=float, default=0.0)
 parser.add_argument('--colorregion', help="interpret colors as other regions", action='store_true')
 parser.add_argument('--pressure', help='sets region for pressure in the meshfile')
+parser.add_argument('--attribute', help='attribute to be read from .xml file (design / physical)', default='design')
 
 mesh = Mesh()
 
@@ -57,7 +58,7 @@ elif args.multi_d == 2:
   multi_d = read_multi_design(args.input, 'stiff1', 'stiff2', matrix=True)
   create_dense_mesh_density(multi_d, mesh, args.threshold, args.scale, args.rhomin, 2)
 elif '.xml' in args.input:
-  d = read_density(args.input, "design")
+  d = read_density(args.input, args.attribute)
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
 elif '.txt' in args.input:
   d = load_matrix_from_file(args.input)

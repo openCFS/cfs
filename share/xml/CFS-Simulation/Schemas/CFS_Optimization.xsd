@@ -325,7 +325,7 @@
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
-            <!-- only for the output constroaint which is an displacement constraint -->
+            <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
@@ -413,6 +413,8 @@
                 <xsd:enumeration value="heatEnergy"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
+                <!-- tracking heat temperature at interfaces -->
+                <xsd:enumeration value="tempTrackingAtInterface"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1627,6 +1629,8 @@
       <xsd:enumeration value="slack"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
+      <!--  temperature tracking at interface -->
+      <xsd:enumeration value="tempTrackingAtInterface"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -2117,10 +2121,11 @@
 
   <xsd:complexType name="DT_output">
     <xsd:sequence>
-      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector"/>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector_mod"/>
       <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
       <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
       <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
+      
       <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
@@ -2129,12 +2134,20 @@
                 <xsd:attribute name="name" type="xsd:token" use="required"/>
                 <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
               </xsd:complexType>
-            </xsd:element>
+            </xsd:element>           
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>               
   </xsd:complexType>    
+  
+  <xsd:complexType name="DT_BcInhomVector_mod">
+  <xsd:complexContent>
+    <xsd:extension base="DT_BcInhomVector">
+        <xsd:attribute name="multiple_nodes" type="xsd:token" use="optional"/>
+    </xsd:extension>
+  </xsd:complexContent>
+</xsd:complexType>
   
   
   <!-- Simple load definition -->
