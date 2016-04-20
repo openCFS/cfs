@@ -152,6 +152,28 @@
       </mechanicalDamping>
     </mechanical>
   </material>
+<material name="Ti6Al4V">
+    <!-- Data obtained from Martin Muir Airbus, Filton, UK -->
+    <mechanical>
+      <density> 7872 </density>
+
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus>1.145e11<!-- real value = 114.5 Gpa--></elasticityModulus>
+            <poissonNumber> 0.32 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>
+      </mechanicalDamping>
+    </mechanical>
+  </material>
 <material name="scaled_aluminum">
     <!-- Data obtained from : "http://www.matweb.com"
            Reference(s) : "www.matweb.com"
@@ -175,6 +197,28 @@
         </rayleigh>
       </mechanicalDamping>
     </mechanical>
-  </material>    
+  </material>   
+<material name="Aluminum">
+    <!-- Data obtained from Martin Muir Airbus, Filton, UK-->
+    <mechanical>
+      <density> 7872 </density>
+
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus>6.2e10 <!-- real value = 62 Gpa--></elasticityModulus>
+            <poissonNumber> 0.31 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>
+      </mechanicalDamping>
+    </mechanical>
+  </material> 
 </cfsMaterialDataBase>
 
