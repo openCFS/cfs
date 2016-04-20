@@ -34,6 +34,7 @@
 #include "MatVec/exprt/xpr2.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/SBM_Matrix.hh"
 #include "Materials/MechanicMaterial.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DensityFile.hh"
@@ -806,7 +807,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
         if(rtf != NULL) {
           if (rhs->isInterfaceDriven_)
-            SubstractInterfaceDrivenGradRHS(de, mat_vec);
+            SubstractInterfaceDrivenGradRHS(f, de, mat_vec);
           else
             SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
         }
@@ -1299,41 +1300,58 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
 
   template<class T>
-  void ErsatzMaterial::CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out)
+  void ErsatzMaterial::CalcInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& out)
   {
+     assert(f != NULL);
      StdVector<unsigned int>& nodes = de->elem->connect;
-     out.Resize(nodes.GetSize());
+     out.Resize(nodes.GetSize(), 0.0);
 
-     // for each node we have f' = 1-2*(sum rho of node)
+     // get nodes where homogeneous Dirichlet BC is enforced
+     shared_ptr<BaseFeFunction> fe = f->ctxt->pde->GetFeFunction(f->ctxt->pde->GetNativeSolutionType());
+     StdVector<unsigned int> idBcNodes;
+     IdBcList& idBcs = fe->GetInHomDirichletBCs();
 
+     // find indices of nodes with a hom Dirichlet bc
+     for (unsigned int i = 0; i < idBcs.GetSize(); i++) {
+       EntityIterator entIt = idBcs[i]->entities->GetIterator();
+       for ( ; !entIt.IsEnd(); entIt++)
+         idBcNodes.Push_back(entIt.GetNode());
+     }
+
+     // for each node we have f' =  4* ds_i /drho_i * (1-2*s_i)
+     // except for bc nodes, there f' is 0
      for(unsigned int n = 0; n < nodes.GetSize(); n++)
      {
        unsigned int node = nodes[n];
-       // search for the elements of node
-       StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(node);
-       // traverse the elements
-       double sum = 0.0;
-       int found = 0;
-       for(unsigned int e = 0; e < elems.GetSize(); e++)
+
+       if(!idBcNodes.Contains(node)) // gradient is 0 at bc nodes
        {
-         int design_index = design->Find(elems[e],false);
-         if(design_index >= 0)
+         // search for the elements of node
+         StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(node);
+         // traverse the elements
+         double sum = 0.0;
+         int found = 0;
+         for(unsigned int e = 0; e < elems.GetSize(); e++)
          {
-           double factor = design->data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter in DesignSpace::ApplyPhysialDesign(Vector)
-           sum += factor;
-           found++;
+           int design_index = design->Find(elems[e],false);
+           if(design_index >= 0)
+           {
+             double factor = design->data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter in DesignSpace::ApplyPhysialDesign(Vector)
+             sum += factor;
+             found++;
+           }
          }
-       }
-       assert(found > 0);
-       out[n] =  4.0 / (double) found * (1.0 - 2.0 * (sum / (double) found));
-     }
+         assert(found > 0);
+         out[n] =  4.0 / (double) found * (1.0 - 2.0 * (sum / (double) found));
+       } // if
+     } // for
   }
 
   template<class T>
-  void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& in_out)
+  void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out)
   {
       Vector<T> gradRHS;
-      CalcInterfaceDrivenGradRHS(de, gradRHS);
+      CalcInterfaceDrivenGradRHS(f, de, gradRHS);
       in_out -= gradRHS;
   }
 
@@ -1456,6 +1474,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Objective::TRACKING:
       result = CalcTracking(excite, c, g, derivative);
       break;
+
+      case Condition::TEMP_TRACKING_AT_INTERFACE:
+      {
+//        assert(g != NULL);
+        Vector<double> res;
+        result = CalcStateTrackingAtInterface(excite, f, derivative, f->GetParameter());
+        break;
+      }
 
       case Function::GREYNESS:
       assert(c == NULL);
@@ -2065,20 +2091,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return result;
   }
 
-  double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative)
+  double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
-    assert(f != NULL || g != NULL);
-    assert(f == NULL || g == NULL);
-    Function* func = Function::GetFunction(f, g);
+    assert(c != NULL || g != NULL);
+    assert(c == NULL || g == NULL);
+    Function* f = Function::GetFunction(c, g);
 
     double res = 0.0;
 
     if(derivative)
     {
-      TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , App::HEAT, true);
-      double factor = excite.GetWeightedFactor(func);
-      //TODO: if design dependent
-      HeatPDE* heat = dynamic_cast<HeatPDE*>(domain->GetSinglePDEs()[0]);
+      TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::HEAT, true);
+      double factor = excite.GetWeightedFactor(f);
+      HeatPDE* heat = dynamic_cast<HeatPDE*>(f->ctxt->pde);
       assert(heat != NULL);
       DesignDependentRHS* rhs = NULL;
       if (heat->HasInterfaceDrivenRHS())
@@ -2086,22 +2111,22 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         rhs = new DesignDependentRHS();
         rhs->Init<double>(design,App::HEAT);
         // f'^Tu de->AddGradient(f, this_value);
-        StdVector<SingleVector*> stateSol = forward.Get(excite)->elem[App::HEAT];
+        StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
         for (unsigned int id = 0; id < design->data.GetSize(); id++) {
-          Vector<double> gradRHS;
+          Vector<double> gradRHS; // f'
           DesignElement* de = &design->data[id];
-          CalcInterfaceDrivenGradRHS(de,gradRHS);
+          CalcInterfaceDrivenGradRHS(f, de,gradRHS);
           double val = gradRHS.Inner(*stateSol[id]);
-          de->AddGradient(func,val);
+          de->AddGradient(f,val);
         }
       }
-      CalcU1KU2(tf, forward.Get(excite)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, -factor, STANDARD, func);
+      CalcU1KU2(tf, forward.Get(excite)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, -factor, STANDARD, f);
     }
     else {
       Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
       Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
       u.Inner(rhs,res);
-      res *= excite.GetFactor(func);
+      res *= excite.GetFactor(f);
     }
     return res;
   }
@@ -2531,11 +2556,67 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return upper_freq - lower_freq;
   }
 
+  double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
+  {
+    assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
+    unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
+    double res = 0.0;
+
+    if (derivative)
+    { // (u - u_)^T * F'(u - u_), where u_ is tracked temperature and F diag(f)
+      TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::HEAT, true);
+      double factor = excite.GetWeightedFactor(f);
+      HeatPDE* heat = dynamic_cast<HeatPDE*>(f->ctxt->pde);
+      assert(heat != NULL);
+      DesignDependentRHS* rhs = NULL;
+      if (heat->HasInterfaceDrivenRHS())
+      {
+        rhs = new DesignDependentRHS();
+        rhs->Init<double>(design,App::HEAT);
+        StdVector<SingleVector* >& all_u_elem = forward.Get(excite)->elem[App::HEAT];
+        for (unsigned int e = 0; e < design->data.GetSize(); e++) { // (u_i - u_ref)^2, element based
+          Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
+          Vector<double> gradLoad; // f'
+          DesignElement* de = &design->data[e];
+          CalcInterfaceDrivenGradRHS(f, de,gradLoad);
+          // f'_i
+          double val = 0.0;
+          // f'_i * (u_i - u_track)^2
+          for (unsigned int n = 0; n < gradLoad.GetSize(); n++)
+            val += gradLoad[n] * (u_elem[n] - trackVal) * (u_elem[n] - trackVal);
+
+          de->AddGradient(f,val);
+        }
+      }
+      CalcU1KU2(tf, adjoint.Get(excite,f)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, factor, STANDARD, f);
+    }
+    else
+    {
+      Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+      Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+      assert(u.GetSize() == nNodes);
+      for (unsigned int n = 0; n < nNodes; n++)
+        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal);
+      assert(res >= 0);
+    } // if-else
+
+    return res;
+  }
+
+  void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
+  {
+    Vector<double> stateSol = forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR);
+    out.Resize(stateSol.GetSize());
+
+    Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+
+    for (unsigned int i = 0; i < stateSol.GetSize(); i++)
+      out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal);
+  }
+
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
-    assert(false);
-    return -1.0;
     /* FIXME
     Function* f = Function::Cast(c, g);
     UInt timesteps = context->GetDriver()->GetNumSteps();
@@ -2612,6 +2693,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       return 0.5 * val;
     }
     */
+    return -1;
   }
 
   double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
@@ -3480,6 +3562,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::ELEC_ENERGY:
       case Function::ENERGY_FLUX:
       case Function::STRESS:
+      case Function::TEMP_TRACKING_AT_INTERFACE: // track boundary driven load
       case Function::STRESS_DENSITY:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
@@ -3516,7 +3599,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // save and restore them in any case.
     StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
     // set pseudo loads (if there are output nodes)
-    if (f->NeedsSelectionVector())
+    if (f->NeedsSelectionVector()) // TODO: rhs? no, since selection vector is assembled automatically
       ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
 
     // any adjoint PDE has HDBC instead of IDBC. We Store the IDBC, add the BC as HDBC, solve, reset the IDBC and remove the additional HDBC
@@ -3536,10 +3619,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     // set the adjoint rhs
     ConstructAdjointRHS(excite, f);
-    // calculate adjoint problem
+
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
+    // calculate adjoint problem
     assemble->GetAlgSys()->Solve();
 
     context->GetDriver()->GetAnalysisId().adjoint = false;
@@ -3602,6 +3686,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         StressConstraint<double> sc(&excite, f, this, &forward);
         sc.CalcAdjointRHS(rhs);
+        break;
+      }
+      case Function::TEMP_TRACKING_AT_INTERFACE:
+      {
+        CalcAdjointRHSStateTracking(excite, f, f->GetParameter(), rhs);
         break;
       }
       default:

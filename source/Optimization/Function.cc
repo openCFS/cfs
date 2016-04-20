@@ -19,7 +19,6 @@
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "Materials/MechanicMaterial.hh"
-//#include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -420,6 +419,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SHAPE_INF:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
+  case TEMP_TRACKING_AT_INTERFACE:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -526,6 +526,7 @@ bool Function::IsAdjointBased() const {
   case ENERGY_FLUX:
   case STRESS:
   case STRESS_DENSITY:
+  case TEMP_TRACKING_AT_INTERFACE:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -708,6 +709,7 @@ bool Function::ForSensitivityFiltering() const {
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case TEMP_TRACKING_AT_INTERFACE:
   case EXPRESSION:
   case SHAPE_INF:
     return false;
