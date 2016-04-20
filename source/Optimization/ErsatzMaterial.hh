@@ -279,13 +279,13 @@ protected:
    *  @param adjointRHS If adjoint RHS should be calculated, this is the output
    *  @return sum over all tracked values at interface nodes
    */
-  virtual double CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double trackVal);
+  virtual double CalcTempTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
 
   /**
    * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
    * K*l^T = -2 * F' * (u - u_track)
    */
-  virtual void CalcAdjointRHSTempTracking(Excitation& excite, Objective* c, Condition* g, double trackVal, Vector<double>& out);
+  virtual void CalcAdjointRHSTempTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
 
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
@@ -440,9 +440,9 @@ private:
    * f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param de for this element we compute "out"
    * @param out gets size of nodes of de elem and contains d_f/d_de */
-  template<class T> void CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out);
+  template<class T> void CalcInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& out);
 
-  template<class T> void SubstractInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& in_out);
+  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
