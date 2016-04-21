@@ -238,6 +238,8 @@ SET (MKL_POSSIBLE_PATHS
   /apps/intel/Compiler/11.0/069/mkl
   /apps/intel/mkl/10.0.011
   /apps/intel/ict/3.0/cmkl/9.0
+  # Paths on Lima
+  /apps/intel/ComposerXE2013/composer_xe_2013.5.192/mkl
  )
 
 #-------------------------------------------------------------------------------
