@@ -53,8 +53,9 @@ ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
   LIST(APPEND TARGET_LL
     -lpthread
     ${CFS_FORTRAN_DYNRT_LIBS}
-    -llapack
-    -lblas
+########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
+#    -llapack            
+#    -lblas
     )
 ELSE()
   LIST(APPEND TARGET_LL
