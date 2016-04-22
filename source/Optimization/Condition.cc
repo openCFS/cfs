@@ -198,7 +198,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 
 
 
-void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, UInt i, std::string entName)
+void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, int i, std::string entName)
 {
   Type t = type.Parse(pn->Get("type")->As<string>());
   list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
@@ -216,7 +216,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, UInt 
     AddXtropyConstraints(pn, list, g);
 
   // if OUTPUT is defined and the multiple_node option is turned on, multiple constraints are added to represent displacement constraints
-  if(g->type_ == OUTPUT)
+  if(g->type_ == OUTPUT && i > 0)
     AddOutputConstraints(pn,list,g,i,entName);
 
 
@@ -225,9 +225,9 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, UInt 
   //  AddFMOPosDefConstraints(pn, list, g);
 }
 
-// modify ParamNode pn of constraint, add number i to node name of output constraint. Necessary for displacement contstraints
-void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g,UInt i,std::string entName) {
-  assert(g->GetType() == OUTPUT && i >= 1);
+// modify ParamNode pn of constraint, add number i to node name of output constraint. Necessary for automatic numbering of displacement constraints with multiple_node option
+void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g,int i,std::string entName) {
+  assert(g->GetType() == OUTPUT && i > 0);
 
   PtrParamNode output;
   ParamNodeList elems;
