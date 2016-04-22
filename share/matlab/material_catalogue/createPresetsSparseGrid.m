@@ -1,5 +1,6 @@
 dim  = 3;
-level = 5;
+level = 3;
+blevel = 2;
 
 % Get current path
 path = fileparts(which('createPresetsSparseGrid.m'));
@@ -7,7 +8,7 @@ path = fileparts(which('createPresetsSparseGrid.m'));
 % Generate points with python script
 tmp = pwd;
 cd('generate_points/');
-[status,result] = system( sprintf('python generate_points.py %d %d',dim,level) );
+[status,result] = system( sprintf('python generate_points.py %d %d %d',dim,level,blevel) );
 if status ~= 0
     disp('Fehler beim Aufruf von generate_points.py');
     disp(result);
@@ -40,8 +41,14 @@ A = [1, dim, level, sz(1), zeros(1,2*dim-4); A, zeros(sz(1), 4-2*dim)];
 if ~exist('presets','dir')
     mkdir('presets')
 end
-dlmwrite( sprintf('presets/byCoords/presets%dD_L%d',dim,level), coords, 'delimiter', ',', 'precision', '%.10f' );
-dlmwrite( sprintf('presets/byLevelAndIndex/presets%dD_L%d',dim,level), A, 'delimiter', ',', 'precision', '%d' );
+if ~exist('presets/byCoords','dir')
+    mkdir('presets/byCoords')
+end
+if ~exist('presets/byLevelAndIndex','dir')
+    mkdir('presets/byLevelAndIndex')
+end
+dlmwrite( sprintf('presets/byCoords/presets%dD_L%d_b%d',dim,level,blevel), coords, 'delimiter', ',', 'precision', '%.10f' );
+dlmwrite( sprintf('presets/byLevelAndIndex/presets%dD_L%d_b%d',dim,level,blevel), A, 'delimiter', ',', 'precision', '%d' );
 
 % Clean up
 clear tmp format status result fid ans A sz

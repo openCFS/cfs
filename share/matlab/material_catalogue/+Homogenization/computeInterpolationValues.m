@@ -54,8 +54,9 @@ numPoints = size(pointsCoords,1);
 try
     [meshfile, dimension] = meshgenerationfunc(pointsCoords(1,:), '.');
     [meshfilepath, meshfilename] = fileparts(meshfile);
-    if exist( sprintf('%s/%s.dens', meshfilepath, meshfilename), 'file' )
-        delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
+    densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
+    if exist( densfile, 'file' )
+        delete( densfile );
     end
     delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
 catch ME
@@ -130,7 +131,7 @@ for i=1:numPoints
     end
 
     showProgress(i,numPoints);
-    if 1-volume >= 1e-14
+    if volume >= 1e-14 && 1-volume >= 1e-14
         delete( sprintf('%s/inv_tensor_%s.info.xml', cfsworkingdirectory, meshfilename) );
     end
 end

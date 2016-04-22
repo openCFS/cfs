@@ -36,8 +36,13 @@ if volume < 1e-14
     else
         Tensor = zeros(6,6);
     end
-    delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
-    delete( meshfile );
+    densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
+    if exist( densfile, 'file')
+        delete( densfile );
+    end
+    if exist( meshfile, 'file')
+        delete( meshfile );
+    end
     return
 end
 % For full material Eh equals the elasticity tensor.
@@ -88,16 +93,16 @@ end
 densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
 infofile = sprintf('%s/%s.info', cfsworkingdirectory, invfilename);
 lasfile = sprintf('%s/%s.las', cfsworkingdirectory, invfilename);
+plotfile = sprintf('%s/%s.plot.dat', cfsworkingdirectory, invfilename);
+h5file = sprintf('%s/results_hdf5/%s.h5', cfsworkingdirectory, invfilename);
+delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
+delete( sprintf('%s/%s', cfsworkingdirectory, invfile) );
 if exist(densfile, 'file')
     delete(densfile);
 end
-delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
-delete( sprintf('%s/%s', cfsworkingdirectory, invfile) );
 if exist(lasfile, 'file')
     delete(lasfile);
-end
-if exist(infofile, 'file')
     delete(infofile);
+    delete( plotfile );
+    delete( h5file );
 end
-delete( sprintf('%s/%s.plot.dat', cfsworkingdirectory, invfilename) );
-delete( sprintf('%s/results_hdf5/%s.h5', cfsworkingdirectory, invfilename) );
