@@ -301,7 +301,7 @@ public:
   StdVector<double> coord;
 
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
-   * Note this is for node and we have one node mor than elements in one direction.*/
+   * Note this is for node and we have one node more than elements in one direction.*/
   StdVector<int> idx;
 };
 

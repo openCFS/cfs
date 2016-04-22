@@ -61,8 +61,14 @@ class Shape:
       self.color = 'k'
     assert(id <= 6)  
   
+  # print the shape info
   def __str__(self):
-    return "id=" + str(self.id) + " dof=" + str(self.dof) + " color=" + self.color + " #el=" + str(len(self.el)) + " el=" + str(self.el) 
+    return "id=" + str(self.id) + " dof=" + str(self.dof) + " color=" + self.color + " #el=" + str(len(self.el)) + " el=" + str(self.el)
+
+  # shape info for a given index
+  def to_string(self, idx):
+    return "shape=" + str(self.id) + " dof=" + str(self.dof) + " color=" + str(self.color) + " idx=" + str(idx) + " val=" + str(self.val[idx]) + " profile=" + str(self.profile[idx]) + " valid=" + str(self.valid[idx]) + ""
+   
   #@return x, y for center point a
   def get_center(self, idx):   
     free = idx * float(1./(len(self.el)-1))
@@ -93,24 +99,26 @@ class Shape:
 
     x,y = self.get_center(idx_1)
     if self.dof == 0:
-      x += (-1 if left else +1) * self.profile[idx_1]
+      x += (-.5 if left else +.5) * self.profile[idx_1]
     else:    
-      y += (-1 if left else +1) * self.profile[idx_1]  
+      y += (-.5 if left else +.5) * self.profile[idx_1]  
     
     x_val.append(x)
     y_val.append(y)
     
     x,y = self.get_center(idx_2)
     if self.dof == 0:
-      x += (-1 if left else +1) * self.profile[idx_2]
+      x += (-.5 if left else +.5) * self.profile[idx_2]
     else:    
-      y += (-1 if left else +1) * self.profile[idx_2]  
+      y += (-.5 if left else +.5) * self.profile[idx_2]  
     
     x_val.append(x)
     y_val.append(y)
 
     return x_val, y_val    
     
+
+
 
 # @param file withe grad.plot or density.xml
 # @param profile use if not in file
@@ -208,6 +216,48 @@ def find_data_in_line(line):
     data.append((center, profile))
 
   return data        
+  
+# fixes the shape data which is not valid by interpolating between the last valid
+def repair_shapes(shapes):
+  cnt = 0  
+  for shape in shapes:
+    start = -1
+    end   = -1
+    assert(len(shape.valid) == len(shape.val))
+    # find invalid ranges
+    in_valid = shape.val[0]
+    assert(in_valid) # we shall start good
+    for i in range(len(shape.valid)):
+      if not shape.valid[i] and in_valid: # invalid starts
+        assert(start == -1)        
+        assert(end == -1)
+        in_valid = False
+        start = i
+        end = -1
+      elif shape.valid[i] and not in_valid: #invalid ends
+        assert(start != -1)
+        assert(end == -1)
+        in_valid = True
+        end = i-1
+        #print 'last valid region: ' + shape.to_string(start-1)
+        for j in range(end+1-start):
+          #print start
+          #print end
+          #print end+2-start  
+          #print 1.0/(end+2-start)
+          bal = (j+1)*1.0/(end+2-start)
+          val = shape.val[start-1] + bal * (shape.val[end+1] - shape.val[start-1])  
+          #print 'ivalid: bal = ' + str(bal) + " val=" + str(val) + " -> " + shape.to_string(start+j)
+          shape.val[start+j] = val
+          shape.profile[start+j] = shape.average_valid_profile()
+          cnt += 1
+        #print 'invalid region: start ' + str(start) + " -> " + shape.to_string(start)
+        #print 'invalid region: end ' + str(end) + " -> " + shape.to_string(end)
+        #print 'first valid region: ' + shape.to_string(end+1)
+        # reset
+        start = -1
+        end = -1      
+  print "repaired " + str(cnt) + " times"        
 
 # fills shape content for import_form_image based on the previous shapes data
 def smart_append_data(n, data, shapes):
@@ -240,28 +290,29 @@ def smart_append_data(n, data, shapes):
       for dat in data:
         if best == None or abs(dat[0] - ref_a) < abs(best[0] - ref_a):
            best = dat  
-      if abs(best[0] - ref_a) < 1.0/n:
+      if abs(best[0] - ref_a) < 1.5/n:
         # use best found  
-        #print 'best ' + str(best) + ' for ref ' + str(ref_a) + ' for line data ' + str(data)
+        # print 'best ' + str(best) + ' for ref ' + str(ref_a) + ' for line data ' + str(data)
         shape.val.append(best[0])  
         shape.profile.append(best[1])
-        shape.valid.append(False)
+        shape.valid.append(True)
       else:    
-        # print 'best ' + str(best) + ' is not good enough for ref ' + str(ref_a) + ' for line data ' + str(data)
+        #  print 'best ' + str(best) + ' is not good enough for ref ' + str(ref_a) + ' with err ' + str(abs(best[0] - ref_a)) + ' and criteria ' + str(1.5/n)
         # copy old stuff
         shape.val.append(shape.val[-1])  
         shape.profile.append(shape.average_valid_profile())
         shape.valid.append(False)
 
   
-def import_from_image(filename):
+def import_from_image(filename, resample, repair):
   img = Image.open(args.input).transpose(Image.FLIP_TOP_BOTTOM)
   img = img.convert("L")
   dat = numpy.asarray(img, dtype="uint8")
   assert(len(dat.shape) == 2)
   nx, ny = dat.shape
   assert(nx == ny) # check what is all needed!
-
+  if resample == None:
+    resample = nx 
   shapes = []  
   # we assume that the first line determines the number of shapes
   # start with columns
@@ -269,15 +320,15 @@ def import_from_image(filename):
   print "we assume " + str(num) + " horizontal shapes"
   for i in range(num):
     shapes.append(Shape(id = len(shapes), dof=1))
-  for i in range(nx):
-     smart_append_data(nx, find_data_in_line(dat[:,i]), shapes[-num:]) # the last num shapes just appended
+  for i in numpy.linspace(0,nx-1, resample+1): #resample +1 because for 10 elements we have 11 variables
+     smart_append_data(resample, find_data_in_line(dat[:,int(i)]), shapes[-num:]) # the last num shapes just appended
 
   num = len(find_data_in_line(dat[0,:]))
   print "we assume " + str(num) + " vertical shapes"
   for i in range(num):
     shapes.append(Shape(id = len(shapes), dof=0))
-  for i in range(nx):
-     smart_append_data(nx, find_data_in_line(dat[i,:]), shapes[-num:]) # the last num shapes just appended
+  for i in numpy.linspace(0,nx-1, resample+1):
+     smart_append_data(resample, find_data_in_line(dat[int(i),:]), shapes[-num:]) # the last num shapes just appended
      
   cnt = 0   
 
@@ -285,7 +336,9 @@ def import_from_image(filename):
   for shape in shapes:
     shape.el = range(cnt, cnt + len(shape.val))
     cnt += len(shape.val)
-         
+        
+  if repair:       
+    repair_shapes(shapes)       
   return shapes
      
 def plot_data(res, shapes):
@@ -310,19 +363,53 @@ def plot_data(res, shapes):
       
   return fig, sub
 
+def export(shapes, filename, suppress_profile):
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  nx = len(shapes[0].val) - 1
+  out.write('    <mesh x="' + str(nx) + '" y="' + str(nx) + '" z="1"/>\n')  
+  out.write('  </header>\n')
+  out.write('  <set id="shape_map.py">\n')
+  # <shapeParamElement nr="0" type="node" dof="x" design="0.3"/>
+  for shape in shapes:
+    for i in range(len(shape.val)):  
+      out.write('    <shapeParamElement nr="' + str(shape.el[i]) + '" type="node" dof="' + ('x' if shape.dof == 0 else 'y') + '" design="' + str(shape.val[i]) + '"/>\n')
+  if not suppress_profile:
+    base = shapes[-1].el[-1]+1
+    for shape in shapes:
+      for i in range(len(shape.val)):  
+        out.write('    <shapeParamElement nr="' + str(base + shape.el[i]) + '" type="profile" dof="' + ('x' if shape.dof == 0 else 'y') + '" design="' + str(shape.profile[i]) + '"/>\n')
+        
+           
+  out.write('  </set>\n')
+  out.write(' </cfsErsatzMaterial>\n')
+  
 # __name__ is 'shape_map' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml or .grad.plot file or a image")
   parser.add_argument("--profile", help="give the profile if it is not in input", type=float)
+  parser.add_argument('--resample', help="resample to this resolution (when parsing from image)", type=float)
+  parser.add_argument('--repair', help="interpolate unsure data (when parsing from image)", action='store_true')
+  parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
+  parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
+  parser.add_argument('--save', help="save the image to the given name with the given format")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   args = parser.parse_args()
   shapes = []
   if args.input.endswith('.xml') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.profile)
   else:
-    shapes = import_from_image(args.input)
+    shapes = import_from_image(args.input, args.resample, args.repair)
+  
+  if args.export:  
+    export(shapes, args.export, args.suppress_profile)
+
   fig, sub = plot_data(800, shapes)
+  if args.save:
+    fig.savefig(args.save)  
   if not args.noshow:
     fig.show()
     raw_input("Press Enter to terminate.")

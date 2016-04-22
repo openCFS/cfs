@@ -1220,6 +1220,13 @@
                 </xsd:attribute>
                 <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
                 <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
+
+                <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
+                <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
+                
+                <!--  Set element bounds relative to the initial element value in load ersatz material -->                
+                <xsd:attribute name="relative_bound" use="optional" type="xsd:float" default="-1.0"/>
+                
               </xsd:complexType>
             </xsd:element>
             
@@ -1265,7 +1272,7 @@
                 <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
                 <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
 
-                <!-- what are these attributes for? Seems to be so special that a subelement migt be the better place for them! -->
+                 <!--  Set element bounds relative to the initial element value in load ersatz material -->
                 <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
 
 

@@ -64,6 +64,11 @@ public:
   /** creates a gnuplot file for the current iteration with the design value and derivatives */
   virtual void WriteGradientFile();
 
+  /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
+   * @param set the set from the density.xml
+   * @param lower_violation the maximal violation */
+  void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation);
+
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
    * @param locality just given to assert() it is PREV_AND_NEXT
@@ -85,6 +90,12 @@ public:
 
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   BaseDesignElement::Type Convert(Type type) const;
+
+  /** convert "x" to 0 and "y" to 1 */
+  static int Dof(const std::string& str);
+
+  /** @see Dof() */
+  static std::string Dof(int dof);
 
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
@@ -263,6 +274,12 @@ protected:
 
   /** shortcut to the dimension (2,3) */
   unsigned int dim_;
+
+  /** checks lower and upper when loading from ersatz material */
+  bool enforce_bounds_;
+
+  /** set element upper and lower relative to the initial value from load ersatz material. <0 disables */
+  double relative_bound_;
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim

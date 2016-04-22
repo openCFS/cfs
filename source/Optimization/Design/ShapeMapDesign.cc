@@ -27,6 +27,8 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 
   this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
+  this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
+  this->relative_bound_ = pn->Get("shapeMap/relative_bound")->As<double>();
   this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -214,6 +216,62 @@ int ShapeMapDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   return -1;
 }
 
+void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation)
+{
+  ParamNodeList list = set->GetList("shapeParamElement");
+  if(list.IsEmpty())
+    throw Exception("no 'shapeParamElement' found in provided density.xml");
+
+  assert(!shape_param_.IsEmpty());
+  if(!(list.GetSize() == shape_param_.GetSize()) || (list.GetSize() == shape_param_.GetSize()/2))
+    EXCEPTION("incompatible shape variables in density.xml (" << list.GetSize() << ") with " << shape_param_.GetSize() << " variables expected");
+
+  // needs to be checked while reading
+  bool read_profile = list.GetSize() != shape_param_.GetSize() / 2;
+
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+  {
+    const PtrParamNode pn = list[i];
+    ShapeParamElement& spe = shape_param_[i];
+    assert(spe.GetIndex() == i);
+    unsigned int nr = pn->Get("nr")->As<int>();
+    assert(nr == i);
+
+    BaseDesignElement::Type dt = BaseDesignElement::type.Parse(pn->Get("type")->As<string>());
+    if(dt != spe.GetType())
+      EXCEPTION("shapeParamElement nr=" << nr << " has type " << pn->Get("type")->As<string>()
+                << " but we expect type " << BaseDesignElement::type.ToString(spe.GetType()));
+
+    if(!read_profile && dt == BaseDesignElement::PROFILE)
+      EXCEPTION("no shapeParamElement of type profile expected in density.xml");
+
+    // a profile has no dof
+    if(dt == BaseDesignElement::NODE && pn->Get("dof")->As<string>() != Dof(spe.dof))
+      EXCEPTION("shapeParamElement nr " << nr << " has not the expected dof " << Dof(spe.dof));
+
+    double val = pn->Get("design")->As<double>();
+
+    lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
+    upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
+
+    if(enforce_bounds_)
+      spe.SetDesign(std::min(spe.GetUpperBound(), std::max(spe.GetLowerBound(), val)));
+    else
+      spe.SetDesign(val);
+
+    // Get value of the relative bound for current design variable. If value not set, db = -1.
+    if(relative_bound_ > 0.0)
+    {
+      // if a relative_bound is set in the xml file, upper and lower bound are overwritten
+      spe.SetUpperBound(val + relative_bound_);
+      spe.SetLowerBound(val - relative_bound_);
+    }
+  }
+
+  MapShapeToDensity();
+}
+
+
 inline BaseDesignElement::Type ShapeMapDesign::Convert(Type type) const
 {
   switch(type)
@@ -226,6 +284,29 @@ inline BaseDesignElement::Type ShapeMapDesign::Convert(Type type) const
   assert(false);
   return BaseDesignElement::NO_TYPE;
 }
+
+int ShapeMapDesign::Dof(const std::string& str)
+{
+  if(str == "x")
+    return 0;
+  if(str == "y")
+    return 1;
+
+  EXCEPTION("cannot convert dof '" << str << "'");
+}
+
+/** @see Dof() */
+std::string ShapeMapDesign::Dof(int dof)
+{
+  if(dof == 0)
+    return "x";
+  if(dof == 1)
+    return "y";
+
+  EXCEPTION("cannot convert " << dof << " to dof");
+
+}
+
 
 inline bool ShapeMapDesign::IsProfileFixed() const
 {
@@ -676,9 +757,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    out.flags(std::ios::scientific);
 
    assert(opt_->objectives.data.GetSize() == 1);
-   out << "#(1) el (2) var (3) shapqe \t(4) " + opt_->objectives.data[0]->ToString();
+   out << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " + opt_->objectives.data[0]->ToString();
 
-   int cnt = 4; // will be preincremented to 4
+   int cnt = 6; // will be preincremented
    for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
      if(opt_->constraints.all[g]->HasDenseJacobian())
        out << "("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + " \t";
@@ -688,7 +769,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    {
      ShapeParamElement* spe = opt_shape_param_[e];
      out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << FindShape(spe)->idx << " \t";
-     out << spe->costGradient[0] << " \t";
+     out << spe->dof << " \t" << spe->GetDesign(BaseDesignElement::PLAIN) << " \t" << spe->costGradient[0] << " \t";
 
      for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
        if(opt_->constraints.all[g]->HasDenseJacobian())
@@ -896,13 +977,8 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
    {
      if(!pn->Has("dof"))
        throw Exception("shapeParam of type 'node' requires 'dof'");
-     std::string std_dof = pn->Get("dof")->As<std::string>();
-     if(std_dof == "x")
-       dof = 0;
-     if(std_dof == "y")
-       dof = 1;
-     if(dof == -1) // default, no z yet
-       throw Exception("shapeParam of type 'node' has invalid dof '" + std_dof + "'");
+     dof = Dof(pn->Get("dof")->As<std::string>());
+     assert(dof == 0 || dof == 1);
    }
    else
      if(pn->Has("dof"))
@@ -933,7 +1009,8 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
 {
   in->Get("idx")->SetValue(idx);
   in->Get("type")->SetValue(ShapeMapDesign::type.ToString(type));
-  in->Get("dof")->SetValue(dof == 0 ? "x" : "y");
+  if(type == NODE)
+    in->Get("dof")->SetValue(Dof(dof));
   in->Get("lower")->SetValue(lower);
   in->Get("upper")->SetValue(upper);
   assert(start_param >= 0 && end_param > 0);
