@@ -137,6 +137,8 @@ extern "C" {
     // Set default solver type to direct sparse solver
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
+
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -597,7 +599,8 @@ extern "C" {
 
     // write out additional information in info xml file
     PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
-    node->Get("number")->SetValue(tNumfact_.GetCalls());
+    if (logPerformance_)
+      node->Get("number")->SetValue(tNumfact_.GetCalls());
 
 
     // ========================
@@ -638,8 +641,10 @@ extern "C" {
       }
 
       tSymfact_.Stop();
-      node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
-      node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
+      if (logPerformance_) {
+        node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+        node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
+      }
     }
     // =========================
     //  Numerical Factorisation
@@ -680,14 +685,18 @@ extern "C" {
       }
 
       tNumfact_.Stop();
-      node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
-      node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      if (logPerformance_) {
+        node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
+        node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      }
       //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
 
-    node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
-    node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
-    node->Get("numfact/peakMem")->SetValue(iparm_[16]);
+    if (logPerformance_) {
+      node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
+      node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
+      node->Get("numfact/peakMem")->SetValue(iparm_[16]);
+    }
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
