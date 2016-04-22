@@ -241,6 +241,9 @@ namespace CoupledField {
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
 
+    // ! Should PARDISO performance be logged for each PARDISO call?
+    bool logPerformance_;
+
     //! Array with identity reordering
 
     //! This pointer is either NULL or points to a one-based array containing
