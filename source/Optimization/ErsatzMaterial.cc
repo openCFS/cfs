@@ -1342,7 +1342,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
            }
          }
          assert(found > 0);
-         out[n] =  4.0 / (double) found * (1.0 - 2.0 * (sum / (double) found));
+         out[n] =  4.0 / ((double) found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
        } // if
      } // for
   }
