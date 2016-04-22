@@ -782,7 +782,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   tmp /= (double) found;
 
-  retVec[0] *=  4.0 *  tmp * (1.0 - tmp);
+  retVec[0] *=  4.0 *  tmp * (1.0 - tmp) / (double) data.GetSize();
 
   return true;
 }
