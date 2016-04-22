@@ -55,7 +55,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   method_ = method;
   pn_ = pn;
-  info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
+  info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
 
   // make sure we have a context, even when we have no optimization
   if(!Optimization::manager.IsInitialized())
@@ -1295,8 +1295,11 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
   return NULL;
 }
 
-void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void DesignSpace::ToInfo(ErsatzMaterial* em)
 {
+  // em == null for the case we create this design space only for loading ersatz material within a simulation
+  PtrParamNode in = em != NULL ? info_ : domain->GetInfoRoot()->Get("loadErsatzMaterial");
+
   PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
     transfer[i].ToInfo(tf->Get("transferFunction", ParamNode::APPEND));

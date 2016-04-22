@@ -71,7 +71,7 @@ class AuxDesign : public DesignSpace
 
 
     /** see DesignSpace::ToInfo() */
-    virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+    virtual void ToInfo(ErsatzMaterial* em);
 
     /** @see DesignSpace::GetDesignElement() */
     virtual BaseDesignElement* GetDesignElement(unsigned int idx);

@@ -1182,10 +1182,10 @@
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:attribute name="dof" use="required" type="DT_Axis"/>
-                        <!-- lower, uppde and initial go together or fixed -->
-                        <xsd:attribute name="initial" type="xsd:float" use="required"/>
-                        <xsd:attribute name="lower" type="xsd:float" use="required"/>
-                        <xsd:attribute name="upper" type="xsd:float" use="required"/>
+                        <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+                        <xsd:attribute name="initial" type="xsd:token" use="required"/>
+                        <xsd:attribute name="lower" type="xsd:token" use="required"/>
+                        <xsd:attribute name="upper" type="xsd:token" use="required"/>
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
 <!--                         <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
                       </xsd:complexType>
@@ -1197,12 +1197,12 @@
                        At the moment the profile applies to all nodes. Profile is mandatory.</xsd:documentation>
                      </xsd:annotation>
                      <xsd:complexType>
-                        <!-- lower, uppde and initial go together or fixed -->
-                        <xsd:attribute name="initial" type="xsd:float" use="optional"/>
-                        <xsd:attribute name="lower" type="xsd:float" use="optional"/>
-                        <xsd:attribute name="upper" type="xsd:float" use="optional"/>
+                        <!-- lower, uppde and initial go together or fixed. all token are subjet to mathparser (for some 1/nx stuff)-->
+                        <xsd:attribute name="initial" type="xsd:token" use="optional"/>
+                        <xsd:attribute name="lower" type="xsd:token" use="optional"/>
+                        <xsd:attribute name="upper" type="xsd:token" use="optional"/>
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
-                        <xsd:attribute name="fixed" type="xsd:float" use="optional"/>
+                        <xsd:attribute name="fixed" type="xsd:token" use="optional"/>
                      </xsd:complexType>
                    </xsd:element>
                 </xsd:sequence>
