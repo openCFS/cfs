@@ -103,7 +103,7 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
   if (reg)
     filter.SetFilter(reg, info->Get("ersatzMaterial"));
 
-  space->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
+  space->ToInfo(NULL);
   return space;
 }
 
@@ -208,7 +208,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   // to be appended by the set name
   std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
-  PtrParamNode in = space ? info->Get("optimization/designSpace/header/ersatzMaterialFile") : info->Get("ersatzMaterialFile");
+  PtrParamNode in = space ? space->GetInfo()->Get("ersatzMaterialFile") : info->Get("ersatzMaterialFile");
   in->Get("file")->SetValue(file);
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
 

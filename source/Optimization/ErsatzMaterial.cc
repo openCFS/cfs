@@ -371,7 +371,7 @@ void ErsatzMaterial::PostInit()
 
 
   // make basic logging
-  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
+  design->ToInfo(this);
 }
 
 

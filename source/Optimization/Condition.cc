@@ -60,8 +60,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   this->boundValue_ = -1.0;
   if(pn->Has("value"))
   {
-
-
     string v = pn->Get("value")->As<string>();
     if(v == "slack")
       this->boundValue_ = SLACK_VALUE;
@@ -74,19 +72,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
       // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
       // local function performance
-      try
-      {
-        MathParser* mp = domain->GetMathParser();
-        MathParser::HandleType handle = mp->GetNewHandle();
-
-        mp->SetExpr(handle, pn->Get("value")->As<string>());
-        this->boundValue_ = mp->Eval(handle);
-        mp->ReleaseHandle(handle);
-      }
-      catch(const Exception& e)
-      {
-        throw Exception("failed to parse bound value for condition " + ToString(), e);
-      }
+      this->boundValue_ = pn->MathParse<double>();
     }
   }
 

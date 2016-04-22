@@ -223,12 +223,12 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     throw Exception("no 'shapeParamElement' found in provided density.xml");
 
   assert(!shape_param_.IsEmpty());
-  if(!(list.GetSize() == shape_param_.GetSize()) || (list.GetSize() == shape_param_.GetSize()/2))
+  if(list.GetSize() != shape_param_.GetSize() && list.GetSize() != shape_param_.GetSize()/2)
     EXCEPTION("incompatible shape variables in density.xml (" << list.GetSize() << ") with " << shape_param_.GetSize() << " variables expected");
 
   // needs to be checked while reading
   bool read_profile = list.GetSize() != shape_param_.GetSize() / 2;
-
+  info_->Get("ersatzMaterialFile")->Get("load")->SetValue(read_profile ? "node_and_profile" : "only_node");
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
     const PtrParamNode pn = list[i];
@@ -438,16 +438,16 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
 
 
-void ShapeMapDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
 {
-  AuxDesign::ToInfo(in, em);
+  AuxDesign::ToInfo(em);
 
-  PtrParamNode sm = in->Get("shapeMap");
+  PtrParamNode sm = info_->Get("shapeMap");
   sm->Get("beta")->SetValue(beta_);
   sm->Get("overlap")->SetValue(overlap.ToString(overlap_));
   sm->Get("sensitivity")->SetValue(sensitivity_);
 
-  PtrParamNode base = in->Get("designVariables");
+  PtrParamNode base = info_->Get("designVariables");
   for(unsigned int i = 0; i < shape_.GetSize(); i++)
     shape_[i].ToInfo(base->Get("shapeParam", ParamNode::APPEND));
 }
@@ -973,6 +973,7 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
  {
    type = ShapeMapDesign::type.Parse(pn->GetName());
    idx = (int) idx_;
+
    if(type == NODE)
    {
      if(!pn->Has("dof"))
@@ -983,22 +984,23 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
    else
      if(pn->Has("dof"))
        throw Exception("shapeParam knows 'dof' only for type 'node'");
+
    if(pn->Has("initial"))
    {
      if(pn->Has("fixed"))
        throw Exception("shapeParam cannot have 'initial' and 'fixed' concurrently.");
-     value = pn->Get("initial")->As<double>();
+     value = pn->Get("initial")->MathParse<double>();
      if(!pn->Has("lower") || !pn->Has("upper"))
        throw Exception("shapeParam which is not fixed needs 'lower' and 'upper'");
-     lower = pn->Get("lower")->As<double>();
-     upper = pn->Get("upper")->As<double>();
+     lower = pn->Get("lower")->MathParse<double>();
+     upper = pn->Get("upper")->MathParse<double>();
      fixed = false;
    }
    if(pn->Has("fixed"))
    {
      if(pn->Has("initial"))
        throw Exception("shapeParam cannot have 'initial' and 'fixed' concurrently.");
-     value = pn->Get("fixed")->As<double>();
+     value = pn->Get("fixed")->MathParse<double>();
      fixed = true;
    }
    if(!pn->Has("initial") && !pn->Has("fixed"))

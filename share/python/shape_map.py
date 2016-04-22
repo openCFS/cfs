@@ -141,7 +141,8 @@ def read_file(filename, profile):
         curr = shapes[-1]  
       curr.el.append(int(line[0]))
       curr.val.append(float(line[4]))
-      curr.profile.append(profile)    
+      curr.profile.append(profile)
+      curr.valid.append(True)    
       
   else:
    nx, ny, nz = read_mesh_info(filename, silent=True)
@@ -174,7 +175,8 @@ def read_file(filename, profile):
        curr.val.append(v)
      else:  
        curr.profile.append(v)  
-  
+     curr.valid.append(True)
+     
   if len(shapes[-1].val) <> len(shapes[-1].profile):
     print "error: no profiles in '" + filename + "' and not given via command line"
     sys.exit(-3)    
@@ -270,7 +272,7 @@ def smart_append_data(n, data, shapes):
        # el is missing!
        shape.val.append(a)
        # validate profile, it might be too large
-       if len(shape.profile) > 0 and p >= 1.2 * shape.average_valid_profile():
+       if len(shape.profile) > 0 and p >= 1.9 * shape.average_valid_profile():
          shape.profile.append(shape.average_valid_profile())
          shape.valid.append(False)
        else:
@@ -403,6 +405,10 @@ if __name__ == '__main__':
     shapes = read_file(args.input, args.profile)
   else:
     shapes = import_from_image(args.input, args.resample, args.repair)
+  
+  print 'average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes]))
+    
+  
   
   if args.export:  
     export(shapes, args.export, args.suppress_profile)

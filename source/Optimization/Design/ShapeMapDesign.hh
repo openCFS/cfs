@@ -59,7 +59,7 @@ public:
 
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
-  virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+  virtual void ToInfo(ErsatzMaterial* em);
 
   /** creates a gnuplot file for the current iteration with the design value and derivatives */
   virtual void WriteGradientFile();

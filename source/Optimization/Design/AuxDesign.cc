@@ -78,13 +78,13 @@ void AuxDesign::PostInit(int objectives, int constraints)
     full_data[offset + i] = &(aux_design_[i]);
 }
 
-void AuxDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void AuxDesign::ToInfo(ErsatzMaterial* em)
 {
-  DesignSpace::ToInfo(in, em);
+  DesignSpace::ToInfo(em);
 
   if(slack_ != NULL)
   {
-    PtrParamNode in_ = in->Get("designVariables")->Get("design", ParamNode::APPEND);
+    PtrParamNode in_ = info_->Get("designVariables")->Get("design", ParamNode::APPEND);
     in_->Get("type")->SetValue("slack");
     in_->Get("upperBound")->SetValue(aux_design_[0].GetUpperBound());
     in_->Get("lowerBound")->SetValue(aux_design_[0].GetLowerBound());
@@ -92,7 +92,7 @@ void AuxDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 
   if(alpha_ != NULL)
   {
-    PtrParamNode in_ = in->Get("designVariables")->Get("design", ParamNode::APPEND);
+    PtrParamNode in_ = info_->Get("designVariables")->Get("design", ParamNode::APPEND);
     in_->Get("type")->SetValue("alpha");
     in_->Get("upperBound")->SetValue(aux_design_[1].GetUpperBound());
     in_->Get("lowerBound")->SetValue(aux_design_[1].GetLowerBound());

@@ -514,21 +514,20 @@ const TYPE& ParamNode::AsConst() const
 }
 
 template<typename TYPE>
-TYPE ParamNode::MathParse() const {
-  
-  
-  // obtain handle
-  MathParser * parser = domain->GetMathParser();
-  MathParser::HandleType handle = parser->GetNewHandle(false);
-  std::string expr = "";
-  if( value_.empty()) return TYPE();\
+TYPE ParamNode::MathParse() const
+{
+  if(value_.empty())
+    return TYPE();
 
-  if( value_.type() == typeid(std::string) ) {\
-    expr = boost::any_cast<std::string>(value_);\
-  } else {\
-    EXCEPTION("XML node '" << name_\
-              << "' can not be parsed, as it is no string type.");
-  }
+  // obtain handle
+  MathParser* parser = domain->GetMathParser();
+  MathParser::HandleType handle = parser->GetNewHandle(false);
+
+  std::string expr = "";
+  if(value_.type() == typeid(std::string))
+    expr = boost::any_cast<std::string>(value_);
+  else
+    EXCEPTION("XML node '" << name_ << "' can not be parsed, as it is no string type.");
 
   // Set expression and evaluate
   parser->SetExpr(handle, expr);

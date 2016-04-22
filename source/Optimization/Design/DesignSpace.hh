@@ -321,6 +321,8 @@ namespace CoupledField
      /** Do we do non_design_vicinity for larger filter/slopes */
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
 
+     PtrParamNode GetInfo() { return info_; }
+
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements
       * @see pseudoDesigns_
@@ -379,8 +381,9 @@ namespace CoupledField
      /** Dumps the design space */
      std::string ToString();
 
-     /** Writes summary information about design variables and transfer functions into the node */
-     virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+     /** Writes summary information about design variables and transfer functions into the node
+      * @param em might be NULL if called from read ersatz material */
+     virtual void ToInfo(ErsatzMaterial* em);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
