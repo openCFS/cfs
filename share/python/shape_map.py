@@ -272,7 +272,7 @@ def smart_append_data(n, data, shapes):
        # el is missing!
        shape.val.append(a)
        # validate profile, it might be too large
-       if len(shape.profile) > 0 and p >= 1.9 * shape.average_valid_profile():
+       if len(shape.profile) > 0 and p >= 1.3 * shape.average_valid_profile():
          shape.profile.append(shape.average_valid_profile())
          shape.valid.append(False)
        else:
