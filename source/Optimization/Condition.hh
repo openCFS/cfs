@@ -52,7 +52,7 @@ namespace CoupledField
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
         * @param observation stuff is added here in observation mode */
-       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints,UInt i = -1, std::string entName = "");
+       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints,int i = -1, std::string entName = "");
 
        /** usually for constraints plus globalSlope for objective */
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
@@ -222,7 +222,7 @@ namespace CoupledField
 
       /** Helper for AddCondition().
        * Adds the number i to name of output nodes, necessary for displacement constraints */
-      static void AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, UInt i, std::string entName);
+      static void AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, int i, std::string entName);
 
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
