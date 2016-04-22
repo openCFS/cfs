@@ -72,7 +72,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
       // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
       // local function performance
-      this->boundValue_ = pn->MathParse<double>();
+      this->boundValue_ = pn->Get("value")->MathParse<double>();
     }
   }
 
@@ -767,12 +767,9 @@ void Condition::ToInfo(PtrParamNode in)
 
   in->Get("name")->SetValue(ToString());
 
-  if(observation_)
-    in->Get("mode")->SetValue("observation");
-  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
+
   if(IsActive())
   {
-    in->Get("bound")->SetValue(bound.ToString(bound_));
     if(type_ != HOM_TRACKING)
     {
       if(boundValue_ == SLACK_VALUE)
@@ -784,9 +781,17 @@ void Condition::ToInfo(PtrParamNode in)
       else
         in->Get("bound_value")->SetValue(boundValue_);
     }
+    in->Get("bound")->SetValue(bound.ToString(bound_));
+
   }
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
+
+  if(observation_)
+      in->Get("mode")->SetValue("observation");
+
+    in->Get("design")->SetValue(DesignElement::type.ToString(design_));
+
 
   // if(delta_logging_ignored_)
   //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");

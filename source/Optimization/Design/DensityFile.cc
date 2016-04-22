@@ -176,11 +176,11 @@ bool DensityFile::ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool 
         de->SetDesign(val);
 
       // Get value of the relative bound for current design variable. If value not set, db = -1.
-      if (relative_bound > 0.0)
+      if(relative_bound >= 0.0)
       {
         // if a relative_bound is set in the xml file, upper and lower bound are overwritten
-        de->SetUpperBound(val + relative_bound);
-        de->SetLowerBound(val - relative_bound);
+        de->SetUpperBound(std::min(de->GetUpperBound(), val + relative_bound/2));
+        de->SetLowerBound(std::max(de->GetLowerBound(), val - relative_bound/2));
       }
     }
   }

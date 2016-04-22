@@ -263,8 +263,8 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     if(relative_bound_ > 0.0)
     {
       // if a relative_bound is set in the xml file, upper and lower bound are overwritten
-      spe.SetUpperBound(val + relative_bound_);
-      spe.SetLowerBound(val - relative_bound_);
+      spe.SetUpperBound(std::min(spe.GetUpperBound(), val + relative_bound_/2));
+      spe.SetLowerBound(std::max(spe.GetLowerBound(), val - relative_bound_/2));
     }
   }
 
