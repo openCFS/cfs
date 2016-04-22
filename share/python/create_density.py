@@ -195,6 +195,27 @@ def hashtag(dim, res, amplitude, thickness, speed, lower):
 
   return data;
 
+def channel(dim, res, vol, lower):
+  data = numpy.ones((res,res)) 
+  data *= lower
+  
+  h = 1.0 / res
+  
+  countSolids = 0
+  nSolids = vol * res * res; # how many solid elements do we want?
+  rows = int(nSolids / res / 2) 
+  for x in range(res):
+    for y in range(rows):
+      data[x,y] = 1.0
+      countSolids = countSolids + 1
+  for x in range(res):
+    for y in range(res-rows,res):
+      if dim == 2:
+        data[x,y] = 1.0
+        countSolids = countSolids + 1
+  
+  print "created channel with " + str(res*res-countSolids) + " elems" + " and solid volume " + str(countSolids/float(res*res))
+  return data
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
 def hashtag_dist_2d(x, y, amplitude, speed):
   #  0.1*sin(2*x*pi+pi/2) + 0.25, 0.25, -0.1*sin(2*x*pi+pi/2) + 0.75, 0.75
@@ -235,6 +256,7 @@ parser.add_argument('--invert', help="invert to solid inside", action='store_tru
 parser.add_argument('--cross', help="make a simple binary cross", action='store_true')
 parser.add_argument('--rect', help="make a simple binary rectangle inclusion", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
+parser.add_argument('--channel',help="rectangular channel from one side of the domain to the other one", action='store_true')
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
@@ -266,6 +288,12 @@ if args.cross:
 elif args.hashtag is not None: # also capture 0.0
   data = hashtag(args.dim, args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
+elif args.channel:
+  if args.dim == 3:
+    print 'can only create 2d channels'
+    sys.exit()
+  data = channel(args.dim, args.res, args.vol, args.lower)
+  filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
 else:
   data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(args.res) + ".density.xml"
