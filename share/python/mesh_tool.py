@@ -1334,7 +1334,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   #thickness of shell 1mm: tx,... is thickness of non-design shell
   if type == "apod6":
     tx = 0
-    ty = int(dy_f / (dy*1000))+1
+    #ty = int(dy_f / (dy*1000))+1
+    ty = dy_f / int(dy*1000) + 1
     tz = 0
   elif type == "robot":
     tx = int(dx_f / dx)
@@ -1410,10 +1411,10 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
         condition = True #if type == "robot" else ((x < tx) or (y < ty) or (z < tz) or (x >= nx+tx) or (y >= ny+ty) or (z >= nz+tz))
         count = 0
         for i in range(len(e.nodes)):
-	  node = mesh.nodes[e.nodes[i]]
+          node = mesh.nodes[e.nodes[i]]
           # test if element is above or below design region, bounds are given by non-design region
           if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
-	    count +=1
+	        count +=1
         # calculate center of element
         center = numpy.array([0.0, 0.0, 0.0])
         len_nod = len(e.nodes)
@@ -1425,25 +1426,16 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           if in_hull(center, hull):
             if not valid_position(center, coords,offset):
               e.region = 'void1'
-            #elif type == "robot" and array[x,y,z] > 0.9:
+              #elif type == "robot" and array[x,y,z] > 0.9:
             else:
-		e.region = 'non-design'
- 	        number += 1
-            #elif type == "robot" and not in_hull(center, hull_des):
-	    #  e.region = 'non-design'
-	    #  number += 1.
-            #else:
-            #  if type == "robot":
-            #    e.region = 'void3'
-	    #  else:
-		#e.region = "non-design"
-		#number += 1
+              e.region = 'non-design'
+              number += 1
           else:
             e.region = 'void2'
         else:
           # test if is in convex hull of non-design nodes
           if in_hull(center, hull):
-	    if not valid_position(center, coords,offset):
+            if not valid_position(center, coords,offset):
               e.region = 'void1'
             #elif type == "robot" and array[x,y,z] > 0.9:
             elif array[x,y,z] > 0.9:
@@ -2072,6 +2064,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
         e.nodes[k] -= 1
       count = 0
       for k in range (len(e.nodes)):
+        # determine the min_diam and max_diam of an element  
         if count + 1 == len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[0]][1]))
@@ -2081,7 +2074,6 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[count+1]][1]))
           min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[count+1]][2]))
         count += 1
-      print "min_diam = [" + str(min_diam_x) + ", " +  str(min_diam_y) + ", " +  str(min_diam_z)
       e.density = 1.
       e.region = 'mech'
       if len(e.nodes) == 4:
@@ -2092,8 +2084,6 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
         e.type = HEXA8
       mesh.elements.append(e)
        
-  # define boundary nodes
-  print "min_diam = [" + str(min_diam_x) + ", " +  str(min_diam_y) + ", " +  str(min_diam_z)
   # calculate extrem values along each coordinate
   ma_x = -100000.
   mi_x = 100000.
@@ -2109,7 +2099,9 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
     mi_y = mi_y if mi_y < coord[1] else coord[1]
     ma_z = ma_z if ma_z > coord[2] else coord[2]   
     mi_z = mi_z if mi_z < coord[2] else coord[2]
-
+  
+  print "min = [" + str(mi_x) + ", " +  str(mi_y) + ", " +  str(mi_z) + "]"
+  print "max = [" + str(ma_x) + ", " +  str(ma_y) + ", " +  str(ma_z) + "]"
   delta = 1e-4
   top = []
   bottom = []
@@ -2117,19 +2109,55 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   right = []
   front = []
   back = []
+  # counter necessary to have the same number of left and right nodes, ...
+  left_c = 0
+  right_c = 0
+  bottom_c = 0
+  top_c = 0
+  back_c = 0
+  front_c = 0
+  min_diam_x = 1e-3
+  min_diam_y = 1e-3
+  min_diam_z = 1e-3
+  # count number of boundary nodes per region
   for i in range(len(mesh.nodes)):
     if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta:
-      left.append(i)
+      left_c += 1
     elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta:
-      right.append(i)
+      right_c += 1
     elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta:
-      bottom.append(i) 
+      bottom_c += 1 
     elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta:
-      top.append(i) 
+      top_c += 1
     elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta:
-      back.append(i)
+      back_c += 1
     elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta:
-      front.append(i)
+      front_c += 1
+      
+  lr_counter = min(left_c,right_c)
+  bt_counter = min(bottom_c,top_c)
+  bf_counter = min(back_c,front_c)
+  left_c = 0
+  right_c = 0
+  top_c = 0
+  bottom_c = 0
+  back_c = 0
+  front_c = 0
+  print 'lr_counter = ' + str(lr_counter) + ', bt_counter = ' + str(bt_counter) + ', bf_counter = ' + str(bf_counter)
+  # insert the same number of nodes to each region pair
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta and left_c < lr_counter:
+      left.append(i)
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta and right_c < lr_counter:
+      right.append(i)
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta and bottom_c < bt_counter:
+      bottom.append(i) 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta and top_c < bt_counter:
+      top.append(i) 
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta and back_c < bf_counter:
+      back.append(i)
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta and front_c < bf_counter:
+      front.append(i)  
       
   #add boundary nodes    
   mesh.bc.append(('top', top))

@@ -379,10 +379,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff1*stiff3*stiff3 - stiff1*stiff2*stiff2;
     } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff2*stiff3*stiff3 - stiff2*stiff1*stiff1;
-    } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+    } else { 
+     // case: (stiff3 >= stiff1 && stiff3 >= stiff2)
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff3*stiff2*stiff2 - stiff3*stiff1*stiff1;
-    } else {
-      vol = 0.;
     }
     return vol;
   } else {
@@ -393,10 +392,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff1 - stiff3*stiff3 - stiff2*stiff2;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff1 - 2* stiff2*stiff1;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else {  
+        //case: (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff1 - 2* stiff3*stiff1;
-      } else {
-        vol = 0.;
       }
       return vol;
     case 2:
@@ -404,10 +402,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff2 - 2*stiff1*stiff2;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff2 - stiff3*stiff3 - stiff1*stiff1;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else { 
+        //case: (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff2 - 2*stiff3*stiff2;
-      } else {
-        vol = 0.;
       }
       return vol;
     case 3:
@@ -415,10 +412,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff3 - 2*stiff1*stiff3;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff3 - 2*stiff2*stiff3;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else { 
+        // (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff3 - stiff2*stiff2 - stiff1*stiff1;
-      } else {
-        vol = 0.;
       }
       return vol;
     default:

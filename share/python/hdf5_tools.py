@@ -13,7 +13,7 @@ import operator
 def validate_region(hdf5_file, region):
   regions = hdf5_file['/Mesh/Regions']
   if not any(k in regions.keys() for k in [region]):
-    print "region '" + region + "' not within regions " + str(regions.keys())
+    print "region " + region + " not within regions " + str(regions.keys())
 
 def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
@@ -146,10 +146,11 @@ def read_displacement(hdf5_file,nr,region = None):
     u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/mech/Nodes/Real'].value
   else:
     # special case for debuggin apod6. Generalize if necessary
-    u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/non-design/Nodes/Real'].value
-    non_des = hdf5_file['/Mesh/Regions/non-design/Nodes'].value
+    f = h5py.File(hdf5_file)
+    u = f['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/non-design/Nodes/Real'].value
+    non_des = f['/Mesh/Regions/non-design/Nodes'].value
       
-    force_nodes = hdf5_file['/Mesh/Groups/'+str(region)+'/Nodes'].value
+    force_nodes = f['/Mesh/Groups/'+str(region)+'/Nodes'].value
     u_max = -100000.
     u_average = 0.
     for i in range(len(force_nodes)):
