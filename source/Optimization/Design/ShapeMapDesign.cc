@@ -28,7 +28,8 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
-  this->relative_bound_ = pn->Get("shapeMap/relative_bound")->As<double>();
+  this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
+  this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
   this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -63,7 +64,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
   {
     double v = space_in[i] * scaling_;
-    if(!new_design && v != opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN))
+    if(!new_design && v != opt_shape_param_[i]->GetPlainDesignValue())
       new_design = true;
 
     opt_shape_param_[i]->SetDesign(v);
@@ -89,7 +90,7 @@ bool ShapeMapDesign::CompareDesign(const double* space_in)
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
     double v = space_in[i] * scaling_;
-    if(v != opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN))
+    if(v != opt_shape_param_[i]->GetPlainDesignValue())
       return false;
   }
 
@@ -103,7 +104,7 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
-    space_out[i] = opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN) * rscaling;
+    space_out[i] = opt_shape_param_[i]->GetPlainDesignValue() * rscaling;
     LOG_DBG3(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
   }
 
@@ -254,18 +255,29 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
     upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
 
-    if(enforce_bounds_)
-      spe.SetDesign(std::min(spe.GetUpperBound(), std::max(spe.GetLowerBound(), val)));
+    if(enforce_bounds_) {
+      spe.SetDesign(std::max(spe.GetLowerBound(), std::min(spe.GetUpperBound(), val)));
+      val = spe.GetPlainDesignValue();
+    }
     else
       spe.SetDesign(val);
+    assert(!(enforce_bounds_ && (spe.GetPlainDesignValue() < spe.GetLowerBound() || spe.GetPlainDesignValue() > spe.GetUpperBound())));
 
     // Get value of the relative bound for current design variable. If value not set, db = -1.
-    if(relative_bound_ > 0.0)
+    double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
+
+    assert(!(FindShape(&spe)->fixed && rb >= 0.0));
+    if(rb >= 0.0)
     {
+      LOG_DBG2(SMD) << "RDX: before i=" << i << " v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
       // if a relative_bound is set in the xml file, upper and lower bound are overwritten
-      spe.SetUpperBound(std::min(spe.GetUpperBound(), val + relative_bound_/2));
-      spe.SetLowerBound(std::max(spe.GetLowerBound(), val - relative_bound_/2));
+      // assume that the initial value is out of original bound (e.g. too small), this needs to be catched
+      spe.SetUpperBound(std::min(spe.GetUpperBound(), std::max(val + rb/2, spe.GetLowerBound())));
+      spe.SetLowerBound(std::max(spe.GetLowerBound(), std::min(val - rb/2, spe.GetUpperBound())));
     }
+    LOG_DBG2(SMD) << "RDX: e=" << i << spe.ToString() << "  v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
+    assert(spe.GetLowerBound() <= spe.GetUpperBound());
+    assert(spe.GetLowerBound() >= 0);
   }
 
   MapShapeToDensity();
@@ -751,7 +763,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  void ShapeMapDesign::WriteGradientFile()
  {
    std::ofstream out;
-   string name = progOpts->GetSimName() + "_" + lexical_cast<string>(opt_->GetCurrentIteration()) + ".grad.plot";
+   string name = progOpts->GetSimName() + ".grad.plot";
    out.open(name.c_str());
    out.precision(8);
    out.flags(std::ios::scientific);
@@ -769,7 +781,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    {
      ShapeParamElement* spe = opt_shape_param_[e];
      out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << FindShape(spe)->idx << " \t";
-     out << spe->dof << " \t" << spe->GetDesign(BaseDesignElement::PLAIN) << " \t" << spe->costGradient[0] << " \t";
+     out << spe->dof << " \t" << spe->GetPlainDesignValue() << " \t" << spe->costGradient[0] << " \t";
 
      for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
        if(opt_->constraints.all[g]->HasDenseJacobian())
@@ -810,12 +822,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double start = dof == 0 ? coords[0][0] : coords[1][0];
    double end   = dof == 0 ? coords[0][1] : coords[1][3];
    // the parameters
-   double a1 = s1->GetDesign(BaseDesignElement::PLAIN);
-   double a2 = s2->GetDesign(BaseDesignElement::PLAIN);
+   double a1 = s1->GetPlainDesignValue();
+   double a2 = s2->GetPlainDesignValue();
    // the profiles
    assert(GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
-   double w1 = 0.5 * GetProfile(s1)->GetDesign(BaseDesignElement::PLAIN); // half profile as tanh wants the half width
-   double w2 = 0.5 * GetProfile(s2)->GetDesign(BaseDesignElement::PLAIN);
+   double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
+   double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
 
    double xy = start + (dof == 0 ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
    double a  = a1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
@@ -938,7 +950,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free)
 
   // PostInit() sets arrays for objective and constraint gradients
 
-  LOG_DBG2(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetDesign(BaseDesignElement::PLAIN) << " coord=" << spe.coord.ToString();
+  LOG_DBG2(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
 }
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)

@@ -1033,17 +1033,15 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 
 double LocalCondition::CalcMeanValue() const
 {
-  // we sum up only non-zero values
-  int counter = 0;
   double sum = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
   {
     double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
-    if(IsNoise(v)) continue;
     sum += v;
-    counter++;
   }
-  return counter > 0 ? sum / counter : 0.0;
+  double res = local->virtual_elem_map.GetSize() > 0 ? sum / local->virtual_elem_map.GetSize() : 0.0;
+  LOG_DBG(conditions) << "LC:CMV: " << ToString() << " sum=" << sum << " c=" << local->virtual_elem_map.GetSize() << " -> " << res;
+  return res;
 }
 
 double LocalCondition::CalcMaxValue() const

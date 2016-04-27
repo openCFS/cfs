@@ -1443,6 +1443,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_TWO_SCALE_VOL:
       case Function::GLOBAL_TENSOR_TRACE:
       case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+      case Function::GLOBAL_CURVATURE:
       case Function::PERIMETER:
         result = CalcGlobalFunction(f, derivative);
       break;
@@ -1452,6 +1453,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::OSCILLATION:
       case Function::JUMP:
       case Function::BUMP:
+      case Function::CURVATURE:
       case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:

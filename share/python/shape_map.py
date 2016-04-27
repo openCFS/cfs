@@ -80,6 +80,9 @@ class Shape:
     
   # averages the current profiles (only valid)
   def average_valid_profile(self):
+    if len(self.profile) <> len(self.valid):
+      print len(self.profile)
+      print len(self.valid)    
     assert(len(self.profile) == len(self.valid))   
     c = 0
     s = 0
@@ -145,38 +148,46 @@ def read_file(filename, profile):
       curr.valid.append(True)    
       
   else:
-   nx, ny, nz = read_mesh_info(filename, silent=True)
-   assert(nx == ny)  
+    nx, ny, nz = read_mesh_info(filename, silent=True)
+    assert(nx == ny)  
       
-   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-   root = tree.getroot()
-   query = '//set[last()]/shapeParamElement' 
-   sett = root.xpath(query)
+    tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+    root = tree.getroot()
+    query = '//set[last()]/shapeParamElement' 
+    sett = root.xpath(query)
 
-   curr = None
-   for el in sett:
-     nr = int(el.get('nr'))
-     v =  float(el.get('design'))
-     if nr == 0 or nr % (nx + 1) == 0:
-       dof = 0 if el.get('dof') == 'x' else 1
-       node = el.get('type') == 'node' or el.get('type') == None
-       if node: 
-         shapes.append(Shape(id = len(shapes), dof=dof))
-         curr = shapes[-1]
-       else:
-         # we have a profile, hence search the corresponding shape
-         if profile <> None:
-           print 'error: profile data given in ' + filename + ' and concurrently via command line'
-           sys.exit(-2)  
-         curr = find_shape(shapes, nr - shapes[-1].el[-1])   
+    curr = None
+    for el in sett:
+      nr = int(el.get('nr'))
+      v =  float(el.get('design'))
+      if nr == 0 or nr % (nx + 1) == 0:
+        dof = 0 if el.get('dof') == 'x' else 1
+        node = el.get('type') == 'node' or el.get('type') == None
+        if node: 
+          shapes.append(Shape(id = len(shapes), dof=dof))
+          curr = shapes[-1]
+        else:
+          # we have a profile, hence search the corresponding shape
+          if profile <> None:
+            print 'error: profile data given in ' + filename + ' and concurrently via command line'
+            sys.exit(-2)  
+          curr = find_shape(shapes, nr - shapes[-1].el[-1])   
      
-     if node:  
-       curr.el.append(nr)
-       curr.val.append(v)
-     else:  
-       curr.profile.append(v)  
-     curr.valid.append(True)
-     
+      if node:  
+        curr.el.append(nr)
+        curr.val.append(v)
+      else:  
+        curr.profile.append(v)  
+        curr.valid.append(True)
+   
+    # check if there was no profile in the xml
+    if len(shapes[-1].val) > 0 and len(shapes[-1].profile) == 0:
+       if profile <> None: # error message comes below
+         for shape in shapes:
+           shape.profile = [profile] * len(shape.el)
+           shape.valid   = [True] * len(shape.el)       
+
+  # for both input formats
   if len(shapes[-1].val) <> len(shapes[-1].profile):
     print "error: no profiles in '" + filename + "' and not given via command line"
     sys.exit(-3)    
