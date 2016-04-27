@@ -196,6 +196,9 @@ public:
   /** returns the type */
   virtual std::string ToString() const;
 
+  /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
+  double GetPlainDesignValue() const { return design; }
+
   /** for f = objective gives the value by index. For multiple objective use SumCostGradient() */
   double GetPlainGradient(const Function* f) const;
 
@@ -387,9 +390,6 @@ public:
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
     virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
-
-    /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
-    double GetPlainDesignValue() const { return design; }
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();

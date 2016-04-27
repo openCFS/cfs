@@ -279,7 +279,8 @@ protected:
   bool enforce_bounds_;
 
   /** set element upper and lower relative to the initial value from load ersatz material. <0 disables */
-  double relative_bound_;
+  double relative_node_bound_;
+  double relative_profile_bound_;
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim

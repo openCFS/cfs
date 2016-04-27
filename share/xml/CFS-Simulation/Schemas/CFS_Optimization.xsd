@@ -357,6 +357,9 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <!-- slope of slope = second derivate. Meant for shape mapping node and profile -->
+                <xsd:enumeration value="curvature"/>
+                <xsd:enumeration value="globalCurvature"/>
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->
@@ -1224,8 +1227,9 @@
                 <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
                 <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
                 
-                <!--  Set element bounds relative to the initial element value in load ersatz material -->                
-                <xsd:attribute name="relative_bound" use="optional" type="xsd:float" default="-1.0"/>
+                <!--  Set node bounds relative to the initial element value in load ersatz material -->                
+                <xsd:attribute name="relative_node_bound" use="optional" type="xsd:float" default="-1.0"/>
+                <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0"/>
                 
               </xsd:complexType>
             </xsd:element>

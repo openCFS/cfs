@@ -54,8 +54,9 @@ DesignSpace* DesignElement::space_(NULL);
 
 std::string BaseDesignElement::ToString() const
 {
- return " t=" + type.ToString(type_);
-
+  std::stringstream ss;
+  ss << "idx=" << index_ << " t=" << type.ToString(type_);
+  return ss.str();
 }
 
 

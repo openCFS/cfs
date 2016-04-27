@@ -93,6 +93,7 @@ class Function
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
+      GLOBAL_CURVATURE,
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
@@ -111,7 +112,8 @@ class Function
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
-      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
+      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala'). Multiplies slope with prev and with next */
+      CURVATURE,                 /*!< Second derivative (prev, this, next) timing h=1 */
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
@@ -466,9 +468,13 @@ class Function
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
 
-        /** no change of slope sign */
+        /** no change of slope sign. Positive if the prev and next slope have the same sign (getting larger or smaller) */
         double CalcBump() const;
         double CalcBumpGradient(int neigh_idx) const;
+
+        /** Curvature Calculation (simplest second derivative) assuming h=1 */
+        double CalcCurvature() const;
+        double CalcCurvatureGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;

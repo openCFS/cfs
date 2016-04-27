@@ -343,6 +343,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
   Function::type.Add(Function::BUMP, "bump");
+  Function::type.Add(Function::CURVATURE, "curvature");
+  Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
   Function::type.Add(Function::PERIODIC, "periodic");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");

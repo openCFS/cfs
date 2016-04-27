@@ -578,7 +578,9 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     // be reflected when the number of constraints is determined. Here Function::Local::Local()
     // only when we have NO box constraints we need NEXT_AND_REVERSE
     // FIXME can this be removed?
-    if((g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT) || g->GetType() == Condition::SHAPE_INF)
+    if((g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT) ||
+       (g->GetType() == Condition::CURVATURE && g->GetLocal()->GetLocality() == Function::Local::PREV_NEXT) ||
+        g->GetType() == Condition::SHAPE_INF)
       g_l[i] *= -1.0;
     else
     {

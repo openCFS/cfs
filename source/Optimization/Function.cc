@@ -397,6 +397,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case CURVATURE:
+  case GLOBAL_CURVATURE:
   case PERIODIC:
   case DESIGN_TRACKING:
   case SUM_MODULI:
@@ -578,6 +580,7 @@ bool Function::IsLocal(Type t) {
   case OSCILLATION:
   case JUMP:
   case BUMP:
+  case CURVATURE:
   case PERIODIC:
   case SUM_MODULI:
   case TWO_SCALE_VOL:
@@ -685,6 +688,8 @@ bool Function::ForSensitivityFiltering() const {
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case CURVATURE:
+  case GLOBAL_CURVATURE:
   case PERIODIC:
   case DESIGN_TRACKING:
   case ORTHOTROPIC_TENSOR_TRACE:
@@ -847,6 +852,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case CURVATURE:
+  case GLOBAL_CURVATURE:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -1009,13 +1016,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
 
   case SLOPE:
-    if (user == DEFAULT && snopt)
+    if(user == DEFAULT && snopt)
       locality_ = NEXT;
-    if (user == DEFAULT && !snopt)
+    if(user == DEFAULT && !snopt)
       locality_ = NEXT_AND_REVERSE;
-    if (!snopt && locality_ != NEXT_AND_REVERSE)
+    if(!snopt && locality_ != NEXT_AND_REVERSE)
       throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
-    if (locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
+    if(locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
@@ -1023,6 +1030,23 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     if (locality_ != NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = NEXT_AND_REVERSE;
+    break;
+
+  case CURVATURE:
+    if(user == DEFAULT && snopt)
+      locality_ = PREV_NEXT;
+    if(user == DEFAULT && !snopt)
+      locality_ = PREV_NEXT_AND_REVERSE;
+    if(!snopt && locality_ != PREV_NEXT_AND_REVERSE)
+      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+    if (locality_ != PREV_NEXT && locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    break;
+
+  case GLOBAL_CURVATURE:
+    if (locality_ != PREV_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = PREV_NEXT_AND_REVERSE;
     break;
 
   case PERIMETER:
@@ -2004,6 +2028,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     fv = CalcBump();
     break;
 
+  case CURVATURE:
+    fv = CalcCurvature();
+    break;
+
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
     fv = CalcSumModuli(local, access);
@@ -2190,6 +2218,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       gv = CalcBumpGradient(n);
       break;
 
+    case CURVATURE:
+      gv = CalcCurvatureGradient(n);
+      break;
+
     case STRESS:
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
@@ -2340,8 +2372,8 @@ double Function::Local::Identifier::CalcSlope() const {
 
   double s = this->sign == -1 ? -1.0 : 1.0;
 
-  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
-  << " sign=" << sign << " slope -> " << (s * (mine - other));
+  LOG_DBG3(func) << "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
+                 << " sign=" << sign << " slope -> " << (s * (mine - other));
   return s * (mine - other);
 }
 
@@ -2666,6 +2698,34 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
 
   return res;
 }
+
+double Function::Local::Identifier::CalcCurvature() const
+{
+  assert(neighbor.GetSize() == 2);
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+  // (x_i-1 -2*x_i + x_i+1) or the reverse
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double val = s * (prev - 2 * mine + next);
+
+  LOG_DBG3(func) << "L:I:CC de=" << element->ToString()
+                 << " prev=" << neighbor[0]->ToString() << "/" << prev << " mine=" << mine
+                 << " next=" << neighbor[1]->ToString() << "/" << next << " s=" << s
+                 << " -> " << val;
+  return val;
+}
+
+double Function::Local::Identifier::CalcCurvatureGradient(int neigh_idx) const
+{
+  assert(neigh_idx <= 1);
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+  return s * (neigh_idx == -1 ? -2 : 1);
+}
+
 
 
 double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
