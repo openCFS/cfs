@@ -427,6 +427,10 @@ namespace CoupledField
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
 
+     /** if so we need to add the bound to the name */
+     bool RequiresBoundForUniqueness(const Condition* g);
+
+
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */
      VirtualView* view;
@@ -448,6 +452,9 @@ namespace CoupledField
 
      /** Helper */
      StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);
+
+     /* has unique bounds */
+     bool HasUniqueBounds(const StdVector<Condition*>&);
 
      /** save for maxSlope output */
      DesignSpace* space_;
