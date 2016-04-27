@@ -1342,7 +1342,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
            }
          }
          assert(found > 0);
-         out[n] =  4.0 / ((double) found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+         out[n] =  4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
        } // if
      } // for
   }
@@ -2559,6 +2559,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
+    assert(f->GetType() == Condition::TEMP_TRACKING_AT_INTERFACE || f->GetType() == Objective::TEMP_TRACKING_AT_INTERFACE);
     unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
     double res = 0.0;
 
@@ -2582,10 +2583,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           // f'_i
           double val = 0.0;
           // f'_i * (u_i - u_track)^2
-          for (unsigned int n = 0; n < gradLoad.GetSize(); n++)
+          for (unsigned int n = 0; n < gradLoad.GetSize(); n++) {
             val += gradLoad[n] * (u_elem[n] - trackVal) * (u_elem[n] - trackVal);
+          }
 
-          de->AddGradient(f,val);
+          de->AddGradient(f,val*design->data.GetSize());
         }
       }
       CalcU1KU2(tf, adjoint.Get(excite,f)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, factor, STANDARD, f);
@@ -2595,8 +2597,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
       Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
       assert(u.GetSize() == nNodes);
-      for (unsigned int n = 0; n < nNodes; n++)
-        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal);
+      for (unsigned int n = 0; n < nNodes; n++) {
+        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal) * design->data.GetSize();
+      }
+
       assert(res >= 0);
     } // if-else
 
@@ -2606,12 +2610,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
   {
     Vector<double> stateSol = forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR);
-    out.Resize(stateSol.GetSize());
+    out.Resize(stateSol.GetSize(),0.0);
 
     Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
 
-    for (unsigned int i = 0; i < stateSol.GetSize(); i++)
-      out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal);
+    for (unsigned int i = 0; i < stateSol.GetSize(); i++) {
+      out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize();
+    }
   }
 
 
