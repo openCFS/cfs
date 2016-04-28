@@ -598,9 +598,11 @@ extern "C" {
 
 
     // write out additional information in info xml file
-    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
-    if (logPerformance_)
+    PtrParamNode node; // write information for every pardiso call
+    if (logPerformance_) {
+      node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
       node->Get("number")->SetValue(tNumfact_.GetCalls());
+    }
 
 
     // ========================
