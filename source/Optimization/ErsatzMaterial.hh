@@ -433,11 +433,11 @@ private:
       int res_idx, double ev);
 
   /** for design dependent interface driven excitation as for heat .... calculate element based f'
-   * run over all neighbor nodes of design element de
-   * f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
-   * @param de for this element we compute "out"
-   * @param out gets size of nodes of de elem and contains d_f/d_de */
-  template<class T> void CalcInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& out);
+   * for all design elements de:
+   *  run over all neighbor nodes of design de
+   *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
+   * @param function f */
+  template<class T> void StoreInterfaceDrivenGrad(Function* f);
 
   template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out);
 
@@ -516,6 +516,9 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
+
+  /** Have we already calculated gradient of interface driven load gradient for each design element?*/
+  bool interfaceDrivenGradCalc_;
 };
 
 } // namespace
