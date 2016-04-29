@@ -225,10 +225,10 @@ void FeasPP::PostInit()
     assert(dt >= 0);
     DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
     assert(de.GetType() == dt);
-    Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
+    Condition* g = optimization->constraints.Get(Function::DESIGN, dt, Condition::LOWER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
     lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
-    g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
+    g = optimization->constraints.Get(Function::DESIGN, dt, Condition::UPPER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];

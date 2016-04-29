@@ -201,11 +201,14 @@ Function::Function(PtrParamNode pn) {
   }
 
   //  snopt only makes a difference between linear and nonlinear constraints!
-  if (pn->Has("linear"))
+  if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
 
-  if (IsPhysical() && !(type_ == VOLUME || type_ == GREYNESS))
-    throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
+  if(IsPhysical() && !(type_ == VOLUME || type_ == GREYNESS))
+    throw Exception("'physical' is no option for 'access' in function '" + type.ToString(type_) + "'");
+
+  if(GetAccess() == FILTERED && !(type_ == GLOBAL_TWO_SCALE_VOL || type_ == DESIGN))
+    throw Exception("'filtered' is no option for 'access' in function '" + type.ToString(type_) + "'");
 
 }
 
@@ -399,6 +402,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
+  case DESIGN:
+  case GLOBAL_DESIGN:
   case PERIODIC:
   case DESIGN_TRACKING:
   case SUM_MODULI:
@@ -424,7 +429,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
-  case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
@@ -582,6 +586,7 @@ bool Function::IsLocal(Type t) {
   case BUMP:
   case CURVATURE:
   case PERIODIC:
+  case DESIGN:
   case SUM_MODULI:
   case TWO_SCALE_VOL:
   case ORTHOTROPIC_TENSOR_TRACE:
@@ -599,7 +604,6 @@ bool Function::IsLocal(Type t) {
   case DETERMINANT_MATRIX:
   case DETERMINANT_MAPPING:
   case TRACE_MAPPING:
-  case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
     return true;
@@ -609,22 +613,27 @@ bool Function::IsLocal(Type t) {
 }
 
 bool Function::ForDensityFiltering() const {
-  switch(access_){
+  switch(access_)
+  {
   case PLAIN:// no filtering
     return false;
+
   case FILTERED: // filtering true
   case PHYSICAL:
     return true;
+
   case DEFAULT: // no "filtered=" entry in constraint given. Use default values:
-    switch (type_) {
+    switch (type_)
+    {
     case SLACK:
     case SHAPE_INF:
-    case DESIGN_BOUND: // TODO check if this is really true as pyhsical material might harm the bound ?!
     case MULTIMATERIAL_SUM:
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
     case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
     case ORTHOTROPIC_TENSOR_TRACE:
+    case DESIGN: // design checks access and knows plain and filtered, physical tbd.
+    case GLOBAL_DESIGN:
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
@@ -690,6 +699,8 @@ bool Function::ForSensitivityFiltering() const {
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
+  case DESIGN:
+  case GLOBAL_DESIGN:
   case PERIODIC:
   case DESIGN_TRACKING:
   case ORTHOTROPIC_TENSOR_TRACE:
@@ -713,7 +724,6 @@ bool Function::ForSensitivityFiltering() const {
   case DETERMINANT_MATRIX:
   case DETERMINANT_MAPPING:
   case TRACE_MAPPING:
-  case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case EXPRESSION:
@@ -876,7 +886,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case DETERMINANT_MATRIX:
   case DETERMINANT_MAPPING:
   case TRACE_MAPPING:
-  case DESIGN_BOUND:
+  case DESIGN:
+  case GLOBAL_DESIGN:
   case MULTIMATERIAL_SUM:
   case STRESS:
   case STRESS_DENSITY:
@@ -963,6 +974,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_MOLE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_SLOPE:
+  case GLOBAL_DESIGN:
   case STRESS:
   case STRESS_DENSITY:
     this->globalized_ = true;
@@ -1087,7 +1099,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   case STRESS:
   case STRESS_DENSITY:
-  case DESIGN_BOUND:
+  case DESIGN:
+  case GLOBAL_DESIGN:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
@@ -2092,8 +2105,9 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     fv = CalcTensorNorm(-1, local, false);
     break;
 
-  case DESIGN_BOUND:
-    fv = CalcDesignBound(false);
+  case DESIGN:
+  case GLOBAL_DESIGN:
+    fv = CalcDesignBound(f, local, false);
     break;
 
   case MULTIMATERIAL_SUM:
@@ -2118,6 +2132,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   case GLOBAL_JUMP:
+  case GLOBAL_DESIGN:
   case STRESS:
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
@@ -2287,8 +2302,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       gv = CalcTensorNorm(n, local, true);
       break;
 
-    case DESIGN_BOUND:
-      gv = CalcDesignBound(true);
+    case DESIGN:
+    case GLOBAL_DESIGN:
+      gv = CalcDesignBound(funct, local, true);
       break;
 
     case MULTIMATERIAL_SUM:
@@ -4174,18 +4190,40 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
   return ret;
 }
 
-double Function::Local::Identifier::CalcDesignBound(bool derivative) const {
+double Function::Local::Identifier::CalcDesignBound(Function* f, const Local* l, bool derivative) const {
   assert(this->neighbor.GetSize() == 0);
 
-  double val = element->GetDesign(DesignElement::PLAIN);
+  if(derivative)
+  {
+    return 1.0;
+  }
+  else
+  {
+    switch(f->GetAccess())
+    {
+    case Function::DEFAULT:
+    case Function::PLAIN:
+      return element->GetPlainDesignValue(); // will be replaced below in case
 
-  assert(val == element->GetDesign(DesignElement::SMART)); // we shall not perform density filtering!
+    case Function::FILTERED:
+      return element->GetDesign(DesignElement::SMART); // Function::Access != DesignElement::Access!!
 
-  double ret = derivative ? 1.0 : val;
+    case Function::PHYSICAL:
+      // the gradient does not penalize :(
 
-    LOG_DBG3(func) << "L::I::CDB e=" << element->GetIndex() << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
-
-  return ret;
+      // const Context& ctxt = Optimization::manager.GetContext(f->GetExcitation());
+      // const TransferFunction* tf = l->space->GetTransferFunction(f->GetDesignType(), ctxt.ToApp());
+      // DesignElement* de = dynamic_cast<DesignElement*>(element);
+      // assert(element != NULL);
+      // val = tf->Transform(de, DesignElement::SMART);
+      // val = de->GetDesign(DesignElement::SMART);
+      // LOG_DBG3(func) << "L::I::CDB e=" << element->GetIndex() << " de=" << de->ToString() << " plain=" << element->GetPlainDesignValue() << " smart=" << de->GetDesign(DesignElement::SMART) << " -> " << val;
+      assert(false);
+      EXCEPTION("not implemented");
+    }
+  }
+  assert(false);
+  return -1.0; // please compiler
 }
   
   double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
