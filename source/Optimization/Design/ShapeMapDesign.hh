@@ -155,26 +155,28 @@ protected:
   /** Evaluate the function at the given integration point. The integration mapping is cartesian oriented
    * @oaram s1 and s2 are both nodes! Eval finds the profiles by itself!
    * @param coords of the density design element
+   * @param beta @see tanh()
    * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
    * @param grad_a false for tanh, true for d_tanh_da
    * @param grad_w false for tanh, true for d_tanh_dw. */
-  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
+  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
   /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
    * it is worth to consider them. */
   bool CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const;
 
   /** tanh performs the smoothing from the mapping
-   * @param x is the coordinte (x or y)
+   * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
+   * @param x is the coordinate (x or y)
    * @param a the shape variable (center of object)
    * @param w half of the thickness/profile of the shape */
-  double tanh(double x, double a, double w) const;
+  double tanh(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. a */
-  double d_tanh_da(double x, double a, double w) const;
+  double d_tanh_da(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. w which is the half profile */
-  double d_tanh_dw(double x, double a, double w) const;
+  double d_tanh_dw(double beta, double x, double a, double w) const;
 
   /** small helper */
   ShapeParam& GetProfile(const ShapeParam& node) { return shape_[node.idx + num_node_shapes_]; }
@@ -252,10 +254,39 @@ protected:
   /** this is the decision value for CloseEnough() */
   double sensitivity_;
 
-  /** max means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will ne considered at that ip.
-   * sum means max(sum,1) and all gradients are weighted averages by their rho at each ip.
+  /** MAX means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will be considered at that ip.
+   * The drawbacks are loss of material at overlaps and doubtful differentiability.
+   *
+   * OPEN_SUM means sum tanh(shape) which will be 2.0 at overlaps > rho_max! However there are no issues with differentiability -> use it for reference only!
+   *
+   * TANH_SUM limits via tanh_l( sum(tanh(shape) ) where tanh_l maps to 0..1 with own beta and the beta within sum(tanh(shape)) is halfed.
+   *
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
-  typedef enum { MAX, SUM } Overlap;
+  typedef enum { MAX, OPEN_SUM, TANH_SUM } Overlap;
+
+  /** small helper for tanh_sum */
+  struct TanhSum
+  {
+  public:
+    TanhSum();
+
+    /** tanh for limiting with exactly 0->0 and >=1 -> 1!!
+     * @param x is the sum of tanh(shape1) + tanh(shape2) on a specific integration point */
+    double map(double x);
+
+    /** the derivative of map
+     * @param x is sum of tanh(shape1) + tanh(shape2)
+     * @param dx is d_tanh_a(shape) for the only shape  */
+    double d_map(double x, double dx);
+
+  private:
+    /** tanh for limiting with approx 0->0 and >=1 -> 1 */
+    double tanh(double x);
+    double beta = 11;
+    double offset = -1.0; // by this we correct tanh(x=0,1) such that map(x=0,1) is 0,1
+    double scale = -1.0;  // works with offset
+  } tanh_sum_;
+
 
   /** no need for static */
   Enum<Overlap> overlap;
@@ -270,7 +301,7 @@ protected:
 
   /** this is the order of integration with order^dim evaluations.
    * Smaller 5 has poor numerics, larger 10 might become expensive */
-  const unsigned int order_;
+  unsigned int order_;
 
   /** shortcut to the dimension (2,3) */
   unsigned int dim_;

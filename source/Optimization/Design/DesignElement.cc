@@ -856,6 +856,7 @@ void DesignElement::SetEnums()
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(GLOBAL_DESIGN, "globalDesign");
   detail.Add(STRESS, "stress");
   detail.Add(PROJECTION_FILTER, "projectionFilter");
   detail.Add(TRANSFO_MATRIX11, "transfoMatrix11");

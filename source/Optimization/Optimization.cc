@@ -345,6 +345,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::CURVATURE, "curvature");
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
+  Function::type.Add(Function::DESIGN, "design");
+  Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
@@ -368,7 +370,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
   Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
   Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
-  Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");

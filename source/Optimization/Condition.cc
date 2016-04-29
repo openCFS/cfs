@@ -679,7 +679,7 @@ bool Condition::IsFeasibilityConstraint() const
   case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MAPPING:
   case TRACE_MAPPING:
-  case DESIGN_BOUND:
+  case DESIGN:
     return true;
   default:
     return false;

@@ -1444,6 +1444,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_TENSOR_TRACE:
       case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
       case Function::GLOBAL_CURVATURE:
+      case Function::GLOBAL_DESIGN:
       case Function::PERIMETER:
         result = CalcGlobalFunction(f, derivative);
       break;
@@ -1472,7 +1473,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::ROTATIONAL_MATRIX_2:
       case Function::DETERMINANT_MAPPING:
       case Function::TRACE_MAPPING:
-      case Function::DESIGN_BOUND:
+      case Function::DESIGN:
       case Function::MULTIMATERIAL_SUM:
       case Function::SHAPE_INF:
       assert(c == NULL);

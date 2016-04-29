@@ -366,7 +366,11 @@
                 <xsd:enumeration value="perimeter"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
-                <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->
+                <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf.-->
+                <xsd:enumeration value="design"/>
+                <!-- for shape mapping with overlap open_sum -->
+                <xsd:enumeration value="globalDesign"/>
+                <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala'. < 0 if slope changes -->
                 <xsd:enumeration value="bump"/>
                 <xsd:enumeration value="stress"/>
                 <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
@@ -405,8 +409,6 @@
                 <!--  For the mapping case of model reduction techniques -->
                 <xsd:enumeration value="determinantMapping"/>
                 <xsd:enumeration value="traceMapping"/>
-                <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
-                <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
                 <xsd:enumeration value="shape_inf"/>
@@ -1214,15 +1216,17 @@
                 <xsd:attribute name="overlap" use="required">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
-                      <!--  consider only the rho for the "stronger" shape at this ip -->
+                      <!--  consider only the rho for the "stronger" shape at this ip. 
+                      Has the drawback that material gets lost when two shapes overlap and differentiablitiy at overlaps is not that good.  -->
                       <xsd:enumeration value="max"/>
-                      <!--  max(sum, 1)  -->
-                      <xsd:enumeration value="sum"/>
+                      <!-- sums up the shapes at the integration points. This violates the rho bound at overlaps and requires a design constraint!
+                      However this shall have to differentiability issues at all. -->
+                      <xsd:enumeration value="open_sum"/>
+                      <!-- limit the sum by applying the sum to a tanh() to map it to [0:1]  -->
+                      <xsd:enumeration value="tanh_sum"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
-                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
 
                 <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
                 <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
@@ -1230,6 +1234,12 @@
                 <!--  Set node bounds relative to the initial element value in load ersatz material -->                
                 <xsd:attribute name="relative_node_bound" use="optional" type="xsd:float" default="-1.0"/>
                 <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0"/>
+
+                <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
+                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
+
+                <!-- the order of the interpolation. 2 much too less, 10 shall be good. Effort is dim^order !!! -->
+                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="10"/>
                 
               </xsd:complexType>
             </xsd:element>
@@ -1660,6 +1670,7 @@
       <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
+      <xsd:enumeration value="globalDesign"/>
       <xsd:enumeration value="perimeter"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
@@ -1877,6 +1888,7 @@
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="globalDesign"/>
       <xsd:enumeration value="stress"/>
       <!-- Value of the G matrix -->
       <xsd:enumeration value="transfoMatrix11"/>

@@ -94,6 +94,7 @@ class Function
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
       GLOBAL_CURVATURE,
+      GLOBAL_DESIGN,
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
@@ -132,7 +133,7 @@ class Function
       BENSON_VANDERBEI_1,        /*!< 1st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
-      DESIGN_BOUND,              /*!< local design bound */
+      DESIGN,                    /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
       DETERMINANT_MATRIX,        /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
       ROTATIONAL_MATRIX_1,       /*!< first rotational constraint */
@@ -180,6 +181,8 @@ class Function
 
     /** to convert string/enum for this type */
     static Enum<Access> access;
+
+    Access GetAccess() const { return access_; }
 
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
@@ -437,7 +440,7 @@ class Function
         double CalcSlope() const;
 
         /** calculates the design bound as constraint. */
-        double CalcDesignBound(bool derivative) const;
+        double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
 
         /** calculate the slope gradient for a given element
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */

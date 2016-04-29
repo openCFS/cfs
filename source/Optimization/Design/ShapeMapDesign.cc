@@ -9,6 +9,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "Utils/tools.hh"
 
 using std::string;
 
@@ -19,11 +20,12 @@ DEFINE_LOG(SMD, "shapeMapDesign")
 
 
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
-: AuxDesign(regionIds, pn, method), order_(10) // order 2 is technical minimum but too poor for practical use
+: AuxDesign(regionIds, pn, method)
 {
   this->overlap.SetName("ShapeMapDesign::Overlap");
   this->overlap.Add(MAX, "max");
-  this->overlap.Add(SUM, "sum");
+  this->overlap.Add(OPEN_SUM, "open_sum");
+  this->overlap.Add(TANH_SUM, "tanh_sum");
 
   this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
@@ -31,6 +33,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
   this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
+  this->order_ = pn->Get("shapeMap/integration_order")->As<int>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want shape_param_ or better opt_shape_param_ to take the role of DesignSpace::data
@@ -637,17 +640,24 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            {
            case MAX:
              for(unsigned int si = 0; si < shapes.GetSize(); si++){
-               double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, ip_x, ip_y, false, false); // no derivative
+               double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
                if(t >= ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
                  ip_rho = t;
                  item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
                }
              }
              break;
-           case SUM:
+           case OPEN_SUM:
              for(unsigned int si = 0; si < shapes.GetSize(); si++)
-               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, ip_x, ip_y, false, false); // no derivative
-             ip_rho = std::min(ip_rho,1.0);
+               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
+             break;
+           case TANH_SUM:
+             // the original sum but with half beta
+             for(unsigned int si = 0; si < shapes.GetSize(); si++)
+               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+             // correct ip_rho by assuring <= 1. See TanhSum()
+             LOG_DBG2(SMD) << "MS2D: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y << " sum=" << ip_rho << " -> " << tanh_sum_.map(ip_rho);
+             ip_rho = tanh_sum_.map(ip_rho);
              break;
            } // end of switch(overlap_)
            rho += ip_rho;
@@ -658,7 +668,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_ * order_))); // we assume 0 <= v <= 1
      LOG_DBG2(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue()
                    << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound()) << " shape=" << shapes.ToString(); // << " pi=" << item.ip_param_idx.ToString();
-     assert(de->GetPlainDesignValue() <= de->GetUpperBound() + 1e-10);
+     assert(!(overlap_ == MAX && de->GetPlainDesignValue() >= de->GetUpperBound() + 1e-10));
+     assert(!(overlap_ == OPEN_SUM && de->GetPlainDesignValue() >= de->GetUpperBound() + 2.00001)); // assume only two shapes to overlap
+     assert(!(overlap_ == TANH_SUM && de->GetPlainDesignValue() >= de->GetUpperBound() + 0.01)); // allow a slight overshot at overlap
      assert(de->GetPlainDesignValue() >= de->GetLowerBound() - 1e-10);
    } // end loop over density elements
 
@@ -715,7 +727,28 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              ShapeParamElement* s1 = item.nodes[shape_idx];
              ShapeParamElement* s2 = item.nodes[shape_idx+1];
 
-             double da = Eval(s1, s2, coords, ip_x, ip_y, true, false); // dtanh_da
+             double da = 0.0;
+             switch(overlap_)
+             {
+             case MAX:
+             case OPEN_SUM:
+               da = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, true, false); // dtanh_da
+               break;
+             case TANH_SUM:
+             {
+               // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
+               StdVector<int>& shapes = item.relevant_nodes; // shortcut
+               double sum_rho = 0.0;
+               for(unsigned int si = 0; si < shapes.GetSize(); si++)
+                 sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+               // this is the derivative for the tanh(shape)
+               double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
+               da = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
+               LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                             << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << da;
+             }
+             break;
+             }
              // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
              double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
              log_da += da_norm;
@@ -729,7 +762,29 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              {
                ShapeParamElement* w1 = GetProfile(s1);
                ShapeParamElement* w2 = GetProfile(s2);
-               double dw = Eval(s1, s2, coords, ip_x, ip_y, false, true); // dtanh_dw
+               double dw = 0.0;
+               switch(overlap_)
+               {
+               case MAX:
+               case OPEN_SUM:
+                 dw = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, false, true); // dtanh_dw
+                 break;
+               case TANH_SUM:
+               {
+                 // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
+                 StdVector<int>& shapes = item.relevant_nodes; // shortcut
+                 double sum_rho = 0.0;
+                 for(unsigned int si = 0; si < shapes.GetSize(); si++)
+                   sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+                 // this is the derivative for the tanh(shape)
+                 double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
+                 dw = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
+                 LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                               << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << dw;
+               }
+               break;
+               }
+
                // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
                double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
                log_dw += dw_norm;
@@ -762,6 +817,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  void ShapeMapDesign::WriteGradientFile()
  {
+   // plot the stuff like this:
+   // plot "shape_map_mech.grad.plot" u 1:6 every ::0::41 w lp, "shape_map_mech.grad.plot" u ($1-41):6 every ::41::82 w lp
+
    std::ofstream out;
    string name = progOpts->GetSimName() + ".grad.plot";
    out.open(name.c_str());
@@ -801,7 +859,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return NULL;
  }
 
- inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
+ inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
  {
    assert(dim_ == 2);
    assert(s1->dof == s2->dof);
@@ -834,11 +892,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double w  = w1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (w2-w1);
    double val = -1.0;
    if(grad_a)
-     val = d_tanh_da(xy, a, w);
+     val = d_tanh_da(beta, xy, a, w);
    if(grad_w)
-     val = d_tanh_dw(xy, a, w);
+     val = d_tanh_dw(beta, xy, a, w);
    if(!grad_a && !grad_w)
-     val = tanh(xy, a, w);
+     val = tanh(beta, xy, a, w);
    LOG_DBG3(SMD) << "E: s1=" << s1->GetIndex() << " s2=" << s2->GetIndex() << " dof=" << dof << " start=" << start << " end=" << end  << " a=" << a1 << "..." << a2
                  << " ip_x=" << ip_x << " ip_y=" << ip_y << " xy=" << xy << " a=" << a << " da:" << grad_a << " dw=" << grad_w << " -> " << val;
    return val;
@@ -847,29 +905,34 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  inline bool ShapeMapDesign::CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
  {
    assert(dim_ == 2);
-   double max        = Eval(s1, s2, coords, 0,               0, false, false); // false=no derivative
-   max = std::max(max, Eval(s1, s2, coords, 0,        order_-1, false, false));
-   max = std::max(max, Eval(s1, s2, coords, order_-1,        0, false, false));
-   max = std::max(max, Eval(s1, s2, coords, order_-1, order_-1, false, false));
+   double max        = Eval(s1, s2, coords, 2*beta_, 0,               0, false, false); // false=no derivative
+   max = std::max(max, Eval(s1, s2, coords, 2*beta_, 0,        order_-1, false, false));
+   max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1,        0, false, false));
+   max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1, order_-1, false, false));
    return max > sensitivity_;
  }
 
 
- inline double ShapeMapDesign::tanh(double x, double a, double w) const
+ inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
  {
-   // set xrange[0:1]; a = 0.5; d=0.5; beta=30
+   // set xrange[0:1]; a = 0.5; w=0.1; beta=30
    // plot 1-1/(exp(2*beta*(x-a+w)) + 1), 1/(exp(2*beta*(x-a-w)) + 1)
+   //
+   // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
    if(x <= a)
-     return 1.0 - 1/(std::exp(2*beta_*(x-a+w))+1);
+     return 1.0 - 1/(std::exp(beta*(x-a+w))+1);
   else
-    return 1/(std::exp(2*beta_*(x-a-w))+1);
+    return 1/(std::exp(beta*(x-a-w))+1);
  }
 
- inline double ShapeMapDesign::d_tanh_da(double x, double a, double w) const
+ inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
  {
    // set xrange[0:1]; a = 0.5; d=0.5; beta=30
    // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
    //
+   // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
+   //
+   // plot
    // matlab:
    //if x <= a
    //  f = -1* (exp(2*beta*(x-a+d)) + 1)^-2 *2*beta*exp(2*beta*(x-a+d));
@@ -878,17 +941,17 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // end
 
    if(x <= a)
-     return -1./((std::exp(2*beta_*(x-a+w))+1) * (std::exp(2*beta_*(x-a+w))+1)) * 2*beta_*std::exp(2*beta_*(x-a+w));
+     return -1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
   else
-    return 1/((std::exp(2*beta_*(x-a-w))+1) * (std::exp(2*beta_*(x-a-w))+1)) * 2*beta_*std::exp(2*beta_*(x-a-w));
+    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
  }
 
- inline double ShapeMapDesign::d_tanh_dw(double x, double a, double w) const
+ inline double ShapeMapDesign::d_tanh_dw(double beta, double x, double a, double w) const
  {
    if(x <= a)
-     return 1./((std::exp(2*beta_*(x-a+w))+1) * (std::exp(2*beta_*(x-a+w))+1)) * 2*beta_*std::exp(2*beta_*(x-a+w));
+     return 1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
   else
-    return 1/((std::exp(2*beta_*(x-a-w))+1) * (std::exp(2*beta_*(x-a-w))+1)) * 2*beta_*std::exp(2*beta_*(x-a-w));
+    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
  }
 
 
@@ -1025,14 +1088,72 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   in->Get("type")->SetValue(ShapeMapDesign::type.ToString(type));
   if(type == NODE)
     in->Get("dof")->SetValue(Dof(dof));
-  in->Get("lower")->SetValue(lower);
-  in->Get("upper")->SetValue(upper);
+  if(fixed)
+    in->Get("fixed")->SetValue(value);
+  else {
+    in->Get("lower")->SetValue(lower);
+    in->Get("upper")->SetValue(upper);
+  }
   assert(start_param >= 0 && end_param > 0);
   in->Get("variables")->SetValue(end_param - start_param);
 }
 
+ShapeMapDesign::TanhSum::TanhSum()
+{
+  // set xrange[0:1]; a = 0.5; b=0.8; w=0.1; beta=30
+  // ta(x) = 1-1/(exp(beta*(x-a+w)) + 1)
+  // tb(x) = 1-1/(exp(beta*(x-b+w)) + 1)
+  // l(x) = 1-1/(exp(11*(x-.5)) + 1)
+  // plot ta(x), l(x), l(ta(x))
+  // plot ta(x)+tb(x), l(x), l(ta(x)+tb(x))
+
+  assert(beta > 0);
+  // see Filter::SetNonLinCorrection()
+
+  // it shall match the overlap of two shapes (2)
+  scale = 1/(tanh(1.0)-tanh(0.0));
+  offset = -scale * tanh(0.0);
+
+  LOG_DBG(SMD) << "TS:TS scale=" << scale << " offset=" << offset << " tanh(0)=" << tanh(0) << " map(0)=" << map(0)
+               << " tanh(1)=" << tanh(1) << " map(1)=" << map(1) << " tanh(2)=" << tanh(2) << " map(2)=" << map(2);
+
+  assert(close(map(0.0), 0.0, 1e-10));
+  assert(map(0.0) >= 0.0);
+  assert(close(map(1.0), 1.0, 1e-10));
+  assert(map(2.0) <= 1.01);
+}
+
+inline double ShapeMapDesign::TanhSum::tanh(double x)
+{
+  return 1.0 - 1/(std::exp(beta*(x-0.5))+1);
+}
+
+inline double ShapeMapDesign::TanhSum::map(double x)
+{
+  // set xrange[0:1]; a = 0.5; b=0.8; w=0.1; beta=30
+  // ta(x,beta) = 1-1/(exp(beta*(x-a+w)) + 1)
+  // da(x,beta) = -1* (exp(beta*(x-a+w)) + 1)**-2 *beta*exp(beta*(x-a+w))
+  // l(x) = 1-1/(exp(11*(x-.5)) + 1)
+  // plot ta(x,beta), l(x), l(ta(x,beta/2))
+  // plot ta(x)+tb(x), l(x), l(ta(x)+tb(x))
+
+  return offset + scale * tanh(x);
+}
+
+inline double ShapeMapDesign::TanhSum::d_map(double x, double dx)
+{
+  // set xrange[0:1]; a = 0.5; b=0.8; w=0.1; beta=30
+  // ta(x,beta) = 1-1/(exp(beta*(x-a+w)) + 1)
+  // da(x,beta) = -1* (exp(beta*(x-a+w)) + 1)**-2 *beta*exp(beta*(x-a+w))
+  // l(x) = 1-1/(exp(11*(x-.5)) + 1)
+  // plot ta(x,beta), l(x), l(ta(x,beta/2)), da(x,beta), 11*exp(11*(ta(x,beta/2)-0.5))*(exp(11*(ta(x,beta/2)-0.5))+1)**-2 * da(x,beta/2)
+  //
+  // maxima:
+  // f(x) := 1-1/(exp(11*(g(x)-0.5))+1);
+  // diff(f(x),x);
+  return scale * std::pow(std::exp(beta*(x-0.5))+1, -2) * std::exp(beta*(x-0.5)) * beta * dx;
+}
 
 } // end of namespace
-
 
 
