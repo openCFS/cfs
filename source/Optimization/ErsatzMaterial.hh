@@ -437,7 +437,7 @@ private:
    *  run over all neighbor nodes of design de
    *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param function f */
-  template<class T> void StoreInterfaceDrivenGrad(Function* f);
+  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f);
 
   template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out);
 
