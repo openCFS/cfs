@@ -146,6 +146,7 @@ public:
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
+    INTERFACE_LOAD_GRADIENT, /* gradient of interface driven load; for each node grad = 4 * ds/drho * (1-2*s) where s is interpolated density at a node */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     TRANSFO_MATRIX } ValueSpecifier;
 

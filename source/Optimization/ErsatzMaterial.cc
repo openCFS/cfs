@@ -1302,7 +1302,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
 
   template<class T>
-  void ErsatzMaterial::StoreInterfaceDrivenGrad(Function* f)
+  void ErsatzMaterial::CalcAndStoreInterfaceDrivenGrad(Function* f)
   {
     if (interfaceDrivenGradCalc_)
       return;
@@ -1322,6 +1322,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     for (unsigned int id = 0; id < design->data.GetSize(); id++) {
       DesignElement* de = &design->data[id];
+      // differentiation factor when using filter
+      double factor = de->GetValue(DesignElement::INTERFACE_LOAD_GRADIENT, DesignElement::SMART, f);
       // for each node we have f' =  4* ds_i /drho_i * (1-2*s_i)
       // except for bc nodes, there f' is 0
       StdVector<unsigned int>& nodes = de->elem->connect;
@@ -1340,23 +1342,28 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             if(design_index >= 0)
             {
               double factor = design->data[design_index].GetDesign(DesignElement::SMART);
+//              double factor = de->GetDesign(DesignElement::SMART);
               sum += factor;
               found++;
             }
           } // neighbor elems
 
           assert(found > 0);
-          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+          std::cout << "Filtered s_" << node << ": " << sum / elems.GetSize() << std::endl;
+          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found)) * factor;
+//          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+          std::cout << "grad node " << node << ": " << de->interfaceDrivenLoadGrad_[n] << std::endl;
         } //if
       } // node
     } // elem
+
   } // function
 
   template<class T>
   void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out)
   {
       if (!interfaceDrivenGradCalc_) {
-        StoreInterfaceDrivenGrad<double>(f);
+        CalcAndStoreInterfaceDrivenGrad<double>(f);
         interfaceDrivenGradCalc_ = true;
       }
 
@@ -1366,7 +1373,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       Vector<double>& vec = dynamic_cast<Vector<double>& >(in_out);
       assert(vec.GetSize() == de->interfaceDrivenLoadGrad_.GetSize());
-      std::cout << "de: " << de->elem->elemNum << " has loads: " << de->interfaceDrivenLoadGrad_.ToString() << std::endl;
       vec -= de->interfaceDrivenLoadGrad_;
   }
 
@@ -1494,7 +1500,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Condition::TEMP_TRACKING_AT_INTERFACE:
       {
-//        assert(g != NULL);
         Vector<double> res;
         result = CalcStateTrackingAtInterface(excite, f, derivative, f->GetParameter());
         break;
@@ -2119,7 +2124,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     if(derivative)
     {
       if (!interfaceDrivenGradCalc_) {
-        StoreInterfaceDrivenGrad<double>(f);
+        CalcAndStoreInterfaceDrivenGrad<double>(f);
         interfaceDrivenGradCalc_ = true;
       }
       TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::HEAT, true);
@@ -2597,7 +2602,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         StdVector<SingleVector* >& all_u_elem = forward.Get(excite)->elem[App::HEAT];
 
         if (!interfaceDrivenGradCalc_) {
-          StoreInterfaceDrivenGrad<double>(f);
+          CalcAndStoreInterfaceDrivenGrad<double>(f);
           interfaceDrivenGradCalc_ = true;
         }
 
