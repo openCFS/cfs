@@ -62,7 +62,7 @@ void GradientCheck::SolveProblem()
       << (order == 1 ? "first" : "second") << " order)" << std::endl;
 
   if (finite_diff_result_index_ == -1 || error_result_index_ == -1)
-    info_->Get(ParamNode::WARNING)->SetValue(
+    info_->SetWarning(
         "Not all results defined for finite difference (value='costGradient' detail='...')");
 
   // solve the original problem once!!

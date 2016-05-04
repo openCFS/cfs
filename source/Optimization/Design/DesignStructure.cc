@@ -289,7 +289,7 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
   if(first && ref.GetType() == Filter::DENSITY)  {
     // in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
     if(ref.density_ != Filter::STANDARD && em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
-      in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
+      in->SetWarning("'volume' constraint shall be non-linear due to non-linear filter");
   }
 
   if(periodic_)

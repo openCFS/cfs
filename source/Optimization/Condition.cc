@@ -58,23 +58,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = -1.0;
-  if(pn->Has("value"))
-  {
-    string v = pn->Get("value")->As<string>();
-    if(v == "slack")
-      this->boundValue_ = SLACK_VALUE;
-    else if (v == "alpha+slack")
-      this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
-    else if (v == "alpha-slack")
-      this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
-    else
-    {
-      // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
-      // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
-      // local function performance
-      this->boundValue_ = pn->Get("value")->MathParse<double>();
-    }
-  }
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
@@ -100,6 +83,30 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
   bloch_extremal_ = false; // set in the proper case
+
+  if(pn->Has("value"))
+  {
+    string v = pn->Get("value")->As<string>();
+    if(v == "slack")
+      this->boundValue_ = SLACK_VALUE;
+    else if (v == "alpha+slack")
+      this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
+    else if (v == "alpha-slack")
+      this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
+    else
+    {
+      // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
+      // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
+      // local function performance
+      this->boundValue_ = pn->Get("value")->MathParse<double>();
+    }
+
+    if((boundValue_ == ALPHA_PLUS_SLACK_VALUE && bound_ == UPPER_BOUND) || (boundValue_ == ALPHA_MINUS_SLACK_VALUE && bound_ == LOWER_BOUND)) {
+      std::string msg =  "are you sure about value '" + v + "' and bound '" + bound.ToString(bound_) + "' in constraint '" + ToString() + "'?";
+      domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("constraints")->SetWarning(msg, true); // domain->GetOptimization() does not work yet!
+    }
+  }
+
 
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!observation_)
@@ -167,6 +174,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE)
     if(!space->HasAlphaVariable())
       throw Exception("design variable 'alpha' is missing.");
+
 
   // shall not be necessary when we register all pdes!
   //if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != App::MECH)
@@ -794,7 +802,7 @@ void Condition::ToInfo(PtrParamNode in)
 
 
   // if(delta_logging_ignored_)
-  //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
+  //  in->Get("delta_logging")->SetWarning("no value given");
   // else
   //  in->Get("delta_logging")->SetValue(delta_logging);
 
@@ -811,7 +819,7 @@ void Condition::ToInfo(PtrParamNode in)
     in->Get("bloch")->SetValue(bloch_extremal_ ? "extremal" : "full");
 
   if(type_ == EXPRESSION && (boundValue_ != ALPHA_MINUS_SLACK_VALUE && boundValue_ != ALPHA_PLUS_SLACK_VALUE))
-   info_->Get(ParamNode::WARNING)->SetValue("be sure to know what condition 'expression' with alpha+/-slack bound means");
+   info_->SetWarning("be sure to know what condition 'expression' with alpha+/-slack bound means");
 
   if(domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
   {
@@ -823,11 +831,11 @@ void Condition::ToInfo(PtrParamNode in)
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
-  //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
+  //  in->SetWarning("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
 
   if(type_ == VOLUME && IsPhysical() && !observation_)
-    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
+    info_->SetWarning("a physical volume constraint should make no sense");
 
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
     info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
