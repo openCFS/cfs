@@ -127,7 +127,7 @@ Optimization::Optimization()
     me->ToInfo(header->Get("multipleExcitations"));
 
   if(manager.any().bloch && !dme)
-    header->Get(ParamNode::WARNING)->SetValue("Bloch mode analysis but not multiple excitation activated");
+    header->SetWarning("Bloch mode analysis but not multiple excitation activated");
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
   ParamNodeList list = optParamNode->GetList("constraint");

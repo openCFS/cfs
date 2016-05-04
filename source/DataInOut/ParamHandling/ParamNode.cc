@@ -117,6 +117,12 @@ void ParamNode::SetComment(const std::string& comment)
   children_.Push_back(newChild);
 }
 
+void ParamNode::SetWarning(const std::string& msg, bool append)
+{
+  PtrParamNode pn = Get(ParamNode::WARNING, append ? APPEND : DEFAULT);
+  pn->SetValue(msg);
+}
+
 void ParamNode::AddChildNode(PtrParamNode child)
 {
   child->parent_ = shared_from_this();

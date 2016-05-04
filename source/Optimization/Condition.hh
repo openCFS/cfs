@@ -418,6 +418,8 @@ namespace CoupledField
      }
      Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
+     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
+
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
 
@@ -439,9 +441,6 @@ namespace CoupledField
    private:
 
      Condition* Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception);
-
-     /** Helper */
-     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);
 
      /** save for maxSlope output */
      DesignSpace* space_;

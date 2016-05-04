@@ -138,7 +138,10 @@ namespace CoupledField
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
-      
+
+    /** Creates a ParamNode::WARNING node and sets the msg as content. */
+    void SetWarning(const std::string& msg, bool append = false);
+
     /** Add child parameter nod*/
     void AddChildNode( PtrParamNode child);
     

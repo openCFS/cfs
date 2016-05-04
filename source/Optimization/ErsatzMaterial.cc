@@ -435,6 +435,54 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 {
   // will write the cfs results and the log file
   PtrParamNode iter = Optimization::CommitIteration(keep_iteration_number);
+
+  // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
+  StdVector<Condition*> ev = constraints.GetList(Condition::EIGENFREQUENCY);
+  for(int c = 0; c < (int) ev.GetSize()-1; c++) // allow always a next
+  {
+    Condition* g = ev[c];
+    Condition* n = ev[c+1]; // see loop!
+    assert(g->GetType() == Condition::EIGENFREQUENCY);
+
+    if(g->GetExcitation()->DoBloch() && g->DoFullBloch() && g->GetBound() == Condition::UPPER_BOUND && n->GetBound() == Condition::LOWER_BOUND)
+    {
+      assert(n->GetExcitation()->DoBloch() && n->DoFullBloch());
+      //assert(n->GetEigenValueID() == g->GetEigenValueID() + 1); // who knows what happens else?!
+      const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
+      double lower, upper; // see ErsatzMaterial::CalcEigenFrequency()
+      SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, false, &lower);
+      SearchMinMax(mat, (unsigned int) n->GetEigenValueID()-1, true, &upper);
+
+      iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
+
+      LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
+      break; // assume only one lower/upper constraint gap
+    }
+  }
+
+  // now add the min/max for the ev such we can analyse possible nonsmoothneses. However the gap is the information to search manually
+  std::map<unsigned int, bool> ev_done; // what we did
+  for(unsigned int c = 0; c < ev.GetSize(); c++)
+  {
+    Condition* g = ev[c];
+
+    if(g->GetExcitation()->DoBloch() && g->DoFullBloch())
+    {
+      // we have the ev-constraint for every wave vector as we are full
+      if(!ev_done[g->GetEigenValueID()]) // bool is false by default
+      {
+         const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
+         double freq; // see ErsatzMaterial::CalcEigenFrequency()
+         SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
+
+         iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())
+                   + (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         ev_done[g->GetEigenValueID()] = true;
+         LOG_DBG(em) << "CI g=" << g->ToString() << " evid=" << g->GetEigenValueID() << " b=" << g->GetBound() << " mm=" << freq;
+      }
+    }
+  }
+
   // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
   if(me->IsEnabled())
   {
@@ -456,28 +504,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             info->Get(label)->SetValue(g->bloch.col);
           }
         }
-      }
-    }
-  }
-
-  // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
-  std::map<unsigned int, bool> ev_done; // what we did
-  for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
-  {
-    Condition* g = constraints.all[c];
-
-    if(g->GetExcitation()->DoBloch() && g->GetType() == Condition::EIGENFREQUENCY && g->DoFullBloch())
-    {
-      // we have the ev-constraint for every wave vector as we are full
-      if(!ev_done[g->GetEigenValueID()]) // bool is false by default
-      {
-         const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
-         double freq; // see ErsatzMaterial::CalcEigenFrequency()
-         SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
-
-         iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())
-                   + (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
-         ev_done[g->GetEigenValueID()] = true;
       }
     }
   }

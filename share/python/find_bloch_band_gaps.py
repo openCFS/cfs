@@ -76,6 +76,7 @@ parser.add_argument('--maxmode', help="maximal mode number to be considered (def
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info to a xml file')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
+#parser.add_argument('--show',  help='use gnuplot to create a png and shows it', action='store_true',)
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
@@ -154,7 +155,7 @@ if args.gnuplot:
   if args.gnuplot == "png":
     print 'set size ratio 1.0'
     print 'set terminal png font Helvetica size 1000,1000'
-    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.png"'
+    print 'set output "' + args.bloch[:-len(".dat")] + '.png"' # leave it as bloch.png
         
     # print 'set output "tmp.eps"'
   # unset eventually older boxes

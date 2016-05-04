@@ -317,6 +317,10 @@ class Function
 
       ~Local();
 
+      /** second constructor step. Required as locality initialization calls ShapeMapDesign() where we ask for periodic
+       * and the constructor needs to be finished then */
+      void PostInit();
+
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
       int GetElementDimension() const { return element_dimension_; }
 
@@ -355,6 +359,9 @@ class Function
       } Phase;
 
       static Enum<Phase> phase;
+
+      /** are we periodic? Only if enabled in local/periodic AND with periodic pde */
+      bool periodic;
 
       /** Data structure for the interpolation coefficients for latticeVol3D*/
       Matrix<double> vol_coeff_;

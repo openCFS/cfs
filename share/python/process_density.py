@@ -9,7 +9,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="input density.xml file")
 parser.add_argument("output", help="output density.xml file")
-parser.add_argument("--threshold", help="threshold for void material with input lower and 1 (default 0.5)", type=float)
+parser.add_argument("--threshold", help="threshold for void material with input lower and 1 (default 0.5)", type=float, default=0.5)
 parser.add_argument("--vol", help="threshold to match volume", type=float)
 parser.add_argument("--lower", help="scale input range to new lower range", type=float)
 parser.add_argument('--show', help="show output as image", action='store_true')

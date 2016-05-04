@@ -40,7 +40,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 
   assert(order_ >= 2); // too poor for technical use. 10 is nice
   if(order_ <= 3)
-    info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("low integration order for shape map");
+    info_->Get(ParamNode::HEADER)->SetWarning("low integration order for shape map");
 
   // set shape_, shape_param_ and map_
   SetupShapeDesign(pn->Get("shapeMap"));
@@ -374,8 +374,9 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
 {
   assert(f != NULL);
   assert(f->IsLocal(f->GetType()));
-  // note that we are called by the Function::Local() constructor, therefore Function::GetLocal() cannot work!
-  assert(f->GetLocal() == NULL);
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+  bool periodic = f->GetLocal()->periodic;
 
   // we assume fixed only for profile
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
@@ -400,14 +401,15 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
     assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
     assert(!param.fixed);
 
-    // skip the last element as we want only 'full' elements with next
-    for(int e = param.start_param + (prev ? 1 : 0); e < param.end_param -1; e++)
+    // skip the last element as we want only 'full' elements with next when we are not periodic
+    for(int e = param.start_param + (prev ? (periodic ? 0 : 1) : 0); e < param.end_param - (periodic ? 0 : +1); e++)
     {
       BaseDesignElement& bde = shape_param_[e];
       assert(f->GetDesignType() == bde.GetType());
+      assert((!periodic && e < param.end_param-1) || (periodic && e < param.end_param));
 
-      BaseDesignElement* prev_de = prev ? &shape_param_[e-1] : NULL;
-      BaseDesignElement* next_de = &shape_param_[e+1];
+      BaseDesignElement* prev_de = prev ? &shape_param_[e == 0 ? param.end_param-1 : e-1] : NULL; // if not prev take last
+      BaseDesignElement* next_de = &shape_param_[e < param.end_param-1 ? e+1 : 0]; // we next cannot be next we take first (only if periodic)
 
       vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_1));
       if(two_signs)

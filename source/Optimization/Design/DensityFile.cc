@@ -121,7 +121,7 @@ bool DensityFile::ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool 
   {
     string msg = "the number of elements in the density file does not match the number of elements of the region!\n"\
                  "         check the results carefully!";
-    domain->GetInfoRoot()->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
+    domain->GetInfoRoot()->Get("ersatzMaterial")->SetWarning(msg);
   }
 
   string name = "design";
@@ -266,14 +266,14 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     if(enforce_bounds)
       in->Get("bound_violation")->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
-      in->Get(ParamNode::WARNING)->SetValue(msg);
+      in->SetWarning(msg);
   }
   if(upper_violation > 1e-5) {
     std::string msg = "the external design violates upper design bounds up to " + boost::lexical_cast<std::string>(upper_violation);
     if(enforce_bounds)
       in->Get("bound_violation", ParamNode::APPEND)->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
-      in->Get(ParamNode::WARNING)->SetValue(msg);
+      in->SetWarning(msg);
   }
 
   return space;

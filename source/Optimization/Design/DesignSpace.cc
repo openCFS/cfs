@@ -254,7 +254,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
 
             if(!random && (initial < lower || initial > upper))
-              info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
 
             for(unsigned int e = 0; e < n; e++)
             {
@@ -508,7 +508,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
     if(warn && !added)
-      info_->Get(ParamNode::WARNING)->SetValue("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
+      info_->SetWarning("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
   }
 }
 

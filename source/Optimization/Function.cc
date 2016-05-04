@@ -96,7 +96,7 @@ Function::Function(PtrParamNode pn) {
     if(bandgap.lower_ev >= bandgap.upper_ev)
       throw Exception("within 'bandgap' 'lower_ev' needs to be smaller than 'upper_ev'");
     if(bandgap.upper_ev - bandgap.lower_ev > 1)
-      preInfo_->Get(ParamNode::WARNING)->SetValue("'bandgap' defines a gap non-adjacent modes");
+      preInfo_->SetWarning("'bandgap' defines a gap non-adjacent modes");
   }
 
 
@@ -800,7 +800,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of condition " + type.ToString(type_)
             + " not within design domain";
-        info_->Get(ParamNode::WARNING)->SetValue(msg);
+        info_->SetWarning(msg);
       }
 
       assert(elements.GetSize() == 0);
@@ -901,7 +901,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case PENALIZED_VOLUME:
     for (unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if (space->transfer[i].IsPenalized())
-        preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+        preInfo_->SetWarning("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
 
   case SLACK:
@@ -918,7 +918,10 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
 
 Function::Local* Function::InitLocal(DesignSpace* space) {
   if (local == NULL)
+  {
     local = new Local(this, space);
+    local->PostInit();
+  }
   return local;
 }
 
@@ -927,6 +930,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   this->func_ = func;
   this->structure_ = NULL;
   this->infeasible = 0;
+  this->element_dimension_ = -1;
 
   // shortcuts
   Function::Type ftype = func->GetType();
@@ -941,6 +945,9 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
+
+  bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is defaul
+  this->periodic = enable & domain->HasPerdiodicBC();
 
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
     //read interpolation data for volume calculation in 3D
@@ -986,7 +993,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
       // FIXME
-      domain->GetInfoRoot()->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
+      domain->GetInfoRoot()->Get("optimization/header")->SetWarning("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
     this->globalized_ = true;
     break;
 
@@ -1151,9 +1158,17 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
   }
 
-  // this is actually pure constructor work, just extracted to handle function size
+}
+
+void Function::Local::PostInit()
+{
+  PtrParamNode pn = func_->pn->Get("local", ParamNode::PASS);
+  Function::Type ftype = func_->GetType();
+  string fname = Function::type.ToString(ftype);
+
+  // this is actually pure constructor work, just extracted to handle func_tion size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
-  assert(!(BaseDesignElement::IsShapeMapType(func->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
+  assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
 
   switch (locality_)
   {
@@ -1174,49 +1189,50 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
 
   case MULT_DESIGNS_ELEMENT:
-    SetupMultDesignsElementMap(func);
+    SetupMultDesignsElementMap(func_);
     break;
     
   case SHAPE:
-    SetupShapeElementMap(func, dynamic_cast<ShapeDesign*>(space));
+    SetupShapeElementMap(func_, dynamic_cast<ShapeDesign*>(space));
     break;
 
   case MULT_DESIGNS_NEXT:
   case MULT_DESIGNS_PREV_NEXT:
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
-    SetupMultDesignsVirtualElementMap(func);
+    SetupMultDesignsVirtualElementMap(func_);
     break;
 
   case NEXT_DIAG:
    // if(!pn)
    // throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
    //    structure_ = new NeighborhoodStructure(this, pn);
-   SetupVirtualStarLocalElementMap(func);
+   SetupVirtualStarLocalElementMap(func_);
    break;
 
   case CYCLIC:
-    if(BaseDesignElement::IsShapeMapType(func->GetDesignType()))
-      smd->SetupCyclicVirtualShapeElementMap(func, virtual_elem_map, locality_);
+    if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
+      smd->SetupCyclicVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
-      throw Exception("the local function '" + func->ToString() + "' is only mapping");
+      throw Exception("the local func_tion '" + func_->ToString() + "' is only mapping");
    break;
 
 
   default:
-    if(BaseDesignElement::IsShapeMapType(func->GetDesignType()))
-      smd->SetupVirtualShapeElementMap(func, virtual_elem_map, locality_, phase_);
+    if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
+      smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_, phase_);
     else
       SetupVirtualElementMap(phase_);
     break;
   }
 
   if (virtual_elem_map.GetSize() == 0)
-    throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
+    throw Exception("mesh too small for locality of func_tion '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
 }
+
 
 Function::Local::~Local() {
   if (structure_ != NULL) {
@@ -1869,6 +1885,11 @@ void Function::Local::ToInfo(PtrParamNode in) {
 
   if (ft == MOLE || ft == GLOBAL_MOLE)
     in->Get("eps")->SetValue(eps_);
+
+  // we simply handle periodic only in ShapeMapDesign, extend if you generalize!
+  // the perdiodic attribute is for slope and curvature, for the function perdiodic it makes no sense
+  if((func_->GetDesignType() == BaseDesignElement::NODE || func_->GetDesignType() == BaseDesignElement::PROFILE) && ft != Function::PERIODIC)
+    in->Get("periodic")->SetValue(periodic);
 
   if (structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
@@ -2881,7 +2902,7 @@ int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, 
     idx = sz - 2;
     val = 1.;
     if (val > 1.01) {
-      inf_warn->Get(ParamNode::WARNING)->SetValue(
+      inf_warn->SetWarning(
           "Interpolation of Hom_RectC1 tensor failed. Design Variable "
               + lexical_cast<string>(val) + " out of bounds ");
     }
@@ -2889,7 +2910,7 @@ int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, 
     idx = 0;
     val = 0.;
     if (val < -0.01) {
-      inf_warn->Get(ParamNode::WARNING)->SetValue(
+      inf_warn->SetWarning(
           "Interpolation of Hom_RectC1 tensor failed. Design Variable "
               + lexical_cast<string>(val) + " out of bounds ");
     }
