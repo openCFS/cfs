@@ -5,6 +5,7 @@ from matviz_2d  import *
 from matviz_streamline import *
 from hdf5_tools import *
 from mesh_tool import *
+from two_scale_tools import *
 import argparse
 import sys
 import os
@@ -230,20 +231,25 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
                 if args.type == "apod6":
                   valid_position = valid_position_apod6
+                  valid_ring_position = valid_ring_position_apod6
                   print 'Apod6 is validated!'
                 elif args.type == "robot":
                   valid_position = valid_position_robot
+                  #TODO: not implemented yet for robot arm
+                  valid_ring_position = None
                   print 'Robot is validated!'
 
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
-                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize)
+                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, scale, valid_position, args.thres,csize)
-
+                if args.show == "hom_rot_cross":
+                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
+                elif args.show == "hom_rect":
+                  viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
             else:
               viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
