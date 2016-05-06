@@ -1323,7 +1323,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     for (unsigned int id = 0; id < design->data.GetSize(); id++) {
       DesignElement* de = &design->data[id];
       // differentiation factor when using filter
-      double factor = de->GetValue(DesignElement::INTERFACE_LOAD_GRADIENT, DesignElement::SMART, f);
       // for each node we have f' =  4* ds_i /drho_i * (1-2*s_i)
       // except for bc nodes, there f' is 0
       StdVector<unsigned int>& nodes = de->elem->connect;
@@ -1342,17 +1341,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             if(design_index >= 0)
             {
               double factor = design->data[design_index].GetDesign(DesignElement::SMART);
-//              double factor = de->GetDesign(DesignElement::SMART);
               sum += factor;
               found++;
             }
           } // neighbor elems
 
           assert(found > 0);
-          std::cout << "Filtered s_" << node << ": " << sum / elems.GetSize() << std::endl;
-          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found)) * factor;
-//          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
-          std::cout << "grad node " << node << ": " << de->interfaceDrivenLoadGrad_[n] << std::endl;
+          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
         } //if
       } // node
     } // elem

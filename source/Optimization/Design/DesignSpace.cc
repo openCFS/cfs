@@ -769,7 +769,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
     int design_index = Find(elems[index],false);
     if(design_index >= 0)
     {
-      double factor = data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter but check for transfer function!!!
+      double factor = data[design_index].GetDesign(DesignElement::SMART);
       tmp += factor;
       found++;
       LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
