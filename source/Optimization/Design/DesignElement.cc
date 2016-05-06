@@ -527,8 +527,6 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
         design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
         design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
-      if (vs == DesignElement::INTERFACE_LOAD_GRADIENT)
-        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
     }
     else
     {
@@ -576,9 +574,6 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case CONSTRAINT_GRADIENT:
     assert(g != NULL);
     return constraintGradient[g->GetIndex()];
-
-  case INTERFACE_LOAD_GRADIENT:
-    return 1.0; // we just want to extract drho_filt/drho
 
   case MAX_SLOPE:
   case MAX_MOLE:
@@ -821,7 +816,6 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(LEVEL_SET_GRAD_YN, "levelSetGradYN");
   valueSpecifier.Add(LEVEL_SET_GRAD_ZP, "levelSetGradZP");
   valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
-  valueSpecifier.Add(INTERFACE_LOAD_GRADIENT, "interfaceDriveLoadGradient");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1008,11 +1002,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
 
-  f.Dump();
-
   assert(f.GetType() == Filter::DENSITY);
-  assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT || sp == DesignElement::INTERFACE_LOAD_GRADIENT);
-  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective() && sp == DesignElement::INTERFACE_LOAD_GRADIENT)));
+  assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
+  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective())));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
   assert(func == NULL || func->ForDensityFiltering());
 
