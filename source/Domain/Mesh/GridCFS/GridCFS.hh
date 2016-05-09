@@ -246,7 +246,8 @@ namespace CoupledField
     //! \param node number of interest
     inline const StdVector<Elem*>& GetElemsByNode(UInt node)
     {
-      SetNodesToElemsMap();
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
       return mapNodeToElems_[node];
     }
 

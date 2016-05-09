@@ -334,6 +334,15 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          
+          <xsd:element name="loggingPerformance" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Print in .info.xml file information on time consumption of symbolic and
+                numerical factorization for each PARDISO call.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
           <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
             <xsd:annotation>
