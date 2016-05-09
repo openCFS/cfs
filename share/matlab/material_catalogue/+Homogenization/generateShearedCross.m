@@ -1,4 +1,4 @@
-function [ file, volume ] = generateShearedCross(point,filepath,nx,ny)
+function [ file, volume, dimension ] = generateShearedCross(point,filepath,nx,ny)
 % GENERATECROSS  -  Generates a sheared cross.
 %
 % @param:
@@ -95,6 +95,8 @@ density(horzBar,:) = 1;
 density(:,vertBar) = 1;
 
 volume = sum(sum(density))/nx/ny;
+
+dimension = 2;
 
 % Write mesh (and possible density) file
 [~,filename] = fileparts(tempname);

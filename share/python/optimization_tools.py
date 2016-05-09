@@ -83,7 +83,8 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
       nt = x * y * z
       for c in range(len(num)):
         n = int(num[c] -1)
-        setNDArrayEntry(ret, n % x, n/x, n/(x*y), vals[c]) # 'nr' is one base in general
+        coords = numpy.unravel_index(n,(z,y,x))
+        setNDArrayEntry(ret, coords[2], coords[1], coords[0], vals[c]) # 'nr' is one base in general
         
   return ret
 
