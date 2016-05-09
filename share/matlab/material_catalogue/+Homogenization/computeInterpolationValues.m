@@ -52,10 +52,11 @@ numPoints = size(pointsCoords,1);
 
 % Check if catalogue fits to meshgenerationfunc by calling the function once
 try
-    meshfile = meshgenerationfunc(pointsCoords(1,:), '.');
+    [meshfile, dimension] = meshgenerationfunc(pointsCoords(1,:), '.');
     [meshfilepath, meshfilename] = fileparts(meshfile);
-    if exist( sprintf('%s/%s.dens', meshfilepath, meshfilename), 'file' )
-        delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
+    densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
+    if exist( densfile, 'file' )
+        delete( densfile );
     end
     delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
 catch ME
@@ -64,7 +65,7 @@ catch ME
     return
 end
 
-Efull = Homogenization.getElasticityTensorOfMaterial( sprintf('%s/inv_tensor.xml',cfsworkingdirectory) );
+Efull = Homogenization.getElasticityTensorOfMaterial( sprintf('%s/inv_tensor.xml',cfsworkingdirectory), dimension );
 
 % Create folder 'catalogues' if necessary
 if ~exist('catalogues','dir')
@@ -75,7 +76,11 @@ end
 createcataloguetime = tic;
 
 % Compute homogenized elasticity tensors
-Tensors = zeros(numPoints,7);
+if dimension == 2
+    Tensors = zeros(numPoints,7);
+else
+    Tensors = zeros(numPoints,10);
+end
 cache = [];
 if ischar(threadID)
     filename = strcat('catalogues/detailed_stats_', threadID);
@@ -104,14 +109,21 @@ for i=1:numPoints
         [Eh, volume, meshfilename] = Homogenization.getElasticityTensorOfMicroCell(point, meshgenerationfunc, Efull, cfsworkingdirectory);
 %     end
     if ~isempty(Eh)
-        Tensors(i,:) = [Eh(1,1) Eh(1,2) Eh(1,3) Eh(2,2) Eh(2,3) Eh(3,3) volume];
         if givenByLevelAndIndex
             fprintf(fid,'%d\t',points(i,:));
         else
             fprintf(fid,'%.10f\t',points(i,:));
         end
-        fprintf(fid,'%e\t%e\t%e\t',Eh(1,1),Eh(1,2),Eh(1,3));
-        fprintf(fid,'%e\t%e\t%e\t',Eh(2,2),Eh(2,3),Eh(3,3));
+        if dimension == 2
+            Tensors(i,:) = [Eh(1,1) Eh(1,2) Eh(1,3) Eh(2,2) Eh(2,3) Eh(3,3) volume];
+            fprintf(fid,'%e\t%e\t%e\t',Eh(1,1),Eh(1,2),Eh(1,3));
+            fprintf(fid,'%e\t%e\t%e\t',Eh(2,2),Eh(2,3),Eh(3,3));
+        else
+            Tensors(i,:) = [Eh(1,1) Eh(1,2) Eh(1,3) Eh(2,2) Eh(2,3) Eh(3,3) Eh(4,4) Eh(5,5) Eh(6,6) volume];
+            fprintf(fid,'%e\t%e\t%e\t',Eh(1,1),Eh(1,2),Eh(1,3));
+            fprintf(fid,'%e\t%e\t%e\t',Eh(2,2),Eh(2,3),Eh(3,3));
+            fprintf(fid,'%e\t%e\t%e\t',Eh(4,4),Eh(5,5),Eh(6,6));
+        end
         fprintf(fid,'%e\n',volume);
     else
         cache = [cache;point];
@@ -119,7 +131,7 @@ for i=1:numPoints
     end
 
     showProgress(i,numPoints);
-    if 1-volume >= 1e-14
+    if volume >= 1e-14 && 1-volume >= 1e-14
         delete( sprintf('%s/inv_tensor_%s.info.xml', cfsworkingdirectory, meshfilename) );
     end
 end

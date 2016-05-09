@@ -1,4 +1,4 @@
-function [ file, volume ] = generateFramedCrossExact(point,filepath,~)
+function [ file, volume, dimension ] = generateFramedCrossExact(point,filepath,~)
 % GENERATEFRAMEDCROSS  -  Generates a quadratic frame overlayed with an
 % orthogonal cross, which is rotated by 45 degrees.
 %
@@ -49,6 +49,8 @@ s1 = point(1);
 s2 = point(2);
 s3 = point(3);
 s4 = point(4);
+
+dimension = 2;
 
 % Describe shape with Constructive Solid Geometry
 % basicshape = [id; #edges; x-coords; y-coords; fill]
