@@ -233,6 +233,11 @@ public:
    * <p>Therefore this vector has to be initialized on runtime</p> */
   StdVector<double> constraintGradient;
 
+  /** for each node: grad = 4* ds/drho_filt * drho_filt/drho * (1-2*s)
+   * s is the interpolated density at a node, e.g. s = 1/4*(rho_1+rho_2+rho_3+rho_4)
+   * Need to store this in order to calculate the right derivative with filtering and penalization*/
+  Vector<double> interfaceDrivenLoadGrad_;
+
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
