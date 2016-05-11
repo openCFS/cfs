@@ -517,8 +517,12 @@ double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueS
 //  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
   // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
-  if(shopt->ptrLS_ == NULL) return 0.0;
-  assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  if (shopt != NULL) {
+    if (shopt->ptrLS_ == NULL)
+      return 0.0;
+    else
+      assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  }
 
   switch(vs)
   {
@@ -541,7 +545,7 @@ double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueS
   case DesignElement::LEVEL_SET_GRAD_ZN:
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
   case DesignElement::HEAT_NODAL_TRACK_VAL:
-    return 0.0;
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
   default:
     EXCEPTION("case not implemented")
   }
@@ -577,6 +581,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   case DesignElement::LEVEL_SET_GRAD_YN:
   case DesignElement::LEVEL_SET_GRAD_ZP:
   case DesignElement::LEVEL_SET_GRAD_ZN:
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:

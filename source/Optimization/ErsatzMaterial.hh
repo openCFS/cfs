@@ -112,6 +112,9 @@ public:
     return *structure_;
   }
 
+  // calculates for given node res = (stateSol - trackVal)^2
+  double CalcStateTrackingAtNode(int node);
+
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
@@ -517,10 +520,10 @@ private:
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
-  inline double CalcStateTrackingAtNode(Excitation& excite, Function* f, int node, double trackVal);
-
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;
+
+  Function* trackingFunc_;
 };
 
 } // namespace
