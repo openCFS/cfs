@@ -271,7 +271,8 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
             out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
            else:
             out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
-           nr = nr + 1       
+           if elemnr is None:
+             nr = nr + 1       
          
     out.write('  </set>\n')
 

@@ -22,6 +22,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "FeBasis/BaseFE.hh"
+#include "FeBasis/FeSpace.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -2617,17 +2618,34 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-      Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
-      Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-      assert(u.GetSize() == nNodes);
-      for (unsigned int n = 0; n < nNodes; n++) {
-        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal) * design->data.GetSize();
+      for (unsigned int n = 1; n <= nNodes; n++) {
+//        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal) * design->data.GetSize();
+        res += CalcStateTrackingAtNode(excite,f,n, trackVal);
       }
-
       assert(res >= 0);
     } // if-else
 
     return res;
+  }
+
+  double ErsatzMaterial::CalcStateTrackingAtNode(Excitation& excite, Function* f, int node, double trackVal)
+  {
+    assert(node > 0);
+
+    NodeList nodeList(domain->GetGrid());
+    StdVector<UInt> nodeId(1);
+    nodeId[0] = node;
+    nodeList.SetNodes(nodeId);
+
+    shared_ptr<BaseFeFunction> fe = f->ctxt->pde->GetFeFunction(f->ctxt->pde->GetNativeSolutionType());
+    Vector<double> stateSol(1); // we get one scalar
+    fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
+
+    shared_ptr<BaseFeFunction> rhsFe = f->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
+    Vector<double> load(1);
+    rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
+
+    return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize();
   }
 
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
