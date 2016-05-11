@@ -479,6 +479,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   }
   return added;
 }
+
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
@@ -510,10 +511,11 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
   }
 }
 
-  double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
-  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+//  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+  // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
   if(shopt->ptrLS_ == NULL) return 0.0;
   assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
@@ -538,6 +540,8 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 4);
   case DesignElement::LEVEL_SET_GRAD_ZN:
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+    return 0.0;
   default:
     EXCEPTION("case not implemented")
   }

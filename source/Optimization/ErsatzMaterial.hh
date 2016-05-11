@@ -517,6 +517,8 @@ private:
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
+  inline double CalcStateTrackingAtNode(Excitation& excite, Function* f, int node, double trackVal);
+
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_;
 };
