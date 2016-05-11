@@ -1418,7 +1418,7 @@
               </xsd:complexType>
             </xsd:element>
 
-            <!-- Define layout of coil. Her we allow for two different
+            <!-- Define layout of coil. Here we allow for two different
                  definitions:
                  a) number of turns and fill factor
                  b) cross section of single winding

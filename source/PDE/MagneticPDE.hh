@@ -92,6 +92,8 @@ namespace CoupledField
     //! Tells if there are coils excited by voltage
     bool hasVoltCoils_;
 
+    //! Storage for CoefFunctions of external current density as source
+    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
     //@}
 
     //! Coefficient function, containing the overall reluctivity

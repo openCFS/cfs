@@ -444,14 +444,15 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       // run over all parts
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
       partIt = actCoil.parts_.begin();
-      if( actCoil.sourceType_ == Coil::CURRENT ) {
+      if(( actCoil.sourceType_ == Coil::CURRENT )||
+         ( actCoil.sourceType_ == Coil::EXTERNAL )) {
         /*
-        ============================================
-         1) CURRENT driven coils
+        =====================================================
+         1) CURRENT driven coils OR EXTERNAL current density
 
          Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
               Sens. and Act., 2nd edition, p. 131ff
-        ============================================
+        =====================================================
         */
         for( partIt = actCoil.parts_.begin(); 
             partIt != actCoil.parts_.end(); 
@@ -463,13 +464,19 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           LinearForm* curInt = NULL;
 
           // generate source current vector
-          CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
+          PtrCoefFct jFct;
+          if( actCoil.sourceType_ == Coil::CURRENT ){
+            CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
                                                      CoefXpr::OP_MULT);
-          PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
+            PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
 
-          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
+            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                      CoefXpr::OP_DIV);
-          PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
+            jFct = CoefFunction::Generate(mp_, part, jVec);
+          } else {
+            jFct = coilPartsExtJ_[partIt->second];
+          }
+          coilCurrentDens_[actRegion] = jFct;
 
           if( dim_ == 3 ) {
             // ===========
@@ -483,14 +490,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
               curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
                                                  factor, jFct, updatedGeo_);
             }
-            
-            coilCurrentDens_[actRegion] = jFct;
+
           } else {
             // ===============
             //  2D / AXI CASE
             // ===============
-            
-            coilCurrentDens_[actRegion] = jFct;
+
             if( isComplex_ ) {
               curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
                                                   factor, jFct, updatedGeo_);
@@ -519,8 +524,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
               Sens. and Act., 2nd edition, p. 211ff
         ============================================
          The coupled equation system in this case looks like
-           ( M_A     0 ) ( A_dot ) + ( K_A -f_A  ) ( A ) = ( 0 )
-           ( (f_A)^T 0 ) ( i_dot )   ( 0     R   ) ( i )   ( u )
+           ( M_A     0 ) ( A_dot ) + ( K_A -f_A ) ( A ) = ( 0 )
+           ( (f_A)^T 0 ) ( i_dot )   ( 0     R  ) ( i )   ( u )
         */
 
         std::string totRstr = "";
@@ -548,19 +553,27 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
 
-          // implementation of coil current density is difficult because of FeSpaceConst
-          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
+          // implementation of coil current density is difficult because of FeSpaceConst;
+          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section;
           // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
-          //    for elements in order to evaluate its expression (FeFunction::GetScalar)
+          //    for elements in order to evaluate its expression (FeFunction::GetScalar);
+          //    although the origin of this problem does not seem to be the FeFunction;
+          //    the coil result coil current works properly
           // 2) the automatic calculation of the cross section of the coil
           //    must be implemented because we need the number of turns or the coil cross
           //    section (only the winding cross section is not enough!)
-          // with these 2 points resolved, the code could look like:
+          //    or
+          //    number of turns or coil cross section could be additionally specified in xml;
+          // However, the effects are not severe: Current density results are not available
+          // for coils with voltage sources, which is generally not interesting anyway.
+          // With the 2 points resolved, the code could look like:
           /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
-              GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
-          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+            GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
+          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );*/
           // now the division by the cross section would be necessary
-          coilCurrentDens_[actRegion] = test;*/
+          // the unit vector of the current density is added as dummy so that the other
+          // current density results do not get mixed up
+          coilCurrentDens_[actRegion] = actPart.jUnitVec;
 
           // === -f_A ===
           LinearForm* psiDotInt;
@@ -687,7 +700,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
-    shared_ptr<FeSpace> mySpace = feFct->GetFeSpace();    
     
     // ==================
     //  COIL INTEGRATORS
@@ -956,7 +968,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+      Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
 
         // get coil and id
@@ -969,13 +981,57 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
         // Create new coil
         shared_ptr<Coil> actCoil( new Coil( coilNodes[i], coilInfoNode, 
-                                            ptGrid_, mp_, part ) );
+                                            ptGrid_, mp_, cplx ) );
         coils_[coilId] = actCoil;
 
         // Associate mapping of coil parts with regions
         std::map<RegionIdType, shared_ptr<Coil::Part> >::const_iterator it;
         for( it = actCoil->parts_.begin(); it != actCoil->parts_.end(); it++ ) {
           coilRegions_[it->first] = actCoil;
+        }
+      }
+
+      // Insert the current densities which are defined externally (simulation or sequence step).
+      // This is done here because it is impossible for the coil to use a PDE pointer.
+      // We have to distinguish between external current density direction and external source.
+      // External source includes the direction, but not vice versa. Therefore, the external source
+      // must be stored per part anyway, although it counts for the whole coil. Additionally, the
+      // parts need the regions and coef functions.
+      std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
+      for( coilIt = coils_.begin(); coilIt != coils_.end(); ++coilIt ){
+        std::map<shared_ptr<Coil::Part>, PtrParamNode >::iterator extPartIt;
+        for( extPartIt = coilIt->second->partsExtJDir_.begin();
+            extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
+          PtrParamNode extNode = extPartIt->second;
+          shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+              isComplex_));
+          shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+                        isComplex_));
+          for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
+            std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
+            shared_ptr<EntityList> elems;
+            elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
+            PtrCoefFct regCurrDens; // ReadUserFieldValues assigns a value to this
+            StdVector<std::string> vecComponents;
+            vecComponents = "x", "y", "z";
+            std::set<UInt> definedDofs; // ReadUserFieldValues assigns a value to this
+            bool updateGeo; // ReadUserFieldValues assigns a value to this
+            ReadUserFieldValues(elems,extNode,vecComponents,
+                ResultInfo::VECTOR,isComplex_,regCurrDens,
+                definedDofs,updateGeo);
+            CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
+            PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
+            CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
+            PtrCoefFct unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
+            unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
+            if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
+              currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
+            }
+          }
+          extPartIt->first->jUnitVec = unitCurrDens;
+          if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
+            coilPartsExtJ_[extPartIt->first] = currDens;
+          }
         }
       }
 
@@ -1532,6 +1588,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     //
     // The coil inductance is COIL_LINKED_FLUX / COIL_CURRENT
     // integrate this at the same time
+    // Note that this is only the static inductance, which is quite useless for
+    // circuits with non-linear material or permanent magnets!
     PtrCoefFct temp = GetCoefFct(COIL_LINKED_FLUX);
     PtrCoefFct temp_ind = GetCoefFct(COIL_INDUCTANCE);
 
