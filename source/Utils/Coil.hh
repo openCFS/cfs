@@ -1,3 +1,25 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+//=================================
+/*
+ * \file   Coil.hh
+ * \brief  This class is basically a container for all parameters required for
+ *         describing the different types of coils used in our coupled field
+ *         computations.
+ *         The file contains some code from NACS. The code for automatic
+ *         calculation of the direction of the current density is obsolete due
+ *         to the implementation of the possibility to use current densities
+ *         calculated by the electric current PDE. It can be chosen to use the
+ *         current density or only its direction, which makes the difference
+ *         between ideal (also called stranded) coils and solid conductors.
+ *
+ * \date   unknown
+ * \author ahauck, dperchto
+ */
+//=================================
+
 #ifndef COIL_FILE_HH
 #define COIL_FILE_HH
 

@@ -355,7 +355,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
       partIt = actCoil.parts_.begin();
       if(( actCoil.sourceType_ == Coil::CURRENT )||
-          (actCoil.sourceType_ == Coil::EXTERNAL )) {
+         ( actCoil.sourceType_ == Coil::EXTERNAL )) {
 
         /*
         =====================================================
@@ -415,8 +415,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
               Sens. and Act., 2nd edition, p. 211ff
         ============================================
          The coupled equation system in this case looks like
-           ( M_A     0 ) ( A_dot ) + ( K_A -f_A  ) ( A ) = ( 0 )
-           ( (f_A)^T 0 ) ( i_dot )   ( 0     R   ) ( i )   ( u )
+           ( M_A     0 ) ( A_dot ) + ( K_A -f_A ) ( A ) = ( 0 )
+           ( (f_A)^T 0 ) ( i_dot )   ( 0     R  ) ( i )   ( u )
         */
 
         std::string totRstr = "";
@@ -444,18 +444,27 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
 
-          // implementation of coil current density is difficult because of FeSpaceConst
-          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
+          // implementation of coil current density is difficult because of FeSpaceConst;
+          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section;
           // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
-          //    for elements in order to evaluate its expression (FeFunction::GetScalar)
-          // 2) we need the number of turns or the coil cross section (only the winding
-          //    cross section is not enough!)
-          // with these 2 points resolved, the code could look like:
+          //    for elements in order to evaluate its expression (FeFunction::GetScalar);
+          //    although the origin of this problem does not seem to be the FeFunction;
+          //    the coil result coil current works properly
+          // 2) the automatic calculation of the cross section of the coil
+          //    must be implemented because we need the number of turns or the coil cross
+          //    section (only the winding cross section is not enough!)
+          //    or
+          //    number of turns or coil cross section could be additionally specified in xml;
+          // However, the effects are not severe: Current density results are not available
+          // for coils with voltage sources, which is generally not interesting anyway.
+          // With the 2 points resolved, the code could look like:
           /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
-          GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
-          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+            GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
+          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );*/
           // now the division by the cross section would be necessary
-          coilCurrentDens_[actRegion] = test;*/
+          // the unit vector of the current density is added as dummy so that the other
+          // current density results do not get mixed up
+          coilCurrentDens_[actRegion] = actPart.jUnitVec;
 
           // === -f_A ===
           LinearForm* psiDotInt;
