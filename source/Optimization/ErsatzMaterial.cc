@@ -2582,7 +2582,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
     assert(f->GetType() == Condition::TEMP_TRACKING_AT_INTERFACE || f->GetType() == Objective::TEMP_TRACKING_AT_INTERFACE);
     trackingFunc_ = f;
-    unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
     double res = 0.0;
 
     if (derivative)
@@ -2619,9 +2618,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-      for (unsigned int n = 1; n <= nNodes; n++) {
-        res += CalcStateTrackingAtNode(n);
-      }
+      StdVector<unsigned int> nodeList;
+      domain->GetGrid()->GetNodesByRegion(nodeList,design->GetRegionId());
+
+      for (unsigned int i = 0; i < nodeList.GetSize(); i++)
+        res += CalcStateTrackingAtNode(nodeList[i]);
+
       assert(res >= 0);
     } // if-else
 
