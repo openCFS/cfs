@@ -1494,7 +1494,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       result = CalcTracking(excite, c, g, derivative);
       break;
 
-      case Condition::TEMP_TRACKING_AT_INTERFACE:
+      case Objective::TEMP_TRACKING_AT_INTERFACE:
       {
         Vector<double> res;
         result = CalcStateTrackingAtInterface(excite, f, derivative, f->GetParameter());
@@ -2581,6 +2581,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
     assert(f->GetType() == Condition::TEMP_TRACKING_AT_INTERFACE || f->GetType() == Objective::TEMP_TRACKING_AT_INTERFACE);
+    trackingFunc_ = f;
     unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
     double res = 0.0;
 
@@ -2619,8 +2620,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     else
     {
       for (unsigned int n = 1; n <= nNodes; n++) {
-//        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal) * design->data.GetSize();
-        res += CalcStateTrackingAtNode(excite,f,n, trackVal);
+        res += CalcStateTrackingAtNode(n);
       }
       assert(res >= 0);
     } // if-else
@@ -2628,22 +2628,26 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return res;
   }
 
-  double ErsatzMaterial::CalcStateTrackingAtNode(Excitation& excite, Function* f, int node, double trackVal)
+  double ErsatzMaterial::CalcStateTrackingAtNode(int node)
   {
     assert(node > 0);
+    assert(trackingFunc_ != NULL);
 
     NodeList nodeList(domain->GetGrid());
     StdVector<UInt> nodeId(1);
     nodeId[0] = node;
     nodeList.SetNodes(nodeId);
 
-    shared_ptr<BaseFeFunction> fe = f->ctxt->pde->GetFeFunction(f->ctxt->pde->GetNativeSolutionType());
+    shared_ptr<BaseFeFunction> fe = trackingFunc_->ctxt->pde->GetFeFunction(trackingFunc_->ctxt->pde->GetNativeSolutionType());
+
     Vector<double> stateSol(1); // we get one scalar
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
-    shared_ptr<BaseFeFunction> rhsFe = f->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
+    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
     Vector<double> load(1);
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
+
+    double trackVal = trackingFunc_->GetParameter();
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize();
   }
