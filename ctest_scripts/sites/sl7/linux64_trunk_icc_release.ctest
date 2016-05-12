@@ -59,7 +59,7 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(INTEL_COMPILER_PATH "/opt/pckg/intel/composer_xe_2015")
+SET(INTEL_COMPILER_PATH "/opt/pckg/intel/composer_xe_2015.2.164")
 
 SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
 SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
