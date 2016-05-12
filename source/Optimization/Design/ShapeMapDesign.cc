@@ -401,15 +401,19 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
     assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
     assert(!param.fixed);
 
+    LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << param.start_param << " ep=" << param.end_param;
+
     // skip the last element as we want only 'full' elements with next when we are not periodic
-    for(int e = param.start_param + (prev ? (periodic ? 0 : 1) : 0); e < param.end_param - (periodic ? 0 : +1); e++)
+    for(int e = param.start_param + (prev ? (periodic ? 0 : 1) : 0), n = param.end_param - (periodic ? 0 : +1); e < n; e++)
     {
       BaseDesignElement& bde = shape_param_[e];
       assert(f->GetDesignType() == bde.GetType());
       assert((!periodic && e < param.end_param-1) || (periodic && e < param.end_param));
 
-      BaseDesignElement* prev_de = prev ? &shape_param_[e == 0 ? param.end_param-1 : e-1] : NULL; // if not prev take last
-      BaseDesignElement* next_de = &shape_param_[e < param.end_param-1 ? e+1 : 0]; // we next cannot be next we take first (only if periodic)
+      BaseDesignElement* prev_de = prev ? &shape_param_[e == param.start_param ? param.end_param-1 : e-1] : NULL; // if not prev take last
+      BaseDesignElement* next_de =        &shape_param_[e == param.end_param-1 ? param.start_param : e+1]; // we next cannot be next we take first (only if periodic)
+
+      LOG_DBG2(SMD) << "SVSEM s=" << s << " n=" << n << " pde=" << (prev_de != NULL ? (int) prev_de->GetIndex() : -1) << " e=" << e << " nde=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
 
       vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_1));
       if(two_signs)

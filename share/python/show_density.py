@@ -46,7 +46,7 @@ def density_to_image(filename, set, design):
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-      ret[y-i-1][j] = 255 - int(255 * dens[j][i])
+      ret[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
 
   return Image.fromarray(ret), dens
 
