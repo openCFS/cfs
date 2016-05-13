@@ -34,6 +34,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
   this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
   this->order_ = pn->Get("shapeMap/integration_order")->As<int>();
+  this->order_order_ = order_ * order_;
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want shape_param_ or better opt_shape_param_ to take the role of DesignSpace::data
@@ -569,7 +570,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      map_[i].rho = &(data[Find(idx_to_elem[i])]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      map_[i].nodes.Reserve(2 * num_node_shapes_); // each design node connects to two density elements
      if(overlap_ == MAX) {
-       map_[i].ip_param_idx.Resize(order_ * order_);
+       map_[i].ip_param_idx.Resize(order_order_);
        map_[i].ip_param_idx.Init(-1);
      }
    }
@@ -612,6 +613,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    Grid* grid = domain->GetGrid();
    // within the element coordinates we perform the integration
    Matrix<double> coords;
+   int res_idx_r = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_RELEVANT);
 
    assert(data.GetSize() == map_.GetSize());
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++)
@@ -621,6 +623,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
      // the index we store for the gradient. We gather the information when computing rho and save computing all the tanh again
      item.ip_param_idx.Init(-1);
+     // invalidate the gradient chaches
+     item.da_norm_cache.Clear(true);
+     item.dw_norm_cache.Clear(true);
 
      // reduce integration by identifying the structures close enough to zero. One could save more tanh if also the close to one are skipped.
      // this are shapes we need to integrated. If too far away we dont't need them if all then the 0....n/2 with n size of item.para.GetSize()
@@ -630,6 +635,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      for(unsigned int s = 0; s < item.nodes.GetSize(); s+=2)
        if(CloseEnough(item.nodes[s], item.nodes[s+1], coords))
          shapes.Push_back(s);
+
+     if(res_idx_r >= 0)
+       de->specialResult[res_idx_r] = shapes.GetSize();
 
      double rho = 0.0; // sum up over all ips (if shapes is large enough :))
      double ip_rho = 0.0; // usage depends on overlap_
@@ -671,7 +679,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        } // end ip_x
      }
 
-     de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_ * order_))); // we assume 0 <= v <= 1
+     de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_order_))); // we assume 0 <= v <= 1
      LOG_DBG2(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue()
                    << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound()) << " shape=" << shapes.ToString(); // << " pi=" << item.ip_param_idx.ToString();
      assert(!(overlap_ == MAX && de->GetPlainDesignValue() >= de->GetUpperBound() + 1e-10));
@@ -717,6 +725,18 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if(item.relevant_nodes.GetSize() > 0)
      {
        assert(!(overlap_ == MAX && item.ip_param_idx[0] == -1));      // either all ip_param_idx are -1 or none
+
+       // check for first usage of da_cache
+       bool grad_cached = true; // hope for the best
+       if(item.da_norm_cache.IsEmpty())
+       {
+         assert(item.dw_norm_cache.IsEmpty());
+         item.da_norm_cache.Resize(item.relevant_nodes.GetSize() * order_order_);
+         if(!IsProfileFixed())
+           item.dw_norm_cache.Resize(item.relevant_nodes.GetSize() * order_order_);
+         grad_cached = false;
+       }
+
        for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
        {
          for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
@@ -725,7 +745,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            for(unsigned int s = 0, n = overlap_ == MAX ? 1 : item.relevant_nodes.GetSize(); s < n; s++)
            {
              // with MAX the shape_idx is stored by ip in ip_param_idx, for SUM we check all shapes (0,1,2) where item.nodes is with pairs
-             int shape_idx = overlap_ == MAX ? item.ip_param_idx[ip_y*order_+ip_x] : item.relevant_nodes[s];
+             int shape_idx = overlap_ == MAX ? item.ip_param_idx[IntPointIdx(ip_x, ip_y)] : item.relevant_nodes[s];
 
              assert(shape_idx >= 0); // all -1 or none
              assert(shape_idx % 2 == 0); // shall be even
@@ -733,30 +753,39 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              ShapeParamElement* s1 = item.nodes[shape_idx];
              ShapeParamElement* s2 = item.nodes[shape_idx+1];
 
-             double da = 0.0;
-             switch(overlap_)
+             // this will point to the initially or cached da_norm
+             double& da_norm = item.da_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)]; // reference such that we automatically store the stuff
+
+             // check for first usage of da_cache
+             if(!grad_cached)
              {
-             case MAX:
-             case OPEN_SUM:
-               da = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, true, false); // dtanh_da
+               double da = 0.0;
+               switch(overlap_)
+               {
+               case MAX:
+               case OPEN_SUM:
+                 da = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, true, false); // dtanh_da
+                 break;
+               case TANH_SUM:
+               {
+                 // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
+                 StdVector<int>& shapes = item.relevant_nodes; // shortcut
+                 double sum_rho = 0.0;
+                 for(unsigned int si = 0; si < shapes.GetSize(); si++)
+                   sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+                 // this is the derivative for the tanh(shape)
+                 double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
+                 da = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
+                 LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                               << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << da;
+               }
                break;
-             case TANH_SUM:
-             {
-               // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
-               StdVector<int>& shapes = item.relevant_nodes; // shortcut
-               double sum_rho = 0.0;
-               for(unsigned int si = 0; si < shapes.GetSize(); si++)
-                 sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
-               // this is the derivative for the tanh(shape)
-               double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
-               da = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
-               LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
-                             << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << da;
+               }
+               // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
+               da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_order_);
              }
-             break;
-             }
-             // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-             double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
+             LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
+
              log_da += da_norm;
 
              assert(opt_ != NULL);
@@ -768,31 +797,36 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              {
                ShapeParamElement* w1 = GetProfile(s1);
                ShapeParamElement* w2 = GetProfile(s2);
-               double dw = 0.0;
-               switch(overlap_)
-               {
-               case MAX:
-               case OPEN_SUM:
-                 dw = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, false, true); // dtanh_dw
-                 break;
-               case TANH_SUM:
-               {
-                 // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
-                 StdVector<int>& shapes = item.relevant_nodes; // shortcut
-                 double sum_rho = 0.0;
-                 for(unsigned int si = 0; si < shapes.GetSize(); si++)
-                   sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
-                 // this is the derivative for the tanh(shape)
-                 double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
-                 dw = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
-                 LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
-                               << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << dw;
-               }
-               break;
-               }
 
-               // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
+               double& dw_norm = item.dw_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)];
+               if(!grad_cached)
+               {
+                 double dw = 0.0;
+                 switch(overlap_)
+                 {
+                 case MAX:
+                 case OPEN_SUM:
+                   dw = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, false, true); // dtanh_dw
+                   break;
+                 case TANH_SUM:
+                 {
+                   // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
+                   StdVector<int>& shapes = item.relevant_nodes; // shortcut
+                   double sum_rho = 0.0;
+                   for(unsigned int si = 0; si < shapes.GetSize(); si++)
+                     sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+                   // this is the derivative for the tanh(shape)
+                   double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
+                   dw = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
+                   LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                       << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << dw;
+                 }
+                 break;
+                 }
+
+                 // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
+                 dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_order_);
+               }
                log_dw += dw_norm;
 
                w1->AddGradient(f, de->GetPlainGradient(f) * dw_norm);

@@ -334,7 +334,7 @@ int SnOpt::Callback(integer* Status, const integer n,
   {
     stop = true;
     *Status = -10;
-    cout << "user break!" << endl;
+    cout << "User break: " << optimization->user_break_reason << endl;
     return -10;
   }
   

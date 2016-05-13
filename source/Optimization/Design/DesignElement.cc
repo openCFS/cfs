@@ -484,7 +484,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
       || rd.value == TRANSFO_MATRIX
-      || rd.value == SHAPE_MAP_GRAD)
+      || rd.value == SHAPE_MAP_GRAD
+      || rd.value == SHAPE_MAP_RELEVANT)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -823,6 +824,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
   valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
   valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
+  valueSpecifier.Add(SHAPE_MAP_RELEVANT, "shapeMapRelevant");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");

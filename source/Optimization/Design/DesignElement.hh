@@ -148,7 +148,8 @@ public:
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     TRANSFO_MATRIX,
-    SHAPE_MAP_GRAD /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
+    SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
+    SHAPE_MAP_RELEVANT /* the number of shapes with relevant contribution to this rho */
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.

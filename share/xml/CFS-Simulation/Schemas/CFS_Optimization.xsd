@@ -121,8 +121,13 @@
                 <!-- optional to give the stopping rule value.  -->
                 <xsd:attribute name="value" use="optional"  type="xsd:float" default="1e-3"/>
                 
-                <!-- optinoal to give the stopping rule queue lenght, this is for how many steps the criteria has to hold.  -->
+                <!-- optional to give the stopping rule queue lenght, this is for how many steps the criteria has to hold.  -->
                 <xsd:attribute name="queue" use="optional" type="xsd:positiveInteger" default="5"/>
+                
+                <!-- optioanlly give a max wall runtime in hours. If after an iterations theres ist not 1.5 times the average time
+                of the last iterations left, cfs will break. smaller equal 0 disables. Uses math parser -->
+                <xsd:attribute name="maxHours" use="optional" type="xsd:token" default="-1.0"/>
+                
               </xsd:complexType>
             </xsd:element>
             
@@ -1351,6 +1356,8 @@
                       <xsd:enumeration value="transfoMatrix"/>
                       <!--  for shape mapping the max of dtanh_da for a rho element -->
                       <xsd:enumeration value="shapeMapGrad"/>
+                      <!--  for shape mapping the number of shapes with relevant contribution to this element (ShapeMapDesign::Item::relevant_nodes.GetSize())--> 
+                      <xsd:enumeration value="shapeMapRelevant"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>

@@ -93,7 +93,8 @@ Optimization::Optimization()
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
-  this->msfem = false;
+  assert(domain->GetInfoRoot()->Get(ParamNode::SUMMARY)->Has("timer"));
+  this->cfs_timer_ = domain->GetInfoRoot()->Get(ParamNode::SUMMARY)->Get("timer")->AsTimer();
 
   Optimization::manager.Init(); // there is also an init in DesignSpace
 
@@ -186,7 +187,7 @@ void Optimization::PostInitSecond()
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
     }
   }
-  log.AddToHeader("problems");
+  log.AddToHeader("duration");
 
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
@@ -511,22 +512,48 @@ double Optimization::GetStepWeight(unsigned int ts) const{
 
 bool Optimization::DoStopOptimization()
 {
+  user_break_reason = "";
   PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
   // check if the HALTOPT file exists
   if(fs::exists("HALTOPT"))
   {
     bool good = fs::remove("HALTOPT");
-    if(!good) throw new Exception("Could not remove file 'HALTOPT' after detection");
+    if(!good)
+      throw new Exception("Could not remove file 'HALTOPT' after detection");
     in->Get("converged")->SetValue("no");
-    in->Get("reason/msg")->SetValue("Detected file 'HALTOPT'");
+    user_break_reason = "Detected file 'HALTOPT'";
+    in->Get("reason/msg")->SetValue(user_break_reason);
     return true;
   }
   
   ObjectiveContainer::StoppingRule& stop = objectives.stop;
 
+  // check for too long?!
+  if(stop.max_hours >= 0.0 && time_.GetSize() >= 3)
+  {
+    // avg. of the last three in seconds
+    double avg = (time_.Last() - time_[time_.GetSize() - 3])/3.0;
+    // remaining time to max_hours in seconds
+    double remaining = stop.max_hours * 3600 - cfs_timer_->GetWallTime();
+
+    LOG_DBG(opt) << "DSO: wt=" << cfs_timer_->GetWallTime() << " cmp=" << time_[time_.GetSize() - 3] << " avg=" << avg << " mh=" << stop.max_hours << " re=" << remaining << " ti=" << time_.ToString();
+
+    if(remaining < 1.5 * avg)
+    {
+      std::stringstream ss;
+      ss << "Not enough time left to finish within " << stop.max_hours << "h with avg iteration duration " << avg << "s and " << remaining << "s left.";
+      user_break_reason = ss.str();
+      in->Get("converged")->SetValue("no");
+      in->Get("reason/msg")->SetValue(user_break_reason);
+      return true;
+    }
+  }
+
+
   // we need a minimum number of iterations to be sure we are in a minimum
   unsigned int hs = objectives.GetHistorySize();
-  if(hs <= stop.queue) return false;
+  if(hs <= stop.queue)
+    return false;
 
   if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
   {
@@ -534,7 +561,8 @@ bool Optimization::DoStopOptimization()
     {
       double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
       double rel = abs(delta / objectives.GetHistoryValue(true, i));
-      if(rel > stop.value) return false;
+      if(rel > stop.value)
+        return false;
     }
   }
   else // ObjectiveContainer::StoppingRule::DESIGN_CHANGE
@@ -546,12 +574,8 @@ bool Optimization::DoStopOptimization()
 
   // the relative values for the whole queue are smaller than the requirement -> we are done! :)
   in->Get("converged")->SetValue("practically");
-
-  if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
-    in->Get("reason/msg")->SetValue("Too small relative change in objective function");
-  else
-    in->Get("reason/msg")->SetValue("Too small change in design");
-
+  user_break_reason = stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE ? "Too small relative change in objective function" : "Too small change in design";
+  in->Get("reason/msg")->SetValue(user_break_reason);
   in->Get("reason/value")->SetValue(stop.value);
   in->Get("reason/queue")->SetValue(stop.queue);
   return true;
@@ -925,7 +949,7 @@ double Optimization::CalcConstraint(Condition* g)
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
     double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
     result += v * w;
-    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
+    LOG_DBG2(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
   }
 
   g->SetValue(result);
@@ -1000,7 +1024,7 @@ void Optimization::StoreResults(double step_val)
 void Optimization::FinalizeStoreResults()
 {
   // after the last CommitIteration the iteration counter was incremented
-  bool store = currentIteration-1 != lastStoredResult_ && currentIteration > 1;
+  bool store = (int) currentIteration-1 != lastStoredResult_ && currentIteration > 1;
   LOG_DBG(opt) << "CheckFinalStoreResults: currentIteration=" << currentIteration << " lastStoredResult="
                << lastStoredResult_ << " store=" << store;
   if(store)
@@ -1008,13 +1032,17 @@ void Optimization::FinalizeStoreResults()
 }
 
 
-PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
+PtrParamNode Optimization::CommitIteration()
 {
   // store the real cost -> not a scaled one
   objectives.PushBackHistory();
 
   // store the current design and calculate the design change!
   objectives.PushBackDesign(design);
+
+  assert(time_.GetSize() == currentIteration);
+  time_.Push_back(cfs_timer_->GetWallTime());
+  LOG_TRACE2(opt) << "CI: ci=" << currentIteration << " wt=" << cfs_timer_->GetWallTime() << " -> " << time_.ToString();
 
   // eventually set special result
   EvaluateSpecialResults();
@@ -1033,7 +1061,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
-  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
+  LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {
     StoreResults();
@@ -1050,11 +1078,8 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
     cout << " -> cost = " << objectives.GetHistoryValue() << endl;
   }
 
-  if(!keep_iteration_number)
-  {
-    currentIteration++;
-    problemWithinIteration = 0;
-  }
+  currentIteration++;
+  problemWithinIteration = 0;
 
   // write the current info file, if the writing frequency is not too high.
   domain->GetInfoRoot()->ToFile();
@@ -1064,6 +1089,9 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
 void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
+  double duration = time_.Last() - (time_.GetSize() > 1 ? time_[time_.GetSize() - 2] : 0.0);
+
+
   if(out)
   {
     *out << currentIteration;
@@ -1082,7 +1110,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       }
     }
 
-    *out << " \t" << problemSolvedCounter;
+    *out << " \t" << duration;
     if(design->HasAlphaVariable())
       *out << " \t" << design->GetAlphaVariable();
   }
@@ -1091,6 +1119,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
   if(context->IsHarmonic())
     iteration->Get("frequency")->SetValue(GetIterationFrequency());
+
+  iteration->Get("duration")->SetValue(duration);
 
   if(design->HasAlphaVariable()) // needs to be written to the plot.dat file in ErsatzMaterial as Optimization::Optimization() knows no design yet
     iteration->Get("alpha")->SetValue(design->GetAlphaVariable());
