@@ -155,7 +155,7 @@ SetupRHEL() {
     ADD_ADDITIONAL_REPOS=1
     case "${RHEL_REL}" in
 	5) SUPPORTED=1 ;;
-	6) SUPPORTED=1 ;;
+	6) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	7) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	*)
             echo "RHEL release ${RHEL_REL} is NOT supported!"
