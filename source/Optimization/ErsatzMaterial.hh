@@ -73,7 +73,7 @@ public:
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
   /** Here we also write the density files */
-  PtrParamNode CommitIteration(bool keep_iteration_number = false);
+  PtrParamNode CommitIteration();
 
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();

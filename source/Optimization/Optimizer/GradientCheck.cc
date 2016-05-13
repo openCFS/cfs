@@ -113,7 +113,7 @@ void GradientCheck::SolveProblem()
   }
 
   // write the stuff -> The PDE solution is slighly wrong!
-  optimization->CommitIteration(false);
+  optimization->CommitIteration();
 
   // finish comparison
   double l2 = error.NormL2() / error.GetSize();

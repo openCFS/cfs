@@ -431,10 +431,10 @@ void ErsatzMaterial::StoreResults(double step_val)
 }
 
 
-PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
+PtrParamNode ErsatzMaterial::CommitIteration()
 {
   // will write the cfs results and the log file
-  PtrParamNode iter = Optimization::CommitIteration(keep_iteration_number);
+  PtrParamNode iter = Optimization::CommitIteration();
 
   // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
   StdVector<Condition*> ev = constraints.GetList(Condition::EIGENFREQUENCY);

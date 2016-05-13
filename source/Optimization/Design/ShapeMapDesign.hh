@@ -138,6 +138,9 @@ protected:
   /** Index of rho in DesignSpace::data() by element coordinate */
   unsigned int DensityIdx(int x, int y) const { return nx_ * y + x; }
 
+  /** Index for integration point */
+  unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
+
   /** Search in shape_ */
   StdVector<ShapeParam*> FindShape(Type type, int dof);
 
@@ -239,7 +242,12 @@ protected:
      * -1 if this value is too small and the gradient shall be 0.
      * Used to compute the gradient which takes the shape_param for each ip where the corresponding rho is max
      * Has size order_ * order_ */
-    Vector<int> ip_param_idx;
+    StdVector<int> ip_param_idx;
+
+    /** Stores da_norm to prevent recomputing. For 3D make sure you have not too much integration points!
+     * Size and access is relevant_nodes * order_ * order */
+    StdVector<double> da_norm_cache;
+    StdVector<double> dw_norm_cache;
   };
 
   /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
@@ -302,6 +310,9 @@ protected:
   /** this is the order of integration with order^dim evaluations.
    * Smaller 5 has poor numerics, larger 10 might become expensive */
   unsigned int order_;
+
+  /** order_ * order */
+  unsigned int order_order_;
 
   /** shortcut to the dimension (2,3) */
   unsigned int dim_;
