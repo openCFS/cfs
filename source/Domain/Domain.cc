@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 
 #include "def_use_openmp.hh"
+#include "def_disable_optimization.hh"
 
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -322,8 +323,14 @@ void Domain::PostInit(UInt sequenceStep)
 
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if (GetParamRoot()->Has("optimization"))
+  {
+    #ifdef DISABLE_OPTIMIZATION
+      throw Exception("CFS++ was compiled with disabled optimization.");
+    #endif
     Optimization::CreateInstance(); // has an SetOptimization() included
-  else {
+  }
+  else
+  {
     // check if we simulate with ersatz material - after driver and only if not used with optimization
     // if used with optimization loadErsatzMaterial specifies the starting point for optimization
     // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here

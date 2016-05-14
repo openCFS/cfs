@@ -24,6 +24,8 @@
 #include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 #include <def_use_openmp.hh>
+#include <def_disable_optimization.hh>
+
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -661,6 +663,16 @@ namespace CoupledField {
     out << "USE_OPENMP:            "
         << fg_blue  << "NO" << fg_reset << endl;
 #endif
+
+#ifdef DISABLE_OPTIMIZATION
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "YES" << fg_reset << endl;
+#else
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+
 
 #ifdef USE_ARPACK    
     out << "USE_ARPACK:            "
