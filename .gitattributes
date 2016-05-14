@@ -510,6 +510,7 @@ ctest_scripts/sites/winxp32/timezone.reg -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
 include/def_config.hh.in -text
+include/def_disable_optimization.hh.in -text
 include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
@@ -1325,6 +1326,7 @@ share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Disabled_Optimization.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Documentation.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text

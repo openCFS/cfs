@@ -222,7 +222,6 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
 SET(CFS_PARDISO "MKL"
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
-
 OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
@@ -268,6 +267,12 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+
+# Disables Optimization in CFS++. Optimization is (and shall) still compiled but
+# optimization problems don't run. Furthermore CFS_Optimiztion.xsd will be replaced
+# in the build copy of the schema. Meant for deploying CFS++ to the public.
+# Note that this option is advanced, so you need to toggle in ccmake to see it.
+OPTION(DISABLE_OPTIMIZATION "Disables to run optimization problmes (still compiled)" ${DISABLE_OPTIMIZATION_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore.
@@ -461,6 +466,7 @@ MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
+MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE

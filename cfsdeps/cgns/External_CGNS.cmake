@@ -62,7 +62,7 @@ IF(TCLTK_FOUND AND
    OPENGL_FOUND AND
    OPENGLU_FOUND AND
    OPENGL_INCLUDE_PATH)
-  SET(BUILD_CGNSTOOLS ON)
+  SET(BUILD_CGNSTOOLS OFF)
 ELSE()
   #-------------------------------------------------------------------------------
   # Let's only build the CGNS tools on platforms, which provide a TCL 
