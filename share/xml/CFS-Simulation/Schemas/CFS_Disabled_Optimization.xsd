@@ -11,7 +11,7 @@
   </xsd:annotation>
   
   <xsd:complexType name="DT_Optimization">
-    <xsd:attribute name="optimiziation_is_disabled" use="required" type="xsd:token" default="that_is_the_case"/>
+    <xsd:attribute name="optimiziation_is_disabled" use="optional" type="xsd:token" default="that_is_the_case"/>
   </xsd:complexType>
 
 </xsd:schema>
