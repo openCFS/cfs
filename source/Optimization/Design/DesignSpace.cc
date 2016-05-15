@@ -664,8 +664,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
-    return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+  if(designMaterial != NULL) {
+    // easy to extend to piezo and other stuff!
+    // FIXME -> see DesignMaterial::GetMechTensor()
+    #pragma OMP critical
+    {
+      return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+    }
+  }
 
   double bimat_factor = -1.0;
 

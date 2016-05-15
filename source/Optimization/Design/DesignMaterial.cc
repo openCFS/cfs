@@ -5012,72 +5012,69 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12 && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE && type_ != GREEDY_MAPPING));
 
-  // with parallel assembling GetMechTensor seems to be not thread save
-  // make the code save and remove the lock!
-  #pragma omp critical
-  {
-    if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
-      return false;
+  // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
+  // make the code save and remove the lock in calling DesingSpace!
+  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    return false;
 
-    switch (type_) {
-    case FMO:
-      GetElasticFMOTensor(t, direction, notation);
-      break;
-    case ORTHOTROPIC:
-    case DENSITY_TIMES_ORTHOTROPIC:
-      GetOrthotropicMaterialTensor(t, subTensor, direction, notation);
-      break;
-    case ISOTROPIC:
-      GetIsoMaterialTensor(t, subTensor, direction);
-      break;
-    case LAME_ISOTROPIC: // LAME_ISOTROPIC
-      GetLameMaterialTensor(t, subTensor, direction);
-      break;
-    case TRANSVERSAL_ISOTROPIC:
-    case TRANSVERSAL_ISOTROPIC_BOXED:
-    case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
-    case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
-    case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC:
-    case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
-    case DENSITY_TIMES_ROT_PA12:
-      GetTransIsoMaterialTensor(t, subTensor, direction, notation);
-      break;
-    case DENSITY_TIMES_2D_TENSOR:
-    case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
-    case DENSITY_TIMES_ROTATED_2D_TENSOR:
-      GetDensityTimes2dTensorTensor(t, subTensor, direction);
-      break;
-    case LAMINATES:
-    case D_LAMINATES:
-      GetLaminatesTensor(t, subTensor, direction, notation);
-      break;
-    case HOM_RECT:
-    case D_HOM_RECT:
-    case HOM_RECT_C1:
-      GetHomRectTensor(t, subTensor, elem, direction, notation);
-      break;
-    case GREEDY_PARAM:
-    case GREEDY_FREE:
-    case REDBAS_PARAM:
-    case REDBAS_FREE:
-      GetModRedTensor(t, direction, notation);
-      break;
-    case GREEDY_MAPPING:
-    case REDBAS_MAPPING:
-      GetMappingTensor(t, direction, notation);
-      break;
-    case D_INTERP_TENSOR:
-    case D_INTERP_TENSOR_ROT:
-      GetInterpolatedTensor(t, subTensor, direction, notation);
-      break;
-    default: // case default
-      throw Exception("DesignMaterial Type not implemented yet");
-    }
-
-    assert(t.GetNumRows() >= 3 && t.GetNumCols() >= 3);
-
-    return true;
+  switch (type_) {
+  case FMO:
+    GetElasticFMOTensor(t, direction, notation);
+    break;
+  case ORTHOTROPIC:
+  case DENSITY_TIMES_ORTHOTROPIC:
+    GetOrthotropicMaterialTensor(t, subTensor, direction, notation);
+    break;
+  case ISOTROPIC:
+    GetIsoMaterialTensor(t, subTensor, direction);
+    break;
+  case LAME_ISOTROPIC: // LAME_ISOTROPIC
+    GetLameMaterialTensor(t, subTensor, direction);
+    break;
+  case TRANSVERSAL_ISOTROPIC:
+  case TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC:
+  case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_ROT_PA12:
+    GetTransIsoMaterialTensor(t, subTensor, direction, notation);
+    break;
+  case DENSITY_TIMES_2D_TENSOR:
+  case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+  case DENSITY_TIMES_ROTATED_2D_TENSOR:
+    GetDensityTimes2dTensorTensor(t, subTensor, direction);
+    break;
+  case LAMINATES:
+  case D_LAMINATES:
+    GetLaminatesTensor(t, subTensor, direction, notation);
+    break;
+  case HOM_RECT:
+  case D_HOM_RECT:
+  case HOM_RECT_C1:
+    GetHomRectTensor(t, subTensor, elem, direction, notation);
+    break;
+  case GREEDY_PARAM:
+  case GREEDY_FREE:
+  case REDBAS_PARAM:
+  case REDBAS_FREE:
+    GetModRedTensor(t, direction, notation);
+    break;
+  case GREEDY_MAPPING:
+  case REDBAS_MAPPING:
+    GetMappingTensor(t, direction, notation);
+    break;
+  case D_INTERP_TENSOR:
+  case D_INTERP_TENSOR_ROT:
+    GetInterpolatedTensor(t, subTensor, direction, notation);
+    break;
+  default: // case default
+  throw Exception("DesignMaterial Type not implemented yet");
   }
+
+  assert(t.GetNumRows() >= 3 && t.GetNumCols() >= 3);
+
+  return true;
 }
 
 
