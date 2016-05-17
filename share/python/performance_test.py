@@ -94,12 +94,15 @@ def gnuplot(timer, header=True):
   
 ## print standard analysis
 # @timer a list of Timer or a list of a list of Timer, then the minimum is printed first 
-def print_timer(timers):
+def print_timer(timers, brief=False):
   timer = minimal_timer(timers) if type(timers[0]) == list else timers  
   meta = len(timers) if type(timers[0]) == list else 0
      
-  max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case  
-  print 'TIMER'.ljust(max_label) + ': ____ WALL____ ~ _____ (CPU) _____'
+  max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case
+  if not brief:  
+    print 'TIMER'.ljust(max_label) + ': ____ WALL____ ~ ______ (CPU) _____'
+  else:
+    print 'TIMER'.ljust(max_label) + ': WALL ~ _ (CPU) _'    
  
   total_wall = max(timer[0].wall, 1)
   total_cpu  = max(timer[0].cpu, 1e-3) 
@@ -107,7 +110,12 @@ def print_timer(timers):
   for e in range(len(timer)):
      t = timer[e] 
      l = t.label + ('*' if t.sub else '')
-     line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) + ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + '] ~ ({:7.5}'.format(t.cpu) + ')' + '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
+     line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) 
+     if not brief:
+       line += ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + ']'
+     line += ' ~ ({:7.3}'.format(t.cpu) + ')' 
+     if not brief: 
+       line += '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
      
      
      for m in range(meta):
@@ -116,7 +124,8 @@ def print_timer(timers):
         
 parser = argparse.ArgumentParser(description='with --analyse timer information from an info.xml is extracted.')
 parser.add_argument("input", help="the xml file to run or the info.xml file to analyse (each with extension)")
-parser.add_argument('--analyse', help="extract the timers from the 'input' info.xml file ", action='store_true')
+parser.add_argument('--analyse', help="extract the timers from the 'input' info.xml file", action='store_true')
+parser.add_argument('--brief', help="brief analysis outout to make it within the 1K cdash buffer", action='store_true')
 parser.add_argument('-m', "--mesh", help="give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
 parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
 
@@ -135,7 +144,7 @@ if args.analyse:
   
   info = libxml2.parseFile(args.input).xpathNewContext()
   timer = read_info(info, gap=True)
-  print_timer(timer)
+  print_timer(timer, args.brief)
 
 else: # the whole run stuff
   if not args.mesh:

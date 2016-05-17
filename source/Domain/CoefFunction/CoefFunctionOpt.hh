@@ -57,6 +57,11 @@ public:
     GetScalar<Complex>(scal, lpm);
   }
 
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) {
+    GetVector<double>(vec, lpm);
+  }
+
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
@@ -83,6 +88,8 @@ public:
   const BiLinearForm* GetForm() const  {
     return form;
   }
+
+  std::string ToString() const{ return "CoefFunctionOpt";};
 
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();
@@ -115,6 +122,9 @@ protected:
 
   template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);
+
+  template <class T>
+  void GetVector(Vector<T>& scal, const LocPointMapped& lpm);
 
   /** This is the DesignSpace we use -> could be also requested from domain */
   DesignSpace* design;

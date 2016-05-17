@@ -6,14 +6,6 @@
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 
-// Since OLAS uses a separate namespace for
-// writing out data, two different declarations
-// have to be made
-namespace OutInfo{
-
-  std::ostream *cla      = NULL;
-}
-
 namespace CoupledField {
 
   // Define global objects 

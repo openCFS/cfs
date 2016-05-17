@@ -113,7 +113,6 @@ namespace CoupledField {
         actDone = (UInt)(actDone/10.0)*10;
         if ( actDone > percentDone ) {
           percentDone = (UInt)actDone;
-          (*cla) << " .. " << percentDone << "%" << std::flush;
         }
 
         Rkk = dataU_[rptrA[k]];
@@ -166,8 +165,6 @@ namespace CoupledField {
           diagScale = 2.0 * counterFailed;
           counterFailed++;
           nPD = 1;
-//           (*cla) << "\n Perform scaling of system matrix: " << counterFailed
-//          << std::endl;
         }
 
         if (nPD ==1 )

@@ -79,6 +79,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     oc_damping_ = pn->Get("damping")->As<Double>();
     lambda_min_ = pn->Get("lambda_min")->As<Double>();
     err_eps_    = pn->Get("err_eps")->As<Double>();
+    max_lambda_iters_ = pn->Get("max_lambda_iters")->As<int>();
 
     // it doesn't harm to read the parameters for all types!
     if(pn->Has(type.ToString(FRAMED)))

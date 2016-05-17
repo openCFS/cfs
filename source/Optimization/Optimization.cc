@@ -34,7 +34,6 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
-#include "Optimization/LBMSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -319,6 +318,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TRACKING, "tracking");
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
   Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
+  Function::type.Add(Function::TEMP_TRACKING_AT_INTERFACE, "tempTrackingAtInterface");
   Function::type.Add(Function::HOM_TENSOR, "homTensor");
   Function::type.Add(Function::HOM_TRACKING, "homTracking");
   Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
@@ -378,6 +378,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
+  Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");
@@ -617,15 +618,12 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
+    case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
       break;
       
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
-      break;
-      
-    case OptimizationMaterial::LBM:
-      opt = new LBMSIMP();
       break;
 
     default:
@@ -700,7 +698,7 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1))
+  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
     return true;
   else
     return false;
@@ -1151,13 +1149,18 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       CalcConstraint(g);
   }
   constraints.view->Done();
-
+  double max = -1.;
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
     if(g->GetType() == Function::SHAPE_INF)
       continue; //TODO: MaxValue does not correctly set indexes in view
 
+    // Calculate the max value of multiple displacement constraints
+    if(g->GetType() == Function::OUTPUT && g->output_multiple_nodes > 0) {
+      max = std::max(max,std::abs(g->GetValue()));
+      std::cout<<"max "<<max<<std::endl;
+    }
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
@@ -1185,6 +1188,9 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       }
     }
   }
+  // max output_constraint value
+  if (out && max > -1.)
+      *out << " \t output_max = " << max;
 
   if(out && log.design){
     StdVector<double> d;

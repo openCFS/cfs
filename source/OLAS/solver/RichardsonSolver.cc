@@ -26,9 +26,6 @@ namespace CoupledField {
     EXCEPTION("The Richardson solver has not been in use for a very long time."
               << "Please check if it is still working for you!");
     
-    // Tracing information
-    (*cla) << "### preconditioned Richardson Solver" << std::endl;
-
     // If not yet done, create auxilliary vectors
     if ( r_ == NULL ) {
       r_ = GenerateVectorObject(sysmat);
@@ -44,7 +41,6 @@ namespace CoupledField {
     bool loop = true;
     Integer niter = 0;
     Double norm_new;
-    Double norm_old;
 
     // Query parameter object for values
     Integer maxiter = 1; 
@@ -86,24 +82,10 @@ namespace CoupledField {
     // stopping criterion
     Double tol = norm_new * eps;
 
-    Double relativeNorm = 1.0;
-    Double initialNorm = norm_new;
-
-    norm_old = norm_new; //just for output
-
-    // Log progress
-    (*cla) << " Iteration " << niter << ": res norm = " << norm_new << " ,";
-    (*cla)   << " rel. to last: " << norm_new / norm_old << 
-      "rel. to first: " << relativeNorm << std::endl;
-
-
     //check if we have to start at all
     if ( norm_new < eps || norm_new < epsmach ) {
       loop = false;
-      (*cla) << "### Norm is small enough, we do not start PRichardson"
-	     << std::endl;
     }
-
 
     // ====================
     //   Loop Phase of Richardson
@@ -122,34 +104,15 @@ namespace CoupledField {
       // Compute w = P^-1*r by applying preconditioner
       ptPrecond_->Apply( sysmat, *r_, *w_ );
 
-      norm_old = norm_new;
-
       // compute the euclidean norm of the residual
       norm_new = r_->NormL2();
 	  
 
       // Check stopping criterion
       if ( norm_new < tol || norm_new < epsmach ) {
-	if ( norm_new < tol ) {
-	  (*cla) << std::endl
-		 << "### Terminating iterations since norm < eps = " << eps
-		 << std::endl;
-	}
-	else {
-	  (*cla) << std::endl
-		 << "### Terminating iterations since norm < epsmach = "
-		 << epsmach << std::endl;
-	}
-	loop = false;
+        loop = false;
       }
       
-      relativeNorm = norm_new / initialNorm;
-      
-      // Log progress
-      (*cla) << " Iteration " << niter << ": res norm = " << norm_new << " ,";
-      (*cla)   << " rel. to last: " << norm_new / norm_old << 
-	"rel. to first: " << relativeNorm << std::endl;
-
     }//iter
 
 

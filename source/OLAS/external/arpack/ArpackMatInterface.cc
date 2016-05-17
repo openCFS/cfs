@@ -153,7 +153,6 @@ namespace CoupledField {
     matrixC_->Add( 1.0, matD );
     matrixC_->Scale( shift_ );
     matrixC_->Add( 1.0, matA );
-    // matrixC_->Print(*cla); 
 
     // set diagonal scaling entry (hard coded = 1)
     diagScale_ = 1.0;

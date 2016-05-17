@@ -27,7 +27,7 @@ namespace CoupledField
   {
     public:
         // In 2D: 9 microscopic directions
-        // In 3D: 19 microscopic directions
+        // In 3D: n_q_ microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
           Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
@@ -57,7 +57,10 @@ namespace CoupledField
 
       /** Performs all the adjoint LBM iterations until a steady-state with a given tolerance is reached.
        * @param info stores current and final info there */
-      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+//      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
+
+      StdVector<double>* IterateAdjointSRT3D(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
@@ -103,8 +106,8 @@ namespace CoupledField
            */
           double CalcDensity(const Vector<double>& pdfs);
 
-          /** Calculates residual as difference between two iteration solutions.
-           *  Parameter adjoint indicates whether residual should be calculated for pdfs or adjoint pdfs array.
+          /**
+           * Calculates residual as difference between two iteration solutions.
            */
           inline double CalcResidual(int cur, int next)
           {
@@ -132,6 +135,11 @@ namespace CoupledField
             return sqrt(res);
           }
 
+          /** Perform position of matrix element in linearized matrix*/
+          inline unsigned int GetMatrixElemId(unsigned int row, unsigned int col, unsigned int ncols) {
+            return row * ncols + col;
+          }
+
           /** set enumerations for directions and boundaries*/
           void SetEnums();
 
@@ -156,6 +164,21 @@ namespace CoupledField
 
           /** debug information */
           std::string ToString(const StdVector<StdVector<int> >& data);
+
+          /** Performs matrix-vector multiplication of a linearized array with a vector */
+          inline void MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res)
+          {
+            res.Resize(n_q_);
+            res.Init();
+
+            for (int row = 0; row < n_q_; row++) {
+              double val = 0.0;
+              for (int col = 0; col < n_q_; col++) {
+                val += mat[GetMatrixElemId(row,col,n_q_)] * vec[col];
+              }
+              res[row] = val;
+            }
+          }
 
 
           inline bool LbmNodeTypeIsFluid(double value)
@@ -247,42 +270,23 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
-          inline bool IsBoundaryElem(int x, int y, int z)
-          {
-            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1 || z == 0 || z == sizeZ_-1;
-          }
-
-          inline bool IsCornerElem(int x, int y, int z)
-          {
-            return  (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0)
-                || (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0);
-          }
-
           /**
-           * LBM operators in 2D
+           * LBM operators 2D/3D
            */
           void Prop_coll_step2D(int cur, int next);
 
-          void Prop_coll_velinlet2D(int cur);
+          void Prop_coll_step3D(int cur, int next);
 
-          void Prop_coll_bounce_back2D(int cur);
+          void Prop_coll_velinlet(int cur);
 
-          void Prop_coll_densoutlet2D(int cur);
+          void Prop_coll_bounce_back(int cur);
+
+          void Prop_coll_densoutlet(int cur);
+//          void Prop_coll_densoutlet3D(int cur);
 
           void AdjointCollision(int cur);
 
           void AdjointPropagation(int next);
-
-          /**
-           * LBM operators in 3D
-           */
-          void Prop_coll_step3D(int cur, int next);
-
-          void Prop_coll_velinlet3D(int cur);
-
-          void Prop_coll_bounce_back3D(int cur);
-
-          void Prop_coll_densoutlet3D(int cur);
 
           int dim_;
           int sizeX_;
@@ -308,7 +312,7 @@ namespace CoupledField
           // how many iterations until steady-state convergence
           int numIterations_;
 
-          // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+          // number of microscopic velocities in LBM model, e.g. 9 for D2Qn_q_ or n_q_ for D3Qn_q_
           int n_q_;
 
           int lbmCalls_; //counts how often solver was called
@@ -324,7 +328,7 @@ namespace CoupledField
           StdVector< StdVector<double> > adjPdfs_;
           StdVector<double> tmpPdfs_;
 
-          // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
+          // stores microscopic velocities (directions) of D3Qn_q_ model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;
           // lookup table to get inverse directions of the pdfs
           StdVector<Direction> invPDFDirections;
@@ -336,14 +340,14 @@ namespace CoupledField
           StdVector<int> bb;
           StdVector<int> rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
-          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
-          StdVector<Vector<double> > d_pdrop_d_m;
+//          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
           void (LatticeBoltzmann::*prop_coll_velinlet)(int);
-          void (LatticeBoltzmann::*prop_coll_bounce_back)(int);
-          void (LatticeBoltzmann::*prop_coll_densoutlet)(int);
+
+          shared_ptr<Timer> adjCollTimer_;
+          shared_ptr<Timer> adjPropTimer_;
 
   }; // end LatticeBoltzmann
 

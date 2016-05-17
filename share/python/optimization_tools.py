@@ -83,7 +83,8 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
       nt = x * y * z
       for c in range(len(num)):
         n = int(num[c] -1)
-        setNDArrayEntry(ret, n % x, n/y, n/(x*y), vals[c]) # 'nr' is one base in general
+        coords = numpy.unravel_index(n,(z,y,x))
+        setNDArrayEntry(ret, coords[2], coords[1], coords[0], vals[c]) # 'nr' is one base in general
         
   return ret
 
@@ -103,6 +104,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   
     assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
+  print len(sett)
   
   designs = 1
   if design2:
@@ -270,8 +272,8 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
       for j in range(y):
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
-           if elemnr <> None:
-             nr = int(getNDArrayEntry(elemnr, i, j , k))
+           if elemnr is not None:
+             nr = int(getNDArrayEntry(data, i, j , k))
             
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:

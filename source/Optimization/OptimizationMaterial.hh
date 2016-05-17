@@ -29,7 +29,7 @@ class BiLinFormContext;
 class DesignSpace;
 class ElecPDE;
 class ErsatzMaterial;
-class HeatCondPDE;
+class HeatPDE;
 class LinearForm;
 class LatticeBoltzmannPDE;
 class CoefFunctionOpt;
@@ -283,6 +283,33 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
+
+  /** Get the ElementStiffness Matrix for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @param bimaterial if true gets the material from the design space by the element's region
+   * @param multimaterial index or negative
+   * @param direction if given, calculate derivative of Stiffness Matrix instead
+   * @return a pointer to the Element Stiffness Matrix*/
+  DenseMatrix& HeatStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool enforce_unstructured = false);
+
+  /** overwrites OptimizationMaterial::Stiffness */
+  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
+    return HeatStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
+  }
+
+  /** Get the ElementMass Matrix for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @param direction if given, calculate derivative of mass Matrix instead
+   * @return a pointer to the Element Mass Matrix*/
+  DenseMatrix& HeatMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool enforce_unstructured = false);
+
+protected:
+  SinglePDE* GetPDE();
+
+  /** The mechanical element stiffness matrix is constant.
+   * No material one entry and bimaterial two entries */
+  std::map<RegionIdType, StdVector<Matrix<double> > > heatStiffness_map;
+
 };
 
 

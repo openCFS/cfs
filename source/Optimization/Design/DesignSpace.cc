@@ -72,6 +72,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(App::MECH, "MechStressStrain", false);
   applicationForm.Add(App::MECH, "PiezoStressStrain", false);
+  applicationForm.Add(App::HEAT, "HeatConductivity", false);
   applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(App::PRESSURE, "PressureLinForm");
@@ -753,11 +754,48 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   return true;
 }
 
+/** Performs the optimization for scalar material as for the mass
+ * @return true if it is a design  variable and retVec is set */
+template <class T>
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
+{
+  assert(Optimization::context->pde != NULL);
+  assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
+
+  coef->orgMat->GetVector(retVec, *lpm);
+
+  double tmp = 0;
+  int found = 0;
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+      double factor = data[design_index].GetDesign(DesignElement::SMART);
+      tmp += factor;
+      found++;
+      LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
+    }
+  }
+
+  if(found == 0)
+    return false;
+
+
+  tmp /= (double) found;
+
+  retVec[0] *=  4.0 *  tmp * (1.0 - tmp) / (double) data.GetSize();
+
+  return true;
+}
+
 
 double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
+
   double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
   // it is two
@@ -1754,6 +1792,7 @@ template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<doub
 template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
 template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Vector<double>& retVEc, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);

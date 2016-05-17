@@ -332,7 +332,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->lower_ = 1.0;
   this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
-
+  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
 }
 
 
@@ -343,6 +343,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
+  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
 
   type_ = dt;
   upper_ = upper;
@@ -982,12 +983,12 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -1021,7 +1022,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
-  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)));
+  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective())));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
   assert(func == NULL || func->ForDensityFiltering());
 

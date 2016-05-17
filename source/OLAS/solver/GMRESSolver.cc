@@ -156,10 +156,6 @@ namespace CoupledField {
   template<typename T>
   void GMRESSolver<T>::Solve( const BaseMatrix &sysMat, const BaseVector &rhs, BaseVector &sol) {
 
-
-    bool logging = false;
-
-
     // ------------------------------------------------------
     //   We call PrivateSetup to (re)-allocate the internal
     //   data structures, if this is necessary
@@ -202,11 +198,7 @@ namespace CoupledField {
     xml_->GetValue("tol", eps, ParamNode::INSERT);
     
     Double tolerance = ComputeThreshold( eps, rhs, *(vMat_[1]), resNorm,
-                                         logging );
-    if ( logging == true ) {
-      LogConvergence( resNorm, 0, true );
-    }
-
+                                         false );
 
     // ----------------------------------
     //   Perform the GMRES(m) iteration
@@ -238,25 +230,16 @@ namespace CoupledField {
       if ( approxIsGood == true ) {
         if ( resNorm <= tolerance ) {
           loopsDone = k;
-          if ( logging == true ) {
-            (*cla) << "GMRES: Approximate satisfies stopping rule"
-                   << std::endl;
-          }
           break;
         }
         else {
-          (*cla) << "# GMRES: False convergence!\n"
-		 << "# Real resnorm = " << resNorm << std::endl;
           approxIsGood = false;
         }
       }
     }
 
     // Make clear, if GMRES failed to converge
-    if ( !approxIsGood ) {
-      (*cla) << "\n GMRES: Solution fails to satisfy stopping test!"
-	     << std::endl;
-    }
+    if ( !approxIsGood ) { } // removed logging
 
 
     // ----------------------------
@@ -278,15 +261,8 @@ namespace CoupledField {
     // Final relative residual norm
     out->Get("finalNorm")->SetValue(resNorm);
 
-    if ( logging == true ) {
-      (*cla) << "\n --> Final norm = " << resNorm << std::endl;
-    }
-
     // Status of solution
     out->Get("solutionIsOkay")->SetValue(resNorm);
-
-    // Report to standard logfile
-    (*cla) << "\n GMRESSolver done\n" << std::endl;
 
   }
 
@@ -308,11 +284,8 @@ namespace CoupledField {
 
     UInt i, k;
     T aux = 0;
-    Double resNormNew = beta;
+//    Double resNormNew = beta;
     approxIsGood = false;
-    
-    bool logging = false;
-
 
     // ------------------
     //   Initialisation
@@ -386,20 +359,14 @@ namespace CoupledField {
       //   this loop.
       // -----------------------------------------------------------------
 
-      resNormNew = std::abs(bVec_[i+1]); // needed to obtain a Double
-
-      if ( logging == true ) {
-        LogConvergence( resNormNew, i + globNum );
-      }
+//      resNormNew = std::abs(bVec_[i+1]); // needed to obtain a Double
 
       if ( std::abs(bVec_[i+1]) <= threshold ) {
-        (*cla) << "# Inner loop: Approximate is fine" << std::endl;
         approxIsGood = true;
         stepCount = i;
         break;
       }
     }
-    (*cla) << "# Inner loop: finished" << std::endl;
 
     // --------------------------------------------
     //   Compute actual approximation to solution
@@ -437,24 +404,12 @@ namespace CoupledField {
   template<typename T>
   void GMRESSolver<T>::AllocateHessenbergMatrix() {
 
-
-    bool logging = false;
-
     // First test, if it is really necessary to allocate
     // a new upper Hessenberg matrix. This is the case,
     // if no matrix has been allocated up to now, or if
     // the maximal dimension of the Krylov subspace has
     // increased.
     if ( hMat_ == NULL || ( maxKrylovDim_ + 1 > hMatNumRows_ ) ) {
-
-      // Report to standard logfile
-      if ( logging == true ) {
-        (*cla) << "GMRESSolver:\n"
-               << " --> Re-allocating upper Hessenberg matrix, since maximal"
-               << "\n --> dimension of Krylov subspace has increased to "
-               << maxKrylovDim_
-               << std::endl;
-      }
 
       // Delete old matrix (safe, even if hMat_ is NULL )
       DeleteHessenbergMatrix();
@@ -501,9 +456,6 @@ namespace CoupledField {
   template<typename T>
   void GMRESSolver<T>::AllocateKrylovBasis( const BaseMatrix &sysMat ) {
 
-
-    bool logging = false;
-
     // Determine length of base vectors
     UInt oldLength = 0;
     if ( vMat_.size() > 0 ) {
@@ -515,30 +467,6 @@ namespace CoupledField {
     // Only if this is the case, we must re-allocate the basis.
     if ( vMat_.size() == 0 || problemDim_ != oldLength ||
          maxKrylovDim_ > vMat_.size() ) {
-
-      // Report to standard logfile
-      if ( logging == true ) {
-        if ( vMat_.size() == 0 ) {
-          (*cla) << "GMRESSolver:\n"
-                 << " --> Allocating " << maxKrylovDim_ << " Krylov base "
-                 << "vectors"
-                 << std::endl;
-        }
-        else if ( problemDim_ != oldLength ) {
-          (*cla) << "GMRESSolver:\n"
-                 << " --> Re-allocating Krylov base vectors, since column "
-                 << "number\n of system matrix has changed. Now is "
-                 << problemDim_
-                 << std::endl;
-        }
-        else if ( maxKrylovDim_ > vMat_.size() ) {
-          (*cla) << "GMRESSolver:\n"
-                 << " --> Re-allocating Krylov base vectors, since maximal\n"
-                 << " --> dimension of Krylov subspace has increased to "
-                 << maxKrylovDim_
-                 << std::endl;
-        }
-      }
 
       // Delete old base vectors ( safe for vMat_.size() = 0 )
       DeleteKrylovBasis();

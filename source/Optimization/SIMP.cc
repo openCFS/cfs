@@ -34,6 +34,7 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
@@ -95,6 +96,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   {
   case App::MECH:
   case App::ACOUSTIC:
+  case App::HEAT:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
@@ -207,6 +209,14 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     break;
   }
 
+  case Function::PRESSURE_DROP:
+  {
+    LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
+    assert(lbmPde != NULL);
+    lbmPde->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+    break;
+  }
+
   default:
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
   }
@@ -297,6 +307,7 @@ DesignDependentRHS::DesignDependentRHS()
   vec         = NULL;
   elem        = NULL;
   test_strain = MechPDE::NOT_SET;
+  isInterfaceDriven_ = false;
 }
 
 DesignDependentRHS::~DesignDependentRHS()
@@ -308,7 +319,14 @@ DesignDependentRHS::~DesignDependentRHS()
 template <class T>
 bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 {
-  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE);
+  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT);
+
+  if (app == App::HEAT) {
+    valid = true;
+    isInterfaceDriven_ = true;
+    return true;
+  }
+
   std::string name = app == App::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
 
 

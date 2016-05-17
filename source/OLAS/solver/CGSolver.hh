@@ -74,7 +74,7 @@ namespace CoupledField {
   //!       <td>This parameter is used to control the verbosity of the method.
   //!           If it is set to 'yes', then information on the CG convergence,
   //!           like e.g. the norm of the residual per iteration step will
-  //!           be logged to the standard %OLAS report stream (*cla).
+  //!           be logged to the standard %OLAS report stream (*cla) ---removed logging--.
   //!       </td>
   //!     </tr>
   //!   </table>

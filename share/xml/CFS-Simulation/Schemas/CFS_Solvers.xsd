@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -333,6 +334,15 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          
+          <xsd:element name="loggingPerformance" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Print in .info.xml file information on time consumption of symbolic and
+                numerical factorization for each PARDISO call.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
           <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
             <xsd:annotation>
@@ -494,8 +504,8 @@
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         SuperLU package contains a set of subroutines to solve sparse linear
-        systems AX = B. Here A is a square, nonsingular, n × n sparse matrix,
-        and X and B are dense n × nrhs matrices, where nrhs is the number of
+        systems AX = B. Here A is a square, nonsingular, n x n sparse matrix,
+        and X and B are dense n x nrhs matrices, where nrhs is the number of
         right-hand sides and solution vectors. Matrix A need not be symmetric
         or definite; indeed, SuperLU is particularly appropriate for matrices
         with very unsymmetric structure.
@@ -872,7 +882,7 @@
       <xsd:documentation xml:lang="en">
         Lis, a Library of Iterative Solvers for linear systems, is a parallel
         numerical library for solving the linear equations Ax = b
-        and the standard eigenvalue problems Ax = λx with real sparse matrices
+        and the standard eigenvalue problems Ax = lambda x with real sparse matrices
         using iterative methods.
         
         http://www.ssisc.org/

@@ -1,33 +1,67 @@
 function wrapper_3D(file)
-load detailed_stats
-list= detailed_stats;
-m = list(1,1)-1;
-n = list(1,2)-1;
-o = list(1,3)-1;
-da = 1/m;
-db = 1/n;
-dc = 1/o;
-a = [0:da:1];
-b = [0:db:1];
-c = [0:dc:1];
 
-E11 = zeros(m+1,n+1);
-for i=2:size(list,1)
+cataloguefile = 'catalogues/test';
+
+try
+    list = load(cataloguefile);
+    m = list(1,1)-1;
+    n = list(1,2)-1;
+    o = list(1,3)-1;
+    da = 1/m;
+    db = 1/n;
+    dc = 1/o;
+    a = 0:da:1;
+    b = 0:db:1;
+    c = 0:dc:1;
+    E11 = zeros(m+1,n+1);
+    for i=2:size(list,1)
+        E11(list(i,1)+1,list(i,2)+1) = list(i,3);
+    end
+    E12 = zeros(m+1,n+1);
+    for i=2:size(list,1)
+        E12(list(i,1)+1,list(i,2)+1) = list(i,4);
+    end
+
+    E22 = zeros(m+1,n+1);
+    for i=2:size(list,1)
+        E22(list(i,1)+1,list(i,2)+1) = list(i,5);
+    end
+    E33 = zeros(m+1,n+1);
+    for i=2:size(list,1)
+        E33(list(i,1)+1,list(i,2)+1) = list(i,6);
+    end
+catch
+    fid = fopen(cataloguefile);
+    tmp = textscan(fid,'%dD\t%d\t%d');
+    if isempty(tmp{3})
+        fseek(fid,0,-1);
+        tmp = textscan(fid,'%dD\tL%d\t%d');
+    end
+    dim = double(tmp{1});
+    nPoints = double(tmp{3});
+    fclose(fid);
+    data = dlmread(cataloguefile,'\t',1,0);
+    a = unique(data(:,1));
+    b = unique(data(:,2));
+    c = unique(data(:,3));
+    E11 = zeros(length(a),length(b));
+    
     E11(list(i,1)+1,list(i,2)+1) = list(i,3);
-end
-E12 = zeros(m+1,n+1);
-for i=2:size(list,1)
-    E12(list(i,1)+1,list(i,2)+1) = list(i,4);
+    
+    E12 = zeros(length(a),length(b));
+    for i=2:size(list,1)
+        E12(list(i,1)+1,list(i,2)+1) = list(i,4);
+    end
+    E22 = zeros(length(a),length(b));
+    for i=2:size(list,1)
+        E22(list(i,1)+1,list(i,2)+1) = list(i,5);
+    end
+    E33 = zeros(length(a),length(b));
+    for i=2:size(list,1)
+        E33(list(i,1)+1,list(i,2)+1) = list(i,6);
+    end
 end
 
-E22 = zeros(m+1,n+1);
-for i=2:size(list,1)
-    E22(list(i,1)+1,list(i,2)+1) = list(i,5);
-end
-E33 = zeros(m+1,n+1);
-for i=2:size(list,1)
-    E33(list(i,1)+1,list(i,2)+1) = list(i,6);
-end
 % Coefficients for bicubic interpolation polynomial
 [Coeff11] = tricubic_offline(a,b,c,E11);
 [Coeff12] = tricubic_offline(a,b,c,E12);

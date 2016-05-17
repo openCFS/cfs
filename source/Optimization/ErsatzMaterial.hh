@@ -107,6 +107,11 @@ public:
   /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
+  inline const DesignStructure& GetDesignStructure(){
+    assert(structure_ != NULL);
+    return *structure_;
+  }
+
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
@@ -147,8 +152,6 @@ protected:
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
-
-
 
   /** for Virgininies stuff */
   double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
@@ -252,6 +255,8 @@ protected:
       bool derivative);
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
+  /** Calculates heat energy as an equivalence to compliance in lin elasticity */
+  virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
@@ -262,8 +267,23 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,
-      bool derivative);
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative);
+
+  /** Handles tracking constraint/objective for given temperature at interfaces between solid and void
+   *  @param excite The used excitation
+   *  @param f function
+   *  @param derivative flag for calculating derivative
+   *  @param trackVal the value that we want to track
+   *  @return sum over all tracked values at interface nodes
+   */
+  virtual double CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
+
+  /**
+   * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
+   * K*l^T = -2 * F' * (u - u_track)
+   */
+  virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
+
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
@@ -412,6 +432,15 @@ private:
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
 
+  /** for design dependent interface driven excitation as for heat .... calculate element based f'
+   * for all design elements de:
+   *  run over all neighbor nodes of design de
+   *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
+   * @param function f */
+  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f);
+
+  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out);
+
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and
@@ -487,6 +516,9 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
+
+  /** Have we already calculated gradient of interface driven load gradient for each design element?*/
+  bool interfaceDrivenGradCalc_;
 };
 
 } // namespace

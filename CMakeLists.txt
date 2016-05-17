@@ -511,11 +511,7 @@ OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CFS_CXX_COMPILER_VER} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CMAKE_BUILD_TYPE}"
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
@@ -530,6 +526,11 @@ ENDIF(BUILD_TESTING)
 # Enables testsuite for matviz.py used be the optimization group
 #-----------------------------------------------------------------------------
 OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+  
+#-----------------------------------------------------------------------------
+# Switch on/off usage of intel optimization report
+#-----------------------------------------------------------------------------
+OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
 
 # The performance tests are meant for the nightly builds. For some strange reasons
 # PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 

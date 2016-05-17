@@ -137,6 +137,8 @@ extern "C" {
     // Set default solver type to direct sparse solver
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
+
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -681,7 +683,6 @@ extern "C" {
       tNumfact_.Stop();
       node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
       node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
-      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
 
     node->Get("symbfact/peakMem")->SetValue(iparm_[14]);

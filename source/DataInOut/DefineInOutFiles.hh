@@ -24,18 +24,12 @@ namespace CoupledField
   {
 
   public:
-    
-    //! Types of external auxilliary files
-    typedef enum { OLAS_FILE} AuxFileType;
 
     //! constructor
     DefineInOutFiles();
 
     //! destructor
     ~DefineInOutFiles();
-
-    //! Open an auxilliary file
-    void OpenFile( AuxFileType fileType );
 
     //! create input readers 
     void CreateSimInputFiles( PtrParamNode paramNode, 
@@ -62,9 +56,6 @@ namespace CoupledField
     //! pointer to MaterialHandler
     MaterialHandler * ptMaterialHandler_;
     
-    //! set of opened files
-    std::set<AuxFileType> openFiles_;
-
   };
 
 } // end of namespace
