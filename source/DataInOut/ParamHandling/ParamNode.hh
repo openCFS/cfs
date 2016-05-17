@@ -126,8 +126,9 @@ namespace CoupledField
      * Any other type which has no special SetValue() implementation is lost!! */
     void SetValue(const boost::any& value);
 
-    void SetValue( const char* value);
-    
+    /** a string is a string :) */
+    void SetValue(const char* value);
+
     /** Special version which handles the precision of the value. See implementation note! */
     void SetValue(const double, const int precision);
 
@@ -137,7 +138,10 @@ namespace CoupledField
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
-      
+
+    /** Creates a ParamNode::WARNING node and sets the msg as content. */
+    void SetWarning(const std::string& msg, bool append = false);
+
     /** Add child parameter nod*/
     void AddChildNode( PtrParamNode child);
     

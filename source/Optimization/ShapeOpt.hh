@@ -70,7 +70,7 @@ template <class TYPE> class Vector;
   private:
 
     /** whether material is also optimized */
-    bool alsomatopt_;
+    bool exoprt_fe_design_;
   };
 
 }

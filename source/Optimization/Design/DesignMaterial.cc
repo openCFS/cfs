@@ -100,7 +100,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if (!CheckRequiredDesigns(d)) {
     throw Exception("Not all Parameters for chosen DesignMaterial given");
   }else if(d.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
-    domain->GetInfoRoot()->Get("optimization/designSpace/header")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
+    domain->GetInfoRoot()->Get("optimization/designSpace/header")->SetWarning("There are designs specified that are not used!");
   }
 
   if(type_ == HOM_RECT || type_ == D_HOM_RECT)
@@ -1232,8 +1232,7 @@ bool DesignMaterial::CheckRequiredDesigns(
   return false;
 }
 
-void DesignMaterial::SetParameter(const DesignElement::Type p,
-    const double value) {
+void DesignMaterial::SetParameter(const DesignElement::Type p, const double value) {
   params_[p] = value;
   // LOG_DBG3(dm) << "SP p=" << DesignElement::type.ToString(p) << " v=" << value;
 }
@@ -4126,7 +4125,7 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
     idx = nRows - 2;
     point = 1.;
     if (point > 1.01) {
-      inf_warn->Get(ParamNode::WARNING)->SetValue(
+      inf_warn->SetWarning(
           "Interpolation of Hom_RectC1 tensor failed. Design Variable "
               + lexical_cast<string>(point) + " out of bounds ");
     }
@@ -4134,7 +4133,7 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
     idx = 0;
     point = interval[0][0];
     if (point < interval[0][0]-0.01) {
-      inf_warn->Get(ParamNode::WARNING)->SetValue(
+      inf_warn->SetWarning(
           "Interpolation of Hom_RectC1 tensor failed. Design Variable "
               + lexical_cast<string>(point) + " out of bounds ");
     }

@@ -73,7 +73,7 @@ public:
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
   /** Here we also write the density files */
-  PtrParamNode CommitIteration(bool keep_iteration_number = false);
+  PtrParamNode CommitIteration();
 
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
@@ -87,7 +87,7 @@ public:
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
-    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT
+    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP
   } Method;
 
   static Enum<Method> method;

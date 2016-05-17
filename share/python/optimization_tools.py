@@ -191,7 +191,17 @@ def read_mesh_info(filename, silent):
   
   else:
     assert(len(mesh) == 1)
-    return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    nx = int(mesh[0].get("x"))
+    ny = int(mesh[0].get("y"))
+    nz = int(mesh[0].get("z"))
+    # temporary fix to process corrupt data
+    if nx == 59 and ny == 59:
+      print "FIXME: switch mesh 59 to 60"
+      nx = 60
+      ny = 60
+    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    return nx, ny, nz    
+       
   
 # # Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
@@ -202,10 +212,9 @@ def read_density_as_vector(filename, attribute="design", set=None):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  
   root = tree.getroot()
-  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
-  sett = root.xpath(query)[0]
+  query = '//set[last()]/element' if set is None else '//set[@id="' + set + '"]/element'
+  sett = root.xpath(query)
   
   # print "check for attribute " + attribute
   counter = 0

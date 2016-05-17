@@ -1883,12 +1883,19 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
   //      << coords_ << std::endl;
 
   // set reference element
-#ifndef NDEBUG
-  if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end()) {
-    EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type)
-        << "' not defined for Lagrangian Shape Map!");
-  }
-#endif
+  #ifndef NDEBUG
+    if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end())
+      EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type) << "' not defined for Lagrangian Shape Map!");
+  #endif
+
+  ptFe_ = elems_.feMap_[ptElem->type];
+  shape_ = &Elem::shapes[ptElem_->type];
+}
+
+void LagrangeElemShapeMap::SetElem(const Elem* ptElem, const Matrix<double>& coords)
+{
+  this->coords_ = coords;
+  assert(elems_.feMap_.find(ptElem->type) != elems_.feMap_.end());
   ptFe_ = elems_.feMap_[ptElem->type];
   shape_ = &Elem::shapes[ptElem_->type];
 }

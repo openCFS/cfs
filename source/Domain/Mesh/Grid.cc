@@ -118,7 +118,8 @@ namespace CoupledField
     if(box.GetNumRows() == 0)
     {
       // set the box ignoring force_3D!
-      if(sys == NULL) sys = domain->GetCoordSystem();
+      if(sys == NULL)
+        sys = domain->GetCoordSystem();
 
       StdVector<RegionIdType> regs;
       GetVolRegionIds(regs);
@@ -363,13 +364,20 @@ namespace CoupledField
 
   bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
   {
-    bool regular = true;
-
     for(unsigned int i = 0; i < regions.GetSize(); i++)
       if(!regionData[regions[i]].regular)
-        regular = false;
+        return false;
 
-    return regular;
+    return true;
+  }
+
+  bool Grid::IsGridRegular() const
+  {
+    for(unsigned int i = 0; i < regionData.GetSize(); i++)
+      if(!regionData[i].regular)
+        return false;
+
+    return true;
   }
 
   void Grid::GetRegionNames( StdVector<std::string>& regionNames )

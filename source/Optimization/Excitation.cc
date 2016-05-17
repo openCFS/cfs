@@ -254,11 +254,11 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
     robust_[0].num_robust = num_robust;
     robust_[0].alt_filter = -1; // does not apply
     if(opt->optParamNode->Has("costFunction/multipleExcitation/robust"))
-      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("ignore 'multipleExcitation/robust' as we have only one sequence");
+      opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning("ignore 'multipleExcitation/robust' as we have only one sequence");
   }
   // if not robust or not multi sequence
   if(num_robust <= 1 && opt->optParamNode->Has("costFunction/multipleExcitation/robust"))
-    opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("ignore 'multipleExcitation/robust' as we have no robust filters");
+    opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning("ignore 'multipleExcitation/robust' as we have no robust filters");
 
   // We do not want to have a copy of Excitations on excitation.Resize() therefore find an upper bound
   unsigned int upper_bound = 1;
@@ -349,7 +349,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     if(num_trans_ > 1)
       throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
     if(pn->Has("multipleExcitation/excitations"))
-      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("'multiple_excitations' set to false but 'multipleExcitation/excitations' given");
+      opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning("'multiple_excitations' set to false but 'multipleExcitation/excitations' given");
   }
 
 
@@ -443,7 +443,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       stringstream ss;
       ss << "Solve only for 1. frequency (" << excitations[0].frequency
           << "Hz) of " << ctxt.num_harm_freq << " as multiple excitations are disabled";
-      in->Get(ParamNode::WARNING)->SetValue(ss.str());
+      in->SetWarning(ss.str());
     }
   } // end ctxt loop
 
@@ -650,7 +650,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
       std::string msg = "Excitations are given in optimization mulitload. "
           + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
           + " loads from the bcsAndLoads section will be deleted.";
-      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(msg);
+      opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning(msg);
     }
 
     ass->GetLinForms().Clear(); // the forms are gone!
