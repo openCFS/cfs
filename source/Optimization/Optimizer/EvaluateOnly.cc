@@ -104,6 +104,6 @@ void EvaluateOnly::SolveProblem()
     optimization->constraints.view->Done(); // reset the slope constraints to global
 
     // multiple excitations in evaluate only are identified as increasing "iterations".
-    optimization->CommitIteration(false);
+    optimization->CommitIteration();
   }
 }

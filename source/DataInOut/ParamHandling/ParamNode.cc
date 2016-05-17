@@ -117,6 +117,12 @@ void ParamNode::SetComment(const std::string& comment)
   children_.Push_back(newChild);
 }
 
+void ParamNode::SetWarning(const std::string& msg, bool append)
+{
+  PtrParamNode pn = Get(ParamNode::WARNING, append ? APPEND : DEFAULT);
+  pn->SetValue(msg);
+}
+
 void ParamNode::AddChildNode(PtrParamNode child)
 {
   child->parent_ = shared_from_this();
@@ -514,21 +520,20 @@ const TYPE& ParamNode::AsConst() const
 }
 
 template<typename TYPE>
-TYPE ParamNode::MathParse() const {
-  
-  
-  // obtain handle
-  MathParser * parser = domain->GetMathParser();
-  MathParser::HandleType handle = parser->GetNewHandle(false);
-  std::string expr = "";
-  if( value_.empty()) return TYPE();\
+TYPE ParamNode::MathParse() const
+{
+  if(value_.empty())
+    return TYPE();
 
-  if( value_.type() == typeid(std::string) ) {\
-    expr = boost::any_cast<std::string>(value_);\
-  } else {\
-    EXCEPTION("XML node '" << name_\
-              << "' can not be parsed, as it is no string type.");
-  }
+  // obtain handle
+  MathParser* parser = domain->GetMathParser();
+  MathParser::HandleType handle = parser->GetNewHandle(false);
+
+  std::string expr = "";
+  if(value_.type() == typeid(std::string))
+    expr = boost::any_cast<std::string>(value_);
+  else
+    EXCEPTION("XML node '" << name_ << "' can not be parsed, as it is no string type.");
 
   // Set expression and evaluate
   parser->SetExpr(handle, expr);

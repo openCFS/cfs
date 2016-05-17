@@ -132,7 +132,7 @@ void ShapeOptimizer::SolveProblem()
       ptrTG_->SolvePoissonProblem(curr_iter);
     }
     optimization->CalcObjective();
-    optimization->CommitIteration(false);
+    optimization->CommitIteration();
     curr_iter = optimization->GetCurrentIteration();
   }
 }

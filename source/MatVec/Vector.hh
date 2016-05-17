@@ -194,7 +194,7 @@ template<typename T> class ElemStoreSol;
     //! array will be de-allocated, if it belongs to the vector object, and
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
-    void Clear(bool keepCapacity = false) {
+    void Clear(bool keepCapacity = true) {
       size_ = 0;
       if( keepCapacity == false ) {
         if(memBelongsToMe_)
@@ -278,6 +278,10 @@ template<typename T> class ElemStoreSol;
 
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
+
+    T Sum() const;
+
+    T Avg() const;
 
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
