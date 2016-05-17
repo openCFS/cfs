@@ -35,6 +35,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatPDE(){};
 
+    //! Is heat source (RHS) definition driven by interface between solid and void?
+    inline bool HasInterfaceDrivenRHS() { return interfaceDrivenHeatSource_; }
+
   protected:
     
     //! Read special boundary conditions
@@ -72,6 +75,7 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
     
+    SolutionType GetNativeSolutionType() const { return HEAT_TEMPERATURE; }
 
   private:
 
@@ -104,6 +108,8 @@ namespace CoupledField {
     //! special neumann boundary conditions
     RobinBcList robinBcs_;
     
+    bool interfaceDrivenHeatSource_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

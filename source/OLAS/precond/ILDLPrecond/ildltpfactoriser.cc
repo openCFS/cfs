@@ -109,22 +109,9 @@ namespace CoupledField {
                                        + 0.5 );
     UInt maxFill = entriesPerRow * fillVal;
 
-    // Shall we be verbose?
-    bool logging = false;
-
-
     // =================
     //  Report start-up
     // =================
-    if ( logging ) {
-      (*cla) << " + Using ILDL(tau,p) variant with (tau,p) = (" << tau << ", "
-             << fillVal << ")\n"
-             << " + average number of entries per row (in upper triangle): "
-             << entriesPerRow << '\n'
-             << " + bound on number of entries per row: " << maxFill
-             << '\n' << std::endl;
-    }
-
 #ifdef DEBUG_ILDLTPFACTORISER
     (*debug) << " ILDLTPFACTORISER:\n FACTORISE\n" << std::endl;
 #endif
@@ -175,7 +162,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    (*cla) << " Factorisation done:\n" << " 0%" << std::flush;
 
 
     // =================
@@ -272,7 +258,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
       // Insert row k of A into linked list, but omit the diagonal entry
@@ -671,13 +656,6 @@ namespace CoupledField {
     // ============
     //   Clean-up
     // ============
-
-    // Finish logging to las-file
-    if ( percentDone < 100 ) {
-      (*cla) << " .. 100%";
-    }
-    (*cla) << std::endl;
-
     delete[] scanList_   ;
     delete[] activeList_ ;
     delete[] listIDX_    ; 

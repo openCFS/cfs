@@ -706,10 +706,6 @@ namespace CoupledField {
         }
 
       }
-      for (pos=0; pos<found; pos++) {
-          (*cla) << " EV no. " << pos << ", EV  = " << eval[pos] << "\n";
-          (*cla) << " EV no. " << pos << ", tol = " << eigenTolerances_[pos] << "\n";
-      }
     
       return found;
   }

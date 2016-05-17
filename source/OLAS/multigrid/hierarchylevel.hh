@@ -75,7 +75,7 @@ class HierarchyLevel
                        forceFineRatio,   //!< forces F-points, if diagonal entry dominates
                        badCoarseningRatio; //!< defines a "bad coarsening"
             bool       keepTopology,     //!< flag to keep topology after setup
-                       logging;          //!< flag for logging into (*cla)
+                       logging;          //!< flag for logging into (*cla) --- code for logging was removed ---
             SolverType directSolver;     //!< direct solver on the coarsest level
             AMGInterpolationType InterpolationType; //!< type of interpolation
             AMGSmootherType      SmootherType; //!< smoother type
@@ -258,7 +258,7 @@ class HierarchyLevel
         //! pointer to the next coarser level
         HierarchyLevel<T>   *nextLevel_;
 
-        //! if true, the class gets verbose to (*cla)
+        //! if true, the class gets verbose to (*cla) --- code for logging removed ---
         bool                 logging_,
                              deleteDirSysMatrix_;
 };

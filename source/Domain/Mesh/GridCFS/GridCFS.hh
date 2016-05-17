@@ -242,6 +242,15 @@ namespace CoupledField
     void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
 
+    //! Returns element neighbors of given node
+    //! \param node number of interest
+    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
+    {
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
+      return mapNodeToElems_[node];
+    }
+
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
     
@@ -454,6 +463,11 @@ namespace CoupledField
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
 
+    /**
+     * Stores information on which elements belong to which nodes in a vector
+     */
+    void SetNodesToElemsMap();
+
 
     //! helper struct for passing information about nodes
     struct PointSelection{
@@ -591,6 +605,12 @@ namespace CoupledField
     std::map<Elem::FEType, UInt> numElemTypes_;
 
     UInt maxNumElemNodes_;
+
+    //! Maps from a node number to all neighbor elements
+    StdVector<StdVector<Elem*> > mapNodeToElems_;
+
+    //! Flag to ensure that mapNodeToElems_ is only set up once
+    bool mappedNodeToElems_;
     //@}
   
     //! Vector containing all faces 

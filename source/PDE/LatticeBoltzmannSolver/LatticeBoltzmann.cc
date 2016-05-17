@@ -39,7 +39,7 @@ Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
 {
   assert(dim == 2 || dim == 3);
-  // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
+  // n_q_: number of discrete directions in this model, e.g. n_q_ for D3Qn_q_
   if (dim == 2) {
     assert(sizeZ == 1);
     n_q_ = 9;
@@ -65,9 +65,6 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   u_in.Resize(nNodes_);
   u_in = uin;
 
-  adjCollision.Resize(nNodes_);
-  d_pdrop_d_m.Resize(nNodes_);
-
   plot_ = plot;
 
   //matrix of the probability distributions
@@ -83,7 +80,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   adjPdfs_[0].Init(0.0);
   adjPdfs_[1].Init(0.0);
 
-  // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
+  // microVelDirections stores information about the n_q_ microscopic velocities/directions of D3Qn_q_ model
   microVelDirections.Resize(n_q_);
   weights.Resize(n_q_);
 
@@ -109,17 +106,17 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   //initlialize function pointers in dependence on problem's dimension
   if (dim == 2) {
     prop_coll_step = &LatticeBoltzmann::Prop_coll_step2D;
-    prop_coll_velinlet = &LatticeBoltzmann::Prop_coll_velinlet2D;
-    prop_coll_bounce_back = &LatticeBoltzmann::Prop_coll_bounce_back2D;
-    prop_coll_densoutlet = &LatticeBoltzmann::Prop_coll_densoutlet2D;
   }
   else
   {
     prop_coll_step = &LatticeBoltzmann::Prop_coll_step3D;
-    prop_coll_velinlet = &LatticeBoltzmann::Prop_coll_velinlet3D;
-    prop_coll_bounce_back = &LatticeBoltzmann::Prop_coll_bounce_back3D;
-    prop_coll_densoutlet = &LatticeBoltzmann::Prop_coll_densoutlet3D;
   }
+  adjCollTimer_.reset(new Timer("adjColl",true));
+  adjPropTimer_.reset(new Timer("adjProp",true));
+
+  PtrParamNode LBMInfo = domain->GetInfoRoot()->Get(ParamNode::SUMMARY)->Get("LBMSolver", ParamNode::INSERT);
+  LBMInfo->Get("timer", ParamNode::APPEND)->SetValue(adjCollTimer_);
+  LBMInfo->Get("timer", ParamNode::APPEND)->SetValue(adjPropTimer_);
 }
 
 LatticeBoltzmann::~LatticeBoltzmann()
@@ -173,6 +170,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   SetupDataStructures(elements);
 
   assert((int) elements.GetSize() == nNodes_);
+  #pragma ivdep
   for (int i = 0; i < nNodes_; ++i) {
     scales[i] = 1.0 - elements[i];
 
@@ -189,11 +187,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
-    (this->*prop_coll_bounce_back)(next_);
+    Prop_coll_bounce_back(next_); //same code for both 2D and 3D
     // -- Inlet condition -------------------------------------------------
-    (this->*prop_coll_velinlet)(next_);
+    Prop_coll_velinlet(next_);
     // -- Outlet condition ------------------------------------------------
-    (this->*prop_coll_densoutlet)(next_);
+    Prop_coll_densoutlet(next_);
 
     if((it == 0 || it % 100 == 0)) // check convergence
     {
@@ -243,6 +241,8 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   else
     performance = (sizeX_ - 1) * (sizeY_ - 1) * it / wt / 1e6;
 
+//  std::cout << "performance: " << (sizeX_ - 1) << "*" << (sizeY_ - 1) << "*" << (sizeZ_ - 1) << "*" << it << "/" << wt << "/1e6" << "=" << performance << std::endl;
+
   node->Get("wall")->SetValue(wt);
   node->Get("cpu")->SetValue(timer.GetCPUTime());
   node->Get("MFLUP_s")->SetValue(performance);
@@ -264,7 +264,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
 void LatticeBoltzmann::InitializePdfs()
 {
+#pragma omp parallel for
   for (int elem = 0; elem < nNodes_; elem++) {
+    #pragma ivdep
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
@@ -305,7 +307,7 @@ void LatticeBoltzmann::SetMicroVelocities()
 
 void LatticeBoltzmann::SetEnums()
 {
-  directions.SetName("Q19 directions");
+  directions.SetName("Qn_q_ directions");
   directions.Add(Q_0,"C");
   directions.Add(Q_E,"E");
   directions.Add(Q_N,"N");
@@ -486,7 +488,7 @@ void LatticeBoltzmann::Prop_step()
   for (int z = 0; z < sizeZ_; ++z) {
     for (int y = 0; y < sizeY_ ; ++y) {
       for (int x = 0; x < sizeX_ ; ++x) {
-
+        #pragma ivdep
         for (int  dir = 0; dir < n_q_; dir++) {
           int invDir = GetInvDirection((Direction)dir);
           if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
@@ -525,9 +527,9 @@ double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
 void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 {
   int z = 0;
-  Vector<double> pdfs;
-  #pragma omp parallel default(none) private(pdfs) shared(next, cur, z)
+  #pragma omp parallel default(none) shared(next, cur, z)
   {
+    Vector<double> pdfs;
     pdfs.Resize(n_q_);
     #pragma omp parallel for collapse(2)
     for (int y = 0; y < sizeY_ ; ++y) {
@@ -566,16 +568,14 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
         // macroscopic scaling by design variable
         double scale = scales[index];
 
-        Vector<double> collResult;
-
         tmp_ux = scale * tmp_ux / sum;
         tmp_uy = scale * tmp_uy / sum;
         tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
         tmp_ux = 3.0 * tmp_ux;
         tmp_uy = 3.0 * tmp_uy;
 
-        Vector<double> res(n_q_), noneq(n_q_);
         // propagation and collision in one step
+        #pragma ivdep
         for (int  dir = 0; dir < n_q_; dir++)
         {
           tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
@@ -584,24 +584,20 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
             PDF(next, x, y, z, dir) = pdfs[dir];
           else {
             PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
-            res[dir] = PDF(next, x, y, z, dir);
-            noneq[dir] = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir];
           }
         }
+
       }
     }
   }
 
 }
 
-void LatticeBoltzmann::Prop_coll_velinlet2D(int cur)
+void LatticeBoltzmann::Prop_coll_velinlet(int cur)
 {
-  assert(uz_ == 0);
-
   #pragma omp parallel default(none) shared(cur)
   {
-    Vector<double> pdfs;
-    pdfs.Resize(n_q_);
+    Vector<double> pdfs(n_q_);
     #pragma omp for
     for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
       int index = inlet[i];
@@ -614,31 +610,35 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur)
 
       double tmp_ux = ux_; // velocity at inlet is prescribed
       double tmp_uy = uy_;
+      double tmp_uz = uz_;
 
       if (u_in.GetSize() != 0) {
         tmp_ux = u_in[i][0];
         tmp_uy = u_in[i][1];
+        if (dim_ == 3)
+          tmp_uz = u_in[i][2];
       }
 
-      double tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+      double tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
       tmp_ux = 3.0 * tmp_ux;
       tmp_uy = 3.0 * tmp_uy;
+      tmp_uz = 3.0 * tmp_uz;
       for (int  dir = 0; dir < n_q_; dir++) {
-        double tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
+        double tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
         PDF(cur, index, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
       }
     }
   }
 }
+
 //
 // Performs a bounce back step.
 //
-void LatticeBoltzmann::Prop_coll_bounce_back2D(int cur)
+void LatticeBoltzmann::Prop_coll_bounce_back(int cur)
 {
   #pragma omp parallel default(none) shared(cur)
   {
-    Vector<double> pdfs;
-    pdfs.Resize(n_q_);
+    Vector<double> pdfs(n_q_);
     #pragma omp for
     for(unsigned int  i = 0; i < bb.GetSize(); i++) {
       int index = bb[i];
@@ -656,13 +656,14 @@ void LatticeBoltzmann::Prop_coll_bounce_back2D(int cur)
 //
 // Density outlet condition.
 //
-void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
+void LatticeBoltzmann::Prop_coll_densoutlet(int cur)
 {
   #pragma omp parallel default(none) shared(cur)
   {
     Vector<double> pdfs;
     pdfs.Resize(n_q_);
 
+    #pragma omp for
     for(unsigned int  i = 0; i < outlet.GetSize(); i++) {
       int index = outlet[i];
 
@@ -670,34 +671,37 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
         pdfs[dir] = PDF(cur,index,dir);
       }
 
-      double tmp_ux, tmp_uy, tmp_us, sum, tmp;
+      double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum, tmp;
 
-      CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp);
+      CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp_uz);
 
       sum = 1.0; // the enforced density
 
-      tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+      tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
       tmp_ux = 3.0 * tmp_ux;
       tmp_uy = 3.0 * tmp_uy;
+      tmp_uz = 3.0 * tmp_uz;
       for (int  dir = 0; dir < n_q_; dir++) {
-        tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
+        tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
         PDF(cur, index, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
       }
     }
   }
 }
 
+
 /************************************************** adjoint 2D operators *****************************************************/
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
-  #pragma omp parallel for default(none) shared(next) collapse(3)
+  PDFDirectionVector transform;
+  #pragma omp parallel for default(none) private(transform) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
       for (int x = 0; x < sizeX_; x++)
       {
-        // propagation
+        // adjoint propagation
         for (int  dir = 0; dir < n_q_; dir++) {
-          PDFDirectionVector transform = microVelDirections[dir];
+          transform = microVelDirections[dir];
           double value = 0.0;
           int id1 =  GetIndex(x,y,z);
           int rows1 = GetPdfIndex(id1,dir);
@@ -710,8 +714,8 @@ void LatticeBoltzmann::AdjointPropagation(int next)
               value = tmpPdfs_[rows2];
             }
             else { // case 2
-              value = tmpPdfs_[rows1];
-              value += tmpPdfs_[rows2];
+              value = tmpPdfs_[rows1] + tmpPdfs_[rows2];
+//              value += tmpPdfs_[rows2];
             }
           }
           APDF(next,id1,dir) = value;
@@ -719,7 +723,7 @@ void LatticeBoltzmann::AdjointPropagation(int next)
       }
 }
 
-StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
+StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
 
@@ -735,37 +739,40 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
   Timer timer;
   timer.Start();
-
+  StdVector<double> pdfs, tmp;
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    #pragma omp parallel default(none) shared(collisionMatrices,d_pdrop_d_f)
+    adjCollTimer_->Start();
+    #pragma omp parallel default(none) private(pdfs,tmp) shared(collisionMatrices,d_pdrop_d_f)
     {
+      pdfs.Resize(n_q_);
+      tmp.Resize(n_q_);
       /***************** Adjoint SRT collision ***/
-      Vector<double> pdfs(n_q_);
-      #pragma omp for collapse(3)
-      for (int z = 0; z < sizeZ_; z++)
-        for (int y = 0; y < sizeY_; y++)
-          for (int x = 0; x < sizeX_ ; x++)
-          {
-            int index = GetIndex(x,y,z);
+      #pragma omp for schedule(static)
+      for (int index = 0; index < nNodes_; index++)
+      {
+        #pragma ivdep
+        for (int dir = 0; dir < n_q_; dir++)
+          pdfs[dir] = APDF(adjCur_,index,dir);
 
-            for (int dir = 0; dir < n_q_; dir++)
-              pdfs[dir] = APDF(adjCur_,index,dir);
+        // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
+//        Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
+//        d_pd_d_f = d_pdrop_d_f[index];
+//        d_coll_d_f.Mult(pdfs,tmp);
+        MultLinMatrixVector(collisionMatrices[index],pdfs,tmp);
 
-            // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
-            Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
-            Vector<double> d_pd_d_f = d_pdrop_d_f[index];
-            Vector<double> collResult(n_q_), tmp(n_q_);
-            d_coll_d_f.Mult(pdfs,tmp);
-            for (int dir = 0; dir < n_q_; dir++)
-              collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
-
-            for (int dir = 0; dir < n_q_; dir++)
-              tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
-          }
+        #pragma ivdep
+        for (int dir = 0; dir < n_q_; dir++) {
+          tmpPdfs_[GetPdfIndex(index,dir)] = -d_pdrop_d_f[index][dir] + tmp[dir];
+        }
+      }
     }
 
+    adjCollTimer_->Stop();
+
+    adjPropTimer_->Start();
     AdjointPropagation(adjNext_);
+    adjPropTimer_->Stop();
 
     if((it == 0 || it % 100 == 0))
     {
@@ -826,15 +833,15 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
   int index;
 
   int tmp_x, tmp_y, tmp_z;
+  StdVector<double> pdfs;
 
   #pragma omp parallel default(none)\
       private(index), \
-      private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z), \
+      private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z, pdfs), \
       shared(next, cur)
   {
-    StdVector<double> pdfs;
     pdfs.Resize(n_q_);
-    #pragma omp for collapse(3)
+    #pragma omp for schedule(static)//collapse(3)
     for (z = 0; z < sizeZ_; ++z) {
       for (y = 0; y < sizeY_; ++y) {
         for (x = 0; x < sizeX_; ++x) {
@@ -884,109 +891,14 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
             tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
             if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
               PDF(next, index, dir) = pdfs[dir];
-            else
-              PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+            else {
+              PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ( sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+            }
           }
         }
       }
     }
   }
-}
-
-void LatticeBoltzmann::Prop_coll_velinlet3D(int cur)
-{
-  double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum;
-  double tmp;
-
-  Vector<double> pdfs;
-  pdfs.Resize(n_q_);
-
-  for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
-    int index = inlet[i];
-    for (int dir = 0; dir < n_q_; dir ++)
-      pdfs[dir] = PDF(cur,index,dir);
-
-    sum = CalcDensity(pdfs);
-
-    tmp_ux = ux_;
-    tmp_uy = uy_;
-    tmp_uz = uz_;
-
-    if (!u_in.IsEmpty()) { //use parabolic profile
-      tmp_ux = u_in[i][0];
-      tmp_uy = u_in[i][1];
-      tmp_uz = u_in[i][2];
-    }
-    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
-    tmp_ux = 3.0 * tmp_ux;
-    tmp_uy = 3.0 * tmp_uy;
-    tmp_uz = 3.0 * tmp_uz;
-
-//    LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << " tuz=" << tmp_uz << std::endl;
-
-
-    for (int  dir = 0; dir < n_q_; dir++) {
-      tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
-      PDF(cur, index, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
-    }
-  }
-
-  return;
-}
-
-
-//
-// Performs a bounce back step.
-//
-void LatticeBoltzmann::Prop_coll_bounce_back3D(int cur)
-{
-  StdVector<double> pdfs;
-  pdfs.Resize(n_q_);
-
-  for(unsigned int  i = 0; i < bb.GetSize(); i++) {
-    int index = bb[i];
-
-    for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = PDF(cur,index, dir);
-    }
-    for (int  dir = 0; dir < n_q_; dir++) {
-      PDF(cur, index, GetInvDirection((Direction)dir)) = pdfs[dir];
-    }
-  }
-  return;
-}
-
-//
-// Density outlet condition.
-//
-void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur)
-{
-  double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum, tmp;
-
-  Vector<double> pdfs;
-  pdfs.Resize(n_q_);
-
-  for(unsigned int  i = 0; i < outlet.GetSize(); i++) {
-    int index = outlet[i];
-
-    for (int dir = 0; dir < n_q_; dir ++)
-      pdfs[dir] = PDF(cur,index,dir);
-
-    CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp_uz);
-
-    sum = 1.0; // the enforced density
-    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
-    tmp_ux = 3.0 * tmp_ux;
-    tmp_uy = 3.0 * tmp_uy;
-    tmp_uz = 3.0 * tmp_uz;
-
-    for (int  dir = 0; dir < n_q_; dir++) {
-      tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
-      PDF(cur, index, dir) = sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
-    }
-  }
-
-  return;
 }
 
 } // end namespace

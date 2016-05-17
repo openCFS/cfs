@@ -4,7 +4,7 @@ import platform
 from PIL import Image, ImageDraw
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
-# matplotlib.use('Agg')
+# matplotlib.use('TkAgg')
 import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -655,10 +655,10 @@ def show_sheared_rot_cross(coords, s1, s2, sh1, rot_angle, direction, nx, scale,
       shearingangle = [0,0]
       shearingangle[vmax] = phi
       angle = theta + shearingangle[0] + vmin*numpy.pi/2
-      pol = to_rectangle_center(length * v[vmin], length * sqrt(1+pow(sin(2*angle),2)), angle, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmin], length, angle, x_off, y_off)
       draw_verts(pol, sub, c[vmin])
       angle = theta + shearingangle[1] + vmax*numpy.pi/2
-      pol = to_rectangle_center(length * v[vmax], length * sqrt(1+pow(sin(2*angle),2)), angle, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length, angle, x_off, y_off)
       draw_verts(pol, sub, c[vmax])
  
   return (fig, sub)

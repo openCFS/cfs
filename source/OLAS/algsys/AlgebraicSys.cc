@@ -678,8 +678,6 @@ namespace CoupledField {
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
         usingPenalty_ ) {
       idbcHandler_->SetDofsToIDBC( effSol_ );
-      (*cla) << " Inserted Dirichlet values into initial guess"
-          << std::endl;
     }
 
     // Assume that everything will go well
@@ -2711,7 +2709,7 @@ namespace CoupledField {
       if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
 
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
-
+        //sbmSymm_ = false;
         // Trigger generation of sub-matrix
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable

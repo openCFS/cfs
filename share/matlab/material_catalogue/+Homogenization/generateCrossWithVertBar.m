@@ -1,4 +1,4 @@
-function [ file, volume ] = generateCrossWithVertBar(point,filepath,nx)
+function [ file, volume, dimension ] = generateCrossWithVertBar(point,filepath,nx)
 % GENERATECROSSWITHVERTBAR  -  Generates an orthogonal cross, which is rotated
 % by 45 degrees overlayed with a vertical bar.
 %
@@ -32,7 +32,7 @@ function [ file, volume ] = generateCrossWithVertBar(point,filepath,nx)
 %           xxxxxxx      xxxxx        xxx   
 %         xxxxxxx        xxxxx          xxx 
 %       xxxxxxx          xxxxx            xxx
-%      xxxxxx            xxxxx              xxxx
+%      xxxxxx            xxxxx              xxx
 %      xxxx              xxxxx                xx
 % 
 
@@ -58,6 +58,8 @@ nx = nx - 1;
 s2 = point(1)*nx;
 s3 = point(2)*nx;
 s4 = point(3)*nx;
+
+dimension = 2;
 
 % Frame
 vertBar = round((nx-s2)/2)+1:round((nx+s2)/2);

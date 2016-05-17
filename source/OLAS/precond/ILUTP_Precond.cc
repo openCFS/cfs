@@ -90,10 +90,6 @@ namespace CoupledField {
       maxFill_ = (-aux) * ( sysMat.GetNnz() / sysMat.GetNumCols() - 1 );
     }
 
-    // Report parameters to standard log stream
-    (*cla) << "ILUTP_Precond: Performing an ILU( " << tau_ << " , " << maxFill_
-      	   << " ) factorisation" << std::endl;
-
     // Perform the factorisation
     this->Factorise( sysMat );
     amFactorised_ = true;

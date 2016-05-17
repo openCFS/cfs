@@ -88,6 +88,11 @@ namespace CoupledField
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
 
+     /** Performs the optimization for the scalar case. This
+      * @return true if design and retScal is set */
+     template <class T>
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
+
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
       *  a single element -> as in the coupling term of Piezo SIMP.

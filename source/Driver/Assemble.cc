@@ -1668,7 +1668,6 @@ namespace CoupledField
         isSymmetric= false;
       }
     }
-
     // return flag for matrix of interest
     return isSymmetric;
   }

@@ -11,6 +11,7 @@
 #include "General/Environment.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/Matrix.hh"
+#include "def_use_sgpp.hh"
 
 #ifdef USE_SGPP
 #include "sgpp/base/grid/Grid.hpp"
@@ -52,7 +53,7 @@ class TransferFunction;
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
     /** Method used for interpolation of material tensor and volume */
-    typedef enum { C1, SGPP, FULL_BSPLINE } Interpolation;
+    typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
@@ -117,9 +118,9 @@ class TransferFunction;
 
     const Elem* current_elem;
 
-    double CalcHomVolume(Vector<double>& p, DesignElement::Type direction);
+    double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
 
-    int GetInterpolationMethod() const { return interpolation_; };
+    Interpolation GetInterpolationMethod() const { return interpolation_; };
 
   protected:
 

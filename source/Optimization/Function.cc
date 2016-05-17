@@ -19,7 +19,6 @@
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "Materials/MechanicMaterial.hh"
-//#include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -429,6 +428,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
+  case HEAT_ENEGRY:
+  case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
@@ -534,6 +535,7 @@ bool Function::IsAdjointBased() const {
   case ENERGY_FLUX:
   case STRESS:
   case STRESS_DENSITY:
+  case TEMP_TRACKING_AT_INTERFACE:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -677,6 +679,7 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
+  case HEAT_ENEGRY:
   case EIGENFREQUENCY:
   case BANDGAP:
     return true;
@@ -726,6 +729,7 @@ bool Function::ForSensitivityFiltering() const {
   case TRACE_MAPPING:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case TEMP_TRACKING_AT_INTERFACE:
   case EXPRESSION:
   case SHAPE_INF:
     return false;
@@ -3094,12 +3098,12 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
 
-  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SGPP) {
-    Vector<double> p;
+  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
+    Vector<double> p(3);
     p[0] = stiff1;
     p[1] = stiff2;
     p[2] = GetDesign(DesignElement::SHEAR1, local, access, true);
-    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType());
+    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType(), derivative);
   }
 
   if (!derivative) {

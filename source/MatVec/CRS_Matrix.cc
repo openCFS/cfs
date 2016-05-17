@@ -4,6 +4,7 @@
 
 
 #include "CRS_Matrix.hh"
+#include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 
 
@@ -163,6 +164,185 @@ namespace CoupledField {
       currentLayout_ = origMat.currentLayout_;
     }
   }
+
+  // Create CRS matrix from given input data
+  template<typename T>
+      CRS_Matrix<T>::CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr) {
+
+        colInd_           = NULL;
+        rowPtr_           = NULL;
+        diagPtr_          = NULL;
+
+        currentLayout_ = UNSORTED;
+
+        patternPool_ = NULL;
+        patternID_ = NO_PATTERN_ID;
+
+
+        // Set basic size informations
+        this->nnz_        = nnz;
+        this->nrows_      = nr;
+        this->ncols_      = nr;
+
+        // Allocate memory for internal arrays
+        NEWARRAY( colInd_ , UInt, this->nnz_        );
+        NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
+        NEWARRAY( diagPtr_, UInt, this->nrows_      );
+        NEWARRAY( data_   , T      , this->nnz_        );
+
+        // Copy information
+        for (UInt i = 0; i < this->nnz_; i++ ) {
+          data_[i]   = data_ptr[i];
+          colInd_[i] = col_ptr[i];
+        }
+        for (UInt i = 0; i < this->nrows_; i++ ) {
+          rowPtr_[i]  = row_ptr[i];
+        }
+        rowPtr_[this->nrows_] = row_ptr[this->nrows_];
+
+        // Copy layout flag
+        //currentLayout_ = origMat.currentLayout_;
+
+        // Set pattern pool pointer to NULL, since we allocated pattern
+        // ourselves
+        patternPool_ = NULL;
+        patternID_ = NO_PATTERN_ID;
+      }
+
+  // *************************
+    //   Copy SCRS Matrix to CRS Matrix
+    // *************************
+  template<typename T>
+    CRS_Matrix<T>::CRS_Matrix( const SCRS_Matrix<T> &origMat ) {
+
+      colInd_           = NULL;
+      rowPtr_           = NULL;
+      diagPtr_          = NULL;
+
+      currentLayout_ = UNSORTED;
+
+      patternPool_ = NULL;
+      patternID_ = NO_PATTERN_ID;
+
+
+      // Set basic size informations
+      this->nrows_      = origMat.GetNumRows();
+      this->ncols_      = origMat.GetNumCols();
+
+      if (this->nrows_ != this->ncols_) {
+        EXCEPTION("SCRS matrix is not a square matrix!");
+      }
+      const UInt * row_ptr = origMat.GetRowPointer();
+      const UInt * col_ptr = origMat.GetColPointer();
+      const T * data_ptr = origMat.GetDataPointer();
+
+      //setup temporary vector
+      std::vector<UInt> tmp_vec (this->nrows_ + 1,0);
+
+      // Compute number of elements in strict right upper part and save it in tmp_vec
+      UInt j;
+      for (UInt i = 0; i < this->nrows_;i++) {
+        for (UInt k = row_ptr[i]; k < row_ptr[i+1];k++) {
+          j = col_ptr[k];
+          if (i<j) {
+            tmp_vec[j+1]++;
+          }
+        }
+      }
+
+      // save the last nrows entries of tmp_vec in ent_col
+      std::vector<UInt> ent_col(this->nrows_,0);
+      UInt sum_ent_col = 0;
+      for (UInt i = 0; i < this->nrows_;i++) {
+        ent_col[i] = tmp_vec[i+1];
+        sum_ent_col += tmp_vec[i+1];
+      }
+
+
+      // Find addresses of first elements of output matrix
+     for (UInt i = 0; i < this->nrows_;i++) {
+       j = row_ptr[i+1] - row_ptr[i];
+       tmp_vec[i+1] = tmp_vec[i] + tmp_vec[i+1] + j;
+     }
+     this->nnz_        = tmp_vec[this->nrows_];
+
+     // Allocate memory for internal arrays
+     NEWARRAY( colInd_ , UInt, this->nnz_        );
+     NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
+     NEWARRAY( diagPtr_, UInt, this->nrows_      );
+     NEWARRAY( data_   , T      , this->nnz_        );
+
+     std::vector<Integer> col_tmp (this->nnz_,-1);
+
+
+     // Copy upper part of the matrix in reverse order tmp_ is the diagonal pointer after this loop
+     j = tmp_vec[this->nrows_];
+     UInt tmp2;
+     UInt last, first;
+     for (UInt i = this->nrows_; i-- > 0;) {
+       last = row_ptr[i+1];
+       first = row_ptr[i];
+       rowPtr_[i+1] = j;
+       tmp2 = tmp_vec[i+1];
+       j =  tmp_vec[i];
+       for (int k = last-1; k >= (int) first; k--) {
+         tmp2--;
+         data_[tmp2] = data_ptr[(UInt) k];
+         col_tmp[tmp2] = (Integer) col_ptr[(UInt) k];
+       }
+       diagPtr_[i] = tmp2;
+       tmp_vec[i+1] = tmp2;
+     }
+     rowPtr_[0] = 0;
+
+     // Determine upper off diagonal element data and column index in columnwise order and
+     // save them in dat_index and col_index
+     std::vector<UInt> col_index(sum_ent_col,0), count_vec(this->nrows_,0);
+     std::vector<T> dat_index(sum_ent_col,0.);
+     UInt count = 0, row_count =0;
+     // setup index counter vector
+     for (UInt i = 0; i <this->nrows_;i++) {
+       count_vec[i] = count;
+       count += ent_col[i];
+     }
+     for (UInt i = 0;i < origMat.GetNumEntries();i++) {
+         if (i >= row_ptr[row_count])
+           row_count++;
+         if (row_count - 1 == col_ptr[i])
+           count ++;
+         else {
+           j = col_ptr[i];
+           dat_index[count_vec[j]] = data_ptr[i];
+           col_index[count_vec[j]] = row_count -1;
+           count_vec[j]++;
+         }
+     }
+
+     //Copy strict lower part to crs matrix
+     count = 0;
+     Integer jj;
+     for (UInt i = 0; i < this->nrows_;i++) {
+       for (UInt k = rowPtr_[i]; k < rowPtr_[i+1];k++) {
+         jj = col_tmp[k];
+         if (jj != -1) {
+           break;
+         }
+         data_[k] = dat_index[count];
+         count++;
+       }
+     }
+
+     // set column indices for remaining elements in lower matrix
+     count = 0;
+     for (UInt i = 0; i < this->nnz_;i++) {
+       if (col_tmp[i] == -1) {
+         colInd_[i] = col_index[count];
+         count++;
+       } else {
+         colInd_[i] = col_tmp[i];
+       }
+     }
+}
 
 #ifdef USE_MULTIGRID
 
@@ -325,7 +505,7 @@ namespace CoupledField {
     basePattern = patternPool_->RegisterUser( patternID );
 
     CRS_Pattern *myPattern = NULL;
-    myPattern = dynamic_cast<CRS_Pattern*>( basePattern );
+    myPattern = reinterpret_cast<CRS_Pattern*>( basePattern );
     if ( myPattern == NULL ) {
       EXCEPTION( WRONG_CAST_MSG );
     }
@@ -610,7 +790,7 @@ namespace CoupledField {
      int p = 0;
      for(UInt j = 0; j < this->ncols_; j++)
      {
-        // store the column indexx
+        // store the column index
         col_ptr[j] = p;
         // search in colInd_ for this column
         for(UInt k = 0; k < this->nnz_; k++)
@@ -1257,9 +1437,6 @@ namespace CoupledField {
     // Check, if we must do anything at all
     if ( newLayout != currentLayout_ ) {
 
-      // Store current layout for preparing final report
-      subFormat oldLayout = currentLayout_;
-
 #ifdef DEBUG_CRS_MATRIX
       (*debug) << " Old format:\n";
       Print( *debug );
@@ -1374,12 +1551,6 @@ namespace CoupledField {
         EXCEPTION( "Congratulations! You have found a missing case "
                  << "implementation!" );
       }
-
-      // Report to standard report file
-      (*cla) << " CRS_Matrix: Changed sub-format from '"
-             << Enum2String( oldLayout )
-             << "' to '"
-             << Enum2String( currentLayout_ ) << "'" << std::endl;
     }
   }
 

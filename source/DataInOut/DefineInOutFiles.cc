@@ -99,20 +99,11 @@ namespace CoupledField
   // ==============
   DefineInOutFiles::~DefineInOutFiles()
   {
-    
-    // Delete pointer to OLAS report file
-    if( openFiles_.find(OLAS_FILE)  != openFiles_.end()) {
-      delete cla;
-      cla = NULL;
-      openFiles_.erase(OLAS_FILE);
-    }
-    
     delete simInput_;
     simInput_ = NULL;
     
     delete ptMaterialHandler_;
     ptMaterialHandler_ = NULL;
-    
   }
   
 // ==============================
@@ -535,36 +526,6 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
   }
   return ptMaterialHandler_;
 
-}
-
-// ************
-//   OpenFile
-// ************
-void DefineInOutFiles::OpenFile(AuxFileType fileType)
-{
-
-  std::string fileName;
-
-  switch (fileType)
-  {
-
-    // ------------
-    //  OLAS_FILE
-    // ------------
-  case OLAS_FILE:
-
-    fileName = progOpts->GetSimName() + ".las";
-    cla = new std::ofstream(fileName.c_str());
-    if (cla == NULL)
-    {
-      EXCEPTION( "Failed to open file '" << fileName << "' for "
-          << "writing status reports of OLAS, the linear algebra "
-          << "sub-system!" );
-    }
-    openFiles_.insert( OLAS_FILE );
-    break;
-
-  }
 }
 
 } // end of namespace
