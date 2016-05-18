@@ -14,6 +14,7 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/BaseInterpolationFilter.cc
   Filters/Interpolators/MeshBasedInterpolator.cc
   Filters/Interpolators/CentroidInterpolator.cc
+  Filters/Interpolators/NearestNeighbourInterpolator.cc
   Filters/Interpolators/GridIntersectionFilter.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc

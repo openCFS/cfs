@@ -1101,6 +1101,7 @@ namespace CoupledField
     GetNodeCoordinate(p, elem->connect[0],updated);
     UInt globalDim = p.GetSize();
 
+
     xmin = xmax = p[0];
     ymin = ymax = p[1];
     if(globalDim == 2) {
@@ -1117,7 +1118,7 @@ namespace CoupledField
       xmax = (p[0] > xmax) ? p[0] : xmax;
       ymin = (p[1] < ymin) ? p[1] : ymin;
       ymax = (p[1] > ymax) ? p[1] : ymax;
-      if (globalDim == 3) {
+      if (p.GetSize() == 3) {  // TODO: Linienelemente NC interface probleme, coordinaten probleme // Fr[her statt p.GetSize(), globalDim
         zmin = (p[2] < zmin) ? p[2] : zmin;
         zmax = (p[2] > zmax) ? p[2] : zmax;
       }

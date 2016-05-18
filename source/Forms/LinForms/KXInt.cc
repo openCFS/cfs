@@ -35,4 +35,30 @@ void KXIntegrator<VEC_DATA_TYPE>::CalcElemVector( Vector<VEC_DATA_TYPE> & elemVe
   elemVec = (elemMat * elemSol) * factor_;
 }
 
+//template<class VEC_DATA_TYPE >
+//void KXIntegrator<VEC_DATA_TYPE>::CalcRhsVector( Vector<VEC_DATA_TYPE> & elemVec,
+//                                              shared_ptr<CoefFunction > rhsCoefs,
+//                                                  EntityIterator& ent){
+//
+//  Matrix<VEC_DATA_TYPE> elemMat;
+//  Vector<VEC_DATA_TYPE> elemSol;
+//  Vector<VEC_DATA_TYPE> cVec;
+//  LocPointMapped lp;
+//
+//  // calculate element matrix
+//  this->form_->CalcElementMatrix(elemMat, ent, ent );
+//
+//  // obtain element solution
+//  //feFct_->GetEntitySolution( elemSol, ent );
+//
+//    if( rhsCoefs->GetDimType() == CoefFunction::SCALAR ) {
+//      elemSol.Resize(1);
+//      rhsCoefs->GetScalar(elemSol[0],lp);
+//    } else {
+//      rhsCoefs->GetVector(elemSol,lp);
+//    }
+//
+//  elemVec = (elemMat * elemSol) * factor_;
+//}
+
 } // end of namespace

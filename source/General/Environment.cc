@@ -182,6 +182,14 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case SPLIT_LAMB:
+        return "kg/(ms)^2";
+        break;
+
+      case SPLIT_DIVLAMB:
+        return "kg/(m^3s^2)";
+        break;
+
       case SPLIT_VECTOR_VELOCITY:
         return "m/s";
         break;
@@ -271,6 +279,10 @@ namespace CoupledField {
         break;
 
       case DIV_MEAN_FLUIDMECH_VELOCITY:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_VORTICITY:
         return "1/s";
         break;
 
@@ -1332,6 +1344,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SPLIT_SCALAR_VELOCITY, "splitScalVel");
     SolutionTypeEnum.Add(SPLIT_VECTOR_VELOCITY, "splitVectVel");
     SolutionTypeEnum.Add(SPLIT_POT_ENERGY, "splitPotEnergy");
+    SolutionTypeEnum.Add(SPLIT_LAMB, "splitLamb");
+    SolutionTypeEnum.Add(SPLIT_DIVLAMB, "splitDivLamb");
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
@@ -1387,6 +1401,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY_NORMAL, "meanFluidMechVelocityNormal");
     SolutionTypeEnum.Add(DIV_MEAN_FLUIDMECH_VELOCITY, "divMeanFluidMechVelocity");
+    SolutionTypeEnum.Add(FLUIDMECH_VORTICITY, "fluidMechVorticity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");

@@ -38,6 +38,9 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="vorticityId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="densityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -64,7 +67,18 @@
             </xsd:complexType>
           </xsd:element>
 
-
+          <!-- Type of FlowData (optional) -->
+          <!-- List defining the Flow field -->
+          <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
+                <xsd:element name="vorticity" type="DT_BcInhomScalar"/>
+                <xsd:element name="density" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -140,6 +154,13 @@
       <xsd:enumeration value="splitScalar"/>
       <xsd:enumeration value="splitVector"/>
       <xsd:enumeration value="splitRhsLoad"/>
+      <xsd:enumeration value="fluidMechVorticity"/>
+      <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="fluidMechDensity"/>
+      <xsd:enumeration value="splitScalVel"/>
+      <xsd:enumeration value="splitVectVel"/>
+      <xsd:enumeration value="splitLamb"/>
+      <xsd:enumeration value="splitDivLamb"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -147,8 +168,8 @@
   <!-- Definition of element result types of split PDE -->
   <xsd:simpleType name="DT_SplitElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="splitScalVel"/>
-      <xsd:enumeration value="splitVectVel"/>
+      
+      
     </xsd:restriction>
   </xsd:simpleType>
   

@@ -1,0 +1,282 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     NearesNeighbourInterpolator.cc
+ *       \brief    <Description>
+ *
+ *       \date     Apr 20, 2016
+ *       \author   sschoder
+ */
+//================================================================================================
+
+
+#include "NearestNeighbourInterpolator.hh"
+#include "FeBasis/H1/H1Elems.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
+
+#include <algorithm>
+#include <vector>
+
+namespace CFSDat{
+
+NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+                     :MeshBasedInterpolator(numWorkers,config,resMan){
+
+  this->filtSteamType_ = FIFO_FILTER;
+
+}
+
+NearestNeighbourInterpolator::~NearestNeighbourInterpolator(){
+
+}
+
+bool NearestNeighbourInterpolator::Run(){
+  // we deactivate every result, except for our own
+  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+
+  for(; aIter != activeResults.end(); ++aIter){
+    if(filterResIds.Find(*aIter) == -1){
+      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
+    }
+    resultManager_->DeactivateResult(*aIter);
+  }
+  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  resultManager_->SetTimeValue(upResIds[0],aTF);
+  // now we deactivate our own result and activate the others
+  resultManager_->ActivateResult(upResIds[0]);
+
+  //now we call for upstream data in each source
+  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  for(; srcIter != sources_.End() ; srcIter++){
+    // should we check here anything for success?
+    (*srcIter)->Run();
+  }
+
+  CF::StdVector<UInt> eqnNums;
+  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
+  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+
+  returnVec.Init();
+
+  //perform interpolation
+
+  CF::Vector<Double> shFnc;
+  CF::StdVector<UInt> eqns;
+  CF::shared_ptr<ElemShapeMap> eShape;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+
+  for(UInt i=0;i < interpolData_.size();++i){
+    InpolationStruct& aStru = interpolData_[i];
+
+    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    eShape = trgGrid_->GetElemShapeMap(curE,true);
+
+    const CF::StdVector<UInt>& eConn = curE->connect;
+
+    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
+    //we assume scalar shape functions
+    shFnc.Resize(eConn.GetSize());
+    shFnc.Init();
+    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
+
+    Double curval = 0.0;
+    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
+      downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
+      curval  = eConn.GetSize()*shFnc[aNode]/nodeNeighbours_[eConn[aNode]];// * aStru.volume; // We just add up the values
+
+      for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
+        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqn+aDof];
+      }
+    }
+  }
+
+  resultManager_->ActivateResult(filterResIds[0]);
+
+  //now deactivate own upstream results
+  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
+    resultManager_->DeactivateResult(upResIds[aRes]);
+  }
+
+  return true;
+}
+
+void NearestNeighbourInterpolator::PrepareInterpolation(){
+  //1. Get Cell points from input
+  //3. Search for containing elements in trg
+  //4. Store for each src cell local Coordinates, src cell Idx, trg cell idx
+
+  std::cout << "\t ---> NearesNeighbourInterpolator preparing for interpolation" << std::endl;
+
+  //in this filter we only have one upstream result
+  uuids::uuid upRes = upResIds[0];
+
+  Grid* inGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
+
+  //lets declare some variables and estimate the memory
+  std::vector<UInt> allSrcElems;
+  CF::StdVector<const CF::Elem*> trgElements;
+  CF::StdVector< LocPoint > locPoints;
+  CF::StdVector< CF::Vector<Double> > elemCentroids;
+
+  //loop over source regions and add element numbers to vector
+
+  std::set<std::string>::iterator sRegIter = srcRegions_.begin();
+  for(;sRegIter != srcRegions_.end();++sRegIter){
+    StdVector<UInt> curElems;
+    inGrid->GetElemNumsByName(curElems,*sRegIter);
+    allSrcElems.insert(allSrcElems.end(),curElems.Begin(),curElems.End());
+  }
+
+
+  std::cout << "\t\t 1/6 Obtaining source element centroids " << std::endl;
+  StdVector<shared_ptr<EntityList> > lists;
+  std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
+  for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
+    RegionIdType aReg = trgGrid_->GetRegion().Parse(*destRegIt);
+    shared_ptr<ElemList> newList(new ElemList(trgGrid_));
+    newList->SetRegion(aReg);
+    lists.Push_back(newList);
+  }
+  std::cout << "\t\t\t Interpolator is dealing with " << allSrcElems.size() <<
+               " source element centroids" << std::endl;
+  //should not be necessary to make it unique
+  elemCentroids.Resize(allSrcElems.size());
+  locPoints.Resize(allSrcElems.size());
+  for(UInt i=0;i<allSrcElems.size();++i){
+    CF::Vector<Double> cCoord;
+    inGrid->GetElemCentroid(cCoord,allSrcElems[i],true);
+    if(trgGrid_->GetDim() == 2){
+      elemCentroids[i].Resize(2);
+      elemCentroids[i][0] = cCoord[0];
+      elemCentroids[i][1] = cCoord[1];
+    }else{
+      elemCentroids[i].Resize(3);
+      elemCentroids[i][0] = cCoord[0];
+      elemCentroids[i][1] = cCoord[1];
+      elemCentroids[i][2] = cCoord[2];
+    }
+   // std::cout << elemCentroids[i].GetSize() << std::endl;
+  }
+
+  std::cout << "\t\t 2/6 Searching for containing target elements (can take a while)..." << std::endl;
+  trgGrid_->GetElemsAtGlobalCoords(elemCentroids,locPoints,trgElements,
+                                   lists,1e-6, 1e-3);
+
+  std::cout << "\t\t 3/6 Generating interpolation info ..." << std::endl;
+  interpolData_.reserve(trgElements.GetSize());
+  UInt foundCounter = 0;
+  for(UInt aMatch = 0;aMatch < trgElements.GetSize();++aMatch){
+    if(trgElements[aMatch]!= NULL){
+      //obtain element volume
+      InpolationStruct newStruct;
+      shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
+      newStruct.volume = eShape->CalcVolume();
+      newStruct.localCoords = locPoints[aMatch].coord;
+      newStruct.srcEqn = allSrcElems[aMatch];
+      newStruct.tENum = trgElements[aMatch]->elemNum;
+      interpolData_.push_back(newStruct);
+      ++foundCounter;
+    }
+  }
+  std::cout << "\t\t\t Number of interpolation pairs computed: " << foundCounter << std::endl;
+  std::cout << "\t\t 4/6 Clear generated temporary data storage ..." << std::endl;
+  trgElements.Clear(false);
+  elemCentroids.Clear(false);
+  locPoints.Clear(false);
+  allSrcElems.clear();
+
+  //for an export import step, here would be the right place
+
+  std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+  CF::StdVector<UInt> sEqn;
+  for(UInt i=0;i<interpolData_.size();++i){
+    upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
+    //save, assuming a scalar type
+    interpolData_[i].srcEqn = sEqn[0];
+
+    InpolationStruct& aStru = interpolData_[i];
+
+    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    const CF::StdVector<UInt>& eConn = curE->connect;
+
+    StdVector<CoupledField::Elem *> neigbourElems;
+    StdVector<UInt> nodeList ;
+    nodeList.Resize(1);
+    StdVector<RegionIdType>  volRegions;
+    trgGrid_->GetVolRegionIds(volRegions);
+    nodeNeighbours_.Resize(eConn.GetSize()*interpolData_.size());
+    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
+
+      StdVector<CoupledField::Elem *> neigbourElems;
+      nodeList.Resize(1);
+      nodeList[0]=eConn[aNode];
+
+      trgGrid_->GetElemsNextToNodes(neigbourElems,nodeList,volRegions);
+      nodeNeighbours_[eConn[aNode]] = neigbourElems.GetSize();
+      }
+
+  }
+
+  std::cout << "\t\t 6/6 Sort Data according to eqn numbers ..." << std::endl;
+  std::sort(interpolData_.begin(),interpolData_.end());
+
+  std::cout << "\t\t Interpolation prepared!" << std::endl;
+}
+
+ResultIdList NearestNeighbourInterpolator::SetUpstreamResults(){
+  ResultIdList generated;
+  //we should only have one filter Result
+  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
+  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
+
+  //add input result to manager
+  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
+  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
+
+  //set the timeline of upstream data if already set
+  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+  generated.Push_back(newId);
+
+  return generated;
+
+}
+
+void NearestNeighbourInterpolator::AdaptFilterResults(){
+  //some checks
+  ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+  if(!inInfo->isValid){
+    EXCEPTION("Could not validate required input result \"" << inInfo->resultName << "\" from upstream filters.");
+  }
+  //we require mesh result input
+  if(!inInfo->isMeshResult){
+    EXCEPTION("NearesNeighbour interpolation required input to be defined on mesh");
+  }
+  //require defined on elems
+  if(inInfo->definedOn != ExtendedResultInfo::ELEMENT){
+    EXCEPTION("NearesNeighbour interpolation can only handle element results");
+  }
+  //got the upstream result validated?
+  if(!inInfo->isValid){
+    EXCEPTION("Problem in filter pipeline detected. Interpolator input result \"" <<  inInfo->resultName << "\" could not be provided.")
+  }
+
+  resultManager_->CopyResultData(upResIds[0],filterResIds[0]);
+  //but now, we need to overwrite some things
+  resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
+  //after this filter we have nodal values on different regions
+  //on a different grid
+  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
+  resultManager_->SetMeshResult(filterResIds[0],true);
+
+  //validate own result
+  resultManager_->SetValid(filterResIds[0]);
+}
+
+
+}

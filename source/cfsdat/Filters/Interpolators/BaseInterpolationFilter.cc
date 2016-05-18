@@ -15,7 +15,9 @@
 
 #include "BaseInterpolationFilter.hh"
 #include "Filters/Interpolators/CentroidInterpolator.hh"
+#include "Filters/Interpolators/NearestNeighbourInterpolator.hh"
 #include "Filters/Interpolators/GridIntersectionFilter.hh"
+
 
 namespace CFSDat{
 
@@ -27,6 +29,8 @@ FilterPtr BaseInterpolationFilter::GenerateInterpolator(PtrParamNode interpolNod
    newFilter = FilterPtr(new CFSDat::CentroidInterpolator(0,interpolNode,resMana));
  } else if(interpolNode->Get("type")->As<std::string>() == "Conservative_CutCell"){
    newFilter = FilterPtr(new CFSDat::GridIntersectionFilter(0,interpolNode,resMana));
+ } else if (interpolNode->Get("type")->As<std::string>() == "NearestNeighbour"){
+   newFilter = FilterPtr(new CFSDat::NearestNeighbourInterpolator(0,interpolNode,resMana));
  }
  return newFilter;
 }

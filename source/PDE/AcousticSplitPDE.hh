@@ -69,10 +69,28 @@ namespace CoupledField{
     //! Init the time stepping
     void InitTimeStepping();
 
+    //! Finalize for a time step is done
+    //void FinilizeBeforTimeStep();
+
   private:
 
     //! stores if the Split PDE is scalar or vector potential
     SolutionType formulation_;
+
+    //! This coefficient function describes the vorticity field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> vorticityCoef_;
+
+    //! This coefficient function describes the density field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> densityCoef_;
+
+    //! This coefficient function describes the velocity field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> velocityCoef_;
 
     //! override from Single PDE due to convective operators
     //virtual void FinalizePostProcResults();

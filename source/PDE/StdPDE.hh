@@ -183,6 +183,10 @@ namespace CoupledField {
     	EXCEPTION("FinilizeAfterTimeStep has to be implemented for specific PDE");
     }
 
+    virtual void FinilizeBeforTimeStep() {
+      ;
+    }
+
   protected:
 
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)

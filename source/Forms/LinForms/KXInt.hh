@@ -40,6 +40,9 @@ namespace CoupledField{
     //! Calculate element vector
     void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
 
+    //! Calculate element vector
+    void CalcRhsVector(Vector<VEC_DATA_TYPE> & elemVec,shared_ptr<CoefFunction > rhsCoefs,EntityIterator& ent);
+
     //! \copydoc LinearForm::IsSolDependent
     bool IsSolDependent() {
       return true;
