@@ -67,10 +67,8 @@ bool OutputFilter::Run(){
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
-
             Result<Double>* myResult = dynamic_cast<Result<Double>* >(cResVec[aRe].get());
             Vector<Double> & resVec =  myResult->GetVector();
-
             if( resVec.ContainsNaN() || resVec.ContainsInf() ){
               WARN("Detected result with NAN or INF values. Setting this result to zero.");
               resVec.Init(0.0);
@@ -80,6 +78,7 @@ bool OutputFilter::Run(){
             std::string regName = cResVec[aRe]->GetEntityList()->GetName();
             CF::RegionIdType rId = resultManager_->GetExtInfo(*rIter)->ptGrid->GetRegion().Parse(regName);
             cRes->mapping->GetRegionEquations(eqnVec,rId);
+            resVec.Resize(eqnVec.GetSize()); //TODO
             for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
               resVec[aEq] =  fullVec[eqnVec[aEq]];
             }

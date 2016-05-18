@@ -382,9 +382,9 @@ void SimInputEnsight::GetNodeResult( UInt sequenceStep,
 
   UInt numNodeArrays = pointData->GetNumberOfArrays();
   if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-    scalarForVector = true;
-  }else{
     scalarForVector = false;
+  }else{
+    scalarForVector = true;
   }
 
   //get grip of VTK arrays

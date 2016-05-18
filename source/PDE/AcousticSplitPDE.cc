@@ -9,7 +9,9 @@
 
 //new integrator concept
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
@@ -157,7 +159,61 @@ namespace CoupledField{
       //=======================================================================
       // Generate coefficient functions
       //=======================================================================
-      PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");;
+      PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+      // ====================================================================
+      // check for vorticity field, which is just piped through the simulation
+      // ====================================================================
+      std::string vorticityId = curRegNode->Get("vorticityId")->As<std::string>();
+      PtrCoefFct regionVortic;
+
+      if ( vorticityId != "" ) {
+        std::set<UInt> definedDofs;
+        //just real valued vorticity allowed
+        shared_ptr<ResultInfo> vorticInfo = GetResultInfo(FLUIDMECH_VORTICITY);
+        //Add the region information
+        PtrParamNode vorticNode = myParam_->Get("flowList")->GetByVal("vorticity","name",vorticityId.c_str());
+
+        ReadUserFieldValues( actSDList, vorticNode, vorticInfo->dofNames, vorticInfo->entryType,
+            isComplex_, regionVortic, definedDofs, updatedGeo_ );
+        vorticityCoef_->AddRegion( actRegion, regionVortic );
+      }
+
+      // ====================================================================
+      // check for density field, which is just piped through the simulation
+      // ====================================================================
+      std::string densityId = curRegNode->Get("densityId")->As<std::string>();
+      PtrCoefFct regionDensity;
+
+      if ( densityId != "" ) {
+        std::set<UInt> definedDofs;
+        //just real valued density allowed
+        shared_ptr<ResultInfo> densityInfo = GetResultInfo(FLUIDMECH_DENSITY);
+        //Add the region information
+        PtrParamNode densityNode = myParam_->Get("flowList")->GetByVal("density","name",densityId.c_str());
+
+        ReadUserFieldValues( actSDList, densityNode, densityInfo->dofNames, densityInfo->entryType,
+            isComplex_, regionDensity, definedDofs, updatedGeo_ );
+        densityCoef_->AddRegion( actRegion, regionDensity );
+      }
+
+      // ====================================================================
+      // check for velocity field, which is just piped through the simulation
+      // ====================================================================
+      std::string velocityId = curRegNode->Get("flowId")->As<std::string>();
+      PtrCoefFct regionVelocity; // ??
+
+      if ( velocityId != "" ) {
+        std::set<UInt> definedDofs;
+        //just real valued velocity allowed
+        shared_ptr<ResultInfo> velocityInfo = GetResultInfo(FLUIDMECH_VELOCITY);
+        //Add the region information
+        PtrParamNode velocityNode = myParam_->Get("flowList")->GetByVal("flow","name",velocityId.c_str());
+
+        ReadUserFieldValues( actSDList, velocityNode, velocityInfo->dofNames, velocityInfo->entryType,
+            isComplex_, regionVelocity, definedDofs, updatedGeo_ );
+        velocityCoef_->AddRegion( actRegion, regionVelocity );
+      }
 
       // ====================================================================
       // Take account for mapping
@@ -251,6 +307,24 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( massContext );
       }
 
+      shared_ptr<BaseFeFunction> myFct = feFunctions_[formulation_];
+      BaseBDBInt * forLambInt = NULL;
+      // =================================
+      //  RHS-integrator
+      // =================================
+      forLambInt = new ABInt<Double>(new IdentityOperator<FeH1,2>(), new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
+
+      LinearForm * forLambForm = new KXIntegrator<Double>(forLambInt, 1.0,
+          myFct );
+      forLambForm->SetName("RHSNonLinFormHeatStiff");
+
+//      forLambForm->CalcElemVector(actSDList);
+//      LinearFormContext * rhsNlinContext =
+//          new LinearFormContext( rhsNlinForm );
+//      rhsNlinContext->SetEntities( actSDList );
+//      rhsNlinContext->SetFeFunction( myFct );
+//      assemble_->AddLinearForm( rhsNlinContext );
+
       }
     }
 
@@ -330,6 +404,11 @@ namespace CoupledField{
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     } // for
+
+
+
+
+
   }
 
   void AcousticSplitPDE::DefineSolveStep(){
@@ -347,6 +426,18 @@ namespace CoupledField{
     else {
       vecComponents = "z";
     }
+
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
     // === Primary result according to PDE definition ===
     shared_ptr<ResultInfo> potent( new ResultInfo);
     if ( formulation_ ==  SPLIT_SCALAR) {
@@ -415,6 +506,17 @@ namespace CoupledField{
       }
     }
 
+    StdVector<std::string> vecComponents;
+    if( dim_ == 3 ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
+      vecComponents = "phi";
+    }
+    else {
+      vecComponents = "z";
+    }
+
     shared_ptr<ResultInfo> vel;
     PtrCoefFct velFct;
     shared_ptr<CoefFunctionFormBased>  velFctPot;
@@ -426,7 +528,7 @@ namespace CoupledField{
       vel->dofNames = vecDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::ELEMENT;
+      vel->definedOn = ResultInfo::NODE;
       // Velocity v = grad Potential
       if( isComplex_ ) {
         velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));
@@ -443,7 +545,7 @@ namespace CoupledField{
       vel->dofNames = vecDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::ELEMENT;
+      vel->definedOn = ResultInfo::NODE;
       // Velocity v = curl Potential
       if( isComplex_ ) {
         velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));
@@ -472,6 +574,86 @@ namespace CoupledField{
     resultFunctors_[SPLIT_POT_ENERGY] = keFuncPot;
     stiffFormFunctors_.insert(keFuncPot);
 
+
+    // TODO adapt for 3D
+    // === FLOW FIELD ===
+    // vorticity
+    shared_ptr<ResultInfo> vorticity( new ResultInfo);
+    vorticity->resultType = FLUIDMECH_VORTICITY;
+    vorticity->dofNames = vecComponents;
+    vorticity->unit = "1/s";
+
+    vorticity->definedOn = ResultInfo::NODE;
+    vorticity->entryType = ResultInfo::VECTOR;
+
+    vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
+    DefineFieldResult( vorticityCoef_, vorticity );
+
+    //density
+    shared_ptr<ResultInfo> density( new ResultInfo);
+    density->resultType = FLUIDMECH_DENSITY;
+    density->dofNames = "";
+    density->unit = "kg/m^3";
+
+    density->definedOn = ResultInfo::NODE;
+    density->entryType = ResultInfo::SCALAR;
+
+    densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( densityCoef_, density );
+
+    //velocity
+    shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
+    flowvelocity->resultType = FLUIDMECH_VELOCITY;
+    flowvelocity->dofNames = vecDofNames;
+    flowvelocity->unit = "m/s";
+
+    flowvelocity->definedOn = ResultInfo::NODE;
+    flowvelocity->entryType = ResultInfo::VECTOR;
+
+    velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    DefineFieldResult( velocityCoef_, flowvelocity );
+//    results_.Push_back( flowvelocity );
+//    availResults_.insert( flowvelocity );
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    // === ACOUSTIC Source FIELD LAMB===
+    // LAMB
+    shared_ptr<ResultInfo> lamb( new ResultInfo);
+    lamb->resultType = SPLIT_LAMB;
+    lamb->dofNames = vecDofNames;
+    lamb->unit = "kg/(ms)^2";
+
+    lamb->definedOn = ResultInfo::NODE;
+    lamb->entryType = ResultInfo::VECTOR;
+
+    CoefXprBinOp minusFct = CoefXprBinOp(mp_, velocityCoef_, velFct,
+                                           CoefXpr::OP_SUB);
+    PtrCoefFct uMinusGradScalar = CoefFunction::Generate(mp_, part, minusFct);
+
+    CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, uMinusGradScalar,
+                                               CoefXpr::OP_CROSS);
+    PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
+
+    CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
+                                               CoefXpr::OP_MULT);
+    PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
+    DefineFieldResult( lambVec, lamb );
+
+
+//    //divLamb
+//    shared_ptr<ResultInfo> divLamb( new ResultInfo);
+//    divLamb->resultType = SPLIT_DIVLAMB;
+//    divLamb->dofNames = "";
+//    divLamb->unit = "kg/(m^3s^2)";
+//
+//    divLamb->definedOn = ResultInfo::NODE;
+//    divLamb->entryType = ResultInfo::SCALAR;
+//
+//    PtrCoefFct divLambVec; // TODO replace by KXInt
+//    divLambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
+//    DefineFieldResult( divLambVec, lamb );
+
+
   }
 
   //! Init the time stepping
@@ -486,4 +668,32 @@ namespace CoupledField{
       feFunctions_[SPLIT_VECTOR]->SetTimeScheme(myScheme);
 
   }
+
+
+//  void AcousticSplitPDE::FinilizeBeforTimeStep() {
+//    RegionIdType actRegion;
+//
+//    // Define integrators for "standard" materials
+//    std::map<RegionIdType, BaseMaterial*>::iterator it;
+//    shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
+//
+//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+//      // Set current region and material
+//      actRegion = it->first;
+//
+//      // Get current region name
+//      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+//
+//      // create new entity list
+//      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+//      actSDList->SetRegion( actRegion );
+//
+//      // --- Set the FE ansatz for the current region ---
+//      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+//
+//
+//
+//    }
+//
+// }
 }

@@ -245,6 +245,7 @@
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Conservative_CellCentroid"/>
       <xsd:enumeration value="Conservative_CutCell"/>
+      <xsd:enumeration value="NearestNeighbour"/>
     </xsd:restriction>
   </xsd:simpleType>
   

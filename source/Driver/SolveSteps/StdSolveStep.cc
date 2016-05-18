@@ -398,6 +398,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     // due to coupling-pdes, the RHS has to be initialized BEFORE
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
+    PDE_.FinilizeBeforTimeStep();
   }
 
 
