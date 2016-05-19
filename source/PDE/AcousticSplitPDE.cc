@@ -307,24 +307,6 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( massContext );
       }
 
-      shared_ptr<BaseFeFunction> myFct = feFunctions_[formulation_];
-      BaseBDBInt * forLambInt = NULL;
-      // =================================
-      //  RHS-integrator
-      // =================================
-      forLambInt = new ABInt<Double>(new IdentityOperator<FeH1,2>(), new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
-
-      LinearForm * forLambForm = new KXIntegrator<Double>(forLambInt, 1.0,
-          myFct );
-      forLambForm->SetName("RHSNonLinFormHeatStiff");
-
-//      forLambForm->CalcElemVector(actSDList);
-//      LinearFormContext * rhsNlinContext =
-//          new LinearFormContext( rhsNlinForm );
-//      rhsNlinContext->SetEntities( actSDList );
-//      rhsNlinContext->SetFeFunction( myFct );
-//      assemble_->AddLinearForm( rhsNlinContext );
-
       }
     }
 

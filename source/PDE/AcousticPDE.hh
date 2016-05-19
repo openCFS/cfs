@@ -108,6 +108,11 @@ namespace CoupledField{
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> meanTemperatureCoef_;
 
+    //! This coefficient function describes the lamb vector field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> lambCoef_;
+
     //! store convective bilinear forms
     std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
 
