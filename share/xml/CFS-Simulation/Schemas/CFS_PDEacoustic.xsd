@@ -42,6 +42,7 @@
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="temperatureId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="lambId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
                     />
                   </xsd:complexType>
@@ -92,6 +93,16 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="flow" type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Type of LambData (optional) -->
+          <!-- List defining flows -->
+          <xsd:element name="lambList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="lamb" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -632,6 +643,7 @@
       <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="heatMeanTemperature"/>
+      <xsd:enumeration value="splitLamb"/>
     </xsd:restriction>
   </xsd:simpleType>
 
