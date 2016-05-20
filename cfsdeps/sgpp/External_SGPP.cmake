@@ -21,8 +21,8 @@ set(SGPP_INSTALL  "${SGPP_SOURCE}/${SGPP_BASE}_${SGPP_VER}")
 # no patches are required
 
 # we do not download but assume the file to magically exist there. The zip is encrypted!
-#SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_ZIP}")
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_TGZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_ZIP}")
+#SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_TGZ}")
 # we don't check the md5 here
 
 if(NOT EXISTS "${LOCAL_FILE}")
@@ -91,13 +91,13 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # don't dowload but simply copy w/o md5 check
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SGPP_SOURCE}
     # the zip file is encrypted!
-    #PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SGPP} ${SGPP_ZIP}
-    PATCH_COMMAND tar -xzf ${SGPP_TGZ}
+    PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SGPP} ${SGPP_ZIP}
+    #PATCH_COMMAND tar -xzf ${SGPP_TGZ}
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
     # the libs will be created in lib/sgpp and we manually copy them to lib64/CFS_ARCH_STR
     BUILD_COMMAND scons -j 4 -s OMP=yes USE_UMFPACK=yes USE_EIGEN=yes USE_ARMADILLO=yes USE_GMMPP=no NO_UNIT_TESTS=yes
-  )  
+  )
   
   #-------------------------------------------------------------------------------
   # execute the stuff from sgpp-post_install.cmake after installation
@@ -153,6 +153,7 @@ SET(SGPP_LIBRARY
   ${LD}/libsgppoptimization.so;
   ${LD}/libsgppbase.so;
   libarmadillo.so;
+  libsatlas.so
   ${UMFPACK_LIBRARY};
   ${ARPACK_LIBRARY}
   CACHE FILEPATH "SGPP library."

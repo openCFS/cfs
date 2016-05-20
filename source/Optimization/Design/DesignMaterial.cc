@@ -45,13 +45,13 @@ Enum<DesignMaterial::Notation> DesignMaterial::notation;
 DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
 #ifdef USE_SGPP
   :
-  alpha1_(SGPP::base::DataVector(0)),
-  alpha2_(SGPP::base::DataVector(0)),
-  alpha3_(SGPP::base::DataVector(0)),
-  alpha4_(SGPP::base::DataVector(0)),
-  alpha5_(SGPP::base::DataVector(0)),
-  alpha6_(SGPP::base::DataVector(0)),
-  volume_(SGPP::base::DataVector(0))
+  alpha1_(sgpp::base::DataVector(0)),
+  alpha2_(sgpp::base::DataVector(0)),
+  alpha3_(sgpp::base::DataVector(0)),
+  alpha4_(sgpp::base::DataVector(0)),
+  alpha5_(sgpp::base::DataVector(0)),
+  alpha6_(sgpp::base::DataVector(0)),
+  alpha7_(sgpp::base::DataVector(0))
 #endif
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
@@ -528,22 +528,21 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           if (basis_str == "bspline") {
             // B-splines
             sgpp_basis_ = BSPLINE;
-            grid_ = SGPP::base::Grid::createBsplineGrid(dimension, bspline_degree_);
+            grid_ = sgpp::base::Grid::createBsplineGrid(dimension, bspline_degree_);
           } else {
             // modified B-splines
             sgpp_basis_ = MODBSPLINE;
-            grid_ = SGPP::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
+            grid_ = sgpp::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
           }
           // optional verbosity for initial hierarchization
-          SGPP::optimization::printer.setVerbosity(2);
         } else if (basis_str == "modlinear") {
           // modified linear basis
           sgpp_basis_ = MODLINEAR;
-          grid_ = SGPP::base::Grid::createModLinearGrid(dimension);
+          grid_ = sgpp::base::Grid::createModLinearGrid(dimension);
         } else {
           // (un)modified linear basis
           sgpp_basis_ = LINEAR;
-          grid_ = SGPP::base::Grid::createLinearGrid(dimension);
+          grid_ = sgpp::base::Grid::createLinearGrid(dimension);
         }
         // read coefficients
         InitializeSparseGrid(file.c_str());
@@ -560,11 +559,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         // read coefficients from XML
         ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
         ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
-        if (grid_->getStorage()->dim() == 3) {
+        if (grid_->getStorage().getDimension() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
-        if (grid_->getStorage()->dim() == 3) {
+        if (grid_->getStorage().getDimension() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
@@ -3346,9 +3345,8 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     Matrix<double> data;
     dataIsSparse = ReadDetailedStats(filename, data);
     // create regular grid
-    SGPP::base::GridGenerator* gridGen = grid_->createGridGenerator();
-    gridGen->regular(level_);
-    delete gridGen;
+    sgpp::base::GridGenerator& gridGen = grid_->getGenerator();
+    gridGen.regular(level_);
     if (dataIsSparse) {
       FillSparseGridWithSparseGridData(data);
     } else {
@@ -3358,7 +3356,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   }
 
   // new format
-  unsigned int dim = grid_->getStorage()->dim();
+  unsigned int dim = grid_->getStorage().getDimension();
   unsigned int N, d, m;
   file >> N >> d >> m >> word;
   // standard assumptions
@@ -3378,12 +3376,12 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha5_.resize(N);
     alpha6_.resize(N);
   }
-  volume_.resize(N);
+  alpha7_.resize(N);
   double leveld;
   double indexd;
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
-  SGPP::base::GridIndex grid_point(dim);
+  sgpp::base::GridIndex grid_point(dim);
   level_ = 0; // we set that to the maximal level of the grid points
   double duck; // dummy
   unsigned int j = 0;
@@ -3425,14 +3423,14 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
       level_ = std::max(level_, std::max(level[0], level[1]));
     }
     // add grid point
-    grid_->getStorage()->insert(grid_point);
+    grid_->getStorage().insert(grid_point);
     if (dim == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
       // (except for the final value, the volume)
       file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
            >> alpha5_[j] >> alpha6_[j];
       if (m == 7) {
-        file >> volume_[j];
+        file >> alpha7_[j];
       }
       if (notation == VOIGT) {
         alpha6_[j] *= 2.0;
@@ -3444,13 +3442,13 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j];
         break;
       case 5:
-        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> volume_[j];
+        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> alpha7_[j];
         break;
       case 6:
         file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j];
         break;
       case 7:
-        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> volume_[j];
+        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> alpha7_[j];
         break;
       }
       if (notation == VOIGT) {
@@ -3460,10 +3458,10 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     if (dim == 3) {
       LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " " << grid_point.getCoord(2) << " -> "
           << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " "
-          << alpha5_[j] << " " << alpha6_[j] << " " << volume_[j];
+          << alpha5_[j] << " " << alpha6_[j] << " " << alpha7_[j];
     } else {
       LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " -> "
-          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << alpha7_[j];
     }
     j++;
   }
@@ -3471,11 +3469,11 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   file.close();
   if (dim == 2) {
     // coefficient vectors were too big, because we skipped grid points
-    alpha1_.resize(grid_->getStorage()->size());
-    alpha2_.resize(grid_->getStorage()->size());
-    alpha3_.resize(grid_->getStorage()->size());
-    alpha4_.resize(grid_->getStorage()->size());
-    volume_.resize(grid_->getStorage()->size());
+    alpha1_.resize(grid_->getStorage().getSize());
+    alpha2_.resize(grid_->getStorage().getSize());
+    alpha3_.resize(grid_->getStorage().getSize());
+    alpha4_.resize(grid_->getStorage().getSize());
+    alpha7_.resize(grid_->getStorage().getSize());
   }
 
   // DEBUG
@@ -3549,29 +3547,27 @@ void DesignMaterial::EvaluateFullGrid() {
 }
 
 void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
-  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
-  // Catalogue has to be in correct order! High error risk!
-  // Better use new format instead
+  sgpp::base::GridStorage& gridStorage = grid_->getStorage();
 
   // create coefficient vectors
-  alpha1_.resize(gridStorage->size());
-  alpha2_.resize(gridStorage->size());
-  alpha3_.resize(gridStorage->size());
-  alpha4_.resize(gridStorage->size());
-  alpha5_.resize(gridStorage->size());
-  alpha6_.resize(gridStorage->size());
-  volume_.resize(gridStorage->size());
+  alpha1_.resize(gridStorage.getSize());
+  alpha2_.resize(gridStorage.getSize());
+  alpha3_.resize(gridStorage.getSize());
+  alpha4_.resize(gridStorage.getSize());
+  alpha5_.resize(gridStorage.getSize());
+  alpha6_.resize(gridStorage.getSize());
+  alpha7_.resize(gridStorage.getSize());
 
   // put data values in coefficient vectors
   unsigned int dim1, dim2, dim3, index1, index2, index3, row;
   dim1 = catalogueSize_[0];
   dim2 = catalogueSize_[1];
   dim3 = catalogueSize_[2];
-  SGPP::base::GridIndex* gp;
-  unsigned int sz = gridStorage->size();
+  sgpp::base::GridIndex* gp;
+  unsigned int sz = gridStorage.getSize();
   sz = sz + 1;
-  for (unsigned int i=0; i < gridStorage->size(); i++) {
-    gp = gridStorage->get(i);
+  for (unsigned int i=0; i < gridStorage.getSize(); i++) {
+    gp = gridStorage.get(i);
     if (catalogueSize_.GetSize() == 2) {
       index1 = gp->getCoord(0)*(dim1);
       index2 = gp->getCoord(1)*(dim2);
@@ -3588,58 +3584,58 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
     }
     alpha1_[i] = data[row][0];
     alpha2_[i] = data[row][1];
-    if (grid_->getStorage()->dim() == 3) {
+    if (grid_->getStorage().getDimension() == 3) {
       alpha3_[i] = data[row][2];
       alpha4_[i] = data[row][3];
       alpha5_[i] = data[row][4];
       alpha6_[i] = data[row][5];
       if (data.GetNumCols() == 7) {
-        volume_[i] = data[row][6];
+        alpha7_[i] = data[row][6];
       }
     } else {
       if (catalogueSize_.GetSize() == 2) {
         alpha3_[i] = data[row][2];
         alpha4_[i] = data[row][3];
         if (data.GetNumCols() == 5) {
-          volume_[i] = data[row][4];
+          alpha7_[i] = data[row][4];
         }
       } else {
         alpha3_[i] = data[row][3];
         alpha4_[i] = data[row][5];
         if (data.GetNumCols() == 7) {
-          volume_[i] = data[row][6];
+          alpha7_[i] = data[row][6];
         }
       }
     }
     LOG_DBG3(dm) << "DM:FSGF: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
+        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << alpha7_[i];
   }
   // hierarchize data vectors
   HierarchizeSparseGridCoefficients();
 }
 
 void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
-  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
+  sgpp::base::GridStorage& gridStorage = grid_->getStorage();
   // Catalogue has to be in correct order! High error risk!
   // Better use new format instead
 
   // create coefficient vectors
-  alpha1_.resize(gridStorage->size());
-  alpha2_.resize(gridStorage->size());
-  alpha3_.resize(gridStorage->size());
-  alpha4_.resize(gridStorage->size());
-  if (gridStorage->dim() == 3) {
-    alpha5_.resize(gridStorage->size());
-    alpha6_.resize(gridStorage->size());
+  alpha1_.resize(gridStorage.getSize());
+  alpha2_.resize(gridStorage.getSize());
+  alpha3_.resize(gridStorage.getSize());
+  alpha4_.resize(gridStorage.getSize());
+  if (gridStorage.getDimension() == 3) {
+    alpha5_.resize(gridStorage.getSize());
+    alpha6_.resize(gridStorage.getSize());
   }
-  volume_.resize(gridStorage->size());
+  alpha7_.resize(gridStorage.getSize());
 
   // put data values in coefficient vectors
-  SGPP::base::GridIndex* gp;
-  unsigned int sz = gridStorage->size();
+  sgpp::base::GridIndex* gp;
+  unsigned int sz = gridStorage.getSize();
   sz = sz + 1;
-  for (unsigned int i=0; i < gridStorage->size(); i++) {
-    if (gridStorage->dim() == 3) {
+  for (unsigned int i=0; i < gridStorage.getSize(); i++) {
+    if (gridStorage.getDimension() == 3) {
       alpha1_[i] = data[i][0];
       alpha2_[i] = data[i][1];
       alpha3_[i] = data[i][2];
@@ -3647,7 +3643,7 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
       alpha5_[i] = data[i][4];
       alpha6_[i] = data[i][5];
       if (data.GetNumCols() == 7) {
-        volume_[i] = data[i][6];
+        alpha7_[i] = data[i][6];
       }
     } else {
       alpha1_[i] = data[i][0];
@@ -3656,23 +3652,23 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
         alpha3_[i] = data[i][2];
         alpha4_[i] = data[i][3];
         if (data.GetNumCols() == 5) {
-          volume_[i] = data[i][4];
+          alpha7_[i] = data[i][4];
         }
       } else {
         alpha3_[i] = data[i][3];
         alpha4_[i] = data[i][5];
         if (data.GetNumCols() == 7) {
-          volume_[i] = data[i][6];
+          alpha7_[i] = data[i][6];
         }
       }
     }
-    gp = gridStorage->get(i);
-    if (gridStorage->dim() == 3) {
+    gp = gridStorage.get(i);
+    if (gridStorage.getDimension() == 3) {
       LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << alpha7_[i];
     } else {
       LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
-          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << alpha7_[i];
     }
   }
   // hierarchize data vectors
@@ -3682,47 +3678,45 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
 void DesignMaterial::HierarchizeSparseGridCoefficients() {
   std::cout << "++ Hierarchizing data vectors of Sparse Grid\n" << std::flush;
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    SGPP::base::OperationHierarchisation *hierOp =
-        SGPP::op_factory::createOperationHierarchisation(*grid_);
+    std::unique_ptr<sgpp::base::OperationHierarchisation> hierOp =
+        sgpp::op_factory::createOperationHierarchisation(*grid_);
     hierOp->doHierarchisation(alpha1_);
     hierOp->doHierarchisation(alpha2_);
     hierOp->doHierarchisation(alpha3_);
     hierOp->doHierarchisation(alpha4_);
-    if (grid_->getStorage()->dim() == 3) {
+    if (grid_->getStorage().getDimension() == 3) {
       hierOp->doHierarchisation(alpha5_);
       hierOp->doHierarchisation(alpha6_);
     }
-    hierOp->doHierarchisation(volume_);
-    delete hierOp;
+    hierOp->doHierarchisation(alpha7_);
   } else {
-    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 7 : 5));
+    sgpp::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage().getDimension() == 3 ? 7 : 5));
     alphas.setColumn(0, alpha1_);
     alphas.setColumn(1, alpha2_);
     alphas.setColumn(2, alpha3_);
     alphas.setColumn(3, alpha4_);
-    if (grid_->getStorage()->dim() == 3) {
+    if (grid_->getStorage().getDimension() == 3) {
       alphas.setColumn(4, alpha5_);
       alphas.setColumn(5, alpha6_);
-      alphas.setColumn(6, volume_);
+      alphas.setColumn(6, alpha7_);
     } else {
-      alphas.setColumn(4, volume_);
+      alphas.setColumn(4, alpha7_);
     }
     
-    SGPP::optimization::OperationMultipleHierarchisation *hierOp =
-      SGPP::op_factory::createOperationMultipleHierarchisation(*grid_);
+    std::unique_ptr<sgpp::optimization::OperationMultipleHierarchisation> hierOp =
+      sgpp::op_factory::createOperationMultipleHierarchisation(*grid_);
     hierOp->doHierarchisation(alphas);
-    delete hierOp;
     
     alphas.getColumn(0, alpha1_);
     alphas.getColumn(1, alpha2_);
     alphas.getColumn(2, alpha3_);
     alphas.getColumn(3, alpha4_);
-    if (grid_->getStorage()->dim() == 3) {
+    if (grid_->getStorage().getDimension() == 3) {
       alphas.getColumn(4, alpha5_);
       alphas.getColumn(5, alpha6_);
-      alphas.getColumn(6, volume_);
+      alphas.getColumn(6, alpha7_);
     } else {
-      alphas.getColumn(4, volume_);
+      alphas.getColumn(4, alpha7_);
     }
   }
 }
@@ -3730,98 +3724,91 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) {
   // Method uses SGPP interpolation
-  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  sgpp::base::DataVector point(p.GetPointer(), p.GetSize());
   LOG_DBG2(dm) << p;
 
   E.Resize(3,3);
   E.Init(); // for off-diagonal
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = opEval->eval(alpha1_, point);
-        E[1-1][2-1] = opEval->eval(alpha2_, point);
+        E[1-1][1-1] = op_eval_->eval(alpha1_, point);
+        E[1-1][2-1] = op_eval_->eval(alpha2_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = opEval->eval(alpha3_, point);
-        E[3-1][3-1] = opEval->eval(alpha4_, point);
+        E[2-1][2-1] = op_eval_->eval(alpha3_, point);
+        E[3-1][3-1] = op_eval_->eval(alpha4_, point);
       } else { // shearing
-        E[1-1][1-1] = opEval->eval(alpha1_, point);
-        E[1-1][2-1] = opEval->eval(alpha2_, point);
-        E[1-1][3-1] = opEval->eval(alpha3_, point);
+        E[1-1][1-1] = op_eval_->eval(alpha1_, point);
+        E[1-1][2-1] = op_eval_->eval(alpha2_, point);
+        E[1-1][3-1] = op_eval_->eval(alpha3_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = opEval->eval(alpha4_, point);
-        E[2-1][3-1] = opEval->eval(alpha5_, point);
+        E[2-1][2-1] = op_eval_->eval(alpha4_, point);
+        E[2-1][3-1] = op_eval_->eval(alpha5_, point);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = opEval->eval(alpha6_, point);
+        E[3-1][3-1] = op_eval_->eval(alpha6_, point);
       }
       LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     } else {
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha2_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha3_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha4_, point, direction);
       } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha2_, point, direction);
+        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha3_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha5_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha4_, point, direction);
+        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha5_, point, direction);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha6_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha6_, point, direction);
       }
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
           <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     }
-    delete opEval;
   } else {
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = opNaiveEval->eval(alpha1_, point);
-        E[1-1][2-1] = opNaiveEval->eval(alpha2_, point);
+        E[1-1][1-1] = op_naive_eval_->eval(alpha1_, point);
+        E[1-1][2-1] = op_naive_eval_->eval(alpha2_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = opNaiveEval->eval(alpha3_, point);
-        E[3-1][3-1] = opNaiveEval->eval(alpha4_, point);
+        E[2-1][2-1] = op_naive_eval_->eval(alpha3_, point);
+        E[3-1][3-1] = op_naive_eval_->eval(alpha4_, point);
       } else { // shearing
-        E[1-1][1-1] = opNaiveEval->eval(alpha1_, point);
-        E[1-1][2-1] = opNaiveEval->eval(alpha2_, point);
-        E[1-1][3-1] = opNaiveEval->eval(alpha3_, point);
+        E[1-1][1-1] = op_naive_eval_->eval(alpha1_, point);
+        E[1-1][2-1] = op_naive_eval_->eval(alpha2_, point);
+        E[1-1][3-1] = op_naive_eval_->eval(alpha3_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = opNaiveEval->eval(alpha4_, point);
-        E[2-1][3-1] = opNaiveEval->eval(alpha5_, point);
+        E[2-1][2-1] = op_naive_eval_->eval(alpha4_, point);
+        E[2-1][3-1] = op_naive_eval_->eval(alpha5_, point);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = opNaiveEval->eval(alpha6_, point);
+        E[3-1][3-1] = op_naive_eval_->eval(alpha6_, point);
       }
-      delete opNaiveEval;
       LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     } else {
-      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha2_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha3_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha4_, point, direction);
       } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha2_, point, direction);
+        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha3_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha5_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(alpha4_, point, direction);
+        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha5_, point, direction);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha6_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(alpha6_, point, direction);
       }
-      delete opEvalPartDeriv;
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
           <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     }
@@ -3834,7 +3821,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   E.Init(); // for off-diagonal
   const int margin = (bspline_degree_+1)/2 + 1;
   const double a = static_cast<double>((bspline_degree_+1)/2);
-  SGPP::base::BsplineBasis<int, int> bspline(bspline_degree_);
+  sgpp::base::BsplineBasis<int, int> bspline(bspline_degree_);
 
   if (!shearIsDesign_) {
     E[1-1][1-1] = 0.0;
@@ -3946,8 +3933,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
-double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
-                                                       SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
+double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
   double h = 1./pow(2,level_+1) * 1e-6;
@@ -3965,36 +3951,15 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval
     default:
       return 0;
     }
-  SGPP::base::DataVector pointL = point;
-  SGPP::base::DataVector pointU = point;
+  sgpp::base::DataVector pointL = point;
+  sgpp::base::DataVector pointU = point;
   pointL[dimension-1] -= h;
   pointU[dimension-1] += h;
 
-  double valL = opEval->eval(alpha,pointL);
-  double valU = opEval->eval(alpha,pointU);
+  double valL = op_eval_->eval(alpha,pointL);
+  double valU = op_eval_->eval(alpha,pointU);
 
   return (valU - valL) / (2*h);
-}
-
-inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
-  SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
-  SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
-  unsigned int dimension;
-  switch (direction) {
-    case DesignElement::STIFF1:
-      dimension = 1;
-      break;
-    case DesignElement::STIFF2:
-      dimension = 2;
-      break;
-    case DesignElement::STIFF3:
-    case DesignElement::SHEAR1:
-      dimension = 3;
-      break;
-    default:
-      return 0;
-    }
-  return opEvalPartDeriv->evalPartialDerivative(alpha, point, dimension-1);
 }
 
 #endif //USE_SGPP
@@ -4004,30 +3969,26 @@ double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type dire
 
 #ifdef USE_SGPP
   // Method uses SGPP interpolation
-  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  sgpp::base::DataVector point(p.GetPointer(), p.GetSize());
   LOG_DBG2(dm) << p;
 
   double vol;
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+    std::unique_ptr<sgpp::base::OperationEval> opEval = sgpp::op_factory::createOperationEval(*grid_);
     if (!derivative) {
-      vol = opEval->eval(volume_, point);
+      vol = opEval->eval(alpha7_, point);
       LOG_DBG(dm) << "DM::CHV: volume= " << vol;
     } else {
-      vol = EvaluateSGPPInterpolation_Deriv(opEval, volume_, point, direction);
+      vol = EvaluateSGPPInterpolation_Deriv(alpha7_, point, direction);
     }
-    delete opEval;
   } else {
     if (!derivative) {
-      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
-      vol = opNaiveEval->eval(volume_, point);
-      delete opNaiveEval;
+      std::unique_ptr<sgpp::base::OperationNaiveEval> op_naive_eval_ = sgpp::op_factory::createOperationNaiveEval(*grid_);
+      vol = op_naive_eval_->eval(alpha7_, point);
       LOG_DBG(dm) << "DM::CHV: volume= " << vol;
     } else {
-      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
-      vol = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, volume_, point, direction);
+      vol = EvaluateSGPPInterpolation_Deriv(alpha7_, point, direction);
     }
   }
   return vol;
@@ -4320,7 +4281,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   }
 
 #ifdef USE_SGPP
-  bool assertiontest = grid_->getStorage()->dim() == 3;
+  bool assertiontest = grid_->getStorage().getDimension() == 3;
 #else
   bool assertiontest = shearIsDesign_;
 #endif

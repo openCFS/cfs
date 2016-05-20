@@ -9,11 +9,10 @@ from pysgpp import Grid
 
 dim = int(sys.argv[1])
 level = int(sys.argv[2])
-blevel = int(sys.argv[3])
 
 bsplineDegree = 3
-#grid = pysgpp.Grid.createModBsplineGrid(dim,bsplineDegree)
-grid = Grid.createLinearBoundaryGrid(dim,blevel)
+#grid = Grid.createModBsplineGrid(dim,bsplineDegree)
+grid = Grid.createBsplineBoundaryGrid(dim,bsplineDegree)
 gridStorage = grid.getStorage()
 
 # create regular grid
@@ -23,7 +22,7 @@ print("number of grid points:  %d" % gridStorage.getSize())
 
 for i in xrange(gridStorage.getSize()):
   point = gridStorage.get(i)
-  print(point.getCoord(0),point.getCoord(1),point.getCoord(2))
+#  print(point.getCoord(0),point.getCoord(1),point.getCoord(2))
 
 fd = open('grid_points.csv', 'w')
 fd.write("\n".join([gridStorage.get(i).toString() for i in xrange(gridStorage.getSize())]))
