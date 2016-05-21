@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import platform
-from PIL import Image
+# from PIL import Image # load only in the function we need it!
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
@@ -97,6 +97,7 @@ class Mesh:
     return self.elements[i * self.nx + j]
   
 def show_dense_mesh_image(mesh, shape, binary, size):
+  from PIL import Image  
   check_img = Image.new("RGB", shape, "white")
   check_pix = check_img.load()
 
