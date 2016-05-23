@@ -176,12 +176,12 @@ void FeasPP::PostInit()
     {
       Function::Type det = TranslateFeasibilityConstraint(g->GetType()); // the other function
       if(!cc.Has(det, g->GetDesignType(), false)) { // also observation
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("using benson vanderbei constraints requires to have positive definite determinant constraints in observation");
+        info_->Get(ParamNode::HEADER)->SetWarning("using benson vanderbei constraints requires to have positive definite determinant constraints in observation");
         continue;
       }
       LocalCondition* other = dynamic_cast<LocalCondition*>(cc.Get(det, g->GetDesignType(), false));
       if(!other->IsObservation()) {
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("having benson vanderbei constraints requires the positive definite determinant constraints to be in observation mode");
+        info_->Get(ParamNode::HEADER)->SetWarning("having benson vanderbei constraints requires the positive definite determinant constraints to be in observation mode");
         continue;
       }
 
@@ -195,7 +195,7 @@ void FeasPP::PostInit()
           constr[a]->determinant_shift = shift;
 
       if((other->GetBoundValue() != loc_g->GetBoundValue()) || (other->GetParameter() != loc_g->GetParameter()) || (other->GetBound() != loc_g->GetBound()) || (other->GetDesignType() != loc_g->GetDesignType()))
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
+        info_->Get(ParamNode::HEADER)->SetWarning("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
 
       approx_vanderbei_by_determinants = true;
       break;
@@ -225,10 +225,10 @@ void FeasPP::PostInit()
     assert(dt >= 0);
     DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
     assert(de.GetType() == dt);
-    Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
+    Condition* g = optimization->constraints.Get(Function::DESIGN, dt, Condition::LOWER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
     lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
-    g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
+    g = optimization->constraints.Get(Function::DESIGN, dt, Condition::UPPER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
@@ -480,7 +480,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
       in->Get("inc_rho")->SetValue(rho.NormL2());
       CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
       if(grad_phi  * d  > -0.5 * rho_eta_ * dist)
-        in->Get(ParamNode::WARNING)->SetValue("increasing penalty rho was not sufficient");
+        in->SetWarning("increasing penalty rho was not sufficient");
       // assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
     }
   }

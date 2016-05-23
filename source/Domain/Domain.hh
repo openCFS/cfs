@@ -172,6 +172,9 @@ namespace CoupledField
     //! Get pointer to grid object
     Grid* GetGrid( const std::string& id = "default" );
 
+    /** return the name of the registered coordinate systems */
+    StdVector<std::string> GetCoordSystems() const;
+
     //! Return local coordinate system by name
     CoordSystem* GetCoordSystem( const std::string & name = std::string("default") );
 

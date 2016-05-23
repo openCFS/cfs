@@ -225,6 +225,10 @@ int CFS::Run()
     else{
       SolveProblem();
     }
+
+    // wait for all drivers to be initialized before printing the math parser variables
+    domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
+
     timer->Stop();
     if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
     

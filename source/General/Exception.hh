@@ -65,6 +65,9 @@ namespace CoupledField {
               const unsigned int lineNum = 0,
               SeverityType severity = EXCEPTION) throw ();  
 
+    /** Rethrow type */
+    Exception(const std::string& message, const Exception& reason) throw ();
+
     //! Copy constructor
     Exception( const Exception& exc ) throw ();
 

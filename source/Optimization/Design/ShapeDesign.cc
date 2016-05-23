@@ -24,7 +24,7 @@ ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, Ers
   : AuxDesign(regions, pn, method)
 {
   dim_ = domain->GetGrid()->GetDim();
-  alsomatopt_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
+  exoprt_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
 ShapeDesign::~ShapeDesign(){
@@ -168,7 +168,7 @@ bool ShapeDesign::IsElemDependentAtAll(const StdVector<UInt>& connect){
   return(false);
 }
 
-bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter){
+bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double>& coordMat, const StdVector<UInt>& connect, const int parameter){
   bool allIsZero = true;
   coordMat.Resize(dim_, connect.GetSize());
   for (UInt k=0; k < connect.GetSize(); k++) {

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 from optimization_tools import *
-from PIL import Image
+from PIL import Image, ImageDraw
 import sys
 import argparse
 import glob
@@ -47,7 +46,7 @@ def density_to_image(filename, set, design, fillval=0.0):
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-      ret[y-i-1][j] = 255 - int(255 * dens[j][i])
+      ret[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
 
   return Image.fromarray(ret), dens
 
@@ -131,18 +130,18 @@ else:
   
   if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need  
-      img = img.resize((800/args.tile, 800/args.tile))
+      img = img.resize((1000/args.tile, 1000/args.tile))
       nx = img.size[0]
       ny = img.size[1]
       dat = numpy.array(img) 
-      tiled = numpy.zeros((args.tile * ny, args.tile * nx))
+      tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
       for i in range(args.tile):
         for j in range(args.tile):
           tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
           if i > 0:
             tiled[i*nx,:] = 0
           if j > 0:  
-            tiled[:,j*nx] = 0  
+            tiled[:,j*nx] = 0
       img = Image.fromarray(tiled)
   if args.save:
     print "saving image to file " + args.save
