@@ -9,7 +9,7 @@
 namespace CoupledField {
 
   // Define global objects 
-  Domain * domain = NULL;
+  Domain* domain = NULL;
   // Initialisation of some global pointers
   //WriteInfo *Info = NULL;
 

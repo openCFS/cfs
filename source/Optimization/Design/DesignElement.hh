@@ -148,7 +148,10 @@ public:
     HEAT_NODAL_TRACK_VAL, /* for each node: (stateSol - trackVal)^2 */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
-    TRANSFO_MATRIX } ValueSpecifier;
+    TRANSFO_MATRIX,
+    SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
+    SHAPE_MAP_RELEVANT /* the number of shapes with relevant contribution to this rho */
+  } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
@@ -158,7 +161,8 @@ public:
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, SLACK, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE, ROTANGLE2, SCALING1, SCALING2, G11,G12,G21,G22, G_ALL,
-                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION, ALL_DESIGNS} Type;
+                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION,
+                   NODE, PROFILE, ALL_DESIGNS} Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -175,6 +179,10 @@ public:
    * @param test ege. DIELEC_11, ... */
   static bool IsCompatible(Type super, Type test);
 
+  /** checks if the type is a shape mapping type. Then there is a counterpart with the same name in ShapeMapDesign::Type
+   * @see ShapeMapDesign::Convert() */
+  static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE; }
+
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 
@@ -190,11 +198,15 @@ public:
   /** returns the type */
   virtual std::string ToString() const;
 
-  /** Get the gradient values for either objective or constraint.
-   * if neither f nor g is given the objective gradient sum is returned */
-  double GetPlainGradient(const Objective* c, const Condition* g) const;
+  /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
+  double GetPlainDesignValue() const { return design; }
 
+  /** for f = objective gives the value by index. For multiple objective use SumCostGradient() */
   double GetPlainGradient(const Function* f) const;
+
+  /** return from the function. for multi objective use SumCostGradient() */
+  double GetPlainGradient(const Objective* c) const;
+  double GetPlainGradient(const Condition* g) const;
 
   /** Sum app the old value (get and set together) */
   void AddGradient(const Objective* c, const Condition* g, double value);
@@ -221,7 +233,13 @@ public:
   void SetUpperBound(const double v) { upper_ = v; }
 
   /** adjusts length of the gradient vectors possibly not known during creation */
-  void PostInit(int objectives, int constraints);
+  void PostInit(int objectives, int constraints)
+  {
+    // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
+    costGradient.Resize(objectives, 0.0);
+    constraintGradient.Resize(constraints, 0.0);
+  }
+
 
   /** helper for LOG output */
   static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);
@@ -234,6 +252,13 @@ public:
    * <p>Therefore this vector has to be initialized on runtime</p> */
   StdVector<double> constraintGradient;
 
+  /** For multiple objective functions. It already includes penalty! Don't access directly with the excpetion of ShapeMapDesign!
+   * @see constraintGradient */
+  StdVector<double> costGradient;
+
+  /** Sums up the costGradient values (they include penalty) */
+  double SumObjectiveGradient() const;
+
   /** for each node: grad = 4* ds/drho_filt * drho_filt/drho * (1-2*s)
    * s is the interpolated density at a node, e.g. s = 1/4*(rho_1+rho_2+rho_3+rho_4)
    * Need to store this in order to calculate the right derivative with filtering and penalization*/
@@ -243,13 +268,6 @@ protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
-
-  /** Sums up the costGradient values (they include penalty) */
-  double SumObjectiveGradient() const;
-
-  /** For multiple objective functions. It already includes penalty!
-   * @see constraintGradient */
-  StdVector<double> costGradient;
 
   /** The lower bound of this design variable. Redundant but faster than look it up */
   double lower_;
@@ -265,11 +283,36 @@ protected:
 
 };
 
+/** Bastian's shape optimization */
 class ShapeDesignElement : public BaseDesignElement
 {
 public:
   /** ShapeDesignElement have an index, needed for sparse gradients, i.e. shape constraints */
   ShapeDesignElement(unsigned int index);
+};
+
+
+/** for ShapeMapDesign. Holds a shape parameter. E.g. node with dof=x ny+1 times with ny is number of elements */
+class ShapeParamElement : public BaseDesignElement
+{
+public:
+  ShapeParamElement(Type type = NO_TYPE, unsigned int index = std::numeric_limits<unsigned int>::max());
+
+  virtual ~ShapeParamElement() {};
+
+  /** at the moment we don't have filter for shape mapping but the slope constraints are implemented using GetDesign(SMART).
+   * So just ignore it! */
+  virtual double GetDesign(BaseDesignElement::Access access) const { return design; }
+
+  /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
+  int dof;
+
+  /** The dof variable is set to -1.0.  */
+  StdVector<double> coord;
+
+  /** the coord in terms of index within the regular space. Again -1 for the dof setting.
+   * Note this is for node and we have one node more than elements in one direction.*/
+  StdVector<int> idx;
 };
 
 
@@ -321,10 +364,13 @@ public:
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
       POISSONS_RATIO, YOUNGS_MODULUS, YOUNGS_MODULUS_E1, YOUNGS_MODULUS_E2,
       TYCHONOFF, GREYNESS, REALVOLUME,
-      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
+      GLOBAL_SLOPE, GLOBAL_DESIGN, GLOBAL_CHECKERBOARD, STRESS,
       /*!< only for the projection function. This is the element wise fake filter part */
       PROJECTION_FILTER,
-      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22 } Detail;
+      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22,
+      SM_NODE, /*!< for shape map */
+      SM_PROFILE  /*!< for shape map */
+    } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -350,10 +396,7 @@ public:
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
-    double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
-
-    /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
-    double GetPlainDesignValue() const { return design; }
+    virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
@@ -502,6 +545,7 @@ private:
   /** We need our base design element to do the filtering */
   DesignElement* de_;
 };
+
 
 /** required in DesignSpace and DesignMaterial */
 class DesignID

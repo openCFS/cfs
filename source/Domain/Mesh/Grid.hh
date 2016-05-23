@@ -276,7 +276,7 @@ namespace CoupledField
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
-				     bool onlyLinNodes = false ) = 0;
+				                             bool onlyLinNodes = false ) = 0;
 
     //! Return element at global position and the locally projected coordinate
     
@@ -365,6 +365,9 @@ namespace CoupledField
 
     /** are all regions regular? */
     bool IsRegionRegular(StdVector<RegionIdType>& regions) const;
+
+    /** does the grid consist of regular regions? */
+    bool IsGridRegular() const;
 
     //! Get vector containing all region names
 
@@ -525,6 +528,11 @@ namespace CoupledField
                                           Matrix<Double> & minMax,
                                           CoordSystem* cSys) = 0;
 
+
+    /** if the grid is regular gives the element discretization, e.g. 20, 20, 1 for 2D.
+     * Is reasonable fast but the result is not cached by itself.
+     * @return if not regular returns an empty array otherwise always 3 entries of value at least 1*/
+    virtual StdVector<unsigned int> CalcRegulardGridDiscretization() { EXCEPTION("not implemented"); }
 
     //! Returns the volume of a given entitylist (\see Grid::CalcVolumeOfRegion)
     virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,

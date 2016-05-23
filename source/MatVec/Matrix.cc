@@ -726,6 +726,18 @@ namespace CoupledField
     }
   }
   
+  template<class TYPE>
+  void Matrix<TYPE>::Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major)
+  {
+    assert(vec.GetSize() == rows * cols);
+    assert(vec.GetSize() > 0);
+
+    Resize(rows, cols);
+
+    for(unsigned int r = 0; r < rows; r++)
+      for(unsigned int c = 0; c < cols; c++)
+        data_[r][c] = row_major ? vec[r*cols + c] : vec[c*rows+r];
+  }
   
   // perform matrix-matrix multiplication using BLAS (general case)
   template<class TYPE>
@@ -1947,6 +1959,19 @@ namespace CoupledField
 
     return static_cast<TYPE>(std::sqrt(result)); // for compilers
   }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::Avg() const
+  {
+    assert(size_row_*size_col_ > 0);
+    TYPE v(0);
+    for(unsigned int i = 0, n = size_row_*size_col_; i < n; i++)
+      v += data_[0][i];
+    return v * (1./(size_row_*size_col_));
+  }
+
+
+
 
   template<class TYPE>
   TYPE Matrix<TYPE>::DiffNormL2(const Matrix<TYPE>& other) const

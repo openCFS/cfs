@@ -393,7 +393,7 @@ namespace CoupledField {
 
   void GridCFS::MapFaces() {
 
-    LOG_TRACE(gridcfs) << "Starting to map faces ";
+    LOG_DBG(gridcfs) << "Starting to map faces ";
 
 
     // assert that any mesh was already read in
@@ -492,7 +492,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
 
-      LOG_TRACE(gridcfs) << "Finished to map faces\n";
+      LOG_DBG(gridcfs) << "Finished to map faces\n";
 
     } // loop over elements
 
@@ -507,7 +507,7 @@ namespace CoupledField {
     // Set flag
     facesMapped_ = true;
 
-    LOG_TRACE(gridcfs) << "Finished mapping faces\n";
+    LOG_DBG(gridcfs) << "Finished mapping faces\n";
 
   }
 
@@ -515,7 +515,7 @@ namespace CoupledField {
 
   void GridCFS::MapEdges() {
 
-    LOG_TRACE(gridcfs) << "Starting to map edges";
+    LOG_DBG(gridcfs) << "Starting to map edges";
 
     // assert that any mesh was already read in
     assert( isInitialized_ == true );
@@ -593,7 +593,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
 
-      LOG_TRACE(gridcfs) << "Finished to map edges\n";
+      LOG_DBG(gridcfs) << "Finished to map edges\n";
     }
 
     // Trim vector containing faces
@@ -878,7 +878,7 @@ namespace CoupledField {
     isInitialized_ = true;
 
     // Try to fix problems due to negative Jacobian determinants
-    LOG_TRACE(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
+    LOG_DBG(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
 
     CorrectElementConnectivities();
     
@@ -896,8 +896,17 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info_ ) {
-       ToInfo(info_->Get(ParamNode::HEADER)->Get("domain")); 
+    if(domain && info_) // we have no domain in the cfstoolbin case
+    {
+      ToInfo(info_->Get(ParamNode::HEADER)->Get("domain"));
+
+      StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+      if(!reg.IsEmpty()) {
+        MathParser* mp = domain->GetMathParser();
+        mp->SetValue(MathParser::GLOB_HANDLER, "nx", reg[0]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "ny", reg[1]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "nz", reg[2]);
+      }
     }
   }
   
@@ -1157,8 +1166,8 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::CreateGridInformation( ResultHandler* ptRes,std::map<std::string, CoordSystem*>& coordSysMap ) {
-    
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes, std::map<std::string, CoordSystem*>& coordSysMap )
+  {
     // This method crates a "dummy" multisequence step, in
     // which some grid-information results are created:
     // - Local directions (xi,eta,zeta) of elements
@@ -2261,7 +2270,7 @@ namespace CoupledField {
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
-    LOG_TRACE(gridcfs) << "GetElem ptr for element nr " << elemNr;
+    LOG_DBG2(gridcfs) << "GetElem ptr for element nr " << elemNr;
 
  #ifndef NDEBUG
     if ( elemNr > numElems_ ) {
@@ -2356,7 +2365,7 @@ namespace CoupledField {
 
   void GridCFS::GetElems( StdVector<Elem*> & elems,
                           const RegionIdType regionId ) {
-    LOG_TRACE(gridcfs) << "GetElems for region " << region_.ToString(regionId);
+    LOG_DBG(gridcfs) << "GetElems for region " << region_.ToString(regionId);
     elems.Clear();
 
     // check if region Id is ALL_REGIONS
@@ -2387,6 +2396,32 @@ namespace CoupledField {
     LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements";
   }
 
+
+  StdVector<unsigned int> GridCFS::CalcRegulardGridDiscretization()
+  {
+    StdVector<unsigned int> grid;
+
+    if(IsGridRegular())
+    {
+      grid.Resize(3, 0);
+
+      StdVector<double> edges;
+
+      // take the first vol element of the first vol region. The first ordered element might be a surface element
+      GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
+      assert(edges.GetSize() == GetDim());
+
+      Matrix<double> m = CalcGridBoundingBox();
+
+      grid[0] = (m[0][1]-m[0][0]) / (edges[0]*.99999); // to avoid rounding errors: 1 / (1/60) gives 59.9999 -> which gives int 59
+      grid[1] = (m[1][1]-m[1][0]) / (edges[1]*.99999);
+      grid[2] = GetDim() == 3 ? (m[2][1]-m[2][0]) / (edges[2]*.99999) : 1;
+
+      LOG_DBG(gridcfs) << "GRGD: e=" << edges.ToString() << " bb=" << m.ToString(2,false) << " -> " << grid.ToString();
+    }
+
+    return grid;
+  }
 
 
   void GridCFS::GetVolElems( StdVector<Elem*> & elems,
@@ -2436,7 +2471,7 @@ namespace CoupledField {
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
                                 const std::string & elemsName ) {
 
-    LOG_TRACE(gridcfs) << "GetElemsByName for name " << elemsName;
+    LOG_DBG(gridcfs) << "GetElemsByName for name " << elemsName;
     StdVector<UInt> elemNumbers;
     Integer index = namedElemNames_.Find(elemsName);
 
@@ -2457,7 +2492,7 @@ namespace CoupledField {
   void GridCFS::GetElemNumsByName( StdVector<UInt> & elemNums,
                                        const std::string & elemName )
   {
-    LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
+    LOG_DBG(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
       EXCEPTION( "There are no entities with name '" << elemName
@@ -2549,7 +2584,7 @@ namespace CoupledField {
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
 
-    LOG_TRACE(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
+    LOG_DBG2(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
     coordMat.Resize(dim_, connect.GetSize());
 
     if( updated == true && deltCoords_.GetSize() != 0 ) {
@@ -2731,7 +2766,7 @@ namespace CoupledField {
   void GridCFS::CreateSurfaceElements( StdVector<Elem*>& elems,
                                        StdVector<SurfElem*>& surfElems ) {
 
-    LOG_TRACE(gridcfs) << "Starting to map surface elements";
+    LOG_DBG2(gridcfs) << "Starting to map surface elements";
 
     // 1.) Create vector of vector of elems
     StdVector<StdVector<UInt> > elemNrPerNode;
@@ -2909,6 +2944,13 @@ namespace CoupledField {
     in->Get("dimensions")->SetValue(GetDim()); 
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
+
+    StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+    if(!reg.IsEmpty()) {
+      in->Get("nx")->SetValue(reg[0]);
+      in->Get("ny")->SetValue(reg[1]);
+      in->Get("nz")->SetValue(reg[2]);
+    }
 
     PtrParamNode list = in->Get("regions"); 
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )

@@ -276,7 +276,7 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  Double Vector<T>::NormL2() const
+  inline Double Vector<T>::NormL2() const
   {				
     double sum = 0;
 
@@ -289,7 +289,7 @@ namespace CoupledField {
 
 
   template <typename T>
-  double Vector<T>::NormL2(const Vector<T>& other) const
+  inline double Vector<T>::NormL2(const Vector<T>& other) const
   {
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
 
@@ -301,6 +301,26 @@ namespace CoupledField {
 
     return sqrt(sum);
   }
+
+
+  template <typename T>
+  inline T Vector<T>::Sum() const
+  {
+    T s(0);
+    for(unsigned int i = 0; i < size_; ++i)
+      s+=data_[i];
+
+    return s;
+  }
+
+  template <typename T>
+  inline T Vector<T>::Avg() const
+  {
+    assert(size_ > 0);
+
+    return Sum() * (1.0/size_);
+  }
+
 
 
   template<class TYPE> 

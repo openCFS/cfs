@@ -551,7 +551,7 @@ Grid* Domain::GetGrid(const std::string& id)
   return gridMap_[id];
 }
 
-CoordSystem * Domain::GetCoordSystem(const std::string & name)
+CoordSystem* Domain::GetCoordSystem(const std::string & name)
 {
 
   std::map<std::string, CoordSystem*>::iterator it;
@@ -566,6 +566,16 @@ CoordSystem * Domain::GetCoordSystem(const std::string & name)
 
   return (*it).second;
 
+}
+
+StdVector<std::string> Domain::GetCoordSystems() const
+{
+  StdVector<std::string> res;
+
+  for(std::map<std::string, CoordSystem*>::const_iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
+    res.Push_back(it->first);
+
+  return res;
 }
 
 // **************************
@@ -1062,8 +1072,7 @@ void Domain::CreateCoordinateSystems()
 
 void Domain::RegisterVariables() 
 {
-  PtrParamNode varListNode = param_->Get("domain")
-      ->Get("variableList", ParamNode::PASS);
+  PtrParamNode varListNode = param_->Get("domain")->Get("variableList", ParamNode::PASS);
   if( varListNode ) {
    ParamNodeList & varNodes = varListNode->GetChildren();
    ParamNodeList::iterator it = varNodes.Begin();
@@ -1075,8 +1084,7 @@ void Domain::RegisterVariables()
      (*it)->GetValue("name", varName);
      (*it)->GetValue("value", valString);
      // check for reserved variable names
-     if ( (varName == "t") || (varName == "dt") 
-         || (varName == "f") || (varName == "step") )
+     if ( (varName == "t") || (varName == "dt") || (varName == "f") || (varName == "step") )
      {
        EXCEPTION("The variable '" << varName
                  << "' is reserved, its value will be set automatically. "

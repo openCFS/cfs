@@ -18,6 +18,7 @@
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Function.hh"
@@ -39,7 +40,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
                             ParamNodeList& tfs,
                             PtrParamNode regulize_pn)
 {
-  this->ersatzMaterial_ = designSpace;
+  this->space_ = designSpace;
   this->last_set_iter = -2;
 
   name_ = export_pn->Get("file")->As<string>();
@@ -68,119 +69,66 @@ bool DensityFile::NeedLoadErsatzMaterial()
   return domain->GetParamRoot()->Has("loadErsatzMaterial") || progOpts->GetErsatzMaterialStr() != "";
 }
 
-DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
+DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNode& pn, const ParamNodeList& elems, const PtrParamNode& xml)
 {
   Grid* grid = domain->GetGrid();
   PtrParamNode info = domain->GetInfoRoot();
+  const unsigned int elsize = elems.GetSize();
 
-  // perhaps Optimization has already called the SetEnums
-  if (DesignElement::type.map.empty())
-    DesignElement::SetEnums();
-  if (Objective::type.map.empty())
-    Optimization::SetEnums();
-
-  // do we have a command line switch? we then use the filename and the last set
-  bool cmd = progOpts->GetErsatzMaterialStr() != "";
-  PtrParamNode pn; // some default auto pointer NULL stuff
-  if(!cmd) pn = domain->GetParamRoot()->Get("loadErsatzMaterial");
-
-  string file = cmd ? progOpts->GetErsatzMaterialStr() : pn->Get("file")->As<string>();
-
-  // to be appended by the set name
-  std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
-
-  PtrParamNode in = space ? info->Get("optimization/designSpace/header/ersatzMaterialFile") : info->Get("ersatzMaterialFile");
-  in->Get("file")->SetValue(file);
-  in->Get("source")->SetValue(cmd ? "command line" : "problem file");
-
-  // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-  // Initialize our xerces dom parser to handle the external xml file
-  Xerces x;
-  x.SetFile(file);
-  // set the global ParamNode tree pointer
-  PtrParamNode xml = x.CreateParamNodeInstance();
-  // release the xerces ressources, param is not affected
-  // check this file
-  if (xml->Count("set") == 0)
-    throw Exception("There are no design sets in the ersatz material file");
-
-  // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
-  PtrParamNode set;
-  string key = cmd ? "last" : pn->Get("set")->As<string>();
-  if (key == "first")
-    set = xml->GetList("set")[0];
-  if (key == "last")
-    set = xml->GetList("set").Last();
-  if (set == NULL)
-    set = xml->GetByVal("set", "id", key);
-
-  // finish the output as we have now the set information
-  std::cout << "/'" << set->Get("id")->As<string>() + "'" << std::endl;
-
-  // read the set and replace the initial values for the optimization
-  ParamNodeList elems = set->GetList("element");
-  const unsigned int elsize(elems.GetSize());
-  bool force_region = pn != NULL && pn->Has("force_region");
-
-  // shall the bounds be enforced?
-
-  if(!space)
+  // only if the design space does not already exist (created by optimization)
+  // the regions are normally implicitly defined by the element numbers. The exception
+  // is force_region from <loadErsatzMaterial>
+  StdVector<RegionIdType> regionIds;
+  // check if we ignore the element numbers
+  if(force_region)
   {
-    // only if the design space does not already exist (created by optimization)
-    // the regions are normally implicitly defined by the element numbers. The exception
-    // is force_region from <loadErsatzMaterial>
-    StdVector<RegionIdType> regionIds;
-
-    // check if we ignore the element numbers
-    if(force_region)
-    {
-      regionIds.Push_back(grid->GetRegion().Parse(pn->Get("force_region")->As<string>()));
-    }
-    else
-    {
-      // find the regions by ourselves
-      for(unsigned int e = 0; e < elsize; ++e)
-      {
-        unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
-        if(!regionIds.Contains(grid->GetElem(nr)->regionId))
-          regionIds.Push_back(grid->GetElem(nr)->regionId);
-      }
-    }
-
-    // create the design space -> data has initial values!
-    space = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
-    space->PostInit(0, 0); // no objectives, no constraints
-    // is cheap - for density filtering
-    DesignStructure filter(space, space->GetRegionIds());
-    PtrParamNode  reg = xml->Get("header/filters/filter", ParamNode::PASS);
-    if(reg)
-      filter.SetFilter(reg, info->Get("ersatzMaterial"));
-
-    space->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
+    regionIds.Push_back(grid->GetRegion().Parse(pn->Get("force_region")->As<string>()));
   }
+  else
+  {
+    // find the regions by ourselves
+    for (unsigned int e = 0; e < elsize; ++e)
+    {
+      unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
+      if (!regionIds.Contains(grid->GetElem(nr)->regionId))
+        regionIds.Push_back(grid->GetElem(nr)->regionId);
+    }
+  }
+  // create the design space -> data has initial values!
+  DesignSpace* space = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
+  space->PostInit(0, 0); // no objectives, no constraints
+  // is cheap - for density filtering
+  DesignStructure filter(space, space->GetRegionIds());
+  PtrParamNode reg = xml->Get("header/filters/filter", ParamNode::PASS);
+  if (reg)
+    filter.SetFilter(reg, info->Get("ersatzMaterial"));
 
+  space->ToInfo(NULL);
+  return space;
+}
+
+bool DensityFile::ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool force_region, DesignSpace* space,
+    double& lower_violation, double& upper_violation)
+{
+
+  DesignElement::Type last_dt = DesignElement::NO_TYPE;
+  bool enforce_bounds = false;
+  double relative_bound = -1.0;
+  const unsigned int elsize = elems.GetSize();
 
   // check the the dimensions! the number of design variables comes from the regions and designs
-  if (space->data.GetSize() != elsize)
+  if(space->data.GetSize() != elsize)
   {
     string msg = "the number of elements in the density file does not match the number of elements of the region!\n"\
                  "         check the results carefully!";
-    info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
+    domain->GetInfoRoot()->Get("ersatzMaterial")->SetWarning(msg);
   }
 
   string name = "design";
   if (pn != NULL && pn->Has("name"))
     name = pn->Get("name")->As<string>();
 
-  // check bound violations
-  double lower_violation = 0.0;
-  double upper_violation = 0.0;
-
-  DesignElement::Type last_dt = DesignElement::NO_TYPE;
-  bool enforce_bounds = false;
-  double relative_bound = -1.0;
-
-  for(unsigned int e = 0; e < elsize; ++e)
+  for (unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
     // <element nr="401" type="density" design="0.886466" physical="0.800454" />
@@ -188,7 +136,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
 
-    if(dt != last_dt) {
+    if (dt != last_dt)
+    {
       // we don't want to have different enforce_bounds for the different designs. What is with the regions anyway??
       assert(!(last_dt != DesignElement::NO_TYPE && enforce_bounds != space->design[space->FindDesign(dt)].enforce_bounds));
       last_dt = dt;
@@ -209,46 +158,122 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     DesignElement* de = force_region ? &(space->data[e]) : space->Find(nr, dt, false, false, idx);
     assert(de == NULL || de->GetType() == dt);
 
-    if(dt == DesignElement::MULTIMATERIAL)
+    if (dt == DesignElement::MULTIMATERIAL)
     {
       de->multimaterial = &(space->GetMultiMaterials()[idx]);
       assert(de->multimaterial->index == idx);
     }
 
     // this is also for the void-region! mainly for computing high resolution inv hom problems
-    if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
+    if (de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
     {
       lower_violation = std::max(lower_violation, de->GetLowerBound() - val);
       upper_violation = std::max(upper_violation, val - de->GetUpperBound());
 
-      if(enforce_bounds)
+      if (enforce_bounds)
         de->SetDesign(std::min(de->GetUpperBound(), std::max(de->GetLowerBound(), val)));
       else
         de->SetDesign(val);
 
       // Get value of the relative bound for current design variable. If value not set, db = -1.
-      if(relative_bound > 0.0)
+      if(relative_bound >= 0.0)
       {
         // if a relative_bound is set in the xml file, upper and lower bound are overwritten
-        de->SetUpperBound(val + relative_bound);
-        de->SetLowerBound(val - relative_bound);
+        de->SetUpperBound(std::min(de->GetUpperBound(), val + relative_bound/2));
+        de->SetLowerBound(std::max(de->GetLowerBound(), val - relative_bound/2));
       }
     }
   }
+  return enforce_bounds;
+}
+
+DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
+{
+  PtrParamNode info = domain->GetInfoRoot();
+
+  // perhaps Optimization has already called the SetEnums
+  if(DesignElement::type.map.empty())
+    DesignElement::SetEnums();
+  if(Objective::type.map.empty())
+    Optimization::SetEnums();
+
+  // do we have a command line switch? we then use the filename and the last set
+  bool cmd = progOpts->GetErsatzMaterialStr() != "";
+  PtrParamNode pn; // some default auto pointer NULL stuff
+  if(!cmd)
+    pn = domain->GetParamRoot()->Get("loadErsatzMaterial");
+
+  string file = cmd ? progOpts->GetErsatzMaterialStr() : pn->Get("file")->As<string>();
+
+  // to be appended by the set name
+  std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
+
+  PtrParamNode in = space ? space->GetInfo()->Get("ersatzMaterialFile") : info->Get("ersatzMaterialFile");
+  in->Get("file")->SetValue(file);
+  in->Get("source")->SetValue(cmd ? "command line" : "problem file");
+
+  // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
+  // Initialize our xerces dom parser to handle the external xml file
+  Xerces x;
+  x.SetFile(file);
+  // set the global ParamNode tree pointer
+  PtrParamNode xml = x.CreateParamNodeInstance();
+  // release the xerces resources, param is not affected
+  // check this file
+  if (xml->Count("set") == 0)
+    throw Exception("There are no design sets in the ersatz material file");
+
+  // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
+  PtrParamNode set;
+  string key = cmd ? "last" : pn->Get("set")->As<string>();
+  if (key == "first")
+    set = xml->GetList("set")[0];
+  if (key == "last")
+    set = xml->GetList("set").Last();
+  if (set == NULL)
+    set = xml->GetByVal("set", "id", key);
+
+  // finish the output as we have now the set information
+  std::cout << "/'" << set->Get("id")->As<string>() + "'" << std::endl;
+
+  // read the set and replace the initial values for the optimization
+  ParamNodeList elems = set->GetList("element"); // we be 0 for shape map
+
+  // shall the bounds be enforced?
+  bool force_region = pn != NULL && pn->Has("force_region");
+
+  if(!space)
+  {
+    // only if the design space does not already exist (created by optimization)
+    // the regions are normally implicitly defined by the element numbers. The exception
+    // is force_region from <loadErsatzMaterial>
+    space = CreateDesignSpace(force_region, pn, elems, xml);
+  }
+
+  // check bound violations
+  double lower_violation = 0.0;
+  double upper_violation = 0.0;
+
+
+  bool enforce_bounds = false;
+  if(space->GetNumberOfShapeMappingVariables() > 0)
+     dynamic_cast<ShapeMapDesign*>(space)->ReadDensityXml(set, lower_violation, upper_violation);
+  else
+   enforce_bounds = ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
 
   if(lower_violation > 1e-5) {
     std::string msg = "the external design violates lower design bounds up to " + boost::lexical_cast<std::string>(lower_violation);
     if(enforce_bounds)
       in->Get("bound_violation")->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
-      in->Get(ParamNode::WARNING)->SetValue(msg);
+      in->SetWarning(msg);
   }
   if(upper_violation > 1e-5) {
     std::string msg = "the external design violates upper design bounds up to " + boost::lexical_cast<std::string>(upper_violation);
     if(enforce_bounds)
       in->Get("bound_violation", ParamNode::APPEND)->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
     else
-      in->Get(ParamNode::WARNING)->SetValue(msg);
+      in->SetWarning(msg);
   }
 
   return space;
@@ -263,21 +288,15 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
    // write header
    PtrParamNode in_ = in->Get("header");
 
-   LOG_TRACE(density) << "Create: regular=" << this->ersatzMaterial_->IsRegular();
+   LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   if(this->ersatzMaterial_->IsRegular())
+   if(this->space_->IsRegular())
    {
-     DesignElement& de = ersatzMaterial_->data[0];
-     StdVector<double> edges;
-     domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
-
-     Matrix<double> m = domain->GetGrid()->CalcGridBoundingBox();
-
-     LOG_TRACE(density) << " edges=" << edges.ToString() << " bb=" << m.ToString(0,false);
+     StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
      PtrParamNode mesh = in_->Get("mesh");
-     mesh->Get("x")->SetValue((m[0][1]-m[0][0]) / edges[0]);
-     mesh->Get("y")->SetValue((m[1][1]-m[1][0]) / edges[1]);
-     mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? (m[2][1]-m[2][0]) / edges[2]: 1);
+     mesh->Get("x")->SetValue(grid[0]);
+     mesh->Get("y")->SetValue(grid[1]);
+     mesh->Get("z")->SetValue(grid[2]);
    }
 
    in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);
@@ -306,11 +325,17 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
   // we use the fast (dirty) bulk block to be (measurable) faster
   StdVector<std::string>& block = in->GetFastBulkBlock();
-  block.Resize(ersatzMaterial_->data.GetSize());
 
-  for(unsigned int i = 0, n = ersatzMaterial_->data.GetSize(); i < n; ++i)
+  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
+  // for shape ma we also want to export DesignSpace::data even if this are no design variables
+  unsigned int size = space_->data.GetSize();
+  if(smd != NULL)
+    size += smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters();
+  block.Resize(size);
+
+  for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
   {
-    DesignElement* de = &ersatzMaterial_->data[i];
+    DesignElement* de = &space_->data[i];
     std::stringstream ss;
     ss << "<element nr=\"" << de->elem->elemNum;
     ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
@@ -323,6 +348,23 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
     ss << "/>";
     block[i] = ss.str();
+  }
+
+  if(smd != NULL)
+  {
+    // skip the aux variables slack and alpha -> they are written to the info.xml
+    for(unsigned int i = 0, n = smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters(); i < n; i++)
+    {
+      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetDesignElement(i));
+      assert(spe != NULL);
+      std::stringstream ss;
+      ss << "<shapeParamElement nr=\"" << spe->GetIndex();
+      ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
+      ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");
+      ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
+      ss << "\"/>";
+      block[space_->data.GetSize() + i] = ss.str();
+    }
   }
 
   // do we need to write?

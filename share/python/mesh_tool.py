@@ -5,9 +5,6 @@ import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
 #from matviz_vtk import *
-from scipy.spatial import Delaunay
-from PyQt4.Qt import left
-from matplotlib.sankey import RIGHT
 
 
 # writes a dense two region mesh
