@@ -178,6 +178,17 @@
 				            </xsd:complexContent>
 				          </xsd:complexType>
 				        </xsd:element>
+                
+                <!-- Element result definition -->
+                <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:complexContent>
+                      <xsd:extension base="DT_ElemResult">
+                        <xsd:attribute name="type" type="DT_ExternLBMNodeResult" use="required"/>
+                      </xsd:extension>
+                    </xsd:complexContent>
+                  </xsd:complexType>
+                </xsd:element>
 						  
 						  </xsd:sequence>
 						</xsd:complexType>
@@ -213,6 +224,16 @@
       <xsd:enumeration value="LBMPressure"/>      
       <xsd:enumeration value="mechPseudoDensity"/>
       <xsd:enumeration value="LBMPhysicalPseudoDensity"/>
+      <xsd:enumeration value="optResult_1"/>
+      <xsd:enumeration value="optResult_2"/>
+      <xsd:enumeration value="optResult_3"/>
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <xsd:simpleType name="DT_ExternLBMNodeResult">
+    <xsd:restriction base="xsd:token">
       <xsd:enumeration value="optResult_1"/>
       <xsd:enumeration value="optResult_2"/>
       <xsd:enumeration value="optResult_3"/>

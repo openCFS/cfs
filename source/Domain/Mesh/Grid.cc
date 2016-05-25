@@ -903,7 +903,7 @@ namespace CoupledField
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
 
-    this->SetElementBarycenters(0,false);
+    this->SetElementBarycenters(region,false);
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
         if (elems[i]->barycenter[j] > max[j])
