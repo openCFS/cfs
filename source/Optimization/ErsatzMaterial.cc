@@ -1363,19 +1363,23 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           // traverse the elements
           double sum = 0.0;
           int found = 0;
+          // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
           for(unsigned int e = 0; e < elems.GetSize(); e++)
           {
             int design_index = design->Find(elems[e],false);
             if(design_index >= 0)
             {
-              double factor = design->data[design_index].GetDesign(DesignElement::SMART);
+//              double factor = design->data[design_index].GetDesign(DesignElement::SMART);
+              DesignElement& de = design->data[design_index];
+              double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
               sum += factor;
               found++;
             }
           } // neighbor elems
 
           assert(found > 0);
-          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+//          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+          de->interfaceDrivenLoadGrad_[n] = 4.0 / design->data.GetSize() * 1.0 / (double) found *  (1.0 + de->GetLowerBound()) * (1.0 - 2.0 * (sum / (double) found));
         } //if
       } // node
     } // elem
