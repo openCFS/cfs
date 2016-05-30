@@ -130,7 +130,7 @@ SET(CFSDEPS
   mpfr
 )
 
-SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/cfsdeps/mpfr/src/mpfr")
 
 #-----------------------------------------------------------------------------
 # Determine paths of MPFR libraries.

@@ -193,7 +193,7 @@ SET(CFSDEPS
   cgal
 )
 
-SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/src/cgal/include" "${CFS_BINARY_DIR}/src/cgal-build/include"  "${CFS_BINARY_DIR}/src/cgal/include/CGAL")
 
 #-------------------------------------------------------------------------------
 # Determine paths of CGAL libraries.

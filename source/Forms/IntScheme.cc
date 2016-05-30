@@ -2931,7 +2931,7 @@ void gauss_legendre_tbl(int n, double* x, double* w, double eps)
 
     /* Newton iterations, at least one */
     j = 0;
-    dx = dw = DBL_MAX;
+    dx = dw = std::numeric_limits<double>::max();
     do
     {
       /* Compute Legendre polynomial value at x0 */
