@@ -77,8 +77,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
     nonLinMaxIter_ = 10;
-    minValidValue_ = -DBL_MAX;
-    maxValidValue_ = DBL_MAX;
+    minValidValue_ = -std::numeric_limits<double>::max();// = DBL_MAX;
+    maxValidValue_ = std::numeric_limits<double>::max();// = DBL_MAX;
 
     nonLin_                 = PDE_.IsNonLin();
     nonLinMaterial_         = PDE_.IsNonLinMaterial();
