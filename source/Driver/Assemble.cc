@@ -537,10 +537,10 @@ namespace CoupledField
         //copy bilinear forms
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
       }
-     #pragma omp critical
-         {
-             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
-         }
+//     #pragma omp critical
+//         {
+//             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
+//         }
 #else
       UInt start = 0;
       UInt end = size;

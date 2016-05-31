@@ -301,6 +301,54 @@ void SimInputEnsight::FillResultMap(){
   gradP->definedOn = ResultInfo::NODE;
   gradP->entryType = ResultInfo::VECTOR;
 
+  //================================================
+  // FluidMechVorticity
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_VORTICITY].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> vor = this->cfsEnsightResMap_[FLUIDMECH_VORTICITY].res;
+  vor->resultType = FLUIDMECH_VORTICITY;
+  vor->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VORTICITY);
+  if(dim_ == 3)
+    vor->dofNames = "x", "y", "z";
+  else
+    vor->dofNames = "z";
+  vor->unit = "1/s";
+
+  vor->definedOn = ResultInfo::NODE;
+  vor->entryType = ResultInfo::VECTOR;
+
+  //================================================
+  // FluidMechVelocity
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> vel = this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res;
+  vel->resultType = FLUIDMECH_VELOCITY;
+  vel->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
+  if(dim_ == 3)
+    vel->dofNames = "x", "y", "z";
+  else
+    vel->dofNames = "x", "y";
+  vel->unit = "m/s";
+
+  vel->definedOn = ResultInfo::NODE;
+  vel->entryType = ResultInfo::VECTOR;
+
+  //================================================
+  // FluidMechDensity
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_DENSITY].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> dens = this->cfsEnsightResMap_[FLUIDMECH_DENSITY].res;
+  dens->resultType = FLUIDMECH_DENSITY;
+  dens->resultName = SolutionTypeEnum.ToString(FLUIDMECH_DENSITY);
+  dens->dofNames = "";
+  dens->unit = "kg/m^3";
+
+  dens->definedOn = ResultInfo::NODE;
+  dens->entryType = ResultInfo::SCALAR;
+
 }
 
 
