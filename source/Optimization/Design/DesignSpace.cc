@@ -514,6 +514,52 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
   }
 }
 
+double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
+{
+  double dens = CalcAverageDensityAtNode(nodeId);
+
+  if (derivative)
+    return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
+  else
+    return 4.0 *  dens * (1.0 - dens);
+}
+
+double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
+{
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
+  double tmp = 0;
+  int found = 0;
+  double lower = 0;
+
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+            double factor = data[design_index].GetDesign(DesignElement::SMART);
+//      DesignElement& de = data[design_index];
+//      double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
+
+      tmp += factor;
+      found++;
+
+//      lower = de.GetLowerBound();
+
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << factor;
+    }
+  }
+
+  if(found == 0)
+    EXCEPTION("CADAN: Node has no neighbor elements!!")
+
+  if (derivative)
+//    return 1.0 / found * (1.0 + lower);
+    return 1.0 / (double) found;
+  else
+    return tmp / (double) found;
+}
+
 double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
@@ -774,30 +820,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   coef->orgMat->GetVector(retVec, *lpm);
 
-  double tmp = 0;
-  int found = 0;
-  for (unsigned int index = 0; index < elems.GetSize(); index++)
-  {
-    // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
-    int design_index = Find(elems[index],false);
-    if(design_index >= 0)
-    {
-//      double factor = data[design_index].GetDesign(DesignElement::SMART);
-      DesignElement& de = data[design_index];
-      double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
-      tmp += factor;
-      found++;
-      LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
-    }
-  }
-
-  if(found == 0)
-    return false;
-
-
-  tmp /= (double) found;
-
-  retVec[0] *=  4.0 *  tmp * (1.0 - tmp) / (double) data.GetSize();
+  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
 
   return true;
 }
