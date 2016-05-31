@@ -537,14 +537,14 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     int design_index = Find(elems[index],false);
     if(design_index >= 0)
     {
-            double factor = data[design_index].GetDesign(DesignElement::SMART);
-//      DesignElement& de = data[design_index];
-//      double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
+//            double factor = data[design_index].GetDesign(DesignElement::SMART);
+      DesignElement& de = data[design_index];
+      double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
 
       tmp += factor;
       found++;
 
-//      lower = de.GetLowerBound();
+      lower = de.GetLowerBound();
 
       LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << factor;
     }
@@ -554,8 +554,8 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     EXCEPTION("CADAN: Node has no neighbor elements!!")
 
   if (derivative)
-//    return 1.0 / found * (1.0 + lower);
-    return 1.0 / (double) found;
+    return 1.0 / found * (1.0 + lower);
+//    return 1.0 / (double) found;
   else
     return tmp / (double) found;
 }
