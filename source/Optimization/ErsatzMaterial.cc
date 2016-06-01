@@ -1379,10 +1379,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
           assert(found > 0);
           double factor = 0.0;
-          if (context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource/value"))
-            context->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+          if (f->ctxt->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource/value"))
+            f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
           else
-            context->pde->GetParamNode()->GetValue("bcsAndLoads/heatSource",factor);
+            f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/heatSource",factor);
 
           de->interfaceDrivenLoadGrad_[n] = design->EvalInterfaceFunction(node, true) / design->data.GetSize() * factor;
         } //if
@@ -2625,7 +2625,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     double res = 0.0;
 
     double sourceVal = 0.0;
-    context->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",sourceVal);
+    f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",sourceVal);
 
     if (derivative)
     { // (u - u_)^T * F'(u - u_), where u_ is tracked temperature and F diag(f)
@@ -2694,7 +2694,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     double trackVal = trackingFunc_->GetParameter();
     double factor = 0.0;
-    context->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+    trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
   }
@@ -2706,7 +2706,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
     double factor = 0.0;
-    context->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+    f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     for (unsigned int i = 0; i < stateSol.GetSize(); i++) {
       out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize() / factor;
