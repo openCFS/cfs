@@ -148,11 +148,11 @@ MACRO(PERFORM_TEST TEST_NAME)
 =============================================================================
 "
   )
-
-  IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
-    MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
-    FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
-  ENDIF()
+  # this is unnecessary use: SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE) instead
+  #IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
+  #  MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
+  #  FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+  #ENDIF()
 
   IF(UNIX)
     STRING(REPLACE "_" ";" TARGET_ARCH_ENV_LIST "${TEST_NAME}")
@@ -393,15 +393,12 @@ MACRO(INIT_CACHE CACHE_VAR)
      CMAKE_COLOR_MAKEFILE:BOOL=OFF
      CFSDAT:BOOL=ON
      CFSTOOL:BOOL=ON
-     USE_GMV:BOOL=ON
-     USE_GMSH:BOOL=ON
-     USE_CGAL:BOOL=ON
-     USE_FLANN:BOOL=ON
-     USE_CCMIO:BOOL=ON
-     USE_ILUPACK:BOOL=ON
-     USE_SCPIP:BOOL=ON
-     USE_SUITESPARSE:BOOL=ON
-     USE_SUPERLU:BOOL=ON
+     USE_CGAL:BOOL=ON # should become default in the future
+     USE_FLANN:BOOL=ON # who uses that ?
+     USE_CCMIO:BOOL=ON # should become default in the future
+     USE_ILUPACK:BOOL=ON # should become default in the future
+     USE_SUITESPARSE:BOOL=ON  # should become default in the future
+     USE_SUPERLU:BOOL=ON  # should become default in the future
     "
   )
 ENDMACRO()
