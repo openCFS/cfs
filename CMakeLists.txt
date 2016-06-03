@@ -439,6 +439,7 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
     
     ADD_SUBDIRECTORY(${TESTSUITE_DIR}
       "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+
   ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
     SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
@@ -542,6 +543,9 @@ IF(BUILD_TESTING)
     "${BUILDNAME} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
+
+  # generate a CTestConfig usable in nightly tests and put it in binary dir
+  configure_file(${CFS_SOURCE_DIR}/ctest_scripts/shared/CTestConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake @ONLY)
 
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
