@@ -1,0 +1,143 @@
+# This is a single test case to be called via nightly_test.cmake.
+#
+# You may test this script alone via ctest -T <test>.ctest
+#
+# see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
+#
+#-----------------------------------------------------------------------------
+# Include general variables for all tests on the machine
+#-----------------------------------------------------------------------------
+set(SITE_SPECIFIC_VARS "${CMAKE_CURRENT_LIST_DIR}/site_specific_vars.cmake")
+if(EXISTS "${SITE_SPECIFIC_VARS}")
+  include("${SITE_SPECIFIC_VARS}")
+endif(EXISTS "${SITE_SPECIFIC_VARS}")
+
+#-----------------------------------------------------------------------------
+# Set source & binary directories on the machine
+#-----------------------------------------------------------------------------
+SET(CTEST_SOURCE_DIRECTORY "${NIGHTLY_SOURCE_DIR}")
+# takes the name of this file and appends it to NIGHTLY_BUILD_DIR
+get_filename_component(FNAME "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
+set(CTEST_BINARY_DIRECTORY "${NIGHTLY_BUILD_DIR}/${FNAME}") 
+
+#-----------------------------------------------------------------------------
+# Set site name
+#-----------------------------------------------------------------------------
+set(CTEST_SITE "${CFS_BUILD_HOST}")
+
+SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
+#-----------------------------------------------------------------------------
+INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+#-----------------------------------------------------------------------------
+# Use CMake (cmake) executable corresponding to CTest executable used to run
+# this script.
+#-----------------------------------------------------------------------------
+SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(ENV{CC} "/usr/bin/gcc")
+SET(ENV{CXX} "/usr/bin/g++")
+SET(ENV{FC} "/usr/bin/gfortran")
+SET(ENV{LC_MESSAGES} "C")
+SET(ENV{LC_ALL} "C")
+SET(ENV{LANG} "C")
+SET(ENV{LANGUAGE} "C")
+
+SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
+SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
+SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
+
+#-----------------------------------------------------------------------------
+# Let's first find out some infos about the system GNU compiler first.
+#-----------------------------------------------------------------------------
+SET(COMPILER "$ENV{CXX}")
+
+SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
+CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
+
+# create build/tmp directory
+EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
+
+# read ID_CXX 
+EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
+
+INCLUDE("${COMPILER_ID_FILE}")
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
+  ARGS
+  OUTPUT_VARIABLE DISTRO_OUT
+  RETURN_VALUE RETVAL)
+
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
+INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+
+# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
+# MESSAGE("${DIST} ${REV} ${ARCH}")
+
+SET(BUILDTYPE "RELEASE")
+set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+
+#-----------------------------------------------------------------------------
+# Start out with an empty binary directory.
+#-----------------------------------------------------------------------------
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+
+#-----------------------------------------------------------------------------
+# Enter the following values into the initial cache
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
+#-----------------------------------------------------------------------------
+INIT_CACHE(CTEST_INITIAL_CACHE) # sets the default initial cache
+SET(CTEST_INITIAL_CACHE
+  "${CTEST_INITIAL_CACHE}
+   DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   TESTSUITE_DIR:STRING=${NIGHTLY_TESTSUITE_DIR}
+   CFS_DEPS_PRECOMPILED:BOOL=ON
+   CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
+
+SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+# copy over CTestConfig.cmake.in
+message("Copy ctest config ...")
+set(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
+if(EXISTS ${SITE_CTEST_CONFIG})
+  message("  ${SITE_CTEST_CONFIG} -> ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake")
+  configure_file(${SITE_CTEST_CONFIG} ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake @ONLY)
+else(EXISTS ${SITE_CTEST_CONFIG})
+  message("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
+  configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake @ONLY)
+endif(EXISTS ${SITE_CTEST_CONFIG})
+
+message("Start dashboard...")
+# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
+ctest_start(Nightly)
+
+message("  Update")
+ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+
+message("  Configure")
+file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+# some configurations require to repeat the same ctest_configure() command
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# copy the CTestConfig generated by configure to the source directory
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+
+message("  Build")
+ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Submit")
+ctest_submit(RETURN_VALUE res)
+message("  All done")
