@@ -106,7 +106,7 @@ namespace CoupledField {
 
     //! Get variable of expression of the parser instance depends on
     
-    //! This method returns value of a certain varible.
+    //! This method returns value of a certain variable.
     //! \param handle MathParser handle for identifying specific parser
     //! \param varName variable to het value of
     Double GetExprVars( HandleType handle, std::string varName );
@@ -162,6 +162,14 @@ namespace CoupledField {
     void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
                      UInt numRows = 0, UInt numCols = 0 ); 
     
+    /** gives all variables and their values for a handle. This is part of the information given by Dump().
+     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle  */
+    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const;
+
+    /** reports the variables and value
+     * @param handle nothing done for invalid handle */
+    void ToInfo(PtrParamNode pn, HandleType handle) const;
+
     //! Dump all parser instances, their variables and expression
     void Dump( std::ostream& os );
 

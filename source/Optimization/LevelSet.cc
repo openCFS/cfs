@@ -651,7 +651,8 @@ void LevelSet::MakeTrivialHole(const unsigned int node_nr)
   }
 
   // immediately commit this iteration
-  if(dump_fast_marching_) optimization->CommitIteration(true); 
+  if(dump_fast_marching_)
+    optimization->CommitIteration();
 }
 
 LevelSetNode* LevelSet::GetNodePointer(const unsigned int nodeNumber) const
@@ -795,7 +796,7 @@ void LevelSet::ExecuteFastMarching(const bool negative, const bool really_dump)
   {
     if(really_dump)
     {
-      optimization->CommitIteration(true);
+      optimization->CommitIteration();
       LOG_DBG3(ls) << "iteration = " << optimization->GetCurrentIteration();
     }
     

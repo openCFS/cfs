@@ -209,7 +209,7 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
        if(f == NULL || f->HasDenseJacobian())
          WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
@@ -225,6 +225,9 @@ namespace CoupledField
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
      
+     /** creates a gnuplot file for the current iteration. To be triggered by cfs -d and only implemented in shape map design */
+     virtual void WriteGradientFile() {} ;
+
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
       * in SIMP to calculate the original stiffness matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */
@@ -237,9 +240,10 @@ namespace CoupledField
      /** throws also in release mode an exception if there is more than one design */
      void AssertOneDesignOnly();
 
-     /** Service method to find our index in the design vector
-      * @return -1 if not throw_exception and not found */
-     int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+     /** Service method to find our index in the design vector.
+      * @return -1 if not throw_exception and not found
+      * @see double context for ShapeMapDesign::FindDesign()! */
+     virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
@@ -253,11 +257,48 @@ namespace CoupledField
       * @param throw_region_exception if no region matches returns -1 or throws exception
       * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
       * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
-     int Find(const Elem* elem, bool throw_region_exception);
+     //int Find(const Elem* elem, bool throw_region_exception);
 
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+     //int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+
+
+     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false)
+     {
+       // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
+       int idx = elemToDesign[elemNum].first;
+       // reset pseudo designs when we don't look for them explicitly
+       if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
+         idx = -1;
+       if(idx == -1 && throw_exception)
+         EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
+       return idx;
+     }
+
+     int Find(const Elem* elem, bool throw_exception)
+     {
+       // no extensions for pseudo designs implemented, yet!
+       if(FindRegion(elem->regionId) >= 0)
+         return Find(elem->elemNum, throw_exception);
+       // we might have surface element and it is pointing to a design element
+       const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
+       // no chance, we are wrong
+       if(se == NULL) {
+         if(!throw_exception) return -1;
+         EXCEPTION("element " << elem->ToString() << " not in design regions" );
+       }
+       else
+         for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
+           if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
+             return Find(se->ptVolElems[i]->elemNum);
+
+       if(!throw_exception)
+         return -1;
+       EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
+     }
+
+
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
@@ -274,6 +315,9 @@ namespace CoupledField
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
+     /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
+     virtual int GetNumberOfShapeMappingVariables() const { return 0; }
+
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
@@ -282,13 +326,15 @@ namespace CoupledField
      /** Do we do non_design_vicinity for larger filter/slopes */
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
 
+     PtrParamNode GetInfo() { return info_; }
+
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements
       * @see pseudoDesigns_
       * @see totalElements_*/
      StdVector<DesignElement> data;
 
-     /** This is the total set of design variables, including aux designs.
+     /** This is the total set of design variables, including aux designs. Only used for own optimizers like FeasPP
       * @see the difference to totalElements_ */
      StdVector<BaseDesignElement*> full_data;
 
@@ -340,8 +386,9 @@ namespace CoupledField
      /** Dumps the design space */
      std::string ToString();
 
-     /** Writes summary information about design variables and transfer functions into the node */
-     virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+     /** Writes summary information about design variables and transfer functions into the node
+      * @param em might be NULL if called from read ersatz material */
+     virtual void ToInfo(ErsatzMaterial* em);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
@@ -446,6 +493,9 @@ namespace CoupledField
       * a different design */
      int design_id;
 
+     /** This is the design space info node */
+     PtrParamNode info_;
+
   private:
 
      /** Helper for the constructor.
@@ -523,8 +573,6 @@ namespace CoupledField
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
 
-     /** This is the design space info node */
-     PtrParamNode info_;
 
      ErsatzMaterial::Method method_;
   };

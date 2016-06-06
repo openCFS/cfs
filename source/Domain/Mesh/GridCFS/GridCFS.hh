@@ -246,7 +246,8 @@ namespace CoupledField
     //! \param node number of interest
     inline const StdVector<Elem*>& GetElemsByNode(UInt node)
     {
-      SetNodesToElemsMap();
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
       return mapNodeToElems_[node];
     }
 
@@ -367,6 +368,11 @@ namespace CoupledField
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
                                   CoordSystem* cSys);
+
+    /** @see Grid::CalcRegulardGridDiscretization() */
+    StdVector<unsigned int> CalcRegulardGridDiscretization();
+
+
     //@}
 
 
