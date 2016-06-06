@@ -393,12 +393,6 @@ MACRO(INIT_CACHE CACHE_VAR)
      CMAKE_COLOR_MAKEFILE:BOOL=OFF
      CFSDAT:BOOL=ON
      CFSTOOL:BOOL=ON
-     USE_CGAL:BOOL=ON # should become default in the future
-     USE_FLANN:BOOL=ON # who uses that ?
-     USE_CCMIO:BOOL=ON # should become default in the future
-     USE_ILUPACK:BOOL=ON # should become default in the future
-     USE_SUITESPARSE:BOOL=ON  # should become default in the future
-     USE_SUPERLU:BOOL=ON  # should become default in the future
     "
   )
 ENDMACRO()
