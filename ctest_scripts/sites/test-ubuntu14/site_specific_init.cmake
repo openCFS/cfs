@@ -1,5 +1,5 @@
 # here we only update the testsuite
-set(CTEST_BUILD_NAME "Update Testsuite trunk")
+set(CTEST_BUILD_NAME "Update Testsuite Trunk")
 
 # don't delete!!
 set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
@@ -14,6 +14,7 @@ if(NOT CFS_BUILD_HOST)
   list(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST) # gets first element
 endif(NOT CFS_BUILD_HOST)
 set(CTEST_SITE "${CFS_BUILD_HOST}")
+site_name(CFS_BUILD_HOST)
 
 MESSAGE("\n=============================================================================")
 MESSAGE(" Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
