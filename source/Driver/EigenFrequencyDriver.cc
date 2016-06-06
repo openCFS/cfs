@@ -20,8 +20,6 @@ using std::cout;
 using std::setw;
 using std::string;
 
-
-
 namespace CoupledField {
 
   DECLARE_LOG(efd)
@@ -60,7 +58,14 @@ namespace CoupledField {
   EigenFrequencyDriver::~EigenFrequencyDriver()
   {
     if(isBloch_)
+    {
       bloch_plot_.close();
+      if(!progOpts->DoDetailedInfo() && domain->GetOptimization())
+      {
+        string file = progOpts->GetSimName() + ".bloch.dat"; // See SetupBlochPlot()
+        std::rename(string(file + ".tmp").c_str(), file.c_str());
+      }
+    }
 
     delete eigenFreqs;
     eigenFreqs = NULL;
@@ -95,13 +100,21 @@ namespace CoupledField {
 
   void EigenFrequencyDriver::SetupBlochPlot()
   {
-    string file = progOpts->GetSimName();
+    bloch_plot_.close();
+
+    string file = progOpts->GetSimName(); // on change check destructor!
     if(progOpts->DoDetailedInfo() && domain->GetOptimization())
       file += "_iter_" + boost::lexical_cast<string>(domain->GetOptimization()->GetCurrentIteration());
     file += ".bloch.dat";
+    // we write in .tmp the ongoing simulation and rename it when we are finished such that we have the last valid full bloch data for
+    // analysis of running optimization via find_band_gap.py
+    if(!progOpts->DoDetailedInfo() && domain->GetOptimization())
+    {
+      std::rename(string(file + ".tmp").c_str(), file.c_str());
+      file += ".tmp";
+    }
 
-    bloch_plot_.close();
-    bloch_plot_.open(file.c_str(), std::ios::out);
+    bloch_plot_.open(file.c_str() , std::ios::out);
     bloch_plot_ << "#step\tk_x\tk_y";
     if(domain->GetGrid()->GetDim() == 3)
       bloch_plot_ << "\tk_z";
@@ -409,56 +422,6 @@ namespace CoupledField {
       }
     }
   }
-
- /* void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
-  {
-    // stepNum and step_val are ignored
-    LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
-
-    unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
-
-    for(unsigned int w = 0; w < wvs; w++)
-    {
-      for(unsigned int fi=0; fi < eigenFreqs->GetSize(); fi++)
-      {
-        // Phase 2: calculate eigenmodes
-        if(writeModes_)
-        {
-          ptPDE_->GetSolveStep()->SetActStep(fi);
-          ptPDE_->GetSolveStep()->SetActFreq(std::abs(GetFrequency(fi)));
-          ptPDE_->GetSolveStep()->GetEigenMode(fi);
-
-          // stupid paraview needs an increasing series of save_value :(
-
-          double save_value = -1.0;
-
-          if(domain->GetOptimization())
-          {
-            // time is step.nr
-            int total = eigenFreqs->GetSize() * wvs;
-            int digs =  boost::lexical_cast<string>(total).size();
-            double sig = std::pow(10, -digs); // 1e-2 -> 10 ^ -2
-            save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
-
-            LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
-          }
-          else // for bloch case we label <step>.<nr> from the info.xml
-            save_value = isBloch_ ? w + (fi+1.0) / 100.0 : std::abs(GetFrequency(fi));
-
-          LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
-
-          handler_->BeginStep(save_step_, save_value);
-          ptPDE_->WriteResultsInFile(save_step_, save_value);
-          handler_->FinishStep();
-
-          if(writeAllSteps_ || isPartOfSequence_)
-            simState_->WriteStep(save_step_, save_value);
-
-          save_step_++;
-        }
-      }
-    }
-  }*/
 
   void EigenFrequencyDriver::PrintResult(int wave_vector_step)
   {

@@ -4,10 +4,7 @@ from PIL import Image
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
-from matviz_vtk import *
-from scipy.spatial import Delaunay
-from PyQt4.Qt import left
-from matplotlib.sankey import RIGHT
+#from matviz_vtk import *
 
 
 # writes a dense two region mesh
@@ -675,8 +672,13 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
     mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
   elif type.startswith('force_inverter') or type.startswith('gripper'): 
+    mesh.bc.append(("south", range(0, nx + 1)))
+    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
     if type.endswith('half'):
       factor = 2
+      mesh.bc.append(("left_upper", [(nx+1)*ny]))
     else:
       factor = 1
       mesh.bc.append(("left_upper", numpy.arange(int(round((nx+1)*ny-2*(ny-1)/25*(nx+1))),(nx+1)*ny,nx+1)))
@@ -684,6 +686,10 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("right_lower", [nx]))
     mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   else: 
+    mesh.bc.append(("south", range(0, nx + 1)))
+    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
     mesh.bc.append(("left_upper", [(nx+1)*ny]))
@@ -705,24 +711,8 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   if second > 0:
     print str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)'
-    mesh.bc.append(("left_lower", [0]))
-    mesh.bc.append(("right_lower", [nx]))
-    mesh.bc.append(("left_upper", [(nx + 1) * ny]))
-    mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
-    return mesh
 
-  
-  else:
-    mesh.bc.append(("south", range(0, nx + 1)))
-    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
-  
-    mesh.bc.append(("left_lower", [0]))
-    mesh.bc.append(("right_lower", [nx]))
-    mesh.bc.append(("left_upper", [(nx + 1) * ny]))
-    mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
-    return mesh
+  return mesh
 
 def create_regular3d_mesh(type, resolution):
   mesh = Mesh()

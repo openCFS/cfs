@@ -116,9 +116,8 @@ namespace CoupledField {
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }
 
-//    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-//    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
-    
+    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
+    std::set<BiLinFormContext*>& GetBiLinForms() { return allBiLinForms_; }
 
     /** Returns the linear forms list for external modification */
     StdVector<LinearFormContext*>& GetLinForms(bool take_ownership = false)

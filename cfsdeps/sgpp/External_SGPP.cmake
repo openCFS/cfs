@@ -153,10 +153,17 @@ SET(SGPP_LIBRARY
   ${LD}/libsgppoptimization.so;
   ${LD}/libsgppbase.so;
   libarmadillo.so;
-  libsatlas.so
+  libsatlas.so;
   ${UMFPACK_LIBRARY};
   ${ARPACK_LIBRARY}
   CACHE FILEPATH "SGPP library."
   )
+FIND_LIBRARY(SATLAS_LIBRARY satlas)
+IF(NOT "${SATLAS_LIBRARY}" STREQUAL "SATLAS_LIBRARY-NOTFOUND")
+  SET(SGPP_LIBRARY
+    ${SGPP_LIBRARY}
+    ${SATLAS_LIBRARY}
+    )
+ENDIF()
 
 MARK_AS_ADVANCED(SGPP_LIBRARY)
