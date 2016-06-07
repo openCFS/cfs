@@ -246,15 +246,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           angle = numpy.zeros((len(s1),1))
           viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "stream":
-            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
+            samples = args.hom_samples.split(',')
+            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, float(samples[0]), float(samples[1]), args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
         else:
           assert(False)
       # the 3D VTK stuff      
       else:
-        try:
-          s1, s2, s3 = microparams
-        except:
-          pass
         if args.show == "rot":
           s1 = ones((len(s1), 1)) * 0.25
           s2 = ones((len(s1), 1)) * 0.25
@@ -288,16 +285,21 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                   print 'Robot is validated!'
 
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale, n_f, valid_position, args.type, args.thres, csize, args.show)
                 else:
-                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize)
+                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale, n_f, valid_position, args.type, args.thres, csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, scale, valid_position, args.thres,csize)
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, scale, valid_position, args.thres, csize)
 
             else:
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
+              tmp = args.hom_samples.split(',')
+              if len(tmp) == 1:
+                samples = [float(tmp[0]),float(tmp[0]),float(tmp[0])]
+              else:
+                samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
+              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
@@ -398,11 +400,10 @@ parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'neares
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'])
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float)
 parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float)
-parser.add_argument("--hom_samples", help="activates interpolation and, the value gives samples in x-direction", type=int)
+parser.add_argument("--hom_samples", help="activates interpolation and the value gives samples in x,y,z direction")
 parser.add_argument("--cell_size", help="cell size in [mm] in x,y,z direction")
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
-parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
 parser.add_argument("--stream_max_traces_per_cell", help="maximum number of traces such that we may start a trace (>= 1)", type=int, default=1)
 parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'])
 parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'])
