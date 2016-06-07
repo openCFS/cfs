@@ -18,13 +18,24 @@ import xml.dom.minidom
 # @param angle array of anglex, angley, anglez
 # @return s1, s2, s3, angle, sh1  
 def read_stiff_angle(hdf_file, dim_2D, args):
+  res = dict()
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
   sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing 
   if args.parametrization == 'hom_rect':
-    s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
-    s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
-    s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
-    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
+    number_of_parameters = {
+      "hom_rot_cross" : 2,
+      "hom_sheared_rot_cross" : 3,
+      "hom_frame" : 2,
+      "hom_framed_cross" : 4,
+      "hom_rect" : 3}
+    if args.show in number_of_parameters:
+      try:
+        res['microparams'] = [get_element(f, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(number_of_parameters[args.show])]
+      except:
+        res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
+        res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
+        res['s3'] = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
+        res['sh1'] = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -36,7 +47,9 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     m = 2.0 * numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1 / (m * (1 - theta))
     s2 *= 1 / (m * (1 - theta))
-    s3 = numpy.ones((len(centers), 1)) * .1  # fix for 3D
+    res['s1'] = s1
+    res['s2'] = s2
+    res['s3'] = numpy.ones((len(centers), 1)) * .1  # fix for 3D
   elif args.parametrization == 'ortho':
     t11 = get_element(f, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
     t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
@@ -47,11 +60,13 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1/m
     s2 *= 1/m
-    s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+    res['s1'] = s1
+    res['s2'] = s2
+    res['s3'] = numpy.ones((len(centers),1)) * .1 # fix for 3D
   elif args.parametrization == 'simp':
-    s1 = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
-    angle = numpy.zeros(((len(s1), 3)))
-    return s1,angle,sh1
+    res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    res['angle'] = numpy.zeros(((len(s1), 3)))
+    return res
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
@@ -60,8 +75,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s2 *= rho
     s3 *= rho
     print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
+    res['s1'] = s1
+    res['s2'] = s2
+    res['s3'] = s3
   
-  angle = numpy.zeros(((len(s1), 3)))
+  angle = numpy.zeros(((len(res.values()[0]), 3)))
   
   if args.show == "hom_rot_cross" or args.show == "hom_sheared_rot_cross" or args.show == "rot" or args.show == "stream" or args.show == 'hom_rect_mod':
     try:
@@ -77,8 +95,9 @@ def read_stiff_angle(hdf_file, dim_2D, args):
         angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception, e:
       print 'could not read angle, ignore it: ', e
+    res['angle'] = angle
   
-  return s1, s2, s3, angle, sh1 
+  return res
 
 # # show or write either Image or polydata
 # @param viz eithe Image or polydata
@@ -154,25 +173,42 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod' or args.show == 'simp':
-      if args.show == "simp":
-        args.parametrization = 'simp'
-        s1,angle,sh1 = read_stiff_angle(f, dim_2D, args)
+    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp"):
+
+      if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect"):
+        microparams = read_stiff_angle(f, dim_2D, args)
+        try:
+          s1 = microparams['s1']
+          s2 = microparams['s2']
+          s3 = microparams['s3']
+          sh1 = microparams['sh1']
+        except:
+          s1, s2, s3 = microparams['microparams']
+        angle = numpy.zeros(((len(s1), 3)))
       else:
-        s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
-        print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
+        if args.show == "simp":
+          args.parametrization = 'simp'
+          microparams = read_stiff_angle(f, dim_2D, args)
+        else:
+          microparams = read_stiff_angle(f, dim_2D, args)
+          s2 = microparams['s2']
+          s3 = microparams['s3']
+          print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
+        s1 = microparams['s1']
+        angle = microparams['angle']
+        sh1 = microparams['sh1']
       
-      # add angle bias, e.g. by 90 deg to correct thomas
-      angle += args.angle_bias * numpy.pi / 180
-      # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
-      angle *= -1.0
-      if args.angle_factor <> 1.0:
-        print 'scale angle by ' + str(args.angle_factor)
-        angle *= args.angle_factor  
-      if not args.show == "simp":
-        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
-      else:
-        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
+        # add angle bias, e.g. by 90 deg to correct thomas
+        angle += args.angle_bias * numpy.pi / 180
+        # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
+        angle *= -1.0
+        if args.angle_factor <> 1.0:
+          print 'scale angle by ' + str(args.angle_factor)
+          angle *= args.angle_factor  
+        if not args.show == "simp":
+          print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+        else:
+          print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
   
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
@@ -188,12 +224,24 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         elif args.show == "hom_rot_cross" or args.show == "rot":
           # add optional angle bias
           print 'change angle'
+          try:
+            s1, s2 = microparams
+          except:
+            pass
           if args.hom_grad == 'none':
             viz = show_rot_cross(coords, s1, s2, angle[:, 0], args.hom_dir, args.res, scale, args.color, args.save)
           else:
             viz = show_rot_cross_grad(coords, s1, s2, angle[:, 0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "hom_sheared_rot_cross":
+          try:
+            s1, s2, sh1 = microparams
+          except:
+            pass
           viz = show_sheared_rot_cross(coords, s1, s2, sh1, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
+        elif args.show == "hom_frame":
+          viz = show_frame2(coords, microparams, args.res, args.scale, args.color, args.save)
+        elif args.show == "hom_framed_cross":
+          viz = show_framed_cross(coords, microparams, args.res, args.scale, args.color, args.save)
         elif args.show == "hom_cross_bar":
           angle = numpy.zeros((len(s1),1))
           viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)
@@ -202,7 +250,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         else:
           assert(False)
       # the 3D VTK stuff      
-      else:       
+      else:
+        try:
+          s1, s2, s3 = microparams
+        except:
+          pass
         if args.show == "rot":
           s1 = ones((len(s1), 1)) * 0.25
           s2 = ones((len(s1), 1)) * 0.25
@@ -334,7 +386,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod','simp'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
