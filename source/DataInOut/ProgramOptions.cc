@@ -183,7 +183,7 @@ namespace CoupledField {
         "history of revisions" )
 
       ( "numThreads,t", po::value<UInt>()->default_value(1),
-        "number of threads used in CFS run. Does not affect solvers. Default 1." )
+        "number of threads used in CFS run. Default 1." )
 
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
