@@ -2678,6 +2678,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     assert(node > 0);
     assert(trackingFunc_ != NULL);
 
+    if (trackingFunc_ == NULL) // in case tracking result should be written out, but tracking is actually not an active function
+      return 0.0;
+
     NodeList nodeList(domain->GetGrid());
     StdVector<UInt> nodeId(1);
     nodeId[0] = node;
