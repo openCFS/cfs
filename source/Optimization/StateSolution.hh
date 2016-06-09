@@ -66,7 +66,7 @@ public:
   /** return an existing nodal vector.
    * As the type is not known we cannot create on the fly.
    * @param st RHS_VECTOR, RAW_VECTOR, SEL_VECTOR
-   * asser() if vector exists (debug mode, NULL in release) */
+   * assert() if vector exists (debug mode, NULL in release) */
   SingleVector* GetVector(StorageType st);
 
   /** return (eventually create) a nodal vector.
