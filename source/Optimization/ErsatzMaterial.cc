@@ -22,6 +22,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "FeBasis/BaseFE.hh"
+#include "FeBasis/FeSpace.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -1362,19 +1363,28 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           // traverse the elements
           double sum = 0.0;
           int found = 0;
+          // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
           for(unsigned int e = 0; e < elems.GetSize(); e++)
           {
             int design_index = design->Find(elems[e],false);
             if(design_index >= 0)
             {
-              double factor = design->data[design_index].GetDesign(DesignElement::SMART);
+//              double factor = design->data[design_index].GetDesign(DesignElement::SMART);
+              DesignElement& de = design->data[design_index];
+              double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
               sum += factor;
               found++;
             }
           } // neighbor elems
 
           assert(found > 0);
-          de->interfaceDrivenLoadGrad_[n] = 4.0 / ((double)found * design->data.GetSize()) * (1.0 - 2.0 * (sum / (double) found));
+          double factor = 0.0;
+          if (f->ctxt->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource/value"))
+            f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+          else
+            f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/heatSource",factor);
+
+          de->interfaceDrivenLoadGrad_[n] = design->EvalInterfaceFunction(node, true) / design->data.GetSize() * factor;
         } //if
       } // node
     } // elem
@@ -1520,7 +1530,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       result = CalcTracking(excite, c, g, derivative);
       break;
 
-      case Condition::TEMP_TRACKING_AT_INTERFACE:
+      case Objective::TEMP_TRACKING_AT_INTERFACE:
       {
         Vector<double> res;
         result = CalcStateTrackingAtInterface(excite, f, derivative, f->GetParameter());
@@ -2611,8 +2621,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
     assert(f->GetType() == Condition::TEMP_TRACKING_AT_INTERFACE || f->GetType() == Objective::TEMP_TRACKING_AT_INTERFACE);
-    unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
+    trackingFunc_ = f;
     double res = 0.0;
+
+    double sourceVal = 0.0;
+    f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",sourceVal);
 
     if (derivative)
     { // (u - u_)^T * F'(u - u_), where u_ is tracked temperature and F diag(f)
@@ -2641,24 +2654,52 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           for (unsigned int n = 0; n < gradLoad.GetSize(); n++)
             val += gradLoad[n] * (u_elem[n] - trackVal) * (u_elem[n] - trackVal);
 
-          de->AddGradient(f,val*design->data.GetSize());
+          de->AddGradient(f,val*design->data.GetSize() / sourceVal);
         }
       }
       CalcU1KU2(tf, adjoint.Get(excite,f)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, factor, STANDARD, f);
     }
     else
     {
-      Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
-      Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-      assert(u.GetSize() == nNodes);
-      for (unsigned int n = 0; n < nNodes; n++) {
-        res += loads[n] * (u[n] - trackVal) * (u[n] - trackVal) * design->data.GetSize();
-      }
+      StdVector<unsigned int> nodeList;
+      domain->GetGrid()->GetNodesByRegion(nodeList,design->GetRegionId());
+
+      for (unsigned int i = 0; i < nodeList.GetSize(); i++)
+        res += CalcStateTrackingAtNode(nodeList[i]);
 
       assert(res >= 0);
     } // if-else
 
     return res;
+  }
+
+  double ErsatzMaterial::CalcStateTrackingAtNode(int node)
+  {
+    assert(node > 0);
+    assert(trackingFunc_ != NULL);
+
+    if (trackingFunc_ == NULL) // in case tracking result should be written out, but tracking is actually not an active function
+      return 0.0;
+
+    NodeList nodeList(domain->GetGrid());
+    StdVector<UInt> nodeId(1);
+    nodeId[0] = node;
+    nodeList.SetNodes(nodeId);
+
+    shared_ptr<BaseFeFunction> fe = trackingFunc_->ctxt->pde->GetFeFunction(trackingFunc_->ctxt->pde->GetNativeSolutionType());
+
+    Vector<double> stateSol(1); // we get one scalar
+    fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
+
+    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
+    Vector<double> load(1);
+    rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
+
+    double trackVal = trackingFunc_->GetParameter();
+    double factor = 0.0;
+    trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+
+    return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
   }
 
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
@@ -2667,9 +2708,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     out.Resize(stateSol.GetSize(),0.0);
 
     Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+    double factor = 0.0;
+    f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     for (unsigned int i = 0; i < stateSol.GetSize(); i++) {
-      out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize();
+      out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize() / factor;
     }
   }
 

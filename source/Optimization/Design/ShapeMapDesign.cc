@@ -483,8 +483,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
   // TODO here we assume that the whole mesh is for LBM and the mesh is of lexicographic ordering.
   // To be good this needs to handled by element neighbors!
-  if(grid->GetNumElems() != n_elems)
-    EXCEPTION("the current implementation assumes the whole mesh to be used for LBM and lexicographic ordering. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
+//  if(grid->GetNumElems() != n_elems)
+//    EXCEPTION("the current implementation assumes the whole mesh to be used for LBM and lexicographic ordering. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
 
   idx_to_elem.Resize(n_elems);
   for(unsigned int i = 0; i < n_elems; i++)
@@ -565,9 +565,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
+   StdVector<Elem*> designElems;
+   domain->GetGrid()->GetElems(designElems,GetRegionIds().First()); // FIXME assume elements in designElems are ordered!
+   assert(map_.GetSize() == designElems.GetSize());
    for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
-     map_[i].rho = &(data[Find(idx_to_elem[i])]); // is very fast and gives a layer for arbitrary element ordering in the mesh
+     map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      map_[i].nodes.Reserve(2 * num_node_shapes_); // each design node connects to two density elements
      if(overlap_ == MAX) {
        map_[i].ip_param_idx.Resize(order_order_);

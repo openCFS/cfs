@@ -473,6 +473,12 @@ namespace CoupledField
       * index can be set for extended pde vector element solution storage. */
      unsigned int CalcPseudoDesignElements() const;
 
+     /** Helper function for state tracking (nodeId ist 1-based). Function: 4 * s * (1 - s), where s is the interpolated density at node with nodeId */
+     double EvalInterfaceFunction(int nodeId, bool derivative = false);
+
+     /** Helper function for state tracking */
+     double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
+
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
      unsigned int elements;
