@@ -2691,7 +2691,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     Vector<double> stateSol(1); // we get one scalar
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
-    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
+    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
     Vector<double> load(1);
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
 
