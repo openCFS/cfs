@@ -833,6 +833,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(LEVEL_SET_GRAD_ZP, "levelSetGradZP");
   valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
   valueSpecifier.Add(HEAT_NODAL_TRACK_VAL, "heatNodalTrackValue");
+  valueSpecifier.Add(TEMP_AT_INTERFACE, "tempAtInterface");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");

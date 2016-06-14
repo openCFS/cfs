@@ -112,8 +112,11 @@ public:
     return *structure_;
   }
 
-  // calculates for given node res = (stateSol - trackVal)^2
+  // calculates for given node res = interface * (stateSol - trackVal)^2
   double CalcStateTrackingAtNode(int node);
+
+  // calculates for given node res = load * stateSol
+  double CalcTempAtInterface(int node);
 
 protected:
   

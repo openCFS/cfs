@@ -479,6 +479,9 @@ namespace CoupledField
      /** Helper function for state tracking */
      double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
 
+     /** for heat optimization with interface function: this = load * temperate; load is normed to 1 */
+     double CalcTemperatureAtInterface(int nodeId);
+
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
      unsigned int elements;

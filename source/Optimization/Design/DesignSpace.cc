@@ -518,8 +518,9 @@ double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
   double dens = CalcAverageDensityAtNode(nodeId);
 
-  if (derivative)
+  if (derivative) {
     return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
+  }
   else
     return 4.0 *  dens * (1.0 - dens);
 }
@@ -529,7 +530,10 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
   StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
   double tmp = 0;
   int found = 0;
-  double lower = 0;
+  double lower = 0.0;
+  //FIXME Assume design elements are all of the same type and application is HEAT
+  TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
+  lower = tf->Transform(data[0].GetLowerBound());
 
   for (unsigned int index = 0; index < elems.GetSize(); index++)
   {
@@ -537,16 +541,13 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     int design_index = Find(elems[index],false);
     if(design_index >= 0)
     {
-//            double factor = data[design_index].GetDesign(DesignElement::SMART);
       DesignElement& de = data[design_index];
-      double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
 
-      tmp += factor;
+//      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * (1.0 + lower);
+      tmp += (de.GetDesign(DesignElement::SMART) - lower) * (1.0 + lower);
       found++;
 
-      lower = de.GetLowerBound();
-
-      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << factor;
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign() - lower) * (1.0 + lower);
     }
   }
 
@@ -554,8 +555,7 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     EXCEPTION("CADAN: Node has no neighbor elements!!")
 
   if (derivative)
-    return 1.0 / found * (1.0 + lower);
-//    return 1.0 / (double) found;
+    return 1.0 / (double) found * (1.0 + lower);
   else
     return tmp / (double) found;
 }
@@ -595,6 +595,8 @@ double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueS
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
   case DesignElement::HEAT_NODAL_TRACK_VAL:
     return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
+  case DesignElement::TEMP_AT_INTERFACE:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcTempAtInterface(nodeNumber);
   default:
     EXCEPTION("case not implemented")
   }
@@ -631,6 +633,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   case DesignElement::LEVEL_SET_GRAD_ZP:
   case DesignElement::LEVEL_SET_GRAD_ZN:
   case DesignElement::HEAT_NODAL_TRACK_VAL:
+  case DesignElement::TEMP_AT_INTERFACE:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:

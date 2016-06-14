@@ -1348,6 +1348,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
     assert(f != NULL);
 
+//    double lower = 0.0;
+//    TransferFunction* tf = design->GetTransferFunction(f->GetDesignType(), App::HEAT);
+//    lower = tf->Transform(design->data[0].GetLowerBound());
+
     for (unsigned int id = 0; id < design->data.GetSize(); id++) {
       DesignElement* de = &design->data[id];
       // differentiation factor when using filter
@@ -1358,26 +1362,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         unsigned int node = nodes[n];
         if(!idBcNodes.Contains(node)) // gradient is 0 at bc nodes
         {
-          // search for the elements of node
-          StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(node);
-          // traverse the elements
-          double sum = 0.0;
-          int found = 0;
-          // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
-          for(unsigned int e = 0; e < elems.GetSize(); e++)
-          {
-            int design_index = design->Find(elems[e],false);
-            if(design_index >= 0)
-            {
-//              double factor = design->data[design_index].GetDesign(DesignElement::SMART);
-              DesignElement& de = design->data[design_index];
-              double factor = (de.GetDesign(DesignElement::SMART) - de.GetLowerBound()) * (1.0 + de.GetLowerBound());
-              sum += factor;
-              found++;
-            }
-          } // neighbor elems
-
-          assert(found > 0);
           double factor = 0.0;
           if (f->ctxt->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource/value"))
             f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
@@ -2691,7 +2675,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     Vector<double> stateSol(1); // we get one scalar
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
-    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[SolutionType::HEAT_TEMPERATURE];
+    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
     Vector<double> load(1);
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
 
@@ -2700,6 +2684,32 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
+  }
+
+  double ErsatzMaterial::CalcTempAtInterface(int node)
+  {
+    if (trackingFunc_ == NULL)
+      return 0.0;
+
+    // tempAtInterface(node) = load(node) * temp(node), here load is normed to 1
+    NodeList nodeList(domain->GetGrid());
+    StdVector<UInt> nodeId(1);
+    nodeId[0] = node;
+    nodeList.SetNodes(nodeId);
+
+    shared_ptr<BaseFeFunction> fe = trackingFunc_->ctxt->pde->GetFeFunction(trackingFunc_->ctxt->pde->GetNativeSolutionType());
+
+    Vector<double> stateSol(1); // we get one scalar
+    fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
+
+    shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
+    Vector<double> load(1);
+    rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
+
+    double factor = 0.0;
+    trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+
+    return load[0] * stateSol[0] * design->data.GetSize() / factor;
   }
 
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
