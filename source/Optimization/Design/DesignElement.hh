@@ -191,8 +191,13 @@ public:
 
   virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
 
-  /** The index of this element within the design space - 0 based */
+  /** The index of this element within the design space - 0 based.
+   * @see GetOptIndex()*/
   unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
+
+  /** When only part of the design space is really for optimization (e.g. ShapeMapDesign with symmetry) the design exported
+   * to the optimizers need their own consecutive index returned by GetOptIndex() -> overloaded is ShapeParamElement */
+  virtual unsigned int GetOptIndex() const { return GetIndex(); }
 
   /** returns the type */
   virtual std::string ToString() const;
@@ -303,6 +308,11 @@ public:
    * So just ignore it! */
   virtual double GetDesign(BaseDesignElement::Access access) const { return design; }
 
+  /** to handle exporting only parts of the design (due to symmetry) to the external optimizers */
+  virtual unsigned int GetOptIndex() const { assert(opt_index_ != std::numeric_limits<unsigned int>::max()); return opt_index_; }
+
+  void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
+
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
   int dof;
 
@@ -312,6 +322,9 @@ public:
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node more than elements in one direction.*/
   StdVector<int> idx;
+private:
+  /** see BaseDesignElement::GetOptIndex() */
+  unsigned int opt_index_ = std::numeric_limits<unsigned int>::max();
 };
 
 

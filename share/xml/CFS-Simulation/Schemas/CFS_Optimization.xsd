@@ -1266,6 +1266,10 @@
                 <!-- the order of the interpolation. 2 much too less, 10 shall be good. Effort is dim^order !!! -->
                 <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="10"/>
 
+                <!-- optional symmetries -->
+                <xsd:attribute name="x_symmetry" use="optional" type="DT_Symmetry" default="none"/>
+                <xsd:attribute name="y_symmetry" use="optional" type="DT_Symmetry" default="none"/>
+
               </xsd:complexType>
             </xsd:element>
             
@@ -2305,6 +2309,14 @@
        <xsd:enumeration value="y"/>
     </xsd:restriction>  
   </xsd:simpleType>
+
+  <xsd:simpleType name="DT_Symmetry">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="none"/>
+      <xsd:enumeration value="mirror"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
 </xsd:schema>
 

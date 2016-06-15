@@ -913,7 +913,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     BaseDesignElement* bde = id.GetElement(i);
     assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = bde->GetIndex();
+    int other_idx = bde->GetOptIndex();
     indices.push_back(other_idx);
 
     if(this->ForDensityFiltering())
@@ -923,7 +923,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
       {
         const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
         for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
-          indices.push_back(neighborhood[j].neighbour->GetIndex());
+          indices.push_back(neighborhood[j].neighbour->GetOptIndex());
       }
     }
   }
@@ -956,11 +956,11 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetOptIndex();
 
     break;
   }
@@ -968,41 +968,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
 
-    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
+    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
     break;
   default:
