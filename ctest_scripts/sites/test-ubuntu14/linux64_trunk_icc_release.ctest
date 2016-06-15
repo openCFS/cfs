@@ -6,7 +6,7 @@
 #
 #-----------------------------------------------------------------------------
 # Include general variables for all tests on the machine
-# If the file 'site_specific_vars.cmake' does not exist the following variables must be set:
+# It the file 'site_specific_vars.cmake' does not exist the following variables must be set:
 # NIGHTLY_TESTSUITE_DIR
 # NIGHTLY_CACHE_DIR
 # NIGHTLY_SOURCE_DIR
@@ -45,7 +45,7 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 #-----------------------------------------------------------------------------
 
 # set the compiler environment
-SET_COMPILER_ENV("GCC")
+SET_COMPILER_ENV("ICC")
 
 # set build name
 set(BUILDTYPE "RELEASE")
@@ -63,7 +63,7 @@ SET(CTEST_INITIAL_CACHE
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=${NIGHTLY_TESTSUITE_DIR}
    CFS_DEPS_PRECOMPILED:BOOL=ON
-   CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}
+   CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}/intel
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
 #-----------------------------------------------------------------------------
