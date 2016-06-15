@@ -6,7 +6,7 @@
 #
 #-----------------------------------------------------------------------------
 # Include general variables for all tests on the machine
-# If the file 'site_specific_vars.cmake' does not exist the following variables must be set:
+# It the file 'site_specific_vars.cmake' does not exist the following variables must be set:
 # NIGHTLY_TESTSUITE_DIR
 # NIGHTLY_CACHE_DIR
 # NIGHTLY_SOURCE_DIR
@@ -36,6 +36,8 @@ WRITE_CTEST_CONFIG()
 # set ctest & cmake commands to the executables corresponding to the one used to run this script.
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+# set the site name
+set(CTEST_SITE "${CFS_BUILD_HOST}")
 
 #-----------------------------------------------------------------------------
 # Define what is beeing tested (compiler & config)
@@ -49,7 +51,7 @@ SET_COMPILER_ENV("GCC")
 
 # set build name
 set(BUILDTYPE "RELEASE")
-set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+set(CTEST_BUILD_NAME "trunk DISABLE_OPTIMIZATION ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 # Start out with an empty binary directory
 set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
@@ -59,8 +61,9 @@ INIT_CACHE(CTEST_INITIAL_CACHE)
 # set additional config options 
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
-   DEBUG:BOOL=OFF
+   DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   DISABLE_OPTIMIZATION:BOOL=ON # disable optimization for deploy builds
    TESTSUITE_DIR:STRING=${NIGHTLY_TESTSUITE_DIR}
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}
