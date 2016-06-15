@@ -47,9 +47,42 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   SetupShapeDesign(pn->Get("shapeMap"));
   // copy the non-fixed stuff opt_shape_param_
   opt_shape_param_.Reserve(IsProfileFixed() ? num_node_shape_params_ : shape_param_.GetSize());
+  opt_sym_param_.Reserve(opt_shape_param_.Capacity());
   for(unsigned int s = 0; s < shape_.GetSize(); s++)
-    for(unsigned int p = shape_[s].start_param, n = shape_[s].end_param; !shape_[s].fixed && p < n; p++)
+  {
+    ShapeParam& shape = shape_[s];
+    unsigned int end = shape.end_param;
+    // add one in the mirror case with odd design elements for not mirrored center element - note 0-based counting!
+    bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
+    if(shape.sym == MIRROR)
+      end = shape.start_param + (shape.end_param - shape.start_param) / 2 + (odd_elements ? 1 : 0);
+
+    shape.start_opt = shape.fixed ? -1 : opt_shape_param_.GetSize();
+
+    for(unsigned int p = shape.start_param; !shape.fixed && p < end; p++) {
       opt_shape_param_.Push_back(&shape_param_[p]); // when we have fixed nodes we shall handle the index!!
+      ShapeParamElement* sym = NULL; // default for shape.sym == NONE
+      if(shape.sym == MIRROR && !(odd_elements && p == end -1)) // don't add symmetry for the center element of an odd row
+        sym = &shape_param_[shape.end_param - 1 - (p - shape.start_param)];
+      opt_sym_param_.Push_back(sym);
+      LOG_DBG2(SMD) << "SMD shape=" << shape.idx << " type=" << shape.type << " el=" << opt_shape_param_.Last()->GetIndex() << " sym="
+                    << (opt_sym_param_.Last() != NULL ? (int) opt_sym_param_.Last()->GetIndex() : -1);
+    }
+
+    shape.end_opt = shape.fixed ? -1 : opt_shape_param_.GetSize();
+
+    if(shape.type == NODE && shape.end_opt != -1)
+      num_node_opt_shape_params_ = shape.end_opt; // as long updated as long as we have nodes. Note that profile comes after nodes!
+
+    LOG_DBG(SMD) << "SMD shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
+                 << " sym=" << shape.sym << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements;
+  }
+  assert(opt_shape_param_.GetSize() == opt_sym_param_.GetSize());
+
+  // set for the design subject to optimization the opt_index_ as BaseDesignElement::index_ may not reflect the design space seen
+  // by external optimizers when we have symmetry -> necessary for the sparse Jacobian.
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+    opt_shape_param_[i]->SetOptIndex(i);
 
   LOG_DBG(SMD) << "SMP rho_desig=" << data.GetSize();
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
@@ -72,6 +105,8 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
       new_design = true;
 
     opt_shape_param_[i]->SetDesign(v);
+    if(opt_sym_param_[i] != NULL)
+      opt_sym_param_[i]->SetDesign(v);
     LOG_DBG3(SMD) << "RDFE: i=" << i << "-> " << v;
   }
 
@@ -146,6 +181,8 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     {
       assert(out.InWindow(base + s));
       out[base + s] = opt_shape_param_[s]->GetPlainGradient(f) * scaling;
+      if(opt_sym_param_[s] != NULL)
+        out[base + s] += opt_sym_param_[s]->GetPlainGradient(f) * scaling;
       LOG_DBG3(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
@@ -154,7 +191,9 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   else
   {
     assert(f->GetDesignType() == BaseDesignElement::NODE || f->GetDesignType() == BaseDesignElement::PROFILE);
+    // uses opt_index_!
     StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
+    LOG_DBG2(SMD) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
     assert(out.window.GetSize() == sparsity.GetSize());
     for(unsigned int i = 0; i < sparsity.GetSize(); i++)
     {
@@ -164,6 +203,8 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
       out[base + i] = opt_shape_param_[s]->GetPlainGradient(f) * scale;
+      if(opt_sym_param_[s] != NULL)
+        out[base + s] += opt_sym_param_[s]->GetPlainGradient(f) * scaling;
     }
   }
 }
@@ -172,7 +213,14 @@ void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::NODE); // extend to check for profile
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
+  {
     opt_shape_param_[i]->Reset(vs);
+    assert(!opt_shape_param_[i]->costGradient.IsEmpty());
+    if(opt_sym_param_[i] != NULL) {
+      opt_sym_param_[i]->Reset(vs);
+      assert(!opt_sym_param_[i]->costGradient.IsEmpty());
+    }
+  }
 
   AuxDesign::Reset(vs, design);
 }
@@ -323,7 +371,6 @@ std::string ShapeMapDesign::Dof(int dof)
 
 }
 
-
 inline bool ShapeMapDesign::IsProfileFixed() const
 {
   // assume all nodes are concurrently fixed?!
@@ -337,7 +384,7 @@ unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
     return 0;
   assert(f->GetDesignType() == BaseDesignElement::PROFILE);
   assert(!IsProfileFixed()); // don't call if fixed
-  return num_node_shape_params_; // assume no fixed node
+  return opt ? num_node_opt_shape_params_ : num_node_shape_params_; // assume no fixed node in the non-opt case!
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
@@ -377,7 +424,6 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(f->IsLocal(f->GetType()));
   // we shall be called by Local::PostInit() therefore local shall exist
   assert(f->GetLocal() != NULL);
-  bool periodic = f->GetLocal()->periodic;
 
   // we assume fixed only for profile
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
@@ -393,36 +439,40 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
 
   // we don't set Function::Local::element_dimension_, it would be 2 (dim==1 * two signs)
   // we wont't use the full space as the individual shape_ are not connected
+  // FIXME consider symmetry via opt_shape_param_ ?!
   vem.Reserve(num_node_shape_params_ * (two_signs ? 2 : 1)); // separately for node and profile but both of same size
 
   // traverse shape_ to have proper start and end. check for node or profile
   for(unsigned int s = GetFirstShapeIdx(f,true), n = GetEndShapeIdx(f,true); s < n; s++)
   {
-    const ShapeParam& param = shape_[s];
-    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
-    assert(!param.fixed);
+    const ShapeParam& shape = shape_[s];
+    bool periodic = shape.sym == NONE ? f->GetLocal()->periodic : false; // symmetric stuff is implicitely periodic
 
-    LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << param.start_param << " ep=" << param.end_param;
+    assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
+    assert(!shape.fixed);
+
+    LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_opt << " ep=" << shape.end_opt;
 
     // skip the last element as we want only 'full' elements with next when we are not periodic
-    for(int e = param.start_param + (prev ? (periodic ? 0 : 1) : 0), n = param.end_param - (periodic ? 0 : +1); e < n; e++)
+    for(int e = shape.start_opt + (prev ? (periodic ? 0 : 1) : 0), n = shape.end_opt - (periodic ? 0 : +1); e < n; e++)
     {
-      BaseDesignElement& bde = shape_param_[e];
-      assert(f->GetDesignType() == bde.GetType());
-      assert((!periodic && e < param.end_param-1) || (periodic && e < param.end_param));
+      BaseDesignElement* bde = opt_shape_param_[e];
+      assert(f->GetDesignType() == bde->GetType());
+      assert((!periodic && e < shape.end_opt-1) || (periodic && e < shape.end_opt));
 
-      BaseDesignElement* prev_de = prev ? &shape_param_[e == param.start_param ? param.end_param-1 : e-1] : NULL; // if not prev take last
-      BaseDesignElement* next_de =        &shape_param_[e == param.end_param-1 ? param.start_param : e+1]; // we next cannot be next we take first (only if periodic)
+      // note that opt_shape_param can be a fragmented variant of shape_param which is an issue with the index which needs to consecutive in opt_shape_param
+      BaseDesignElement* prev_de = prev ? opt_shape_param_[e == shape.start_opt ? shape.end_opt-1 : e-1] : NULL; // if not prev take last
+      BaseDesignElement* next_de =        opt_shape_param_[e == shape.end_opt-1 ? shape.start_opt : e+1]; // we next cannot be next we take first (only if periodic)
 
       LOG_DBG2(SMD) << "SVSEM s=" << s << " n=" << n << " pde=" << (prev_de != NULL ? (int) prev_de->GetIndex() : -1) << " e=" << e << " nde=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
 
-      vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_1));
+      vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_1));
       if(two_signs)
-        vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_2));
+        vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_2));
     }
   }
 
-  LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
+  LOG_DBG(SMD) << "SVSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
 }
 
 
@@ -443,14 +493,15 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
   for(unsigned int s = first; s < end; s++)
   {
-    const ShapeParam& param = shape_[s];
-    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
-    assert(!param.fixed);
+    const ShapeParam& shape = shape_[s];
+    assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
+    assert(!shape.fixed);
+    assert(!shape.sym != NONE);
 
-    BaseDesignElement& left  = shape_param_[param.start_param];
-    BaseDesignElement& right = shape_param_[param.end_param-1]; // now take the last which is end-1
+    BaseDesignElement* left  = opt_shape_param_[shape.start_opt];
+    BaseDesignElement* right = opt_shape_param_[shape.end_opt-1]; // now take the last which is end-1
 
-    vem.Push_back(Function::Local::Identifier(&left, NULL, &right)); // makes a neighborhood of size 1
+    vem.Push_back(Function::Local::Identifier(left, NULL, right)); // makes a neighborhood of size 1
   }
 
   LOG_DBG(SMD) << "SCVSEM f=" << f->ToString() << " loc=" << locality << " -> vem=" << vem.GetSize();
@@ -523,8 +574,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    assert(!nodes.IsEmpty());
    shape_.Resize(nodes.GetSize() * 2); // list is for nodes which are doubled by profile
    for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++) {
-     shape_[i].Init(nodes[i], i); // empty constructor due to StdVector/(
-     shape_[n+i].Init(profile, n+i); // one profile for each node shape
+     shape_[i].Init(nodes[i], i); // empty constructor due to StdVector :(
+     shape_[n+i].Init(profile, n+i, &shape_[i]); // one profile for each node shape, give reverence to node to copy sym and orientation
    }
    num_node_shapes_ = nodes.GetSize();
 
@@ -784,7 +835,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
                da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_order_);
              }
-             LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
+             LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
 
              log_da += da_norm;
 
@@ -1068,8 +1119,16 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
   // add aux_design to full_data
   AuxDesign::PostInit(objectives, constraints);
 
-  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+  assert(objectives > 0);
+
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++) {
     opt_shape_param_[i]->PostInit(objectives, constraints);
+    LOG_DBG2(SMD) << "PI i=" << i << " idx=" << opt_shape_param_[i]->GetIndex() << " #o=" << objectives << " #c=" << constraints;
+    if(opt_sym_param_[i] != NULL) {
+      opt_sym_param_[i]->PostInit(objectives, constraints);
+      LOG_DBG2(SMD) << "PI i=" << i << " sym=" << opt_sym_param_[i]->GetIndex();
+    }
+  }
 
   if(domain->GetOptimization() != NULL)
     opt_ = domain->GetOptimization();
@@ -1084,21 +1143,35 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
   return res;
  }
 
- void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_)
+ void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_, ShapeParam* node)
  {
    type = ShapeMapDesign::type.Parse(pn->GetName());
    idx = (int) idx_;
 
    if(type == NODE)
    {
+     assert(node == NULL);
      if(!pn->Has("dof"))
        throw Exception("shapeParam of type 'node' requires 'dof'");
      dof = Dof(pn->Get("dof")->As<std::string>());
      assert(dof == 0 || dof == 1);
+
+     orientation = dof == 0 ? 1 : 0; // only 2d!
+
+     sym = ShapeMapDesign::symmetry.Parse(pn->GetParent()->Get(Dof(orientation) + "_symmetry")->As<string>());
+
+     LOG_DBG(SMD) << "SP:I idx=" << idx_ << " node dof=" << dof << " sym=" << (Dof(orientation) + "_symmetry") << " -> "
+                  << pn->GetParent()->Get(Dof(orientation) + "_symmetry")->As<string>() << " -> " <<  ShapeMapDesign::symmetry.ToString(sym);
    }
    else
+   {
      if(pn->Has("dof"))
        throw Exception("shapeParam knows 'dof' only for type 'node'");
+     assert(node != NULL);
+     dof = node->dof;
+     orientation = node->orientation;
+     sym = node->sym;
+   }
 
    if(pn->Has("initial"))
    {
@@ -1118,8 +1191,13 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
      value = pn->Get("fixed")->MathParse<double>();
      fixed = true;
    }
+
+   LOG_DBG(SMD) << "SP:I final: idx=" << idx_ << " type=" << type << " node=" << (node != NULL ? node->idx : -1) << " sym=" << sym << " orientation=" << orientation;
+
    if(!pn->Has("initial") && !pn->Has("fixed"))
      throw Exception("shapeParam needs to have either 'initial' or 'fixed'");
+
+
 }
 
 void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
@@ -1136,6 +1214,7 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   }
   assert(start_param >= 0 && end_param > 0);
   in->Get("variables")->SetValue(end_param - start_param);
+  in->Get("symmetry")->SetValue(ShapeMapDesign::symmetry.ToString(sym));
 }
 
 ShapeMapDesign::TanhSum::TanhSum()

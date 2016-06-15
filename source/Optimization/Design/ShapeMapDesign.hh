@@ -57,7 +57,11 @@ public:
    * @return either DesignSpace::FindDesign() or the index within shape_ */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
+  /** goes on opt_shape_param_ only! */
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
+
+  /** does not go on opt_shape_param_ but on shape_param_ */
+  ShapeParamElement* GetShapeMapDesignElement(unsigned int idx) { return &(shape_param_[idx]);}
 
   virtual void ToInfo(ErsatzMaterial* em);
 
@@ -84,9 +88,15 @@ public:
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
   static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
 
+  /** This types are repeated in BaseDesignElement::Type */
   typedef enum { NODE, PROFILE } Type;
 
   static Enum<Type> type;
+
+  /** The symmetry is defined globally but stored in ShapeParam */
+  typedef enum { NONE, MIRROR } Symmetry;
+
+  static Enum<Symmetry> symmetry;
 
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   BaseDesignElement::Type Convert(Type type) const;
@@ -100,8 +110,10 @@ public:
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
   {
-    // note that we would need a default constructor for StdVector
-    void Init(PtrParamNode pn, unsigned int idx);
+    /** note that we would need a default constructor for StdVector
+     * @param pn node for the shape
+     * @param node reference for profile only to copy sym and orientation, ...*/
+    void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node = NULL);
     void ToInfo(PtrParamNode pn);
 
     Type type = NODE; // NODE or PROFILE will also be set in Init
@@ -114,7 +126,19 @@ public:
 
     /** this stores the reference to shape_param_ */
     int start_param = -1;
+    /** this stores the reference to the first parameter within opt_shape_param_. -1 if no design.
+     * It becomes complex due to fixed and partial symmetriy */
+    int start_opt = -1;
+
+    /** this end does not reflect symmetry */
     int end_param = -1;
+    /** this is the end of the optimization, reflects symmetry and is -1 if no design */
+    int end_opt = -1;
+
+    /** the orientiation of the shape is in 2D the complementary */
+    int orientation = -1;
+
+    Symmetry sym = NONE;
   };
 
 protected:
@@ -146,7 +170,6 @@ protected:
 
   /** search for the corresponding shape */
   ShapeParam* FindShape(const ShapeParamElement* spe);
-
 
   /** helper to fill shape_param_
    * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1*/
@@ -191,7 +214,7 @@ protected:
   bool IsProfileFixed() const;
 
   /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
-   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile */
+   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile AND if we have no symmetries! */
   unsigned int GetFirstVarIdx(const Function* f, bool opt) const;
 
   /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
@@ -217,8 +240,15 @@ protected:
   /** helper for shape_param_: number of nodes within shape_param_ which is  shape_param_.GetSize() / 2 */
   int num_node_shape_params_ = -1;
 
-  /** This are the external shape param variables which means shape_param_ w/o fixed */
+  /** same as num_node_shape_params_ but based on opt_shape_param_ */
+  int num_node_opt_shape_params_ = -1;
+
+  /** This are the external shape param variables which means shape_param_ w/o fixed AND considering symmetry!
+   * @aee opt_sym_param_ */
   StdVector<ShapeParamElement*> opt_shape_param_;
+
+  /** This are pointers the matching symmetric elements for each opt_shape_param_ element. NULL if no symmetry applies! */
+  StdVector<ShapeParamElement*> opt_sym_param_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
@@ -272,6 +302,9 @@ protected:
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
   typedef enum { MAX, OPEN_SUM, TANH_SUM } Overlap;
 
+  /** no need for static */
+  Enum<Overlap> overlap;
+
   /** small helper for tanh_sum */
   struct TanhSum
   {
@@ -296,8 +329,6 @@ protected:
   } tanh_sum_;
 
 
-  /** no need for static */
-  Enum<Overlap> overlap;
 
   /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
   Overlap overlap_;
