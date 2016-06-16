@@ -35,6 +35,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
+#include <iomanip>
 
 using namespace CoupledField;
 
@@ -516,11 +517,10 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 
 double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
-  double dens = CalcAverageDensityAtNode(nodeId);
+  double dens = CalcAverageDensityAtNode(nodeId,false);
 
-  if (derivative) {
+  if (derivative)
     return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
-  }
   else
     return 4.0 *  dens * (1.0 - dens);
 }
@@ -534,28 +534,29 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
   //FIXME Assume design elements are all of the same type and application is HEAT
   TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
   lower = tf->Transform(data[0].GetLowerBound());
+  double den = 1.0 / (1.0 - lower);
 
   for (unsigned int index = 0; index < elems.GetSize(); index++)
   {
-    // s_i = 1/N_i \sum_{e \in N_i} (rho_e - rho_min) * (1+rho_min)
+    // s_i = 1/N_i \sum_{e \in N_i} [(rho_e - rho_min) / (1 - rho_min)]
     int design_index = Find(elems[index],false);
     if(design_index >= 0)
     {
       DesignElement& de = data[design_index];
 
-//      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * (1.0 + lower);
-      tmp += (de.GetDesign(DesignElement::SMART) - lower) * (1.0 + lower);
+      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
       found++;
 
-      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign() - lower) * (1.0 + lower);
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
     }
   }
 
   if(found == 0)
     EXCEPTION("CADAN: Node has no neighbor elements!!")
 
-  if (derivative)
-    return 1.0 / (double) found * (1.0 + lower);
+  if (derivative) {
+    return 1.0 / (double) found * den;
+  }
   else
     return tmp / (double) found;
 }

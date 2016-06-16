@@ -473,10 +473,10 @@ namespace CoupledField
       * index can be set for extended pde vector element solution storage. */
      unsigned int CalcPseudoDesignElements() const;
 
-     /** Helper function for state tracking (nodeId ist 1-based). Function: 4 * s * (1 - s), where s is the interpolated density at node with nodeId */
+     /** Helper function for state tracking (nodeId ist 1-based). Function: 4 * s * (1 - s), where s is the interpolated density at node with nodeId, elemId is necessary for derivative */
      double EvalInterfaceFunction(int nodeId, bool derivative = false);
 
-     /** Helper function for state tracking */
+     /** Helper function for state tracking; elemId is necessary for derivative */
      double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
 
      /** for heat optimization with interface function: this = load * temperate; load is normed to 1 */
