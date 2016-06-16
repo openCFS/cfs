@@ -43,7 +43,7 @@ namespace CoupledField
 
       StringLenght_[el] = 1;
       for ( UInt i=0; i<maxStringLength_; i++) {
-	strings_[el][i] = 0.0;
+        strings_[el][i] = 0.0;
       }
     }
 
@@ -64,7 +64,7 @@ namespace CoupledField
   Double Preisach::computeValue(Double& Xin, Integer idx, bool overwrite) 
   {
 
-    Vector<Double> &stringEl     = strings_[idx];
+    Vector<Double> &stringEl = strings_[idx];
     UInt& actLength = StringLenght_[idx];
 
     //normalize input
@@ -191,11 +191,11 @@ namespace CoupledField
     if ( overwrite ) {
       actLength = stringLength;
 
-      std::cout << "Print out entries of min/max list" << std::endl;
-      for ( UInt i=0; i<actLength; i++ ) {
-        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
-      }
-      std::cout << "#############" << std::endl;
+     // std::cout << "Print out entries of min/max list" << std::endl;
+//      for ( UInt i=0; i<actLength; i++ ) {
+//        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
+//      }
+     // std::cout << "#############" << std::endl;
 
       //compute preisach-sum
       preisachSum_[idx] =  everettPixel(-stringEl[0],stringEl[0]);
@@ -205,7 +205,14 @@ namespace CoupledField
       newY = preisachSum_[idx]; 
     }
     else {
-
+      /*
+       * shouldn't we start at idx=1 here as helpStringEl[0] = -stringEl[0], helpStringEl[1] = stringEl[0]
+       * by this we start with everettPixel(+stringEl[0],-stringEl[0])
+       * then add 2*everettPixel(-stringEl[0],+stringEl[0])
+       * ???
+       * -> No, see line 181 -> elements get shifted to the right by 1
+       *
+       */
       newY = everettPixel(-helpStringEl[0], helpStringEl[0]);
       for ( UInt i=0; i<stringLength-1; i++ ) {
         newY +=  2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);
@@ -225,7 +232,7 @@ namespace CoupledField
     UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
 
-    std::cout << "delta: " << delta << std::endl;
+  //  std::cout << "delta: " << delta << std::endl;
     //compute index for X1 (alpha)
     Integer idx1 = -1;
     Double alpha = -1.0;
@@ -251,8 +258,8 @@ namespace CoupledField
     // X1 >= X2
     // -> mit alpha_0 = beta_0 = -1 und gleichem delta -> idx1 >= idx2
 
-    std::cout << "idx1: " << idx1 << std::endl;
-    std::cout << "idx2: " << idx2 << std::endl;
+//    std::cout << "idx1: " << idx1 << std::endl;
+//    std::cout << "idx2: " << idx2 << std::endl;
 
     Double area = 0.0;
     if ( idx1 >= 0 ) {

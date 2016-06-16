@@ -50,7 +50,7 @@ public:
   void SetPreviousHystVals();
 
   //! Create for the vector case deltaMat from dX and dY
-  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat);
+  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat, UInt version, UInt idxElem);
 
   //! \see CoefFunction::ToString
   std::string ToString() const;
@@ -72,7 +72,7 @@ protected:
   void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y);
 
   //! compute X and Y vector for vector model
-  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y);
+  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y, bool overwrite);
 
   //! Constant initial value of the curve
   Double coefScalar_;
@@ -81,14 +81,29 @@ protected:
   Hysteresis * hyst_;
 
   //! previous Xval in hysteresis
+  //! -> this is the value of the last timestep (if any)
   Vector<Double> Xprevious_;
+
+  //! previous iteration value of hystersis
+  //! -> this is the value of the last iteration (if any)
+  //! -> needed to check if input has changed during iteration steps
+  //! -> if not -> avoid recomputation and return YpreviousIt_
+  Vector<Double> XpreviousIt_;
 
   //! previous Yal in hysteresis
   Vector<Double> Yprevious_;
 
+  Vector<Double> YpreviousIt_;
+
+  //! delta material tensor
+  //! new: extend to array of matrices so that we can store the old state of each element
+  Matrix<Double>* matDeltaTensor_;
+
   //! for vector version
   Vector<Double>* XpreviousVEC_;
+  Vector<Double>* XpreviousItVEC_;
   Vector<Double>* YpreviousVEC_;
+  Vector<Double>* YpreviousItVEC_;
 
   //! globale element to local element numbering
   std::map<UInt, UInt> globalElem2Local_;
@@ -108,9 +123,6 @@ protected:
   //! initial material tensor
   Matrix<Double> matTensorStart_;
 
-  //! delta material tensor
-  Matrix<Double> matDeltaTensor_;
-
   //! list of all elements
   shared_ptr<ElemList> SDList_;
 
@@ -128,6 +140,10 @@ protected:
   Double ySat_;
   Double rotRes_;
   Double rev_mat_fac_;
+
+  UInt evalVersion_;
+  UInt numRows_;
+  Double tol_;
 
 };
 

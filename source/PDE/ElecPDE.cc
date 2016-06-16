@@ -894,13 +894,13 @@ namespace CoupledField {
 
         curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
 
-        std::cout << "Using FixPoint Hystersis" << std::endl;
+        //std::cout << "Using FixPoint Hysteresis" << std::endl;
         std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
 
         isHysteresisFixPoint_ = true;
       } else {
 
-        std::cout << "Using DeltaMaterial Hystersis" << std::endl;
+        //std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
 
         curCoef = curCoef_tmp;
         isHysteresisFixPoint_ = false;
@@ -1077,7 +1077,7 @@ namespace CoupledField {
 	  feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
 
-  void ElecPDE::FinilizeAfterTimeStep() {
+  void ElecPDE::FinalizeAfterTimeStep() {
 
 	  //check for hysteresis
 	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {

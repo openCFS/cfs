@@ -1044,6 +1044,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
      do {
        iterationCounter++;
 
+       //std::cout << "Current iteration: " << iterationCounter << std::endl;
+
        // reset rhs
      //  RhsLinVal_.Init();
      //  algsys_->InitRHS(RhsLinVal_);
@@ -1177,7 +1179,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
      fncIt->second->GetTimeScheme()->FinishStep();
    }
 
-   PDE_.FinilizeAfterTimeStep();
+   PDE_.FinalizeAfterTimeStep();
   }
 
 

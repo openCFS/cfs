@@ -2,6 +2,7 @@
 #include "Vector.hh"
 #include "opdefs.hh"
 
+#include <fstream>
 #include <string>
 #include <cmath>
 #include <def_build_type_options.hh>
@@ -260,6 +261,205 @@ namespace CoupledField
 
     return os.str();
   }
+
+  /*
+    * NOTE: everything (more or less) taken from
+    * http://stackoverflow.com/questions/2654480/writing-bmp-image-in-pure-c-c-without-other-libraries
+    * (3.6.2016)
+    * Use upscale to output a 10x10 matrix as an (10*upscale)x(10*upscale) matrix
+    *
+    * Addition: reference to second matrix which deliveres information for the green channel
+    *
+    */
+    template<class TYPE>
+    void Matrix<TYPE>::matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel) {
+      EXCEPTION("Only implemented for matrices of type double");
+    }
+
+    /*
+     * Coloring of BMP:
+     *  negative values from -1 to 0 are mapped to red color with values from 255 to 0
+     *  positive values from 0 to 1 are mapped to blue color with values from 0 to 255
+     *
+     *  greenChannel > 0: set green channel to 255
+     *  greenChallen <= 0 or undefined: set green channel to 0
+     */
+   template<>
+   void Matrix<Double>::matrix2Bmp(UInt upscale, std::string filename,Matrix<Double>* greenChannel)
+   {
+     if(upscale == 0){
+       WARN("Upscaling has to be larger 0");
+       return;
+     }
+
+     /*
+      * Get width and height of matrix and upscale it to image size
+      */
+     //get dimension of matrix
+     UInt height = size_row_*upscale;
+     UInt width = size_col_*upscale;
+
+     bool setGreenChannel = false;
+     if(greenChannel != NULL){
+       if((size_row_ == greenChannel->GetNumRows())&&(size_col_ == greenChannel->GetNumCols())){
+         setGreenChannel = true;
+       }
+     }
+
+     /*
+      * Image lines in BMP have to be multiples of 4
+      * (*3 because of r g b values)
+      */
+     UInt padsize = (4-(width*3)%4)%4;
+     UInt datasize = (width*3 + padsize) * height;
+
+     /*
+      * header and info to be included in BMP files
+      */
+     unsigned char file[14] = {
+         'B','M', // magic
+         0,0,0,0, // size in bytes
+         0,0, // app data
+         0,0, // app data
+         40+14,0,0,0 // start of data offset
+     };
+     unsigned char info[40] = {
+         40,0,0,0, // info hd size
+         0,0,0,0, // width
+         0,0,0,0, // heigth
+         1,0, // number color planes
+         24,0, // bits per pixel
+         0,0,0,0, // compression is none
+         0,0,0,0, // image bits size
+         0x13,0x0B,0,0, // horz resoluition in pixel / m
+         0x13,0x0B,0,0, // vert resolutions (0x03C3 = 96 dpi, 0x0B13 = 72 dpi)
+         0,0,0,0, // #colors in pallete
+         0,0,0,0, // #important colors
+         };
+
+     UInt totalsize = datasize + sizeof(file) + sizeof(info);
+
+     /*
+      * split all informations into chunks of 1 byte
+      */
+     file[ 2] = (unsigned char)( totalsize    );
+     file[ 3] = (unsigned char)( totalsize>> 8);
+     file[ 4] = (unsigned char)( totalsize>>16);
+     file[ 5] = (unsigned char)( totalsize>>24);
+
+     info[ 4] = (unsigned char)( width   );
+     info[ 5] = (unsigned char)( width>> 8);
+     info[ 6] = (unsigned char)( width>>16);
+     info[ 7] = (unsigned char)( width>>24);
+
+     info[ 8] = (unsigned char)( height    );
+     info[ 9] = (unsigned char)( height>> 8);
+     info[10] = (unsigned char)( height>>16);
+     info[11] = (unsigned char)( height>>24);
+
+     info[20] = (unsigned char)( datasize    );
+     info[21] = (unsigned char)( datasize>> 8);
+     info[22] = (unsigned char)( datasize>>16);
+     info[23] = (unsigned char)( datasize>>24);
+
+     /*
+      * get output stream
+      */
+     std::ofstream outfile;
+     outfile.open(filename.c_str(),std::ofstream::binary);
+
+     if(!outfile.is_open()){
+       WARN("Could not open output file!")
+       return;
+     }
+
+     outfile.write( (char*)file, sizeof(file));
+     outfile.write( (char*)info, sizeof(info));
+
+     unsigned char pad[3] = {0,0,0};
+
+     UInt idx, idy;
+
+     /*
+      * BMP is stored upside down from right to left
+      */
+     //for ( UInt y=height-1; y>0; y-- )
+     for ( UInt y=0; y<height; y++ )
+     {
+       //idy = height/upscale-1 - ceil(y/upscale);
+       idy = ceil(y/upscale);
+       for ( UInt x=0; x<width; x++ )
+       {
+         //idx = width/upscale-1 - ceil(x/upscale);
+         idx = ceil(x/upscale);
+
+         //std::cout << "x, idx: " << x << ", " << idx << std::endl;
+         //std::cout << "y, idy: " << y << ", " << idy << std::endl;
+
+         /*
+          * Positive values -> blue
+          * Negative values -> red
+          */
+         long red, green, blue;
+//         red = lround( -255.0 * data_[idx][idy] );
+//         if ( red < 0 ) red=0;
+//         if ( red > 255 ) red=255;
+//         green = 0;
+//         blue = lround( 255.0 * data_[idx][idy] );
+//         if ( blue < 0 ) blue=0;
+//         if ( blue > 255 ) blue=255;
+//         red = 0;
+//         green = 0;
+
+
+         if(data_[idy][idx]<= 0){
+           red = lround( -255.0 * data_[idy][idx] );
+           if ( red < 0 ) red=0;
+           if ( red > 255 ) red=255;
+           green = 0;
+           blue = 0;
+         } else {
+           blue = lround( 255.0 * data_[idy][idx] );
+           if ( blue < 0 ) blue=0;
+           if ( blue > 255 ) blue=255;
+           red = 0;
+           green = 0;
+         }
+
+         if(setGreenChannel){
+           /*
+            * color only every second pixel (otherwise the figures will have
+            * eye-aching colors
+            */
+           if((x+y)%2 == 0){
+             if((*greenChannel)[idy][idx] > 0){
+               /*
+                * if we have a positive value of green channel, set green to max of blue and red
+                * (otherwise poorly red/blue regions will be only green)
+                */
+               green = std::max(blue,red);
+             } else {
+               green = 0;
+             }
+           } else {
+             green = 0;
+           }
+           //if ( green > 0 ) green=255;
+           //if ( green < 0 ) green=0;
+         }
+
+         unsigned char pixel[3];
+         pixel[0] = blue;
+         pixel[1] = green;
+         pixel[2] = red;
+
+         outfile.write( (char*)pixel, 3 );
+       }
+       outfile.write( (char*)pad, padsize );
+     }
+
+     outfile.close();
+   }
 
   template<>
   void Matrix<Integer>::PerformRotation( const Matrix<Double>& R,  Matrix<Integer>& retMat ) const {
@@ -1058,10 +1258,10 @@ namespace CoupledField
 
     Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
     const Vector<TYPE> & b = dynamic_cast<const Vector<TYPE>& >(b1);
-    
+
     Integer nmat = size_row_-1;
     Integer i, j, k, k1;
-    
+
     //  the Gauss elimination 
     for(k = 0; k < nmat; ++k)
     {
@@ -1084,8 +1284,6 @@ namespace CoupledField
     }
 
     // solve Ly = b by forward substitution 
-
-   
     Vector<TYPE> y(b.GetSize());
 
     for (i=0; i<=nmat; ++i)
@@ -1924,19 +2122,21 @@ namespace CoupledField
     return true;
   }
 
-  template<class TYPE>
-  bool Matrix<TYPE>::IsSymmetric(double eps) const
-  {
-    if(!IsQuadratic())
-      return false;
-
-    for(UInt i = 1; i < size_row_; ++i)
-      for(UInt j = i+1; j < size_col_; ++j)
-        if(!close(data_[i][j], data_[j][i]))
-          return false;
-
-    return true;
-  }
+  // Putted into header
+//
+//  template<class TYPE>
+//  bool Matrix<TYPE>::IsSymmetric(double eps) const
+//  {
+//    if(!IsQuadratic())
+//      return false;
+//
+//    for(UInt i = 1; i < size_row_; ++i)
+//      for(UInt j = i+1; j < size_col_; ++j)
+//        if(!close(data_[i][j], data_[j][i]))
+//          return false;
+//
+//    return true;
+//  }
 
   template<class TYPE>
   TYPE Matrix<TYPE>::NormL2() const

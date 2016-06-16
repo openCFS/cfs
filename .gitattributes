@@ -1883,6 +1883,8 @@ source/Materials/Models/SimplePreisachInv.cc -text
 source/Materials/Models/SimplePreisachInv.hh -text
 source/Materials/Models/VectorPreisach.cc -text
 source/Materials/Models/VectorPreisach.hh -text
+source/Materials/Models/VectorPreisachv7.cc -text
+source/Materials/Models/VectorPreisachv7.hh -text
 source/Materials/PiezoMaterial.cc -text
 source/Materials/PiezoMaterial.hh -text
 source/Materials/TestMaterial.cc -text

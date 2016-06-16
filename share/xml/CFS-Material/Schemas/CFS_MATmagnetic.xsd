@@ -224,10 +224,12 @@
       <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
       <xsd:element name="preisachDim"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="rotRes"  type="xsd:double" minOccurs="0"/>
+      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="isTesting"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="weights">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="5000"/>
+            <xsd:maxLength value="1000000"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 

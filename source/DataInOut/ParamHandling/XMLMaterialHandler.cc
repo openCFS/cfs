@@ -835,8 +835,23 @@ namespace CoupledField {
           material->SetScalar("SCALAR", PREISACH_DIM);
         }
 
-        if(p->Has("rotRes"))
+        if(p->Has("rotRes")){
           material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(4, EVAL_VERSION);
+        }
+
+        if(p->Has("isTesting")){
+          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+        } else {
+          material->SetScalar(0, IS_TESTING);
+        }
 
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
@@ -1120,8 +1135,23 @@ namespace CoupledField {
           material->SetScalar("SCALAR", PREISACH_DIM);
         }
 
-        if(p->Has("rotRes"))
+        if(p->Has("rotRes")){
           material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(4, EVAL_VERSION);
+        }
+
+        if(p->Has("isTesting")){
+          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+        } else {
+          material->SetScalar(0, IS_TESTING);
+        }
 
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;

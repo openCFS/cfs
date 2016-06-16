@@ -174,6 +174,60 @@
  *        else
  *          --> should not occur
  *
+ * 5. EXTENSION:
+ *      Due to the new concept, we are able to change the switching operators independently of the discretization delta
+ *      of the Preisach plane. However, the rotation operators remained discrete. In case of small input signals this may
+ *      lead to problems again as the elements on the line alpha = -beta are initialized with a rotation direction of (0,0,0).
+ *      Only if the input becomes large enough to overcome the threshold of the elements on this line, these elements will
+ *      contribute to the result. This switch will always occur as a jump in the ouput signals as suddenly a whole new
+ *      element is added to the output sum.
+ *
+ *      Suggestion:
+ *        Instead of rapidly switching the rotation operators from its old value to the new value, we make some sort of
+ *        linear interpolation, thus allowing "microrotations":
+ *
+ *      Original version:
+ *        rot =
+ *        a  e_u       if uthres > alpha or uthres < beta
+ *        b  rot_old   else
+ *
+ *                  alpha
+ *           ________|__________
+ *          |bbbb¦aaa|aaaaaaaa/
+ *          |bbbb¦aaa|aaaaaa/
+ *          |----+---|----/ uthres
+ *          |aaaa¦aaa|aa/
+ *          |aaaa¦aaa|/_________ beta
+ *          |aaaa¦aa/
+ *          |aaaa¦/
+ *          |aaa/ -uthres
+ *          |a/
+ *          /
+ *
+ *      Suggested version:
+ *      a if uthres > alpha+delta -> e_u
+ *        else
+ *      b   if -ut < beta -> e_u
+ *          else
+ *      c     if ut > alpha and ut < alpha+delta -> lin interpolation
+ *            else
+ *      d       if -ut > beta and -ut < beta+delta -> lin interpolation
+ *      e       else rot_old
+ *
+ *
+ *                  alpha
+ *           ________|__________
+ *          |eeee¦d!b|bbbbbbbb/     # -> e_u
+ *          |eeee¦d!b|bbbbbb/
+ *          |----+---|----/ uthres
+ *          |cccc¦c!b|bb/
+ *          |====¦=!b|/_________ beta
+ *          |aaaa¦aa/
+ *          |aaaa¦/
+ *          |aaa/ -uthres
+ *          |a/
+ *          /
+ *
  */
 /*! \brief Conventions
  *
@@ -187,35 +241,129 @@
 
 namespace CoupledField {
 
+  class ListEntryOld
+  {
+  public:
+
+    ListEntryOld(Double value, Vector<Double> vector, bool isMin, bool isDummy = false){
+      val_ = value;
+      vec_ = vector;
+      isMin_ = isMin;
+      isDummy_ = isDummy;
+    }
+    ~ListEntryOld(){
+    }
+
+    bool isMin(){
+      return isMin_;
+    }
+
+    bool isDummy(){
+      return isDummy_;
+    }
+
+    void toggleMin(){
+      isMin_ = !isMin_;
+    }
+
+    void setVal(Double newValue){
+      val_ = newValue;
+    }
+
+    void setVec(Vector<Double> newVector){
+      vec_ = newVector;
+    }
+
+    Double getVal(){
+      return val_;
+    }
+
+    Vector<Double> getVec(){
+      return vec_;
+    }
+
+    std::string ToString() const {
+
+      std::ostringstream os;
+
+      os << "Value: " << val_ << '\n';
+      os << "Vector: " << vec_.ToString() << '\n';
+      os << "IsMin?: " << bool(isMin_) << '\n';
+
+      return os.str();
+    }
+
+  private:
+
+    Double val_;
+    Vector<Double> vec_;
+    bool isMin_;
+    bool isDummy_;
+
+  };
+
+
   class VectorPreisach : public Hysteresis
   {
   public:
     //! constructor
     VectorPreisach(Integer numElem, Double xSat, Double ysat,
-	     Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin);
+	     Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+	     bool isTesting = false, UInt evalVersion = 4);
 
     //! destructor
     virtual ~VectorPreisach();
 
-    //! update rotational Weights
-    void updateRotationalWeights(Vector<Double>& Xin, Integer idx);
-
-    //! update switching Operators; has to be called after updateRotationalWeights!
-    void updateSwitchingOperators(Vector<Double>& Xin, Integer idx);
-
-    //! evaluates the min/max list to compute the value of Preisach element alpha,beta of FE element idx
-    Double evaluatePreisachElementValue(Double alpha,Double beta,UInt idx);
-
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem);
 
     //! returns the current output of the hyst-operator for element idxElem
-    Vector<Double> getValue_vec(Integer idxElem);
+    Vector<Double> getValue_vec(Integer idElem);
 
-    //! Updates the min and max maps for microswitching
-    void updateMinMax(Double xPar, Double alphaMax, Double betaMin, UInt idxElem);
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
 
   private:
+
+    //! initialize lists
+    void Initialize_MinMaxList(std::list<ListEntryOld>& list, Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta);
+
+    void Initialize_RotList(std::list<ListEntryOld>& list, Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta);
+
+    // calculate overlapping area of two rectangles; returns true if overlap exists
+    bool clipRectangles(Double t1, Double b1, Double l1, Double r1, Double t2, Double b2, Double l2, Double r2, Double& tRet, Double& bRet, Double& lRet, Double& rRet);
+
+    Double getRectangleBounds(std::list<ListEntryOld>& list,std::list<ListEntryOld>::iterator startIt, std::list<ListEntryOld>::iterator endIt,
+                            Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta, UInt idArea,
+                            bool isTriangle, bool isRot,
+                            Double& tRet, Double& bRet, Double& lRet, Double& rRet);
+
+    //! function used to update
+    //!     1. list of rotation operators for the evaluation of the current orientation of each element
+    //!     2. list of minima and maxima of xPar which gets used to calculate the value of the switching operator
+    //!
+    //! input
+    //!     case 1: x = xthres, xVec = e_u, (alpha,beta) = coordinates of the bottom left corner of the current Preisach element
+    //!             list = reference to preRotVecs_[idxElem][idAlpha][idBeta]
+    //!     case 2: x = xPar (uncut), xVec = /, (alpha,beta) as above, list = reference to preMinMaxVals_[idxElem][idAlpha][idBeta]
+    //!
+    //! (idElem,idAlpha and idBeta are determined in the calling function)
+    void UpdateList(std::list<ListEntryOld>& list, Double newEntry, Vector<Double> newVecEntry, Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta, bool isRot);
+
+    //! Write out list
+    void outputList(std::list<ListEntryOld>& list,bool isRot);
+
+    //! function used to calculate
+    //!     1. averaged orientation of element with coordinates (alpha,beta) from updated list preRotVecs_[idxElem][idAlpha][idBeta]
+    //!     2. averaged switching value of element with coords. (alpha,beta) from updated list preMinMaxVals_[idxElem][idAlpha][idBeta]
+    void EvaluatePreisachElement(std::list<ListEntryOld>& list, Double& retVal, Vector<Double>& retVec,
+                                 Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta, bool isRot);
+    void EvaluatePreisachElement_v2(std::list<ListEntryOld>& list, Double& retVal, Vector<Double>& retVec,
+                                    Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta, bool isRot);
+    void EvaluatePreisachElement_v3(std::list<ListEntryOld>& listl, Double& retVal, Vector<Double>& retVec,
+                                    Double alpha, Double beta, UInt idElem, UInt idAlpha, UInt idBeta, bool isRot);
+    //! No retVal needed here, as retVec is already the fully computed element vector; isRot is not needed either as we treat both lists at the same time
+    void EvaluatePreisachElement_v4(std::list<ListEntryOld>& rotList, std::list<ListEntryOld>& minMaxList,Double& retVal,Vector<Double>& retVec,
+                                    Double alpha, Double beta,UInt idElem, UInt idAlpha, UInt idBeta);
 
     /*!
      * Global quantities, i.e. the same for all FE elements of the same material
@@ -229,21 +377,28 @@ namespace CoupledField {
     bool isVirgin_; //! yes, if starting at zero; currently flag is unused
 
     UInt dim_; //! 2D or 3D (axi not tested at all!)
+    UInt numElem_; //! total number of FE elements
     UInt numRows_; //! number of rows of the Preisach plane
 
     Double delta_; //! resolution of Preisach plane
+    Double tol_; //! tolerance for all kind of comparisons
 
+    /*!
+     * Debugging quantities
+     */
+    Double evalVersion_;
     bool isTesting_; //! if true, rotationalWeigts will be initialized in +y direction and their update is deactivated
+    Vector<Double> rotStateTesting_;
 
     /*!
      * Local quantities, i.e. arrays storing different values for each FE element
      */
     Vector<Double>* preisachSum_; //! output value of Preisach operator
-    Matrix<Double>* rotationalWeightsX_; //! rotational operator, x-component
-    Matrix<Double>* rotationalWeightsY_; //! rotational operator, y-component
-    Matrix<Double>* rotationalWeightsZ_; //! rotational operator, z-component ( for 3D )
-    Matrix<Double>* switchingStates_; //! current state of the switching operators
-    Matrix<Double>* oldXpar_; //! stores for each element of the preisach plane the value of xPar from the last calculation step
+
+    Matrix<Double>* oldXpar_; //! stores for each element of the Preisach plane the value of xPar from the last calculation step
+    Matrix<Double>* switchingStates_; //! stores the current switching state
+    Vector<Double>*** rotationStates_; //! stores the current rotation state
+    Vector<Double>*** evaluatedState_; //! stores the completely evaluated element state here (for version 4)
 
     bool** wipedOut_; //! this array is for the elements on line alpha = -beta (center coordinates here)
     //! these elements need a special treatment as they are split along the diagonal alpha = -beta in +1/-1 which
@@ -257,24 +412,29 @@ namespace CoupledField {
      *    -> give out a warning; error is hopefully not too large
      */
 
-    bool* rotationalWeightsUpdated_; //! flag denoting if rotationalWeights have already been updated
-    bool* switchingStatesUpdated_; //! flag denoting if switchingstates have already been updated
-
-    //! for each FE element we need to know for each Preisach element if it was initialized with a min or a max
-    bool*** firstMin_;
-
     //! for each FE element we need for each Preisach element a list of min and max values
-    //! Importante note: it seems not possible to use our own vector class in combination with std::vector
+    //! Important note: it seems not possible to use our own vector class in combination with std::vector
     //! -> Matrices will have no entries, segfaults, etc
-    std::list<Double>*** preMinMaxValues_;
+    std::list<ListEntryOld>*** preMinMaxValues_;
+    std::list<ListEntryOld>*** preRotValues_;
 
     //! flag checking if the min/max list has changed; if not, the switching value will also be the same so we do not
     //! need to recompute it
     bool*** preMinMaxChanged_;
+    bool*** preRotChanged_;
+
+    //! for optimized version
+    //! according to the original vector model, the lower triangle part (alpha <= 0) always has a
+    //! switching state of +1
+    //! reason: the rotation state in the lower triangle will be set to e_u in each iteration, as xThres >= 0
+    //! the scalar product of u_in with its direction e_u will give the length of u_in which has to be >= 0
+    //! -> the lower triangluar area has always a switching state of +1 in each element, such that we just once
+    //! have to sum up all weights in this region; this value is then multiplied with the current e_u vector in each
+    //! iteration
+    Double lowerTriangleValue_;
+
 
   };
-
-
 } //end of namespace
 
 
