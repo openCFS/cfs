@@ -473,24 +473,25 @@ namespace CoupledField{
         lambCoef_->AddRegion( actRegion, regionLamb );
 
 
-        // =====================================
-        //  lamb vector RHS e.g. for aeroacoustics (LINEAR FORM)
-        // =====================================
-        BaseBDBInt* rhsBilin = NULL;
-        rhsBilin = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-            new GradientOperator<FeH1,2>(),
-            coeffM, 1.0, updatedGeo_);
-        rhsBilin->SetName("RHSAsymBiliniar form for KX");
-
-        LinearForm* rhsLinForm = new KRhsIntegrator<Double>(rhsBilin, 1.0, feFunctions_[formulation_], lambCoef_ );
-        //rhsLinForm->SetName("RHSNonLinForm");
-        rhsLinForm->SetSolDependent();
-        // Set explicitly the solution dependency
-        LinearFormContext * rhsLinContext =
-            new LinearFormContext( rhsLinForm );
-        rhsLinContext->SetEntities( actSDList );
-        rhsLinContext->SetFeFunction( feFunctions_[formulation_] );
-        assemble_->AddLinearForm( rhsLinContext );
+//        // =====================================
+//        //  lamb vector RHS e.g. for aeroacoustics (LINEAR FORM)
+//        // =====================================
+//        BaseBDBInt* rhsBilin = NULL;
+//        rhsBilin = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+//            new GradientOperator<FeH1,2>(),
+//            coeffM, 1.0, updatedGeo_);
+//        rhsBilin->SetName("RHSAsymBiliniar form for KX");
+//        rhsBilin->SetFeSpace( feFunctions_[formulation_]->GetFeSpace(),feFunctions_[formulation_]->GetFeSpace());
+//
+//        LinearForm* rhsLinForm = new KRhsIntegrator<Double>(rhsBilin, 1.0, feFunctions_[formulation_], lambCoef_ );
+//        rhsLinForm->SetName("RHSLinForm");
+////        rhsLinForm->SetSolDependent();
+//        // Set explicitly the solution dependency
+//        LinearFormContext * rhsLinContext =
+//            new LinearFormContext( rhsLinForm );
+//        rhsLinContext->SetEntities( actSDList );
+//        rhsLinContext->SetFeFunction( feFunctions_[formulation_] );
+//        assemble_->AddLinearForm( rhsLinContext );
 
 
 

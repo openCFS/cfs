@@ -370,7 +370,11 @@ public:
     EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
     return;
   }
-
+  //! sets the derivative modification to the coefFunction
+  virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
+    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    return;
+  }
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
   // ======================================================================

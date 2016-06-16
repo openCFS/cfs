@@ -621,8 +621,10 @@ namespace CoupledField{
     PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
     DefineFieldResult( lambVec, lamb );
 
-
-//    //divLamb
+// COPY constructor problem
+    // #1 möchte gerne Lamb vector als ergebnis
+    // #2 muss ich nach set derivative noch was amchen?
+    //divLamb
 //    shared_ptr<ResultInfo> divLamb( new ResultInfo);
 //    divLamb->resultType = SPLIT_DIVLAMB;
 //    divLamb->dofNames = "";
@@ -631,9 +633,12 @@ namespace CoupledField{
 //    divLamb->definedOn = ResultInfo::NODE;
 //    divLamb->entryType = ResultInfo::SCALAR;
 //
-//    PtrCoefFct divLambVec; // TODO replace by KXInt
-//    divLambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
-//    DefineFieldResult( divLambVec, lamb );
+//    PtrCoefFct divLambVec;
+//    divLambVec = lambVec;  // TODO ... copy constructor coeffunction
+//    UInt gDim = this->domain_->GetGrid()->GetDim();
+//    UInt dDim = lamb->dofNames.GetSize();
+//    divLambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE,gDim,dDim);
+//    DefineFieldResult( divLambVec, divLamb );
 
 
   }
