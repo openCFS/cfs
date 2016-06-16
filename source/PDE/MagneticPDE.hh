@@ -121,7 +121,7 @@ namespace CoupledField
     //! flag for magn_strict coupling
     bool isMagnetoStrictCoupled_;
 
-    void FinilizeAfterTimeStep();
+    void FinalizeAfterTimeStep();
 
   };
 

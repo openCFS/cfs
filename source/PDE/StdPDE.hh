@@ -179,8 +179,8 @@ namespace CoupledField {
       return feFunctions_[st]->GetResultInfo()->dofNames;
     }
 
-    virtual void FinilizeAfterTimeStep() {
-    	EXCEPTION("FinilizeAfterTimeStep has to be implemented for specific PDE");
+    virtual void FinalizeAfterTimeStep() {
+    	EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
     }
 
     virtual void FinilizeBeforTimeStep() {

@@ -13,6 +13,7 @@
 
 #include "Materials/Models/Preisach.hh"
 #include "Materials/Models/VectorPreisach.hh"
+#include "Materials/Models/VectorPreisachv7.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -727,9 +728,19 @@ namespace CoupledField
       } else if(dim > 1 && dim <= 3){
 
         Double rotationalResistance = 1.0;
-        //material->GetScalar(rotationalResistance, ROT_RESISTANCE);
+        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
 
-        hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin);
+        int evalVersion;
+        GetScalar(evalVersion, EVAL_VERSION);
+
+        int isTesting;
+        GetScalar(isTesting, IS_TESTING);
+
+        if(evalVersion == 7){
+          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+        } else {
+          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+        }
       }
 
 

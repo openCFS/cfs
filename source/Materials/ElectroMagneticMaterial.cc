@@ -46,6 +46,8 @@ namespace CoupledField
     isAllowed_.insert( K_JILES );
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
+    isAllowed_.insert( EVAL_VERSION );
+    isAllowed_.insert( IS_TESTING );
     isAllowed_.insert( PREISACH_DIM );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );

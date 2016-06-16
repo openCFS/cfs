@@ -4,6 +4,7 @@
 #include <string>
 #include "General/defs.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
 
@@ -79,6 +80,14 @@ namespace CoupledField {
     virtual Double EvalEverett(Double x1, Double x2, Integer idx ) {
       EXCEPTION( " EvalEverett not implemented in base-Class" );
       return 0.0;
+    };
+
+    virtual void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem,bool overLayWithRotState = false){
+      EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
+    };
+
+    virtual void rotationStateToBmp(UInt numPixel, std::string filename, UInt idElem){
+      EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
     };
 
   protected:

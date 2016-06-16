@@ -1645,7 +1645,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
   }
   
-  void MagneticPDE::FinilizeAfterTimeStep() {
+  void MagneticPDE::FinalizeAfterTimeStep() {
 
 	  //check for hysteresis
 	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {

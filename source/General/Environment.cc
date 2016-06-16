@@ -1581,6 +1581,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
+    MaterialTypeEnum.Add( IS_TESTING, "isTesting" );
+    MaterialTypeEnum.Add( EVAL_VERSION, "evalVersion" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
