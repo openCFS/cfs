@@ -551,7 +551,8 @@ void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>&
 
   X = elemSol;
 
-  Vector<Double> tmp = X - XpreviousItVEC_[idx];
+  Vector<Double> tmp = X;
+  tmp -= XpreviousItVEC_[idx];
   //std::cout << "Normdiff to old input: " << tmp.NormL2() << std::endl;
   if(tmp.NormL2() < tol_){
     //std::cout << "tmp.NormL2() < tol_ -> reuse last state!" << std::endl;
