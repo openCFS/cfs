@@ -644,6 +644,7 @@
       <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="heatMeanTemperature"/>
       <xsd:enumeration value="splitLamb"/>
+      <xsd:enumeration value="splitDivLamb"/>
     </xsd:restriction>
   </xsd:simpleType>
 

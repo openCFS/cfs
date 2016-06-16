@@ -309,6 +309,30 @@ UpdateXpr( const LocPointMapped& lpm ) {
 
 
 // ===========================================================================
+//  Complex/Double VALUED COEFFICIENT FUNCTION
+// ===========================================================================
+void CoefFunctionCompound<Double>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+  if(spaceDim != dofDim)
+    EXCEPTION("CoefFunctionCompound<Double>: Divergence need vectorial data!");
+
+  if(spaceDim == 2)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,Double>());
+  else if(spaceDim == 3)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,Double>());
+}
+
+void CoefFunctionCompound<Complex>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+  if(spaceDim != dofDim)
+    EXCEPTION("CoefFunctionCompound<Complex>: Divergence need vectorial data!");
+
+  if(spaceDim == 2)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,Complex>());
+  else if(spaceDim == 3)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,Complex>());
+}
+// ===========================================================================
 //  Complex VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 
@@ -660,7 +684,6 @@ UpdateXpr( const LocPointMapped& lpm ) {
     
   }
 }
-
 
 } // end of namespace
 

@@ -1247,7 +1247,7 @@ namespace CoupledField
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
       if( actContext.IsNonLin() != nonLin ){
-        continue;
+        continue; //TODO: uncomment this
       }
       LinearForm* form = actContext.GetIntegrator();
 

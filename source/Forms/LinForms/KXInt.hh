@@ -67,42 +67,42 @@ namespace CoupledField{
 
 
 
-  template< class VEC_DATA_TYPE=Double>
-  class KRhsIntegrator : public KXIntegrator<VEC_DATA_TYPE>{
-  public:
-
-    //! Constructor
-    KRhsIntegrator( BiLinearForm * biLinForm,
-                  VEC_DATA_TYPE factor,
-                  shared_ptr<BaseFeFunction> feFct,
-                  shared_ptr<CoefFunction > rhsCoefs );
-
-    //! Copy constructor
-    KRhsIntegrator(const KRhsIntegrator& right );
-
-    //! \copydoc LinearForm::Clone
-    KRhsIntegrator* Clone(){
-      return new KRhsIntegrator( *this );
-    }
-
-    //! Destructor
-    ~KRhsIntegrator(){
-    }
-
-    //! Calculate element vector
-    void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
-
-    //! \copydoc LinearForm::IsSolDependent
-    bool IsSolDependent() {
-      return true;
-    }
-
-  protected:
-
-    //! Coeffunction
-    shared_ptr<CoefFunction > rhsCoefs_;
-
-  };
+//  template< class VEC_DATA_TYPE=Double>
+//  class KRhsIntegrator : public KXIntegrator<VEC_DATA_TYPE>{
+//  public:
+//
+//    //! Constructor
+//    KRhsIntegrator( BiLinearForm * biLinForm,
+//                  VEC_DATA_TYPE factor,
+//                  shared_ptr<BaseFeFunction> feFct,
+//                  shared_ptr<CoefFunction > rhsCoefs );
+//
+//    //! Copy constructor
+//    KRhsIntegrator(const KRhsIntegrator& right );
+//
+//    //! \copydoc LinearForm::Clone
+//    KRhsIntegrator* Clone(){
+//      return new KRhsIntegrator( *this );
+//    }
+//
+//    //! Destructor
+//    ~KRhsIntegrator(){
+//    }
+//
+//    //! Calculate element vector
+//    void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
+//
+//    //! \copydoc LinearForm::IsSolDependent
+//    bool IsSolDependent() {
+//      return false;
+//    }
+//
+//  protected:
+//
+//    //! Coeffunction
+//    shared_ptr<CoefFunction > rhsCoefs_;
+//
+//  };
 
 }
 //Include template definition file
