@@ -5,44 +5,20 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 #
 #-----------------------------------------------------------------------------
-# Include general variables for all tests on the machine
-# It the file 'site_specific_vars.cmake' does not exist the following variables must be set:
-# NIGHTLY_TESTSUITE_DIR
-# NIGHTLY_CACHE_DIR
-# NIGHTLY_SOURCE_DIR
-# NIGHTLY_BUILD_DIR
+# Do the stuff common for all tests on this machine
 #-----------------------------------------------------------------------------
-set(SITE_SPECIFIC_VARS "${CMAKE_CURRENT_LIST_DIR}/site_specific_vars.cmake")
-if(EXISTS "${SITE_SPECIFIC_VARS}")
-  include("${SITE_SPECIFIC_VARS}")
-endif(EXISTS "${SITE_SPECIFIC_VARS}")
+include("${CMAKE_CURRENT_LIST_DIR}/site_macros.cmake")
+INIT_TEST()
 
-#-----------------------------------------------------------------------------
-# Set source & binary directories on the machine
-# We take the name of this file and append it to NIGHTLY_BUILD_DIR
-#-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "${NIGHTLY_SOURCE_DIR}")
-get_filename_component(FNAME "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
-set(CTEST_BINARY_DIRECTORY "${NIGHTLY_BUILD_DIR}/${FNAME}") 
-
-#-----------------------------------------------------------------------------
-# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
-#-----------------------------------------------------------------------------
-INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
-# Identify distro.
-IDENTIFY_DISTRO()
-# write ctest config
-WRITE_CTEST_CONFIG()
-# set ctest & cmake commands to the executables corresponding to the one used to run this script.
-SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
-
-#-----------------------------------------------------------------------------
+##############################################################################
+#
 # Define what is beeing tested (compiler & config)
-# Enter the following values into the initial cache ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt 
-# before starting the configure run. Adapt to test specific configs. All non-standard
-# configs should be represented in the build name, e.g. Trunk DISABLE_OPTIMIZATION UBUNTU ...
-#-----------------------------------------------------------------------------
+#
+#  * Adapt here to define specific configs
+#  * All non-standard configs should be represented in the build name,
+#    e.g. Trunk DISABLE_OPTIMIZATION UBUNTU ...
+#
+##############################################################################
 
 # set the compiler environment
 SET_COMPILER_ENV("GCC")
@@ -67,28 +43,6 @@ SET(CTEST_INITIAL_CACHE
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
 #-----------------------------------------------------------------------------
-# Start the Update, Configure, Build and Testing
+# Update, Configure, Build & Test
 #-----------------------------------------------------------------------------
-message("Start dashboard...")
-set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
-# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-ctest_start(Nightly)
-
-message("  Update")
-ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-
-message("  Configure")
-file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
-# some configurations require to repeat the same ctest_configure() command
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Build")
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Submit")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
+DO_TESTING()
