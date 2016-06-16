@@ -473,12 +473,14 @@ ctest_scripts/sites/sles11/Vagrantfile -text
 ctest_scripts/sites/sles11/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/sles11/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/sles11/site_specific_vars.cmake -text
+ctest_scripts/sites/test-ubuntu14/deploy_draco.cmake -text
 ctest_scripts/sites/test-ubuntu14/generate_test_name_list.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release.ctest -text
-ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release_deploy.ctest -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release.ctest -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-opt_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/site_macros.cmake -text
 ctest_scripts/sites/test-ubuntu14/site_specific_vars.cmake -text
