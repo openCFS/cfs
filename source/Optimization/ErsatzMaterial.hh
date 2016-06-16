@@ -443,9 +443,9 @@ private:
    *  run over all neighbor nodes of design de
    *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param function f */
-  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f);
+  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
 
-  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, const DesignElement* de, Vector<T>& in_out);
+  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
