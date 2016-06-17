@@ -99,7 +99,7 @@ public:
   static Enum<Symmetry> symmetry;
 
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
-  BaseDesignElement::Type Convert(Type type) const;
+  static BaseDesignElement::Type Convert(Type type);
 
   /** convert "x" to 0 and "y" to 1 */
   static int Dof(const std::string& str);
@@ -116,12 +116,26 @@ public:
     void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node = NULL);
     void ToInfo(PtrParamNode pn);
 
+    /** has this shape any kind of symmetry element? An sym_induced shape must not be asked */
+    bool HasSymmetry() const;
+
+    /** indicate the symmetry data that an additional shape shall be induced? */
+    bool ShallInduceSymmetryShape() const;
+
+    /** for debug purpose */
+    std::string ToString() const;
+
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -1;
     int dof = -1; // x =0, y = 1, z = 2,
     double lower = -1.0;
     double upper = -1.0;
     double value = -1.0; // initial or fixed
+
+    /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
+    double max = 1.0; // fixme an make it smart
+
+    /** subject to optimization or fixed */
     bool fixed = false;
 
     /** this stores the reference to shape_param_ */
@@ -138,7 +152,14 @@ public:
     /** the orientiation of the shape is in 2D the complementary */
     int orientation = -1;
 
-    Symmetry sym = NONE;
+    /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
+     * additional shape */
+    Symmetry x_sym = NONE;
+    Symmetry y_sym = NONE;
+
+    /** a shape with dof x and x_symmetry mirror means that an additional mirror induced shape needs to be inserted.
+     * This bool indicates if this shape is such a mirror induced shape */
+    bool sym_induced = false;
   };
 
 protected:
@@ -166,7 +187,7 @@ protected:
   unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
 
   /** Search in shape_ */
-  StdVector<ShapeParam*> FindShape(Type type, int dof);
+  StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, int dof);
 
   /** search for the corresponding shape */
   ShapeParam* FindShape(const ShapeParamElement* spe);
@@ -247,8 +268,31 @@ protected:
    * @aee opt_sym_param_ */
   StdVector<ShapeParamElement*> opt_shape_param_;
 
-  /** This are pointers the matching symmetric elements for each opt_shape_param_ element. NULL if no symmetry applies! */
-  StdVector<ShapeParamElement*> opt_sym_param_;
+  /** symmetry means that fever data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
+   * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
+  struct SymmetryMapping
+  {
+    /** short cut to check if we have any symmetry */
+    bool HasSymmetry() const { return map != NULL || mirror != NULL; }
+
+    /** apply the value for the opt element to the symmetry elements considering all special cases */
+    void ApplyDesign(ShapeParam& shape, ShapeParamElement* org);
+
+    /** for logging */
+    std::string ToString() const;
+
+    /** this repeats the data. For a horizontal structure with dof=y and x_symmetry=mirror the left elements are in opt_
+     * and the right is here (0->6, 1->5, ...) */
+    ShapeParamElement* map = NULL;
+
+    /** this mirrors the data. For a vertical structure with dof=x and x_symmetry=mirror an additional shape has been
+     * introduced (with flag ShapeParam::sym_induced set). Here also the value of the design needs to be mirrored (max - val) */
+    ShapeParamElement* mirror = NULL;
+
+  };
+
+  /** This are pointers the matching symmetric elements for each opt_shape_param_ element. All attributes NULL if no symmetry applies! */
+  StdVector<SymmetryMapping> opt_sym_param_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
