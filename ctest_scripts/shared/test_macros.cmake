@@ -413,13 +413,14 @@ endmacro()
 
 macro(WRITE_CTEST_CONFIG)
 # copy over CTestConfig.cmake.in
+# puts it into the binary dir
   message("Copy ctest config ...")
   set(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
   if(EXISTS ${SITE_CTEST_CONFIG})
-    message("  ${SITE_CTEST_CONFIG} -> ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake")
-    configure_file(${SITE_CTEST_CONFIG} ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake @ONLY)
+    message("  ${SITE_CTEST_CONFIG} -> ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake")
+    configure_file(${SITE_CTEST_CONFIG} ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
   else(EXISTS ${SITE_CTEST_CONFIG})
     message("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
-    configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake @ONLY)
+    configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
   endif(EXISTS ${SITE_CTEST_CONFIG})
 endmacro()

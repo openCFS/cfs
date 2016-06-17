@@ -27,13 +27,12 @@ endif(RETVAL)
 message("use ssh to extract on draco")
 find_program(SSH_EXECUTABLE ssh)
 string(REPLACE "_" ";" TEST_NAME_LIST "${TEST_NAME}")
-message("${TEST_NAME}, ${TEST_NAME_LIST}")
 list(GET TEST_NAME_LIST 1 NT_BRANCH)
 list(GET TEST_NAME_LIST 2 NT_COMPILER)
 set(NIGHTLY_BIN_PATH_DRACO "${NIGHTLY_PATH_DRACO}/${NT_BRANCH}_${NT_COMPILER}")
 # set the ssh command
 set(SSHCMD "${SSH_EXECUTABLE} draco 'tar -xzf ${NIGHTLY_ARCHIVES_PATH_DRACO}/${ARCHIVE_NAME}.tgz --strip 1 -C ${NIGHTLY_BIN_PATH_DRACO}'")
-message("  ${SSHCMD}")
+message("  running ${SSHCMD} (by executing a temporary file)")
 # write it to a temporary file
 write_file("/tmp/sshcmd.sh" ${SSHCMD})
 # execute it using sh
