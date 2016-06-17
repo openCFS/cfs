@@ -1218,6 +1218,9 @@
                         <xsd:attribute name="upper" type="xsd:token" use="required"/>
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
 <!--                         <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                        <!-- optional symmetries -->
+                        <xsd:attribute name="x_symmetry" use="optional" type="DT_Symmetry" default="none"/>
+                        <xsd:attribute name="y_symmetry" use="optional" type="DT_Symmetry" default="none"/>
                       </xsd:complexType>
                    </xsd:element>
                    <xsd:element name="profile" minOccurs="1" maxOccurs="1">
@@ -1265,10 +1268,6 @@
 
                 <!-- the order of the interpolation. 2 much too less, 10 shall be good. Effort is dim^order !!! -->
                 <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="10"/>
-
-                <!-- optional symmetries -->
-                <xsd:attribute name="x_symmetry" use="optional" type="DT_Symmetry" default="none"/>
-                <xsd:attribute name="y_symmetry" use="optional" type="DT_Symmetry" default="none"/>
 
               </xsd:complexType>
             </xsd:element>
