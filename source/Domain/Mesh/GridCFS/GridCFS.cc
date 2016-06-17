@@ -3053,7 +3053,138 @@ namespace CoupledField {
 
       }
     }
-  } 
+  }
+
+  double GridCFS::CalcGridVolume(bool updated)
+  {
+    const Elem * el = domain->GetGrid()->GetElem(1);
+    Elem::FEType type = el->type;
+
+    if (type == Elem::ET_QUAD4 || type == Elem::ET_QUAD8 || type == Elem::ET_QUAD9 ||
+        type == Elem::ET_HEXA8 || type == Elem::ET_HEXA20 || type == Elem::ET_HEXA27) {
+      Matrix<double> coords;
+      Double maximal = std::numeric_limits<Double>::max();
+      Double minimal = std::numeric_limits<Double>::min();
+      double mins[3] = {maximal, maximal, maximal};
+      double maxs[3] = {minimal, minimal, minimal};
+
+      // We first check if for an element the volume of its bounding box
+      // equals its actual volume. If not so, we assume the mesh is of
+      // sheared rectangular shape (parallelogram with angles != 90°).
+      domain->GetGrid()->GetElemNodesCoord(coords, el->connect, false);
+
+      // Get bounding box of element
+      for(unsigned int i = 0; i < coords.GetNumCols(); i++)
+      {
+       Vector<double> v;
+       coords.GetCol(v,i);
+       for(unsigned int d = 0; d < dim_; ++d)
+       {
+         if(mins[d] >  v[d]) mins[d] =  v[d];
+         if(maxs[d] <  v[d]) maxs[d] =  v[d];
+       }
+      }
+
+      // Get volume of bounding box of element
+      double el_cube_vol = 1.0;
+      for(unsigned int d = 0; d < dim_; d++)
+      {
+       el_cube_vol *= maxs[d] - mins[d];
+      }
+
+      // Get actual volume of element
+      shared_ptr<ElemShapeMap> esm = Grid::GetElemShapeMap(el);
+      double el_act_vol = esm->CalcVolume();
+
+      if (el_cube_vol != el_act_vol) {
+        // In this case we calculate the volume of the mesh using its
+        // vertices. Those are calculated as intersections of the lines
+        // defined by the first and the last node in a group of named
+        // nodes with the same name.
+        Vector<double> p, q, r;
+        StdVector<Vector<double>> points, verts;
+        for(unsigned int i=0; i < namedNodeNames_.GetSize(); i++)
+        {
+          if(namedNodeNames_[i] == "center") continue;
+
+          const StdVector<UInt>& nodes = namedNodes_[i];
+
+          GetNodeCoordinate(p, nodes[0], false);
+          points.Push_back(p);
+          GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+          points.Push_back(p);
+        }
+
+        // Calculate vertices
+        Matrix<Double> A;
+        A.Resize(dim_,dim_);
+        double det;
+        Vector<double> x(dim_), rhs(dim_);
+        if(dim_ == 2) {
+          for(unsigned int i=0; i < points.GetSize()/2; i++)
+          {
+            p = points[2*i+1] - points[2*i];
+            for(unsigned int j=i+1; j < points.GetSize()/2; j++)
+            {
+              q = points[2*j+1] - points[2*j];
+
+              A[0][0] = p[0];
+              A[1][0] = p[1];
+              A[0][1] = q[0];
+              A[1][1] = q[1];
+              A.Determinant(det);
+              if(det != 0)
+              {
+                rhs = points[2*j] - points[2*i];
+                A.DirectSolve(x,rhs);
+                r = p * x[0] + points[2*i];
+                verts.Push_back(r);
+              }
+            }
+          }
+
+          // Finally calculate the volume as absolute value of the
+          // determinant of the matrix defined by two vectors connecting
+          // vertices and thus spanning a parallelogram.
+          // Note: Due to Cavalieri's principle it does not matter if on of
+          // this vectors is a diagonal of our original parallelogram
+          p = verts[0] - verts[1];
+          q = verts[0] - verts[2];
+          A[0][0] = p[0];
+          A[1][0] = p[1];
+          A[0][1] = q[0];
+          A[1][1] = q[1];
+          A.Determinant(det);
+
+          LOG_DBG2(gridcfs) << "Volume of sheared mesh: " << det;
+
+          return std::abs(det);
+        } else {
+          EXCEPTION("GridCFS::CSGV: Volume of 3D sheared grid not yet implemented.");
+        }
+      }
+
+      // Here we calculate the volume of the grid by its bounding box
+      double cube_vol = 1.0;
+
+      Matrix<double> m = CalcGridBoundingBox();
+
+      for(unsigned int d = 0; d < dim_; d++)
+      {
+        cube_vol *= m[d][1] - m[d][0];
+      }
+
+      LOG_DBG2(gridcfs) << "Volume of unsheared mesh: " << cube_vol;
+
+      return cube_vol;
+    } else {
+      double s = 0.0;
+      for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
+        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+
+      return s;
+    }
+  }
 
   double GridCFS::CalcVolumeOfRegion(const RegionIdType regionId, bool updated)
   {

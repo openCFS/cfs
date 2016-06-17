@@ -364,6 +364,9 @@ namespace CoupledField
     Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                    bool updated = false );
 
+    /** Total volume of a sparse grid. Works only for parallelograms. */
+    double CalcGridVolume(bool updated = false);
+
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
