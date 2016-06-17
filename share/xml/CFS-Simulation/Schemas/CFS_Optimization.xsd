@@ -1397,6 +1397,7 @@
                       <xsd:enumeration value="levelSetNormal"/>
                       <!-- tracking values at all nodes : (stateSol - trackVal)^2-->
                       <xsd:enumeration value="heatNodalTrackValue"/>
+                      <xsd:enumeration value="tempAtInterface"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
