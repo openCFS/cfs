@@ -46,3 +46,22 @@ SET(CTEST_INITIAL_CACHE
 # Update, Configure, Build & Test
 #-----------------------------------------------------------------------------
 DO_TESTING()
+
+# copy over intel libraries
+set(INTEL_DLLS
+  libifport.so.5
+  libifcore.so.5
+  libimf.so
+  libirc.so
+  libsvml.so
+  libintlc.so.5
+  libiomp5.so
+)
+set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/UBUNTU_14.04_X86_64")
+foreach(DLL IN ITEMS ${INTEL_DLLS})
+  message("  copy ${DLL}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}" RESULT_VARIABLE RETVAL)
+  if(RETVAL)
+    message(  "failed to copy ${DLL}: ${RETVAL}")
+  endif(RETVAL)
+endforeach()
