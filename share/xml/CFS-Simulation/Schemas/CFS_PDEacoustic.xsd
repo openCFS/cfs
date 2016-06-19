@@ -43,8 +43,8 @@
                     <xsd:attribute name="temperatureId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="lambId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
-                    />
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="complexFluid" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

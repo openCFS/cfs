@@ -16,7 +16,9 @@
   <xsd:complexType name="DT_MatAcoustic">
     <xsd:sequence>
       <xsd:element name="density" type="xsd:token"/>
+      <xsd:element name="densityComplex"  minOccurs="0" type="DT_AcouDensityComplex"/>
       <xsd:element name="compressionModulus" type="xsd:token"/>
+      <xsd:element name="compressionModulusComplex"  minOccurs="0" type="DT_AcouCompressModulus"/>
       <xsd:element name="acousticDamping" type="DT_AcousticDamping" minOccurs="0"/>
       <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear" minOccurs="0"/>
       <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
@@ -30,6 +32,29 @@
   </xsd:complexType>
 
 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of complex density                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcouDensityComplex">
+    <xsd:sequence>
+      <xsd:element name="real" type="xsd:token"/>
+      <xsd:element name="imag" type="xsd:token"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of complex density                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcouCompressModulus">
+    <xsd:sequence>
+      <xsd:element name="real" type="xsd:token"/>
+      <xsd:element name="imag" type="xsd:token"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic damping model                              -->
   <!-- ******************************************************************* -->

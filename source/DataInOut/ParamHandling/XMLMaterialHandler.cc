@@ -657,18 +657,51 @@ namespace CoupledField {
     //read density
     if(acou->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(mp_, Global::REAL, 
-                                 acou->Get("density")->As<std::string>() );
+    		  CoefFunction::Generate(mp_, Global::REAL,
+          		                     acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
+    }
+
+    //check for complex valued density
+    if ( acou->Has("densityComplex") ) {
+    	PtrParamNode densNode = acou->Get("densityComplex");
+
+    	// read the real part
+    	std::string realStr = densNode->Get("real")->As<std::string>();
+
+    	// read the imaginary part
+    	std::string imagStr = densNode->Get("imag")->As<std::string>();
+
+    	PtrCoefFct densFct = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	                                          realStr, imagStr );
+
+    	 material->SetCoefFct( ACOU_DENSITY_COMPLEX, densFct );
     }
       
     //read compression modulus
     if(acou->Has("compressionModulus")) { 
-      PtrCoefFct blkFct =
+    	PtrCoefFct blkFct =
                 CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
-      material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+    	material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
+
+    //check for complex valued density
+    if ( acou->Has("compressionModulusComplex") ) {
+    	PtrParamNode compNode = acou->Get("compressionModulusComplex");
+
+    	// read the real part
+    	std::string realStr = compNode->Get("real")->As<std::string>();
+
+    	// read the imaginary part
+    	std::string imagStr = compNode->Get("imag")->As<std::string>();
+
+    	PtrCoefFct compFct = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	                                          realStr, imagStr );
+
+    	 material->SetCoefFct( ACOU_BULK_MODULUS_COMPLEX, compFct );
+    }
+
     //read kinematic viscosity
     if(acou->Has("kinematicViscosity")) {
       PtrCoefFct kinVisc =
@@ -726,6 +759,7 @@ namespace CoupledField {
         material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->As<Double>(), BOVERA, Global::REAL );
     }  
   }
+
 
 //**********************************************************************
 //*************  READ ELECTROSTATICS ************************************
