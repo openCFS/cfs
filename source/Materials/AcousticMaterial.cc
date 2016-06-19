@@ -27,7 +27,9 @@ namespace CoupledField
 
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
+    isAllowed_.insert( ACOU_DENSITY_COMPLEX );
     isAllowed_.insert( ACOU_BULK_MODULUS );
+    isAllowed_.insert( ACOU_BULK_MODULUS_COMPLEX );
     isAllowed_.insert( ACOU_SOUND_SPEED );
     isAllowed_.insert( KINEMATIC_VISCOSITY );
     isAllowed_.insert( ACOU_ALPHA );
@@ -40,11 +42,7 @@ namespace CoupledField
   }
 
   AcousticMaterial::~AcousticMaterial() {
-
-
   }
-
-
 
   void AcousticMaterial::SetScalar( Double param, MaterialType matType, 
       Global::ComplexPart dataType ) {
@@ -112,6 +110,33 @@ namespace CoupledField
       }
     }
   }
+
+  void AcousticMaterial::GetScalar( Complex& param, MaterialType matType,
+		  Global::ComplexPart dataType )  const {
+
+	  scalarMap::const_iterator pos;
+	  pos = scalarParams_.find( matType );
+
+	  if ( pos == scalarParams_.end() ) {
+		  std::string dim = "tensor";
+		  matTypeNotInDataBase( matType, dim );
+	  }
+	  else {
+		  Complex val = pos->second;
+		  if ( dataType == Global::REAL ) {
+			  Complex valReal = Complex (val.real(), 0.0);
+			  param = valReal;
+		  }
+		  else if ( dataType == Global::IMAG ) {
+			  Complex valImag = Complex (0.0, val.imag());
+			  param = valImag;
+		  }
+		  else if ( dataType == Global::COMPLEX ) {
+			  param = val;
+		  }
+	  }
+  }
+
   void AcousticMaterial::GetScalar( std::string& param, MaterialType matType,
               Global::ComplexPart dataType ) const {
 
