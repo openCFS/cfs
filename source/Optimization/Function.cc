@@ -2067,7 +2067,13 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     break;
 
   case CURVATURE:
-    fv = CalcCurvature();
+    // for symmetric shape mapping the curvature at the symmetry point reduces to slope.
+    // Typically the curvature bound is much tighter than the slope bound,
+    // therefore ShapeMapDesign::SetupVirtualShapeElementMap() cheats a single slope constraints
+    if(this->neighbor.GetSize() == 1)
+      fv = CalcSlope();
+    else
+      fv = CalcCurvature();
     break;
 
   case SUM_MODULI:
@@ -2259,7 +2265,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case CURVATURE:
-      gv = CalcCurvatureGradient(n);
+      // see CURVATUE in EvalFunction()
+      if(this->neighbor.GetSize() == 1)
+        gv = CalcSlopeGradient(n);
+      else
+        gv = CalcCurvatureGradient(n);
       break;
 
     case STRESS:
