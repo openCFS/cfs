@@ -512,6 +512,20 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
         if(two_signs)
           vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_2));
       }
+
+      // special case for curvature on a symmetric shape where we opt only half (e.g. 6) then a curvature 5 - 6 - 5 is not possible
+      // as snopt complains. Therefore we do a slope constraint 5 - 6 with the bound for the curvature
+      if(shape.HasSymmetry() && !shape.ShallInduceSymmetryShape() && (shape.end_opt - shape.start_opt) > 2)
+      {
+        BaseDesignElement* bde  = opt_shape_param_[shape.end_opt-2];
+        BaseDesignElement* next = opt_shape_param_[shape.end_opt-1];
+
+        LOG_DBG2(SMD) << "SVSEM s=" << s << " curvature slope: e=" << bde->GetOptIndex() << " next=" << next->GetOptIndex();
+        vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_1));
+        if(two_signs)
+          vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_2));
+
+      }
     }
   }
 
