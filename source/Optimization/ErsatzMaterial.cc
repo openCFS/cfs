@@ -2653,7 +2653,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 //        res += CalcStateTrackingAtNode(nodeList[i]) / sqrt(domain->GetGrid()->GetNumElems());
         res += CalcStateTrackingAtNode(nodeList[i]);
 
-      assert(res >= 0);
     } // if-else
 
     return res;
