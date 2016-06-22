@@ -1370,7 +1370,7 @@
                         stresses, here they can be visualized. The element vonMisesStress
                         result gives the physical one -->
                       <xsd:enumeration value="penalizedStress"/>
-                      <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
+                      <!-- This is (rho - rho^*)^2 (rho is physical) without 1/N -->
                       <xsd:enumeration value="designTracking"/>
                      <!-- This is the gradient matrix -->
                       <xsd:enumeration value="transfoMatrix"/>
@@ -1395,6 +1395,9 @@
                       <xsd:enumeration value="levelSetGradZP"/>
                       <xsd:enumeration value="levelSetGradZN"/>
                       <xsd:enumeration value="levelSetNormal"/>
+                      <!-- tracking values at all nodes : (stateSol - trackVal)^2-->
+                      <xsd:enumeration value="heatNodalTrackValue"/>
+                      <xsd:enumeration value="tempAtInterface"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>

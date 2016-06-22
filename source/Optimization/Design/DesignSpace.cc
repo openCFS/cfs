@@ -35,6 +35,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
+#include <iomanip>
 
 using namespace CoupledField;
 
@@ -482,6 +483,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   }
   return added;
 }
+
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
@@ -513,13 +515,64 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
   }
 }
 
-  double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
+{
+  double dens = CalcAverageDensityAtNode(nodeId,false);
+
+  if (derivative)
+    return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
+  else
+    return 4.0 *  dens * (1.0 - dens);
+}
+
+double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
+{
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
+  double tmp = 0;
+  int found = 0;
+  double lower = 0.0;
+  //FIXME Assume design elements are all of the same type and application is HEAT
+  TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
+  lower = tf->Transform(data[0].GetLowerBound());
+  double den = 1.0 / (1.0 - lower);
+
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    // s_i = 1/N_i \sum_{e \in N_i} [(rho_e - rho_min) / (1 - rho_min)]
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+      DesignElement& de = data[design_index];
+
+      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      found++;
+
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+    }
+  }
+
+  if(found == 0)
+    EXCEPTION("CADAN: Node has no neighbor elements!!")
+
+  if (derivative) {
+    return 1.0 / (double) found * den;
+  }
+  else
+    return tmp / (double) found;
+}
+
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
-  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+//  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+  // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
-  if(shopt->ptrLS_ == NULL) return 0.0;
-  assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  if (shopt != NULL) {
+    if (shopt->ptrLS_ == NULL)
+      return 0.0;
+    else
+      assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  }
 
   switch(vs)
   {
@@ -541,6 +594,10 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 4);
   case DesignElement::LEVEL_SET_GRAD_ZN:
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
+  case DesignElement::TEMP_AT_INTERFACE:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcTempAtInterface(nodeNumber);
   default:
     EXCEPTION("case not implemented")
   }
@@ -576,6 +633,8 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   case DesignElement::LEVEL_SET_GRAD_YN:
   case DesignElement::LEVEL_SET_GRAD_ZP:
   case DesignElement::LEVEL_SET_GRAD_ZN:
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+  case DesignElement::TEMP_AT_INTERFACE:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:
@@ -765,27 +824,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   coef->orgMat->GetVector(retVec, *lpm);
 
-  double tmp = 0;
-  int found = 0;
-  for (unsigned int index = 0; index < elems.GetSize(); index++)
-  {
-    int design_index = Find(elems[index],false);
-    if(design_index >= 0)
-    {
-      double factor = data[design_index].GetDesign(DesignElement::SMART);
-      tmp += factor;
-      found++;
-      LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
-    }
-  }
-
-  if(found == 0)
-    return false;
-
-
-  tmp /= (double) found;
-
-  retVec[0] *=  4.0 *  tmp * (1.0 - tmp) / (double) data.GetSize();
+  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
 
   return true;
 }
