@@ -145,6 +145,8 @@ public:
     MAX_JUMP, /* weak greyness constraint formulation */
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
+    HEAT_NODAL_TRACK_VAL, /* for each node: (stateSol - trackVal)^2 */
+    TEMP_AT_INTERFACE, /* temperature at interface between solid and void */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     TRANSFO_MATRIX,

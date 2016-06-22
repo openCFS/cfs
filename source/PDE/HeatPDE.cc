@@ -753,18 +753,10 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     {
       CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
       coef[i].reset(tmpFnc);
-      //        coef[i]->SetConservative(true);
-      //        rhsFeFunctions_[HEAT_TEMPERATURE]->AddLoadCoefFunction(coef[i],ent[i]);
     }
 
     lin = new SingleEntryInt(coef[i]);
     lin->SetName("DesignDepHeatInt");
-
-//    BiLinWrappedLinForm* linWrapped = new BiLinWrappedLinForm(lin,false); // have to wrapp lin form since CoefFunctionOpt expects a bilinform
-
-    // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-//    if(domain->GetDesign(false) != NULL)
-//      dynamic_pointer_cast<CoefFunctionOpt>(coef[i])->SetForm(linWrapped);
 
     LinearFormContext *ctx = new LinearFormContext( lin );
     ctx->SetEntities(ent[i]);
@@ -772,7 +764,6 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     assemble_->AddLinearForm(ctx);
   }
 }
-
 
 void HeatPDE::DefineSolveStep() {
 
@@ -858,7 +849,7 @@ void HeatPDE::DefinePostProcResults() {
   shared_ptr<ResultInfo> rhs ( new ResultInfo );
   rhs->resultType = HEAT_RHS_LOAD;
   rhs->dofNames = "";
-  rhs->unit = "K";
+  rhs->unit = "J";
   rhs->definedOn = ResultInfo::NODE;
   rhs->entryType = ResultInfo::SCALAR;
   rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);

@@ -177,13 +177,29 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
 
       if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect"):
         microparams = read_stiff_angle(f, dim_2D, args)
-        try:
-          s1 = microparams['s1']
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-          sh1 = microparams['sh1']
-        except:
-          s1, s2, s3 = microparams['microparams']
+        if args.show == "hom_sheared_rot_cross":
+          try:
+            s1 = microparams['s1']
+            s2 = microparams['s2']
+            s3 = microparams['s3']
+            sh1 = microparams['sh1']
+          except:
+            s1, s2, s3 = microparams['microparams']
+        elif args.show == "hom_framed_cross":
+          try:
+            s1 = microparams['s1']
+            s2 = microparams['s2']
+            s3 = microparams['s3']
+            s4 = microparams['s4']
+          except:
+            s1, s2, s3, s4 = microparams['microparams']
+        else:
+          try:
+            s1 = microparams['s1']
+            s2 = microparams['s2']
+            sh1 = microparams['sh1']
+          except:
+            s1, s2 = microparams['microparams']
         angle = numpy.zeros(((len(s1), 3)))
       else:
         if args.show == "simp":
@@ -224,24 +240,16 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         elif args.show == "hom_rot_cross" or args.show == "rot":
           # add optional angle bias
           print 'change angle'
-          try:
-            s1, s2 = microparams
-          except:
-            pass
           if args.hom_grad == 'none':
             viz = show_rot_cross(coords, s1, s2, angle[:, 0], args.hom_dir, args.res, scale, args.color, args.save)
           else:
             viz = show_rot_cross_grad(coords, s1, s2, angle[:, 0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "hom_sheared_rot_cross":
-          try:
-            s1, s2, sh1 = microparams
-          except:
-            pass
           viz = show_sheared_rot_cross(coords, s1, s2, sh1, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "hom_frame":
-          viz = show_frame2(coords, microparams, args.res, args.scale, args.color, args.save)
+          viz = show_frame2(coords, microparams['microparams'], args.res, args.scale, args.color, args.save)
         elif args.show == "hom_framed_cross":
-          viz = show_framed_cross(coords, microparams, args.res, args.scale, args.color, args.save)
+          viz = show_framed_cross(coords, microparams['microparams'], args.res, args.scale, args.color, args.save)
         elif args.show == "hom_cross_bar":
           angle = numpy.zeros((len(s1),1))
           viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)

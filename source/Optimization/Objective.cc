@@ -73,6 +73,7 @@ ObjectiveContainer::StoppingRule::StoppingRule()
   value = 1e-3;
   queue = 5;
   type_ = DESIGN_CHANGE;
+  max_hours = -1;
 }
 
 void ObjectiveContainer::StoppingRule::Init(PtrParamNode pn)

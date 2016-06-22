@@ -4,7 +4,7 @@ import platform
 from PIL import Image, ImageDraw
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
-# matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
