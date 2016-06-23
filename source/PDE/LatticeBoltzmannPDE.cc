@@ -1090,7 +1090,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
-      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
     }
     d_pdrop_d_f[index] = d_PD_d_f;
   }
@@ -1102,7 +1102,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
-      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
     }
     d_pdrop_d_f[index] = d_PD_d_f;
   }
