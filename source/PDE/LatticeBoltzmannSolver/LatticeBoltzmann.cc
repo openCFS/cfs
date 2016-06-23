@@ -740,7 +740,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   Timer timer;
   timer.Start();
   StdVector<double> pdfs, tmp;
-  while(it < maxIter_ && !steady_state && R <= 1000)
+//  while(it < maxIter_ && !steady_state && R <= 1000)
+  while(it < maxIter_ && !steady_state)
   {
     adjCollTimer_->Start();
     #pragma omp parallel default(none) private(pdfs,tmp) shared(collisionMatrices,d_pdrop_d_f)
@@ -814,8 +815,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
   lbmAdjCalls_++;
 
-  if(R >= 1000)
-    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
+//  if(R >= 1000)
+//    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
 
   if(!steady_state)
     EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
