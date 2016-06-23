@@ -116,11 +116,11 @@ public:
     void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node = NULL);
     void ToInfo(PtrParamNode pn);
 
-    /** has this shape any kind of symmetry element? An sym_induced shape must not be asked */
-    bool HasSymmetry() const;
-
-    /** indicate the symmetry data that an additional shape shall be induced? */
+    /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape */
     bool ShallInduceSymmetryShape() const;
+
+    /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
+    bool ShallMapHalfShape() const;
 
     /** for debug purpose */
     std::string ToString() const;
@@ -273,7 +273,7 @@ protected:
   struct SymmetryMapping
   {
     /** short cut to check if we have any symmetry */
-    bool HasSymmetry() const { return map != NULL || mirror != NULL; }
+    bool HasSymmetry() const { assert(!(mirror_map && (!map || !mirror))); return map != NULL || mirror != NULL; }
 
     /** apply the value for the opt element to the symmetry elements considering all special cases */
     void ApplyDesign(ShapeParam& shape, ShapeParamElement* org);
@@ -289,6 +289,8 @@ protected:
      * introduced (with flag ShapeParam::sym_induced set). Here also the value of the design needs to be mirrored (max - val) */
     ShapeParamElement* mirror = NULL;
 
+    /** this is for full symmetry (x_sym and y_sym): we map (e.g. left to right) and mirror the structure the same time. */
+    ShapeParamElement* mirror_map = NULL;
   };
 
   /** This are pointers the matching symmetric elements for each opt_shape_param_ element. All attributes NULL if no symmetry applies! */
