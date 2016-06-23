@@ -1219,8 +1219,8 @@
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
 <!--                         <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
                         <!-- optional symmetries -->
-                        <xsd:attribute name="x_symmetry" use="optional" type="DT_Symmetry" default="none"/>
-                        <xsd:attribute name="y_symmetry" use="optional" type="DT_Symmetry" default="none"/>
+                        <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none"/>
+                        <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none"/>
                       </xsd:complexType>
                    </xsd:element>
                    <xsd:element name="profile" minOccurs="1" maxOccurs="1">
