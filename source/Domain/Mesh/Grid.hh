@@ -498,7 +498,7 @@ namespace CoupledField
     virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
     /** total volume of a sparse or dense grid */
-    virtual double CalcGridVolume( bool updated = false ) = 0;
+    virtual Double CalcGridVolume( bool updated = false ) = 0;
 
     //! Returns the volume of a given region
 
