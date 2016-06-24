@@ -3055,135 +3055,166 @@ namespace CoupledField {
     }
   }
 
-  double GridCFS::CalcGridVolume(bool updated)
+  Double GridCFS::CalcGridVolume(bool updated)
   {
-    const Elem * el = domain->GetGrid()->GetElem(1);
-    Elem::FEType type = el->type;
+    // Volume of all regions
+    Double s = 0.0;
+    for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
 
-    if (type == Elem::ET_QUAD4 || type == Elem::ET_QUAD8 || type == Elem::ET_QUAD9 ||
-        type == Elem::ET_HEXA8 || type == Elem::ET_HEXA20 || type == Elem::ET_HEXA27) {
-      Matrix<double> coords;
-      Double maximal = std::numeric_limits<Double>::max();
-      Double minimal = std::numeric_limits<Double>::min();
-      double mins[3] = {maximal, maximal, maximal};
-      double maxs[3] = {minimal, minimal, minimal};
+    // Volume of the bounding box of the grid
+    Double cube_vol = 1.0;
+    Matrix<Double> m = CalcGridBoundingBox();
+    for( UInt d = 0; d < dim_; d++ )
+    {
+      cube_vol *= m[d][1] - m[d][0];
+    }
 
-      // We first check if for an element the volume of its bounding box
-      // equals its actual volume. If not so, we assume the mesh is of
-      // sheared rectangular shape (parallelogram with angles != 90°).
-      domain->GetGrid()->GetElemNodesCoord(coords, el->connect, false);
-
-      // Get bounding box of element
-      for(unsigned int i = 0; i < coords.GetNumCols(); i++)
-      {
-       Vector<double> v;
-       coords.GetCol(v,i);
-       for(unsigned int d = 0; d < dim_; ++d)
-       {
-         if(mins[d] >  v[d]) mins[d] =  v[d];
-         if(maxs[d] <  v[d]) maxs[d] =  v[d];
-       }
-      }
-
-      // Get volume of bounding box of element
-      double el_cube_vol = 1.0;
-      for(unsigned int d = 0; d < dim_; d++)
-      {
-       el_cube_vol *= maxs[d] - mins[d];
-      }
-
-      // Get actual volume of element
-      shared_ptr<ElemShapeMap> esm = Grid::GetElemShapeMap(el);
-      double el_act_vol = esm->CalcVolume();
-
-      if (el_cube_vol != el_act_vol) {
-        // In this case we calculate the volume of the mesh using its
-        // vertices. Those are calculated as intersections of the lines
-        // defined by the first and the last node in a group of named
-        // nodes with the same name.
-        Vector<double> p, q, r;
-        StdVector<Vector<double>> points, verts;
-        for(unsigned int i=0; i < namedNodeNames_.GetSize(); i++)
-        {
-          if(namedNodeNames_[i] == "center") continue;
-
-          const StdVector<UInt>& nodes = namedNodes_[i];
-
-          GetNodeCoordinate(p, nodes[0], false);
-          points.Push_back(p);
-          GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
-          points.Push_back(p);
-        }
-
-        // Calculate vertices
-        Matrix<Double> A;
-        A.Resize(dim_,dim_);
-        double det;
-        Vector<double> x(dim_), rhs(dim_);
-        if(dim_ == 2) {
-          for(unsigned int i=0; i < points.GetSize()/2; i++)
-          {
-            p = points[2*i+1] - points[2*i];
-            for(unsigned int j=i+1; j < points.GetSize()/2; j++)
-            {
-              q = points[2*j+1] - points[2*j];
-
-              A[0][0] = p[0];
-              A[1][0] = p[1];
-              A[0][1] = q[0];
-              A[1][1] = q[1];
-              A.Determinant(det);
-              if(det != 0)
-              {
-                rhs = points[2*j] - points[2*i];
-                A.DirectSolve(x,rhs);
-                r = p * x[0] + points[2*i];
-                verts.Push_back(r);
-              }
-            }
-          }
-
-          // Finally calculate the volume as absolute value of the
-          // determinant of the matrix defined by two vectors connecting
-          // vertices and thus spanning a parallelogram.
-          // Note: Due to Cavalieri's principle it does not matter if on of
-          // this vectors is a diagonal of our original parallelogram
-          p = verts[0] - verts[1];
-          q = verts[0] - verts[2];
-          A[0][0] = p[0];
-          A[1][0] = p[1];
-          A[0][1] = q[0];
-          A[1][1] = q[1];
-          A.Determinant(det);
-
-          LOG_DBG2(gridcfs) << "Volume of sheared mesh: " << det;
-
-          return std::abs(det);
-        } else {
-          EXCEPTION("GridCFS::CSGV: Volume of 3D sheared grid not yet implemented.");
-        }
-      }
-
-      // Here we calculate the volume of the grid by its bounding box
-      double cube_vol = 1.0;
-
-      Matrix<double> m = CalcGridBoundingBox();
-
-      for(unsigned int d = 0; d < dim_; d++)
-      {
-        cube_vol *= m[d][1] - m[d][0];
-      }
-
-      LOG_DBG2(gridcfs) << "Volume of unsheared mesh: " << cube_vol;
-
-      return cube_vol;
-    } else {
-      double s = 0.0;
-      for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
-        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
-
+    if( (s - cube_vol) / s < 1e-5 ) {
+      LOG_DBG2(gridcfs) << "Volume of rectangular dense mesh: " << s;
       return s;
     }
+
+    // From here on we have either a sparse or non rectangular mesh.
+    // We calculate the volume of the mesh using its (possibly virtual)
+    // vertices.
+    Vector<Double> p(dim_), q(dim_), r(dim_);
+    StdVector<Vector<Double>> points, verts;
+    for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
+    {
+      if( namedNodeNames_[i] == "center" ) continue;
+      if( namedNodes_[i].GetSize() < dim_ ) continue;
+
+      const StdVector<UInt>& nodes = namedNodes_[i];
+
+      if( dim_ == 2 )
+      {
+        // In 2D the vertices are calculated as intersections of the
+        // lines defined by the first and the last node in a group of
+        // named nodes with the same name.
+        GetNodeCoordinate(p, nodes[0], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+        points.Push_back(p);
+      } else {
+        // In 3D the vertices are calculated as intersections of the
+        // planes defined by the first, the last node and a third one
+        // in a group of named nodes with the same name.
+        GetNodeCoordinate(p, nodes[0], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[round(sqrt(nodes.GetSize()))-1], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+        points.Push_back(p);
+      }
+    }
+
+    // Make sure we have enough points
+    if( (dim_ == 2 && points.GetSize() < 4) || (dim_ == 3 && points.GetSize() < 9) ) {
+      EXCEPTION("Not enough named nodes to calculate the volume.");
+    }
+
+    // Calculate vertices
+    Double det, det1, det2;
+    if( dim_ == 2 ) {
+      // We apply a line-line intersection algorithm using determinants.
+      for( UInt i=0; i < points.GetSize()/2.0; i++ )
+      {
+        for( UInt j=i+1; j < points.GetSize()/2.0; j++ )
+        {
+          det = (points[2*i][0] - points[2*i+1][0]) * (points[2*j][1] - points[2*j+1][1]) - (points[2*j][0] - points[2*j+1][0]) * (points[2*i][1] - points[2*i+1][1]);
+          if(det != 0) {
+            det1 = points[2*i][0] * points[2*i+1][1] - points[2*i+1][0] * points[2*i][1];
+            det2 = points[2*j][0] * points[2*j+1][1] - points[2*j+1][0] * points[2*j][1];
+            r[0] = ( det1 * (points[2*j][0] - points[2*j+1][0]) - det2 * (points[2*i][0] - points[2*i+1][0]) ) / det;
+            r[1] = ( det1 * (points[2*j][1] - points[2*j+1][1]) - det2 * (points[2*i][1] - points[2*i+1][1]) ) / det;
+            verts.Push_back(r);
+          }
+        }
+      }
+
+      // Calculate the volume as absolute value of the determinant
+      // of the matrix, which is defined by two vectors connecting
+      // vertices and thus spanning a parallelogram.
+      // Note: Due to Cavalieri's principle it does not matter if on of
+      // this vectors is a diagonal of our original parallelogram
+      p = verts[1] - verts[0];
+      q = verts[2] - verts[0];
+      det = p[0] * q[1] - p[1] * q[0];
+
+      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      return std::abs(det);
+    } else {
+      Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
+      StdVector<Vector<Double>> normals;
+      for( UInt i=0; i < points.GetSize()/3.0; i++ )
+      {
+        p = points[3*i+1] - points[3*i];
+        q = points[3*i+2] - points[3*i];
+        // normal vector
+        n[0] = p[1]*q[2] - p[2]*q[1];
+        n[1] = p[2]*q[0] - p[0]*q[2];
+        n[2] = p[0]*q[1] - p[1]*q[0];
+        n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
+        normals.Push_back(n);
+      }
+
+      // Calculate the intersection point of three planes
+      // Let the planes be specified by a point $p_i$ and a unit normal vector $n_i$.
+      // Then the unique point of intersection is given by
+      // x = |n1 n2 n3|^(-1) [ (x1 * n1) (n2 x n3) + (x2 * n2) (n3 x n1) + (x3 * n3) (n1 x n2) ]
+      Double fac1, fac2, fac3;
+      Vector<Double> cross1(dim_), cross2(dim_), cross3(dim_);
+      for( UInt i=0; i < normals.GetSize(); i++ )
+      {
+        n1 = normals[i];
+        p1 = points[3*i];
+        for( UInt j=i+1; j < normals.GetSize(); j++ )
+        {
+          n2 = normals[j];
+          p2 = points[3*j];
+          for( UInt k=j+1; k < normals.GetSize(); k++ )
+          {
+            n3 = normals[k];
+            p3 = points[3*k];
+            det = n1[0]*n2[1]*n3[2] + n2[0]*n3[1]*n1[2] + n3[0]*n1[1]*n2[2] - n1[0]*n3[1]*n2[2] - n2[0]*n1[1]*n3[2] - n3[0]*n2[1]*n1[2];
+            if( det != 0 ) {
+              fac1 = p1[0]*n1[0] + p1[1]*n1[1] + p1[2]*n1[2];
+              cross1[0] = n2[1]*n3[2] - n2[2]*n3[1];
+              cross1[1] = n2[2]*n3[0] - n2[0]*n3[2];
+              cross1[2] = n2[0]*n3[1] - n2[1]*n3[0];
+              fac2 = p2[0]*n2[0] + p2[1]*n2[1] + p2[2]*n2[2];
+              cross2[0] = n3[1]*n1[2] - n3[2]*n1[1];
+              cross2[1] = n3[2]*n1[0] - n3[0]*n1[2];
+              cross2[2] = n3[0]*n1[1] - n3[1]*n1[0];
+              fac3 = p3[0]*n3[0] + p3[1]*n3[1] + p3[2]*n3[2];
+              cross3[0] = n1[1]*n2[2] - n1[2]*n2[1];
+              cross3[1] = n1[2]*n2[0] - n1[0]*n2[2];
+              cross3[2] = n1[0]*n2[1] - n1[1]*n2[0];
+
+              r[0] = (fac1 * cross1[0] + fac2 * cross2[0] + fac3 * cross3[0]) / det;
+              r[1] = (fac1 * cross1[1] + fac2 * cross2[1] + fac3 * cross3[1]) / det;
+              r[2] = (fac1 * cross1[2] + fac2 * cross2[2] + fac3 * cross3[2]) / det;
+              verts.Push_back(r);
+            }
+          }
+        }
+      }
+      // We have to find three linearly independent vectors
+      det = 0.0;
+      for( UInt i=verts.GetSize()-1; i > 2; i-- )
+      {
+        p = verts[1] - verts[0];
+        q = verts[2] - verts[0];
+        r = verts[i] - verts[0];
+        det = p[0]*q[1]*r[2] + q[0]*r[1]*p[2] + r[0]*p[1]*q[2] - p[0]*r[1]*q[2] - q[0]*p[1]*r[2] - r[0]*q[1]*p[2];
+        if( abs(det) > 1e-10 ) break;
+      }
+
+      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      return std::abs(det);
+    }
+    return -1;
   }
 
   double GridCFS::CalcVolumeOfRegion(const RegionIdType regionId, bool updated)
