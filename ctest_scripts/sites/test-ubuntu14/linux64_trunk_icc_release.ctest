@@ -27,8 +27,27 @@ SET_COMPILER_ENV("ICC")
 set(BUILDTYPE "RELEASE")
 set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
+# define intel shared libs
+set(INTEL_DLLS
+  libifport.so.5
+  libifcore.so.5
+  libimf.so
+  libirc.so
+  libsvml.so
+  libintlc.so.5
+  libiomp5.so
+)
+set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST}_${REV}_${ARCH}")
+
+# remove intel libs if already there, otherwise fail silently
+foreach(DLL IN ITEMS ${INTEL_DLLS})
+  message("  removing ${DLL}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E remove "${CFS_LIB_DIR}/${DLL}")
+endforeach()
+
 # Start out with an empty binary directory
-set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE) # this does not seem to work
+ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY}) # maybe this works better
 
 # set the default initial cache for nighly tests
 INIT_CACHE(CTEST_INITIAL_CACHE) 
@@ -48,16 +67,6 @@ SET(CTEST_INITIAL_CACHE
 DO_TESTING()
 
 # copy over intel libraries
-set(INTEL_DLLS
-  libifport.so.5
-  libifcore.so.5
-  libimf.so
-  libirc.so
-  libsvml.so
-  libintlc.so.5
-  libiomp5.so
-)
-set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/UBUNTU_14.04_X86_64")
 foreach(DLL IN ITEMS ${INTEL_DLLS})
   message("  copy ${DLL}")
   EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}" RESULT_VARIABLE RETVAL)
