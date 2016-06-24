@@ -1,6 +1,6 @@
 dim  = 3;
-level = 3;
-blevel = 2;
+level = 7;
+blevel = 3;
 
 % Get current path
 path = fileparts(which('createPresetsSparseGrid.m'));
@@ -8,10 +8,10 @@ path = fileparts(which('createPresetsSparseGrid.m'));
 % Generate points with python script
 tmp = pwd;
 cd('generate_points/');
-[status,result] = system( sprintf('python generate_points.py %d %d %d',dim,level,blevel) );
+[status,result] = system( sprintf('python generate_points.py %d %d',dim,level) );
+disp(result);
 if status ~= 0
     disp('Fehler beim Aufruf von generate_points.py');
-    disp(result);
     return;
 end
 cd(tmp);

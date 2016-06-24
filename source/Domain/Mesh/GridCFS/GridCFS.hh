@@ -365,7 +365,7 @@ namespace CoupledField
                                    bool updated = false );
 
     /** Total volume of a sparse grid. Works only for parallelograms. */
-    double CalcGridVolume(bool updated = false);
+    Double CalcGridVolume(bool updated = false);
 
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,

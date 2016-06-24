@@ -22,8 +22,8 @@ end
 fid = fopen(file,'wt');
 if givenByLevelAndIndex
     % sparsegrid N d m voigt 0 0 0...
-    format = 'sparsegrid\t%d\t%d\t%d\t%s\t%s\n';
-    fprintf(fid,format,size(data,1),dim,m,'nonhierarchized','voigt');
+    format = 'sparsegrid_ver2\t%d\t%d\t%d\t%s\t%s\n';
+    fprintf(fid,format,size(data,1),dim,m,'not_hierarchized','voigt');
     % L1 L2 L3 I1 I2 I3 E11 E12 ...
     format = [ repmat('%d\t',1,2*dim), repmat('%e\t',1,m-1), '%e\n'];
     fprintf(fid,format,data');
