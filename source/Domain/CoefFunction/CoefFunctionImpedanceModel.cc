@@ -253,23 +253,27 @@ namespace CoupledField{
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_impFct() {
-    MathParser::HandleType h = mp_->GetNewHandle();
-    const Double f = mp_->GetExprVars(h, "f");
-    mp_->ReleaseHandle(h);
-    if (f == currFrequ_) // Already calculated value for this frequency
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
     {
-      return;
-    } else {
-      currFrequ_ = f;
+#pragma omp critical (CoefFunctionImpedanceModel_Complex)
+      {
+        MathParser::HandleType h = mp_->GetNewHandle();
+        const Double f = mp_->GetExprVars(h, "f");
+        mp_->ReleaseHandle(h);
+        if (f == currFrequ_) // Already calculated value for this frequency
+        {
+          currFrequ_ = f;
+
+          Double Z_real, Z_imag;
+          LocPointMapped lp_dummy;
+          impedanceCoef_real_->GetScalar(Z_real, lp_dummy);
+          impedanceCoef_imag_->GetScalar(Z_imag, lp_dummy);
+
+          const Complex Z(Z_real, Z_imag);
+          constCoefScalar_ = normalisedFactor_ * density_ / Z;
+        }
+      }
     }
-
-    Double Z_real, Z_imag;
-    LocPointMapped lp_dummy;
-    impedanceCoef_real_->GetScalar(Z_real, lp_dummy);
-    impedanceCoef_imag_->GetScalar(Z_imag, lp_dummy);
-
-    const Complex Z(Z_real, Z_imag);
-    constCoefScalar_ = normalisedFactor_ * density_ / Z;
   }
 
   void CoefFunctionImpedanceModel<Complex>::Init(const PtrParamNode impNode)
