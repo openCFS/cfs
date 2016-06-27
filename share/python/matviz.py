@@ -71,13 +71,10 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
-    s1 *= rho
-    s2 *= rho
-    s3 *= rho
+    res['s1'] *= rho
+    res['s2'] *= rho
+    res['s3'] *= rho
     print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
-    res['s1'] = s1
-    res['s2'] = s2
-    res['s3'] = s3
   
   angle = numpy.zeros(((len(res.values()[0]), 3)))
   
@@ -95,7 +92,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
         angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception, e:
       print 'could not read angle, ignore it: ', e
-    res['angle'] = angle
+  res['angle'] = angle
   
   return res
 
@@ -178,33 +175,33 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect"):
         microparams = read_stiff_angle(f, dim_2D, args)
         if args.show == "hom_sheared_rot_cross":
+          s1 = microparams['s1']
+          s2 = microparams['s2']
+          s3 = microparams['s3']
           try:
-            s1 = microparams['s1']
-            s2 = microparams['s2']
-            s3 = microparams['s3']
             sh1 = microparams['sh1']
           except:
-            s1, s2, s3 = microparams['microparams']
+            pass
         elif args.show == "hom_framed_cross":
-          try:
-            s1 = microparams['s1']
-            s2 = microparams['s2']
-            s3 = microparams['s3']
-            s4 = microparams['s4']
-          except:
-            s1, s2, s3, s4 = microparams['microparams']
+          s1 = microparams['s1']
+          s2 = microparams['s2']
+          s3 = microparams['s3']
+          s4 = microparams['s4']
         else:
+          s1 = microparams['s1']
+          s2 = microparams['s2']
+          s3 = microparams['s3']
           try:
-            s1 = microparams['s1']
-            s2 = microparams['s2']
             sh1 = microparams['sh1']
           except:
-            s1, s2 = microparams['microparams']
-        angle = numpy.zeros(((len(s1), 3)))
+            pass
+        angle = microparams['angle']
       else:
         if args.show == "simp":
           args.parametrization = 'simp'
           microparams = read_stiff_angle(f, dim_2D, args)
+          s2 = microparams['s2']
+          s3 = microparams['s3']
         else:
           microparams = read_stiff_angle(f, dim_2D, args)
           s2 = microparams['s2']
@@ -214,17 +211,17 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         angle = microparams['angle']
         sh1 = microparams['sh1']
       
-        # add angle bias, e.g. by 90 deg to correct thomas
-        angle += args.angle_bias * numpy.pi / 180
-        # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
-        angle *= -1.0
-        if args.angle_factor <> 1.0:
-          print 'scale angle by ' + str(args.angle_factor)
-          angle *= args.angle_factor  
-        if not args.show == "simp":
-          print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
-        else:
-          print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
+      # add angle bias, e.g. by 90 deg to correct thomas
+      angle += args.angle_bias * numpy.pi / 180
+      # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
+      angle *= -1.0
+      if args.angle_factor <> 1.0:
+        print 'scale angle by ' + str(args.angle_factor)
+        angle *= args.angle_factor  
+      if not args.show == "simp":
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+      else:
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
   
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
@@ -239,7 +236,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           viz = show_modified_frame(coords, s1, s2, angle[:, 0], "all", args.res, scale, args.color, args.save)
         elif args.show == "hom_rot_cross" or args.show == "rot":
           # add optional angle bias
-          print 'change angle'
+          # print 'change angle'
           if args.hom_grad == 'none':
             viz = show_rot_cross(coords, s1, s2, angle[:, 0], args.hom_dir, args.res, scale, args.color, args.save)
           else:
@@ -506,7 +503,7 @@ else:
   if args.mesh:
     nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
   dim_2D = min[2] == max[2]
-  print 'detected dimension ' + ('2D' if dim_2D else '3D')  
+  print 'detected dimension ' + ('2D' if dim_2D else '3D')
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh:
