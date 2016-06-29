@@ -2,12 +2,12 @@ function getInterpolationValues(gridfile, threadID)
 
 % meshgenerationfunc = @Homogenization.generateFrame;
 % meshgenerationfunc = @Homogenization.generateCross;
-% meshgenerationfunc = @Homogenization.generateShearedCross;
+meshgenerationfunc = @Homogenization.generateShearedCross;
 % meshgenerationfunc = @Homogenization.generateShearedCrossExact;
 % meshgenerationfunc = @Homogenization.generateCrossWithVertBar;
 % meshgenerationfunc = @Homogenization.generateFramedCross;
 % meshgenerationfunc = @Homogenization.generateFramedCrossExact;
-meshgenerationfunc = @Homogenization.generateCross3DExact;
+% meshgenerationfunc = @Homogenization.generateCross3DExact;
 
 % Get current path
 path = fileparts(which('+Homogenization/getInterpolationValues.m'));
