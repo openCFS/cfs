@@ -3079,7 +3079,7 @@ namespace CoupledField {
     // We calculate the volume of the mesh using its (possibly virtual)
     // vertices.
     Vector<Double> p(dim_), q(dim_), r(dim_);
-    StdVector<Vector<Double>> points, verts;
+    StdVector<Vector<Double> > points, verts;
     for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
     {
       if( namedNodeNames_[i] == "center" ) continue;
@@ -3146,7 +3146,7 @@ namespace CoupledField {
       return std::abs(det);
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
-      StdVector<Vector<Double>> normals;
+      StdVector<Vector<Double> > normals;
       for( UInt i=0; i < points.GetSize()/3.0; i++ )
       {
         p = points[3*i+1] - points[3*i];

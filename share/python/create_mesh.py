@@ -31,6 +31,7 @@ def find_inclusion_overlap(args):
   
   return mesh    
 
+print sys.argv
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
