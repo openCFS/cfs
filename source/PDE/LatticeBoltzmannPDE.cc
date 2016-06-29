@@ -1109,6 +1109,8 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 
   Vector<double> rhs(n_elems * n_q_);
 
+  dPD *= 1e4;
+
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
   d_propagate_d_f(dFdf,dPD);
   for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
@@ -1159,7 +1161,7 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   }
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
-  return in / inlet.GetSize() - out / outlet.GetSize();
+  return (in / inlet.GetSize() - out / outlet.GetSize())*1e4;
 }
 
 Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){

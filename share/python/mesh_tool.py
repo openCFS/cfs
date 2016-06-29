@@ -766,7 +766,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       height = scale*float(ny)/nx 
       depth = scale*float(nz)/nx 
   else: 
-    ny = int(nx * (2./3.)) 
+    ny = int(nx * (2./3.))
     nz = int(nx * (2./3.)) 
     width = 3.0 
     height = 2.0 
