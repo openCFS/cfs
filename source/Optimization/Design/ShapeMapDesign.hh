@@ -57,7 +57,11 @@ public:
    * @return either DesignSpace::FindDesign() or the index within shape_ */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
+  /** goes on opt_shape_param_ only! */
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
+
+  /** does not go on opt_shape_param_ but on shape_param_ */
+  ShapeParamElement* GetShapeMapDesignElement(unsigned int idx) { return &(shape_param_[idx]);}
 
   virtual void ToInfo(ErsatzMaterial* em);
 
@@ -84,12 +88,18 @@ public:
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
   static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
 
+  /** This types are repeated in BaseDesignElement::Type */
   typedef enum { NODE, PROFILE } Type;
 
   static Enum<Type> type;
 
+  /** The symmetry is defined globally but stored in ShapeParam */
+  typedef enum { NONE, MIRROR } Symmetry;
+
+  static Enum<Symmetry> symmetry;
+
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
-  BaseDesignElement::Type Convert(Type type) const;
+  static BaseDesignElement::Type Convert(Type type);
 
   /** convert "x" to 0 and "y" to 1 */
   static int Dof(const std::string& str);
@@ -100,9 +110,20 @@ public:
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
   {
-    // note that we would need a default constructor for StdVector
-    void Init(PtrParamNode pn, unsigned int idx);
+    /** note that we would need a default constructor for StdVector
+     * @param pn node for the shape
+     * @param node reference for profile only to copy sym and orientation, ...*/
+    void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node = NULL);
     void ToInfo(PtrParamNode pn);
+
+    /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape */
+    bool ShallInduceSymmetryShape() const;
+
+    /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
+    bool ShallMapHalfShape() const;
+
+    /** for debug purpose */
+    std::string ToString() const;
 
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -1;
@@ -110,11 +131,35 @@ public:
     double lower = -1.0;
     double upper = -1.0;
     double value = -1.0; // initial or fixed
+
+    /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
+    double max = 1.0; // fixme an make it smart
+
+    /** subject to optimization or fixed */
     bool fixed = false;
 
     /** this stores the reference to shape_param_ */
     int start_param = -1;
+    /** this stores the reference to the first parameter within opt_shape_param_. -1 if no design.
+     * It becomes complex due to fixed and partial symmetriy */
+    int start_opt = -1;
+
+    /** this end does not reflect symmetry */
     int end_param = -1;
+    /** this is the end of the optimization, reflects symmetry and is -1 if no design */
+    int end_opt = -1;
+
+    /** the orientiation of the shape is in 2D the complementary */
+    int orientation = -1;
+
+    /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
+     * additional shape */
+    Symmetry x_sym = NONE;
+    Symmetry y_sym = NONE;
+
+    /** a shape with dof x and x_symmetry mirror means that an additional mirror induced shape needs to be inserted.
+     * This bool indicates if this shape is such a mirror induced shape */
+    bool sym_induced = false;
   };
 
 protected:
@@ -142,11 +187,10 @@ protected:
   unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
 
   /** Search in shape_ */
-  StdVector<ShapeParam*> FindShape(Type type, int dof);
+  StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, int dof);
 
   /** search for the corresponding shape */
   ShapeParam* FindShape(const ShapeParamElement* spe);
-
 
   /** helper to fill shape_param_
    * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1*/
@@ -191,7 +235,7 @@ protected:
   bool IsProfileFixed() const;
 
   /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
-   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile */
+   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile AND if we have no symmetries! */
   unsigned int GetFirstVarIdx(const Function* f, bool opt) const;
 
   /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
@@ -217,8 +261,40 @@ protected:
   /** helper for shape_param_: number of nodes within shape_param_ which is  shape_param_.GetSize() / 2 */
   int num_node_shape_params_ = -1;
 
-  /** This are the external shape param variables which means shape_param_ w/o fixed */
+  /** same as num_node_shape_params_ but based on opt_shape_param_ */
+  int num_node_opt_shape_params_ = -1;
+
+  /** This are the external shape param variables which means shape_param_ w/o fixed AND considering symmetry!
+   * @aee opt_sym_param_ */
   StdVector<ShapeParamElement*> opt_shape_param_;
+
+  /** symmetry means that fever data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
+   * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
+  struct SymmetryMapping
+  {
+    /** short cut to check if we have any symmetry */
+    bool HasSymmetry() const { assert(!(mirror_map && (!map || !mirror))); return map != NULL || mirror != NULL; }
+
+    /** apply the value for the opt element to the symmetry elements considering all special cases */
+    void ApplyDesign(ShapeParam& shape, ShapeParamElement* org);
+
+    /** for logging */
+    std::string ToString() const;
+
+    /** this repeats the data. For a horizontal structure with dof=y and x_symmetry=mirror the left elements are in opt_
+     * and the right is here (0->6, 1->5, ...) */
+    ShapeParamElement* map = NULL;
+
+    /** this mirrors the data. For a vertical structure with dof=x and x_symmetry=mirror an additional shape has been
+     * introduced (with flag ShapeParam::sym_induced set). Here also the value of the design needs to be mirrored (max - val) */
+    ShapeParamElement* mirror = NULL;
+
+    /** this is for full symmetry (x_sym and y_sym): we map (e.g. left to right) and mirror the structure the same time. */
+    ShapeParamElement* mirror_map = NULL;
+  };
+
+  /** This are pointers the matching symmetric elements for each opt_shape_param_ element. All attributes NULL if no symmetry applies! */
+  StdVector<SymmetryMapping> opt_sym_param_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
@@ -272,6 +348,9 @@ protected:
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
   typedef enum { MAX, OPEN_SUM, TANH_SUM } Overlap;
 
+  /** no need for static */
+  Enum<Overlap> overlap;
+
   /** small helper for tanh_sum */
   struct TanhSum
   {
@@ -296,8 +375,6 @@ protected:
   } tanh_sum_;
 
 
-  /** no need for static */
-  Enum<Overlap> overlap;
 
   /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
   Overlap overlap_;

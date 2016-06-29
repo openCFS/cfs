@@ -53,6 +53,13 @@ namespace CoupledField {
 
     isBloch_ = DoBloch(param_);
     sort_ = param_->Get("sort")->As<bool>();
+
+    boundary.SetName("EigenFrequencyDriver::Boundary");
+    boundary.Add(SYMMETRIC, "symmetric");
+    boundary.Add(QUADRANT, "quadrant");
+    boundary.Add(HORIZONZAL, "horizontal");
+    boundary.Add(FULL, "full");
+    boundary_ = NO_IBZ;
   }
 
   EigenFrequencyDriver::~EigenFrequencyDriver()
@@ -113,8 +120,10 @@ namespace CoupledField {
       std::rename(string(file + ".tmp").c_str(), file.c_str());
       file += ".tmp";
     }
-
+    int dim = domain->GetGrid()->GetDim();
+    int edges = boundary_ == HORIZONZAL ? 1 : boundary_ == SYMMETRIC ? dim + 1 : dim + 2; // copy & paste with FillWaveVector()
     bloch_plot_.open(file.c_str() , std::ios::out);
+    bloch_plot_ << "# <ibz dim=\"" << dim << "\" edges=\"" << edges << "\"/>\n";
     bloch_plot_ << "#step\tk_x\tk_y";
     if(domain->GetGrid()->GetDim() == 3)
       bloch_plot_ << "\tk_z";
@@ -152,17 +161,16 @@ namespace CoupledField {
       if(!lst.IsEmpty())
         throw Exception("no wave vectors may be given in bloch mode analysis concurrently with ibz");
 
-      bool do_boundary = bloch_pn->Get("ibz/sample")->As<string>() == "boundary";
+      boundary_ = boundary.Parse(bloch_pn->Get("ibz/sample")->As<string>());
+      assert(boundary_ != NO_IBZ); // no option in schema
 
-      blochSteps_     = bloch_pn->Get("ibz/steps")->As<int>();
-      int steps = blochSteps_;
+      // copy and paste in SetupBlochPlot()
+      int edges = boundary_ == HORIZONZAL ? 1 : boundary_ == SYMMETRIC ? dim + 1 : dim + 2; // GAMMA -> X -> M -> [GAMMA | R -> GAMMA]
 
-      int edges = dim == 2 ? 3 : 4; // GAMMA -> X -> M -> [GAMMA | R -> GAMMA]
+      blochSteps_ = bloch_pn->Get("ibz/steps")->As<int>();
+      int steps = blochSteps_; // shortcut only
 
-      if(!do_boundary && dim == 3)
-              throw Exception("for 3D only 'do_boundary' sampling of the wave vector.");
-
-      if((do_boundary && ((steps % edges) != 0 || steps < edges)) || (!do_boundary && (int) sqrt(steps) * (int) sqrt(steps) != steps))
+      if((boundary_ != FULL && ((steps % edges) != 0 || steps < edges)) || (boundary_ == FULL && (int) sqrt(steps) * (int) sqrt(steps) != steps))
         EXCEPTION("bloch mode ibz/steps need to a multiple of " << edges << " for boundary sampling or a square number for full sampling.");
 
       // we need the unit cell dimensions to scale the wave vector from 0 .. pi/d where d is unit cell dimension -> Hussein;2009
@@ -172,18 +180,47 @@ namespace CoupledField {
       double d_z = box[2][1]-box[2][0]; // 0.0 for 2D
       wave_vectors.Resize(steps);
 
+      LOG_DBG(efd) << "FWV #wv=" << wave_vectors.GetSize();
       LOG_DBG(efd) << "FWV box: " << box.ToString();
       LOG_DBG(efd) << "FWV box d_x=" << d_x << " d_y=" << d_y << " d_z=" << d_z;
 
-      if(do_boundary)
+      if(boundary_ == FULL)
+      {
+        if(boundary_ == FULL && dim == 3)
+          throw Exception("for 3D no 'full' wave vector sampling.");
+
+        int root = sqrt(steps) + 0.5;
+        for(int y = 0; y < root; y++) {
+          for(int x = 0; x < root; x++) {
+            int idx = y * root + x;
+            wave_vectors[idx].Resize(3);
+            wave_vectors[idx][0] = (M_PI/d_x) * (x/(root-1));
+            wave_vectors[idx][1] = (M_PI/d_y) * (y/(root-1));
+           }
+         }
+      }
+      if(boundary_ == HORIZONZAL)
+      {
+        assert(edges == 1);
+        for(int i = 0; i < steps/edges; i++) {
+          wave_vectors[i].Resize(3);
+          wave_vectors[i][0] = (i*edges*M_PI/(steps-1)) / d_x; // to reach PI,0,0 which would with symmetric and quadrant be job of the vertical line
+          wave_vectors[i][1] = 0.0;
+          wave_vectors[i][2] = 0.0;
+          LOG_DBG2(efd) << "FWV horizontal i=" << i << " -> " << wave_vectors[i][0];
+        }
+      }
+      if(boundary_ == SYMMETRIC || boundary_ == QUADRANT)
       {
         // we don't repeat the corner points, the are calculated at the start of a line
+        // start with horizontal 2D and 3D is the same
         for(int i = 0; i < steps/edges; i++) {
           wave_vectors[i].Resize(3);
           wave_vectors[i][0] = (i*edges*M_PI/steps) / d_x;
           wave_vectors[i][1] = 0.0;
           wave_vectors[i][2] = 0.0;
         }
+        // vertical on the right side
         for(int i = 0; i < steps/edges; i++) {
           wave_vectors[steps/edges + i].Resize(3);
           wave_vectors[steps/edges + i][0] = M_PI/d_x;
@@ -191,14 +228,38 @@ namespace CoupledField {
           wave_vectors[steps/edges + i][2] = 0.0;
         }
         if(dim == 2)
-          for(int i = 0; i < steps/edges; i++) {
-            wave_vectors[2*steps/edges + i].Resize(3);
-            wave_vectors[2*steps/edges + i][0] = M_PI/d_x * (1.0-i * (double) edges/steps);
-            wave_vectors[2*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
-            wave_vectors[2*steps/edges + i][2] = 0.0;
-          }
-        else
         {
+          if(boundary_ == SYMMETRIC)
+          {
+            // diagonal back
+            for(int i = 0; i < steps/edges; i++) {
+              wave_vectors[2*steps/edges + i].Resize(3);
+              wave_vectors[2*steps/edges + i][0] = M_PI/d_x * (1.0-i * (double) edges/steps);
+              wave_vectors[2*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
+              wave_vectors[2*steps/edges + i][2] = 0.0;
+            }
+          }
+          else // boundary_ == QUADRANT
+          {
+            // top from right to left
+            for(int i = 0; i < steps/edges; i++) {
+              wave_vectors[2*steps/edges + i].Resize(3);
+              wave_vectors[2*steps/edges + i][0] = M_PI/d_x * (1.0-i * (double) edges/steps);
+              wave_vectors[2*steps/edges + i][1] = M_PI/d_y;
+              wave_vectors[2*steps/edges + i][2] = 0.0;
+            }
+            // down at the left side
+            for(int i = 0; i < steps/edges; i++) {
+              wave_vectors[3*steps/edges + i].Resize(3);
+              wave_vectors[3*steps/edges + i][0] = 0;
+              wave_vectors[3*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
+              wave_vectors[3*steps/edges + i][2] = 0.0;
+            }
+          } // end 2D quadrant
+        } // end 2D case
+        else // 3D case
+        {
+          assert(boundary_ == SYMMETRIC); // the other stuff ist not yet implemented
           for(int i = 0; i < steps/edges; i++) {
             wave_vectors[2*steps/edges + i].Resize(3);
             wave_vectors[2*steps/edges + i][0] = M_PI/d_x;
@@ -211,21 +272,9 @@ namespace CoupledField {
             wave_vectors[3*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
             wave_vectors[3*steps/edges + i][2] = M_PI/d_z * (1.0-i * (double) edges/steps);
           }
-        }
-      }
-      else
-      {
-        int root = sqrt(steps) + 0.5;
-        for(int y = 0; y < root; y++) {
-          for(int x = 0; x < root; x++) {
-            int idx = y * root + x;
-            wave_vectors[idx].Resize(3);
-            wave_vectors[idx][0] = (M_PI/d_x) * (x/(root-1));
-            wave_vectors[idx][1] = (M_PI/d_y) * (y/(root-1));
-           }
-         }
-      }
-    }
+        } // end 3D case
+      } // end non-Full case
+    } // end ibz case
     else
     {
       wave_vectors.Resize(lst.GetSize());
@@ -302,6 +351,7 @@ namespace CoupledField {
     if(isBloch_)
     {
       assert(!wave_vectors.IsEmpty());
+      LOG_DBG(efd) << "SP: #wv=" << wave_vectors.GetSize();
       for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
       {
         ComputeBlochWaveVector(i);
@@ -361,7 +411,7 @@ namespace CoupledField {
 
     current_wave_vector_ = wave_vectors[wave_vector_step]; // StrainOperatorBloch2D has a pointer to current_wave_vector
 
-    LOG_DBG(efd) << "CBWV wv=" << current_wave_vector_.ToString();
+    LOG_DBG(efd) << "CBWV wvs=" << wave_vector_step << " wv=" << current_wave_vector_.ToString();
 
     Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
     ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, sort_, isBloch_);
@@ -550,7 +600,7 @@ namespace CoupledField {
     if(isBloch_ && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
-      if(wave_vector_step == (int) wave_vectors.GetSize() - 1) {
+      if(wave_vector_step == (int) wave_vectors.GetSize() - 1 && (boundary_ == SYMMETRIC || boundary_ == QUADRANT)) {
         bloch_plot_ << first_plot_line_;
         bloch_plot_.close();
       }

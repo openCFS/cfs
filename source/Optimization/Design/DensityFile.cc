@@ -326,11 +326,13 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   // we use the fast (dirty) bulk block to be (measurable) faster
   StdVector<std::string>& block = in->GetFastBulkBlock();
 
-  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
-  // for shape ma we also want to export DesignSpace::data even if this are no design variables
-  unsigned int size = space_->data.GetSize();
-  if(smd != NULL)
-    size += smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters();
+
+  // for shape map we also want to export DesignSpace::data even if this are no design variables
+  assert((dynamic_cast<ShapeMapDesign*>(space_) != NULL && space_->GetNumberOfShapeMappingVariables() > 0) ||
+         (dynamic_cast<ShapeMapDesign*>(space_) == NULL && space_->GetNumberOfShapeMappingVariables() == 0));
+
+  unsigned int size = space_->data.GetSize() + space_->GetNumberOfShapeMappingVariables(); // the latter is 0 when no shape map
+
   block.Resize(size);
 
   for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
@@ -350,12 +352,15 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     block[i] = ss.str();
   }
 
-  if(smd != NULL)
+  // add shape map design if we have it. Can be visualized by shape_map.py.
+  // Also in the SMD case the above design is of interest!
+  if(space_->GetNumberOfShapeMappingVariables() > 0)
   {
+    ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
     // skip the aux variables slack and alpha -> they are written to the info.xml
-    for(unsigned int i = 0, n = smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters(); i < n; i++)
+    for(unsigned int i = 0, n = space_->GetNumberOfShapeMappingVariables(); i < n; i++)
     {
-      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetDesignElement(i));
+      ShapeParamElement* spe = smd->GetShapeMapDesignElement(i);
       assert(spe != NULL);
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();

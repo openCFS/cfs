@@ -43,13 +43,80 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   if(order_ <= 3)
     info_->Get(ParamNode::HEADER)->SetWarning("low integration order for shape map");
 
-  // set shape_, shape_param_ and map_
+  // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupShapeDesign(pn->Get("shapeMap"));
+
   // copy the non-fixed stuff opt_shape_param_
+  // TODO one could do a better approximation using symmetries
   opt_shape_param_.Reserve(IsProfileFixed() ? num_node_shape_params_ : shape_param_.GetSize());
+  opt_sym_param_.Reserve(opt_shape_param_.Capacity());
   for(unsigned int s = 0; s < shape_.GetSize(); s++)
-    for(unsigned int p = shape_[s].start_param, n = shape_[s].end_param; !shape_[s].fixed && p < n; p++)
-      opt_shape_param_.Push_back(&shape_param_[p]); // when we have fixed nodes we shall handle the index!!
+  {
+    ShapeParam& shape = shape_[s];
+
+    LOG_DBG(SMD) << "SMD opt " << shape.ToString() << ": sp=" << shape.start_param << " ep=" << shape.end_param << " ind=" << shape.sym_induced;
+
+    // fixed and symmetry induced shapes don't belong to opt_shape_param_ by definition
+    if(!shape.fixed && !shape.sym_induced)
+    {
+      // we mirror if we have a symmetry induced shape as next shape (6 = upper-v[0], 5 = upper-v[1], ...)
+      bool sym_mirror = shape.ShallInduceSymmetryShape();
+      // we copy the element when we have symmetry but not the above case (0->6, 1->5, 2->4, ...)
+      bool sym_map   = shape.ShallMapHalfShape();
+
+      // we have the mirror shape only when we do sym_mirror
+      ShapeParam* mirror_shape = sym_mirror ? &(shape_[s+1]) : NULL;
+      assert(!sym_mirror || mirror_shape->sym_induced);
+
+      // add one in the mirror case with odd design elements for not mirrored center element - note 0-based counting!
+      bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
+
+      shape.start_opt = opt_shape_param_.GetSize();
+      unsigned int end = sym_map ? shape.start_param + (shape.end_param - shape.start_param) / 2 + (odd_elements ? 1 : 0) : shape.end_param;
+
+      LOG_DBG(SMD) << "SMD opt cand odd=" << odd_elements << " sym_mirror=" << sym_mirror << " sym_map=" << sym_map << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt;
+
+      for(unsigned int p = shape.start_param; p < end; p++)
+      {
+        opt_shape_param_.Push_back(&shape_param_[p]); // when we have fixed nodes we shall handle the index!!
+        opt_sym_param_.Push_back(SymmetryMapping());
+
+        if(sym_map && !(odd_elements && p == end -1)) // don't add symmetry for the center element of an odd row
+          opt_sym_param_.Last().map = &shape_param_[shape.end_param - 1 - (p - shape.start_param)];
+
+        if(sym_mirror)
+          opt_sym_param_.Last().mirror = &shape_param_[mirror_shape->start_param + p - shape.start_param];
+
+        if(sym_mirror && sym_map && !(odd_elements && p == end -1)) // double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
+          opt_sym_param_.Last().mirror_map = &shape_param_[mirror_shape->end_param - 1 - (p - shape.start_param)];
+
+        // apply the value to the symmetry stuff, especially for the induced shape!
+        opt_sym_param_.Last().ApplyDesign(shape, opt_shape_param_.Last());
+
+        LOG_DBG(SMD) << "SMD opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt_shape_param_.Last()->GetIndex()
+                     << " map_sym=" << (opt_sym_param_.Last().map != NULL ? (int) opt_sym_param_.Last().map->GetIndex() : -1)
+                     << " mirror_sym=" << (opt_sym_param_.Last().mirror != NULL ? (int) opt_sym_param_.Last().mirror->GetIndex() : -1)
+                     << " mirror_map_sym=" << (opt_sym_param_.Last().mirror_map != NULL ? (int) opt_sym_param_.Last().mirror_map->GetIndex() : -1);
+      }
+
+      shape.end_opt = opt_shape_param_.GetSize(); // luckily the complex counting of symmetry references is not necessary
+
+      if(shape.type == NODE)
+        num_node_opt_shape_params_ = shape.end_opt; // as long updated as long as we have nodes. Note that profile comes after nodes!
+
+      LOG_DBG(SMD) << "SMD shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
+                   << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements << " sym_mirror=" << sym_mirror << " sym_map=" << sym_map;
+    }
+  }
+  assert(opt_shape_param_.GetSize() == opt_sym_param_.GetSize());
+
+  // set for the design subject to optimization the opt_index_ as BaseDesignElement::index_ may not reflect the design space seen
+  // by external optimizers when we have symmetry -> necessary for the sparse Jacobian.
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+    opt_shape_param_[i]->SetOptIndex(i);
+
+  // now with possibly induced shapes we may map to the design to be ready for initial evaluation
+  MapShapeToDensity();
 
   LOG_DBG(SMD) << "SMP rho_desig=" << data.GetSize();
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
@@ -72,6 +139,10 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
       new_design = true;
 
     opt_shape_param_[i]->SetDesign(v);
+
+    if(opt_sym_param_[i].HasSymmetry())
+      opt_sym_param_[i].ApplyDesign(*FindShape(opt_shape_param_[i]), opt_shape_param_[i]);
+
     LOG_DBG3(SMD) << "RDFE: i=" << i << "-> " << v;
   }
 
@@ -120,7 +191,7 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+  LOG_DBG2(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
   // we cannot cache easily for mapped_constr_gradient_ as we would need it for each function.
   // MapShapeGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
@@ -145,7 +216,18 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     for(unsigned int s = GetFirstVarIdx(f,true), n = GetEndVarIdx(f,true); s < n ; s++) // for node (from 0) and profile (later) or default for both
     {
       assert(out.InWindow(base + s));
+
       out[base + s] = opt_shape_param_[s]->GetPlainGradient(f) * scaling;
+
+      if(opt_sym_param_[s].mirror != NULL)
+        out[base + s] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
+
+      if(opt_sym_param_[s].map != NULL)
+        out[base + s] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
+
+      if(opt_sym_param_[s].mirror_map != NULL)
+        out[base + s] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
+
       LOG_DBG3(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
@@ -154,7 +236,9 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   else
   {
     assert(f->GetDesignType() == BaseDesignElement::NODE || f->GetDesignType() == BaseDesignElement::PROFILE);
+    // uses opt_index_!
     StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
+    LOG_DBG2(SMD) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
     assert(out.window.GetSize() == sparsity.GetSize());
     for(unsigned int i = 0; i < sparsity.GetSize(); i++)
     {
@@ -164,6 +248,12 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
       out[base + i] = opt_shape_param_[s]->GetPlainGradient(f) * scale;
+      if(opt_sym_param_[s].map != NULL)
+        out[base + s] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
+      if(opt_sym_param_[s].mirror != NULL)
+        out[base + s] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
+      if(opt_sym_param_[s].mirror_map != NULL)
+        out[base + s] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
     }
   }
 }
@@ -172,7 +262,16 @@ void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::NODE); // extend to check for profile
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
+  {
     opt_shape_param_[i]->Reset(vs);
+    assert(!opt_shape_param_[i]->costGradient.IsEmpty());
+    if(opt_sym_param_[i].map != NULL)
+      opt_sym_param_[i].map->Reset(vs);
+    if(opt_sym_param_[i].mirror != NULL)
+      opt_sym_param_[i].mirror->Reset(vs);
+    if(opt_sym_param_[i].mirror_map != NULL)
+      opt_sym_param_[i].mirror_map->Reset(vs);
+  }
 
   AuxDesign::Reset(vs, design);
 }
@@ -288,7 +387,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
 }
 
 
-inline BaseDesignElement::Type ShapeMapDesign::Convert(Type type) const
+BaseDesignElement::Type ShapeMapDesign::Convert(Type type)
 {
   switch(type)
   {
@@ -323,7 +422,6 @@ std::string ShapeMapDesign::Dof(int dof)
 
 }
 
-
 inline bool ShapeMapDesign::IsProfileFixed() const
 {
   // assume all nodes are concurrently fixed?!
@@ -333,11 +431,11 @@ inline bool ShapeMapDesign::IsProfileFixed() const
 unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
 {
   assert(num_node_shape_params_ > 0);
-  if(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::NODE)
+  if(f->GetDesignType() != BaseDesignElement::PROFILE) // NODE, DEFAULT, DENSITY, ...
     return 0;
   assert(f->GetDesignType() == BaseDesignElement::PROFILE);
   assert(!IsProfileFixed()); // don't call if fixed
-  return num_node_shape_params_; // assume no fixed node
+  return opt ? num_node_opt_shape_params_ : num_node_shape_params_; // assume no fixed node in the non-opt case!
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
@@ -346,14 +444,14 @@ unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f, bool opt) const
   assert(2 * num_node_shape_params_ == (int) shape_param_.GetSize()); // end of profile
   if(f->GetDesignType() == BaseDesignElement::NODE)
     return num_node_shape_params_; // assume no fixed node
-  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::PROFILE);
+  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE);
   return opt ? opt_shape_param_.GetSize() : shape_param_.GetSize();
 }
 
 unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f, bool opt) const
 {
   assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
-  if(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::NODE)
+  if(f->GetDesignType() != BaseDesignElement::PROFILE)
     return 0;
   assert(f->GetDesignType() == BaseDesignElement::PROFILE);
   return num_node_shapes_;
@@ -365,7 +463,7 @@ unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
   assert(2 * num_node_shapes_ == (int) shape_.GetSize()); // end of profile
   if(f->GetDesignType() == BaseDesignElement::NODE)
     return num_node_shapes_;
-  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::PROFILE);
+  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE);
   assert(shape_[shape_.GetSize() / 2].type == PROFILE);
   assert(!shape_[shape_.GetSize() / 2].fixed);
   return opt && IsProfileFixed() ? shape_.GetSize() / 2 : shape_.GetSize();
@@ -377,7 +475,6 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(f->IsLocal(f->GetType()));
   // we shall be called by Local::PostInit() therefore local shall exist
   assert(f->GetLocal() != NULL);
-  bool periodic = f->GetLocal()->periodic;
 
   // we assume fixed only for profile
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
@@ -393,36 +490,68 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
 
   // we don't set Function::Local::element_dimension_, it would be 2 (dim==1 * two signs)
   // we wont't use the full space as the individual shape_ are not connected
+  // FIXME consider symmetry via opt_shape_param_ ?!
   vem.Reserve(num_node_shape_params_ * (two_signs ? 2 : 1)); // separately for node and profile but both of same size
 
   // traverse shape_ to have proper start and end. check for node or profile
   for(unsigned int s = GetFirstShapeIdx(f,true), n = GetEndShapeIdx(f,true); s < n; s++)
   {
-    const ShapeParam& param = shape_[s];
-    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
-    assert(!param.fixed);
+    const ShapeParam& shape = shape_[s];
 
-    LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << param.start_param << " ep=" << param.end_param;
-
-    // skip the last element as we want only 'full' elements with next when we are not periodic
-    for(int e = param.start_param + (prev ? (periodic ? 0 : 1) : 0), n = param.end_param - (periodic ? 0 : +1); e < n; e++)
+    if(!shape.fixed && !shape.sym_induced)
     {
-      BaseDesignElement& bde = shape_param_[e];
-      assert(f->GetDesignType() == bde.GetType());
-      assert((!periodic && e < param.end_param-1) || (periodic && e < param.end_param));
+      bool periodic = shape.ShallMapHalfShape() ? false : f->GetLocal()->periodic; // symmetric stuff has special periodicity handling below
 
-      BaseDesignElement* prev_de = prev ? &shape_param_[e == param.start_param ? param.end_param-1 : e-1] : NULL; // if not prev take last
-      BaseDesignElement* next_de =        &shape_param_[e == param.end_param-1 ? param.start_param : e+1]; // we next cannot be next we take first (only if periodic)
+      assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
+      LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_param << " ep=" << shape.end_param << " so=" << shape.start_opt << " eo=" << shape.end_opt;
 
-      LOG_DBG2(SMD) << "SVSEM s=" << s << " n=" << n << " pde=" << (prev_de != NULL ? (int) prev_de->GetIndex() : -1) << " e=" << e << " nde=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
+      // skip the last element as we want only 'full' elements with next when we are not periodic
+      for(int e = shape.start_opt + (prev ? (periodic ? 0 : 1) : 0), n = shape.end_opt - (periodic ? 0 : +1); e < n; e++)
+      {
+        BaseDesignElement* bde = opt_shape_param_[e];
+        assert(f->GetDesignType() == bde->GetType());
+        assert((!periodic && e < shape.end_opt-1) || (periodic && e < shape.end_opt));
 
-      vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_1));
-      if(two_signs)
-        vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_2));
+        // note that opt_shape_param can be a fragmented variant of shape_param which is an issue with the index which needs to consecutive in opt_shape_param
+        BaseDesignElement* prev_de = prev ? opt_shape_param_[e == shape.start_opt ? shape.end_opt-1 : e-1] : NULL; // if not prev take last
+        BaseDesignElement* next_de =        opt_shape_param_[e == shape.end_opt-1 ? shape.start_opt : e+1]; // we next cannot be next we take first (only if periodic)
+
+        LOG_DBG(SMD) << "SVSEM s=" << s << " n=" << n << " po=" << (prev_de != NULL ? (int) prev_de->GetOptIndex() : -1) << " eo=" << e << " no=" << (next_de != NULL ? (int) next_de->GetOptIndex() : -1)
+                                                      << " p="  << (prev_de != NULL ? (int) prev_de->GetIndex() : -1)    << " e=" << bde->GetIndex() << " n=" << (next_de != NULL ? (int) next_de->GetIndex() : -1);
+
+
+        vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_1));
+        if(two_signs)
+          vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_2));
+      }
+
+      // special case for curvature on a symmetric shape where we opt only half (e.g. 6) then a curvature 5 - 6 - 5 is not possible
+      // as snopt complains. Therefore we do a slope constraint 5 - 6 with the bound for the curvature
+      if(prev && shape.ShallMapHalfShape() && (shape.end_opt - shape.start_opt) > 2)
+      {
+        // curvature over the inner element
+        // note that the slope should actually have half the curvature bound!
+        BaseDesignElement* bde  = opt_shape_param_[shape.end_opt-2];
+        BaseDesignElement* next = opt_shape_param_[shape.end_opt-1];
+
+        LOG_DBG(SMD) << "SVSEM s=" << s << " curvature slope: eo=" << bde->GetOptIndex() << " no=" << next->GetOptIndex() << " e=" << bde->GetIndex() << " n=" << next->GetIndex();
+        vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_1));
+        if(two_signs)
+          vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_2));
+
+        // curvature over the outer element last - 0 - 1 which would be 1 - 0 - 1 which is slope 0 - 1 (should be actually half bound)
+        bde  = opt_shape_param_[shape.start_opt];
+        next = opt_shape_param_[shape.start_opt+1];
+
+        LOG_DBG(SMD) << "SVSEM s=" << s << " curvature slope: eo=" << bde->GetOptIndex() << " no=" << next->GetOptIndex() << " e=" << bde->GetIndex() << " n=" << next->GetIndex();
+        vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_1));
+        if(two_signs)
+          vem.Push_back(Function::Local::Identifier(bde, NULL, next, sign_2));
+      }
     }
   }
 
-  LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
+  LOG_DBG(SMD) << "SVSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
 }
 
 
@@ -443,14 +572,17 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
   for(unsigned int s = first; s < end; s++)
   {
-    const ShapeParam& param = shape_[s];
-    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
-    assert(!param.fixed);
+    const ShapeParam& shape = shape_[s];
 
-    BaseDesignElement& left  = shape_param_[param.start_param];
-    BaseDesignElement& right = shape_param_[param.end_param-1]; // now take the last which is end-1
+    if(!shape.fixed && !shape.sym_induced)
+    {
+      assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
 
-    vem.Push_back(Function::Local::Identifier(&left, NULL, &right)); // makes a neighborhood of size 1
+      BaseDesignElement* left  = opt_shape_param_[shape.start_opt];
+      BaseDesignElement* right = opt_shape_param_[shape.end_opt-1]; // now take the last which is end-1
+
+      vem.Push_back(Function::Local::Identifier(left, NULL, right)); // makes a neighborhood of size 1
+    }
   }
 
   LOG_DBG(SMD) << "SCVSEM f=" << f->ToString() << " loc=" << locality << " -> vem=" << vem.GetSize();
@@ -519,14 +651,30 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    assert(beta_ >= 0.0); // shall be already set
    ParamNodeList nodes = pn->GetList("node"); // there must be at least one
    PtrParamNode  profile = pn->Get("profile"); // there must be one
-   LOG_DBG(SMD) << "SSD: childs of shapeParam: " << nodes.GetSize();
+   LOG_DBG(SMD) << "SSD: children of shapeParam: " << nodes.GetSize();
    assert(!nodes.IsEmpty());
-   shape_.Resize(nodes.GetSize() * 2); // list is for nodes which are doubled by profile
+   // first we add the shapes, as we might induce additional shapes during Init we add the profiles later
+   shape_.Reserve(nodes.GetSize() * 2); // list is for nodes which are doubled by profile, might become larger when we induce stuff
    for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++) {
-     shape_[i].Init(nodes[i], i); // empty constructor due to StdVector/(
-     shape_[n+i].Init(profile, n+i); // one profile for each node shape
+     shape_.Push_back(ShapeParam());
+     shape_.Last().Init(nodes[i], shape_.GetSize()-1); // size might be != i when we induce
+     LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+
+     if(shape_.Last().ShallInduceSymmetryShape()) {
+       shape_.Push_back(ShapeParam());
+       shape_.Last().Init(nodes[i], shape_.GetSize()-1);
+       shape_.Last().sym_induced = true;
+       LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+     }
    }
-   num_node_shapes_ = nodes.GetSize();
+   num_node_shapes_ = shape_.GetSize();
+
+   // now add the profiles
+   for(unsigned int i = 0, n = shape_.GetSize(); i < n; i++) {
+     shape_.Push_back(ShapeParam());
+     shape_.Last().Init(profile, shape_.GetSize()-1, &shape_[i]); // one profile for each node shape, give reverence to node to copy sym and orientation
+     LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+   }
 
    // setup nodes within shape_param_. When nx != ny we need the number of shapes to reserve proper space
    StdVector<ShapeParam*> shape_x = FindShape(NODE, 0);
@@ -536,8 +684,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    shape_param_.Reserve(2 * num_node_shape_params_); // all doubled for profile
    assert(shape_param_.Capacity() > 0);
 
-   // take the shapes in the order they are stored in shape_ as read from xml
-   for(unsigned int s = 0; s < nodes.GetSize(); s++)
+   // take the shapes in the order they are stored in shape_ as read from xml plus induced shapes
+   for(int s = 0; s < num_node_shapes_; s++)
    {
      ShapeParam& param = shape_[s];
      param.start_param = shape_param_.GetSize();
@@ -606,8 +754,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        }
      }
    }
-   //DumpMap();
-   MapShapeToDensity();
+
+   // don't map shape to density yet as symmetry might induce additional shapes
 }
 
  void ShapeMapDesign::MapShapeToDensity()
@@ -673,7 +821,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              for(unsigned int si = 0; si < shapes.GetSize(); si++)
                ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
              // correct ip_rho by assuring <= 1. See TanhSum()
-             LOG_DBG2(SMD) << "MS2D: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y << " sum=" << ip_rho << " -> " << tanh_sum_.map(ip_rho);
+             LOG_DBG3(SMD) << "MS2D: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y << " sum=" << ip_rho << " -> " << tanh_sum_.map(ip_rho);
              ip_rho = tanh_sum_.map(ip_rho);
              break;
            } // end of switch(overlap_)
@@ -779,7 +927,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  // this is the derivative for the tanh(shape)
                  double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
                  da = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
-                 LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                 LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
                                << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << da;
                }
                break;
@@ -787,7 +935,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
                da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_order_);
              }
-             LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
+             LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
 
              log_da += da_norm;
 
@@ -821,7 +969,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                    // this is the derivative for the tanh(shape)
                    double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
                    dw = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
-                   LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
+                   LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
                        << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << dw;
                  }
                  break;
@@ -1071,8 +1219,19 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
   // add aux_design to full_data
   AuxDesign::PostInit(objectives, constraints);
 
-  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+  assert(objectives > 0);
+
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++) {
     opt_shape_param_[i]->PostInit(objectives, constraints);
+    LOG_DBG2(SMD) << "PI i=" << i << " idx=" << opt_shape_param_[i]->GetIndex() << " #o=" << objectives << " #c=" << constraints << " -> " << opt_sym_param_[i].ToString();
+    if(opt_sym_param_[i].map != NULL)
+      opt_sym_param_[i].map->PostInit(objectives, constraints);
+    if(opt_sym_param_[i].mirror != NULL)
+      opt_sym_param_[i].mirror->PostInit(objectives, constraints);
+    if(opt_sym_param_[i].mirror_map != NULL)
+      opt_sym_param_[i].mirror_map->PostInit(objectives, constraints);
+
+  }
 
   if(domain->GetOptimization() != NULL)
     opt_ = domain->GetOptimization();
@@ -1087,21 +1246,38 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
   return res;
  }
 
- void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_)
+ void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_, ShapeParam* node)
  {
    type = ShapeMapDesign::type.Parse(pn->GetName());
    idx = (int) idx_;
 
    if(type == NODE)
    {
+     assert(node == NULL);
      if(!pn->Has("dof"))
        throw Exception("shapeParam of type 'node' requires 'dof'");
      dof = Dof(pn->Get("dof")->As<std::string>());
      assert(dof == 0 || dof == 1);
+
+     orientation = dof == 0 ? 1 : 0; // only 2d!
+
+     x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
+     y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+
+     LOG_DBG(SMD) << "SP:I idx=" << idx_ << " node dof=" << dof << " orientation=" << orientation << " x_sym=" << ShapeMapDesign::symmetry.ToString(x_sym)
+                  << " y_sym=" << ShapeMapDesign::symmetry.ToString(y_sym) << " shall_induce=" << ShallInduceSymmetryShape();
    }
-   else
+   if(type == PROFILE)
+   {
      if(pn->Has("dof"))
        throw Exception("shapeParam knows 'dof' only for type 'node'");
+     assert(node != NULL);
+     dof = node->dof;
+     orientation = node->orientation;
+     x_sym = node->x_sym;
+     y_sym = node->y_sym;
+     sym_induced = node->sym_induced;
+   }
 
    if(pn->Has("initial"))
    {
@@ -1121,8 +1297,41 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
      value = pn->Get("fixed")->MathParse<double>();
      fixed = true;
    }
+
+   LOG_DBG(SMD) << "SP:I final: idx=" << idx_ << " type=" << type << " node=" << (node != NULL ? node->idx : -1) << " x_sym=" << x_sym
+                << " y_sym=" << y_sym << " orientation=" << orientation;
+
    if(!pn->Has("initial") && !pn->Has("fixed"))
      throw Exception("shapeParam needs to have either 'initial' or 'fixed'");
+}
+
+bool ShapeMapDesign::ShapeParam::ShallInduceSymmetryShape() const
+{
+  if(x_sym == MIRROR && orientation == 1)
+    return true;
+
+  if(y_sym == MIRROR && orientation == 0)
+    return true;
+
+  return false;
+}
+
+bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
+{
+  if(x_sym == MIRROR && orientation == 0)
+    return true;
+
+  if(y_sym == MIRROR && orientation == 1)
+    return true;
+
+  return false;
+}
+
+std::string ShapeMapDesign::ShapeParam::ToString() const
+{
+  std::stringstream ss;
+  ss << ShapeMapDesign::type.ToString(this->type) << " idx=" << idx << " dof=" << dof << " o=" << orientation << " xs=" << x_sym << " ys=" << y_sym;
+  return ss.str();
 }
 
 void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
@@ -1138,7 +1347,16 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
     in->Get("upper")->SetValue(upper);
   }
   assert(start_param >= 0 && end_param > 0);
+
   in->Get("variables")->SetValue(end_param - start_param);
+  in->Get("design")->SetValue(end_opt - start_opt);
+
+  if(!this->sym_induced) {
+    in->Get("left_right_sym")->SetValue(ShapeMapDesign::symmetry.ToString(x_sym));
+    in->Get("bottom_up_sym")->SetValue(ShapeMapDesign::symmetry.ToString(y_sym));
+  }
+  else
+    in->Get("sym_induced")->SetValue(true); // we have this shape only as a result of a shape inducing symmetry
 }
 
 ShapeMapDesign::TanhSum::TanhSum()
@@ -1195,6 +1413,47 @@ inline double ShapeMapDesign::TanhSum::d_map(double x, double dx)
   // f(x) := 1-1/(exp(11*(g(x)-0.5))+1);
   // diff(f(x),x);
   return scale * std::pow(std::exp(beta*(x-0.5))+1, -2) * std::exp(beta*(x-0.5)) * beta * dx;
+}
+
+void ShapeMapDesign::SymmetryMapping::ApplyDesign(ShapeParam& shape, ShapeParamElement* org)
+{
+  assert(org != NULL);
+  assert(ShapeMapDesign::Convert(shape.type) == org->GetType());
+
+  if(map != NULL)
+    map->SetDesign(org->GetPlainDesignValue());
+
+  if(mirror != NULL)
+  {
+    if(shape.type == NODE)
+      mirror->SetDesign(shape.max - org->GetPlainDesignValue());
+    else
+      mirror->SetDesign(org->GetPlainDesignValue());
+  }
+
+  if(mirror_map != NULL)
+  {
+    if(shape.type == NODE)
+      mirror_map->SetDesign(shape.max - org->GetPlainDesignValue());
+    else
+      mirror_map->SetDesign(org->GetPlainDesignValue());
+  }
+}
+
+std::string ShapeMapDesign::SymmetryMapping::ToString() const
+{
+  std::stringstream ss;
+  ss << "map=";
+  if(map == NULL)
+    ss << "null";
+  else
+    ss << map->GetIndex();
+  ss << " mirror=";
+  if(mirror == NULL)
+    ss << "null";
+  else
+    ss << mirror->GetIndex();
+  return ss.str();
 }
 
 } // end of namespace
