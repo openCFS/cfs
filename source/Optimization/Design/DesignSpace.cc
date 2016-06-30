@@ -253,14 +253,40 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.translate_design = lower;
             }
             bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
-            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+            double initial = -1;
 
-            if(!random && (initial < lower || initial > upper))
+            MathParser* mp = domain->GetMathParser();
+            MathParser::HandleType mHandle = -1;
+            std::string expr = curr_design_pn->Get("initial")->As<std::string>();
+            bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
+            if (initDependsOnSpace) {
+              mHandle = mp->GetNewHandle(true);
+              mp->SetExpr(mHandle,expr);
+              domain->GetGrid()->SetElementBarycenters(reg_data[r], true);
+            }
+            else
+              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper)) {
               info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              if (initDependsOnSpace)
+                info_->Get(ParamNode::HEADER)->SetWarning("Set initial value for design " + DesignElement::type.ToString(dt) + " to next valid value");
+            }
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
+
+              if (initDependsOnSpace) {
+                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->barycenter.GetCoordVector());
+                initial = mp->Eval(mHandle);
+                if (initial < lower || initial > upper) {
+                  if (initial < lower)
+                    initial = lower;
+                  if (initial > upper)
+                    initial = upper;
+                }
+              }
 
               de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
