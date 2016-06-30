@@ -504,10 +504,10 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
   //@}
 
   //@}
-protected:
 
   // ========================
   //  HELPER METHODS
@@ -520,7 +520,8 @@ protected:
   //! Returns true, if expression depends on space
   static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
   //@}
-  
+protected:
+
   //TODO: CHANGE THIS TO SHARED POINTER
   // i.e. change the domain to hold a shared_ptr to the coordinate systems!
   CoordSystem* coordSys_;
