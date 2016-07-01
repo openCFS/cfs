@@ -179,8 +179,8 @@ extern "C" {
   PardisoSolver<T>::~PardisoSolver() {
 
     // PARDISO - Last Phase: Cleaning up the parameters
-    if ( firstCall_ == false ) {
-
+    if ( firstCall_ == false )
+    {
       int errorFlag = 0;
       int phase = -1;
 
@@ -198,10 +198,8 @@ extern "C" {
                 &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != PARDISO_NO_ERROR) {
-        EXCEPTION( "Error occured during cleanup:\n"
-                   << GetErrorString(errorFlag) )
-      }
+      if(errorFlag != PARDISO_NO_ERROR) // no exceptions in C++11 destructors
+        std::cerr << "Error occured during cleanup of pardiso: " << GetErrorString(errorFlag) << std::endl;
 
     // Read iterative solver statistics
     if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) {
@@ -217,7 +215,8 @@ extern "C" {
       try {
         fs::remove("pardiso-ml.out");
       } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+        // no exceptions in C++11 destructors
+        std::cerr << "Error occured removing remove pardiso-ml.out: " << ex.what() << std::endl;
       }      
     }
 

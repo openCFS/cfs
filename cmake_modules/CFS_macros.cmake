@@ -310,13 +310,12 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
   ELSE()
     MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}.")
   ENDIF()
-  
 ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files
-# listed in there else we zip TMP_INSTALL_DIR.
+# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
+# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -329,11 +328,34 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
   IF("${MANIFESTS}" STREQUAL "")
     # No manifests exists -> zip TMP_DIR
+    #MESSAGE("ZF=${ZIP_FILE}")
+    #MESSAGE("TD=${TMP_DIR}")
+    #MESSAGE("check ${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+
+    # standard make or configure does not known about lib64/CFS_ARCH_STR
+    IF(NOT EXISTS "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+      #MESSAGE("create ${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+    ENDIF()
+
+    # move any lib to lib64/CFS_ARCH_STR. Extend to lib64/files if necessary
+    IF(EXISTS "${TMP_DIR}/lib")
+      #MESSAGE("copy lib stuff")
+      FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+      #MESSAGE("clean lib stuff")
+      FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
+    ENDIF()
+   
+    # create the zip
     EXECUTE_PROCESS(
       COMMAND zip -g -r ${ZIP_FILE} "."
       WORKING_DIRECTORY "${TMP_DIR}"
-      RESULT_VARIABLE rv
-    )
+      RESULT_VARIABLE rv)
+      
+    # copy data from TMP_DIR install dir to the target where cfs needs it and where the zip would be extracted.
+    #MESSAGE("copy from ${TMP_DIR}/ to ${CMAKE_CURRENT_BINARY_DIR}/")
+    FILE(COPY "${TMP_DIR}/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
+    
   ELSE()
     # Manifests exists -> zip files listed therein
     FOREACH(manifest ${MANIFESTS})
