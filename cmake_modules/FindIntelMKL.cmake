@@ -339,7 +339,12 @@ ELSE(WIN32)
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/share/scripts/compile_mkl_test.sh.in"
     "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh" @ONLY)
-
+ 
+  # Make sure we can execute the script
+  EXECUTE_PROCESS(
+    COMMAND chmod 755 "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh"
+    WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
+    
   #-----------------------------------------------------------------------------
   # Execute the build script and put the generated CMake code into mkl.cmake.
   #-----------------------------------------------------------------------------
