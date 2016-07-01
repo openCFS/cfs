@@ -15,9 +15,8 @@
 
 #include "BLASLAPACKInterface.hh"
 
-using namespace std;
-
 using boost::tokenizer;
+
 namespace CoupledField
 {      
 

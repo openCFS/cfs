@@ -2,7 +2,7 @@
 #define DESIGNELEMENT_HH_
 
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stddef.h>
 #include <limits>
 #include <string>

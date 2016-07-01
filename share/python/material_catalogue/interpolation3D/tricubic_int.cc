@@ -2,7 +2,7 @@
 #include "coeff.h"
 #include <cstdlib>
 #include <stdio.h>      /* printf */
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include <boost/tokenizer.hpp>

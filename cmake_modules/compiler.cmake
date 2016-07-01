@@ -308,11 +308,10 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   
-  #---------------------------------------------------------------------------
   # The  intel  compiler might  not  know  the  function __builtin_isnan  (and
   #  isinf), so redirect that to isnan
-  #---------------------------------------------------------------------------
-  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
+  # comment it out as it breaks with icc 2016 and gcc 6 libs
+  #SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
   # end icc section
 ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
   IF(NOT USE_CGAL)

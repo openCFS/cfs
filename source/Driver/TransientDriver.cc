@@ -3,7 +3,7 @@
 #include <string>
 #include <stdio.h>
 #include <list>
-#include <math.h>
+#include <cmath>
 
 // signal handling for catching Ctrl-C
 #include <signal.h>
