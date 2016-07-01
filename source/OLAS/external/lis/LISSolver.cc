@@ -89,8 +89,9 @@ LISSolver::~LISSolver(){
 
   //matrix A_ shares a pointer in case of real valued problems
   //there would be a double free otherwise
-  if(ownMatrixA_)
+  if(ownMatrixA_) {
     err = lis_matrix_destroy(A_); CHKERR(err);
+  }
 
   err = lis_precon_destroy(precond_);CHKERR(err);
   err = lis_solver_destroy(solver_);CHKERR(err);
