@@ -27,9 +27,6 @@ SET_COMPILER_ENV("GCC")
 set(BUILDTYPE "DEBUG")
 set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
-# Start out with an empty binary directory
-set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
-
 # set the default initial cache for nighly tests
 INIT_CACHE(CTEST_INITIAL_CACHE) 
 # set additional config options 

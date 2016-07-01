@@ -45,10 +45,6 @@ foreach(DLL IN ITEMS ${INTEL_DLLS})
   EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E remove "${CFS_LIB_DIR}/${DLL}")
 endforeach()
 
-# Start out with an empty binary directory
-set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE) # this does not seem to work
-ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY}) # maybe this works better
-
 # set the default initial cache for nighly tests
 INIT_CACHE(CTEST_INITIAL_CACHE) 
 # set additional config options 
