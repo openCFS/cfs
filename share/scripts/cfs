@@ -29,24 +29,16 @@ for param in "$@"; do
 done
 
 # check for the -t parameter
-while :; do
-    case $1 in
+t_arg=False
+for arg in $@; do
+    case $arg in
         -t|--numThreads)
-            if [ -n "$2" ]; then
-		re_int='^[0-9]+$'
-		if ! [[ $2 =~ $re_int ]] ; then
-                    printf 'provided value "'$1' '$2'" is not an integer!\n' >&2
-		fi
-	        CFS_THREADS=$2
-                shift
-            else
-                printf '"-t|--numThreads" requires a non-empty option argument.\n' >&2
-            fi
-            ;;
-      *)
-      break
+            t_arg=True
+	    continue ;;
     esac
-    shift
+    if [ $t_arg ]; then
+        CFS_THREADS=$2
+    fi
 done
 
 if [ ! "$REV" = "" ]; then
