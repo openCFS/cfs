@@ -19,6 +19,8 @@ macro(INIT_TEST)
   INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
   # Identify distro.
   IDENTIFY_DISTRO()
+  # empty binary directory
+  ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
   # write ctest config
   WRITE_CTEST_CONFIG()
 
