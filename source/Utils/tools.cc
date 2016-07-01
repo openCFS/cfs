@@ -1,6 +1,6 @@
 #include <fstream>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>

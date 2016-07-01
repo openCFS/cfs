@@ -76,7 +76,7 @@ ELSE()
     URL ${LOCAL_FILE}
     URL_MD5 ${OPENBLAS_MD5}
     BUILD_IN_SOURCE 1
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    PATCH_COMMAND "" # at the moment only make and no cmake version ${CMAKE_COMMAND} -P "${PFN}" 
     CONFIGURE_COMMAND ""
     BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} libs
     INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install NO_SHARED=1 "PREFIX=${openblas_install}" 

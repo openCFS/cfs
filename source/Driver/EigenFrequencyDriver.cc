@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Domain/Domain.hh"

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <limits.h>
 
 #include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
