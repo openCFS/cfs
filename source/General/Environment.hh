@@ -2,7 +2,7 @@
 #define FILE_SCFE_MYDEFS_2001
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include <typeinfo>
 #include <iostream>

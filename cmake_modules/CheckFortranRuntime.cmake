@@ -268,6 +268,7 @@ ENDIF()
 
 include(FortranCInterface)
 
+# this stuff is important such that the linker finds the functions if the names are different (uppercase, ...)
 FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS

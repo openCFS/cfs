@@ -1,7 +1,7 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-#include <math.h>
+#include <cmath>
 
 #include <string>
 #include <iostream>

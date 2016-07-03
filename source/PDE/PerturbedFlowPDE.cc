@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <set>
 

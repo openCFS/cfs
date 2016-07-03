@@ -3,7 +3,6 @@
 #include "opdefs.hh"
 
 #include <string>
-#include <cmath>
 #include <def_build_type_options.hh>
 
 #include <boost/tokenizer.hpp>
@@ -15,9 +14,8 @@
 
 #include "BLASLAPACKInterface.hh"
 
-using namespace std;
-
 using boost::tokenizer;
+
 namespace CoupledField
 {      
 
@@ -2011,7 +2009,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isnan(data_[0][k])) return true;
+      if(boost::math::isnan(data_[0][k])) return true;
 
     return false;
   }
@@ -2021,8 +2019,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isnan(data_[0][k].real())) return true;
-      if(std::isnan(data_[0][k].imag())) return true;
+      if(boost::math::isnan(data_[0][k].real())) return true;
+      if(boost::math::isnan(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -2032,7 +2030,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isinf(data_[0][k])) return true;
+      if(isinf(data_[0][k])) return true;
 
     return false;
   }
@@ -2042,8 +2040,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isinf(data_[0][k].real())) return true;
-      if(std::isinf(data_[0][k].imag())) return true;
+      if(isinf(data_[0][k].real())) return true;
+      if(isinf(data_[0][k].imag())) return true;
     }
     return false;
   }

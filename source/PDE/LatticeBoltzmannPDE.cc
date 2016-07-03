@@ -7,7 +7,7 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
