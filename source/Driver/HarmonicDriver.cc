@@ -84,9 +84,8 @@ namespace CoupledField
     if( !simState_->HasInput() ) {
       // unregister signal handler and use default action
       // register signal handler
-      if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        EXCEPTION( "Could not assign default signal action");
-      }
+      if( signal( SIGINT, SIG_DFL) == SIG_ERR )
+        std::cerr << "Could not assign default signal action\n"; // no exceptions in desctructors with gcc 6
 
       // set global pointer to zero
       instance = NULL;

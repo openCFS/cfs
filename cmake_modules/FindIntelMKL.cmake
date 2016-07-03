@@ -219,6 +219,7 @@ SET (MKL_POSSIBLE_PATHS
   ${MKL_ROOT_DIR}
   # Path the user may have specified as environment variable
   $ENV{MKL_ROOT_DIR}
+  $ENV{MKL_BASE}
   # Path which may have been given in a platform_defaults_*.cmake file 
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
@@ -240,6 +241,8 @@ SET (MKL_POSSIBLE_PATHS
   /apps/intel/ict/3.0/cmkl/9.0
   # Paths on Lima
   /apps/intel/ComposerXE2013/composer_xe_2013.5.192/mkl
+  # intel 2016 tools
+  /opt/intel/compilers_and_libraries/linux/mkl
  )
 
 #-------------------------------------------------------------------------------
@@ -254,7 +257,6 @@ FIND_FILE(MKL_ROOT_DIR
   NO_SYSTEM_ENVIRONMENT_PATH
   NO_CMAKE_SYSTEM_PATH
   )
-
 
 #-------------------------------------------------------------------------------
 # Replace include/mkl.h with nothing to get the MKL root dir.
@@ -324,11 +326,7 @@ ELSE(WIN32)
   #-----------------------------------------------------------------------------
   # We always want to link against the parallel version of MKL.
   #-----------------------------------------------------------------------------
-#  IF(USE_OPENMP)
-    SET(MKL_THREADING_ID "parallel")
-#  ELSE(USE_OPENMP)
-#    SET(MKL_THREADING_ID "sequential")
-#  ENDIF(USE_OPENMP)  
+  SET(MKL_THREADING_ID "parallel") # this used to be parallel or omp for newer ones?
 
   #-----------------------------------------------------------------------------
   # Configure our little build script using the previously defined variables.
@@ -356,7 +354,7 @@ ELSE(WIN32)
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------
     INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
-  ELSE(RETVAL EQUAL 0)
+  ELSE()
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem.")
