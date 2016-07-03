@@ -328,21 +328,15 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
   IF("${MANIFESTS}" STREQUAL "")
     # No manifests exists -> zip TMP_DIR
-    #MESSAGE("ZF=${ZIP_FILE}")
-    #MESSAGE("TD=${TMP_DIR}")
-    #MESSAGE("check ${TMP_DIR}/lib64/${CFS_ARCH_STR}")
 
     # standard make or configure does not known about lib64/CFS_ARCH_STR
     IF(NOT EXISTS "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
-      #MESSAGE("create ${TMP_DIR}/lib64/${CFS_ARCH_STR}")
       FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
     ENDIF()
 
     # move any lib to lib64/CFS_ARCH_STR. Extend to lib64/files if necessary
     IF(EXISTS "${TMP_DIR}/lib")
-      #MESSAGE("copy lib stuff")
       FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
-      #MESSAGE("clean lib stuff")
       FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
     ENDIF()
    
@@ -353,7 +347,6 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
       RESULT_VARIABLE rv)
       
     # copy data from TMP_DIR install dir to the target where cfs needs it and where the zip would be extracted.
-    #MESSAGE("copy from ${TMP_DIR}/ to ${CMAKE_CURRENT_BINARY_DIR}/")
     FILE(COPY "${TMP_DIR}/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
     
   ELSE()
@@ -378,18 +371,20 @@ ENDMACRO()
 # lead to issues with clang which needs either gfortran or ifort as companion
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
   # there is complex issue with ifort. On Thumbeweed we have
   # FC_VERSION=16.0 20150815, CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-  # With ubuntu CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
+  # With Ubuntu it seems to depend on the version. E.g. CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
+  # anyway we make sure we have no spaces
   # with gfortran both variables have the same value (e.g. 5.2.0) 
   # use our own variable
+  
   IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
   ENDIF()
-
+  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})
+  
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
   ELSE()
@@ -404,6 +399,7 @@ MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
   ENDIF()
+  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})  
 
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
