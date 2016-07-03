@@ -78,7 +78,7 @@ ELSE()
     BUILD_IN_SOURCE 1
     PATCH_COMMAND "" # at the moment only make and no cmake version ${CMAKE_COMMAND} -P "${PFN}" 
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} libs
+    BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} libs netlib # netlib seems to add lapack which we also need
     INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install NO_SHARED=1 "PREFIX=${openblas_install}" 
   )
   
