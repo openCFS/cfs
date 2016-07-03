@@ -3,7 +3,6 @@
 #include "opdefs.hh"
 
 #include <string>
-#include <cmath>
 #include <def_build_type_options.hh>
 
 #include <boost/tokenizer.hpp>
@@ -2010,7 +2009,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(isnan(data_[0][k])) return true;
+      if(boost::math::isnan(data_[0][k])) return true;
 
     return false;
   }
@@ -2020,8 +2019,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(isnan(data_[0][k].real())) return true;
-      if(isnan(data_[0][k].imag())) return true;
+      if(boost::math::isnan(data_[0][k].real())) return true;
+      if(boost::math::isnan(data_[0][k].imag())) return true;
     }
     return false;
   }
