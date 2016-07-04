@@ -20,7 +20,10 @@ macro(INIT_TEST)
   # Identify distro.
   IDENTIFY_DISTRO()
   # empty binary directory
-  ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
+  #ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY}) # this fails if there is no "CMakeLists.txt"
+  file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
+
   # write ctest config
   WRITE_CTEST_CONFIG()
 
