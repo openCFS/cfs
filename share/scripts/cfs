@@ -29,15 +29,19 @@ for param in "$@"; do
 done
 
 # check for the -t parameter
-t_arg=False
+t_arg_next=False
 for arg in $@; do
-    case $arg in
-        -t|--numThreads)
-            t_arg=True
-	    continue ;;
-    esac
-    if [ $t_arg ]; then
-        CFS_THREADS=$2
+    # if we had -t|-numThreads before
+    if [ $t_arg_next == True ]; then
+        CFS_THREADS=$arg
+	break
+    fi
+    # analyze argument: -t n | --numThreads n | --numThreads=n
+    if expr "$arg" : '^-t\|--numThreads$' >/dev/null; then
+	t_arg_next=True; # read next arg
+    elif expr "$arg" : '--numThreads=[0-9]\+' >/dev/null; then
+        CFS_THREADS=$(echo $arg | sed 's/^.\+=//')
+	break
     fi
 done
 
