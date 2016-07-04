@@ -211,7 +211,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
   case Function::PRESSURE_DROP:
   {
-    LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
+    LatticeBoltzmannPDE* lbmPde = f->ctxt->GetLatticeBoltzmannPDE();
     assert(lbmPde != NULL);
     lbmPde->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
     break;
