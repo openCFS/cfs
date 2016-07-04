@@ -184,7 +184,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
             s3 = microparams['s3']
             sh1 = microparams['sh1']
           except:
-            s1, s2, s3 = microparams['microparams']
+            s1, s2, sh1 = microparams['microparams']
         elif args.show == "hom_framed_cross":
           try:
             s1 = microparams['s1']
