@@ -70,13 +70,13 @@ LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
+
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
-
-# will generate CTestConfig.cmake using our sites variant
-WRITE_CTEST_CONFIG()
 
 #-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
