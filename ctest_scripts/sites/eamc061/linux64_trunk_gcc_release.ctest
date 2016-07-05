@@ -16,6 +16,9 @@ SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_release")
 #-----------------------------------------------------------------------------
 INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
+
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
@@ -63,11 +66,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 SET(BUILDTYPE "RELEASE")
 SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
-SITE_NAME(CFS_BUILD_HOST)
-STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
-LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-
-set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_SITE "${HOSTNAME}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 # will generate CTestConfig.cmake using our sites variant
