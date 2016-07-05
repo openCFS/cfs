@@ -411,16 +411,18 @@ macro(IDENTIFY_DISTRO)
   INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 endmacro()
 
+# condigures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
 macro(WRITE_CTEST_CONFIG)
 # copy over CTestConfig.cmake.in
 # puts it into the binary dir
   message("Copy ctest config ...")
   set(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
+  MESSAGE("check for ${SITE_CTEST_CONFIG}")
   if(EXISTS ${SITE_CTEST_CONFIG})
     message("  ${SITE_CTEST_CONFIG} -> ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake")
     configure_file(${SITE_CTEST_CONFIG} ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
-  else(EXISTS ${SITE_CTEST_CONFIG})
+  else()
     message("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
     configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
-  endif(EXISTS ${SITE_CTEST_CONFIG})
+  endif()
 endmacro()

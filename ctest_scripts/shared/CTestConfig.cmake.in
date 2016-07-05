@@ -1,5 +1,5 @@
 # The CTestConfig.cmake file is necessary for nightly builds (only)
-# It is configured in CMakeLists.txt of CFS++
+# It is configured via WRITE_CTEST_CONFIG() from test_macros.cmakle
 # CFS_DS_CDASH_DROP_SITE is set in DevelopmentServer.cmake where CFS_DS_PORT is optionally set during configure
 SET(CTEST_PROJECT_NAME "CFS")
 SET(CTEST_NIGHTLY_START_TIME "00:00:00 CET")
