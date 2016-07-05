@@ -544,10 +544,6 @@ IF(BUILD_TESTING)
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
-  # generate a CTestConfig usable in nightly tests and put it in binary dir
-  MESSAGE("configure CTestConfig.cmake with CFS_DS_CDASH_DROP_SITE = ${CFS_DS_CDASH_DROP_SITE}")
-  configure_file(${CFS_SOURCE_DIR}/ctest_scripts/shared/CTestConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake @ONLY)
-
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
   #---------------------------------------------------------------------------
