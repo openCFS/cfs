@@ -901,7 +901,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(isinf(data_[k])) return true;
+      if(math::boost::isinf(data_[k])) return true;
 
     return false;
   }
@@ -911,8 +911,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(isinf(data_[k].real())) return true;
-      if(isinf(data_[k].imag())) return true;
+      if(math::boost::isinf(data_[k].real())) return true;
+      if(math::boost::isinf(data_[k].imag())) return true;
     }
     return false;
   }
