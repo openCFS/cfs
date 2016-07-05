@@ -1,6 +1,6 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest -S <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
@@ -12,17 +12,12 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_debug")
 
 #-----------------------------------------------------------------------------
-# Specify that we want to do an experimental build without updating the CFS++
-# working copy. I.e. we leave away the ExperimentalUpdate step between
-# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
-# done by simon on mac before the the test scripts on rom get executed.
-#-----------------------------------------------------------------------------
-SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-
-#-----------------------------------------------------------------------------
 # Include macros for CFS++ specific testing (e.g. default initial cache, etc)
 #-----------------------------------------------------------------------------
 INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+# set e.g. HOSTNAME 
+SET_GLOBAL_VARS() 
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
@@ -74,12 +69,12 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 SET(BUILDTYPE "DEBUG")
 SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
-SITE_NAME(CFS_BUILD_HOST)
-STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
-LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-
-set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_SITE "${HOSTNAME}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
+
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
