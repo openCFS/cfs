@@ -336,6 +336,60 @@ namespace CoupledField {
      void CalcNumUnknowns();
    };
 
+
+
+   // ============
+   //  TETRAHEDRAL
+   // ============
+   //! H1 conforming hierarchical higher order tetrahedral element
+   class  FeH1HiTet : public FeH1Hi {
+
+   public:
+
+     //! Constructor
+     FeH1HiTet();
+
+     //! Copy constructor
+     FeH1HiTet(const FeH1HiTet & other)
+       : FeH1Hi(other){
+     }
+
+     //! Destructor
+     virtual ~FeH1HiTet();
+
+     //! Dolly method
+     virtual FeH1HiTet* Clone(){
+       return new FeH1HiTet(*this);
+     }
+
+   protected:
+
+     //! @copydoc FeH1::CalcShFnc
+     void CalcShFnc( Vector<Double>& shape,
+                     const Vector<Double>& point,
+                     const Elem* ptElem,
+                     UInt comp = 1 );
+
+     //! @copydoc FeH1::CalcLocDerivShFnc
+     void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                             const Vector<Double>& point,
+                             const Elem* ptElem,
+                             UInt comp = 1 );
+
+     //! Templatized version of calculation for shape function
+     template<typename T_SCAL, typename T_VEC>
+     void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,
+                      const Elem * elem,
+                      T_VEC& ret );
+
+     //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+     virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem );
+
+     void CalcNumUnknowns();
+   };
+
+
 } // namespace CoupledField
 
 #endif
