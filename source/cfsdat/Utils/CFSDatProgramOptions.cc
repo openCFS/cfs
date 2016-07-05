@@ -65,6 +65,10 @@ void CFSDatProgramOptions::ParseData(){
 
       ( "noColor",
         "turn off colored output")
+
+      ( "quiet",
+        "shall reduce output, currently only for cfs command line compatibility")
+
       ;
 
 
