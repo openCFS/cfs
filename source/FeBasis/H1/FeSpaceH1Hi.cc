@@ -249,17 +249,17 @@ namespace CoupledField{
     refElems_[region][Elem::ET_TRIA3]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE6] = new FeH1HiWedge();
-    
+    refElems_[region][Elem::ET_TET4]   = new FeH1HiTet();
     // Generate reference elements for second order geometric element types
-    refElems_[region][Elem::ET_LINE3]  = new FeH1HiLine();
-    refElems_[region][Elem::ET_QUAD8]  = new FeH1HiQuad();
-    refElems_[region][Elem::ET_QUAD9]  = new FeH1HiQuad();
-    refElems_[region][Elem::ET_TRIA6]  = new FeH1HiTria();
+    refElems_[region][Elem::ET_LINE3]   = new FeH1HiLine();
+    refElems_[region][Elem::ET_QUAD8]   = new FeH1HiQuad();
+    refElems_[region][Elem::ET_QUAD9]   = new FeH1HiQuad();
+    refElems_[region][Elem::ET_TRIA6]   = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
     refElems_[region][Elem::ET_HEXA27]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
     refElems_[region][Elem::ET_WEDGE18] = new FeH1HiWedge();
-
+    refElems_[region][Elem::ET_TET10]   = new FeH1HiTet();
     SetRegionOrder( region, order );
     
     infoNode->Get("order")->SetValue(order.ToString());
