@@ -108,7 +108,7 @@ SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 
 message("Start dashboard...")
 # see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-ctest_start(Experimental)
+ctest_start(Nightly)
 
 message("  Update")
 find_program(CTEST_SVN_COMMAND NAMES svn)
