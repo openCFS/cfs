@@ -8,6 +8,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
@@ -2009,7 +2010,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(boost::math::isnan(data_[0][k])) return true;
+      if((boost::math::isnan)(data_[0][k])) return true;
 
     return false;
   }
@@ -2019,8 +2020,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(boost::math::isnan(data_[0][k].real())) return true;
-      if(boost::math::isnan(data_[0][k].imag())) return true;
+      if((boost::math::isnan)(data_[0][k].real())) return true;
+      if((boost::math::isnan)(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -2030,7 +2031,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(math::boost::isinf(data_[0][k])) return true;
+      if((boost::math::isinf)(data_[0][k])) return true;
 
     return false;
   }
@@ -2040,8 +2041,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(math::boost::isinf(data_[0][k].real())) return true;
-      if(math::boost::isinf(data_[0][k].imag())) return true;
+      if((boost::math::isinf)(data_[0][k].real())) return true;
+      if((boost::math::isinf)(data_[0][k].imag())) return true;
     }
     return false;
   }
