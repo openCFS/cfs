@@ -971,6 +971,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
+    <xsd:attribute name="extension" type="xsd:string" default="cfs"/>
     <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>

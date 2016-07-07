@@ -84,7 +84,10 @@ namespace CoupledField {
 
     H5::Exception::dontPrint();
     
-    std::string fName = fileName_ + ".h5";
+    std::string extString = "h5";
+    inputNode->GetValue("extension", extString, ParamNode::PASS );
+
+    std::string fName = fileName_ + "." + extString;
     currFileName_ = fs::path(dirName_ / fName).string();
   }
 
