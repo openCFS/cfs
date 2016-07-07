@@ -145,7 +145,7 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
       if(shFnc[aNode] < 0){
         negativeCounter++;
       }
-      if(std::isnan(shFnc[aNode]) || std::isinf(shFnc[aNode])){
+      if((boost::math::isnan)(shFnc[aNode]) || (boost::math::isinf)(shFnc[aNode])){
         nanInfCounter++;
         shFnc[aNode] = 0.0;
       }
