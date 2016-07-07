@@ -140,10 +140,14 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
 
 ELSEIF(UNIX OR MINGW)
   EXECUTE_PROCESS(
-    COMMAND id -unr | sed 's/\\/+/'
+    COMMAND id -unr # get user name (possibly DOMAIN\user)
+    COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER
+    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
+  if(res)
+    message("could not determine user: ${res}, ${out}")
+  endif(res)
   STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
 ENDIF()
 
