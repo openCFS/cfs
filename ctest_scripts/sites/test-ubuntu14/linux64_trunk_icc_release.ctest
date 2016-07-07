@@ -37,7 +37,11 @@ set(INTEL_DLLS
   libintlc.so.5
   libiomp5.so
 )
-set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST}_${REV}_${ARCH}")
+if(DIST_FAMILY STREQUAL "") # its probably ubuntu ...
+  set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST}_${REV}_${ARCH}")
+else()
+  set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
+endif(DIST_FAMILY STREQUAL "")
 
 # remove intel libs if already there, otherwise fail silently
 foreach(DLL IN ITEMS ${INTEL_DLLS})
@@ -64,8 +68,8 @@ DO_TESTING()
 
 # copy over intel libraries
 foreach(DLL IN ITEMS ${INTEL_DLLS})
-  message("  copy ${DLL}")
-  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}" RESULT_VARIABLE RETVAL)
+  message("  copy ${DLL} ${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL} -> ${CFS_LIB_DIR}/${DLL}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}/${DLL}" RESULT_VARIABLE RETVAL)
   if(RETVAL)
     message(  "failed to copy ${DLL}: ${RETVAL}")
   endif(RETVAL)
