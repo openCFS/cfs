@@ -57,7 +57,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     pdematerialclass_ = ELECTROMAGNETIC;
 
     //! Always use updated Lagrangian formulation 
-    updatedGeo_        = true;
+    updatedGeo_        = true; //true;
 
     // check if we have a 3d setup
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";

@@ -1800,7 +1800,7 @@ namespace CoupledField{
       intensNormal->dofNames = "";
       intensNormal->unit = "W/m^2";
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::ELEMENT;
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;
       
       // === ACOU_POWER ===
       power.reset(new ResultInfo);
@@ -1811,6 +1811,7 @@ namespace CoupledField{
       power->definedOn = ResultInfo::SURF_REGION;
     }
     
+
     if( formulation_ == ACOU_POTENTIAL ) {
       // --------------------------
       //  POTENTENTIAL FORMULATION
@@ -1830,7 +1831,7 @@ namespace CoupledField{
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFctPot;
-      
+
       // === ACOU_INTENSITY ===
       // Intensity I = p * conj(v)
       intensFct = 
@@ -1842,7 +1843,7 @@ namespace CoupledField{
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
-      
+
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGamma
       // Integrate normal intensity

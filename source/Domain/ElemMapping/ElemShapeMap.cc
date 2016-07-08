@@ -1999,8 +1999,8 @@ ElemShapeMap::SetElem(ptElem, isUpdated);
 // get coordinates from grid
 ptGrid_->GetElemNodesCoord(coords_, ptElem->connect, isUpdated_);
 //  std::cerr << "**** Coordinates for element " << ptElem->elemNum
-//      << " with connect " << ptElem->connect.ToString() 
-//      
+//      << " with connect " << ptElem->connect.ToString()
+//
 //      << "(" << (isUpdated ? "updated)" : "original)") << std::endl
 //      << coords_ << std::endl;
 

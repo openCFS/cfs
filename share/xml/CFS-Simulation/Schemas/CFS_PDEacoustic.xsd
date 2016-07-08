@@ -665,6 +665,7 @@
   <xsd:simpleType name="DT_AcousticSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouSurfIntensity"/>
+      <xsd:enumeration value="acouNormalIntensity"/>
       <xsd:enumeration value="acouNormalVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
