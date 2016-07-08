@@ -4,6 +4,7 @@ SET(OPTIMIZER_SRCS
   OptimalityCondition.cc
   EvaluateOnly.cc
   GradientCheck.cc
+  SGP.cc
 )
 
 SET(TARGET_LL
