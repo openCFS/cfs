@@ -1,14 +1,5 @@
 #!/usr/bin/env python
-import platform
-#from PIL import Image
-import sys, os, copy, numpy, math
-from hdf5_tools import *
-import scipy.interpolate as ip
-from matviz_vtk import *
-from scipy.spatial import Delaunay
 from mesh_tool import *
-
-
 
 def in_hull(p, hull,to = None):
   # Test if points in `p` are in `hull`
@@ -242,8 +233,8 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
     
     r1 = 19.51
     r2 = 17.31
-    r3 = 5.8
-    delta = 0.2
+    r3 = 7.1
+    delta = 0.
     force1 = []
     force2 = []
     force3 = []

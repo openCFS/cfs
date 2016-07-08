@@ -2111,6 +2111,8 @@ source/Optimization/Optimizer/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/SCPIP_HS071.cc -text
 source/Optimization/Optimizer/SCPIP_HS071.hh -text
+source/Optimization/Optimizer/SGP.cc -text
+source/Optimization/Optimizer/SGP.hh -text
 source/Optimization/Optimizer/ShapeOptimizer.cc -text
 source/Optimization/Optimizer/ShapeOptimizer.hh -text
 source/Optimization/Optimizer/SnOpt.cc -text

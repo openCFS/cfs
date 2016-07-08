@@ -1447,7 +1447,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     } // switch direction
     if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       double rotAngle = params_[DesignElement::ROTANGLE];
-      RotateHMStiffnessTensor(t, subTensor, direction, rotAngle, notation);
+      RotateTensor(t, direction, notation, CW,true, rotAngle);
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1571,7 +1571,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12){
     // for all rotated types, rotate the material tensor
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
-    RotateVoigtTensor(t, direction);
+    RotateTensor(t, direction,VOIGT,CCW);
   }
   if(notation == HILL_MANDEL || notation == HILL_MANDEL_NO_DENSITY){
     double sq2 = sqrt(2);
@@ -1736,7 +1736,7 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
       ZeroTensor(t, subTensor);
       return;
     } // switch direction
-      RotateHMStiffnessTensor(t, subTensor, direction, rotAngle, notation);
+      RotateTensor(t, direction, notation, CW, true, rotAngle);
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1811,7 +1811,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   }
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
     double rotAngle = params_[DesignElement::ROTANGLE];
-    RotateHMStiffnessTensor(t, subTensor, direction, rotAngle);
+    RotateTensor(t, direction,HILL_MANDEL,CW,true, rotAngle);
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
 ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1838,11 +1838,12 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   double e23 = set ? params_[DesignElement::MECH_23] : 0;
   double e13 = set ? params_[DesignElement::MECH_13] : 0;
   double e12 = set ? params_[DesignElement::MECH_12] : 0;
-  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+  // We don't use rotAngle for FMO anymore due to GSP Optimizer
+  //double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
-  case DesignElement::ROTANGLE:
+  //case DesignElement::ROTANGLE:
     Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
     break;
   case DesignElement::MECH_11:
@@ -1868,9 +1869,8 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
     ZeroTensor(E, PLANE_STRAIN);
   }
 
-  LOG_DBG2(dm) << "GEFMOT: E before rotation = " << E.ToString(2) << " d=" << DesignElement::type.ToString(direction);
-  RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
-  LOG_DBG2(dm) << "GEFMOT: E after rotation =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
+  //RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
+  LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
 
 }
 
@@ -2001,9 +2001,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   }
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
   if (subTensor == FULL) {
-    RotateVoigtTensor(E, direction);
+    RotateTensor(E, direction,VOIGT,CCW);
   } else {
-    RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
+    RotateTensor(E, direction, notation, CW, true, rotAngle);
   }
   LOG_DBG2(dm)<< "GHRT: E after rotation =  " << E.ToString(2);
 
@@ -3025,7 +3025,7 @@ void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type dire
     GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
   }
   if (!all_param_){
-    RotateHMStiffnessTensor(E, PLANE, direction, -theta, notation);
+    RotateTensor(E, direction, notation, CW, true, -theta);
     if (direction == DesignElement::ROTANGLE) E=-E;
 
   }
@@ -4408,7 +4408,7 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
   if(type_ == D_INTERP_TENSOR_ROT){
     // for all rotated types, rotate the material tensor
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
-    RotateVoigtTensor(t, direction);
+    RotateTensor(t, direction,VOIGT,CCW);
   }
 }
 
@@ -4527,7 +4527,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   }
 
   double rotAngle = params_[DesignElement::ROTANGLE];
-  RotateHMStiffnessTensor(t, subTensor, direction, rotAngle, notation);
+  RotateTensor(t, direction, notation, CW, true, rotAngle);
   return;
 }
 
@@ -4753,25 +4753,55 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
   }
 }
 
-void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction){
+void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
   // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
   // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
+  // tranform temporarily to Voigt notation
+  if (notation == HILL_MANDEL) {
+    t.HillMandelToVoigt();
+  }
+
+  int dim;
+  if (t.GetNumRows() > 3) {
+    dim = 3;
+  } else {
+    dim = 2;
+  }
+
   double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
   if(dim == 3){
-    thetax = params_[DesignElement::ROTANGLEX];
-    thetay = params_[DesignElement::ROTANGLEY];
-    thetaz = 0.0;
-    if(params_.find(DesignElement::ROTANGLEZ) != params_.end()){
-      thetaz = params_[DesignElement::ROTANGLEZ];
-    }else if(transIsoType_ != TRANSISO_XY){
-      throw Exception("The parameterization of the rotation is incompatible to the choice of the isotropic plane");
+    if (angles) {
+      thetax = rx;
+      thetay = ry;
+      thetaz = rz;
+    } else {
+      thetax = params_[DesignElement::ROTANGLEX];
+      thetay = params_[DesignElement::ROTANGLEY];
+      thetaz = 0.0;
+      if(params_.find(DesignElement::ROTANGLEZ) != params_.end()){
+        thetaz = params_[DesignElement::ROTANGLEZ];
+      }else if(transIsoType_ != TRANSISO_XY){
+        throw Exception("The parameterization of the rotation is incompatible to the choice of the isotropic plane");
+      }
     }
   }else{ // dim == 2
-    thetaz = params_[DesignElement::ROTANGLE];
+    if (angles) {
+      // this is correct
+      thetaz = rx;
+    } else {
+      thetaz = params_[DesignElement::ROTANGLE];
+    }
+  }
+
+  // if rotation is clockwise, change rotation angles
+  if (clock == CW) {
+    thetax = -thetax;
+    thetay = -thetay;
+    thetaz = -thetaz;
   }
 
   double sthetax = sin(thetax);
@@ -4899,7 +4929,9 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
     t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably
   }
-
+  if (notation == HILL_MANDEL) {
+    t.VoigtToHillMandel();
+  }
 }
 void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62

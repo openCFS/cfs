@@ -15,6 +15,7 @@ parser.add_argument("--lower", help="scale input range to new lower range", type
 parser.add_argument('--show', help="show output as image", action='store_true')
 parser.add_argument('--attribute', help="what to read from input ('design' or 'physical')", default="design")
 parser.add_argument('--set', help="specifiy set to read if you don't want the last one")
+parser.add_argument('--dim', help="dimension: 2D or 3D as integer",type=int)
 args = parser.parse_args()
 
 
@@ -26,11 +27,14 @@ if not os.path.exists(args.input):
 dens = read_density(args.input, args.attribute, set=args.set)
 # this is 'design'
 des = dens if args.attribute == 'design' else read_density(args.input, 'design', set=args.set)
-x, y = dens.shape
+if args.dim == 3:
+  x, y, z = dens.shape
+else:
+  x, y = dens.shape
 
 if args.attribute <> 'design':
-  print "for 'design' min=" + str(numpy.amin(des)) + " max=" + str(numpy.amax(des)) + " vol=" + str(numpy.sum(des) / (x*y))
-print "for '" + args.attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)) + " vol=" + str(numpy.sum(dens) / (x*y))
+  print "for 'design' min=" + str(numpy.amin(des)) + " max=" + str(numpy.amax(des)) + " vol=" + str(numpy.sum(des) / (x*y*z if args.dim == 3 else x*y))
+print "for '" + args.attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)) + " vol=" + str(numpy.sum(dens) / (x*y*z if args.dim == 3 else x*y))
 
 lower = args.lower if args.lower else numpy.amin(des)
 
@@ -52,7 +56,7 @@ else:
 print "write '" + args.output + "' min=" + str(numpy.amin(out)) + " max=" + str(numpy.amax(out)) + " vol=" + str(numpy.sum(out) / (x*y))  
 write_density_file(args.output, out)  
   
-if(args.show):
+if(args.show) and args.dim != 3:
   ret = numpy.zeros((y, x), dtype="uint8")
   for i in range(y):
     for j in range(x):
