@@ -12,18 +12,3 @@ SET(TARGET_LL
   ${CFS_FORTRAN_LIBS})
 
 TARGET_LINK_LIBRARIES(umfpack-olas ${TARGET_LL})
-
-ADD_EXECUTABLE(umfpack_di_demo umfpack_di_demo.cc)
-
-#IF(MINGW)
-#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
-#    SET_TARGET_PROPERTIES(umfpack_di_demo PROPERTIES
-#      LINK_FLAGS -Wl,--wrap,__chkstk
-#      LINKER_LANGUAGE C)
-#  ENDIF()
-#ENDIF()
-
-TARGET_LINK_LIBRARIES(umfpack_di_demo ${TARGET_LL})
-
-ADD_EXECUTABLE(umfpack_zi_demo umfpack_zi_demo.cc)
-TARGET_LINK_LIBRARIES(umfpack_zi_demo ${TARGET_LL})

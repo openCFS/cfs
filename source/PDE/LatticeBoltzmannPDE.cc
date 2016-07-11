@@ -9,7 +9,6 @@
 #include <string>
 #include <cmath>
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/matrix.hpp>

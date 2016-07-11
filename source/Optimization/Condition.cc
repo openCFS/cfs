@@ -9,7 +9,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -652,9 +652,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
   string file = pn->Get("designTarget")->As<string>();
-  Xerces xerces;
-  xerces.SetFile(file);
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(file);
 
   // check this file
   if (xml->Count("set") == 0)

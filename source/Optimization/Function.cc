@@ -6,7 +6,7 @@
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -956,9 +956,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
     //read interpolation data for volume calculation in 3D
     std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode root = xerces.CreateParamNodeInstance();
+    PtrParamNode root = XmlReader::ParseFile(file);
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
     int dim3 = root->Get("a/matrix/dim1")->As<int>();

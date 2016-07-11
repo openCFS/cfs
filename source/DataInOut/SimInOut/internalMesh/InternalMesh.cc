@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include "InternalMesh.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 
 namespace CoupledField
@@ -34,11 +34,8 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode,
   // in base class
   capabilities_.insert(SimInput::MESH);
 
-  // create temporary xerces file parser
-  boost::shared_ptr<Xerces> xerces(new Xerces());
-  xerces->SetFile(fileName_);
   // parse the file and create corresponding paramnode
-  xml_ = xerces->CreateParamNodeInstance();
+  xml_ = XmlReader::ParseFile(fileName_);
 
   
   if(xml_->GetName() != string("cfsInternalMesh"))
