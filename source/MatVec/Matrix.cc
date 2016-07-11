@@ -2030,7 +2030,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(isinf(data_[0][k])) return true;
+      if(boost::math::isinf(data_[0][k])) return true;
 
     return false;
   }
@@ -2040,8 +2040,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(isinf(data_[0][k].real())) return true;
-      if(isinf(data_[0][k].imag())) return true;
+      if(boost::math::isinf(data_[0][k].real())) return true;
+      if(boost::math::isinf(data_[0][k].imag())) return true;
     }
     return false;
   }

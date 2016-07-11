@@ -16,7 +16,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 namespace CoupledField {
 
@@ -662,9 +662,7 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode xml = xerces.CreateParamNodeInstance();
+    PtrParamNode xml = XmlReader::ParseFile(file);
 
     // check this file
     if (xml->Count("set") == 0)

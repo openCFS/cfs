@@ -6,9 +6,9 @@
 
 #include <iomanip>
 #include <fstream>
-#include <def_use_xerces.hh>
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
@@ -22,7 +22,7 @@
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
 #include <unistd.h>
@@ -260,6 +260,11 @@ int CFS::Run()
 
     return 0;
   }
+  catch(const mu::ParserError& e)
+  {
+    cerr << endl << "mu::ParserError: " << e.GetMsg() << endl;
+    return 1;
+  }
   catch(exception& ex)
   {
     if(!progOpts->IsQuiet())
@@ -286,6 +291,12 @@ int CFS::Run()
       infoNode->ToFile();
     }
 
+    return 1;
+  }
+  catch (...)
+  {
+    cerr << "leftover exception caught:" << endl;
+    cerr << boost::current_exception_diagnostic_information() << endl;
     return 1;
   }
 }
@@ -353,14 +364,9 @@ void CFS::ReadXMLFile()
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces xerces(schema);
-  xerces.SetFile(xmlFile);
-
-  // set the global ParamNode tree pointer
-  paramNode_ = xerces.CreateParamNodeInstance();
-  // save us in the info stuff, with defaults but no comments
-  // release the xerces ressources, param is not affected
+  // parse the problem xml file, validate and fill with defaults from schema
+  // continue to work only with the ParamNode tree
+  paramNode_ = XmlReader::ParseFile(xmlFile, schema);
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )

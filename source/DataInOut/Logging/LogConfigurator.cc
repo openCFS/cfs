@@ -2,7 +2,7 @@
 #include "General/Exception.hh"
 #include "DataInOut/ProgramOptions.hh"
 
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 namespace CoupledField {
 
@@ -59,12 +59,8 @@ namespace CoupledField {
     // Query filename from option parser
     if( confFile_ == "") return;
     
-    // If file is defined, create new Xerces instance and parse file
-    Xerces xmlParser;
-    xmlParser.SetFile(confFile_);
-    
-    // Obtain ParamNode
-    PtrParamNode root = xmlParser.CreateParamNodeInstance();
+    // If file is defined, create new xml instance and parse file
+    PtrParamNode root = XmlReader::ParseFile(confFile_);
     
     // Get list of classes
     
