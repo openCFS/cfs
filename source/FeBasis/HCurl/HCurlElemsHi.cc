@@ -235,6 +235,50 @@ class Xpr_Diff_UGradV_min_WGradX<D, FeHCurlHi::CURL> {
     Double curl[D];
 };
 
+// -------------------------------------
+//  Expr = V*W*Grad(U)
+// -------------------------------------
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_Diff_VWGradU {
+};
+
+template<int D>
+class Xpr_Diff_VWGradU<D, FeHCurlHi::ID> {
+  public:
+  Xpr_Diff_VWGradU(const AutoDiff<Double,D>& u,
+                             const AutoDiff<Double,D>& v,
+                             const AutoDiff<Double,D>& w) {
+    for( UInt i = 0; i < D; ++i ) {
+        val[i] = u.DVal(i) * v.Val() * w.Val();
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_Diff_VWGradU<D, FeHCurlHi::CURL> {
+  public:
+  Xpr_Diff_VWGradU(const AutoDiff<Double,D>& u,
+                             const AutoDiff<Double,D>& v,
+                             const AutoDiff<Double,D>& w) {
+
+
+  AutoDiff<Double,D> vGradw = Cross(v,w); //from Xpr_SGradU(s,u)
+  AutoDiff<Double,D> wGradv = Cross(w,v); //from Xpr_SGradU(s,u)
+  AutoDiff<Double,D> vGradwPwGradv= vGradw + wGradv;
+
+
+    AutoDiff<Double,D> c = Cross(vGradwPwGradv, u);
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = c.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
 
 // ===============================================================
 // ELEMENTS SECTION
@@ -1678,7 +1722,7 @@ void FeHCurlHiTet::CalcLocShFnc2( Matrix<Double>& shape,
   AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
   AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
 
-  AutoDiff<Double, 3> lam[4] = { (1.0 - x- y- z),
+  AutoDiff<Double, 3> lambda[4] = { (1.0 - x- y- z),
                                  x,
                                  y,
                                  z};
@@ -1686,26 +1730,179 @@ void FeHCurlHiTet::CalcLocShFnc2( Matrix<Double>& shape,
   shape.Resize(3,actNumFncs_);
   shape.Init();
   
+  StdVector<AutoDiff<Double, 3> > Vals;
   // ------------------------
   // 1) Edge shape functions
   // ------------------------
   for( UInt i = 0; i < 6; ++i ) {
 
     //UInt order = orderEdge_[i];
-    UInt index1 = shape_.edgeVertices[i][0]-1;
-    UInt index2 = shape_.edgeVertices[i][1]-1;
+  UInt order = orderEdge_[i];
+    UInt ind1 = shape_.edgeVertices[i][0]-1;
+    UInt ind2 = shape_.edgeVertices[i][1]-1;
     if ( elem->extended->edges[i] < 0 ) {
-      std::swap(index1, index2);  // fmax > f1 > f2
+      std::swap(ind1, ind2);  // fmax > f1 > f2
     }
     
     // === a) standard Nedelec shape functions ===
-    Xpr_Diff_VGradU<3,DIFF_TYPE> xpr( lam[index1], lam[index2] );
+    Xpr_Diff_VGradU<3,DIFF_TYPE> xpr( lambda[ind1], lambda[ind2] );
     COPYSHFNC
     
+
+  // === b) gradient functions ===
+    if( useEdgeGrad_[i]) {
+      if (onlyLowestOrder_) {
+        for( UInt j = 0; j < order; ++j ) {
+          pos++;
+        }
+      } else {
+        ScaledIntLegendreP2(Vals, order+1, lambda[ind1]+lambda[ind2], lambda[ind2]-lambda[ind1]);
+
+          for( UInt j = 0; j < order; ++j ) {
+            Xpr_GradU<3,DIFF_TYPE> xpr(Vals[j]);
+            COPYSHFNC
+          }
+      } // if: lowestOrder
+    } //if: edgeGrad
   } //loop: edges
      
-  return;
+  if(onlyLowestOrder_) return;
   
+  StdVector<AutoDiff<Double, 3> > ui;
+  StdVector<AutoDiff<Double, 3> > vj;
+  StdVector<AutoDiff<Double, 3> > temp_vj;
+  // -------------------------
+  // 2) Face shape functions
+  // -------------------------
+
+#ifdef USE_FACES
+  for( UInt iFace = 0; iFace < 4; ++iFace ) {
+    //only valid for isotropic polynomial order!! Is there a way
+    //to use anisotropic order? Maybe via a transformation to hexahedral
+    //there we could apply anisotropy and then transform it back to tet.
+    //The problem is, that the polynomial-"isosurfaces" are then warped
+    //in the tetrahedron?!
+    UInt order = orderFace_[iFace][0];
+    if (order >1) {
+        // get unique sorting of the face
+        const StdVector<UInt>& unsorted = shape_.faceNodes[iFace];
+        StdVector<UInt> ind;
+        Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[iFace]);
+
+        // calculate face extension parameter which is the sum
+        // of all lambdas of one face
+        AutoDiff<Double,3> sum_lambda = 0.0;
+        for( UInt i = 0; i < 3; ++i){
+          sum_lambda += lambda[ind[i]];
+        }
+
+        //definition of ui and vj according to PHD thesis of Sabine Zaglmayr p.103
+         ScaledIntLegendreP2(ui, order+1, lambda[ind[0]]+lambda[ind[1]], lambda[ind[1]]-lambda[ind[0]]);
+         ScaledLegendre(temp_vj, order+1, sum_lambda, 2.0 * lambda[ind[2]] - sum_lambda);
+         vj.Init();
+         vj.Resize(order);
+          for (UInt j=0; j<order; ++j){
+           vj[j] = lambda[ind[2]] * temp_vj[j];
+          }
+
+
+         // === a) type 1: gradient fields ===
+         if( useFaceGrad_[iFace]) {
+             for( UInt i = 0; i <= order - 2; ++i ) {
+               for( UInt j = 0; j <= order - 2 - i; ++j ) {
+               Xpr_GradU<3,DIFF_TYPE> xpr(ui[i]*vj[j]);
+               COPYSHFNC
+             }
+           }
+         }
+
+         // === b) type 2: face functions ===
+         for( UInt i = 0; i <= order - 2; ++i ) {
+           for( UInt j = 0; j <= order - 2 - i; ++j ) {
+             Xpr_Diff_VGradU<3,DIFF_TYPE> xpr(ui[i], vj[j]);
+             COPYSHFNC
+           }
+         }
+
+         // === c) type 3: face functions ===
+         for( UInt j = 0; j <= order - 2; ++j ) {
+           Xpr_Diff_SVGradU<3,DIFF_TYPE> xpr(lambda[ind[0]], lambda[ind[1]], vj[j] );
+           COPYSHFNC
+         }
+
+    } //if order >0
+
+  } //loop over all faces
+#endif
+
+
+
+  StdVector<AutoDiff<Double, 3> > wk;
+  StdVector<AutoDiff<Double, 3> > temp_wk;
+  // -------------------------
+  // 3) Interior shape functions
+  // -------------------------
+#ifdef USE_INNER
+  // only isotropic polynomial order
+    if( orderInner_[0] > 2) {
+
+        //definition of ui, vj and wk according to PHD thesis of Sabine Zaglmayr p.103
+      ScaledIntLegendreP2(ui, orderInner_[0]+1, lambda[0]+lambda[1], lambda[1]-lambda[0]);
+        ScaledLegendre(temp_vj, orderInner_[0]+1, 1.0-lambda[3], 2.0*lambda[2]-(1.0-lambda[3]));
+        Legendre( temp_wk, orderInner_[0]+1, 2.0*lambda[3]-1.0);
+        vj.Resize(orderInner_[0]);
+        wk.Resize(orderInner_[0]);
+        for (UInt j=0; j<orderInner_[0]; ++j){
+         vj[j] = lambda[2] * temp_vj[j];
+        }
+        for (UInt k=0; k<orderInner_[0]; ++k){
+         wk[k] = lambda[3] * temp_wk[k];
+        }
+
+
+
+        // === a) type 1: gradient fields ===
+        if( useInteriorGrad_ ) {
+        for( UInt i = 0; i <= orderInner_[0] - 3; ++i ) {
+          for( UInt j = 0; j <= orderInner_[0] - 3 - i; ++j ) {
+            for ( UInt k = 0; k <= orderInner_[0] - 3 - i - j; ++k){
+              Xpr_GradU<3, DIFF_TYPE> xpr( ui[i] * vj[j] * wk[k] );
+              COPYSHFNC
+            }
+          }
+        }
+        }
+
+
+        // === b) type 2 volume functions ===
+        for( UInt i = 0; i <= orderInner_[0] - 3; ++i ) {
+          for( UInt j = 0; j <= orderInner_[0] - 3 - i; ++j ) {
+            for( UInt k = 0; k < orderInner_[0] - 3 - i - j; ++k ) {
+
+              Xpr_Diff_VWGradU<3, DIFF_TYPE> VWGradU( ui[i], vj[j], wk[k] );
+              Xpr_Diff_VWGradU<3, DIFF_TYPE> UWGradV( vj[j], ui[i], wk[k] );
+              Xpr_Diff_VWGradU<3, DIFF_TYPE> UVGradW( wk[k], ui[i], vj[j] );
+              for( UInt n = 0; n < 3; ++n ) {
+                shape[n][pos]   = VWGradU[n] - UWGradV[n] + UVGradW[n];
+                shape[n][pos+1] = VWGradU[n] + UWGradV[n] - UVGradW[n];
+              }
+              pos+=2;
+            }
+          }
+        }
+
+        // === c) type 3 volume functions ===
+        for( UInt j = 0; j < orderInner_[0] - 3; ++j ) {
+          for( UInt k = 0; k < orderInner_[0] - 3 - j; ++k ) {
+            Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(lambda[0], lambda[1], vj[j]*wk[k] );
+            COPYSHFNC
+          }
+        }
+
+    }
+#endif
+
+
 }
 
 void FeHCurlHiTet::CalcNumUnknowns() {
@@ -1722,6 +1919,13 @@ void FeHCurlHiTet::CalcNumUnknowns() {
    UInt unknowns = 0;
    for( UInt i = 0; i < shape_.numEdges; ++i ) {
      unknowns = 1; // Lowest order Nedelc functions
+
+     if( useEdgeGrad_[i]) {
+       if (onlyLowestOrder_) {return;}
+       else{
+         unknowns += orderEdge_[i];
+       }
+     }
      edgeFncs[i] = unknowns;
      LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
      actNumFncs_ += unknowns;
@@ -1731,45 +1935,90 @@ void FeHCurlHiTet::CalcNumUnknowns() {
    StdVector<UInt>& faceFncs = entityFncs_[FACE];
    faceFncs.Resize(shape_.numFaces);
    faceFncs.Init(0);
-// #ifdef USE_FACES
-//   for( UInt i = 0; i < shape_.numFaces; ++i ) {
-//     if( orderFace_[i][0] > 0 &&
-//         orderFace_[i][1] > 0 ) {
-//       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
-//                 + orderFace_[i][0] + orderFace_[i][1];
-//       if( useFaceGrad_[i])
-//         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
-//       faceFncs[i] = unknowns;
-//       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
-//       actNumFncs_ += unknowns;
-//     }
-//   }
-// #endif
+
+
+#ifdef USE_FACES
+  for( UInt iFace = 0; iFace < 4; ++iFace ) {
+    UInt order = orderFace_[iFace][0];
+    if (order >1) {
+      unknowns=0;
+
+         // === a) type 1: gradient fields ===
+         if( useFaceGrad_[iFace]) {
+             for( UInt i = 0; i <= order - 2; ++i ) {
+               for( UInt j = 0; j <= order - 2 - i; ++j ) {
+                 unknowns+=1;
+             }
+           }
+         }
+
+         // === b) type 2: face functions ===
+         for( UInt i = 0; i <= order - 2; ++i ) {
+           for( UInt j = 0; j <= order - 2 - i; ++j ) {
+             unknowns+=1;
+           }
+         }
+
+         // === c) type 3: face functions ===
+         for( UInt j = 0; j <= order - 2; ++j ) {
+           unknowns+=1;
+         }
+    } //if order >0
+
+    faceFncs[iFace] = unknowns;
+    LOG_DBG(feHCurlHi) << "face " << iFace+1 << " has " << unknowns << "unknowns";
+    actNumFncs_ += unknowns;
+
+  } //loop over all faces
+#endif
+
 
    // Interior
    StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
    innerFncs.Resize(1);
    innerFncs.Init(0);
 
-//   #ifdef USE_INNER
-//   if( orderInner_[0] > 0 && 
-//       orderInner_[1] > 0 && 
-//       orderInner_[2] > 0 ) {
-//
-//     unknowns = 2 * (orderInner_[0] * orderInner_[1] * orderInner_[2]) 
-//                    + orderInner_[1] * orderInner_[2] 
-//                    + orderInner_[0] * (orderInner_[2] + orderInner_[1]);
-//     if( useInteriorGrad_ ) { 
-//       unknowns += orderInner_[0] * orderInner_[1] * orderInner_[2];
-//     }
-//     actNumFncs_ += unknowns;
-//     innerFncs[0] = unknowns;
-//     LOG_DBG(feHCurlHi) << "interior has " << unknowns << "unknowns";
-//   }
-// #endif
+#ifdef USE_INNER
+    if( orderInner_[0] > 2) {
+      unknowns=0;
+
+        // === a) type 1: gradient fields ===
+        if( useInteriorGrad_ ) {
+        for( UInt i = 0; i <= orderInner_[0] - 3; ++i ) {
+          for( UInt j = 0; j <= orderInner_[0] - 3 - i; ++j ) {
+            for ( UInt k = 0; k <= orderInner_[0] - 3 - i - j; ++k){
+              unknowns+=1;
+            }
+          }
+        }
+        }
+
+        // === b) type 2 volume functions ===
+        for( UInt i = 0; i <= orderInner_[0] - 3; ++i ) {
+          for( UInt j = 0; j <= orderInner_[0] - 3 - i; ++j ) {
+            for( UInt k = 0; k < orderInner_[0] - 3 - i - j; ++k ) {
+              unknowns+=1;
+            }
+          }
+        }
+
+        // === c) type 3 volume functions ===
+        for( UInt j = 0; j < orderInner_[0] - 3; ++j ) {
+          for( UInt k = 0; k < orderInner_[0] - 3 - j; ++k ) {
+            unknowns+=1;
+          }
+        }
+
+       actNumFncs_ += unknowns;
+       innerFncs[0] = unknowns;
+       LOG_DBG(feHCurlHi) << "interior has " << unknowns << "unknowns";
+    }
+
+#endif
 
    LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
 }
+
 
 
 // =======================
