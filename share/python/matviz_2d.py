@@ -22,7 +22,7 @@ def create_figure(min, max, res, for_save):
   # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
   
   # the dirty solution is to create the figure twice scaled by the error
-  dpi_x = (res / 100) * (max[0] - min[0]) 
+  dpi_x = (res / 100) * (max[0] - min[0])
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_y))
@@ -716,14 +716,126 @@ def show_cross_bar(coords, s1, s2, s3, angle, direction, nx, scale, color, do_sa
  
   return (fig, sub)
 
+def show_frame2(coords, microparams, nx, scale, color, do_save):
+  centers, min, max, elem = coords
+  fig, sub = create_figure(min, max, nx, do_save)
+
+  if scale == -1.0:
+    scale = -1.02
+  length = scale * (elem[0])
+  
+  max_val = numpy.max([numpy.max(microparams[0]), numpy.max(microparams[1])])
+  min_val = numpy.min([numpy.min(microparams[0]), numpy.min(microparams[1])])
+  
+  if color == 'black':
+    sm = 'black'
+  else:
+    sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val),
+        cmap=plt.get_cmap('gray' if color == 'grayscale' else color))
+
+  for i in range(len(microparams[0])):
+    coord = centers[i]
+
+    x_off = (coord[0] + min[0])
+    y_off = (coord[1] + min[1])
+
+    # we need downscale the values when we overscale due to overlapping 
+    v = [0, 0]
+    c = [0, 0]
+    for t in range(2):
+      v[t] = microparams[t][i, 0] / numpy.max((scale, 1.))
+      c[t] = sm.to_rgba(max_val-v[t]) if not color == 'black' else 'black'
+
+    # draw thicker rectangle pair last (on top)
+    for t in sorted([0, 1], key=lambda t: v[t]):
+      width = v[t] / 2
+      corner = [x_off - length / 2, y_off - length / 2]
+
+      for k in range(2):
+        if k == 0:
+          lower = (0, 0)
+          upper = ((1, width) if t == 0 else (width, 1))
+        else:
+          lower = ((0, 1 - width) if t == 0 else (1 - width, 0))
+          upper = (1, 1)
+
+        pol = to_rectangle_corner(lower, upper)
+        pol = [(x * length + corner[0],
+                y * length + corner[1]) for x, y in pol]
+        draw_verts(pol, sub, c[t])
+
+  return (fig, sub)
+
+def show_framed_cross(coords, microparams, nx, scale, color, do_save):
+  centers, min, max, elem = coords
+  fig, sub = create_figure(min, max, nx, do_save)
+
+  if scale == -1.0:
+    scale = -1.02
+  length = scale * (elem[0])
+  
+  max_val = numpy.max([numpy.max(microparams[0]), numpy.max(microparams[1]),
+                       numpy.max(microparams[2]), numpy.max(microparams[3])])
+  min_val = numpy.min([numpy.min(microparams[0]), numpy.min(microparams[1]),
+                       numpy.min(microparams[2]), numpy.min(microparams[3])])
+  
+  if color == 'black':
+    sm = 'black'
+  else:
+    sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val),
+        cmap=plt.get_cmap('gray' if color == 'grayscale' else color))
+
+  for i in range(len(microparams[0])):
+    coord = centers[i]
+
+    x_off = (coord[0] + min[0])
+    y_off = (coord[1] + min[1])
+
+    # we need downscale the values when we overscale due to overlapping 
+    v = [0, 0, 0, 0]
+    c = [0, 0, 0, 0]
+    for t in range(4):
+      v[t] = microparams[t][i, 0] / numpy.max((scale, 1.))
+      c[t] = sm.to_rgba(max_val-v[t]) if not color == 'black' else 'black'
+
+    # draw thicker rectangles last (on top)
+    for t in sorted([0, 1, 2, 3], key=lambda t: v[t]):
+      width = v[t] / 2
+      corner = [x_off - length / 2, y_off - length / 2]
+      draw_poly = lambda pol: draw_verts([(x * length + corner[0],
+                                           y * length + corner[1])
+                                          for x, y in pol], sub, c[t])
+
+      if t < 2:
+        # horizontal/vertical bars
+        for k in range(2):
+          if k == 0:
+            lower = (0, 0)
+            upper = ((1, width) if t == 0 else (width, 1))
+          else:
+            lower = ((0, 1 - width) if t == 0 else (1 - width, 0))
+            upper = (1, 1)
+
+          pol = to_rectangle_corner(lower, upper)
+          draw_poly(pol)
+      else:
+        # diagonal bars
+        pol = [(0, 0), (width, 0), (1, 1 - width),
+               (1, 1), (1 - width, 1), (0, width)]
+        if t == 2: pol = [(x, 1 - y) for x, y in pol]
+        draw_poly(pol)
+
+  return (fig, sub)
+
 def color_code(color_map, value):
   c = color_map.to_rgba(value)
   return "rgb(" + str(int(255 * c[0])) + ", " + str(int(255 * c[1])) + "," + str(int(255 * c[2])) + ")"
   
   
 def draw_verts(verts, axsubplot, color):
+  codes = [Path.MOVETO] + ((len(verts) - 1) * [Path.LINETO]) + [Path.CLOSEPOLY]
+  verts = list(verts)
   verts.append((0, 0))
-  codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY]
 
   path = Path(verts, codes)
   patch = matplotlib.patches.PathPatch(path, edgecolor='none', facecolor=color, lw=1)

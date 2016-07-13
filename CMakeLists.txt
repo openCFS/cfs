@@ -260,7 +260,7 @@ ENDIF(USE_PARDISO OR
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
-    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
+    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not MKL"
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")

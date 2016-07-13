@@ -12,10 +12,11 @@ import matplotlib.colors as colors
 import matplotlib.cm as cmx
 from matplotlib.path import Path
 from scipy import ndimage
-
+import numpy as np
 from optimization_tools import *
 import argparse
-
+import copy
+from scipy.interpolate import interp1d
 
 def create_figure(res):
 
@@ -37,6 +38,15 @@ def find_shape(shapes, el):
       return s
   print 'none of the ' + str(len(shapes)) + ' shapes has an element with nr ' + str(el) 
   return None     
+
+def find_shape_by_dof(shapes, dof):
+  res = []  
+  for s in shapes:
+    if s.dof == dof:
+      res.append(s)  
+  return res     
+
+  
 class Shape: 
   def __init__(self, id, dof):
     self.id = id
@@ -120,8 +130,49 @@ class Shape:
 
     return x_val, y_val    
     
+## symmetrize assues symmetry on x-axis (mirror)
+def symmetrize(shapes):
+  x = find_shape_by_dof(shapes, 0) 
+  y = find_shape_by_dof(shapes, 1)
+  assert(len(x) == 2)
 
+  center = .5* (np.asarray(x[0].val) + np.asarray(x[1].val))
+  offset = np.mean(center) - 0.5 # positive is shift to right
+  shift = int(offset * len(y[0].val) + .5)
 
+  print "center on x-axis is " + str(np.mean(center)) + " (shift " + str(shift) + " nodes) with var " + str(np.var(center)) 
+
+  assert(np.var(center) < 0.001) 
+  
+  # avg and shift the left and right x-structures (from bottom to top)
+  for i in range(len(x[0].val)):
+    lv = x[0].val[i] - offset
+    rv = x[1].val[i] - offset
+    m = .5*(rv-lv)
+    x[0].val[i] = .5 - m
+    x[1].val[i] = .5 + m 
+    
+    lp = x[0].profile[i]
+    rp = x[1].profile[i]
+    mp = .5*(lp+rp)
+    x[0].profile[i] = mp
+    x[1].profile[i] = mp 
+
+  # shift the horizontal lines and average left/right counterparts    
+  for s in y:
+    # we need the original data, otherwise rv might be replaced by shifted lv
+    nodes = copy.deepcopy(s.val)
+    profiles = copy.deepcopy(s.profile)
+
+    for i in range(int(.5 * len(s.val))):  
+      lv = nodes[i+shift]      
+      rv = nodes[-(i+1-shift)]
+      s.val[i] = s.val[-(i+1)] = .5*(lv+rv) 
+      
+      lp = profiles[i+shift]      
+      rp = profiles[-(i+1-shift)]
+      s.profile[i] = s.profile[-(i+1)] = .5*(lp+rp) 
+     
 
 # @param file withe grad.plot or density.xml
 # @param profile use if not in file
@@ -192,6 +243,24 @@ def read_file(filename, profile):
     print "error: no profiles in '" + filename + "' and not given via command line"
     sys.exit(-3)    
   return shapes  
+
+# resamples given shapes. ignores valid
+def resample(shapes, resample):
+  res = []  
+  org_space = np.linspace(0, 1.0, num=len(shapes[0].val), endpoint=True)
+  new_space = np.linspace(0, 1.0, num=resample+1, endpoint=True)
+
+  for o in shapes:
+     s = Shape(o.id, o.dof)
+     s.el = range(len(res) * (resample+1), (len(res)+1) * (resample+1))
+     v = interp1d(org_space, o.val, kind='cubic')
+     s.val = v(new_space)
+     p = interp1d(org_space, o.profile, kind='cubic')
+     s.profile = p(new_space)
+     s.valid = (resample+1) * [True]
+     res.append(s)
+
+  return res   
 
 # searches for data (< 128) within a 1D line
 # returns tupes with center and profile in meters (assume unit cube!)
@@ -404,8 +473,9 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml or .grad.plot file or a image")
   parser.add_argument("--profile", help="give the profile if it is not in input", type=float)
-  parser.add_argument('--resample', help="resample to this resolution (when parsing from image)", type=float)
+  parser.add_argument('--resample', help="resample to this resolution", type=int)
   parser.add_argument('--repair', help="interpolate unsure data (when parsing from image)", action='store_true')
+  parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format")
@@ -414,12 +484,15 @@ if __name__ == '__main__':
   shapes = []
   if args.input.endswith('.xml') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.profile)
+    if args.resample:
+      shapes = resample(shapes, args.resample)  
   else:
     shapes = import_from_image(args.input, args.resample, args.repair)
   
   print 'average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes]))
     
-  
+  if args.symmetrize:
+    symmetrize(shapes)  
   
   if args.export:  
     export(shapes, args.export, args.suppress_profile)

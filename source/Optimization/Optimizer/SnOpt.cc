@@ -414,13 +414,13 @@ bool SnOpt::get_nlp_info()
     {
       ++lin_constraints;
       nA += g->GetSparsityPatternSize(); // zero slopes
-      LOG_DBG3(snopt) << "gni: lin:" << Function::type.ToString(g->GetType()) << " lc=" << lin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nA=" << nA;
+      LOG_DBG3(snopt) << "gni: lin:" << Function::type.ToString(g->GetType()) << " lc=" << lin_constraints << " sps=" << g->GetSparsityPattern().ToString() << " -> nA=" << nA;
     }
     else
     {
       ++nonlin_constraints;
       nG += g->GetSparsityPatternSize();
-      LOG_DBG3(snopt) << "gni: nonlin:" << Function::type.ToString(g->GetType()) << " nc=" << nonlin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nG=" << nG;
+      LOG_DBG3(snopt) << "gni: nonlin:" << Function::type.ToString(g->GetType()) << " nc=" << nonlin_constraints << " sps=" << g->GetSparsityPattern().ToString() << " -> nG=" << nG;
     }
   }
   

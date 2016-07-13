@@ -16,6 +16,7 @@
 #ifdef USE_SGPP
 #include "sgpp/base/grid/Grid.hpp"
 #include "sgpp/base/operation/hash/OperationEval.hpp"
+#include "sgpp/base/operation/hash/OperationNaiveEval.hpp"
 #include "sgpp/base/operation/hash/OperationNaiveEvalPartialDerivative.hpp"
 #include "sgpp/base/datatypes/DataVector.hpp"
 #endif
@@ -160,7 +161,7 @@ class TransferFunction;
 
 #ifdef USE_SGPP
     /** Grid for SGPP interpolation */
-    SGPP::base::Grid* grid_;
+    std::unique_ptr<sgpp::base::Grid> grid_;
 #endif
 
     /** returns the numbers of parameters required for this material */
@@ -364,8 +365,7 @@ class TransferFunction;
     void InitializeSparseGrid(const char * filename);
 
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
-    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
-    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const;
 #endif //USE_SGPP
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
@@ -426,19 +426,22 @@ class TransferFunction;
     /** members for SGPP interpolation */
     enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
-    SGPP::base::DataVector alpha1_;
-    SGPP::base::DataVector alpha2_;
-    SGPP::base::DataVector alpha3_;
-    SGPP::base::DataVector alpha4_;
-    SGPP::base::DataVector alpha5_;
-    SGPP::base::DataVector alpha6_;
-    SGPP::base::DataVector volume_;
+    sgpp::base::DataVector alpha1_;
+    sgpp::base::DataVector alpha2_;
+    sgpp::base::DataVector alpha3_;
+    sgpp::base::DataVector alpha4_;
+    sgpp::base::DataVector alpha5_;
+    sgpp::base::DataVector alpha6_;
+    sgpp::base::DataVector alpha7_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;
     Matrix<double> full_bspline_coeff22_;
     Matrix<double> full_bspline_coeff23_;
     Matrix<double> full_bspline_coeff33_;
+    std::unique_ptr<sgpp::base::OperationEval> op_eval_;
+    std::unique_ptr<sgpp::base::OperationNaiveEval> op_naive_eval_;
+    std::unique_ptr<sgpp::base::OperationNaiveEvalPartialDerivative> op_naive_eval_partial_derivative_;
 #endif //USE_SGPP
   };
 
