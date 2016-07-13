@@ -1939,6 +1939,7 @@ void FeHCurlHiTet::CalcNumUnknowns() {
 
 #ifdef USE_FACES
   for( UInt iFace = 0; iFace < 4; ++iFace ) {
+    unknowns = 0;
     UInt order = orderFace_[iFace][0];
     if (order >1) {
       unknowns=0;
