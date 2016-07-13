@@ -1167,8 +1167,8 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
   #print "Created " + str(second) + " obstacle elements" 
            
   mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx))) 
-  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx))) 
-   
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+  
   side = (("bottom", [])) 
   mesh.bc.append(side) 
   for z in range(0, nnz): 
@@ -1192,8 +1192,18 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
   for z in range(1, nnz-1):
     for x in range(1,nnx-1):
       side[1].append((z*nny+ny-1)*nnx+x)
- 
-   
+      
+  side = (("heat_back", []))
+  mesh.bc.append(side)
+  for y in range(1,nny-1):
+    for x in range(nnx*nnz + 1 , nnx*nnz + nnx-1,1):
+      side[1].append(x+nnx*y) 
+  
+  side = (("heat_front", []))
+  mesh.bc.append(side)
+  for y in range(1,nny-1):
+    for x in range(nnx*nny*(nnz-2) + 1 , nnx*nny*(nnz-2) + nnx-1,1):
+      side[1].append(x+nnx*y)   
    
   if case == 'pipe_bend': 
     area = 0.04 

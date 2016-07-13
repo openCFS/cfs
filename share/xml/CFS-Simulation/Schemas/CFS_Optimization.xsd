@@ -1294,7 +1294,7 @@
                 <!-- either 'random' or a float -->
                 <xsd:attribute name="initial" use="required">
                   <xsd:simpleType>
-                    <xsd:union memberTypes="xsd:float random_token"/>
+                    <xsd:union memberTypes="xsd:token"/>
                   </xsd:simpleType>
                 </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
