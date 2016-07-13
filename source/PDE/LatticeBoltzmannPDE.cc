@@ -7,7 +7,7 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -1090,7 +1090,8 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
-      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
+//      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
     d_pdrop_d_f[index] = d_PD_d_f;
   }
@@ -1102,14 +1103,15 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
-      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
+//      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
     d_pdrop_d_f[index] = d_PD_d_f;
   }
 
   Vector<double> rhs(n_elems * n_q_);
 
-  dPD *= 1e4;
+//  dPD *= 1e4;
 
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
   d_propagate_d_f(dFdf,dPD);
@@ -1161,7 +1163,8 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   }
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
-  return (in / inlet.GetSize() - out / outlet.GetSize())*1e4;
+//  return (in / inlet.GetSize() - out / outlet.GetSize()) * 1e4;
+  return (in / inlet.GetSize() - out / outlet.GetSize());
 }
 
 Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){

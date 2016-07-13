@@ -48,6 +48,7 @@ Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
+Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -726,6 +727,11 @@ void DesignElement::SetEnums()
   ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
+
+  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
+
 
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");

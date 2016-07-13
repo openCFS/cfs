@@ -4,8 +4,7 @@
 #define BLAS_LIBRARY "@BLAS_LIBRARY@"
 #define CFS_BLAS_LAPACK "@CFS_BLAS_LAPACK@"
 
-#cmakedefine USE_GOTO
-#cmakedefine USE_ACML
+#cmakedefine USE_OPENBLAS
 #cmakedefine USE_MKL
 #cmakedefine USE_NETLIB
 

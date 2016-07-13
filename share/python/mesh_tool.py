@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import platform
-from PIL import Image
+# from PIL import Image # load only in the function we need it!
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
@@ -97,6 +97,7 @@ class Mesh:
     return self.elements[i * self.nx + j]
   
 def show_dense_mesh_image(mesh, shape, binary, size):
+  from PIL import Image  
   check_img = Image.new("RGB", shape, "white")
   check_pix = check_img.load()
 
@@ -765,7 +766,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       height = scale*float(ny)/nx 
       depth = scale*float(nz)/nx 
   else: 
-    ny = int(nx * (2./3.)) 
+    ny = int(nx * (2./3.))
     nz = int(nx * (2./3.)) 
     width = 3.0 
     height = 2.0 
