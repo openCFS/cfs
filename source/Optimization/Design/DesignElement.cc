@@ -315,6 +315,14 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
   idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
 
+std::string ShapeParamElement::ToString() const
+{
+  std::stringstream ss;
+  ss << "idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_);
+  return ss.str();
+}
+
+
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
