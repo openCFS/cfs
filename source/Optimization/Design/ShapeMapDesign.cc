@@ -94,6 +94,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
         opt_sym_param_.Last().ApplyDesign(shape, opt_shape_param_.Last());
 
         LOG_DBG(SMD) << "SMD opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt_shape_param_.Last()->GetIndex()
+                     << " #oel=" << opt_shape_param_.GetSize()
                      << " map_sym=" << (opt_sym_param_.Last().map != NULL ? (int) opt_sym_param_.Last().map->GetIndex() : -1)
                      << " mirror_sym=" << (opt_sym_param_.Last().mirror != NULL ? (int) opt_sym_param_.Last().mirror->GetIndex() : -1)
                      << " mirror_map_sym=" << (opt_sym_param_.Last().mirror_map != NULL ? (int) opt_sym_param_.Last().mirror_map->GetIndex() : -1);
@@ -115,12 +116,11 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
     opt_shape_param_[i]->SetOptIndex(i);
 
+  LOG_DBG(SMD) << "SMD osp=" << opt_shape_param_.GetSize() << " sp=" << shape_param_.GetSize() << " data=" << data.GetSize() << " regions=" << regionIds.ToString();
+
   // now with possibly induced shapes we may map to the design to be ready for initial evaluation
   MapShapeToDensity();
-
-  LOG_DBG(SMD) << "SMP rho_desig=" << data.GetSize();
-  LOG_DBG(SMD) << "regions: " << regionIds.ToString();
-}
+  LOG_DBG(SMD) << "regions: " << regionIds.ToString();}
 
 int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
@@ -191,7 +191,9 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG2(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+  LOG_DBG2(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " out=" << out.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+  assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
+
   // we cannot cache easily for mapped_constr_gradient_ as we would need it for each function.
   // MapShapeGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
@@ -244,16 +246,19 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     {
       unsigned int s = sparsity[i];
       assert(s < opt_shape_param_.GetSize());
+      LOG_DBG3(SMD) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
+
       assert(out.InWindow(base + i));
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
       out[base + i] = opt_shape_param_[s]->GetPlainGradient(f) * scale;
+
       if(opt_sym_param_[s].map != NULL)
-        out[base + s] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
+        out[base + i] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
       if(opt_sym_param_[s].mirror != NULL)
-        out[base + s] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
+        out[base + i] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
       if(opt_sym_param_[s].mirror_map != NULL)
-        out[base + s] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
+        out[base + i] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
     }
   }
 }
