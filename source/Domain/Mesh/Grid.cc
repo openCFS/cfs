@@ -103,22 +103,14 @@ namespace CoupledField
     barycenters = false;
   }
 
-  double Grid::CalcGridVolume(bool updated)
-  {
-    double s = 0.0;
-    for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
-      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
-
-    return s;
-  }
-
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     Matrix<double>& box = grid_bounding_box_;
     if(box.GetNumRows() == 0)
     {
       // set the box ignoring force_3D!
-      if(sys == NULL) sys = domain->GetCoordSystem();
+      if(sys == NULL)
+        sys = domain->GetCoordSystem();
 
       StdVector<RegionIdType> regs;
       GetVolRegionIds(regs);
@@ -363,13 +355,20 @@ namespace CoupledField
 
   bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
   {
-    bool regular = true;
-
     for(unsigned int i = 0; i < regions.GetSize(); i++)
       if(!regionData[regions[i]].regular)
-        regular = false;
+        return false;
 
-    return regular;
+    return true;
+  }
+
+  bool Grid::IsGridRegular() const
+  {
+    for(unsigned int i = 0; i < regionData.GetSize(); i++)
+      if(!regionData[i].regular)
+        return false;
+
+    return true;
   }
 
   void Grid::GetRegionNames( StdVector<std::string>& regionNames )
@@ -895,7 +894,7 @@ namespace CoupledField
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
 
-    this->SetElementBarycenters(0,false);
+    this->SetElementBarycenters(region,false);
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
         if (elems[i]->barycenter[j] > max[j])

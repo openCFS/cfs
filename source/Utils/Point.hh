@@ -2,7 +2,7 @@
 #define POINT_HH_
 
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <string>
 
 #include "General/defs.hh"
@@ -50,6 +50,9 @@ public:
    * @param vec assumed to be of size 3 - pointer because of circular inclusion :(
    * @return 0-based index of (firt) non-zero index. */
   static int GetCartesianOrientation(const Vector<double>* vec);
+
+  /** Returns data vector */
+  inline const Vector<double>& GetCoordVector() { return data;}
 
   //!
   Point & operator=(const Point & t);

@@ -811,6 +811,9 @@ std::string SCPIPBase::ToString(int ierr)
               os << "maximum number of iterations reached (" << (info[20-1]+1) << ")";
               break;
 
+    case 6:   os << "For at least one component, the lower bound is greater or equal to the upper bound. Equal disables the interior point subproblem solver.";
+              break;
+
     case 9:   os << "rsubdim (" << r_sub.GetSize() << ") too small. Required: " << info[4-1];
               break;
 

@@ -15,6 +15,7 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 {
@@ -171,14 +172,14 @@ namespace CoupledField
          * For the multiharmonic case one can commit each frequency but keep the
          * iteration number.
          * @see FinalizeStoreResults() for calling after the last CommitIteration()
-         * @param keep_iteration_number will keep currentIteration and not rest problemsWithinIteration
          * @return the iteration element we added */
-        virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
+        virtual PtrParamNode CommitIteration();
 
         /** the break condition for the optimization loop.
          * Checks the stopping rule from the XML file an searches for an HALTOPT file.
-         * Shall be called after CommitIteration() ! */
-        virtual bool DoStopOptimization();
+         * Shall be called after CommitIteration() !
+         * user_stop_reason_ contains the reason if true is returned */
+        bool DoStopOptimization();
 
         /** are we in transient optimization?
          * FIXE -> Context */
@@ -206,7 +207,6 @@ namespace CoupledField
 
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
-
 
         /** This is the list of concurrent objective functions.
          * It is guaranteed to have at least one entry.
@@ -272,9 +272,6 @@ namespace CoupledField
            /** if set write the constraint gradient of the design to the logfile */
            bool designConstraintGradients;
 
-           /** write mean and max for local constraints */
-           bool localDetail;
-
            /** write the gradient norms */
            bool gradNorm;
 
@@ -302,6 +299,8 @@ namespace CoupledField
          * @see Optimization::contextManager */
         MultipleExcitation* me;
 
+        /** the reason we did a user break in DoStopIteration() */
+        std::string user_break_reason;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -347,8 +346,7 @@ namespace CoupledField
         /** The current iteration, 0 is the first run. Note that the state problem might be
          * executed more often (-> line search).
          * @see problemSolvedCounter. */
-        int currentIteration;
-
+        unsigned int currentIteration;
 
         /** This checks how often the state problem is solved. This is not necessary equal
          * to the iterations, e.g. for line search of an external optimizer. Incremented by
@@ -370,9 +368,6 @@ namespace CoupledField
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
-
-        /** Do we use MSFEM or not? */
-        bool msfem;
 
         /** is the first step static */
         bool firstStepStatic;
@@ -397,6 +392,13 @@ namespace CoupledField
 
         /** This holds our optimer instance. */
         BaseOptimizer* baseOptimizer_;
+
+        /** checks the time of the iterations to be written and used as stopping criteria.
+         * This is a shortcut the the main cfs timer, taken from infoNode */
+        shared_ptr<Timer> cfs_timer_;
+
+        /** The time in seconds when. Set in CommitIteration() */
+        StdVector<double> time_;
   };
 
 } // namespace

@@ -69,7 +69,7 @@ def get_dim(args):
   
 parser = argparse.ArgumentParser()
 parser.add_argument("bloch", help="a sorted bloch.dat file. Sort by sort_bloch.py")
-parser.add_argument("--dim", help="2 or three dimensions", type=int, required=False, choices=[2,3])
+parser.add_argument("--dim", help="2 or 3 dimensions, for old .bloch.dat files without #<ibz/>", type=int, required=False, choices=[2,3])
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
 parser.add_argument('--maxmode', help="maximal mode number to be considered (default 9999)", default=9999, type=int)
@@ -78,6 +78,7 @@ parser.add_argument('--xml', help='export info to a xml file')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
+parser.add_argument('--notitle', action='store_true', help="gnuplot: suppress line lables")
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
 parser.add_argument('--horizontal', action='store_true', help='display only the horizontal part of the wavevector (G->X)')
 args = parser.parse_args()
@@ -149,12 +150,12 @@ gaps = None if args.xml is None else etree.SubElement(root, "gaps")
 if args.gnuplot:
   if args.gnuplot == "eps":
     print 'set size ratio 1.0'
-    print 'set terminal postscript eps enhanced "Helvetica, 20" color' #  change to monochrome for papers
-    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
+    print 'set terminal postscript eps enhanced "Helvetica, 12" color' #  change to monochrome for papers
+    print 'set output "' + args.bloch[:-len(".dat")] + '.eps"'
   if args.gnuplot == "png":
     print 'set size ratio 1.0'
     print 'set terminal png font Helvetica size 1000,1000'
-    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.png"'
+    print 'set output "' + args.bloch[:-len(".dat")] + '.png"' # leave it as bloch.png
         
     # print 'set output "tmp.eps"'
   # unset eventually older boxes
@@ -211,10 +212,10 @@ if args.gnuplot:
 
   
 
-  wl =   '' if args.nolines else ' with linespoints '
+  wl =   '' if args.nolines else ' with lines '
   lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
   for i in range(offset,  max_mode): # 1-based
-    title = ' notitle ' if args.commonsymbol else ' t "' + str(i-offset+1) + '. mode" ' 
+    title = ' notitle ' if args.commonsymbol or args.notitle else ' t "' + str(i-offset+1) + '. mode" ' 
     print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
  
  

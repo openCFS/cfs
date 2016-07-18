@@ -207,10 +207,11 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
     SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
-    SET(OPENBLAS_BASE "xianyi-OpenBLAS")
-    SET(OPENBLAS_VER "v0.2.10")
-    SET(OPENBLAS_GZ "${OPENBLAS_BASE}-${OPENBLAS_VER}-0-gf20c0f9.tar.gz")
-    SET(OPENBLAS_MD5 "66e64bbc4dc7b602ac3bb359d2933936")
+    SET(OPENBLAS_BASE "OpenBLAS")
+    SET(OPENBLAS_VER "0.2.18")
+    # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
+    SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+    SET(OPENBLAS_MD5 "805e7f660877d588ea7e3792cda2ee65")
     
     INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
     
@@ -337,6 +338,7 @@ SET(BOOST_MINOR_VER 58)
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
 SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546")
+#SET(BOOST_MD5 "6095876341956f65f9d35939ccea1a9f") # 1.61
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
@@ -480,13 +482,9 @@ ENDIF(USE_IPOPT)
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)
   SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
-  SET(SGPP_BASE "release")
-  SET(SGPP_VER "1.0.0")
-  SET(SGPP_TGZ "${SGPP_BASE}_${SGPP_VER}.tgz")
-  #SET(SGPP_BASE "sgopt")
-  #SET(SGPP_VER "r4892")
-  #SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
-  
+  SET(SGPP_BASE "sgopt")
+  SET(SGPP_VER "2016-03-04_166a3d9")
+  SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
 ENDIF(USE_SGPP)
 

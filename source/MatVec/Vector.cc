@@ -1,11 +1,13 @@
-#include <cstdio>
-#include <cmath>
 
 #include "Vector.hh"
 #include "opdefs.hh"
 #include <boost/type_traits/is_complex.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
-using namespace std;
+#include <cstdio>
+#include <cmath>
+#include <cfloat>
+
 
 namespace CoupledField {
 
@@ -276,7 +278,7 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  Double Vector<T>::NormL2() const
+  inline Double Vector<T>::NormL2() const
   {				
     double sum = 0;
 
@@ -289,7 +291,7 @@ namespace CoupledField {
 
 
   template <typename T>
-  double Vector<T>::NormL2(const Vector<T>& other) const
+  inline double Vector<T>::NormL2(const Vector<T>& other) const
   {
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
 
@@ -301,6 +303,26 @@ namespace CoupledField {
 
     return sqrt(sum);
   }
+
+
+  template <typename T>
+  inline T Vector<T>::Sum() const
+  {
+    T s(0);
+    for(unsigned int i = 0; i < size_; ++i)
+      s+=data_[i];
+
+    return s;
+  }
+
+  template <typename T>
+  inline T Vector<T>::Avg() const
+  {
+    assert(size_ > 0);
+
+    return Sum() * (1.0/size_);
+  }
+
 
 
   template<class TYPE> 
@@ -859,7 +881,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isnan(data_[k])) return true;
+      if((boost::math::isnan)(data_[k])) return true;
 
     return false;
   }
@@ -869,8 +891,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isnan(data_[k].real())) return true;
-      if(std::isnan(data_[k].imag())) return true;
+      if((boost::math::isnan)(data_[k].real())) return true;
+      if((boost::math::isnan)(data_[k].imag())) return true;
     }
     return false;
   }
@@ -880,7 +902,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isinf(data_[k])) return true;
+      if((boost::math::isinf)(data_[k])) return true;
 
     return false;
   }
@@ -890,8 +912,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isinf(data_[k].real())) return true;
-      if(std::isinf(data_[k].imag())) return true;
+      if((boost::math::isinf)(data_[k].real())) return true;
+      if((boost::math::isinf)(data_[k].imag())) return true;
     }
     return false;
   }

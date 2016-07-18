@@ -167,7 +167,7 @@ public:
   //! Remove external data sources
   void RemoveExternalDataSource();
 
-  /** Get Homogenious Boundary Conditions
+  /** Get Homogeneous Boundary Conditions
   * Note that we return a reference to allow the modification of the list for optimization purpose */
   HdBcList& GetHomDirichletBCs(){
     return hdBcs_;

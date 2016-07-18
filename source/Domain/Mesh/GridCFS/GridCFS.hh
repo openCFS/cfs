@@ -246,7 +246,8 @@ namespace CoupledField
     //! \param node number of interest
     inline const StdVector<Elem*>& GetElemsByNode(UInt node)
     {
-      SetNodesToElemsMap();
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
       return mapNodeToElems_[node];
     }
 
@@ -363,10 +364,18 @@ namespace CoupledField
     Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                    bool updated = false );
 
+    /** Total volume of a sparse grid. Works only for parallelograms. */
+    Double CalcGridVolume(bool updated = false);
+
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
                                   CoordSystem* cSys);
+
+    /** @see Grid::CalcRegulardGridDiscretization() */
+    StdVector<unsigned int> CalcRegulardGridDiscretization();
+
+
     //@}
 
 

@@ -161,7 +161,7 @@ namespace CoupledField {
     //! certain sparse arithmetic operations of the SBM_Matrix class.
     //! \note  The constructed matrix is a copy and thus has the same layout
     //!        as the original matrix it is copied from.
-    CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr, UInt* diag_ptr);
+    CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr );
 
 #ifdef USE_MULTIGRID
    

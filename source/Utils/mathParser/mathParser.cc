@@ -22,15 +22,13 @@ namespace CoupledField {
   std::list<Double> MathParser::dynamicPool_ = std::list<Double>();
 
   // Call method at muParser object with exception handling
-#define MATHPARSER_EXEC(CALL)                                   \
-  try { CALL; } catch(mu::Parser::exception_type &e) {          \
-    EXCEPTION( "MathParser reports:\n -------------------\n"    \
-               << " Message:  " << e.GetMsg() << "\n"           \
-               << " Formula:  " << e.GetExpr() << "\n"          \
-               << " Token:    " << e.GetToken() << "\n"         \
-               << " Position: " << (int)e.GetPos() << "\n"      \
-               << " Errc:     " << e.GetCode() << "\n";)        \
+  // the difference between EXCEPTION and throw Exception is that the later does not report file and line which is for this case for the user not of impartance
+#define MATHPARSER_EXEC(CALL)                                                                \
+    try { CALL; } catch(mu::Parser::exception_type &e) {                                     \
+    throw Exception( "MathParser reports '" + e.GetMsg() + "' in formula '" + e.GetExpr() + "'");  \
   }
+  // further codes .GetToken() and (int) e.GetPos() already in e.GetMsg().
+  // also there is e.GetCode() (e.g. 1, 25, ...)
   
   MathParser::MathParser() {
 
@@ -679,6 +677,27 @@ namespace CoupledField {
   }
   
   
+  StdVector<std::pair<std::string, double> > MathParser::GetRegisteredValues(HandleType handle) const
+  {
+    StdVector<std::pair<std::string, double> > res;
+
+    if(pools_.find(handle) != pools_.end())
+    {
+      const VarPool& pool = pools_.find(handle)->second;
+      for(VarPool::const_iterator it = pool.begin(); it != pool.end(); ++it)
+        res.Push_back(std::make_pair(it->first, it->second));
+    }
+
+    return res;
+  }
+
+  void MathParser::ToInfo(PtrParamNode pn, HandleType handle) const
+  {
+    StdVector<std::pair<std::string, double> > res = GetRegisteredValues(handle);
+    for(unsigned int i = 0; i < res.GetSize(); i++)
+      pn->Get(res[i].first)->SetValue(res[i].second);
+  }
+
   void MathParser::Dump( std::ostream& out) {
     
     out << "====================\n"

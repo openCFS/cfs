@@ -289,6 +289,13 @@ namespace CoupledField
      * @param size_tolerant if set this matrix and other_mat may have different size with 0 entries for the unused. */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant = false);
     
+    /** Set the matrix out of a vector.
+     * This matrix is resized. rows times cols needs to match vec.GetSize()
+     * @param row_major = true assumes a11, a12, a13, a21, a22, ... (C style)
+     *        row_major = false = col_major assumes a11, a21, a31, ... (Fotran style)
+     * @see https://en.wikipedia.org/wiki/Row-major_order */
+    void Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major);
+
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
@@ -419,6 +426,9 @@ namespace CoupledField
 
     /** Sum up the square of all entries */
     TYPE NormL2() const;
+
+    /** Computes the average of all entries. Weaker than L1 norm */
+    TYPE Avg() const;
 
     /** does something like (this - other).NormL2().
      * @see NormL2() */

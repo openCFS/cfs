@@ -137,6 +137,8 @@ extern "C" {
     // Set default solver type to direct sparse solver
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
+
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -177,8 +179,8 @@ extern "C" {
   PardisoSolver<T>::~PardisoSolver() {
 
     // PARDISO - Last Phase: Cleaning up the parameters
-    if ( firstCall_ == false ) {
-
+    if ( firstCall_ == false )
+    {
       int errorFlag = 0;
       int phase = -1;
 
@@ -196,10 +198,8 @@ extern "C" {
                 &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != PARDISO_NO_ERROR) {
-        EXCEPTION( "Error occured during cleanup:\n"
-                   << GetErrorString(errorFlag) )
-      }
+      if(errorFlag != PARDISO_NO_ERROR) // no exceptions in C++11 destructors
+        std::cerr << "Error occured during cleanup of pardiso: " << GetErrorString(errorFlag) << std::endl;
 
     // Read iterative solver statistics
     if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) {
@@ -215,7 +215,8 @@ extern "C" {
       try {
         fs::remove("pardiso-ml.out");
       } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+        // no exceptions in C++11 destructors
+        std::cerr << "Error occured removing remove pardiso-ml.out: " << ex.what() << std::endl;
       }      
     }
 
@@ -596,7 +597,7 @@ extern "C" {
 
 
     // write out additional information in info xml file
-    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
     node->Get("number")->SetValue(tNumfact_.GetCalls());
 
 
@@ -607,8 +608,7 @@ extern "C" {
 
       tSymfact_.ResetStart();
       // log report
-      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
-                               << " ... ";
+      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation) ... ";
 
       // only analyse
       int phase = 11;
@@ -682,7 +682,6 @@ extern "C" {
       tNumfact_.Stop();
       node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
       node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
-      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
 
     node->Get("symbfact/peakMem")->SetValue(iparm_[14]);

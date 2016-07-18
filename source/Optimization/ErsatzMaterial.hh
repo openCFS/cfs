@@ -73,7 +73,7 @@ public:
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
   /** Here we also write the density files */
-  PtrParamNode CommitIteration(bool keep_iteration_number = false);
+  PtrParamNode CommitIteration();
 
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
@@ -87,7 +87,7 @@ public:
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
-    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT
+    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP
   } Method;
 
   static Enum<Method> method;
@@ -111,6 +111,12 @@ public:
     assert(structure_ != NULL);
     return *structure_;
   }
+
+  // calculates for given node res = interface * (stateSol - trackVal)^2
+  double CalcStateTrackingAtNode(int node);
+
+  // calculates for given node res = load * stateSol
+  double CalcTempAtInterface(int node);
 
 protected:
   
@@ -152,8 +158,6 @@ protected:
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
-
-
 
   /** for Virgininies stuff */
   double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
@@ -269,8 +273,23 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,
-      bool derivative);
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative);
+
+  /** Handles tracking constraint/objective for given temperature at interfaces between solid and void
+   *  @param excite The used excitation
+   *  @param f function
+   *  @param derivative flag for calculating derivative
+   *  @param trackVal the value that we want to track
+   *  @return sum over all tracked values at interface nodes
+   */
+  virtual double CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
+
+  /**
+   * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
+   * K*l^T = -2 * F' * (u - u_track)
+   */
+  virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
+
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
@@ -419,12 +438,14 @@ private:
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
 
-  /** for design dependent interface driven excitation f=4*rho*(1-rho) as for heat .... calculate element based f'
-   * @param de for this element we compute "out"
-   * @param out gets size of nodes of de elem and contains d_f/d_de */
-  template<class T> void CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out);
+  /** for design dependent interface driven excitation as for heat .... calculate element based f'
+   * for all design elements de:
+   *  run over all neighbor nodes of design de
+   *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
+   * @param function f */
+  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
 
-  template<class T> void SubstractInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& in_out);
+  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
@@ -501,6 +522,11 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
+
+  /** Have we already calculated gradient of interface driven load gradient for each design element?*/
+  bool interfaceDrivenGradCalc_;
+
+  Function* trackingFunc_;
 };
 
 } // namespace

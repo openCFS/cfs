@@ -90,10 +90,13 @@ class Function
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
+      TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
+      GLOBAL_CURVATURE,
+      GLOBAL_DESIGN,
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
@@ -112,7 +115,9 @@ class Function
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
-      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
+      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala'). Multiplies slope with prev and with next */
+      CURVATURE,                 /*!< Second derivative (prev, this, next) timing h=1 */
+      PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -130,7 +135,7 @@ class Function
       BENSON_VANDERBEI_1,        /*!< 1st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
-      DESIGN_BOUND,              /*!< local design bound */
+      DESIGN,                    /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
       DETERMINANT_MATRIX,        /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
       ROTATIONAL_MATRIX_1,       /*!< first rotational constraint */
@@ -178,6 +183,8 @@ class Function
 
     /** to convert string/enum for this type */
     static Enum<Access> access;
+
+    Access GetAccess() const { return access_; }
 
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
@@ -312,6 +319,10 @@ class Function
 
       ~Local();
 
+      /** second constructor step. Required as locality initialization calls ShapeMapDesign() where we ask for periodic
+       * and the constructor needs to be finished then */
+      void PostInit();
+
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
       int GetElementDimension() const { return element_dimension_; }
 
@@ -327,6 +338,7 @@ class Function
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
+        CYCLIC,                /*!< The periodic element for the the periodic constraint */
         ELEMENT,                 /*!< For stress there is no neighborhood, only the element itself */
         MULT_DESIGNS_ELEMENT,    /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
         SHAPE,                    /*!< SHAPE, the sparsity pattern is read from file */
@@ -349,6 +361,9 @@ class Function
       } Phase;
 
       static Enum<Phase> phase;
+
+      /** are we periodic? Only if enabled in local/periodic AND with periodic pde */
+      bool periodic;
 
       /** Data structure for the interpolation coefficients for latticeVol3D*/
       Matrix<double> vol_coeff_;
@@ -434,7 +449,7 @@ class Function
         double CalcSlope() const;
 
         /** calculates the design bound as constraint. */
-        double CalcDesignBound(bool derivative) const;
+        double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
 
         /** calculate the slope gradient for a given element
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
@@ -443,6 +458,10 @@ class Function
         /** the perimeter is similar to the slope constraint but always globalized (sum) */
         double CalcPerimeter(double eps, double l_k) const;
         double CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const;
+
+        /** periodic means right end minus left end. Meant for shape mapping. A relaxed equal needs both bounds */
+        double CalcPeriodic() const;
+        double CalcPeriodicGradient(int neigh_idx) const;
 
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
@@ -461,9 +480,13 @@ class Function
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
 
-        /** no change of slope sign */
+        /** no change of slope sign. Positive if the prev and next slope have the same sign (getting larger or smaller) */
         double CalcBump() const;
         double CalcBumpGradient(int neigh_idx) const;
+
+        /** Curvature Calculation (simplest second derivative) assuming h=1 */
+        double CalcCurvature() const;
+        double CalcCurvatureGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
@@ -653,7 +676,7 @@ class Function
     Local* GetLocal() { return local; }
 
     /** The design type is by default DEFAULT :) */
-    DesignElement::Type GetDesignType() const {return design_; }
+    BaseDesignElement::Type GetDesignType() const {return design_; }
 
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space to to dummy elements if the region is not within the design (stress)
@@ -701,9 +724,8 @@ class Function
 
     /** matrices for polynomial coefficients and discretization steps of the interpolation for volume calculation in 3D with cross shaped base cells*/
 
-
     /** This is DEFAULT (= applies always) if not defined */
-    DesignElement::Type design_;
+    BaseDesignElement::Type design_;
 
     /** The actual kind of cost function. */
     Type type_;

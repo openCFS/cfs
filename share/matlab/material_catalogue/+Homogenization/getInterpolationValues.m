@@ -7,6 +7,7 @@ meshgenerationfunc = @Homogenization.generateShearedCross;
 % meshgenerationfunc = @Homogenization.generateCrossWithVertBar;
 % meshgenerationfunc = @Homogenization.generateFramedCross;
 % meshgenerationfunc = @Homogenization.generateFramedCrossExact;
+% meshgenerationfunc = @Homogenization.generateCross3DExact;
 
 % Get current path
 path = fileparts(which('+Homogenization/getInterpolationValues.m'));

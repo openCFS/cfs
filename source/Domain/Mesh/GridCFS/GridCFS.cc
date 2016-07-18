@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <set>
 
@@ -393,7 +393,7 @@ namespace CoupledField {
 
   void GridCFS::MapFaces() {
 
-    LOG_TRACE(gridcfs) << "Starting to map faces ";
+    LOG_DBG(gridcfs) << "Starting to map faces ";
 
 
     // assert that any mesh was already read in
@@ -492,7 +492,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
 
-      LOG_TRACE(gridcfs) << "Finished to map faces\n";
+      LOG_DBG(gridcfs) << "Finished to map faces\n";
 
     } // loop over elements
 
@@ -507,7 +507,7 @@ namespace CoupledField {
     // Set flag
     facesMapped_ = true;
 
-    LOG_TRACE(gridcfs) << "Finished mapping faces\n";
+    LOG_DBG(gridcfs) << "Finished mapping faces\n";
 
   }
 
@@ -515,7 +515,7 @@ namespace CoupledField {
 
   void GridCFS::MapEdges() {
 
-    LOG_TRACE(gridcfs) << "Starting to map edges";
+    LOG_DBG(gridcfs) << "Starting to map edges";
 
     // assert that any mesh was already read in
     assert( isInitialized_ == true );
@@ -593,7 +593,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
 
-      LOG_TRACE(gridcfs) << "Finished to map edges\n";
+      LOG_DBG(gridcfs) << "Finished to map edges\n";
     }
 
     // Trim vector containing faces
@@ -878,7 +878,7 @@ namespace CoupledField {
     isInitialized_ = true;
 
     // Try to fix problems due to negative Jacobian determinants
-    LOG_TRACE(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
+    LOG_DBG(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
 
     CorrectElementConnectivities();
     
@@ -896,8 +896,17 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info_ ) {
-       ToInfo(info_->Get(ParamNode::HEADER)->Get("domain")); 
+    if(domain && info_) // we have no domain in the cfstoolbin case
+    {
+      ToInfo(info_->Get(ParamNode::HEADER)->Get("domain"));
+
+      StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+      if(!reg.IsEmpty()) {
+        MathParser* mp = domain->GetMathParser();
+        mp->SetValue(MathParser::GLOB_HANDLER, "nx", reg[0]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "ny", reg[1]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "nz", reg[2]);
+      }
     }
   }
   
@@ -1157,8 +1166,8 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::CreateGridInformation( ResultHandler* ptRes,std::map<std::string, CoordSystem*>& coordSysMap ) {
-    
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes, std::map<std::string, CoordSystem*>& coordSysMap )
+  {
     // This method crates a "dummy" multisequence step, in
     // which some grid-information results are created:
     // - Local directions (xi,eta,zeta) of elements
@@ -2261,7 +2270,7 @@ namespace CoupledField {
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
-    LOG_TRACE(gridcfs) << "GetElem ptr for element nr " << elemNr;
+    LOG_DBG2(gridcfs) << "GetElem ptr for element nr " << elemNr;
 
  #ifndef NDEBUG
     if ( elemNr > numElems_ ) {
@@ -2356,7 +2365,7 @@ namespace CoupledField {
 
   void GridCFS::GetElems( StdVector<Elem*> & elems,
                           const RegionIdType regionId ) {
-    LOG_TRACE(gridcfs) << "GetElems for region " << region_.ToString(regionId);
+    LOG_DBG(gridcfs) << "GetElems for region " << region_.ToString(regionId);
     elems.Clear();
 
     // check if region Id is ALL_REGIONS
@@ -2387,6 +2396,32 @@ namespace CoupledField {
     LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements";
   }
 
+
+  StdVector<unsigned int> GridCFS::CalcRegulardGridDiscretization()
+  {
+    StdVector<unsigned int> grid;
+
+    if(IsGridRegular())
+    {
+      grid.Resize(3, 0);
+
+      StdVector<double> edges;
+
+      // take the first vol element of the first vol region. The first ordered element might be a surface element
+      GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
+      assert(edges.GetSize() == GetDim());
+
+      Matrix<double> m = CalcGridBoundingBox();
+
+      grid[0] = (m[0][1]-m[0][0]) / (edges[0]*.99999); // to avoid rounding errors: 1 / (1/60) gives 59.9999 -> which gives int 59
+      grid[1] = (m[1][1]-m[1][0]) / (edges[1]*.99999);
+      grid[2] = GetDim() == 3 ? (m[2][1]-m[2][0]) / (edges[2]*.99999) : 1;
+
+      LOG_DBG(gridcfs) << "GRGD: e=" << edges.ToString() << " bb=" << m.ToString(2,false) << " -> " << grid.ToString();
+    }
+
+    return grid;
+  }
 
 
   void GridCFS::GetVolElems( StdVector<Elem*> & elems,
@@ -2436,7 +2471,7 @@ namespace CoupledField {
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
                                 const std::string & elemsName ) {
 
-    LOG_TRACE(gridcfs) << "GetElemsByName for name " << elemsName;
+    LOG_DBG(gridcfs) << "GetElemsByName for name " << elemsName;
     StdVector<UInt> elemNumbers;
     Integer index = namedElemNames_.Find(elemsName);
 
@@ -2457,7 +2492,7 @@ namespace CoupledField {
   void GridCFS::GetElemNumsByName( StdVector<UInt> & elemNums,
                                        const std::string & elemName )
   {
-    LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
+    LOG_DBG(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
       EXCEPTION( "There are no entities with name '" << elemName
@@ -2549,7 +2584,7 @@ namespace CoupledField {
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
 
-    LOG_TRACE(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
+    LOG_DBG2(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
     coordMat.Resize(dim_, connect.GetSize());
 
     if( updated == true && deltCoords_.GetSize() != 0 ) {
@@ -2731,7 +2766,7 @@ namespace CoupledField {
   void GridCFS::CreateSurfaceElements( StdVector<Elem*>& elems,
                                        StdVector<SurfElem*>& surfElems ) {
 
-    LOG_TRACE(gridcfs) << "Starting to map surface elements";
+    LOG_DBG2(gridcfs) << "Starting to map surface elements";
 
     // 1.) Create vector of vector of elems
     StdVector<StdVector<UInt> > elemNrPerNode;
@@ -2910,6 +2945,13 @@ namespace CoupledField {
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
+    StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+    if(!reg.IsEmpty()) {
+      in->Get("nx")->SetValue(reg[0]);
+      in->Get("ny")->SetValue(reg[1]);
+      in->Get("nz")->SetValue(reg[2]);
+    }
+
     PtrParamNode list = in->Get("regions"); 
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )
     { 
@@ -3014,7 +3056,169 @@ namespace CoupledField {
 
       }
     }
-  } 
+  }
+
+  Double GridCFS::CalcGridVolume(bool updated)
+  {
+    // Volume of all regions
+    Double s = 0.0;
+    for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+
+    // Volume of the bounding box of the grid
+    Double cube_vol = 1.0;
+    Matrix<Double> m = CalcGridBoundingBox();
+    for( UInt d = 0; d < dim_; d++ )
+    {
+      cube_vol *= m[d][1] - m[d][0];
+    }
+
+    if( (s - cube_vol) / s < 1e-5 ) {
+      LOG_DBG2(gridcfs) << "Volume of rectangular dense mesh: " << s;
+      return s;
+    }
+
+    // From here on we have either a sparse or non rectangular mesh.
+    // We calculate the volume of the mesh using its (possibly virtual)
+    // vertices.
+    Vector<Double> p(dim_), q(dim_), r(dim_);
+    StdVector<Vector<Double> > points, verts;
+    for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
+    {
+      if( namedNodeNames_[i] == "center" ) continue;
+      if( namedNodes_[i].GetSize() < dim_ ) continue;
+
+      const StdVector<UInt>& nodes = namedNodes_[i];
+
+      if( dim_ == 2 )
+      {
+        // In 2D the vertices are calculated as intersections of the
+        // lines defined by the first and the last node in a group of
+        // named nodes with the same name.
+        GetNodeCoordinate(p, nodes[0], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+        points.Push_back(p);
+      } else {
+        // In 3D the vertices are calculated as intersections of the
+        // planes defined by the first, the last node and a third one
+        // in a group of named nodes with the same name.
+        GetNodeCoordinate(p, nodes[0], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[round(sqrt(nodes.GetSize()))-1], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+        points.Push_back(p);
+      }
+    }
+
+    // Make sure we have enough points
+    if( (dim_ == 2 && points.GetSize() < 4) || (dim_ == 3 && points.GetSize() < 9) ) {
+      EXCEPTION("Not enough named nodes to calculate the volume.");
+    }
+
+    // Calculate vertices
+    Double det, det1, det2;
+    if( dim_ == 2 ) {
+      // We apply a line-line intersection algorithm using determinants.
+      for( UInt i=0; i < points.GetSize()/2.0; i++ )
+      {
+        for( UInt j=i+1; j < points.GetSize()/2.0; j++ )
+        {
+          det = (points[2*i][0] - points[2*i+1][0]) * (points[2*j][1] - points[2*j+1][1]) - (points[2*j][0] - points[2*j+1][0]) * (points[2*i][1] - points[2*i+1][1]);
+          if(det != 0) {
+            det1 = points[2*i][0] * points[2*i+1][1] - points[2*i+1][0] * points[2*i][1];
+            det2 = points[2*j][0] * points[2*j+1][1] - points[2*j+1][0] * points[2*j][1];
+            r[0] = ( det1 * (points[2*j][0] - points[2*j+1][0]) - det2 * (points[2*i][0] - points[2*i+1][0]) ) / det;
+            r[1] = ( det1 * (points[2*j][1] - points[2*j+1][1]) - det2 * (points[2*i][1] - points[2*i+1][1]) ) / det;
+            verts.Push_back(r);
+          }
+        }
+      }
+
+      // Calculate the volume as absolute value of the determinant
+      // of the matrix, which is defined by two vectors connecting
+      // vertices and thus spanning a parallelogram.
+      // Note: Due to Cavalieri's principle it does not matter if on of
+      // this vectors is a diagonal of our original parallelogram
+      p = verts[1] - verts[0];
+      q = verts[2] - verts[0];
+      det = p[0] * q[1] - p[1] * q[0];
+
+      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      return std::abs(det);
+    } else {
+      Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
+      StdVector<Vector<Double> > normals;
+      for( UInt i=0; i < points.GetSize()/3.0; i++ )
+      {
+        p = points[3*i+1] - points[3*i];
+        q = points[3*i+2] - points[3*i];
+        // normal vector
+        n[0] = p[1]*q[2] - p[2]*q[1];
+        n[1] = p[2]*q[0] - p[0]*q[2];
+        n[2] = p[0]*q[1] - p[1]*q[0];
+        n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
+        normals.Push_back(n);
+      }
+
+      // Calculate the intersection point of three planes
+      // Let the planes be specified by a point $p_i$ and a unit normal vector $n_i$.
+      // Then the unique point of intersection is given by
+      // x = |n1 n2 n3|^(-1) [ (x1 * n1) (n2 x n3) + (x2 * n2) (n3 x n1) + (x3 * n3) (n1 x n2) ]
+      Double fac1, fac2, fac3;
+      Vector<Double> cross1(dim_), cross2(dim_), cross3(dim_);
+      for( UInt i=0; i < normals.GetSize(); i++ )
+      {
+        n1 = normals[i];
+        p1 = points[3*i];
+        for( UInt j=i+1; j < normals.GetSize(); j++ )
+        {
+          n2 = normals[j];
+          p2 = points[3*j];
+          for( UInt k=j+1; k < normals.GetSize(); k++ )
+          {
+            n3 = normals[k];
+            p3 = points[3*k];
+            det = n1[0]*n2[1]*n3[2] + n2[0]*n3[1]*n1[2] + n3[0]*n1[1]*n2[2] - n1[0]*n3[1]*n2[2] - n2[0]*n1[1]*n3[2] - n3[0]*n2[1]*n1[2];
+            if( det != 0 ) {
+              fac1 = p1[0]*n1[0] + p1[1]*n1[1] + p1[2]*n1[2];
+              cross1[0] = n2[1]*n3[2] - n2[2]*n3[1];
+              cross1[1] = n2[2]*n3[0] - n2[0]*n3[2];
+              cross1[2] = n2[0]*n3[1] - n2[1]*n3[0];
+              fac2 = p2[0]*n2[0] + p2[1]*n2[1] + p2[2]*n2[2];
+              cross2[0] = n3[1]*n1[2] - n3[2]*n1[1];
+              cross2[1] = n3[2]*n1[0] - n3[0]*n1[2];
+              cross2[2] = n3[0]*n1[1] - n3[1]*n1[0];
+              fac3 = p3[0]*n3[0] + p3[1]*n3[1] + p3[2]*n3[2];
+              cross3[0] = n1[1]*n2[2] - n1[2]*n2[1];
+              cross3[1] = n1[2]*n2[0] - n1[0]*n2[2];
+              cross3[2] = n1[0]*n2[1] - n1[1]*n2[0];
+
+              r[0] = (fac1 * cross1[0] + fac2 * cross2[0] + fac3 * cross3[0]) / det;
+              r[1] = (fac1 * cross1[1] + fac2 * cross2[1] + fac3 * cross3[1]) / det;
+              r[2] = (fac1 * cross1[2] + fac2 * cross2[2] + fac3 * cross3[2]) / det;
+              verts.Push_back(r);
+            }
+          }
+        }
+      }
+      // We have to find three linearly independent vectors
+      det = 0.0;
+      for( UInt i=verts.GetSize()-1; i > 2; i-- )
+      {
+        p = verts[1] - verts[0];
+        q = verts[2] - verts[0];
+        r = verts[i] - verts[0];
+        det = p[0]*q[1]*r[2] + q[0]*r[1]*p[2] + r[0]*p[1]*q[2] - p[0]*r[1]*q[2] - q[0]*p[1]*r[2] - r[0]*q[1]*p[2];
+        if( abs(det) > 1e-10 ) break;
+      }
+
+      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      return std::abs(det);
+    }
+    return -1;
+  }
 
   double GridCFS::CalcVolumeOfRegion(const RegionIdType regionId, bool updated)
   {

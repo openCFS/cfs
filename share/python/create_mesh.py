@@ -31,6 +31,7 @@ def find_inclusion_overlap(args):
   
   return mesh    
 
+print sys.argv
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
@@ -38,7 +39,7 @@ parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for q
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
-parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','validation_test'], required = True)
+parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','validation_test','force_inverter','force_inverter_half','gripper','gripper_half'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
@@ -75,13 +76,7 @@ if args.inclusion and args.patch:
   sys.exit() 
   
 if args.type == 'bulk3d' or args.type == 'validation_test':
-  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)  
-elif args.type == 'bulk2d' or args.type.startswith('cantilever2d') or args.type == 'triangle_msfem' or args.type == 'pressure2' or args.type == 'msfem_two_load':
-  if not args.inclusion_overlap:  
-    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
-  else:
-    mesh = find_inclusion_overlap(args) 
-  
+  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)    
 elif args.type.startswith('lbm'):
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')
@@ -97,8 +92,11 @@ elif args.type.startswith('lbm'):
   mesh_name = args.type +"_" + args.lbm
 elif args.type == '3D':
   mesh = create_regular3d_mesh(args.type, args.res)
-else:
-  assert(False)  
+else: # default case 2d_mesh
+  if not args.inclusion_overlap:  
+    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
+  else:
+    mesh = find_inclusion_overlap(args) 
   
 res_name = '_' + str(args.res)
 if (args.type == 'bulk2d' or args.type == 'bulk3d') and args.y_res <> None:

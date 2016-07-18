@@ -94,8 +94,8 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "11")
+SET(CFS_VERSION_YEAR "16")
+SET(CFS_VERSION_MONTH "04")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -223,7 +223,7 @@ OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SC
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
-OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK."
+OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
   ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
   ${USE_SUITESPARSE_DEFAULT})
@@ -260,7 +260,7 @@ ENDIF(USE_PARDISO OR
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
-    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
+    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not MKL"
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")

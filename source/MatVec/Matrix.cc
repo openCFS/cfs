@@ -3,21 +3,20 @@
 #include "opdefs.hh"
 
 #include <string>
-#include <cmath>
 #include <def_build_type_options.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
 
 #include "BLASLAPACKInterface.hh"
 
-using namespace std;
-
 using boost::tokenizer;
+
 namespace CoupledField
 {      
 
@@ -272,7 +271,7 @@ namespace CoupledField
   }
   
   template<>
-  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, string notation ) const {
+  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, std::string notation ) const {
     if (notation == "HILL_MANDEL") {
       Matrix<Double> theta(3,3);
       Matrix<Double> help(3,3);
@@ -766,6 +765,18 @@ namespace CoupledField
     }
   }
   
+  template<class TYPE>
+  void Matrix<TYPE>::Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major)
+  {
+    assert(vec.GetSize() == rows * cols);
+    assert(vec.GetSize() > 0);
+
+    Resize(rows, cols);
+
+    for(unsigned int r = 0; r < rows; r++)
+      for(unsigned int c = 0; c < cols; c++)
+        data_[r][c] = row_major ? vec[r*cols + c] : vec[c*rows+r];
+  }
   
   // perform matrix-matrix multiplication using BLAS (general case)
   template<class TYPE>
@@ -1989,6 +2000,19 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  TYPE Matrix<TYPE>::Avg() const
+  {
+    assert(size_row_*size_col_ > 0);
+    TYPE v(0);
+    for(unsigned int i = 0, n = size_row_*size_col_; i < n; i++)
+      v += data_[0][i];
+    return v * (1./(size_row_*size_col_));
+  }
+
+
+
+
+  template<class TYPE>
   TYPE Matrix<TYPE>::DiffNormL2(const Matrix<TYPE>& other) const
   {
 #ifdef CHECK_INITIALIZED
@@ -2026,7 +2050,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isnan(data_[0][k])) return true;
+      if((boost::math::isnan)(data_[0][k])) return true;
 
     return false;
   }
@@ -2036,8 +2060,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isnan(data_[0][k].real())) return true;
-      if(std::isnan(data_[0][k].imag())) return true;
+      if((boost::math::isnan)(data_[0][k].real())) return true;
+      if((boost::math::isnan)(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -2047,7 +2071,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isinf(data_[0][k])) return true;
+      if((boost::math::isinf)(data_[0][k])) return true;
 
     return false;
   }
@@ -2057,8 +2081,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isinf(data_[0][k].real())) return true;
-      if(std::isinf(data_[0][k].imag())) return true;
+      if((boost::math::isinf)(data_[0][k].real())) return true;
+      if((boost::math::isinf)(data_[0][k].imag())) return true;
     }
     return false;
   }
