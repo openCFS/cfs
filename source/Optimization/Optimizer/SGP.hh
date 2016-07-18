@@ -44,7 +44,7 @@ public:
 
   SGPApproximation* obj; // created in PostInit()
 
-  StdVector<SGPApproximation*> constr;
+  StdVector<Condition*> constr;
 
   /** the cfs design variable */
   Vector<double> x_outer;
@@ -63,24 +63,27 @@ public:
   /** values for lower and upper bound */
   double lbound, ubound;
 
+  /** convergence tolerance for outer iterations */
+  double tolerance;
+
   /** base material matrix */
   Matrix<double> E_0;
 
   // penalty parameter
-  double pmin,pmax;
+  double pmin,pmax,ppen;
 
-  // simp penalty parameter
-  int penal;
+  // transfer function for penalization of density
+  TransferFunction* tf;
 
-  // volume fraction
-  double vvol;
+  // merit function value
+  double merit;
 
 protected:
 
   void SolveProblem();
 
   /** @see BaseOptimizer::ToInfo() */
-  void ToInfo(PtrParamNode pn);
+  void ToInfo();
 
 private:
 

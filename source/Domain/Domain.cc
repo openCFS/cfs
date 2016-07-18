@@ -1197,8 +1197,10 @@ void Domain::ToInfo(PtrParamNode in)
     s->Get("max_x")->SetValue(m[0][1]);
     s->Get("min_y")->SetValue(m[1][0]);
     s->Get("max_y")->SetValue(m[1][1]);
-    s->Get("min_z")->SetValue(m[2][0]);
-    s->Get("max_z")->SetValue(m[2][1]);
+    if (m.GetNumRows() > 2) {
+      s->Get("min_z")->SetValue(m[2][0]);
+      s->Get("max_z")->SetValue(m[2][1]);
+    }
   }
 }
 
