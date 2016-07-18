@@ -47,8 +47,8 @@
 #endif
 #endif
 
-#ifdef USE_ACML
-#include <acml.h>
+#ifdef USE_OPENBLAS
+#include <openblas_config.h>
 #endif
 #include <bzlib.h>
 #include <zlib.h>
@@ -693,17 +693,11 @@ namespace CoupledField {
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
         << fg_reset << endl;
  #endif
- #ifdef USE_ACML
-    Integer acml_major, acml_minor, acml_patch;
-
-    acmlversion(&acml_major, &acml_minor, &acml_patch);
-
-    out << "ACML_VERSION:          " << fg_blue
-        << acml_major << "."
-        << acml_minor << "."
-        << acml_patch << fg_reset
-        << endl;
-    acmlinfo();
+ #ifdef USE_OPENBLAS
+    out << "OPENBLAS:              " << fg_blue
+        << OPENBLAS_VERSION << fg_reset << endl
+        << "OPENBLAS_CORE          " << fg_blue
+        << OPENBLAS_CHAR_CORENAME << fg_reset << endl;
  #endif
 #else
     out << "USE_BLAS:              "

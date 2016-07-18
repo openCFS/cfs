@@ -42,6 +42,7 @@ class BiLinearForm{
 
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
+        isSymmetric_ = false;
         isNewtonBilinearForm_ = false;
         isSymmetric_ = false;
       }
@@ -84,14 +85,15 @@ class BiLinearForm{
       //! Return, if bilinear form produces symmetric matrices
       bool IsSymmetric() {return isSymmetric_;}
       
-      //! Return if element matrix is solution dependend
+      //! Return if element matrix is solution dependent
       virtual bool IsSolDependent() = 0;
       
       //! Return if bilinearform uses updated Lagrangian formulation
-      bool IsCoordUpdate() { 
-        return coordUpdate_;
-      }
+      bool IsCoordUpdate() { return coordUpdate_; }
       
+      /** set coordUpdate, required by shape opt */
+      void SetCoordUpdate(bool val) { coordUpdate_ = val; }
+
       //! set bilinearform to part of Newton tangential matrix
       void SetNewtonBilinearForm() {
         isNewtonBilinearForm_ = true;

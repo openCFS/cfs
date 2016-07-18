@@ -16,6 +16,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -46,14 +47,17 @@ Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
+Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
 std::string BaseDesignElement::ToString() const
 {
- return " t=" + type.ToString(type_);
-
+  std::stringstream ss;
+  ss << "idx=" << index_ << " t=" << type.ToString(type_);
+  return ss.str();
 }
 
 
@@ -204,35 +208,26 @@ BaseDesignElement::BaseDesignElement(Type t) {
 }
 
 
-void BaseDesignElement::PostInit(int objectives, int constraints)
-{
-  // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
-  costGradient.Resize(objectives, 0.0);
-  constraintGradient.Resize(constraints, 0.0);
-}
-
-
-/** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
-{
-  assert(c == NULL || g == NULL);
-
-  if(g != NULL) return constraintGradient[g->GetIndex()];
-  if(c != NULL) return costGradient[c->GetIndex()];
-
-  return SumObjectiveGradient();
-}
-
 /** Get the gradient values for either objective or constraint */
 double BaseDesignElement::GetPlainGradient(const Function* f) const
 {
+  assert(f != NULL); // Call SumObjectiveGradient() if you don't want to specify!
+
   assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
   assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
-  return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
-                           f->IsObjective() ? NULL : static_cast<const Condition*>(f));
+  return f->IsObjective() ? costGradient[f->GetIndex()] : constraintGradient[f->GetIndex()];
 }
 
+double BaseDesignElement::GetPlainGradient(const Objective* c) const
+{
+  return costGradient[c->GetIndex()];
+}
+
+double BaseDesignElement::GetPlainGradient(const Condition* g) const
+{
+  return constraintGradient[g->GetIndex()];
+}
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
@@ -250,11 +245,13 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
 {
-  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
-  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+  assert(( f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL)
+      || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
-  AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
-              f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
+  if(f->IsObjective())
+    costGradient[f->GetIndex()] += value * static_cast<const Objective*>(f)->GetPenalty();
+  else
+    constraintGradient[f->GetIndex()] += value;
 }
 
 void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
@@ -304,14 +301,25 @@ std::string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec
   return ss.str();
 }
 
+/** Bastian's shape optimization */
 ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement() {
   index_ = index;
+}
+
+/* Parametric shape optimization */
+ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesignElement(type)
+{
+  index_ = index;
+  dof = -1;
+  coord.Resize(domain->GetGrid()->GetDim(), -1.0);
+  idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
 
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
   Init();
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 /** The default constructor for StdVector and ghost elements*/
@@ -326,7 +334,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->lower_ = 1.0;
   this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
-
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 
@@ -337,6 +345,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 
   type_ = dt;
   upper_ = upper;
@@ -477,7 +486,9 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PENALIZED_STRESS
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
-      || rd.value == TRANSFO_MATRIX)
+      || rd.value == TRANSFO_MATRIX
+      || rd.value == SHAPE_MAP_GRAD
+      || rd.value == SHAPE_MAP_RELEVANT)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -713,6 +724,15 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
+  ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
+  ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
+  ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
+
+  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
+
+
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
@@ -783,6 +803,8 @@ void DesignElement::SetEnums()
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(INTERPOLATION, "interpolation");
+  type.Add(NODE, "node");
+  type.Add(PROFILE, "profile");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
@@ -809,12 +831,16 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(TOPGRAD_VALUE, "topGradValue");
   valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
   valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
+  valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
+  valueSpecifier.Add(SHAPE_MAP_RELEVANT, "shapeMapRelevant");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
   valueSpecifier.Add(LEVEL_SET_GRAD_YN, "levelSetGradYN");
   valueSpecifier.Add(LEVEL_SET_GRAD_ZP, "levelSetGradZP");
   valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
+  valueSpecifier.Add(HEAT_NODAL_TRACK_VAL, "heatNodalTrackValue");
+  valueSpecifier.Add(TEMP_AT_INTERFACE, "tempAtInterface");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -842,13 +868,15 @@ void DesignElement::SetEnums()
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(GLOBAL_DESIGN, "globalDesign");
   detail.Add(STRESS, "stress");
   detail.Add(PROJECTION_FILTER, "projectionFilter");
   detail.Add(TRANSFO_MATRIX11, "transfoMatrix11");
   detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
   detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
   detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
-
+  detail.Add(SM_NODE, "node");
+  detail.Add(SM_PROFILE, "profile");
 }
 
 
@@ -964,12 +992,12 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -1003,7 +1031,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
-  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)));
+  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective())));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
   assert(func == NULL || func->ForDensityFiltering());
 

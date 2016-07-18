@@ -122,8 +122,13 @@
                 <!-- optional to give the stopping rule value.  -->
                 <xsd:attribute name="value" use="optional"  type="xsd:float" default="1e-3"/>
                 
-                <!-- optinoal to give the stopping rule queue lenght, this is for how many steps the criteria has to hold.  -->
+                <!-- optional to give the stopping rule queue lenght, this is for how many steps the criteria has to hold.  -->
                 <xsd:attribute name="queue" use="optional" type="xsd:positiveInteger" default="5"/>
+                
+                <!-- optioanlly give a max wall runtime in hours. If after an iterations theres ist not 1.5 times the average time
+                of the last iterations left, cfs will break. smaller equal 0 disables. Uses math parser -->
+                <xsd:attribute name="maxHours" use="optional" type="xsd:token" default="-1.0"/>
+                
               </xsd:complexType>
             </xsd:element>
             
@@ -325,7 +330,7 @@
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
-            <!-- only for the output constroaint which is an displacement constraint -->
+            <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
@@ -358,11 +363,20 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <!-- slope of slope = second derivate. Meant for shape mapping node and profile -->
+                <xsd:enumeration value="curvature"/>
+                <xsd:enumeration value="globalCurvature"/>
+                <!-- local constraint right minus left. Meant for shape mapping -->
+                <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->
                 <xsd:enumeration value="perimeter"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
-                <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->
+                <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf.-->
+                <xsd:enumeration value="design"/>
+                <!-- for shape mapping with overlap open_sum -->
+                <xsd:enumeration value="globalDesign"/>
+                <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala'. < 0 if slope changes -->
                 <xsd:enumeration value="bump"/>
                 <xsd:enumeration value="stress"/>
                 <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
@@ -401,8 +415,6 @@
                 <!--  For the mapping case of model reduction techniques -->
                 <xsd:enumeration value="determinantMapping"/>
                 <xsd:enumeration value="traceMapping"/>
-                <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
-                <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
                 <xsd:enumeration value="shape_inf"/>
@@ -413,6 +425,8 @@
                 <xsd:enumeration value="heatEnergy"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
+                <!-- tracking heat temperature at interfaces -->
+                <xsd:enumeration value="tempTrackingAtInterface"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -421,8 +435,8 @@
           <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional" >
             <xsd:simpleType>
-              <!-- either 'slack' or a float -->
-              <xsd:union memberTypes="slack_bounds xsd:float"></xsd:union>
+              <!-- either 'slack' or a float or a math parser expression, hence everything-->
+              <xsd:union memberTypes="slack_bounds xsd:float xsd:token"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
           
@@ -974,7 +988,7 @@
                   <!-- every regularization needs to define the type explicitly -->
                    <xsd:element name="filter" minOccurs="1" maxOccurs="unbounded" type="DT_Filter" />
                 </xsd:sequence>
-                <!-- enable checks for periodic B.C. of the pde -->
+                <!-- enable checks for periodic B.C. of the pde. If enabled AND the PDE is perdiodic, the filter will be periodic. -->
 	              <xsd:attribute name="periodic" use="optional" default="enable">
 		              <xsd:simpleType>
 			               <xsd:restriction base="xsd:token">
@@ -1170,7 +1184,7 @@
                   </xsd:element>
                 </xsd:sequence>
               </xsd:complexType>              
-            </xsd:element>
+            </xsd:element> <!-- end of paramMat -->
             
             <xsd:element name="shapeOpt" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1198,8 +1212,79 @@
                 <xsd:selector xpath="cfs:shapeParam"/>
                 <xsd:field xpath="@param"/>
               </xsd:unique>
-            </xsd:element>
+            </xsd:element> <!-- end of shapeOpt -->
 
+            <!-- parametric shape optimization mapped to density -->
+            <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                   <xsd:element name="node" minOccurs="1" maxOccurs="unbounded">
+                     <xsd:annotation>
+                       <xsd:documentation>move the node in dof direction. the design is multiplied by the other directions.
+                                          e.g. dof=x then there are variables generated for each y (in 2d). For 2D has you need
+                                          two xml declarations for dof=x  plus two for dof=y</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:complexType>
+                        <xsd:attribute name="dof" use="required" type="DT_Axis"/>
+                        <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+                        <xsd:attribute name="initial" type="xsd:token" use="required"/>
+                        <xsd:attribute name="lower" type="xsd:token" use="required"/>
+                        <xsd:attribute name="upper" type="xsd:token" use="required"/>
+                        <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
+<!--                         <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                        <!-- optional symmetries -->
+                        <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none"/>
+                        <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none"/>
+                      </xsd:complexType>
+                   </xsd:element>
+                   <xsd:element name="profile" minOccurs="1" maxOccurs="1">
+                     <xsd:annotation>
+                       <xsd:documentation>The profile gives the with (feature size) of the shape elemen. Technically the half profile
+                       will be assigned for both sides of the featue. You might want to extend it for dof or closer assign it to node.
+                       At the moment the profile applies to all nodes. Profile is mandatory.</xsd:documentation>
+                     </xsd:annotation>
+                     <xsd:complexType>
+                        <!-- lower, uppde and initial go together or fixed. all token are subjet to mathparser (for some 1/nx stuff)-->
+                        <xsd:attribute name="initial" type="xsd:token" use="optional"/>
+                        <xsd:attribute name="lower" type="xsd:token" use="optional"/>
+                        <xsd:attribute name="upper" type="xsd:token" use="optional"/>
+                        <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
+                        <xsd:attribute name="fixed" type="xsd:token" use="optional"/>
+                     </xsd:complexType>
+                   </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="beta" type="xsd:float" use="required"/>
+                <!-- how to hande the calculated rho for overlapping shapes at integration points -->
+                <xsd:attribute name="overlap" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!--  consider only the rho for the "stronger" shape at this ip. 
+                      Has the drawback that material gets lost when two shapes overlap and differentiablitiy at overlaps is not that good.  -->
+                      <xsd:enumeration value="max"/>
+                      <!-- sums up the shapes at the integration points. This violates the rho bound at overlaps and requires a design constraint!
+                      However this shall have to differentiability issues at all. -->
+                      <xsd:enumeration value="open_sum"/>
+                      <!-- limit the sum by applying the sum to a tanh() to map it to [0:1]  -->
+                      <xsd:enumeration value="tanh_sum"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+
+                <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
+                <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
+                
+                <!--  Set node bounds relative to the initial element value in load ersatz material -->                
+                <xsd:attribute name="relative_node_bound" use="optional" type="xsd:float" default="-1.0"/>
+                <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0"/>
+
+                <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
+                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
+
+                <!-- the order of the interpolation. 2 much too less, 10 shall be good. Effort is dim^order !!! -->
+                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="10"/>
+
+              </xsd:complexType>
+            </xsd:element>
             
             <!-- Optional parameters for the design space -->
             <xsd:element name="designSpace" minOccurs="0" maxOccurs="1">
@@ -1223,7 +1308,7 @@
                 <!-- either 'random' or a float -->
                 <xsd:attribute name="initial" use="required">
                   <xsd:simpleType>
-                    <xsd:union memberTypes="xsd:float random_token"/>
+                    <xsd:union memberTypes="xsd:token"/>
                   </xsd:simpleType>
                 </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
@@ -1243,7 +1328,7 @@
                 <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
                 <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
 
-                <!-- what are these attributes for? Seems to be so special that a subelement migt be the better place for them! -->
+                 <!--  Set element bounds relative to the initial element value in load ersatz material -->
                 <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
 
 
@@ -1302,10 +1387,14 @@
                         stresses, here they can be visualized. The element vonMisesStress
                         result gives the physical one -->
                       <xsd:enumeration value="penalizedStress"/>
-                      <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
+                      <!-- This is (rho - rho^*)^2 (rho is physical) without 1/N -->
                       <xsd:enumeration value="designTracking"/>
                      <!-- This is the gradient matrix -->
                       <xsd:enumeration value="transfoMatrix"/>
+                      <!--  for shape mapping the max of dtanh_da for a rho element -->
+                      <xsd:enumeration value="shapeMapGrad"/>
+                      <!--  for shape mapping the number of shapes with relevant contribution to this element (ShapeMapDesign::Item::relevant_nodes.GetSize())--> 
+                      <xsd:enumeration value="shapeMapRelevant"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1323,6 +1412,9 @@
                       <xsd:enumeration value="levelSetGradZP"/>
                       <xsd:enumeration value="levelSetGradZN"/>
                       <xsd:enumeration value="levelSetNormal"/>
+                      <!-- tracking values at all nodes : (stateSol - trackVal)^2-->
+                      <xsd:enumeration value="heatNodalTrackValue"/>
+                      <xsd:enumeration value="tempAtInterface"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1379,6 +1471,8 @@
                 <xsd:enumeration value="shapeGrad"/>
                 <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="shapeParamMat"/>
+                <!--  parametric shape is mapped to density -->
+                <xsd:enumeration value="shapeMap"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>         
@@ -1564,6 +1658,9 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
+      <!-- for shape map -->
+      <xsd:enumeration value="node"/>
+      <xsd:enumeration value="profile"/>
       <!-- Model reduction design variables -->
       <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
@@ -1622,6 +1719,7 @@
       <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
+      <xsd:enumeration value="globalDesign"/>
       <xsd:enumeration value="perimeter"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
@@ -1641,6 +1739,8 @@
       <xsd:enumeration value="slack"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
+      <!--  temperature tracking at interface -->
+      <xsd:enumeration value="tempTrackingAtInterface"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1841,13 +1941,16 @@
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="globalDesign"/>
       <xsd:enumeration value="stress"/>
-      
-            <!-- Value of the G matrix -->
+      <!-- Value of the G matrix -->
       <xsd:enumeration value="transfoMatrix11"/>
       <xsd:enumeration value="transfoMatrix12"/>
       <xsd:enumeration value="transfoMatrix21"/>
       <xsd:enumeration value="transfoMatrix22"/>
+      <!-- Shape mapping -->
+      <xsd:enumeration value="node"/>
+      <xsd:enumeration value="profile"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1867,6 +1970,7 @@
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
           <xsd:enumeration value="element"/>
+          <xsd:enumeration value="cyclic"/>
           <xsd:enumeration value="multiple_designs_element"/>
           <xsd:enumeration value="multiple_designs_next"/>
           <xsd:enumeration value="multiple_designs_next_and_reverse"/>
@@ -1909,6 +2013,17 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    
+   <!-- enable checks for periodic B.C. of the pde. If enabled AND the PDE is perdiodic -->
+   <xsd:attribute name="periodic" use="optional" default="enable">
+     <xsd:simpleType>
+       <xsd:restriction base="xsd:token">
+         <xsd:enumeration value="enable" />
+         <xsd:enumeration value="disable" />
+       </xsd:restriction>
+    </xsd:simpleType>
+  </xsd:attribute>
+    
   </xsd:complexType>
 
   <!-- neighborhood types -->
@@ -2201,6 +2316,20 @@
       <xsd:enumeration value="7" />
       <xsd:enumeration value="8" />      
             
+    </xsd:restriction>
+  </xsd:simpleType>
+
+   <xsd:simpleType name="DT_Axis" >
+     <xsd:restriction base="xsd:token">
+       <xsd:enumeration value="x"/>
+       <xsd:enumeration value="y"/>
+    </xsd:restriction>  
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_Symmetry">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="none"/>
+      <xsd:enumeration value="mirror"/>
     </xsd:restriction>
   </xsd:simpleType>
 

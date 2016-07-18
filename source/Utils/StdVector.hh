@@ -186,11 +186,13 @@ namespace CoupledField {
     //! Clear the vector
 
     //! This method clears the vector, i.e. it sets its size
-    //! to zero. If keepCapacity is set to false (default),
+    //! to zero. If keepCapacity is set to false
     //! also the memory is freed. Otherwise, the old data
     //! pointer is kept, so successive Resize-operations are
     //! faster.
-    void Clear(bool keepCapacity = false);
+    //! By default the capacity is kept for performance reasons. When
+    //! the space is not needed any more often the vector itself will be destructed?!
+    inline void Clear(bool keepCapacity = true);
 
     //! Initalizes the vector with a given entry
     /*!
@@ -227,11 +229,11 @@ namespace CoupledField {
      * @param size if smaller capacity only the internal size parameter is adjusted.
      *        If larger than the current capacity the old data is copied!
      * @note Additional data is NOT initialized. only Resize with init parameter sets ALL data */
-    void Resize(const unsigned int size);
+    inline void Resize(const unsigned int size);
 
     /** Set the length of the vector and initialize
      * @note Init() is called with this value */
-    void Resize(const unsigned int size, TYPE entry);
+    inline void Resize(const unsigned int size, TYPE entry);
     
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
@@ -463,7 +465,7 @@ namespace CoupledField {
   template<class TYPE>
   StdVectorListInitializer<TYPE> StdVector<TYPE>::operator= (const TYPE x)
   {
-    Clear();
+    Clear(false); // don't keep old capacity
     Push_back(x);
     return StdVectorListInitializer<TYPE>(this);
   }

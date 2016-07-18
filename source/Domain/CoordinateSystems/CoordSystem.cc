@@ -1,7 +1,7 @@
 #include "CoordSystem.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "boost/math/special_functions/fpclassify.hpp"
+#include <boost/math/special_functions/fpclassify.hpp>
 
 namespace CoupledField{
 
@@ -9,7 +9,6 @@ namespace CoupledField{
   CoordSystem::CoordSystem( const std::string & name,
                             Grid * ptGrid,
                             PtrParamNode myParamNode ) {
-
     name_ = name;
     ptGrid_ = ptGrid;
     myParam_ = myParamNode;
@@ -134,9 +133,7 @@ namespace CoupledField{
     // This could be extended to further checks (e.g. orthonormality)
     Double det; 
     rotationMat_.Determinant(det);
-    if( std::abs(det-1.0) > EPS  
-        || boost::math::isnan(det) 
-    || boost::math::isinf(det) ) {
+    if( std::abs(det-1.0) > EPS || (boost::math::isnan)(det) || (boost::math::isinf)(det) ) { // for some strange reasons icc does not accept boost::math:: here ?!
       WARN( "The determinant of the rotation matrix of the coordinate system '"
           << name_ << "' is " << det << " instead of 1.\n"
           << "This indicates an error. Please check the definition of the "

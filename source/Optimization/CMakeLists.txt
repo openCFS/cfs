@@ -5,6 +5,7 @@ SET(OPTIMIZATION_SRCS
   LevelSet.cc
   Condition.cc
   ShapeOpt.cc
+  ShapeMapping.cc
   TopGrad.cc
   OptimizationMaterial.cc
   Excitation.cc

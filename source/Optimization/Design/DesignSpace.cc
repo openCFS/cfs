@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -21,6 +21,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -34,6 +35,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
+#include <iomanip>
 
 using namespace CoupledField;
 
@@ -54,7 +56,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   method_ = method;
   pn_ = pn;
-  info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
+  info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
 
   // make sure we have a context, even when we have no optimization
   if(!Optimization::manager.IsInitialized())
@@ -251,21 +253,47 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.translate_design = lower;
             }
             bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
-            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+            double initial = -1;
 
-            if(!random && (initial < lower || initial > upper))
-              info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+            MathParser* mp = domain->GetMathParser();
+            MathParser::HandleType mHandle = -1;
+            std::string expr = curr_design_pn->Get("initial")->As<std::string>();
+            bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
+            if (initDependsOnSpace) {
+              mHandle = mp->GetNewHandle(true);
+              mp->SetExpr(mHandle,expr);
+              domain->GetGrid()->SetElementBarycenters(reg_data[r], true);
+            }
+            else
+              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper)) {
+              info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              if (initDependsOnSpace)
+                info_->Get(ParamNode::HEADER)->SetWarning("Set initial value for design " + DesignElement::type.ToString(dt) + " to next valid value");
+            }
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
+
+              if (initDependsOnSpace) {
+                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->barycenter.GetCoordVector());
+                initial = mp->Eval(mHandle);
+                if (initial < lower || initial > upper) {
+                  if (initial < lower)
+                    initial = lower;
+                  if (initial > upper)
+                    initial = upper;
+                }
+              }
 
               de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT)
+              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT || method == ErsatzMaterial::SHAPE_MAP)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -380,9 +408,11 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     return new ShapeDesign(reg_data, pn, method);
+  case ErsatzMaterial::SHAPE_MAP:
+    return new ShapeMapDesign(reg_data, pn, method);
   default:
-    if(pn->HasByVal("design", "name", "slack"))
-      return new AuxDesign(reg_data, pn, method, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
+    if(pn->HasByVal("design", "name", "slack") ||  pn->HasByVal("design", "name", "alpha"))
+      return new AuxDesign(reg_data, pn, method); // slack variable and eventually also alpha
     else
       return new DesignSpace(reg_data, pn, method);
   }
@@ -479,6 +509,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   }
   return added;
 }
+
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
@@ -506,17 +537,68 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
     if(warn && !added)
-      info_->Get(ParamNode::WARNING)->SetValue("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
+      info_->SetWarning("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
   }
 }
 
-  double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
+{
+  double dens = CalcAverageDensityAtNode(nodeId,false);
+
+  if (derivative)
+    return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
+  else
+    return 4.0 *  dens * (1.0 - dens);
+}
+
+double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
+{
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
+  double tmp = 0;
+  int found = 0;
+  double lower = 0.0;
+  //FIXME Assume design elements are all of the same type and application is HEAT
+  TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
+  lower = tf->Transform(data[0].GetLowerBound());
+  double den = 1.0 / (1.0 - lower);
+
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    // s_i = 1/N_i \sum_{e \in N_i} [(rho_e - rho_min) / (1 - rho_min)]
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+      DesignElement& de = data[design_index];
+
+      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      found++;
+
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+    }
+  }
+
+  if(found == 0)
+    EXCEPTION("CADAN: Node has no neighbor elements!!")
+
+  if (derivative) {
+    return 1.0 / (double) found * den;
+  }
+  else
+    return tmp / (double) found;
+}
+
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
-  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+//  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+  // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
-  if(shopt->ptrLS_ == NULL) return 0.0;
-  assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  if (shopt != NULL) {
+    if (shopt->ptrLS_ == NULL)
+      return 0.0;
+    else
+      assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  }
 
   switch(vs)
   {
@@ -538,6 +620,10 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 4);
   case DesignElement::LEVEL_SET_GRAD_ZN:
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
+  case DesignElement::TEMP_AT_INTERFACE:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcTempAtInterface(nodeNumber);
   default:
     EXCEPTION("case not implemented")
   }
@@ -573,6 +659,8 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   case DesignElement::LEVEL_SET_GRAD_YN:
   case DesignElement::LEVEL_SET_GRAD_ZP:
   case DesignElement::LEVEL_SET_GRAD_ZN:
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+  case DesignElement::TEMP_AT_INTERFACE:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:
@@ -762,27 +850,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   coef->orgMat->GetVector(retVec, *lpm);
 
-  double tmp = 0;
-  int found = 0;
-  for (unsigned int index = 0; index < elems.GetSize(); index++)
-  {
-    int design_index = Find(elems[index],false);
-    if(design_index >= 0)
-    {
-      double factor = data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter but check for transfer function!!!
-      tmp += factor;
-      found++;
-      LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
-    }
-  }
-
-  if(found == 0)
-    return false;
-
-
-  tmp /= (double) found;
-
-  retVec[0] *=  4.0 *  tmp * (1.0 - tmp);
+  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
 
   return true;
 }
@@ -1195,7 +1263,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
   assert(f != NULL); // only constraints can have sparse Jacobians
   
-  unsigned int data_size = DesignSpace::GetNumberOfVariables();
+  unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 
   StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
 
@@ -1221,7 +1289,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
 
-  f->GetExcitation()->Apply(); // this take the proper gradient for robustness and transformation
+  f->GetExcitation()->Apply(); // this takes the proper gradient for robustness and transformation
 
   for(unsigned int des = 0; des < nd; des++)
   {
@@ -1236,7 +1304,6 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
-          //const DesignElement* de = ApplyTransformations(&data[s], true);
           LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, f);
           assert(out.InWindow(n));
           out[n++] = data[s].GetValue(vs, access, f) * scaling;
@@ -1269,20 +1336,22 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
   unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
-  for(unsigned int i = start; i < end; i++)
+
+  // speed up by repeating loops
+  switch(vs)
   {
-    DesignElement& de = data[i];
-    switch(vs)
-    {
-      case DesignElement::DESIGN:
-           de.SetDesign(0.0);
-           break;
-      case DesignElement::CONSTRAINT_GRADIENT:
-      case DesignElement::COST_GRADIENT:
-           de.Reset(vs);
-           break;
-      default: throw Exception("value specifier not handled");
-    }
+  case DesignElement::DESIGN:
+    for(unsigned int i = start; i < end; i++)
+      data[i].SetDesign(0.0);
+    break;
+  case DesignElement::CONSTRAINT_GRADIENT:
+  case DesignElement::COST_GRADIENT:
+    for(unsigned int i = start; i < end; i++)
+      data[i].Reset(vs);
+    break;
+  default:
+    if(end-start > 0)
+      throw Exception("value specifier not handled");
   }
 }
 
@@ -1296,7 +1365,8 @@ BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs, int mm_index)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);
-  if(idx == -1) return NULL; // an exception was already thrown if desired
+  if(idx == -1)
+    return NULL; // an exception was already thrown if desired
   // check for real design or pseudo design
   if(elemToDesign[elemNum].second == true)
   {
@@ -1323,45 +1393,16 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
         return &(pseudoDesigns_[i][idx]);
     }
   }
-  if(throw_exception) throw Exception("design type not in design or pseudo design region problem");
+  if(throw_exception)
+    throw Exception("design type not in design or pseudo design region problem");
   return NULL;
 }
 
-inline
-int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
+void DesignSpace::ToInfo(ErsatzMaterial* em)
 {
-  // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
-  int idx = elemToDesign[elemNum].first;
-  // reset pseudo designs when we don't look for them explicitly
-  if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
-    idx = -1;
-  if(idx == -1 && throw_exception)
-    EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
-  return idx;
-}
+  // em == null for the case we create this design space only for loading ersatz material within a simulation
+  PtrParamNode in = em != NULL ? info_ : domain->GetInfoRoot()->Get("loadErsatzMaterial");
 
-int DesignSpace::Find(const Elem* elem, bool throw_exception)
-{
-  // no extensions for pseudo designs implemented, yet!
-  if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
-  // we might have surface element and it is pointing to a design element
-  const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
-  // no chance, we are wrong
-  if(se == NULL) {
-    if(!throw_exception) return -1;
-    EXCEPTION("element " << elem->ToString() << " not in design regions" );
-  }
-  else
-    for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
-      if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
-        return Find(se->ptVolElems[i]->elemNum);
-
-  if(!throw_exception) return -1;
-  EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
-}
-
-void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
-{
   PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
     transfer[i].ToInfo(tf->Get("transferFunction", ParamNode::APPEND));
@@ -1397,6 +1438,7 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
       regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
 }
+
 std::string DesignSpace::ToString()
 {
   std::stringstream ss;

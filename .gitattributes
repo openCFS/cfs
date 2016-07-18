@@ -1075,6 +1075,7 @@ share/matlab/hdf5tools/test/th5varget.m -text
 share/matlab/hdf5tools/test/th5varget.mat -text
 share/matlab/hdf5tools/test/th5varput.m -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_3D.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_comp.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_master.xml -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/mat.xml -text svneol=unset#application/xml
@@ -1108,6 +1109,8 @@ share/matlab/material_catalogue/+Homogenization/Veraltet/verybad.png -text svneo
 share/matlab/material_catalogue/+Homogenization/Veraltet/verybad_c.png -text svneol=unset#image/png
 share/matlab/material_catalogue/+Homogenization/computeInterpolationValues.m -text
 share/matlab/material_catalogue/+Homogenization/generateCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateCross3DExact.m -text
+share/matlab/material_catalogue/+Homogenization/generateCross3DExact_2.m -text
 share/matlab/material_catalogue/+Homogenization/generateCrossWithVertBar.m -text
 share/matlab/material_catalogue/+Homogenization/generateFrame.m -text
 share/matlab/material_catalogue/+Homogenization/generateFramedCross.m -text
@@ -1262,7 +1265,6 @@ share/python/material_catalogue/interpolation3D/test_3D.m -text
 share/python/material_catalogue/interpolation3D/test_data.dat -text
 share/python/material_catalogue/interpolation3D/text -text
 share/python/material_catalogue/interpolation3D/tri -text
-share/python/material_catalogue/interpolation3D/tricubic -text
 share/python/material_catalogue/interpolation3D/tricubic2 -text
 share/python/material_catalogue/interpolation3D/tricubic_coeff.m -text
 share/python/material_catalogue/interpolation3D/tricubic_deriv.m -text
@@ -1301,6 +1303,7 @@ share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/process_density.py -text
 share/python/process_image.py -text
+share/python/shape_map.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
 share/python/spy.py -text
@@ -2072,6 +2075,8 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/Design/ShapeMapDesign.cc -text
+source/Optimization/Design/ShapeMapDesign.hh -text
 source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
@@ -2133,6 +2138,8 @@ source/Optimization/SIMP.cc svneol=native#text/plain
 source/Optimization/SIMP.hh svneol=native#text/plain
 source/Optimization/ShapeGrad.cc -text
 source/Optimization/ShapeGrad.hh -text
+source/Optimization/ShapeMapping.cc -text
+source/Optimization/ShapeMapping.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
 source/Optimization/StateSolution.cc -text

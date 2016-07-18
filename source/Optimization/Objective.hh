@@ -141,6 +141,9 @@ public:
     /** stopping rule queue length */
     unsigned int queue;
 
+    /** max hours, set only for >= 0. This is an additional condition */
+    double max_hours;
+
   private:
 
     Type type_;

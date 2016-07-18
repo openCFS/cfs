@@ -105,6 +105,14 @@ class SingleVector;
     /** we need to store current_wave_vector, find the index :( */
     unsigned int GetCurrentWaveVectorIndex() const;
 
+    /** the different bloch ibz types. SYMMETRIC is the triangle/tetrahedron - only valid vor symmetric designs! */
+    typedef enum { NO_IBZ, SYMMETRIC, QUADRANT, HORIZONZAL, FULL } Boundary;
+
+    Enum<Boundary> boundary;
+
+    /** the bloch IBZ type we have */
+    Boundary boundary_;
+
     /** corresponds with eigenFreqs */
     Vector<Double> errBounds_;
 
