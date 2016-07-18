@@ -33,8 +33,8 @@ template <class TYPE> class Matrix;
  * is, that in CalcU1KU2 we generally have volume elements as design elements
  * but the charge density and pressure (inhomogeneus Neumann boundary conditions)
  * are defined on surface elements which are one dimension lower.
- * We assue uniform elements and hence each node values for all surface elements
- * are the same. We store only one node-value wich is scalar (potential) or
+ * We assume uniform elements and hence each node values for all surface elements
+ * are the same. We store only one node-value which is scalar (potential) or
  * a vector (displacement).
  * We use the design variable from the (volume) element and kind of project it
  * on the rhs which comes from the surface excitation. One has to check all volume

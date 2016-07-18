@@ -136,6 +136,9 @@ class TransferFunction;
      */
     void RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
 
+    /** Calculate the Isotropic tensor */
+    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
   protected:
 
     /** for debugging */
@@ -185,8 +188,6 @@ class TransferFunction;
   private:
     /* note that most of these functions are called really often, so inlining is used */
 
-    /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Lame Tensor */
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
