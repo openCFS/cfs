@@ -3690,5 +3690,82 @@ namespace CoupledField {
     }
   }
 
+  void GridCFS::ExportGrid(PtrParamNode out)
+  {
+    PtrParamNode nl = out->Get("nodeList");
+    // Setup large array to resolve zero to many node names
+    StdVector<StdVector<unsigned int> > node_names(coords_.GetSize() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedNodeNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedNodes_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
+    }
+
+    StdVector<std::string>& block = nl->GetFastBulkBlock();
+    block.Resize(coords_.GetSize());
+    for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
+    {
+      std::stringstream ss;
+
+      ss << "<node id=\"" << (n + 1)
+         << "\" x=\"" << coords_[n][0]
+         << "\" y=\"" << coords_[n][1]
+         << "\" z=\"" << (dim_ > 2 ? coords_[n][2] : 0.0) << "\"";
+
+      const StdVector<unsigned int>& ni = node_names[n];
+      ss << " names=\"" << ni.GetSize() << "\"";
+      for(unsigned int c = 0; c < ni.GetSize(); c++)
+        ss << " name_" << c << "=\"" << namedNodeNames_[ni[c]] << "\"";
+      ss << "/>";
+      block[n] = ss.str();
+    }
+    node_names.Clear();
+    // same game for the element names as for the nodes
+    StdVector<StdVector<unsigned int> > elem_names(GetNumElems() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedElemNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedElems_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        elem_names[nn[n]-1].Push_back(s);
+    }
+
+    PtrParamNode rl = out->Get("regionList");
+    for(unsigned int r = 0; r < regionData.GetSize(); r++)
+    {
+      RegionData& rd = regionData[r];
+      SetElementBarycenters(rd.id, false);
+      PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
+      reg->Get("name")->SetValue(rd.name);
+      const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+
+      StdVector<std::string>& block = reg->GetFastBulkBlock();
+      block.Resize(elems.GetSize());
+      for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
+      {
+        const Elem* elem = elems[e];
+        const Point& bc = elem->barycenter;
+        const StdVector<unsigned int>& con = elem->connect;
+        const StdVector<unsigned int>& ni = elem_names[n];
+
+        std::stringstream ss;
+        ss << "<element id=\"" << (e + 1)
+           << "\" type=\"" << Elem::feType.ToString(elem->type)
+           << "\" x=\"" << bc.data[0]
+           << "\" y=\"" << bc.data[1]
+           << "\" z=\"" << bc.data[2]
+           << "\" nodes=\"" << con.GetSize() << "\"";
+
+        for(unsigned int c = 0; c < con.GetSize(); c++)
+          ss << " node_" << c << "=\"" << con[c] << "\"";
+
+        ss << " name=\"" << ni.GetSize() << "\"";
+        for(unsigned int c = 0; c < ni.GetSize(); c++)
+          ss << " name_" << c << "=\"" << namedElemNames_[ni[c]] << "\"";
+        ss << "/>";
+        block[e] = ss.str();
+      }
+    }
+  }
 
 } // end namespace
