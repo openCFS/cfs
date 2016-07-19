@@ -4720,10 +4720,8 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
   // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
-  // tranform temporarily to Voigt notation
-  if (notation == HILL_MANDEL) {
-    t.HillMandelToVoigt();
-  }
+  // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL
+   t.HillMandelToVoigt();
 
   int dim;
   if (t.GetNumRows() > 3) {
@@ -4889,6 +4887,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably
   }
+
   if (notation == HILL_MANDEL) {
     t.VoigtToHillMandel();
   }
