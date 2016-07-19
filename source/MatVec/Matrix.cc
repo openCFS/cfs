@@ -144,14 +144,25 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
-
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= sqrt(2);
-      data_[size_row_-1][i] *= sqrt(2);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= sqrt(2);
+        data_[size_row_-1][i] *= sqrt(2);
+      }
+      data_[size_row_-1][ size_row_-1] *= 2.0;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= sqrt(2);
+            data_[j][i] *= sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 2.0;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][ size_row_-1] *= 2.0;
   }
 
     /** Convert from Hill-Mandel to Voigt Notation */
@@ -161,14 +172,26 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= 1/sqrt(2);
+        data_[size_row_-1][i] *= 1/sqrt(2);
+      }
 
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= 1/sqrt(2);
-      data_[size_row_-1][i] *= 1/sqrt(2);
+      data_[size_row_-1][size_row_-1] *= 0.5;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= 1/sqrt(2);
+            data_[j][i] *= 1/sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 0.5;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][size_row_-1] *= 0.5;
   }
 
   template<class TYPE>

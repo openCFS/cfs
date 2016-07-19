@@ -497,10 +497,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
         ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
         ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-        // the internal tensor representation in 3D hom_rect_samples_ is VOIGT
-        hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 1.0 : 0.5);
-        hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 1.0 : 0.5);
-        hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 1.0 : 0.5);
+        // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
+        hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
+        hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
+        hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.);
         // the tensor is orthotropic
       }
 
@@ -4720,7 +4720,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
   // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
   // this is identical to BaseMaterial::RotateTensorByRotationAngles
 
-  // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL
+  // tranform temporarily to Voigt notation (assumes that all matrices are HILL_MANDEL in the Optimization
    t.HillMandelToVoigt();
 
   int dim;
