@@ -845,8 +845,13 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 }
 
-void ParamNode::ToXML(std::ostream& os, int depth)
+void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
 {
+  // normally this does not need to be called!
+  if(adjust_element_type)
+    AdjustElementType(); // is recursively!
+
+  assert(name_ != "");
   // note, that this is an recursive method!
 
   std::string strValue;

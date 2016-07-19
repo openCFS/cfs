@@ -89,7 +89,7 @@ PtrParamNode LibXml2::ParseAndValidated(xmlDoc* doc, const std::string& schemafi
   xmlNode *root_element = NULL;
 
   // do we catch an exception? Store it here to rethrow after cleanup, there is no finally in C++
-  Exception caught("");
+  const Exception* caught = NULL; // Note that we may not create an instance here as this will segfault intenionally with cfs -f
 
   PtrParamNode pn(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
   try
@@ -129,7 +129,7 @@ PtrParamNode LibXml2::ParseAndValidated(xmlDoc* doc, const std::string& schemafi
   catch(const Exception& e)
   {
     // cheat missing finally
-    caught = e;
+    caught = &e;
   }
 
   // free up the resulting stuff, hopefully in the right order
@@ -148,8 +148,8 @@ PtrParamNode LibXml2::ParseAndValidated(xmlDoc* doc, const std::string& schemafi
   xmlCleanupParser(); // take care for multithreading. Would work without!
 
   // was there an error on the way, suppressed to clean-up?
-  if(caught.GetMsg() != "")
-    throw caught;
+  if(caught != NULL)
+    throw *caught;
 
   return pn;
 }
