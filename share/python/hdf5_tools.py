@@ -13,7 +13,7 @@ import operator
 def validate_region(hdf5_file, region):
   regions = hdf5_file['/Mesh/Regions']
   if not any(k in regions.keys() for k in [region]):
-    print("region '" + region + "' not within regions " + str(regions.keys()))
+    print("region '" + region + "' not within regions " + ", ".join(regions.keys()))
 
 def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
@@ -209,7 +209,7 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
         else :
             region = h5_res.keys()[0]
     h5_res_reg = h5_res[region] # extraxt region
-    res_type = h5_res_reg.keys()[0] # read result type (Nodes or Elements)
+    res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
     if 'Imag' in h5_res_reg[res_type].keys() :
         return h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value
     else :
@@ -269,3 +269,42 @@ def get_coordinates(hdf5_file,region=None) :
         return hdf5_file['Mesh/Nodes/Coordinates'].value[I,:]
     else :
         return hdf5_file['Mesh/Nodes/Coordinates'].value
+
+def get_centroids(hdf5_file,region=None) :
+    """
+    return the centroid coordinates for elemnts (in a certain region)
+
+    The centroid is computed as the arithmetic mean of all nodal coodinates.
+
+    Parameters
+    ----------
+    hdf5_file : hdf5file
+        CFS++ hdf5 data file
+    region : string, optional
+        region name for a subset of elements
+
+    Returns
+    -------
+    out : ndarray
+        first dimension sorted like elements in hdf5_file
+    """
+    from numpy import sum, unique, argwhere, zeros, arange, mean
+    # get connectivity and nodal coordinates
+    conn = hdf5_file['Mesh/Elements/Connectivity'].value
+    coord = hdf5_file['Mesh/Nodes/Coordinates'].value
+    # determine indices of region
+    if not region==None:
+        validate_region(hdf5_file,region)
+        I = hdf5_file['Mesh/Regions/%s/Elements'%region].value - 1
+    else :
+        I = arange(conn.shape[0])
+    # allocate result
+    center = zeros([len(I),coord.shape[1]])
+    # compute the centriods
+    etype = hdf5_file['Mesh/Elements/Types'].value[I] # element types
+    for et in unique(etype) : # sum operations for unique element types
+        It = argwhere(etype == et)[:,0] # index of the type-elements in region
+        Nnodes = sum(conn[I[It[0]]]>0) # determine how many nodes the element-type has
+        nids = conn[I[It],:Nnodes] # node ids, only take used columns
+        center[It,:] = mean(coord[nids-1,:],axis=1) # compute center as arithmetic mean
+    return center
