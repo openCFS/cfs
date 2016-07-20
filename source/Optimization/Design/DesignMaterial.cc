@@ -1445,7 +1445,10 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     } // switch direction
     if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       double rotAngle = params_[DesignElement::ROTANGLE];
+      LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
       RotateTensor(t, direction, notation, CW,true, rotAngle);
+      LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
+
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1569,7 +1572,10 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12){
     // for all rotated types, rotate the material tensor
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
+    // RotateTensor needs Hill-Mandel matrix
+    t.VoigtToHillMandel();
     RotateTensor(t, direction,VOIGT,CCW);
+    LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString(2);
   }
   if(notation == HILL_MANDEL || notation == HILL_MANDEL_NO_DENSITY){
     double sq2 = sqrt(2);
@@ -1734,7 +1740,10 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
       ZeroTensor(t, subTensor);
       return;
     } // switch direction
+      LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
       RotateTensor(t, direction, notation, CW, true, rotAngle);
+      LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
+
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1809,7 +1818,9 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   }
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
     double rotAngle = params_[DesignElement::ROTANGLE];
+    LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
     RotateTensor(t, direction,HILL_MANDEL,CW,true, rotAngle);
+    LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
 ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1999,6 +2010,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   }
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
   if (subTensor == FULL) {
+    // Hill-Mandel notation temporarily necessary for RotateTensor
+    E.VoigtToHillMandel();
     RotateTensor(E, direction,VOIGT,CCW);
   } else {
     RotateTensor(E, direction, notation, CW, true, rotAngle);
@@ -3023,7 +3036,9 @@ void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type dire
     GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
   }
   if (!all_param_){
+    LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
     RotateTensor(E, direction, notation, CW, true, -theta);
+    LOG_DBG2(dm)<< "GHRT: E after rotation = " << E.ToString(2);
     if (direction == DesignElement::ROTANGLE) E=-E;
 
   }
@@ -4368,7 +4383,11 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
   if(type_ == D_INTERP_TENSOR_ROT){
     // for all rotated types, rotate the material tensor
     LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
+    LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
+    // RotateTensor needs Hill Mandel matrix
+    t.VoigtToHillMandel();
     RotateTensor(t, direction,VOIGT,CCW);
+    LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
   }
 }
 
@@ -4487,7 +4506,9 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   }
 
   double rotAngle = params_[DesignElement::ROTANGLE];
+  LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
   RotateTensor(t, direction, notation, CW, true, rotAngle);
+  LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
   return;
 }
 
