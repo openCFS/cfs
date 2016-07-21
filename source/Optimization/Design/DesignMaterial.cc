@@ -1839,7 +1839,7 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   // We use the anisotropic tensor only for solving FMO problems. We assume the design to be in Hill-Mandel
   // notation and therefore we need to transform it for using it in CFS
 
-  bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
+  bool set = direction == DesignElement::NO_DERIVATIVE; //|| direction == DesignElement::ROTANGLE;
 
   double e11 = set ? params_[DesignElement::MECH_11] : 0;
   double e22 = set ? params_[DesignElement::MECH_22] : 0;
@@ -1877,7 +1877,8 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
     // for piezo FMO the derivative w.r.E. dielec_11, ... is zero
     ZeroTensor(E, PLANE_STRAIN);
   }
-
+  if (notation == VOIGT)
+    E.HillMandelToVoigt();
   //RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
   LOG_DBG2(dm) << "GEFMOT: E  =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
 
@@ -4907,6 +4908,9 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     help.Mult(dQT, t); // here, we overwrite t
     t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably
+    if (clock == CW) {
+      t = -t;
+    }
   }
 
   if (notation == HILL_MANDEL) {
