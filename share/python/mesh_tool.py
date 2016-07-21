@@ -2176,4 +2176,38 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   mesh.bc.append(('back', back))
   
   return mesh
+
+def create_2d_mesh_from_array(array):
+  nx, ny = array.shape
+  mesh = Mesh(nx,ny)
   
+  dx = 1.0 / nx
+  dy = 1.0 / ny
+
+  for y in range(ny + 1):
+    for x in range(nx + 1):
+      mesh.nodes.append((x * dx, y * dy))
+      
+  for y in range(ny):
+    for x in range(nx):
+      e = Element()
+      e.type = QUAD4
+      if (array[x][y] > 0.0):
+        e.region = "mech"
+      else:
+        e.region = "void"
+        
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
+      mesh.elements.append(e)
+  
+  mesh.bc.append(("south", range(0, nx + 1)))
+  mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+  mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  return mesh
