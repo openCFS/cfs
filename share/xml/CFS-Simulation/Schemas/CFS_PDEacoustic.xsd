@@ -147,6 +147,7 @@
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsDensity" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
@@ -645,7 +646,8 @@
       <xsd:enumeration value="heatMeanTemperature"/>
       <xsd:enumeration value="splitLamb"/>
       <xsd:enumeration value="splitDivLamb"/>
-    </xsd:restriction>
+<!--      <xsd:enumeration value="splitDivLambRhsLoad"/>-->
+      </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of element result types of acoustic PDE -->

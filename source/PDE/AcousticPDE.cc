@@ -503,7 +503,7 @@ namespace CoupledField{
       // check for lamb vector, RHS of aeroacoustics
       // ====================================================================
       std::string lambId = curRegNode->Get("lambId")->As<std::string>();
-      PtrCoefFct regionLamb;
+      PtrCoefFct regionDivLamb;
 
       if ( lambId != "" ) {
         std::set<UInt> definedDofs;
@@ -513,8 +513,10 @@ namespace CoupledField{
         PtrParamNode vorticNode = myParam_->Get("lambList")->GetByVal("lamb","name",lambId.c_str());
 
         ReadUserFieldValues( actSDList, vorticNode, lambInfo->dofNames, lambInfo->entryType,
-            isComplex_, regionLamb, definedDofs, updatedGeo_ );
-        lambCoef_->AddRegion( actRegion, regionLamb );
+            isComplex_, regionDivLamb, definedDofs, updatedGeo_ );
+        regionDivLamb->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
+        lambCoef_->AddRegion( actRegion, regionDivLamb );
+
 
 
 //        // =====================================
@@ -536,6 +538,7 @@ namespace CoupledField{
 //        rhsLinContext->SetEntities( actSDList );
 //        rhsLinContext->SetFeFunction( feFunctions_[formulation_] );
 //        assemble_->AddLinearForm( rhsLinContext );
+
 
       }
 
@@ -1497,6 +1500,29 @@ namespace CoupledField{
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
+    // ================
+    //  RHS DENSITY
+    // ================
+    ReadRhsExcitation( "rhsDensity", empty,
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Rhs density must be defined on elements")
+      }
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                         Complex(scalFactor), coef[i], updatedGeo_);
+      } else  {
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+            scalFactor, coef[i], updatedGeo_);
+      }
+      lin->SetName("RhsDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
 
   }
 
@@ -1955,6 +1981,18 @@ namespace CoupledField{
 
 
     // === ACOUSTIC Source FIELD LAMB===
+    // DIV LAMB
+    shared_ptr<ResultInfo> divLamb( new ResultInfo);
+    divLamb->resultType = SPLIT_DIVLAMB;
+    divLamb->dofNames = "";
+    divLamb->unit = "kg/(m^3s^2)";
+
+    divLamb->definedOn = ResultInfo::NODE;
+    divLamb->entryType = ResultInfo::SCALAR;
+
+    lambCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( lambCoef_, divLamb );
+
     // LAMB
     shared_ptr<ResultInfo> lamb( new ResultInfo);
     lamb->resultType = SPLIT_LAMB;
@@ -1963,11 +2001,7 @@ namespace CoupledField{
 
     lamb->definedOn = ResultInfo::NODE;
     lamb->entryType = ResultInfo::VECTOR;
-
-    lambCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
     DefineFieldResult( lambCoef_, lamb );
-
-
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
