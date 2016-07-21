@@ -13,6 +13,7 @@
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
@@ -80,6 +81,7 @@ namespace CoupledField{
     return crSpaces;
   }
   
+
   void AcousticSplitPDE::ReadDampingInformation() {
     std::map<std::string, DampingType> idDampType;
 
@@ -215,45 +217,61 @@ namespace CoupledField{
         velocityCoef_->AddRegion( actRegion, regionVelocity );
       }
 
-      // ====================================================================
-      // Take account for mapping
-      // ====================================================================
-      shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
-      bool isMapping = false;
-      if( dampingList_[actRegion] == MAPPING ) {
-        std::string dampId;
-        curRegNode->GetValue("dampingId",dampId);
-        if(analysistype_ == HARMONIC){
-          EXCEPTION("Harmonic analysis not allowed!");
-        }else{
-          PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
-          coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
-          coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
-          isMapping = true;
+      BaseBDBInt * stiffInt = NULL;
+      if(formulation_ == SPLIT_SCALAR){
+        // ====================================================================
+        // Take account for mapping
+        // ====================================================================
+        shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
+        bool isMapping = false;
+        if( dampingList_[actRegion] == MAPPING ) {
+          std::string dampId;
+          curRegNode->GetValue("dampingId",dampId);
+          if(analysistype_ == HARMONIC){
+            EXCEPTION("Harmonic analysis not allowed!");
+          }else{
+            PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+            coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
+            coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+            isMapping = true;
+          }
         }
-      }
+
 
       // ====================================================================
-      // standard stiffness integrator
+      // standard stiffness integrator Scalar
       // ====================================================================
-      BaseBDBInt * stiffInt = NULL;
-      if( dim_ == 2 ) {
-        if(isMapping){
-          stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(),
-                                        coeffMAPScal, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
-        }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
+
+        if( dim_ == 2 ) {
+          if(isMapping){
+            stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(),
+                                          coeffMAPScal, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+          }else{
+            stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
+          }
         }
-      }
-      else{
-        if(isMapping){
-          stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,3,Double>(),
-              coeffMAPScal, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
-        }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), val1, 1.0, updatedGeo_ );
+        else{
+          if(isMapping){
+            stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,3,Double>(),
+                coeffMAPScal, 1.0, updatedGeo_ );
+            stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+          }else{
+            stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), val1, 1.0, updatedGeo_ );
+          }
         }
+      }else{
+        // ====================================================================
+        // standard stiffness integrator Vector
+        // ====================================================================
+
+          if( dim_ == 2 ) {
+              stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
+          }
+          else{
+            // TODO edge elements
+            EXCEPTION("Not implemented yet!");
+          }
       }
       
       stiffInt->SetName("LaplaceIntegrator");
@@ -272,43 +290,45 @@ namespace CoupledField{
       // for calculation of postprocessing results
       bdbInts_[actRegion] = stiffInt;
 
-      // initially, check for regularization factor
-      Double regularizationFactor = 1e-6;
-      // ============================
-      // Standard Mass Regularization Matrix
-      // ============================
-      bool regulize = true;
-      if ( regulize ) {
-        // do not use gradients for non-conductive regions (for regularization
-        // only the lowest order mass term is used)
-        //useGrad = false;
+      if(formulation_ == SPLIT_SCALAR){
+        // initially, check for regularization factor
+        Double regularizationFactor = 1e-6;
+        // ============================
+        // Standard Mass Regularization Matrix
+        // ============================
+        bool regulize = true;
+        if ( regulize ) {
+          // do not use gradients for non-conductive regions (for regularization
+          // only the lowest order mass term is used)
+          //useGrad = false;
 
-        Matrix<Double> reluc;
-        // add region to set of "regularized" regions
-        regularizedRegions_.insert(actRegion);
+          Matrix<Double> reluc;
+          // add region to set of "regularized" regions
+          regularizedRegions_.insert(actRegion);
+        }
+
+        BaseBDBInt *massInt;
+
+        BiLinFormContext * massContext;
+        if ( regulize) {
+          // we have to guarantee, that we add some mass to curl-curl integrator.
+          // Additionally, the integrator gets scaled by the edge size for a uniform
+          // conditioning
+          massInt = new BBInt<>(new ScaledByEdgeIdentityOperator<FeH1,3,Double>(),
+              val1,regularizationFactor);
+          massInt->SetName("MassIntegrator");
+          massContext =  new BiLinFormContext(massInt, STIFFNESS );
+
+          massContext->SetEntities( actSDList, actSDList );
+          massContext->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+          massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
+
+          assemble_->AddBiLinearForm( massContext );
+        }
       }
 
-      BaseBDBInt *massInt;
-
-      BiLinFormContext * massContext;
-      if ( regulize) {
-        // we have to guarantee, that we add some mass to curl-curl integrator.
-        // Additionally, the integrator gets scaled by the edge size for a uniform
-        // conditioning
-        massInt = new BBInt<>(new ScaledByEdgeIdentityOperator<FeH1,3,Double>(),
-            val1,regularizationFactor);
-        massInt->SetName("MassIntegrator");
-        massContext =  new BiLinFormContext(massInt, STIFFNESS );
-
-        massContext->SetEntities( actSDList, actSDList );
-        massContext->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
-        massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
-
-        assemble_->AddBiLinearForm( massContext );
-      }
-
-      }
     }
+  }
 
   void AcousticSplitPDE::DefineNcIntegrators() { //as it is
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
@@ -336,6 +356,8 @@ namespace CoupledField{
   
   void AcousticSplitPDE::DefineSurfaceIntegrators( ){
 
+    // TODO formulation_ onlz if this ...
+
   }
 
   void AcousticSplitPDE::DefineRhsLoadIntegrators() {
@@ -351,12 +373,16 @@ namespace CoupledField{
     LinearForm * lin = NULL;
     Double factor = 1.0;
 
-    // TODO adapt for vector potential
     // =====================================
     //  rhsValues for e.g. for splitting
     // =====================================
+    if ( formulation_ ==  SPLIT_SCALAR) {
     ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
                           ent, coef, updatedGeo_ );
+    }else{
+      ReadRhsExcitation( "rhsValues", empty, ResultInfo::VECTOR, isComplex_,
+                                ent, coef, updatedGeo_ );
+    }
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
@@ -365,27 +391,57 @@ namespace CoupledField{
     // ================
     //  RHS DENSITY
     // ================
-    LOG_DBG(acousticsplitpde) << "Reading rhs densities";
-    ReadRhsExcitation( "rhsDensity", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
-    for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // check type of entitylist
-      if (ent[i]->GetType() == EntityList::NODE_LIST) {
-        EXCEPTION("Rhs density must be defined on elements")
-      }
-      if(isComplex_) {
-        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                         Complex(factor), coef[i], updatedGeo_);
-      } else  {
-        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-            factor, coef[i], updatedGeo_);
-      }
-      lin->SetName("RhsDensityInt");
-      LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities( ent[i] );
-      ctx->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctx);
-    } // for
+    if ( formulation_ ==  SPLIT_SCALAR) {
+      LOG_DBG(acousticsplitpde) << "Reading rhs densities";
+      ReadRhsExcitation( "rhsDensity", empty,
+                         ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("Rhs density must be defined on elements")
+        }
+
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                           Complex(factor), coef[i], updatedGeo_);
+        } else  {
+          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+              factor, coef[i], updatedGeo_);
+        }
+
+        lin->SetName("RhsDensityInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+      } // for
+    }else{
+      LOG_DBG(acousticsplitpde) << "Reading rhs densities";
+      ReadRhsExcitation( "rhsDensity", empty,
+                         ResultInfo::VECTOR, isComplex_, ent, coef, updatedGeo_ );
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("Rhs density must be defined on elements")
+        }
+        if( dim_ == 2 ) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                             Complex(factor), coef[i], updatedGeo_);
+          } else  {
+            lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                factor, coef[i], updatedGeo_);
+          }
+        }else{
+          // TODO edge elements
+        }
+        lin->SetName("RhsDensityInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+      } // for
+    }
 
 
 
@@ -429,11 +485,12 @@ namespace CoupledField{
       potent->definedOn = ResultInfo::NODE;
       potent->entryType = ResultInfo::SCALAR;
     } else {
+      // TODO if 2D
       potent->resultType = SPLIT_VECTOR;
-      potent->dofNames = vecComponents;
+      potent->dofNames = "";
       potent->unit = "m^2/s";
       potent->definedOn = ResultInfo::NODE;
-      potent->entryType = ResultInfo::VECTOR;
+      potent->entryType = ResultInfo::SCALAR;
     }
 
     feFunctions_[formulation_]->SetResultInfo(potent);
@@ -452,13 +509,22 @@ namespace CoupledField{
       idbcSolNameMap_[SPLIT_VECTOR] = "inhomDir";
 
     }
+
     // === SPLIT RHS ===
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
+    if ( formulation_ ==  SPLIT_SCALAR) {
     rhs->resultType = SPLIT_RHS_LOAD;
     rhs->dofNames = "";
     rhs->unit = "m^3/s";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    } else {
+      rhs->resultType = SPLIT_RHS_LOAD;
+      rhs->dofNames = vecComponents;
+      rhs->unit = "m^3/s";
+      rhs->definedOn = results_[0]->definedOn;
+      rhs->entryType = ResultInfo::VECTOR;
+    }
     this->rhsFeFunctions_[formulation_]->SetResultInfo(rhs);
     DefineFieldResult( this->rhsFeFunctions_[formulation_], rhs );
     results_.Push_back( rhs );
@@ -520,6 +586,108 @@ namespace CoupledField{
       velFct = velFctPot;
       stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
+
+      // === POTENTIAL ENERGY ===
+      shared_ptr<ResultFunctor> keFuncPot;
+      shared_ptr<ResultInfo> potEnergy(new ResultInfo);
+      potEnergy->resultType = SPLIT_POT_ENERGY;
+      potEnergy->dofNames = "";
+      potEnergy->unit = "Ws";
+      potEnergy->entryType = ResultInfo::SCALAR;
+      potEnergy->definedOn = ResultInfo::REGION;
+      availResults_.insert ( potEnergy );
+      if( isComplex_ ) {
+        keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));
+      } else {
+        keFuncPot.reset(new EnergyResultFunctor<Double>(feFct, potEnergy, 0.5));
+      }
+      resultFunctors_[SPLIT_POT_ENERGY] = keFuncPot;
+      stiffFormFunctors_.insert(keFuncPot);
+
+
+      // TODO adapt for 3D
+      // === FLOW FIELD ===
+      // vorticity
+      shared_ptr<ResultInfo> vorticity( new ResultInfo);
+      vorticity->resultType = FLUIDMECH_VORTICITY;
+      vorticity->dofNames = vecComponents;
+      vorticity->unit = "1/s";
+
+      vorticity->definedOn = ResultInfo::NODE;
+      vorticity->entryType = ResultInfo::VECTOR;
+
+      vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
+      DefineFieldResult( vorticityCoef_, vorticity );
+
+      //density
+      shared_ptr<ResultInfo> density( new ResultInfo);
+      density->resultType = FLUIDMECH_DENSITY;
+      density->dofNames = "";
+      density->unit = "kg/m^3";
+
+      density->definedOn = ResultInfo::NODE;
+      density->entryType = ResultInfo::SCALAR;
+
+      densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+      DefineFieldResult( densityCoef_, density );
+
+      //velocity
+      shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
+      flowvelocity->resultType = FLUIDMECH_VELOCITY;
+      flowvelocity->dofNames = vecDofNames;
+      flowvelocity->unit = "m/s";
+
+      flowvelocity->definedOn = ResultInfo::NODE;
+      flowvelocity->entryType = ResultInfo::VECTOR;
+
+      velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+      DefineFieldResult( velocityCoef_, flowvelocity );
+  //    results_.Push_back( flowvelocity );
+  //    availResults_.insert( flowvelocity );
+
+      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+      // === ACOUSTIC Source FIELD LAMB===
+      // LAMB
+      shared_ptr<ResultInfo> lamb( new ResultInfo);
+      lamb->resultType = SPLIT_LAMB;
+      lamb->dofNames = vecDofNames;
+      lamb->unit = "kg/(ms)^2";
+
+      lamb->definedOn = ResultInfo::NODE;
+      lamb->entryType = ResultInfo::VECTOR;
+
+      CoefXprBinOp minusFct = CoefXprBinOp(mp_, velocityCoef_, velFct,
+                                             CoefXpr::OP_SUB);
+      PtrCoefFct uMinusGradScalar = CoefFunction::Generate(mp_, part, minusFct);
+
+      CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, uMinusGradScalar,
+                                                 CoefXpr::OP_CROSS);
+      PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
+
+      CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
+                                                 CoefXpr::OP_MULT);
+      PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
+  //    DefineFieldResult( lambVec, lamb );
+
+  // COPY constructor problem
+      // #1 möchte gerne Lamb vector als ergebnis
+      // #2 muss ich nach set derivative noch was amchen?
+      //divLamb
+      shared_ptr<ResultInfo> divLamb( new ResultInfo);
+      divLamb->resultType = SPLIT_DIVLAMB;
+      divLamb->dofNames = "";
+      divLamb->unit = "kg/(m^3s^2)";
+
+      divLamb->definedOn = ResultInfo::NODE;
+      divLamb->entryType = ResultInfo::SCALAR;
+
+  //    PtrCoefFct divLambVec;
+  //    divLambVec = lambVec;  // TODO ... copy constructor coeffunction
+      UInt gDim = this->domain_->GetGrid()->GetDim();
+      UInt dDim = lamb->dofNames.GetSize();
+      lambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE,gDim,dDim);
+      DefineFieldResult( lambVec, divLamb );
+
     }else{
       // === incompressible flow_VELOCITY pertubation===
       vel.reset(new ResultInfo);
@@ -529,6 +697,7 @@ namespace CoupledField{
       vel->entryType = ResultInfo::VECTOR;
       vel->definedOn = ResultInfo::NODE;
       // Velocity v = curl Potential
+      // TODO formulation_ onlz if this ... (FE function space)?
       if( isComplex_ ) {
         velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));
       } else {
@@ -537,109 +706,11 @@ namespace CoupledField{
       velFct = velFctPot;
       stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
+
+
+      // TODO formulation_ onlz if this ... (Results and post processing)
+
     }
-
-    // === POTENTIAL ENERGY ===
-    shared_ptr<ResultFunctor> keFuncPot;
-    shared_ptr<ResultInfo> potEnergy(new ResultInfo);
-    potEnergy->resultType = SPLIT_POT_ENERGY;
-    potEnergy->dofNames = "";
-    potEnergy->unit = "Ws";
-    potEnergy->entryType = ResultInfo::SCALAR;
-    potEnergy->definedOn = ResultInfo::REGION;
-    availResults_.insert ( potEnergy );
-    if( isComplex_ ) {
-      keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));
-    } else {
-      keFuncPot.reset(new EnergyResultFunctor<Double>(feFct, potEnergy, 0.5));
-    }
-    resultFunctors_[SPLIT_POT_ENERGY] = keFuncPot;
-    stiffFormFunctors_.insert(keFuncPot);
-
-
-    // TODO adapt for 3D
-    // === FLOW FIELD ===
-    // vorticity
-    shared_ptr<ResultInfo> vorticity( new ResultInfo);
-    vorticity->resultType = FLUIDMECH_VORTICITY;
-    vorticity->dofNames = vecComponents;
-    vorticity->unit = "1/s";
-
-    vorticity->definedOn = ResultInfo::NODE;
-    vorticity->entryType = ResultInfo::VECTOR;
-
-    vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
-    DefineFieldResult( vorticityCoef_, vorticity );
-
-    //density
-    shared_ptr<ResultInfo> density( new ResultInfo);
-    density->resultType = FLUIDMECH_DENSITY;
-    density->dofNames = "";
-    density->unit = "kg/m^3";
-
-    density->definedOn = ResultInfo::NODE;
-    density->entryType = ResultInfo::SCALAR;
-
-    densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
-    DefineFieldResult( densityCoef_, density );
-
-    //velocity
-    shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
-    flowvelocity->resultType = FLUIDMECH_VELOCITY;
-    flowvelocity->dofNames = vecDofNames;
-    flowvelocity->unit = "m/s";
-
-    flowvelocity->definedOn = ResultInfo::NODE;
-    flowvelocity->entryType = ResultInfo::VECTOR;
-
-    velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-    DefineFieldResult( velocityCoef_, flowvelocity );
-//    results_.Push_back( flowvelocity );
-//    availResults_.insert( flowvelocity );
-
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    // === ACOUSTIC Source FIELD LAMB===
-    // LAMB
-    shared_ptr<ResultInfo> lamb( new ResultInfo);
-    lamb->resultType = SPLIT_LAMB;
-    lamb->dofNames = vecDofNames;
-    lamb->unit = "kg/(ms)^2";
-
-    lamb->definedOn = ResultInfo::NODE;
-    lamb->entryType = ResultInfo::VECTOR;
-
-    CoefXprBinOp minusFct = CoefXprBinOp(mp_, velocityCoef_, velFct,
-                                           CoefXpr::OP_SUB);
-    PtrCoefFct uMinusGradScalar = CoefFunction::Generate(mp_, part, minusFct);
-
-    CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, uMinusGradScalar,
-                                               CoefXpr::OP_CROSS);
-    PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
-
-    CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
-                                               CoefXpr::OP_MULT);
-    PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
-    DefineFieldResult( lambVec, lamb );
-
-// COPY constructor problem
-    // #1 möchte gerne Lamb vector als ergebnis
-    // #2 muss ich nach set derivative noch was amchen?
-    //divLamb
-//    shared_ptr<ResultInfo> divLamb( new ResultInfo);
-//    divLamb->resultType = SPLIT_DIVLAMB;
-//    divLamb->dofNames = "";
-//    divLamb->unit = "kg/(m^3s^2)";
-//
-//    divLamb->definedOn = ResultInfo::NODE;
-//    divLamb->entryType = ResultInfo::SCALAR;
-//
-//    PtrCoefFct divLambVec;
-//    divLambVec = lambVec;  // TODO ... copy constructor coeffunction
-//    UInt gDim = this->domain_->GetGrid()->GetDim();
-//    UInt dDim = lamb->dofNames.GetSize();
-//    divLambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE,gDim,dDim);
-//    DefineFieldResult( divLambVec, divLamb );
-
 
   }
 

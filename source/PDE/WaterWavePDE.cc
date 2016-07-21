@@ -32,6 +32,7 @@
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
@@ -244,13 +245,35 @@ namespace CoupledField{
         harmonicPML = false;
       } // damping == PML
 
+      // ====================================================================
+      // Take account for mapping
+      // ====================================================================
+      shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
+      bool isMapping = false;
+      if( dampingList_[actRegion] == MAPPING ) {
+        std::string dampId;
+        curRegNode->GetValue("dampingId",dampId);
+        if(analysistype_ == HARMONIC){
+          EXCEPTION("Harmonic analysis not allowed!");
+        }else{
+          PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+          coeffPMLVec.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,true));
+          coeffPMLScal.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,false));
+          isMapping = true;
+        }
+      }
 
       // ====================================================================
       // standard stiffness integrator
       // ====================================================================
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
-        if(harmonicPML){
+        if(isMapping){
+          stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(),
+              coeffPMLScal, 1.0, updatedGeo_ );
+          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
+        }
+        else if(harmonicPML){
           stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
@@ -260,7 +283,12 @@ namespace CoupledField{
         }
       }
       else{
-        if(harmonicPML){
+        if(isMapping){
+                    stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,3,Double>(),
+                        coeffMAPScal, 1.0, updatedGeo_ );
+                    stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+                  }
+        else if(harmonicPML){
           stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
