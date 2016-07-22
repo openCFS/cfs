@@ -2012,7 +2012,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
   if (subTensor == FULL) {
     // Hill-Mandel notation temporarily necessary for RotateTensor
-    E.VoigtToHillMandel();
+    //E.VoigtToHillMandel();
     RotateTensor(E, direction,VOIGT,CCW);
   } else {
     RotateTensor(E, direction, notation, CW, true, rotAngle);
@@ -4778,7 +4778,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
   }
 
   // if rotation is clockwise, change rotation angles
-  if (clock == CW) {
+  if (dim == 2 && clock == CW) {
     thetax = -thetax;
     thetay = -thetay;
     thetaz = -thetaz;
@@ -4908,7 +4908,9 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     help.Mult(dQT, t); // here, we overwrite t
     t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably
-    if (clock == CW) {
+
+    //only necessary in 2d, since Hill-Mandel rotation was replaced
+    if (dim == 2 && clock == CW) {
       t = -t;
     }
   }
