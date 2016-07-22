@@ -210,7 +210,7 @@ def create_point_vector_centered_bar(center, dim, angle=None):
     points.append(n)  # 0 ... 7
   return points
 
-def create_centered_bar(cells, points, center, dim, angle=None, not_drawn = None):
+def create_centered_bars(cells, points, coords, dim, angle=None, not_drawn = None):
   # helper for create_frame
   # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
   # @param points vtk.vtkPoints() where the points are added
@@ -223,7 +223,7 @@ def create_centered_bar(cells, points, center, dim, angle=None, not_drawn = None
   #optional parameters: @param  not_drawn (faces which are not drawn)
   #                     @param angle list of angle_x, angle_y, angle_z or None
   for i in range(len(coords)):
-    create_centered_bars(cells, points, coord[i],dim, angle,not_drawn)
+    create_centered_bar(cells, points, coords[i],dim, angle,not_drawn)
 
 def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None):
   # helper for create_cross and create_frame
@@ -613,7 +613,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
             coords[1] += [0.,s1/4.,s1/4.]
             coords[2] += [0.,-s1/4.,-s1/4.]
             coords[3] += [0.,s1/4.,-s1/4.]        
-            create_frame_bars(cells, points, coords, (scale * scale_[0] * dx, scale * 0.5 * s1 * dx, scale * 0.5 * s1 * dx), angle,['right','left'])
+            create_centered_bars(cells, points, coords, (scale * scale_[0] * dx, scale * 0.5 * s1 * dx, scale * 0.5 * s1 * dx), angle,['right','left'])
             real_volume += scale * scale_[0] * dx * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (scale_[1] * dy - dx * s1),0.]
           dy_offset = scale * 0.5 * (scale_[1]*dy-s1*dx)
@@ -627,7 +627,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
             coords[1] += [s1/4., 0., s1/4.]
             coords[2] += [-s1/4.,0., -s1/4.]
             coords[3] += [s1/4., 0.,  -s1/4.]  
-            create_frame_bars(cells, points, coords, (scale * 0.5 * s2 * dy, dy_offset, scale * 0.5 * s2 * dy), angle,['top','bottom'])
+            create_centered_bars(cells, points, coords, (scale * 0.5 * s2 * dy, dy_offset, scale * 0.5 * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy* dy_offset* scale * s2 * dy
           
           coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (scale_[2] * dz - dx * s1)]
@@ -642,50 +642,50 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
             coords[1] += [s1/4., s1/4.,0.]
             coords[2] += [-s1/4., -s1/4., 0.]
             coords[3] += [s1/4., -s1/4.,0.]   
-            create_frame_bars(cells, points, coords, (scale * 0.5 * s3 * dz, scale * 0.5 * s3 * dz,dz_offset), angle,['front','back'])
+            create_centered_bars(cells, points, coords, (scale * 0.5 * s3 * dz, scale * 0.5 * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
 
         # draw each bar of 3D cross for s2 > s1,s3
         elif s2 >= s1 and s2 >= s3:
           if s2 >= thres:#valid_bar_position_apod6(points,coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle):
-            create_frame_bars(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle,['top','bottom'])
+            create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy * scale * scale_[1]* dy * scale * s2 * dy
           coord_offset = [scale* dy * s2 * 0.5 + scale * 0.25 * (scale_[0] * dx - dy * s2),0.,0.]
           dx_offset = scale * 0.5 * (scale_[0] * dx-s2*dy)
           if s1 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
-            create_frame_bars(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            create_centered_bar(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
             real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           if s1 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
-            create_frame_bars(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            create_centered_bar(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
             real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,0.,scale * dy * s2 * 0.5 + scale * 0.25 * (scale_[2] * dz - dy * s2)]
           dz_offset = scale * 0.5 * (scale_[2] * dz-s2*dy)
           if s3 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_frame_bars(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
           if s3 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_frame_bars(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
         # draw each bar of 3D cross for s3 > s1,s2
         elif s3 >= s1 and s3 >= s2:  
           if s3 >= thres:#valid_bar_position_apod6(points,coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle):
-            create_frame_bars(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle,['front','back'])
+            create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * scale * scale_[2] * dz
           coord_offset = [scale* dz * s3 * 0.5 + scale * 0.25 * (scale_[0] * dx - dz * s3),0.,0.]
           dx_offset = scale * 0.5 * (scale_[0] * dx-s3*dz)
           if s1 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
-            create_frame_bars(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            create_centered_bar(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
             real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           if s1 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
-            create_frame_bars(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            create_centered_bar(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
             real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale * dz * s3 * 0.5 + scale * 0.25 * (scale_[1] * dy - dz * s3),0.]
           dy_offset = scale * 0.5 * (scale_[1] * dy-s3*dz)
           if s2 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_frame_bars(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
           if s2 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_frame_bars(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
 
   real_volume /= within * dx * dy * dz
