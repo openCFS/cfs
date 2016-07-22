@@ -71,6 +71,8 @@ public:
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
 
+  virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
+
 protected:
 
 
@@ -92,8 +94,6 @@ protected:
    * @param de we need elem->region, multimaterial might be NULL otherwise we check for index */
   Matrix<double>& GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map,
       const DesignElement* de, MaterialClass mc, DesignElement::Type direction, double factor, bool transposed);
-
-  virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
 
   DesignElement* FirstDesignByRegion(RegionIdType reg);
 
