@@ -53,6 +53,9 @@ class TransferFunction;
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
+    /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
+    typedef enum { CW, CCW } Clock;
+
     /** Method used for interpolation of material tensor and volume */
     typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
@@ -123,6 +126,20 @@ class TransferFunction;
 
     Interpolation GetInterpolationMethod() const { return interpolation_; };
 
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order or rz,ry,rx
+     *  in 2d: rotates the material by ROTANGLE or rx
+     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+     * @param notation can be HILL_MANDEL or VOIGT notation
+     * @param clock can be CCW (counter-clockwise) or CW (clockwise)
+     * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
+     */
+    void RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
+
+    /** Calculate the Isotropic tensor */
+    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
   protected:
 
     /** for debugging */
@@ -172,8 +189,6 @@ class TransferFunction;
   private:
     /* note that most of these functions are called really often, so inlining is used */
 
-    /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Lame Tensor */
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -240,17 +255,8 @@ class TransferFunction;
     
     /** put the entries of the isotropic tensor at the right places */
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
-    
-    /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
-    
-    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
-     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
-     *  in 2d: rotates the material by ROTANGLE
-     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-     */
-    void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+
+    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = HILL_MANDEL);
 
     /** helper function to set a rotation matrix of size 3x3
      * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order

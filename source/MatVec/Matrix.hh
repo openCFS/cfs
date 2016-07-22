@@ -680,6 +680,9 @@ namespace CoupledField
     /** Convert from Hill-Mandel to Voigt Notation */
     void HillMandelToVoigt();
 
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
+    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
@@ -711,6 +714,10 @@ namespace CoupledField
     //! content, as defined by the rotation matrix rotMatrix.
     //! \note This method will only work with matrices of size 2,3, and 6.
     void PerformRotation( const Matrix<Double>& rotMatrix,  Matrix<TYPE>& matMatrix ) const;
+
+    //! This method generates a copy of this matrix, which contains the rotated in HILL_MANDEL notation
+        //! content, as defined by the rotation matrix rotMatrix.
+    void PerformHMRotation(Double rotAngle,  Matrix<Double>& matMatrix, std::string notation) const;
 
     //@}
 
