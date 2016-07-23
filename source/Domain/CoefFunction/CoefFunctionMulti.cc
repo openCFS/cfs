@@ -15,7 +15,6 @@ CoefFunctionMulti::CoefFunctionMulti( CoefDimType dimType,
   
   // a distributed coefficient function can never be analytic
   isAnalytic_ = false;
-  
   isComplex_ = isComplex;
   rowSize_ = dim1;
   colSize_ = dim2;
@@ -29,7 +28,6 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 }
 
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
-
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
