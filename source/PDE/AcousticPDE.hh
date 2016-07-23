@@ -139,9 +139,8 @@ namespace CoupledField{
     //! flag indicating if we have almost PML (better stability in 3D)
     bool isAPML_;
 
-
-    //! fluid region is modelled by a complex material
-    bool complexFluidRegion_;
+    //! need wave-PDE for changing density
+    bool complexFluidFormulation_;
   };
 
 }

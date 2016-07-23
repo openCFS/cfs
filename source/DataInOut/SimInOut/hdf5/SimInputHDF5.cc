@@ -1371,11 +1371,11 @@ namespace CoupledField {
 
   void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
   {
-    if (dim_ != coordSys.GetDim()) {
-      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
-                << coordSys.GetName() << ") to transform a "
-                << dim_ << "D mesh (" << fileName_ << ").");
-    }
+//    if (dim_ != coordSys.GetDim()) {
+//      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
+//                << coordSys.GetName() << ") to transform a "
+//                << dim_ << "D mesh (" << fileName_ << ").");
+//    }
     
     Vector<Double> p, globPoint;
     p.Resize(dim_);

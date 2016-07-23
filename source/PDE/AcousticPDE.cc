@@ -69,7 +69,7 @@ namespace CoupledField{
     isTimeDomPML_      = false;
 
     isAPML_ = false;
-    complexFluidRegion_ = false;
+    complexFluidFormulation_ = false;
 
     //check for pressure or potential formulation
     sosAtLaplace_ = false;
@@ -236,7 +236,6 @@ namespace CoupledField{
   void AcousticPDE::DefineIntegrators(){
 
     RegionIdType actRegion;
-    // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
     isaxi_ = ptGrid_->IsAxi();
@@ -247,6 +246,7 @@ namespace CoupledField{
 
     //flag indicating frequency PML formulation
     bool harmonicPML = false;
+
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
@@ -272,22 +272,14 @@ namespace CoupledField{
       PtrCoefFct dens;
       PtrCoefFct blk;
 
-
-      if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
-    	  std::cout << "Complex Fluid Region" << std::endl;
-    	  complexFluidRegion_ = true;
-    	  if ( this->analysistype_ != HARMONIC )
-    		  EXCEPTION("Complex fluid region just allowed in harmonic analysis");
-
-          dens = materials_[actRegion]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
-          blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS_COMPLEX, Global::COMPLEX );
-
+      if ( complexFluidFormulation_ ) {
+    	  dens = materials_[actRegion]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS_COMPLEX, Global::COMPLEX );
       }
       else {
     	  dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
     	  blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
       }
-
 
       // ====================================================================
       // check for temperature field, which effects the speed of sound
@@ -309,17 +301,17 @@ namespace CoupledField{
 
       //compute speed of sound
       ComputeSOS(c0, dens, blk, regionTemp, tempId );
-
       // store coefficient functions
-      if ( !complexFluidRegion_ ) {
-    	  matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, dens);
-    	  matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, c0);
-      }
+      matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, dens);
+      matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, c0);
 
       // if pde couples with mechanic, we have to multiply the density by -1
       PtrCoefFct factor;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+    	if ( complexFluidFormulation_ )
+    		EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
+
         // Important: In case of a general / quadratic EV problem, we must
         // ensure to have a "positive definite" matrix, i.e. we are not allowed
         // to multiply all matrices by -1!
@@ -335,7 +327,7 @@ namespace CoupledField{
       PtrCoefFct coeffM, coeffK;
 
       if ( formulation_ == ACOU_PRESSURE && sosAtLaplace_ == true ) {
-    	  if ( complexFluidRegion_ )
+    	  if ( complexFluidFormulation_ )
     		  EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
 
     	  //pressure formulation with temperature depend speed of sound
@@ -344,13 +336,17 @@ namespace CoupledField{
     	                         CoefXprBinOp(mp_, c0, c0, CoefXpr::OP_MULT ) );
       }
       else {
-    	  coeffK = factor;
-    	  if ( complexFluidRegion_ ) {
+    	  if ( complexFluidFormulation_ ) {
     		  //in this case c0 is actually 1/c0^2!!
+    		  //! coeffK: 1/compressionModulus
     		  coeffM = CoefFunction::Generate( mp_, Global::COMPLEX,
-    				  CoefXprBinOp(mp_, c0, factor, CoefXpr::OP_MULT ) );
+    		      				  CoefXprBinOp(mp_, factor, blk, CoefXpr::OP_DIV ) );
+    		  ///coeffM: 1/density
+    		  coeffK = CoefFunction::Generate( mp_, Global::COMPLEX,
+    				  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
     	  }
     	  else {
+    		  coeffK = factor;
     		  // build coefficient for mass matrix as (factor / (c0*c0))
     		  PtrCoefFct constValOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     		  PtrCoefFct coeffa, coeffb;
@@ -363,7 +359,6 @@ namespace CoupledField{
     	  }
       }
 
-
       // ====================================================================
       // Take account for pml (frequency domain only)
       // ====================================================================
@@ -371,17 +366,25 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffPMLStiff;
       shared_ptr<CoefFunction> coeffPMLMass;
 
-
       if( dampingList_[actRegion] == PML ) {
         std::string dampId;
         curRegNode->GetValue("dampingId",dampId);
         if(analysistype_ == HARMONIC){
-          if ( complexFluidRegion_ )
-        	   EXCEPTION("A complex fluid in PML region not allowed!!");
+          //in case of complexFluid, speed of sound is complex; so compute a real valued one
+          shared_ptr<CoefFunction> densR, blkR, c0R;
+          if ( complexFluidFormulation_ ) {
+            densR = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+            blkR = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+	        c0R  = CoefFunction::Generate( mp_,  Global::REAL,
+					  CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV),
+				      CoefXpr::OP_SQRT) );
+          }
+	      else
+	    	c0R = c0;
 
           PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-          coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,true));
-          coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,false));
+          coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
+          coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
           // store pml factor
           matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
           coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
@@ -409,7 +412,12 @@ namespace CoupledField{
           stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                         coeffPMLStiff, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
-        }else{
+        }
+        else if ( complexFluidFormulation_ ) {
+          stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK,
+        	                           1.0, updatedGeo_ );
+        }
+        else{
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 
                                        1.0, updatedGeo_ );
         }
@@ -419,7 +427,12 @@ namespace CoupledField{
           stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLStiff, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
-        }else{
+        }
+        else if ( complexFluidFormulation_ ) {
+          stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK,
+        	                           1.0, updatedGeo_ );
+        }
+        else{
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK,
                                        1.0, updatedGeo_ );
         }
@@ -432,7 +445,7 @@ namespace CoupledField{
 
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-    	  if ( complexFluidRegion_ )
+    	  if ( complexFluidFormulation_ )
     		  EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
@@ -460,7 +473,7 @@ namespace CoupledField{
         if( harmonicPML )
           massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
                                        coeffPMLMass, 1.0, updatedGeo_ );
-        else if ( complexFluidRegion_ )
+        else if ( complexFluidFormulation_ )
         	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM,
         	                                      1.0, updatedGeo_ );
         else
@@ -470,7 +483,7 @@ namespace CoupledField{
         if(harmonicPML)
           massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 
                                        1.0, updatedGeo_ );
-        else if  ( complexFluidRegion_ )
+        else if  ( complexFluidFormulation_ )
         	massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM,
         	                                      1.0, updatedGeo_ );
         else
@@ -485,7 +498,7 @@ namespace CoupledField{
 
       // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-       	if ( complexFluidRegion_ )
+       	if ( complexFluidFormulation_ )
        		EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
 
         RaylDampingData & actDamp = regionRaylDamping_[actRegion];
@@ -506,6 +519,8 @@ namespace CoupledField{
       PtrCoefFct regionDivLamb;
 
       if ( lambId != "" ) {
+    	if ( complexFluidFormulation_ )
+    		EXCEPTION("Complex fluid and Lamb-vector currently not allowed");
         std::set<UInt> definedDofs;
         //just real valued lamb vector allowed
         shared_ptr<ResultInfo> lambInfo = GetResultInfo(SPLIT_LAMB);
@@ -548,11 +563,8 @@ namespace CoupledField{
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
     	  std::cout << "DO Convective Wave Operator!!!!!!!!!!!!!!!!!" << std::endl << std::endl;
-//        if( dampingList_[actRegion] == PML ) {
-//          EXCEPTION("PML not available for flow domains!");
-//        }
-        //        if ( formulation_ != ACOU_POTENTIAL )
-        //            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
+    	  if ( complexFluidFormulation_ )
+    		  EXCEPTION("Complex fluid and flow currently not allowed");
 
         // Get result info object for flow
         shared_ptr<ResultInfo> flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY); 
@@ -996,6 +1008,9 @@ namespace CoupledField{
   }
 
   void AcousticPDE::DefineNcIntegrators() {
+	if ( complexFluidFormulation_ )
+		EXCEPTION("Complex fluid and NC-interfaces currently not allowed");
+
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
                                            endIt = ncInterfaces_.End();
     for ( ; ncIt != endIt; ++ncIt ) {
@@ -1033,14 +1048,20 @@ namespace CoupledField{
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+        //check, if region has complex fluid
+        PtrParamNode curRegNode =
+        		myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" )
+        	EXCEPTION("Absorbing BC at complex fluid region not allowed");
+
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
         PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
         PtrCoefFct c0;
         
         //check for temperature dependency
-        PtrParamNode curRegNode =
-        	myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
         std::string tempId = curRegNode->Get("temperatureId")->As<std::string>();
         if (tempId != "") {
           // Get result info object for flow
@@ -1062,7 +1083,16 @@ namespace CoupledField{
                            CoefXpr::OP_SQRT) );
         }
         else {
-           c0 =  CoefFunction::Generate( mp_,  Global::REAL,
+        	if (complexFluidFormulation_ ) {
+        		// correct factor is 1/(density*c0) = 1/sqrt(dens*compressModulus)
+        		// so we modify c0 to : density*compressModulus
+        		// division is done later!!
+        		c0 = CoefFunction::Generate( mp_,  Global::REAL,
+                   	         CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
+                                            CoefXpr::OP_MULT), CoefXpr::OP_SQRT) );
+        	}
+        	else
+        		c0 =  CoefFunction::Generate( mp_,  Global::REAL,
                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
                                                   CoefXpr::OP_DIV), CoefXpr::OP_SQRT) );
         }
@@ -1123,6 +1153,9 @@ namespace CoupledField{
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
       for( UInt i = 0; i < impedNodes.GetSize(); ++i ) {
+    	if ( complexFluidFormulation_ )
+    		EXCEPTION("Complex fluid and impedance currently not working");
+
         BiLinearForm * impedInt = NULL;
         std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
@@ -1195,7 +1228,7 @@ namespace CoupledField{
   void AcousticPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(acousticpde) << "Defining rhs load integrators for acoustic PDE";
     
-    // Get FESpace and FeFunction of mechanical displacement
+    // Get FESpace and FeFunction
     shared_ptr<BaseFeFunction> myFct = feFunctions_[formulation_];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -1226,7 +1259,7 @@ namespace CoupledField{
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if ( sosAtLaplace_)
-        EXCEPTION("RHS and speed of sound at Laplace operator currently not possible");
+        EXCEPTION("NormalVelocity-BC and speed of sound at Laplace operator currently not possible");
 
       // ensure that list contains only surface elements
       EntityIterator it = ent[i]->GetIterator();
@@ -1267,14 +1300,20 @@ namespace CoupledField{
         // in this case the pressure can be related to the 
         // normal velocity as 
         // p_n = - j*Omega*v_n*rho
-        PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
-                                                "-2*pi*f");
-        PtrCoefFct tmp2 = 
-            CoefFunction::Generate( mp_, part, 
-                                   CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-        exValue = CoefFunction::Generate( mp_, part, 
-                                         CoefXprBinOp(mp_, tmp2,surfDens, 
-                                                      CoefXpr::OP_MULT) );
+    	PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
+    	                                                "-2*pi*f");
+    	if ( complexFluidFormulation_ ) {
+    		//do not need multiplication with density
+    		exValue = CoefFunction::Generate( mp_, part,
+                    CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+    	}
+    	else {
+    		PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
+                                 CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+    		exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2,surfDens,
+                                              CoefXpr::OP_MULT) );
+    	}
+
         if( dim_ == 2) {
           lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
                                                 1.0, exValue, volRegions, coefUpdateGeo);
@@ -1355,12 +1394,18 @@ namespace CoupledField{
         // p_n = - j*Omega*v_n*rho
         PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
                                                 "-2*pi*f");
-        PtrCoefFct tmp2 = 
-            CoefFunction::Generate( mp_, part, 
-                                   CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-        exValue = CoefFunction::Generate( mp_, part, 
-                                         CoefXprBinOp(mp_, surfDens, tmp2, 
-                                                      CoefXpr::OP_MULT) );
+        if ( complexFluidFormulation_ ) {
+        	//do not need multiplication with density
+        	exValue = CoefFunction::Generate( mp_, part,
+        			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+        }
+        else {
+        	PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
+                    			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+        	exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2,surfDens,
+                                                     CoefXpr::OP_MULT) );
+        }
+
         if( dim_ == 2) {
           lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
@@ -1531,6 +1576,23 @@ namespace CoupledField{
   }
 
   void AcousticPDE::DefinePrimaryResults(){
+	//check for complex fluid formulation
+	RegionIdType actRegion;
+	std::map<RegionIdType, BaseMaterial*>::iterator it;
+	for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+		actRegion = it->first;
+		std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+		PtrParamNode curRegNode =
+		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+		if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
+			complexFluidFormulation_ = true;
+			if ( this->analysistype_ != HARMONIC )
+				EXCEPTION("Complex fluid region just allowed in harmonic analysis");
+	   		//need an acoustic pressure formulation
+			if ( formulation_ != ACOU_PRESSURE )
+				EXCEPTION("Complex fluid needs acoustic pressure formulation");
+		}
+	}
 
     // === Primary result according to definition ===
     shared_ptr<ResultInfo> res1( new ResultInfo);
@@ -1598,7 +1660,7 @@ namespace CoupledField{
     temperature->definedOn = ResultInfo::NODE;
     temperature->entryType = ResultInfo::SCALAR;
 
-    meanTemperatureCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+   	meanTemperatureCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,false));
     DefineFieldResult( meanTemperatureCoef_, temperature );
 
     // ==============================================
@@ -1612,8 +1674,8 @@ namespace CoupledField{
     density->unit = "kg/m^3";
     density->definedOn = ResultInfo::ELEMENT;
     density->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
-                                                                false));
+    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
+    		                              complexFluidFormulation_));
     matCoefs_[ELEM_DENSITY] = densFct;
     DefineFieldResult(densFct, density);
     
@@ -1624,8 +1686,8 @@ namespace CoupledField{
     sos->unit = "m/s";
     sos->definedOn = ResultInfo::ELEMENT;
     sos->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
-                                                               false));
+    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
+    		                             complexFluidFormulation_));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
     
@@ -2072,7 +2134,7 @@ namespace CoupledField{
   void AcousticPDE::ComputeSOS(PtrCoefFct& c0, PtrCoefFct dens, PtrCoefFct blk,
 		  PtrCoefFct regionTemp, std::string tempId) {
 
-	  if ( complexFluidRegion_ ) {
+	  if ( complexFluidFormulation_ ) {
 		  //here c0 is actually 1/c0^2!!
 		  c0 = CoefFunction::Generate( mp_,  Global::COMPLEX,
 				  CoefXprBinOp(mp_, dens, blk, CoefXpr::OP_DIV ) );
