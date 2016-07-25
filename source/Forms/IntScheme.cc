@@ -1947,8 +1947,7 @@ void IntScheme::CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points
   }
 }
 
-//mapping from hexa to tet via three dimensional Duffy-transformation. The following does not really work
-//because the resulting points are not symmetric, due to the mapping, this might lead to wrong results
+//mapping from hexa to tet via three dimensional Duffy-transformation
 void IntScheme::CalcIntTet( IntegMethod, UInt order,StdVector<LocPoint>& points,
                              StdVector<Double>& weights ) {
   StdVector<Double> xPoints, xWeights;
