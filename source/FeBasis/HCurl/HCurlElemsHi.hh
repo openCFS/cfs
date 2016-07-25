@@ -131,21 +131,31 @@ public:
     : FeHCurlHi(other){
   }
 
-  //! Destructor
-  virtual ~FeHCurlHiTria();
-
   //! Create deep copy
   virtual FeHCurlHiTria* Clone(){
     return new FeHCurlHiTria(*this);
   }
 
-  //! @copydoc FeHCurl::CalcLocShFnc
-  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                     const Elem* elem, UInt comp = 1 );
+  //! Destructor
+  virtual ~FeHCurlHiTria();
 
-  //! @copydoc FeHCurl::CalcLocCurlShFnc
-  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+
+  //! Return HCurl shape functions
+  virtual void GetShFnc( Matrix<Double>& shape,
+                         const LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl,
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl,
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+
 protected:
   
   //! Calculate number of unknowns
