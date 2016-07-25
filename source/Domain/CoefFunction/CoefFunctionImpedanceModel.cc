@@ -260,7 +260,7 @@ namespace CoupledField{
         MathParser::HandleType h = mp_->GetNewHandle();
         const Double f = mp_->GetExprVars(h, "f");
         mp_->ReleaseHandle(h);
-        if (f == currFrequ_) // Already calculated value for this frequency
+        if (f != currFrequ_) // Already calculated value for this frequency
         {
           currFrequ_ = f;
 
