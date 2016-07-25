@@ -178,7 +178,7 @@ bool FeasSubProblem::get_bounds_info(Index n, Number* x_l, Number* x_u, Index m,
 
   for(int i = 0; i < m; i++)
   {
-    Approximation* g = feas_pp->constr[i];
+    MMAApproximation* g = feas_pp->constr[i];
 
     g_l[i] = g->lower;
     g_u[i] = g->upper;
@@ -226,12 +226,12 @@ bool FeasSubProblem::get_starting_point(Index n, bool init_x, Number* x, bool in
 bool FeasSubProblem::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
 {
   assert((int) feas_pp->x_outer.GetSize() == n);
-  Approximation* f = feas_pp->obj;
+  MMAApproximation* f = feas_pp->obj;
 
   if(!f->approximate)
     feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
 
-  obj_value = f->Evaluate(x, Approximation::FUNC);
+  obj_value = f->Evaluate(x, MMAApproximation::FUNC);
 
   LOG_DBG3(feasPP) << "eval_f: new_x = " << new_x << " obj_value= << " << obj_value << " x=" << StdVector<double>::ToString(n, x);
   return true;
@@ -239,7 +239,7 @@ bool FeasSubProblem::eval_f(Index n, const Number* x, bool new_x, Number& obj_va
 
 bool FeasSubProblem::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
 {
-  Approximation* f = feas_pp->obj;
+  MMAApproximation* f = feas_pp->obj;
 
   assert((int) feas_pp->x_outer.GetSize() == n);
   assert((int) f->jac_pattern.GetSize() == n); // assume dense!
@@ -252,7 +252,7 @@ bool FeasSubProblem::eval_grad_f(Index n, const Number* x, bool new_x, Number* g
 
   tmp_.Resize(n);
 
-  f->Evaluate(x, Approximation::GRAD, &tmp_);
+  f->Evaluate(x, MMAApproximation::GRAD, &tmp_);
   memcpy(grad_f, tmp_.GetPointer(), sizeof(double) * n);
 
   return true;
@@ -267,7 +267,7 @@ bool FeasSubProblem::eval_g(Index n, const Number* x, bool new_x, Index m, Numbe
 
   assert(m == (int) feas_pp->m);
   for(int i = 0; i < m; i++)
-    g[i] = feas_pp->constr[i]->Evaluate(x, Approximation::FUNC);
+    g[i] = feas_pp->constr[i]->Evaluate(x, MMAApproximation::FUNC);
 
   feas_pp->optimization->constraints.view->Done(); // reset local constraint to global mode
 
@@ -287,12 +287,12 @@ bool FeasSubProblem::eval_jac_g(Index n, const Number* x, bool new_x,  Index m, 
   unsigned int index = 0;
   for(int func = 0; func < m; func++)
   {
-    Approximation* f = feas_pp->constr[func];
+    MMAApproximation* f = feas_pp->constr[func];
 
     if(values != NULL)
     {
       tmp_.Resize(f->jac_pattern.GetSize());
-      f->Evaluate(x, Approximation::GRAD, &tmp_);
+      f->Evaluate(x, MMAApproximation::GRAD, &tmp_);
     }
 
     for(unsigned int j = 0; j < f->jac_pattern.GetSize(); j++)
@@ -329,7 +329,7 @@ bool FeasSubProblem::eval_h(Index n, const Number* x, bool new_x, Number obj_fac
   {
     assert(iRow != NULL && jCol != NULL && x == NULL && lambda == NULL);
 
-    // IPOPT does not use the classical CRS format but the same as we have in Approximation::hess_pattern
+    // IPOPT does not use the classical CRS format but the same as we have in MMAApproximation::hess_pattern
     assert((int) H.size1() == n);
 
     int idx = 0;
@@ -366,7 +366,7 @@ bool FeasSubProblem::eval_h(Index n, const Number* x, bool new_x, Number obj_fac
     assert((int) H.nnz() == nele_hess); // still true?
 
     // objective
-    Approximation* f = feas_pp->obj;
+    MMAApproximation* f = feas_pp->obj;
     const Matrix<unsigned int>& S = f->hess_pattern;
     assert(S.GetNumRows() == 0 || S.GetNumCols() == 2);
     tmp_.Resize(S.GetNumRows());

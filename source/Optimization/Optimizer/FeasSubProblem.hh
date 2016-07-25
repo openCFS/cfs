@@ -83,7 +83,7 @@ public:
    Vector<double> x_final;
 
    /** the Lagrange multipliers. Called y in the feasibility paper. This is the transformed lambda!
-    * @see Approximation::TransformMultiplyer() */
+    * @see MMAApproximation::TransformMultiplyer() */
    Vector<double> lambda;
 
    /** This is the original, not-transfomed lambda!! We need it for the warmstart! */
