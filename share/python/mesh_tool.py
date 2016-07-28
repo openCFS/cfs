@@ -2177,26 +2177,87 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   
   return mesh
 
+def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres):
+  from draw_profile_functions import *
+  
+  nx = xres
+  ny = yres if yres <> None else xres 
+  nz = zres if zres <> None else xres
+      
+  array = set_profile_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
+  if z1 == 0.0 and z2 == 0.0:
+    mesh = create_2d_mesh_from_array(array)
+  else:
+    mesh = create_3d_mesh_from_array(array)
+  
+  return mesh
+
+def create_3d_mesh_from_array(array):
+  nx, ny, nz = array.shape
+  mesh = Mesh(nx,ny,nz)
+  
+  dx = 1.0 / nx
+  dy = 1.0 / ny
+  dz = 1.0 / nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+
+  for z in range(nnz):
+    for y in range(nny):
+      for x in range(nnx):
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+    
+  for z in range(nz):    
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.type = HEXA8
+        if (array[x][y][z] > 0.0):
+          e.region = "mech" + str(int(array[x][y][z]))
+        else:
+          e.region = "void"
+          
+        ll = nnx*nny*z + nnx*y + x
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        mesh.elements.append(e)
+    
+  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+
+  mesh.bc.append(("left_bottom_back", [0]))
+  mesh.bc.append(("right_bottom_back", [nx]))
+  mesh.bc.append(("left_top_back", [nnx * ny]))
+  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  return mesh
+
 def create_2d_mesh_from_array(array):
-  nx, ny = array.shape
+  nx, ny, dummy = array.shape
+  
   mesh = Mesh(nx,ny)
   
   dx = 1.0 / nx
   dy = 1.0 / ny
-
+  
   for y in range(ny + 1):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dy))
-      
+     
   for y in range(ny):
     for x in range(nx):
       e = Element()
       e.type = QUAD4
       if (array[x][y] > 0.0):
-        e.region = "mech"
+        e.region = "mech" + str(int(array[x][y]))
       else:
         e.region = "void"
-        
+       
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
       mesh.elements.append(e)

@@ -31,7 +31,7 @@ def find_inclusion_overlap(args):
   
   return mesh    
 
-print sys.argv
+# print sys.argv
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
@@ -39,13 +39,20 @@ parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for q
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
-parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','force_inverter','force_inverter_half','gripper','gripper_half'], required = True)
+parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','force_inverter','force_inverter_half','gripper','gripper_half', 'profiles2d', 'profiles3d'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
 parser.add_argument('--inclusion_overlap', help="alternative to inclusion_size for ball. Give fraction of overlapping to boundary", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
+# for profile functions
+parser.add_argument('--x1', help="first radius for profile of bar in x-direction; 0 <= x1 <= 1", type=float, required = False)
+parser.add_argument('--x2', help="second radius for profile of bar in x-direction; 0 <= x2 <= 1", type=float, required = False)
+parser.add_argument('--y1', help="first radius for profile of bar in y-direction; 0 <= y1 <= 1", type=float, required = False)
+parser.add_argument('--y2', help="second radius for profile of bar in y-direction; 0 <= y2 <= 1", type=float, required = False)
+parser.add_argument('--z1', help="first radius for profile of bar in z-direction; 0 <= z1 <= 1", type=float, required = False)
+parser.add_argument('--z2', help="second radius for profile of bar in z-direction; 0 <= z2 <= 1", type=float, required = False)
 
 args = parser.parse_args()
 
@@ -54,6 +61,14 @@ mesh_name = args.type
 # sanity checks
 if args.lbm and not (args.type == "lbm2d" or "lbm3d"):
   print "error: --lbm only for --type lbm2d or lbm3d"
+  sys.exit()
+  
+if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
+  print("error: profiles2d needs values for x1,x2 and y1,y2")
+  sys.exit()
+
+if args.type == "profiles3d" and not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
+  print("error: profiles3d needs values for x1,x2 and y1,y2 and z1,z2")
   sys.exit()
   
 if (args.inclusion or args.inclusion_size or args.inclusion_overlap) and (args.type == "bulk3d" or args.type ==  "cantilever2d_reinforced"): 
@@ -92,6 +107,15 @@ elif args.type.startswith('lbm'):
   mesh_name = args.type +"_" + args.lbm
 elif args.type == '3D':
   mesh = create_regular3d_mesh(args.type, args.res)
+elif args.type.startswith('profiles'):
+  if args.type == 'profiles2d':
+    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, 0, 0, args.res, args.y_res, 1)
+  elif args.type == 'profiles3d':  
+    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, args.z1, args.z2, args.res, args.y_res, args.z_res)
+  else:
+    print("available profile mesh type '" + args.type + "' not available!")
+    sys.exit()
+  mesh_name = args.type
 else: # default case 2d_mesh
   if not args.inclusion_overlap:  
     mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)

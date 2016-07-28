@@ -4,57 +4,67 @@ import numpy as np
 from mesh_tool import *
 import sys
 
-def bar1(x1,x2,x):
+def profx(x1,x2,x):
   return ((x2-x1) * x + x1) / 2.0
   
-def bar2(y1,y2,y):
+def profy(y1,y2,y):
   return ((y2-y1) * y + y1) / 2.0 
 
-def bar3(z1,z2,z):
+def profz(z1,z2,z):
   return ((z2-z1) * z + z1) / 2.0
 
-def within_profile(x1,x2,y1,y2,coords):
+def within_profile3d(x1,x2,y1,y2,z1,z2,coords):
   xm = 0.5
   ym = 0.5
+  zm = 0.5
   x = coords[0]
   y = coords[1]
-  profile1 = bar1(x1, x2, x)
-  profile2 = bar2(y1, y2, y)
-  if ((y <= ym + profile1) and (y >= ym - profile1)) or ((x <= xm + profile2)  and (x >= xm - profile2)):
-    return True
-  return False
-
-def set_structure_array(nx,ny,x1,x2,y1,y2):
-  array = np.zeros((nx,ny))
+  z = coords[2]
+  
+  px = profx(x1, x2, x)
+  py = profy(y1, y2, y)
+  pz = profz(z1, z2, z)
+  
+  valx = (y-ym)**2 + (z-zm)**2
+  valy = (x-xm)**2 + (z-zm)**2
+  valz = (y-ym)**2 + (x-xm)**2
+  
+  if (valx <= px*px):
+    return 1
+  elif (valy <= py*py):
+    return 2
+  elif (valz <= pz*pz):
+    return 3
+  
+  return -1
+  
+def set_profile_array(nx,ny,nz,x1,x2,y1,y2,z1,z2):
+  array = np.zeros((nx,ny,nz))
   sizex = 1.0
   sizey = 1.0
-  hx = sizex / nx
-  hy = sizex / ny
-  for j in range(0,nx):
-    for i in range(0,ny):
-      coords = np.zeros(2)
-      x = j * hx
-      y = i * hy
-      coords[0] = x
-      coords[1] = y
-      if within_profile(x1, x2, y1, y2, coords):
-        array[i,j] = 1
-  return array
-
-
-x1 = 0.8
-x2 = 0.3
-y1 = 0.5
-y2 = 0.3
-nx = 1000
-ny = 1000
-
-
-array = set_structure_array(nx, ny, x1, x2, y1, y2)
-mesh = create_2d_mesh_from_array(array)
-write_gid_mesh(mesh, "/home/bvu/TEST/lufo_mesh/test.mesh")
-# img = Image.fromarray(array)
-# img.show()
+  sizez = 1.0
   
+  hx = sizex / nx
+  hy = sizey / ny
+  hz = sizez / nz
+  
+  for i in range(0,nx):
+    for j in range(0,ny):
+      for k in range(0,nz):  
+        coords = np.zeros(3)
+        x = i * hx + hx / 2.0
+        y = j * hy + hy / 2.0
+        z = k * hz + hz / 2.0
+        coords[0] = x
+        coords[1] = y
+        coords[2] = z
+        if nz == 1:
+#           flag = within_profile2d(x1, x2, y1, y2, coords)
+          flag = within_profile3d(x1, x2, y1, y2, 0,0, coords)
+        else:
+          flag = within_profile3d(x1, x2, y1, y2, z1, z2, coords) 
+        if flag != -1:
+          array[i,j,k] = flag
+  return array
   
   
