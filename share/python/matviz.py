@@ -164,6 +164,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   
   scale = force_scale if force_scale else args.scale
   
+  min, max = find_corners(centers)
+  
   coords = (centers, min, max, elem_dim)  
   
   # perform 2D and 3D from file
@@ -332,7 +334,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
     else:
       if args.tensor == 'mechTensor':
         print "Input data is read as " + args.notation
-      tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      if h5_read:
+        tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      else:
+        print tensor
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot <> None:
@@ -355,7 +360,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
     if len(aux) > 0:
       print "largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
     
-    poly = create_vtk_poly_data(angle, data if args.show == "default" else aux)
+    poly = create_vtk_poly_data(angle, data if args.show == None else aux)
     
     actors = []
     if not args.symmetries == "default":
@@ -374,7 +379,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       for i in range(len(tmp3)):
         if tmp3[i][1] <= float(args.symmetries_threshold):
           mins.append(tmp3[i]) 
-      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == "default" else aux), not args.symmetries_planes == "false")
+      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
   
     show_write_vtk(poly, args.res, args.save, actors)  
   
@@ -431,10 +436,10 @@ parser.add_argument("--type", help="type of 3D object for 2-scale visualization"
 args = parser.parse_args()
 
 # check ans postproc arguments
-if not args.symmetries == "default" and not args.show == "default" and not args.symmetries == args.show:
+if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
   print "'show' and 'symmetries' do not match"
   sys.exit(1)
-aux_code = args.show if not args.show == "default" else args.symmetries  # might still be default
+aux_code = args.show if not args.show == None else args.symmetries  # might still be default
 
 # in this global variable we can store meta-information to be exported as xml file 
 info = None
