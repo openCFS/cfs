@@ -4,6 +4,7 @@ import platform
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
+from draw_profile_functions import visualize_structure
 #from matviz_vtk import *
 
 
@@ -2189,6 +2190,8 @@ def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres):
     mesh = create_2d_mesh_from_array(array)
   else:
     mesh = create_3d_mesh_from_array(array)
+  
+#   visualize_structure(array,nx,ny,nz)
   
   return mesh
 

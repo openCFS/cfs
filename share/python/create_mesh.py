@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from mesh_tool import *
 import argparse
+from draw_profile_functions import visualize_structure
 
 # for inclusion_opverlapp finds inclusion_size for create_2d_mesh via bisection
 def find_inclusion_overlap(args):
