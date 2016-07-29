@@ -343,12 +343,11 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     const PtrParamNode pn = list[i];
     ShapeParamElement& spe = shape_param_[i];
     assert(spe.GetIndex() == i);
-    unsigned int nr = pn->Get("nr")->As<int>();
-    assert(nr == i);
+    assert(pn->Get("nr")->As<unsigned int>() == i);
 
     BaseDesignElement::Type dt = BaseDesignElement::type.Parse(pn->Get("type")->As<string>());
     if(dt != spe.GetType())
-      EXCEPTION("shapeParamElement nr=" << nr << " has type " << pn->Get("type")->As<string>()
+      EXCEPTION("shapeParamElement nr=" << i << " has type " << pn->Get("type")->As<string>()
                 << " but we expect type " << BaseDesignElement::type.ToString(spe.GetType()));
 
     if(!read_profile && dt == BaseDesignElement::PROFILE)
@@ -356,7 +355,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
 
     // a profile has no dof
     if(dt == BaseDesignElement::NODE && pn->Get("dof")->As<string>() != Dof(spe.dof))
-      EXCEPTION("shapeParamElement nr " << nr << " has not the expected dof " << Dof(spe.dof));
+      EXCEPTION("shapeParamElement nr " << i << " has not the expected dof " << Dof(spe.dof));
 
     double val = pn->Get("design")->As<double>();
 
@@ -373,8 +372,15 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
 
     // Get value of the relative bound for current design variable. If value not set, db = -1.
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
+    ShapeParam* shape = FindShape(&spe);
+    assert(!shape->fixed && rb >= 0.0);
 
-    assert(!(FindShape(&spe)->fixed && rb >= 0.0));
+    // consider ShapeParam::clamped which overwrites relative_*_bound for the first and last element
+    if(shape->clamp >= 0.0 && ((int) i == shape->start_param || (int) i == shape->end_param-1)) {
+      LOG_DBG(SMD) << "RDX: set clamped idx=" << spe.GetIndex() << " shape=" << shape->ToString() << " rb=" << rb << " -> " << shape->clamp;
+      rb = shape->clamp;
+    }
+
     if(rb >= 0.0)
     {
       LOG_DBG2(SMD) << "RDX: before i=" << i << " v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
@@ -697,7 +703,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      // when dof=x then we traverse the ny_+1
      unsigned int end = param.dof == 0 ? ny_ + 1 : nx_ + 1;
      for(unsigned int e = 0; e < end; e++)
-       CreateShapeVariable(&param, e);
+       CreateShapeVariable(&param, e, e == 0 || e == (end-1));
      param.end_param = shape_param_.GetSize();
    }
 
@@ -709,7 +715,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      assert(node.type == NODE && prof.type == PROFILE);
      prof.start_param = shape_param_.GetSize();
      for(int e = 0; e < node.end_param - node.start_param; e++)
-       CreateShapeVariable(&prof, e);
+       CreateShapeVariable(&prof, e, e == 0 || e == (node.end_param - node.start_param - 1));
      prof.end_param = shape_param_.GetSize();
      assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
@@ -1167,7 +1173,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
     }
  }
 
-void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free)
+void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool start_end)
 {
   // note that free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
 
@@ -1194,9 +1200,17 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free)
   // add element to shape_param_
   shape_param_.Push_back(ShapeParamElement(Convert(param->type), shape_param_.GetSize()));
   ShapeParamElement& spe = shape_param_.Last();
-  spe.SetLowerBound(param->lower);
-  spe.SetUpperBound(param->upper);
   spe.SetDesign(param->value);
+  if(param->clamp >= 0.0 && start_end) {
+    spe.SetLowerBound(param->value - param->clamp/2);
+    spe.SetUpperBound(param->value + param->clamp/2);
+    LOG_DBG(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " shape=" << param->ToString() << " clamped! lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
+  }
+  else {
+    spe.SetLowerBound(param->lower);
+    spe.SetUpperBound(param->upper);
+  }
+
   spe.dof = param->dof;
   if(spe.dof == 0) {
     spe.coord[1] = (double) free / ny_; // free is max ny_
@@ -1256,6 +1270,8 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
    type = ShapeMapDesign::type.Parse(pn->GetName());
    idx = (int) idx_;
 
+   clamp = pn->Get("clamp")->As<double>();
+
    if(type == NODE)
    {
      assert(node == NULL);
@@ -1299,6 +1315,9 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
    {
      if(pn->Has("initial"))
        throw Exception("shapeParam cannot have 'initial' and 'fixed' concurrently.");
+     if(clamp > 0)
+       throw Exception("don't use 'clamp' for shapeParam together with 'fixed'.");
+
      value = pn->Get("fixed")->MathParse<double>();
      fixed = true;
    }
@@ -1350,6 +1369,10 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   else {
     in->Get("lower")->SetValue(lower);
     in->Get("upper")->SetValue(upper);
+    if(clamp >= 0)
+      in->Get("clamp")->SetValue(clamp);
+    else
+      in->Get("clamp")->SetValue("no");
   }
   assert(start_param >= 0 && end_param > 0);
 
