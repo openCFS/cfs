@@ -57,7 +57,7 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
     if len(res) == 0:
       raise RuntimeError(" no '" + type + "' found")
     for data in res:
-      by_nx = str(data).find('/nx') > 0
+      by_nx = str(data).find('/nx') > 0 and str(var).find('/nx') == -1
       data.setContent(str(var) + ('/nx' if by_nx else ''))
   
   doc.saveFile(var_problem + ".xml")
@@ -92,7 +92,8 @@ if args.range:
     print "given --range '" + args.range + "' evaluates to " + str(len(val)) + " values"
     sys.exit(-1)  
   for i in range(len(vals)):
-    continuation(args.initial, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = i)  
+    ri = i if len(vals) <> len(set(vals)) else -1  
+    continuation(args.initial, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri)  
   
 else:
   old = -1  
