@@ -167,6 +167,55 @@ namespace CoupledField
 
     StdVector<std::string> dofNames_;
 
+    // ========================================================================
+    //  Class for calculating the 2nd Piola-Kirchhoff stress tensor
+    // ========================================================================
+
+    //! CoefficientFunction for 2nd Piola-Kirchhoff stress tensor
+    class CoefFunction2ndPiolaTensor : public CoefFunction {
+        
+      public:
+        
+        //! Constructor
+        CoefFunction2ndPiolaTensor(SubTensorType &subType,
+                                   PtrCoefFct stiffness,
+                                   shared_ptr<BaseFeFunction> displ);
+        
+        //! Destructor
+        ~CoefFunction2ndPiolaTensor();
+        
+        //! Return tensor in Voigt vector notation
+        virtual void GetVector(Vector<Double>& vec, 
+                               const LocPointMapped& lpm );
+        
+        //! Return full tensor at integration point
+        virtual void GetTensor(Matrix<Double>& tensor, 
+                               const LocPointMapped& lpm );
+        
+        //! Return row and columns size of tensor if coefficient function is a tensor
+        virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+        
+      protected:
+        
+        //! Tensor type
+        SubTensorType tensorType_;
+        
+        //! Stiffness CoefFunction
+        PtrCoefFct stiffCoef_;
+        
+        //! Real-valued displacement CoefFunction
+        shared_ptr< FeFunction<Double> > dispCoefReal_;
+        
+        //! Complex-values displacement CoefFunction
+        shared_ptr< FeFunction<Complex> > dispCoefComplex_;
+        
+        //! Linear strain operator
+        BaseBOperator *linOp_;
+        
+        //! Nonlinear strain operator
+        BaseBOperator *nonLinOp_;
+    };
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

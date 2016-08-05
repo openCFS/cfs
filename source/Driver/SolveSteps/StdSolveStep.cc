@@ -236,8 +236,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         iterationCounter++;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
-          // set linear part of RHS
-          algsys_->InitRHS(RhsLinVal_);
+
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent()) {
+            algsys_->InitRHS();
+            SetLinRHS(loadFactor);
+          } else {
+            // set linear part of RHS
+            algsys_->InitRHS(RhsLinVal_);
+          }
 
           // setup the matrices
           isNewton = false;
@@ -283,8 +290,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           solVec_ = actSol;
 
           //=================compute residual norm
-          // set linear part of RHS
-          algsys_->InitRHS(RhsLinVal_);
+
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent()) {
+            algsys_->InitRHS();
+            SetLinRHS(loadFactor);
+          } else {
+            // set linear part of RHS
+            algsys_->InitRHS(RhsLinVal_);
+          }
 
           // setup the matrices
           isNewton = false;
@@ -632,9 +646,14 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         iterationCounter++;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
-
-          // set linear part of RHS
-          algsys_->InitRHS(RhsLinVal_);
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent()) {
+            algsys_->InitRHS();
+            SetLinRHS(loadFactor);
+          } else {
+            // set linear part of RHS
+            algsys_->InitRHS(RhsLinVal_);
+          }
 
           // setup the matrices
           isNewton = false;
@@ -707,9 +726,14 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
 
-          // set linear part of RHS
-          algsys_->InitRHS(RhsLinVal_);
-          //assemble_->AssembleNonLinRHS();
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent()) {
+            algsys_->InitRHS();
+            SetLinRHS(loadFactor);
+          } else {
+            // set linear part of RHS
+            algsys_->InitRHS(RhsLinVal_);
+          }
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){

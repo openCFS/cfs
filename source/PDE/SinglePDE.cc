@@ -505,7 +505,7 @@ namespace CoupledField {
       //     }
       
       for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        //take cae: one region can have more then one nonlinearity!!
+        //take care: one region can have more then one nonlinearity!!
         
         // get data
         regionNodes[i]->GetValue( "name", actRegionName );

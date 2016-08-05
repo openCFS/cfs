@@ -1804,7 +1804,7 @@ source/Forms/Operators/IdentityOperatorProjected.hh -text
 source/Forms/Operators/LaplOp.hh -text
 source/Forms/Operators/MultiIdOp.hh -text
 source/Forms/Operators/NormalFluxOperators.hh -text
-source/Forms/Operators/PreStressOperator.hh -text
+source/Forms/Operators/PiolaStressOperator.hh -text
 source/Forms/Operators/StrainOperator.hh -text
 source/Forms/Operators/SurfaceNormalFluxDensityOperator.hh -text
 source/Forms/Operators/SurfaceNormalStressOperator.hh -text

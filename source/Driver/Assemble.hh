@@ -104,6 +104,9 @@ namespace CoupledField {
     //! AssembleMatrices
     bool IsMatrixUpdated(){ return matrixUpdated_;}
 
+    //! Return if any RHS integrator depends on the solution
+    bool IsRhsSolDependent();
+
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
