@@ -19,7 +19,8 @@
 #include "BaseBOperator.hh"
 
 namespace CoupledField{
-  //! Calculate the operator for the computation of prestressing
+  //! Calculate the operator for the computation of Piola stress tensor
+  //! used in geometric nonlinearity and prestressing
   //!    / N_1x  0    0   N_2x   0   ...\
   //! b =| N_1y  0    0   N_2y   0   ...|
   //!    | N_1z  0    0   N_2z   0   ...|
@@ -32,12 +33,12 @@ namespace CoupledField{
   //!  here N_1x denotes the x-derivative of the first
   //!  shape function at a given local point
   //!  this operator is only valid for vectorial unknowns
-  //!  Valid for cartesian coordinate systems. Not sure about Axi...
+  //!  Valid for cartesian coordinate systems.
   //! \tparam FE Type of Finite Element used
   //! \tparam D     Dimension of the problem space and unknown
   //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D, class TYPE = Double>
-  class PreStressOperator : public BaseBOperator{
+  class PiolaStressOperator : public BaseBOperator{
 
   public:
     // ------------------
@@ -63,25 +64,25 @@ namespace CoupledField{
 
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
-    PreStressOperator( bool useICModes = false )
+    PiolaStressOperator( bool useICModes = false )
     :  useICModes_(useICModes) {
       this->name_ = "preStressOp";
     }
 
     //! Copy constructor
-    PreStressOperator(const PreStressOperator & other)
+    PiolaStressOperator(const PiolaStressOperator & other)
        : BaseBOperator(other),
          useICModes_(other.useICModes_){
       this->name_ = other.name_;
     }
 
     //! \copydoc BaseBOperator::Clone()
-    virtual PreStressOperator * Clone(){
-      return new PreStressOperator(*this);
+    virtual PiolaStressOperator * Clone(){
+      return new PiolaStressOperator(*this);
     }
 
     //! Destructor
-    virtual ~PreStressOperator(){
+    virtual ~PiolaStressOperator(){
 
     }
 
@@ -145,7 +146,7 @@ namespace CoupledField{
   };
 
   template<class FE, UInt D, class TYPE>
-  void PreStressOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+  void PiolaStressOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                                const LocPointMapped& lp,
                                                BaseFE* ptFe ){
     // Get derivatives of local shape functions with respect to global
@@ -181,11 +182,190 @@ namespace CoupledField{
   }
 
   template<class FE, UInt D, class TYPE>
-  void PreStressOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+  void PiolaStressOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                  const LocPointMapped& lp,
                                                  BaseFE* ptFe ){
     Matrix<Double> tmpMat;
     this->CalcOpMat(tmpMat,lp,ptFe);
+    tmpMat.Transpose(bMat);
+  }
+
+  /*****************************************************************************
+   * PiolaStressOperatorAxi
+   ****************************************************************************/
+  
+  //! Calculate the operator for the computation of prestressing
+  //! in the axi-symmetric case.
+  //!    / N_1rr   0   N_2rr   0   ...\
+  //! b =| N_1zz   0   N_2zz   0   ...|
+  //!    | N_1rz   0   N_2rz   0   ...|
+  //!    | N_1pp   0   N_2pp   0   ...|
+  //!    |  0    N_1rr  0    N_2rr ...|
+  //!    |  0    N_1zz  0    N_2zz ...|
+  //!    |  0    N_1rz  0    N_2rz ...|
+  //!    \  0    N_1pp  0    N_2pp .../
+  //! here N_1rr denotes the r-derivative of the r-component of the first shape
+  //! function N_1r at a given local point. This operator is only valid for
+  //! vectorial unknowns.
+  //! \tparam FE Type of Finite Element used
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
+  template<class FE, class TYPE = Double>
+  class PiolaStressOperatorAxi : public BaseBOperator{
+  
+  public:
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+  
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+  
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 2;
+  
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+  
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+  
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 5;
+  
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    PiolaStressOperatorAxi( bool useICModes = false )
+    :  useICModes_(useICModes)
+    {
+      this->name_ = "preStressOpAxi";
+    }
+    
+    //! Copy constructor
+    PiolaStressOperatorAxi(const PiolaStressOperatorAxi & other)
+        : BaseBOperator(other),
+          useICModes_(other.useICModes_)
+    {
+      this->name_ = other.name_;
+    }
+    
+    //! Destructor
+    virtual ~PiolaStressOperatorAxi(){}
+  
+    //! \copydoc BaseBOperator::Clone()
+    virtual PiolaStressOperatorAxi * Clone(){
+      return new PiolaStressOperatorAxi(*this);
+    }
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                           const LocPointMapped& lpm,
+                           BaseFE* ptFe );
+  
+    //! Calculate transposed operator matrix
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                     const LocPointMapped& lpm,
+                                     BaseFE* ptFe );
+  
+    using BaseBOperator::CalcOpMat;
+  
+    using BaseBOperator::CalcOpMatTransposed;
+  
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+  
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+  
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+  
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+  
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
+  private:
+  
+    //! Flag, if incompatible modes are used
+    bool useICModes_;
+  
+    //! Cached entry for partial derivatives
+    Matrix<Double> xiDx_;
+    
+    //! Cached vector for shape functions
+    Vector<Double> shape_;
+    
+    //! Cached coordinates of integration point
+    Vector<Double> ipCoord_;
+  };
+  
+  template<class FE, class TYPE>
+  void PiolaStressOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                  const LocPointMapped& lpm,
+                                                  BaseFE* ptFe )
+  {
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    FE *fe = (static_cast<FE*>(ptFe));
+    fe->GetGlobDerivShFnc( xiDx_, lpm, lpm.shapeMap->GetElem(), 1 );
+  
+    // Calculate phi-phi component
+    if (useICModes_) {
+      fe->GetShFncICModes( shape_, lpm.lp, lpm.shapeMap->GetElem() );
+    } else {
+      fe->GetShFnc( shape_, lpm.lp, lpm.shapeMap->GetElem() );
+    }
+    
+    // get radius of integration piint
+    if (lpm.lp.coord.GetSize() > 0) {
+      ipCoord_ = lpm.lp.coord;
+    }
+    else {
+      lpm.shapeMap->Local2Global(ipCoord_, lpm.lp);
+    }
+    const Double oneOverR = 1.0 / ipCoord_[0];
+    
+    const UInt numFncs = xiDx_.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_D_MAT, numFncs * DIM_DOF );
+    bMat.Init();
+  
+    UInt iFunc = 0;
+    for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+      for (UInt iDim1 = 0; iDim1 < DIM_DOF; ++iDim1) {
+        for (UInt iDim2 = 0; iDim2 < DIM_DOF; ++iDim2) {
+          bMat[iDim1*DIM_DOF+iDim2][iFunc*DIM_DOF+iDim1] = xiDx_[iFunc][iDim2];
+        }
+      }
+      bMat[4][iFunc*DIM_DOF] = shape_[iFunc] * oneOverR;
+    }
+  }
+  
+  template<class FE, class TYPE>
+  void PiolaStressOperatorAxi<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                            const LocPointMapped& lpm,
+                                                            BaseFE* ptFe )
+  {
+    Matrix<Double> tmpMat;
+    this->CalcOpMat(tmpMat, lpm, ptFe);
     tmpMat.Transpose(bMat);
   }
 
@@ -368,7 +548,7 @@ namespace CoupledField{
   //! \tparam D     Dimension of the problem space and unknown
   //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D, class TYPE>
-  class ScaledPreStressOperator : public PreStressOperator<FE, D, TYPE>
+  class ScaledPreStressOperator : public PiolaStressOperator<FE, D, TYPE>
   {
 
   public:
@@ -395,13 +575,13 @@ namespace CoupledField{
 
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
-    ScaledPreStressOperator(bool useICModes = false) : PreStressOperator<FE, D, TYPE>(useICModes)
+    ScaledPreStressOperator(bool useICModes = false) : PiolaStressOperator<FE, D, TYPE>(useICModes)
     {
       this->name_ = "ScaledPreStressOp";
     }
 
     //! Copy constructor
-    ScaledPreStressOperator(const ScaledPreStressOperator & other) : PreStressOperator<FE, D, TYPE>(other)
+    ScaledPreStressOperator(const ScaledPreStressOperator & other) : PiolaStressOperator<FE, D, TYPE>(other)
     {
       this->name_ = other.name_;
     }
@@ -727,7 +907,7 @@ namespace CoupledField{
         if (subType == "2.5d")
           preStressOp_ = new PreStressOperator2p5D<FeH1, D, D_DOF, TYPE>(useICModes);
         else
-          preStressOp_ = new PreStressOperator<FeH1, D, TYPE>(useICModes);
+          preStressOp_ = new PiolaStressOperator<FeH1, D, TYPE>(useICModes);
       }
       else
       {

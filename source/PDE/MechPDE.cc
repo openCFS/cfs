@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <set>
 
+#include "../Forms/Operators/PiolaStressOperator.hh"
 #include "General/defs.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/Assemble.hh"
@@ -34,7 +35,6 @@
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
-#include "Forms/Operators/PreStressOperator.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
@@ -303,8 +303,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
   void MechPDE::InitNonLin()
   {
-
-    nonLin_ = false;
+    SinglePDE::InitNonLin();
   }
 
 
@@ -342,6 +341,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+      // complex material or bloch mode with complex B-matrices
+      bool isComplex = do_bloch | complexMatData_[actRegion];
+      
+      // get list of nonlinearities
+      StdVector<NonLinType> & nonLinTypes = regionNonLinTypes_[actRegion];
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
@@ -407,8 +412,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           harmonicPML = false;
         }
 
-        // complex material or bloch mode with complex B-matrices
-        bool complex = do_bloch | complexMatData_[actRegion];
         BaseBDBInt* stiffInt;
 
         // We use a stiffness integrator that implements the scaled strain operator if a PML domain is considered.
@@ -421,7 +424,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         else
         {
           // in the optimization case the coef fucntion will be CoefFunctionOpt
-          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, complex);
+          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, isComplex);
         }
 
         stiffInt->SetName("LinElastInt");
@@ -446,6 +449,106 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         
       }
       
+      // ====================================================================
+      //  Geometric Nonlinear Stiffness
+      // ====================================================================
+      if ( nonLinTypes.Find(GEOMETRIC) != -1 ) {
+        BaseBDBInt *piolaInt = NULL, *nlBInt = NULL;
+        LinearForm *linRhsInt = NULL, *nlRhsInt = NULL;
+        
+        PtrCoefFct stiffCoeff;
+        if( isComplex ) {
+          stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+        }
+        else {
+          stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
+        }
+        regionStiffness_[actRegion] = stiffCoeff;
+        
+        PtrCoefFct piolaTensor(
+            new CoefFunction2ndPiolaTensor(tensorType_, stiffCoeff, myFct));
+        
+        if (subType_ == "axi") {
+          nlBInt = new BDBInt<Double>(
+              new NonLinStrainOperatorAxi<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
+          piolaInt = new BDBInt<Double>(
+              new PiolaStressOperatorAxi<FeH1>(false), piolaTensor, 1.0, false);
+          linRhsInt = new BUIntegrator<Double>(
+              new StrainOperatorAxi<FeH1, Double>(false), -1.0, piolaTensor);
+          nlRhsInt = new BUIntegrator<Double>(
+              new NonLinStrainOperatorAxi<FeH1, Double>(myFct), -1.0, piolaTensor);
+        }
+        else if (subType_ == "planeStrain" || subType_ == "planeStress") {
+          nlBInt = new BDBInt<Double>(
+              new NonLinStrainOperator2D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
+          piolaInt = new BDBInt<Double>(
+              new PiolaStressOperator<FeH1, 2>(false), piolaTensor, 1.0, false);
+          linRhsInt = new BUIntegrator<Double>(
+              new StrainOperator2D<FeH1, Double>(false), -1.0, piolaTensor);
+          nlRhsInt = new BUIntegrator<Double>(
+              new NonLinStrainOperator2D<FeH1, Double>(myFct), -1.0, piolaTensor);
+        }
+        else if (subType_ =="3d") {
+          nlBInt = new BDBInt<Double>(
+              new NonLinStrainOperator3D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
+          piolaInt = new BDBInt<Double>(
+              new PiolaStressOperator<FeH1, 3>(false), piolaTensor, 1.0, false);
+          linRhsInt = new BUIntegrator<Double>(
+              new StrainOperator3D<FeH1, Double>(false), -1.0, piolaTensor);
+          nlRhsInt = new BUIntegrator<Double>(
+              new NonLinStrainOperator3D<FeH1, Double>(myFct), -1.0, piolaTensor);
+        }
+        else {
+          assert(false);
+        }
+        
+        nlBInt->SetNewtonBilinearForm();
+        piolaInt->SetNewtonBilinearForm();
+        
+        nlBInt->SetSolDependent();
+        piolaInt->SetSolDependent();
+        nlRhsInt->SetSolDependent();
+        
+        nlBInt->SetFeSpace(mySpace);
+        piolaInt->SetFeSpace(mySpace);
+        linRhsInt->SetFeSpace(mySpace);
+        nlRhsInt->SetFeSpace(mySpace);
+        
+        nlBInt->SetName("NonLinearStrainInt");
+        piolaInt->SetName("NonLinearPiolaInt");
+        linRhsInt->SetName("LinearInternalForceInt");
+        nlRhsInt->SetName("NonLinearInternalForceInt");
+        
+        BiLinFormContext *nlContext = new BiLinFormContext(nlBInt, STIFFNESS);
+        nlContext->SetEntities(actSDList, actSDList);
+        nlContext->SetFeFunctions(myFct, myFct);
+        assemble_->AddBiLinearForm(nlContext);
+
+        //check for damping
+        if ( dampingList_[actRegion] == RAYLEIGH ) {
+          RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+          nlContext->SetSecDestMat(DAMPING, actDamp.beta );
+        }
+  
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results.
+        bdbInts_[actRegion] = nlBInt;
+        
+        BiLinFormContext *piolaContext = new BiLinFormContext(piolaInt, STIFFNESS);
+        piolaContext->SetEntities(actSDList, actSDList);
+        piolaContext->SetFeFunctions(myFct, myFct);
+        assemble_->AddBiLinearForm(piolaContext);
+        
+        LinearFormContext *linRhsContext = new LinearFormContext(linRhsInt);
+        linRhsContext->SetEntities(actSDList);
+        linRhsContext->SetFeFunction(myFct);
+        assemble_->AddLinearForm(linRhsContext);
+        
+        LinearFormContext *nlRhsContext = new LinearFormContext(nlRhsInt);
+        nlRhsContext->SetEntities(actSDList);
+        nlRhsContext->SetFeFunction(myFct);
+        assemble_->AddLinearForm(nlRhsContext);
+      }
 
       PtrParamNode preStressNode;
       PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
@@ -1608,17 +1711,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     if(dim_==2 && subType_ != "2.5d"){
       if( regionSoftening_[regionId] == "icModesTW") {
         if(isComplex){
-          preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,2,Complex>(true),
-                                                 new PreStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
+          preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,2,Complex>(true),
+                                                 new PiolaStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
         }else{
-          preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,2,Double>(true),
-                                                new PreStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
+          preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,2,Double>(true),
+                                                new PiolaStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
         }
       }else{
         if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
         }else{
-          preStressInt = new BDBInt<Double, Double>(new PreStressOperator<FeH1,2,Double>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,2,Double>(false),preStressFct,1.0);
         }
       }
     }else if (dim_==2 && subType_ == "2.5d"){
@@ -1640,17 +1743,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }else{
       if( regionSoftening_[regionId] == "icModesTW") {
         if(isComplex){
-          preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,3,Complex>(true),
-                                                 new PreStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
+          preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,3,Complex>(true),
+                                                 new PiolaStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
         }else{
-          preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,3,Double>(true),
-                                                new PreStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
+          preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,3,Double>(true),
+                                                new PiolaStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
         }
       }else{
         if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
         }else{
-          preStressInt = new BDBInt<Double, Double>(new PreStressOperator<FeH1,3,Double>(false),preStressFct,1.0);
+          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,3,Double>(false),preStressFct,1.0);
         }
       }
     }
@@ -2630,6 +2733,157 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     return stressVec;
   }
 
+  MechPDE::CoefFunction2ndPiolaTensor::
+  CoefFunction2ndPiolaTensor(SubTensorType &subType,
+                             PtrCoefFct stiffness,
+                             shared_ptr<BaseFeFunction> displ)
+    : CoefFunction(),
+      tensorType_(subType),
+      stiffCoef_(stiffness),
+      linOp_(NULL),
+      nonLinOp_(NULL)
+  {
+    switch (tensorType_) {
+      case FULL:
+        linOp_ = new StrainOperator3D<FeH1,Double>(false);
+        nonLinOp_ = new NonLinStrainOperator3D<FeH1,Double>(displ);
+        break;
+      case AXI:
+        linOp_ = new StrainOperatorAxi<FeH1,Double>(false);
+        nonLinOp_ = new NonLinStrainOperatorAxi<FeH1,Double>(displ);
+        break;
+      case PLANE_STRAIN:
+      case PLANE_STRESS:
+        linOp_ = new StrainOperator2D<FeH1,Double>(false);
+        nonLinOp_ = new NonLinStrainOperator2D<FeH1,Double>(displ);
+        break;
+      default:
+        EXCEPTION("Unknown mechanical subtype: " << tensorType_ << std::endl);
+    }
+
+    if (displ->IsComplex()) {
+      dispCoefComplex_ = dynamic_pointer_cast< FeFunction<Complex> >(displ);
+    }
+    else {
+      dispCoefReal_ = dynamic_pointer_cast< FeFunction<Double> >(displ);
+    }
+    if (!dispCoefComplex_ && !dispCoefReal_) {
+      EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+    }
+    
+    dimType_ = TENSOR;
+    dependType_ = SOLUTION;
+    isAnalytic_ = false;
+    isComplex_ = false;
+  }
+
+  MechPDE::CoefFunction2ndPiolaTensor::~CoefFunction2ndPiolaTensor() {
+    if (linOp_)
+      delete linOp_;
+    if (nonLinOp_)
+      delete nonLinOp_;
+  }
+  
+  void MechPDE::CoefFunction2ndPiolaTensor::
+  GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    switch (tensorType_) {
+      case FULL:
+        numRows = StrainOperator3D<FeH1,Double>::DIM_D_MAT;
+        numCols = StrainOperator3D<FeH1,Double>::DIM_D_MAT;
+        break;
+      case AXI:
+        numRows = StrainOperatorAxi<FeH1,Double>::DIM_D_MAT;
+        numCols = StrainOperatorAxi<FeH1,Double>::DIM_D_MAT;
+        break;
+      case PLANE_STRAIN:
+      case PLANE_STRESS:
+        numRows = StrainOperator2D<FeH1,Double>::DIM_D_MAT;
+        numCols = StrainOperator2D<FeH1,Double>::DIM_D_MAT;
+        break;
+      default:
+        EXCEPTION("Unknown mechanical subtype: " << tensorType_ << std::endl);
+    }
+  }
+  
+  void MechPDE::CoefFunction2ndPiolaTensor::
+  GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
+    Vector<Double> disp, linStrain, nlStrain, totalStrain;
+    Matrix<Double> stiff;
+    BaseFE *ptFe = dispCoefReal_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
+
+    dispCoefReal_->GetElemSolution(disp, lpm.ptEl);
+    stiffCoef_->GetTensor(stiff, lpm);
+    
+    linOp_->ApplyOp(linStrain, lpm, ptFe, disp);
+    
+    nonLinOp_->ApplyOp(nlStrain, lpm, ptFe, disp);
+    nlStrain *= 0.5;
+    
+    totalStrain = linStrain + nlStrain;
+    
+    vec = stiff * totalStrain;
+  }
+
+  void MechPDE::CoefFunction2ndPiolaTensor::
+  GetTensor(Matrix<Double> &tensor, const LocPointMapped &lpm) {
+    Vector<Double> voigtVec;
+    GetVector(voigtVec, lpm);
+    
+    switch (tensorType_) {
+      case PLANE_STRAIN:
+      case PLANE_STRESS:
+        tensor.Resize(4, 4);
+        tensor.Init();
+        
+        tensor[0][0] = voigtVec[0];
+        tensor[0][1] = voigtVec[2];
+        tensor[1][0] = voigtVec[2];
+        tensor[1][1] = voigtVec[1];
+        tensor[2][2] = voigtVec[0];
+        tensor[2][3] = voigtVec[2];
+        tensor[3][2] = voigtVec[2];
+        tensor[3][3] = voigtVec[1];
+        break;
+        
+      case AXI:
+        tensor.Resize(5, 5);
+        tensor.Init();
+        
+        tensor[0][0] = voigtVec[0];
+        tensor[0][1] = voigtVec[2];
+        tensor[1][0] = voigtVec[2];
+        tensor[1][1] = voigtVec[1];
+        tensor[2][2] = voigtVec[0];
+        tensor[2][3] = voigtVec[2];
+        tensor[3][2] = voigtVec[2];
+        tensor[3][3] = voigtVec[1];
+        tensor[4][4] = voigtVec[3];
+        break;
+        
+      case FULL:
+        tensor.Resize(9, 9);
+        tensor.Init();
+        
+        for (UInt i=0; i<3 ; ++i) {
+          tensor[i*3+0][i*3+0] = voigtVec[0];
+          tensor[i*3+0][i*3+1] = voigtVec[3];
+          tensor[i*3+0][i*3+2] = voigtVec[5];
+
+          tensor[i*3+1][i*3+0] = voigtVec[3];
+          tensor[i*3+1][i*3+1] = voigtVec[1];
+          tensor[i*3+1][i*3+2] = voigtVec[4];
+
+          tensor[i*3+2][i*3+0] = voigtVec[5];
+          tensor[i*3+2][i*3+1] = voigtVec[4];
+          tensor[i*3+2][i*3+2] = voigtVec[2];
+        }
+        break;
+        
+      default:
+        EXCEPTION("Unknown mechanical subtype: " << tensorType_ << std::endl);
+    }
+  }
+  
   template BiLinearForm* MechPDE::GetPenaltyIntegrator<Double>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
   template BiLinearForm* MechPDE::GetPenaltyIntegrator<Complex>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
   template BiLinearForm* MechPDE::GetFluxIntegrator<Double>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool, bool, bool);

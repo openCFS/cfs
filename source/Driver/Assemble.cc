@@ -1772,6 +1772,15 @@ namespace CoupledField
     return isComplex;
   }
 
+  bool Assemble::IsRhsSolDependent() {
+    bool ret = false;
+    UInt size = linForms_.GetSize();
+    for( UInt i = 0; i < size; ++i ) {
+      ret |= linForms_[i]->IsNonLin();
+    }
+    return ret;
+  }
+
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                                Matrix<Double>& elemMat,

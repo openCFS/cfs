@@ -2121,5 +2121,606 @@ namespace CoupledField{
      }
    }
 
+   
+   // =========================================================================
+   //  NONLINEAR 2D STRAIN OPERATOR (PLANE) 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 2D
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperator2D : public StrainOperator2D<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperator2D(shared_ptr<BaseFeFunction> displ)
+         : StrainOperator2D<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperator2D";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(4);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperator2D() {}
+
+       //! Calculate operator matrix
+       virtual void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       using BaseBOperator::CalcOpMat;
+
+       using BaseBOperator::CalcOpMatTransposed;
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Vector<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+ //    std::cerr << "NonLinStrainOperator2D::CalcOpMat\n";
+     //    << "element " << lp.ptEl->elemNum << std::endl;
+     
+     // get global derivatives of shape functions
+     FE *fe = static_cast<FE*>(ptFE);
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+ //    std::cerr << "element solution: " << elemDisp_.ToString() << std::endl;
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     //bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[0][colPos  ] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[0][colPos+1] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[1][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[1][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[2][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[2][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator2D<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+     
+ //    std::cerr << "B matrix:\n" << bMat.ToString() << std::endl;
+     //    << "End NonLinStrainOperator2D::CalcOpMat\n\n";
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator2D<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+ //    std::cerr << "NonLinStrainOperator2D::CalcOpMatTransposed\n";
+     //    << "element " << lp.ptEl->elemNum << std::endl;
+       
+     // get global derivatives of shape functions
+     FE *fe = static_cast<FE*>(ptFE);
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+ //    std::cerr << "element solution: " << elemDisp_.ToString() << std::endl;
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     //bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][0] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[colPos+1][0] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][1] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[colPos+1][1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][2] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[colPos+1][2] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator2D<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+     
+ //    std::cerr << "B matrix:\n" << bMat.ToString() << std::endl;
+     //    << "End NonLinStrainOperator2D::CalcOpMatTransposed\n\n";
+   }
+
+   
+   // =========================================================================
+   //  NONLINEAR 2D STRAIN OPERATOR (AXI) 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 2D axi
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperatorAxi : public StrainOperatorAxi<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperatorAxi(shared_ptr<BaseFeFunction> displ)
+         : StrainOperatorAxi<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperatorAxi";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(5);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperatorAxi() {}
+
+       //! Calculate operator matrix
+       virtual void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp, 
+           BaseFE* ptFe );
+
+       using BaseBOperator::CalcOpMat;
+
+       using BaseBOperator::CalcOpMatTransposed;
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Vector<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+       
+       //! Values of shape functions at integration point
+       Vector<Double> shFncAtIp_;
+       
+       //! Global coordinates of integration point
+       Vector<Double> ipCoord_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get shape functions at integration point
+     fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
+     
+     // get global coordinates of integration point
+     if (lp.lp.coord.GetSize() == 0) {
+       lp.shapeMap->Local2Global(ipCoord_, lp.lp);
+     }
+     
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_33
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[4] += shFncAtIp_[iFunc] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     nlCoef_[4] /= ipCoord_[0] * ipCoord_[0];
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[0][colPos  ] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[0][colPos+1] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[1][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[1][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[2][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[2][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[3][colPos  ] = this->shFncAtIp_[iFunc] * nlCoef_[4];
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperatorAxi<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get shape functions at integration point
+     fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
+     
+     // get global coordinates of integration point
+     if (lp.lp.coord.GetSize() == 0) {
+       lp.shapeMap->Local2Global(ipCoord_, lp.lp);
+     }
+     
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_33
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[4] += shFncAtIp_[iFunc] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     nlCoef_[4] /= ipCoord_[0] * ipCoord_[0];
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][0] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[colPos+1][0] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][1] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[colPos+1][1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][2] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[colPos+1][2] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][3] = this->shFncAtIp_[iFunc] * nlCoef_[4];
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   // =========================================================================
+   //  NONLINEAR 3D STRAIN OPERATOR 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 3D
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperator3D : public StrainOperator3D<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperator3D(shared_ptr<BaseFeFunction> displ)
+         : StrainOperator3D<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperator3D";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(3, 3);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperator3D() {}
+
+       //! Calculate operator matrix
+       virtual void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp, 
+           BaseFE* ptFe );
+
+       using BaseBOperator::CalcOpMat;
+
+       using BaseBOperator::CalcOpMatTransposed;
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Matrix<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+       
+       //! Values of shape functions at integration point
+       Vector<Double> shFncAtIp_;
+       
+       //! Global coordinates of integration point
+       Vector<Double> ipCoord_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+           nlCoef_[i][j] += this->xiDx_[iFunc][j] *
+                            elemDisp_[iFunc*this->DIM_DOF + i];
+         }
+       }
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     bMat.Init();
+     
+     UInt colPos;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+         for (UInt j = 0; j < this->DIM_DOF; ++j) {
+           bMat[i][colPos+j] = this->xiDx_[iFunc][i] * nlCoef_[j][i];
+         }
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[3][colPos+j] = this->xiDx_[iFunc][2] * nlCoef_[j][1] +
+                             this->xiDx_[iFunc][1] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[4][colPos+j] = this->xiDx_[iFunc][2] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[5][colPos+j] = this->xiDx_[iFunc][1] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][1];
+       }
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator3D<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator3D<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+           nlCoef_[i][j] += this->xiDx_[iFunc][j] *
+                            elemDisp_[iFunc*this->DIM_DOF + i];
+         }
+       }
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     bMat.Init();
+     
+     UInt colPos;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+         for (UInt j = 0; j < this->DIM_DOF; ++j) {
+           bMat[colPos+j][i] = this->xiDx_[iFunc][i] * nlCoef_[j][i];
+         }
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][3] = this->xiDx_[iFunc][1] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][1];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][4] = this->xiDx_[iFunc][2] * nlCoef_[j][1] +
+                             this->xiDx_[iFunc][1] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][5] = this->xiDx_[iFunc][2] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][2];
+       }
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
 }
 #endif
