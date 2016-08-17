@@ -2260,6 +2260,8 @@ source/cfsdat/Filters/Input/InputFilter.cc -text
 source/cfsdat/Filters/Input/InputFilter.hh -text
 source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.cc -text
 source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.hh -text
+source/cfsdat/Filters/Interpolators/Cell2NodeInterpolator.cc -text
+source/cfsdat/Filters/Interpolators/Cell2NodeInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.cc -text
