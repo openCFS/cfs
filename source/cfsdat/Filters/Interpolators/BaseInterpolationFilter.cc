@@ -16,6 +16,7 @@
 #include "BaseInterpolationFilter.hh"
 #include "Filters/Interpolators/CentroidInterpolator.hh"
 #include "Filters/Interpolators/NearestNeighbourInterpolator.hh"
+#include "Filters/Interpolators/Cell2NodeInterpolator.hh"
 #include "Filters/Interpolators/GridIntersectionFilter.hh"
 
 
@@ -31,6 +32,8 @@ FilterPtr BaseInterpolationFilter::GenerateInterpolator(PtrParamNode interpolNod
    newFilter = FilterPtr(new CFSDat::GridIntersectionFilter(0,interpolNode,resMana));
  } else if (interpolNode->Get("type")->As<std::string>() == "NearestNeighbour"){
    newFilter = FilterPtr(new CFSDat::NearestNeighbourInterpolator(0,interpolNode,resMana));
+ } else if (interpolNode->Get("type")->As<std::string>() == "Cell2Node"){
+   newFilter = FilterPtr(new CFSDat::Cell2NodeInterpolator(0,interpolNode,resMana));
  }
  return newFilter;
 }

@@ -1,14 +1,11 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-	targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
-	xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
-	
-	<xsd:annotation>
-		<xsd:documentation xml:lang="en">
-			Parameter file schema for the Coupled Field Data processing project
-			CFS-Dat
-		</xsd:documentation>
-	</xsd:annotation>
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en"> Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat </xsd:documentation>
+  </xsd:annotation>
 
 
   <xsd:include schemaLocation="../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
@@ -23,37 +20,33 @@
   <xsd:complexType name="DT_BaseFilter">
     <xsd:attribute name="id" use="required" type="xsd:token">
       <xsd:annotation>
-        <xsd:documentation>
-          Human readable id for the current filter. 
-          Can be any string but must be unique within the document.
-          For outputfilters, this id will be used for the result file name.
-        </xsd:documentation>
+        <xsd:documentation> Human readable id for the current filter. Can be any string but must be
+          unique within the document. For outputfilters, this id will be used for the result file
+          name. </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="inputFilterIds" use="optional" type="xsd:token" default="none">
       <xsd:annotation>
-        <xsd:documentation>
-          Space separated Ids for the input filter. Creates a connection between the filter with the given id and the 
-          current filter. Will be ignored for input filters.
+        <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+          the filter with the given id and the current filter. Will be ignored for input filters.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
-  
+
   <xsd:simpleType name="DT_GridType">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="fullGrid">
         <xsd:annotation>
-          <xsd:documentation>
-            Will generate a full scale CFS grid which can be used for mesh result export.
-          </xsd:documentation>
+          <xsd:documentation> Will generate a full scale CFS grid which can be used for mesh result
+            export. </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
       <xsd:enumeration value="simpleGrid">
         <xsd:annotation>
-          <xsd:documentation>
-            Will generate a full scale CFS grid which can be used for mesh result export.But no additional element information thus reducing memory consumption at the cost of less flexibility.
-          </xsd:documentation>
+          <xsd:documentation> Will generate a full scale CFS grid which can be used for mesh result
+            export.But no additional element information thus reducing memory consumption at the
+            cost of less flexibility. </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
       <!--xsd:enumeration value="justCentroids">
@@ -74,7 +67,7 @@
       </xsd:enumeration-->
     </xsd:restriction>
   </xsd:simpleType>
-   
+
   <xsd:complexType name="DT_DatMeshInput">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
@@ -87,12 +80,12 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="gridType" type="DT_GridType" default="fullGrid"/>     
-        <xsd:attribute name="printResultInfo" type="DT_CFSBool" default="no"/>   
+        <xsd:attribute name="gridType" type="DT_GridType" default="fullGrid"/>
+        <xsd:attribute name="printResultInfo" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>  
-  
+  </xsd:complexType>
+
   <xsd:simpleType name="DT_DefOn">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="nodes"/>
@@ -100,7 +93,7 @@
       <xsd:enumeration value="regions"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <xsd:complexType name="DT_ResultDef">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
@@ -117,14 +110,13 @@
               </xsd:complexContent>
             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="allRegions"  minOccurs="1"
-            maxOccurs="1">      
+          <xsd:element name="allRegions" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:complexContent>
                 <xsd:extension base="DT_AllRegionResultDescr">
-                  <xsd:attribute name="onlyVolumes" type="DT_CFSBool" default="no"></xsd:attribute>
+                  <xsd:attribute name="onlyVolumes" type="DT_CFSBool" default="no"/>
                 </xsd:extension>
-              </xsd:complexContent>       
+              </xsd:complexContent>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -136,7 +128,7 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_DatMeshOutput">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
@@ -159,7 +151,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_TDeriv1">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
@@ -182,32 +174,31 @@
           </xsd:element>
           <xsd:element name="allResults">
             <xsd:annotation>
-              <xsd:documentation>
-                It is tried to compute time derivatives for all requested resutls. Make sure to use CFS compilant result names.
-                In addition not all derivative reslations (baseName->D1Name->D2Name) are yet supported.
-              </xsd:documentation>
+              <xsd:documentation> It is tried to compute time derivatives for all requested resutls.
+                Make sure to use CFS compilant result names. In addition not all derivative
+                reslations (baseName->D1Name->D2Name) are yet supported. </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_SimpleQuantity">
     <xsd:attribute name="resultName" type="xsd:token"/>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_SimplePoint">
     <xsd:attribute name="x" type="xsd:double"/>
     <xsd:attribute name="y" type="xsd:double"/>
     <xsd:attribute name="z" type="xsd:double"/>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_RotDomain">
     <xsd:choice>
       <xsd:element name="region">
         <xsd:complexType>
-          <xsd:attribute name="regionName"></xsd:attribute>
+          <xsd:attribute name="regionName"/>
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="cylinder">
@@ -224,10 +215,10 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:choice>
-    <xsd:attribute name="rpm" type="xsd:double"></xsd:attribute>
+    <xsd:attribute name="rpm" type="xsd:double"/>
   </xsd:complexType>
-    
-  
+
+
   <xsd:complexType name="DT_RotSTDeriv">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
@@ -240,20 +231,37 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <xsd:simpleType name="DT_InterpolationType">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Conservative_CellCentroid"/>
       <xsd:enumeration value="Conservative_CutCell"/>
+      <xsd:enumeration value="Cell2Node"/>
       <xsd:enumeration value="NearestNeighbour"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
+
+  <xsd:complexType name="DT_NNScheme">
+    <xsd:choice>
+      <!--xsd:element name="CGAL" default="1"/>
+      <xsd:element name="FLANN" default="2"/-->
+    </xsd:choice>
+    <xsd:attribute name="searchAlgorithm" type="xsd:string" use="optional"  default="CGAL"/>
+    <xsd:attribute name="interpolationExponent" type="xsd:integer" default="2" use="optional"/>
+    <xsd:attribute name="searchRadius" type="xsd:double" default="5" use="optional"/>
+    <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
+  </xsd:complexType>
+
+
+
   <xsd:complexType name="DT_Interpolation">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
+          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0">
+          </xsd:element>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>
@@ -310,15 +318,15 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-    
 
-	<xsd:group name="FilterGroup">
+
+  <xsd:group name="FilterGroup">
     <xsd:choice>
-      <xsd:element name="meshInput"               type="DT_DatMeshInput"/>
-      <xsd:element name="meshOutput"              type="DT_DatMeshOutput"/>
-      <xsd:element name="timeDeriv1"              type="DT_TDeriv1"/>
-      <xsd:element name="substantialDeriv"        type="DT_RotSTDeriv"/>
-      <xsd:element name="interpolation"           type="DT_Interpolation"/>
+      <xsd:element name="meshInput" type="DT_DatMeshInput"/>
+      <xsd:element name="meshOutput" type="DT_DatMeshOutput"/>
+      <xsd:element name="timeDeriv1" type="DT_TDeriv1"/>
+      <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
+      <xsd:element name="interpolation" type="DT_Interpolation"/>
     </xsd:choice>
   </xsd:group>
 
@@ -358,20 +366,19 @@
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>
-      
+
       <xsd:group ref="FilterGroup" minOccurs="1" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
-	<xsd:element name="cfsdat">
-		<xsd:complexType>
-			<xsd:sequence>
+  <xsd:element name="cfsdat">
+    <xsd:complexType>
+      <xsd:sequence>
 			  <!-- Tags for documenting simulations (required just for test suite)-->
         <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
         <!-- File format list for io-specifications (required)-->
         <xsd:element name="pipeline" type="DT_FilterList" minOccurs="1" maxOccurs="1"/>
-			</xsd:sequence>
-		</xsd:complexType>
-	</xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
 </xsd:schema>
-
