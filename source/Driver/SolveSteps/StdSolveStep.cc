@@ -1306,12 +1306,12 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
 
 
+    //Set special RHS Values
+    //std::cout << "Do Apply Loads" << std::endl;
+    PDE_.SetRhsValues();
+
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
-
-    //Set special RHS Values
-    std::cout << "Do Apply Loads" << std::endl;
-    PDE_.SetRhsValues();
 
     assemble_->AssembleMatrices( );
     PDE_.SetBCs();
@@ -1334,6 +1334,19 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     algsys_->Solve(analysis_id);
     algsys_->GetSolutionVal(solVec_);
+
+    if ( adjointSource_ ) {
+    	//check if adjoint PDE has been solved in case of source localization
+    	//if yes, we have to multiply the solution with a standard mass matrix
+    	std::cout << "DO multiply with MASS-matrix" << std::endl;
+    	//solVec_.Export("sol1.dat",BaseMatrix::MATRIX_MARKET);
+    	algsys_->InitRHS();
+    	algsys_->UpdateRHS(AUXILIARY,solVec_,true);
+    	algsys_->GetRHSVal( solVec_ );
+    	//solVec_.Export("sol2.dat",BaseMatrix::MATRIX_MARKET);
+    	//std::cout << "SOL after: \n " << solVec_ << std::endl;
+    	adjointSource_ = false;
+    }
   }
 
 

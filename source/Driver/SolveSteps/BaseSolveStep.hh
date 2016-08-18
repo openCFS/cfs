@@ -158,6 +158,11 @@ namespace CoupledField
       couplingIter_ = count;
     }
     
+    //! set adjoint
+    void SetAdjointSource() {
+    	adjointSource_ = true;
+    }
+
   protected:
 
     //! Constructor
@@ -182,6 +187,9 @@ namespace CoupledField
     
     //! Counter for iterative coupling
     UInt couplingIter_;
+
+    //!
+    bool adjointSource_;
   };
 
 

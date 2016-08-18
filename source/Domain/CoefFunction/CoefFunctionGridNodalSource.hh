@@ -107,11 +107,8 @@ public:
   virtual void ComputeMeasL2squared( Double& vaL2 );
 
   //! computes the L2 norm of error
-  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp ) {
-	  alpha_ = alpha;
-	  beta_  = beta;
-	  qExp_  = qExp;
-  }
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp, Double& freq);
+
 
 protected:
 
@@ -176,6 +173,15 @@ private:
   Vector<DATA_TYPE> measVec_;
 
   StdVector<bool> isMeasuredNode_;
+
+  std::string typeCoeff_;
+
+  Double meanElemVol_;
+
+  Double freq_;
+
+  Double scalingHesse_;
+
  };
    
 

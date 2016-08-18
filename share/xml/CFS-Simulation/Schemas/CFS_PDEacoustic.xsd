@@ -117,6 +117,9 @@
                 <xsd:element name="velocity"       type="DT_BcInhomVector"/>
                 <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
 
+                <!-- acoustic source density -->
+                <xsd:element name="acouSourceDensity"  type="DT_BcInhomScalar"/>
+                
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
                 <xsd:element name="rhsValues"      type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>

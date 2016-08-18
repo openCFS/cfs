@@ -109,6 +109,10 @@ namespace CoupledField
      */
     virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap();
 
+    virtual void SetSourceApproxType( bool type ) {
+    	approxSourceWithDeltaFnc_ = type;
+    }
+
 
   protected:
     
@@ -146,6 +150,9 @@ namespace CoupledField
     //! Pointer to MathParser
     MathParser * mp_;
     
+    //!
+    bool approxSourceWithDeltaFnc_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

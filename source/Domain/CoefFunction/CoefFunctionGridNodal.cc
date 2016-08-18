@@ -131,15 +131,17 @@ namespace CoupledField{
     //Be careful we determine the current sequence step according to the 
     //current simulation run. This could fail in a multisequence analysis!!!
     //the user should give an argument where to find the results!
-    shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( inputId_, aSeqStep_ ,stepValueMap_.begin()->first, solType_, *srcRegions_.begin() );
+
+//    shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( inputId_, aSeqStep_ ,
+//    		                               stepValueMap_.begin()->first, solType_, *srcRegions_.begin() );
 
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     UInt pos = 0;
     for( ; regIter != srcRegions_.end(); ++regIter) {
       StdVector<UInt> nList;
-      RegionIdType curId = srcGrid_->GetRegion().Parse(*regIter);
-      srcGrid_->GetNodesByRegion(nList,curId);
-
+      //RegionIdType curId = srcGrid_->GetRegion().Parse(*regIter);
+      //srcGrid_->GetNodesByRegion(nList,curId);
+      srcGrid_->GetNodesByName(nList,*regIter );
       for(UInt i=0; i<nList.GetSize(); i++){
         nodeIdxMap_[nList[i]] = pos++;
       }

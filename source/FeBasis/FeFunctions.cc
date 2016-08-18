@@ -858,6 +858,9 @@ DECLARE_LOG(fefunc)
 	  for ( ; it != loadCoefs_.end(); ++it  ) {
 		  PtrCoefFct ptCoef = it->first;
 		  StdVector<shared_ptr<EntityList> > & lists = it->second;
+
+		  CoefFunction::CoefInverseType type = ptCoef->GetInverseType();
+		  CoefFunction::CoefInverseSourceApprox typeApprox = ptCoef->GetInverseSourceApproxType();
 		  if(ptCoef->IsConservative()){
 			  //this is a little circumfencial allocaing and releasing memory
 			  //in each step. perhaps it would be better to make a class variable or do it
@@ -865,23 +868,26 @@ DECLARE_LOG(fefunc)
 			  Vector<T> loadVec(this->coeffs_->GetSize());
 			  loadVec.Init();
 			  ptCoef->MapConservative(this->feSpace_,loadVec);
-			  this->algsys_->SetFncRHS(loadVec,this->fctId_);
-		  }
-		  else{
-			  //ok here we pass again the work to the space
-			  //        // check, if entity list is defined on elements or nodes
-			  //        if( curEnt->GetType() == EntityList::ELEM_LIST ||
-			  //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
-			  // Map coefficient function onto the actual FeSpace
-			  std::map<Integer, T> coefs;
-			  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
-
-			  typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
-			  for( ; coefIt != coefs.end(); ++coefIt ) {
-				  this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
+			  //this is a hack for source localization
+			  if ( type != CoefFunction::INVSOURCE || typeApprox == CoefFunction::DELTA)
+				  this->algsys_->SetFncRHS(loadVec,this->fctId_);
 			  }
-		  }
-	  }// loop: coefs
+			  else{
+				  //ok here we pass again the work to the space
+				  //        // check, if entity list is defined on elements or nodes
+				  //        if( curEnt->GetType() == EntityList::ELEM_LIST ||
+				  //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+				  // Map coefficient function onto the actual FeSpace
+				  std::map<Integer, T> coefs;
+				  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
+
+				  typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+				  for( ; coefIt != coefs.end(); ++coefIt ) {
+					  this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
+				  }
+			  }
+
+		  }// loop: coefs
   }
 
 

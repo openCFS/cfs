@@ -24,6 +24,7 @@ namespace CoupledField {
     domain_(ptDomain),
     mp_(ptDomain->GetMathParser())
   {
+	  approxSourceWithDeltaFnc_ = false;
   }
 
   // **************
