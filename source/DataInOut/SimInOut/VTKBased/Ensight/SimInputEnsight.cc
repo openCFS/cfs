@@ -319,13 +319,13 @@ void SimInputEnsight::FillResultMap(){
   vor->entryType = ResultInfo::VECTOR;
 
   //================================================
-  // FluidMechVelocity
+  // MeanFluidMechVelocity
   //================================================
   //Basic CFS definition
-  this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
-  shared_ptr<ResultInfo> vel = this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res;
-  vel->resultType = FLUIDMECH_VELOCITY;
-  vel->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
+  this->cfsEnsightResMap_[MEAN_FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> vel = this->cfsEnsightResMap_[MEAN_FLUIDMECH_VELOCITY].res;
+  vel->resultType = MEAN_FLUIDMECH_VELOCITY;
+  vel->resultName = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
   if(dim_ == 3)
     vel->dofNames = "x", "y", "z";
   else
