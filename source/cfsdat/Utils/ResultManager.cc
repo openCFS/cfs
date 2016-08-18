@@ -450,7 +450,7 @@ void ResultManager::Finalize(){
   //        II. Condition I is true and same EntityList -> commonEqnVector
   //       III. Same timeline -> Delete all timelines except one and modify pointers
   //        IV. ALL the same except EntityList -> combineEqnVec and create common resultVector
-  // 2. Which datastrcutures are necessary?
+  // 2. Which data-structures are necessary?
   //    1. We copy all resultIds into a set
   //    2. We iterate over all results if result is identical to current result, its removed from
   //       temporary set and pushed into a corresponding vector

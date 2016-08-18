@@ -15,6 +15,7 @@
 #include "GridIntersectionFilter.hh"
 #include "Domain/Mesh/MeshUtils/Intersection/VolumeGridIntersection.hh"
 #include "Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/TriaIntersect.hh"
+#include "Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.hh"
 #include "MatVec/CoordFormat.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "MatVec/CRS_Matrix.hh"
@@ -81,14 +82,32 @@ void GridIntersectionFilter::PrepareInterpolation(){
 
   Grid* inGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
 
-  //first we create the cell intersector
-  VolumeGridIntersection<TriaIntersect> intersect(this->trgGrid_,inGrid,trgRegions_,srcRegions_);
+  StdVector<ElemIntersect::VolCenterInfo> intersectInfo;
 
+
+  //first we create the cell intersector
+  //YET MISSING make sanity check if all region have same dimension
+  UInt intersetionDim = 1;
+  std::set<std::string>::iterator reg = trgRegions_.begin();
+  intersetionDim = this->trgGrid_->GetEntityDim(*reg);
   std::cout << "\t\t 1. Intersecting Grids" << std::endl;
-  //TODO: make optional, read from file...
-  boost::uuids::uuid tId = this->StartTime();
-  StdVector<ElemIntersect::VolCenterInfo> intersectInfo = intersect.GetVolCenterInfo();
-  std::cout << "\t\t\t Took: " << this->StopTime(tId) << std::endl;
+  if(intersetionDim==2){
+    VolumeGridIntersection<ElemIntersect2D> intersect(this->trgGrid_,inGrid,trgRegions_,srcRegions_);
+    //TODO: make optional, read from file...
+    boost::uuids::uuid tId = this->StartTime();
+    intersectInfo = intersect.GetVolCenterInfo();
+    std::cout << "\t\t\t Took: " << this->StopTime(tId) << std::endl;
+  }else if(intersetionDim==3){
+    VolumeGridIntersection<TetraIntersect> intersect(this->trgGrid_,inGrid,trgRegions_,srcRegions_);
+    boost::uuids::uuid tId = this->StartTime();
+    intersectInfo = intersect.GetVolCenterInfo();
+    std::cout << "\t\t\t Took: " << this->StopTime(tId) << std::endl;
+  }else{
+    EXCEPTION("Unsupported dimension of intersection region")
+  }
+
+
+
 
   std::cout << "\t\t 2. Creating interpolation matrix" << std::endl;
   CreateCRS(intersectInfo);
@@ -222,6 +241,12 @@ void GridIntersectionFilter::CreateCRS(const StdVector<ElemIntersect::VolCenterI
 
 ResultIdList GridIntersectionFilter::SetUpstreamResults(){
   ResultIdList generated;
+  //if we have no filter results, this filter is useless
+  // we just return the list
+  if(filterResIds.GetSize()==0){
+    std::cerr << "WARNING: Interpolation filter is not needed for the requested results. Is this what you want?" << std::endl;
+    return generated;
+  }
   //we should only have one filter Result
   CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
   std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;

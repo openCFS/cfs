@@ -15,6 +15,7 @@
 
 
 #include "BaseFilter.hh"
+#include "Filters/Arithmetic/BinOpFilter.hh"
 #include "Filters/Input/InputFilter.hh"
 #include "Filters/Output/OutputFilter.hh"
 #include "Filters/Interpolators/BaseInterpolationFilter.hh"
@@ -37,6 +38,8 @@ if(filtNode->GetName() == "meshInput"){
   newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
 }else if(filtNode->GetName() == "interpolation"){
   newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
+}else if(filtNode->GetName() == "binaryOperation"){
+  newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
 }
 return newPtr;
 }

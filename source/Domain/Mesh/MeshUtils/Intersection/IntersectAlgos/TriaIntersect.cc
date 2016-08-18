@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     TriaIntersect.cc
+ *       \file     TetraIntersect.cc
  *       \brief    interset tetrahedrons based on
  *                 3D Game Engine Design. A Practical Approach to Real-Time Computer Graphics
  *                 (Morgan Kaufmann Series in Interactive 3D Technology)
@@ -22,7 +22,7 @@
 
 namespace CoupledField{
 
-void TriaIntersect::InitElemMap(){
+void TetraIntersect::InitElemMap(){
   refFeMap[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
   refFeMap[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
   refFeMap[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
@@ -44,14 +44,14 @@ void TriaIntersect::InitElemMap(){
 
 }
 
-void TriaIntersect::SetTElem( UInt tNum ){
+void TetraIntersect::SetTElem( UInt tNum ){
   const Elem* newTElem = tGrid_->GetElem(tNum);
   if(tElemNum_ != newTElem->elemNum){
     GetTetsFromElem(newTElem, tGrid_,tTets_);
   }
 }
 
-bool TriaIntersect::Intersect(UInt sNum){
+bool TetraIntersect::Intersect(UInt sNum){
   /*
    * We intersect here all tetras from triangulation
    * the key in this method is the cut against the four planes
@@ -115,7 +115,7 @@ bool TriaIntersect::Intersect(UInt sNum){
   return (intersectingTets_.GetSize()!=0);
 }
 
-void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
+void TetraIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
   UInt numTets = intersectingTets_.GetSize();
   if(numTets == 0){
     infos.Resize(0);
@@ -197,7 +197,7 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
 
 }
 
-inline void TriaIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid, StdVector<CoordTetra> & genTets){
+inline void TetraIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid, StdVector<CoordTetra> & genTets){
     //now get triangular information
     refFeMap[newTElem->type]->Triangulate(lastTetIdx_);
     //loop over each Tet
@@ -214,11 +214,11 @@ inline void TriaIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid, St
     return;
   }
 
-void TriaIntersect::GetIntersectionElems(StdVector<IntersectionElem*>& interElems){
+void TetraIntersect::GetIntersectionElems(StdVector<IntersectionElem*>& interElems){
   EXCEPTION("Not yet implemented");
 }
 
-inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTetra& tetra,
+inline void TetraIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTetra& tetra,
                               StdVector<CoordTetra>& genTets){
 
   StdVector<Double> C(4);
@@ -357,7 +357,7 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
   }
 }
 
-void TriaIntersect::ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName){
+void TetraIntersect::ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName){
   for(UInt i=0;i<tetList.GetSize();++i ){
     std::stringstream aFil;
     aFil << baseFName << i << ".off";
