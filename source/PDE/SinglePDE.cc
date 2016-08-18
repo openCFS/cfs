@@ -2202,7 +2202,6 @@ namespace CoupledField {
 
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
-      std::cout << "Name: " << entName << std::endl;
       try {
         // determine list type: In case we have have surface elements, generate explicitly
         // a surface element list
@@ -2228,7 +2227,6 @@ namespace CoupledField {
         std::set<UInt> definedDofs;
         ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
                             definedDofs, updateGeo );
-
       } catch (Exception& e) {
         RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
                           << "' on entities '" << entName <<"'");
@@ -2264,9 +2262,8 @@ namespace CoupledField {
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
-        coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          list);
-        //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
+    	  coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
+                                            list);
       }
       //read in the defined dofs
       std::string dofString = valueNode->Get("grid")->Get("dofs")->As<std::string>();
@@ -2319,7 +2316,6 @@ namespace CoupledField {
         boost::shared_ptr<SimState> inState(new SimState(true, domain_));
         shared_ptr<SimInput> reader;
         shared_ptr<SimInputHDF5> in;
-        std::cout << "Do Read" << std::endl;
 
         if( valueNode->Has("externalSimulation") ) {
           sequenceStep = esNode->Get("sequenceStep")->As<UInt>();

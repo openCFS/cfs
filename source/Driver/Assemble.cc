@@ -1494,6 +1494,10 @@ namespace CoupledField
         derivOrder = 2;
         factor = -omega*omega;
         break;
+      case AUXILIARY:
+    	derivOrder = 0;
+    	factor = 1;
+    	break;
       default:
         EXCEPTION("No default conversion from double entries to matrix type"
                   << matrixType << "known" );

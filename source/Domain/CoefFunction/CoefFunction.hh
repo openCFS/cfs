@@ -100,6 +100,14 @@ public:
   } CoefInverseType;
   static Enum<CoefInverseType> CoefInverseType_;
 
+  //! Dependency of coefficient function
+  typedef enum{
+	NOINFORMATION,
+    FEBASIS,         /*!< Invserse scheme: source data */
+    DELTA         /*!< Inverse scheme: measured data */
+  } CoefInverseSourceApprox;
+  static Enum<CoefInverseSourceApprox> CoefInverseSourceApprox_;
+
   //! Modifications of coefficient function
   typedef enum{
     NONE,              /*!< Default interpolation of data*/
@@ -343,6 +351,16 @@ public:
     return inverseType_;
   }
 
+  //! Set type of approximation for source type
+  void SetInverseSourceApproxType( CoefInverseSourceApprox type )  {
+	  approxSourceType_ = type;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseSourceApprox GetInverseSourceApproxType() {
+    return approxSourceType_;
+  }
+
   //! Return type of entry (scalar, vector, tensor)
   virtual CoefDimType GetDimType() const{
     return dimType_;
@@ -374,6 +392,7 @@ public:
     isActive_ = val;
   }
 
+
   //! Dump coefficient function to string 
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
@@ -397,7 +416,8 @@ public:
   }
 
   //! computes the L2 norm of error
-  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp ) {
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
+		                        Double& freq ) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 
@@ -417,6 +437,9 @@ public:
 	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not implemented");
   }
 
+  virtual void SetApproxSourceDelta() {
+	  EXCEPTION("CoefFuncion::SetApproxSourceDelta not implemented");
+  }
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
   // ======================================================================
@@ -583,6 +606,9 @@ protected:
   //! storing the type for inverse scheme
    CoefInverseType inverseType_;
 
+  //! how the source term is approximated
+  CoefInverseSourceApprox inverseApproxType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
@@ -597,6 +623,10 @@ protected:
 
   //! sets the rhsFnc active
   bool isActive_;
+
+  //! approximate source terms with delta functions
+  CoefInverseSourceApprox approxSourceType_;
+
 };
 
 

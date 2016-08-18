@@ -216,6 +216,7 @@
           <xsd:element name="maxIterOuter" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="maxIterInner" type="xsd:token" minOccurs="1" maxOccurs="1"/>         
           <xsd:element name="maxNumLineSearch" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="approxDelta" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>

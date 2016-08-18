@@ -846,6 +846,9 @@ namespace CoupledField {
     BaseMatrix::OutputFormat format = els->Has("format") ? BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>())
                                                          : BaseMatrix::MATRIX_MARKET;
 
+    if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
+              sysMat_[AUXILIARY]->Export(base + "_aux", format);
+
     if(setup && !exclusive)
     {
       if(els->Get("format")->As<std::string>()  == "harwell-boeing")
@@ -2411,7 +2414,24 @@ namespace CoupledField {
           }
         }
 
-      } else {
+      }
+      else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
+        	Vector<Complex> & nRHS =
+        			dynamic_cast<Vector<Complex>&>( fup(i) );
+
+        	for( UInt j = 0; j < size; ++j ) {
+        		// omit entries for Dirichlet values
+        		if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+        			tmpRHS_->GetPointer(blockNums[j])
+    	                		  ->AddToEntry(indices[j]-1, nRHS[j] );
+        		}else if(!usingPenalty_){
+        			idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+    	  			    		indices[j],rhs_,nRHS[j]);
+        		}
+        	}
+
+      }
+      else {
         EXCEPTION("Implement me. Dont worry: mostly C&P code");
       }
 
@@ -2497,11 +2517,11 @@ namespace CoupledField {
         // Now we are done
         return;
       }
-      else {
-        WARN("SBM_System::ConstructEffectiveMatrix: "
-            << "Map with factors is empty, but there are "
-            << matrixTypes_.size() << " FE matrices in the game!");
-      }
+//      else {
+//        WARN("SBM_System::ConstructEffectiveMatrix: "
+//            << "Map with factors is empty, but there are "
+//            << matrixTypes_.size() << " FE matrices in the game!");
+//      }
     }
     
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {

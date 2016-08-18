@@ -417,6 +417,30 @@ namespace CoupledField{
       // for calculation of postprocessing results
       massInts_[actRegion] = massInt;
 
+
+      // need a MASS-AUXILIARY matrix
+      if ( analysistype_ == BasePDE::INVERSESOURCE ) {
+    	  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    	  BaseBDBInt *massInt = NULL;
+    	  if(dim_==2){
+    		  massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,constOne,
+    	                                 1.0, updatedGeo_ );
+    	  }
+    	  else{
+    		  massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, constOne,
+    				  1.0, updatedGeo_ );
+    	  }
+
+    	  massInt->SetName("MassIntegratorAuxiliary");
+    	  massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
+
+    	  BiLinFormContext *massContext =  new BiLinFormContext(massInt, AUXILIARY );
+    	  massContext->SetEntities( actSDList, actSDList );
+    	  massContext->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+    	  assemble_->AddBiLinearForm( massContext );
+      }
+
+
       // ====================================================================
       // check for flow (Pierce equation)
       // ====================================================================
@@ -1087,6 +1111,35 @@ namespace CoupledField{
       } // loop entities
     } // if
 
+    // =====================
+    //  ACOUSTIC SOURCE DENSITY
+    // =====================
+    LOG_DBG(heatcondpde) << "Reading acoustic source density";
+
+    ReadRhsExcitation( "acouSourceDensity", empty,
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Acoustic source density must be defined on elements")
+      }
+      EntityIterator it = ent[i]->GetIterator();
+      it.Begin();
+
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
+      } else  {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                         1.0, coef[i], coefUpdateGeo);
+      }
+      lin->SetName("AcousticSourceDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
+
     // =====================================
     //  rhsValues for e.g. for aeroacoustics
     // =====================================
@@ -1094,8 +1147,32 @@ namespace CoupledField{
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
-      std::cout << "ADD" << std::endl;
+      //std::cout << "ADD" << std::endl;
       coef[i]->SetFeFunction( feFunctions_[formulation_], formulation_);
+
+      if ( !approxSourceWithDeltaFnc_ && coef[i]->GetInverseType() == CoefFunction::INVSOURCE )  {
+    	  std::cout << "Add BUIntegrator SRC" << std::endl;
+    	  // check type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("Acoustic source density must be defined on elements")
+          }
+          EntityIterator it = ent[i]->GetIterator();
+          it.Begin();
+
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
+          } else  {
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                             1.0, coef[i], coefUpdateGeo);
+          }
+          lin->SetName("AcousticSourceDensityInverseInt");
+          LinearFormContext *ctx = new LinearFormContext( lin );
+          ctx->SetEntities( ent[i] );
+          ctx->SetFeFunction(myFct);
+          assemble_->AddLinearForm(ctx);
+      }
+      //if ( coef[i]->GetInverseType() == CoefFunction::INVSOURCE )
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 

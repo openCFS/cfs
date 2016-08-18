@@ -66,6 +66,7 @@ namespace CoupledField
     maxOuterIter_   = param_->Get( "maxIterOuter")->MathParse<UInt>();
     maxInnerIter_   = param_->Get( "maxIterInner")->MathParse<UInt>();
     maxNumLineSearch_  = param_->Get( "maxNumLineSearch")->MathParse<UInt>();
+    param_->GetValue( "approxDelta", approxSourceWithDeltaFnc_, ParamNode::PASS );
 
 
     numFreq_ = 1;
@@ -226,6 +227,8 @@ namespace CoupledField
      		CoefFunction::CoefInverseType type = ptCoef->GetInverseType();
      		if ( type == CoefFunction::INVSOURCE ) {
      			rhsSource_ = ptCoef;
+     		    if ( approxSourceWithDeltaFnc_ )
+     		    	rhsSource_->SetInverseSourceApproxType(CoefFunction::DELTA);
      			isRHSsource = true;
      			num++;
      		}
@@ -246,8 +249,8 @@ namespace CoupledField
     }
 
     //set the regularization parameters
-    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_);
-    rhsSource_->SetInverseParam(alpha_, beta_, qExp_);
+    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_);
+    rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_);
 
     analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
     analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
@@ -272,6 +275,8 @@ namespace CoupledField
     	//solve adj: just for initiallization
     	rhsSource_->SetActive(false);
     	rhsMeas_->SetActive(true);
+    	std::cout << "Compute first time MEAS" << std::endl;
+
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -279,6 +284,8 @@ namespace CoupledField
     	//compute with RHS as the current identified sources
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
+    	std::cout << "Compute first time SRC" << std::endl;
+
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -288,6 +295,7 @@ namespace CoupledField
 
     	//compute residual
     	rhsMeas_->ComputeDiff2Meas( res2 );
+    	std::cout << "DIFF: " << res2   << std::endl;
 
     	//compute square of L2-norm of measured pressure at mic-positions
     	rhsMeas_->ComputeMeasL2squared( measL2squared_ );
@@ -303,6 +311,8 @@ namespace CoupledField
     		//solve adj
     		rhsSource_->SetActive(false);
     		rhsMeas_->SetActive(true);
+    		if ( !approxSourceWithDeltaFnc_ )
+    			ptPDE_->GetSolveStep()->SetAdjointSource();
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
     		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -377,6 +387,8 @@ namespace CoupledField
     			//solve adj
     			rhsSource_->SetActive(false);
     			rhsMeas_->SetActive(true);
+        		if ( !approxSourceWithDeltaFnc_ )
+        			ptPDE_->GetSolveStep()->SetAdjointSource();
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
     			ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -416,15 +428,17 @@ namespace CoupledField
     		//and measured pressure in the microphone points
     		rhsSource_->SetActive(false);
     		rhsMeas_->SetActive(true);
+    		if ( !approxSourceWithDeltaFnc_ )
+    			ptPDE_->GetSolveStep()->SetAdjointSource();
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
-    		//std::cout << "\n SOLVE_MEASURE \n" << std::endl;
+    		std::cout << "\n SOLVE_MEASURE \n" << std::endl;
     		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
-    		//std::cout << "\n INV_MEASURE solved \n" << std::endl;
+    		std::cout << "\n INV_MEASURE solved \n" << std::endl;
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     		rhsSource_->ComputeOptCondition(optAmp, optPhase);
 
-    		if ( optAmp < 1e-10 && optPhase < 1e-10 )
+    		if ( optAmp < 1e-6 && optPhase < 1e-6 )
     			notConverged = false;
 
     		std::cout << "\n OptCond, Amp: " << optAmp << "   Phase: " << optPhase << std::endl;
@@ -433,10 +447,10 @@ namespace CoupledField
     		rhsMeas_->SetActive(false);
     		rhsSource_->SetActive(true);
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
-    		//std::cout << "\n SOLVE_SOURCE \n" << std::endl;
+    		std::cout << "\n SOLVE_SOURCE \n" << std::endl;
     		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
-    		//std::cout << "\n INV_SOURCE solved \n" << std::endl;
+    		std::cout << "\n INV_SOURCE solved \n" << std::endl;
 
     		Double error;
     		rhsMeas_->ComputeDiff2Meas( error);
