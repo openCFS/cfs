@@ -29,12 +29,12 @@ namespace CoupledField{
 
 //! each elements is converted to a set of tetrahedrons
 //! for each set of tetrahedrons, an intersection is performed
-class TriaIntersect : public ElemIntersect{
+class TetraIntersect : public ElemIntersect{
 
 public:
 
   //! \copydoc ElemIntersect::TriaIntersect
-  TriaIntersect(Grid* trgGrid, Grid* srcGrid)
+  TetraIntersect(Grid* trgGrid, Grid* srcGrid, bool isRegular = false)
    : ElemIntersect(trgGrid,srcGrid),
      pos(4), neg(4), zero(4){
     tElemNum_ = 0;
@@ -44,7 +44,7 @@ public:
   }
 
   //! copy constructor
-  TriaIntersect(const TriaIntersect& inter)
+  TetraIntersect(const TetraIntersect& inter)
    : ElemIntersect(inter),
      pos(4), neg(4), zero(4){
 
@@ -57,7 +57,7 @@ public:
   }
 
   //! assignment
-  TriaIntersect & operator=(const TriaIntersect& inter){
+  TetraIntersect & operator=(const TetraIntersect& inter){
     this->sGrid_ = inter.sGrid_;
     this->tGrid_ = inter.tGrid_;
     tElemNum_ = inter.tElemNum_;
@@ -70,7 +70,7 @@ public:
   }
 
 
-  virtual ~TriaIntersect(){
+  virtual ~TetraIntersect(){
 
   }
 
@@ -86,8 +86,8 @@ public:
   }
 
   //! deep pointer copy
-  virtual TriaIntersect* Clone(){
-     return new TriaIntersect(*this);
+  virtual TetraIntersect* Clone(){
+     return new TetraIntersect(*this);
   }
 
   //! \copydoc ElemIntersect::SetTElem

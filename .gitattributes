@@ -1662,6 +1662,8 @@ source/Domain/Mesh/MeshUtils/EntityAssociation.hh -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/CoordTetra.cc -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/CoordTetra.hh -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/ElemIntersect.hh -text
+source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.cc -text
+source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.hh -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/LineIntersect.hh -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/SurfElemIntersect.hh -text
 source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos/SurfPolyIntersect.hh -text
@@ -2250,6 +2252,8 @@ source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfsdat/CMakeLists.txt -text
 source/cfsdat/CMakeLists.txt_old -text
+source/cfsdat/Filters/Arithmetic/BinOpFilter.cc -text
+source/cfsdat/Filters/Arithmetic/BinOpFilter.hh -text
 source/cfsdat/Filters/BaseFilter.cc -text
 source/cfsdat/Filters/BaseFilter.hh -text
 source/cfsdat/Filters/Derivatives/RotatingSubstDt.cc -text

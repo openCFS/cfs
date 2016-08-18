@@ -184,6 +184,40 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_BinOpFilt">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:all>
+          <xsd:element name="quantity1" maxOccurs="1" minOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+          </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity2" maxOccurs="1" minOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+          </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="output" maxOccurs="1" minOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+          </xsd:complexType>
+          </xsd:element>
+        </xsd:all>
+        <xsd:attribute name="opType" use="required">
+          <xsd:simpleType>
+            <xsd:restriction  base="xsd:string">
+              <xsd:enumeration value="plus"/>
+              <xsd:enumeration value="minus"/>
+              <xsd:enumeration value="div"/>
+              <xsd:enumeration value="mult"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>        
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
   <xsd:complexType name="DT_SimpleQuantity">
     <xsd:attribute name="resultName" type="xsd:token"/>
   </xsd:complexType>
@@ -327,6 +361,14 @@
       <xsd:element name="timeDeriv1" type="DT_TDeriv1"/>
       <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
       <xsd:element name="interpolation" type="DT_Interpolation"/>
+      <xsd:element name="binaryOperation"         type="DT_BinOpFilt">
+        <xsd:annotation>
+          <xsd:documentation>
+            This filter combines two given results according to the specified operation.
+            opType may be plus,minus,mult,div
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:choice>
   </xsd:group>
 

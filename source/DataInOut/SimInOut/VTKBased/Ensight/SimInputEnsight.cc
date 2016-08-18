@@ -496,6 +496,10 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
   cellData = ds->GetCellData();
 
   UInt numNodeArrays = cellData->GetNumberOfArrays();
+  if(numNodeArrays == 0){
+    std::cerr << "No cell arrays are defined for step #" << stepValue << std::endl;
+    return;
+  }
   if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
     scalarForVector = false;
   }else{

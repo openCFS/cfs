@@ -206,7 +206,8 @@ void VolumeGridIntersection<INTER>::PreComputeCandidates(){
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class VolumeGridIntersection<TriaIntersect>;
+  template class VolumeGridIntersection<TetraIntersect>;
+  template class VolumeGridIntersection<ElemIntersect2D>;
 #endif
 
 }

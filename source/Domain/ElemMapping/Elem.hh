@@ -320,6 +320,9 @@ namespace CoupledField
 
     /// Element number of second original element
     UInt eNum2;
+
+    /// Explicit storage of node Coordinates
+    StdVector< Vector<Double> > nodeCoords;
   };
 
   

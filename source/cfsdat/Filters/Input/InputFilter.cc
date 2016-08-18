@@ -151,9 +151,13 @@ bool InputFilter::Run(){
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
       Double reqValue = cRes->stepValue;
-      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(reqValue+*fileResult.timeLine->Begin(), 1E-8) );
+      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(reqValue+*fileResult.timeLine->Begin(), 1E-6) );
 
       if(val == fileResult.timeLine->End()){
+        if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
+          std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
+        else
+          std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
         fullVec.Init();
         continue;
       }
@@ -218,7 +222,13 @@ void InputFilter::AdaptFilterResults(){
       if(!allOK)
         EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results")
     }else{
-      resultManager_->SetTimeLine(filterResIds[aRes],(*fileResult.timeLine.get()));
+      //remove offset per default
+      StdVector<Double>& curT = (*fileResult.timeLine.get());
+      StdVector<Double> tfValuesOffset(curT.GetSize());
+      for(UInt aTime =0;aTime<(*fileResult.timeLine.get()).GetSize();aTime++){
+        tfValuesOffset[aTime] = curT[aTime] - curT[0];
+      }
+      resultManager_->SetTimeLine(filterResIds[aRes],tfValuesOffset);
     }
     resultManager_->SetDType(filterResIds[aRes],fileResult.dType);
     resultManager_->SetRegionNames(filterResIds[aRes],(*fileResult.regNames.get()));

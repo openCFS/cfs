@@ -7,6 +7,7 @@ INCLUDE_DIRECTORIES(
 SET(CFSDAT_SRCS
   cfsdat.cc
   Filters/BaseFilter.cc
+  Filters/Arithmetic/BinOpFilter.cc
   Filters/Input/InputFilter.cc
   Filters/Output/OutputFilter.cc
   Filters/Derivatives/TimeDerivFilter.cc

@@ -10,6 +10,7 @@ SET(MESH_SRCS
   MeshUtils/Intersection/VolumeGridIntersection.cc
   MeshUtils/Intersection/IntersectAlgos/CoordTetra.cc
   MeshUtils/Intersection/IntersectAlgos/TriaIntersect.cc
+  MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.cc
   )
 
 
