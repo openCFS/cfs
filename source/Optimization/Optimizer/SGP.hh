@@ -49,8 +49,8 @@ public:
   /** the cfs design variable */
   Vector<double> x_outer;
 
-  /** density rho and rotation angle theta */
-  StdVector<double> rho_outer, theta_outer;
+  /** density rho and rotation angle theta, thicknesses s1, s2 */
+  StdVector<double> rho_outer, theta_outer, s1_outer, s2_outer;
 
   StdVector<Matrix<double> > E_outer;
 
@@ -66,11 +66,42 @@ public:
   /** convergence tolerance for outer iterations */
   double tolerance;
 
+  /** tau of model function in subsolve */
+  double tau;
+
   /** base material matrix */
   Matrix<double> E_0;
 
   // penalty parameter
-  double pmin,pmax,ppen;
+  double pmin,pmax,ppen,pmini,pmaxi,ppeni;
+
+  // counts outer iterations without any progress
+  int worseCounter = 0;
+
+  // bisection iteration counter
+  int bisect;
+
+  struct InnerVariable {
+    void Read(PtrParamNode pn, DesignSpace* space);
+    DesignElement::Type type = DesignElement::NO_TYPE;
+    int steps = -1;
+    /** As we might use design bounds, this are the lower design bounds. Either from design or the design bound constraints
+     * Indices by design type */
+    double lower_bound = -1;
+    double upper_bound = -1;
+    double inc = -1;
+  };
+
+
+
+  StdVector<InnerVariable> inner_variables;
+
+  //solver type, e.g. brute_force
+  std::string solver_type;
+
+  bool HasInnerVar(BaseDesignElement::Type type) const;
+
+  InnerVariable& GetInnerVar(DesignElement::Type type);
 
   // transfer function for penalization of density
   TransferFunction* tf;
@@ -78,20 +109,32 @@ public:
   // merit function value
   double merit;
 
+  /** designMaterial helper object for two-scale optimization */
+  DesignMaterial* helper_dm = nullptr;
+
 protected:
 
   void SolveProblem();
 
-  /** @see BaseOptimizer::ToInfo() */
+  void ToInfoIter(PtrParamNode pm_iter);
+
   void ToInfo();
 
+
+  /** helper for Postinit */
+  void SetConfiguration();
+
+  /** kind of inner variables configuration */
+  typedef enum {NO_CONF= -1, DENSITY_ROTANGLE = 0, STIFF1_STIFF2 = 1} Configuration;
+
+  Configuration configuration = NO_CONF;
 private:
 
   /** setup and solve the subproblem by ipopt */
   void SolveSubProblem();
 
   /** updates the design and the outer function values and gradients */
-  void UpdateToCurrentStep();
+  void UpdateToCurrentStep(bool inner = false);
 
   typedef struct
   {
@@ -114,8 +157,8 @@ private:
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
-  /** writes design to rho_outer, theta_outer and E_outer */
-  void DesignToOuter();
+  /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
+  void DesignToOuter(bool inner = false);
 
   /** writes rho_outer, theta_outer and E_outer back to design */
   void OuterToDesign();
@@ -157,7 +200,10 @@ public:
   double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
 
   /** evaluate function according to the SGP approximation */
-  double SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+  double SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & s1, StdVector<double> & s2);
+
+  /** evaluate function according to the SGP approximation for density_rotangle configuration*/
+  double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
 
   /** gives the position within the gradient for a special design.
    * @return for dense gradients this is design otherwise a search is performed */
@@ -210,10 +256,13 @@ public:
 
 private:
 
-  double EvalApproximation(double rho_inner, double theta_inner, Eval eval, Matrix<double> E_0, Matrix<double> BB, Matrix<double> E_tmptmp, Matrix<double> L0, double ppen);
+  double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
-  void CalcE_inner(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner);
+  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2);
+
+  void CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner);
+
 
   /** We cannot store a function pointer because of the local constraints where we need an index.
    * -1 is for objective */

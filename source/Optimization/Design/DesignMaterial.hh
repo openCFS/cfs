@@ -114,7 +114,11 @@ class TransferFunction;
 
     void static SetEnums();
 
-    Type GetType() const { return type_; }
+    Type GetType() const { return type_; };
+
+    void SetType(Type type) {type_ = type;};
+
+    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -139,6 +143,10 @@ class TransferFunction;
 
     /** Calculate the Isotropic tensor */
     inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
   protected:
 
@@ -211,10 +219,6 @@ class TransferFunction;
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
-
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);

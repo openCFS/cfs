@@ -3304,6 +3304,10 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
         E[2-1][1-1] = E[1-1][2-1];
         E[2-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
         E[3-1][3-1] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
+        E[3-1][1-1] = 0.;
+        E[1-1][3-1] = 0.;
+        E[2-1][3-1] = 0.;
+        E[3-1][2-1] = 0.;
       } else { // shearing
         E[1-1][1-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
         E[1-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
@@ -3324,6 +3328,10 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
         E[2-1][1-1] = E[1-1][2-1];
         E[2-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
         E[3-1][3-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
+        E[3-1][1-1] = 0.;
+        E[1-1][3-1] = 0.;
+        E[2-1][3-1] = 0.;
+        E[3-1][2-1] = 0.;
       } else { // shearing
         E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
         E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
