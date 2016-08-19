@@ -102,6 +102,9 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case POISSONISO:
     case EMODUL:
     case EMODULISO:
+    case I_1:
+    case I_2:
+    case I_3:
       return true;
     default:
       return false;
@@ -806,6 +809,9 @@ void DesignElement::SetEnums()
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
   type.Add(ALL_DESIGNS, "allDesigns");
+  type.Add(I_1, "I_1");
+  type.Add(I_2, "I_2");
+  type.Add(I_3, "I_3");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
