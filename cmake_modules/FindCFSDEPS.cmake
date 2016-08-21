@@ -24,7 +24,7 @@ INCLUDE(ExternalProject)
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalData)
 
-SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/sources")
+SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/cfsdeps/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
 #-----------------------------------------------------------------------------
