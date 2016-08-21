@@ -67,8 +67,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/${ZLIB_GZ}"
-  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/${ZLIB_GZ}"
+  "http://zlib.net/${ZLIB_GZ}"
+  "http://fossies.org/linux/misc/${ZLIB_GZ}"
   "${ZLIB_URL}/${ZLIB_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
