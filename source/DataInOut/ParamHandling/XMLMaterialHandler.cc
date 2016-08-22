@@ -678,6 +678,14 @@ namespace CoupledField {
     	 material->SetCoefFct( ACOU_DENSITY_COMPLEX, densFct );
     }
       
+    //read dauabatic exponent
+    if(acou->Has("adiabaticExponent")) {
+      PtrCoefFct fct =
+    		  CoefFunction::Generate(mp_, Global::REAL,
+          		                     acou->Get("adiabaticExponent")->As<std::string>() );
+      material->SetCoefFct( ADIABATIC_EXPONENT, fct );
+    }
+
     //read compression modulus
     if(acou->Has("compressionModulus")) { 
     	PtrCoefFct blkFct =

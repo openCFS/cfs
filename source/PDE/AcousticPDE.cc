@@ -2,7 +2,6 @@
 
 #include "General/defs.hh"
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -580,8 +579,9 @@ namespace CoupledField{
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
         bool coefUpdateGeo;
+        //we assume that mean flow is pure real
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow, definedDofs, coefUpdateGeo );
+                             false, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
 
@@ -1073,8 +1073,9 @@ namespace CoupledField{
           // Read coefficient flow coefficient function for this region and add it to flow functor
           PtrCoefFct regionTemp;
           std::set<UInt> definedDofs;
+          //we assume that the temperature values are real (not complex!)
           ReadUserFieldValues( actSDList, tempNode, tempInfo->dofNames, tempInfo->entryType,
-                             isComplex_, regionTemp, definedDofs, updatedGeo_ );
+                             false, regionTemp, definedDofs, updatedGeo_ );
           // gasR=287.058 J/kg K   ... universal gas constant
           // kappa=1.402, adabatic exponent for air
           PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
@@ -1555,14 +1556,134 @@ namespace CoupledField{
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Rhs density must be defined on elements")
       }
+      if ( sosAtLaplace_)
+        EXCEPTION("rhsDensity and speed of sound at Laplace operator currently not possible");
+
       if(isComplex_) {
-        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                         Complex(scalFactor), coef[i], updatedGeo_);
-      } else  {
-        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-            scalFactor, coef[i], updatedGeo_);
+    	  lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+    				  Complex(scalFactor), coef[i], updatedGeo_);
+      }
+      else {
+    	  lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+    			                          scalFactor, coef[i], updatedGeo_);
       }
       lin->SetName("RhsDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
+
+
+    // ================
+    //  RHS Mass time derivative
+    // ================
+    ReadRhsExcitation( "rhsMassTimeDeriv", empty,
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("rhsMassTimeDeriv must be defined on elements");
+      }
+      if ( !sosAtLaplace_ )
+    	  EXCEPTION("rhsMassTimeDeriv currently just available for speed of sound at Laplace operator");
+
+      //source term is partial time derivative of speed of sound squared
+      //multiplied by mass, which has been evaluated by "ReadRhsExcitation"
+      //and stored in coef[i]
+//      if ( this->analysistype_ == HARMONIC )
+//    	  EXCEPTION("rhsMassTimeDeriv in harmonic case for speed of sound at Laplace operator\
+//    		         currently not available");
+
+      //get region id
+      std::string volRegName = ent[i]->GetName();
+      RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+      //get adiabatic exponent
+      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( ADIABATIC_EXPONENT, Global::REAL );
+
+      //get speed of sound and square it
+      std::map<RegionIdType,PtrCoefFct > c0Fcts = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->GetRegionCoefs();
+      PtrCoefFct regionC0 = c0Fcts[aRegion];
+      PtrCoefFct regionC02 = CoefFunction::Generate( mp_, Global::REAL,
+    		  CoefXprBinOp(mp_, regionC0, regionC0, CoefXpr::OP_MULT ) );
+
+      PtrCoefFct tmpCoef = CoefFunction::Generate( mp_, Global::REAL,
+    		  CoefXprBinOp(mp_, regionC02, aExp, CoefXpr::OP_DIV ) );
+
+      if (isComplex_) {
+    	  PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::COMPLEX,
+    		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
+
+    	  lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+        		                          scalFactor, coefRHS, updatedGeo_);
+      }
+      else {
+          PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::REAL,
+        		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
+
+          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+            		                          scalFactor, coefRHS, updatedGeo_);
+      }
+      lin->SetName("RhsMassTimeDerivInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
+
+
+
+    // ================
+    //  RHS Mass convective term
+    // ================
+    ReadRhsExcitation( "rhsMassConvective", empty,
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("rhsMassConvective must be defined on elements");
+      }
+
+      //source term is convective derivative of speed of sound squared
+      //multiplied by mass, which has been evaluated by "ReadRhsExcitation"
+      //and stored in coef[i]
+
+      //get region id
+      std::string volRegName = ent[i]->GetName();
+      RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+      //get adiabatic exponent
+      PtrCoefFct aExp = materials_[aRegion]->GetScalCoefFnc( ADIABATIC_EXPONENT, Global::REAL );
+
+      //get speed of sound and square it
+      std::map<RegionIdType,PtrCoefFct > c0Fcts = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->GetRegionCoefs();
+      PtrCoefFct regionC0 = c0Fcts[aRegion];
+      PtrCoefFct regionC02 = CoefFunction::Generate( mp_, Global::REAL,
+    		  CoefXprBinOp(mp_, regionC0, regionC0, CoefXpr::OP_MULT ) );
+
+      PtrCoefFct tmpCoef = CoefFunction::Generate( mp_, Global::REAL,
+          		  CoefXprBinOp(mp_, regionC02, aExp, CoefXpr::OP_DIV ) );
+
+      BaseBOperator* bOp;
+      if ( dim_ == 2)
+    	  bOp = new ConvectiveOperator<FeH1,2,1>();
+      else
+    	  bOp = new ConvectiveOperator<FeH1,3,1>();
+      bOp->SetCoefFunction( meanFlowCoef_ ); //meanFlow )
+
+      if (isComplex_) {
+    	  PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	    		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
+    	  lin = new BUIntegrator<Complex>( bOp, scalFactor, coefRHS, updatedGeo_);
+      }
+      else {
+    	  PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::REAL,
+    	    		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
+    	  lin = new BUIntegrator<Double>( bOp, scalFactor, coefRHS, updatedGeo_);
+      }
+
+      lin->SetName("RhsMassConvectiveInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
