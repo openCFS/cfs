@@ -1531,6 +1531,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
     MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
     MaterialTypeEnum.Add( DENSITY, "Density" );
+    MaterialTypeEnum.Add( ADIABATIC_EXPONENT, "AdiabaticExponent");
     MaterialTypeEnum.Add( ACOU_DENSITY_COMPLEX, "AcousticDensityComplex" );
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" );
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS_COMPLEX, "AcousticBulkModulusComplex" );

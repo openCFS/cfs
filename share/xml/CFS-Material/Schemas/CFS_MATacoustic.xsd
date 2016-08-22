@@ -21,13 +21,8 @@
       <xsd:element name="compressionModulusComplex"  minOccurs="0" type="DT_AcouCompressModulus"/>
       <xsd:element name="acousticDamping" type="DT_AcousticDamping" minOccurs="0"/>
       <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear" minOccurs="0"/>
-      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Kinematic viscosity of the fluid in Pas.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
+      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token"/>
+      <xsd:element name="adiabaticExonent" minOccurs="0" type="xsd:token"/>
     </xsd:sequence>
   </xsd:complexType>
 

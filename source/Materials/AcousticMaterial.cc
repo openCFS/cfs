@@ -28,6 +28,7 @@ namespace CoupledField
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( ACOU_DENSITY_COMPLEX );
+    isAllowed_.insert( ADIABATIC_EXPONENT );
     isAllowed_.insert( ACOU_BULK_MODULUS );
     isAllowed_.insert( ACOU_BULK_MODULUS_COMPLEX );
     isAllowed_.insert( ACOU_SOUND_SPEED );
