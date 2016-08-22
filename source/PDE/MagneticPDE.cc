@@ -955,7 +955,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   //   Query parameter object for information about coils
   // ******************************************************
   void MagneticPDE::ReadCoils() {
-
     // Check if the element "coils" is present at all.
     // Otherwise leave
     PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
@@ -967,8 +966,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
+    Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
     if( coilNodes.GetSize() > 0 ) {
-      Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
 
         // get coil and id
@@ -1003,6 +1002,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         for( extPartIt = coilIt->second->partsExtJDir_.begin();
             extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
           PtrParamNode extNode = extPartIt->second;
+          // determine if normalise is set
+          bool normalise = true;
+          if ( extNode->Has("normalise") ) {
+              if ( extNode->Get("normalise")->As<std::string>() == "no" ) {
+                  normalise = false;
+              }
+          }
           shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
               isComplex_));
           shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
@@ -1019,10 +1025,17 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             ReadUserFieldValues(elems,extNode,vecComponents,
                 ResultInfo::VECTOR,isComplex_,regCurrDens,
                 definedDofs,updateGeo);
-            CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
-            PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
-            CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
-            PtrCoefFct unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
+            // take the read values and normalise to a length of 1
+            PtrCoefFct unitDir;
+            if ( normalise ) {
+                CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
+                PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
+                CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
+                unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
+            }
+            else {
+                unitDir = regCurrDens;
+            }
             unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
             if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
               currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
