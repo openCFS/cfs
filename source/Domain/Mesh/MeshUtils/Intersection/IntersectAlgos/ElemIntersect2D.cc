@@ -242,7 +242,7 @@ Double ElemIntersect2D::CutPolysCGAL(StdVector<Vector<Double> > &p1,
 Double ElemIntersect2D::CutPolysCGAL(StdVector<Vector<Double> > &p1,
                                    StdVector<Vector<Double> > &p2, const bool coplanar,
                                    StdVector<Vector<Double> > &r) {
-  ECEPTION("CGAL SUPPORT is needed for 2D element intersetion.")
+  EXCEPTION("CGAL SUPPORT is needed for 2D element intersetion.")
   return 0;
 }
 #endif
