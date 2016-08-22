@@ -748,11 +748,13 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 	}
 
 	error = 0.0;
+	Double meanMeasP = 0.0;
 	UInt idx=0;
 	for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
 		const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
 		if ( curP.second > 0 ) {
 			if ( isMeasuredNode_[i] ) {
+				meanMeasP += std::abs( measVec_[i]) * std::abs( measVec_[i]) ;
 				Complex val = actPDEsol[idx] - measVec_[i];
 				std::cout << "Nr: " << idx << "  PDE: " << actPDEsol[idx] << " Meas:" << measVec_[i]
 						<< "  Diff: " << val << std::endl;
@@ -761,7 +763,8 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 			}
 		}
 	}
-//	std::cout << std::endl;
+
+    std::cout << "\n Relative L2 in %: " << 100*std::sqrt( error ) / std::sqrt( meanMeasP ) << std::endl;
 //	error = std::sqrt( error ); // (Double) idx );
 }
 
