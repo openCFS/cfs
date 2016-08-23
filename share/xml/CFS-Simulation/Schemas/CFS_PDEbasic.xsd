@@ -1285,8 +1285,7 @@
 
   <!-- data type for specifying external inputs, similar to DT_BcInhomScalar -->
   <xsd:complexType name="DT_ExtCurrentDens">
-        <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
-        <xsd:choice>
+      <xsd:choice>
           <!-- Read Data from external Grids -->
           <xsd:element name="grid" minOccurs="0" maxOccurs="1" type="DT_BaseGridData"/>
 
@@ -1309,7 +1308,8 @@
           
           <!-- Same Simulation, other sequenceStep -->
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
-        </xsd:choice>
+      </xsd:choice>
+      <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
   </xsd:complexType>
 
   <!-- Data type for basic coil -->
