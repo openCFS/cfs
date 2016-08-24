@@ -662,6 +662,7 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
+      <xsd:enumeration value="acouRhsLoadDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -678,6 +679,7 @@
   <xsd:simpleType name="DT_AcousticSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPower"/>
+      <xsd:enumeration value="acouPowerPlaneWave"/>
     </xsd:restriction>
   </xsd:simpleType>
 

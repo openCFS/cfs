@@ -1961,15 +1961,14 @@ namespace CoupledField{
     
     
     shared_ptr<ResultInfo> vel, velNormal, intensity, intensNormal, power, pres;
-    PtrCoefFct intensFct, velFct;
-    shared_ptr<CoefFunctionSurf> sNormIntens, velFctNormal;
+    PtrCoefFct intensFct, velFct, velFctPW;
+    shared_ptr<CoefFunctionSurf> sNormIntens, velFctNormal, sNormIntensPW;
     shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
     shared_ptr<ResultFunctor> powerFct;
     
     // some results are only available in potential and / or
     // harmonic simulation
-    if( formulation_ == ACOU_POTENTIAL ||
-        isComplex_ ){
+    if( formulation_ == ACOU_POTENTIAL || isComplex_ ){
       // === ACOU_PRESSURE ===
       pres.reset(new ResultInfo);
       pres->resultType = ACOU_PRESSURE;
@@ -2118,6 +2117,60 @@ namespace CoupledField{
                                                          feFct, power ) );
       resultFunctors_[ACOU_POWER] = powerFct;
       availResults_.insert(power);
+
+      // === ACOU_POWER WITH PLANE WAVE ASSUMPTION: p/vn = \rho c ===
+      // Power P = \int_Gamma (p^2)/(2*rho*c) dGamma
+      // === ACOU_POWER ===
+      shared_ptr<ResultInfo> powerPW;
+      powerPW.reset(new ResultInfo);
+      powerPW->resultType = ACOU_POWER_PLANEWAVE;
+      powerPW->dofNames = "";
+      powerPW->unit = "W";
+      powerPW->entryType = ResultInfo::SCALAR;
+      powerPW->definedOn = ResultInfo::SURF_REGION;
+
+      // === ACOU_NORMAL_INTENSITY ===
+      shared_ptr<ResultInfo> intensNormalPW;
+      intensNormalPW.reset(new ResultInfo);
+      intensNormalPW->resultType = ACOU_NORMAL_INTENSITY_PLANEWAVE;
+      intensNormalPW->dofNames = "";
+      intensNormalPW->unit = "W/m^2";
+      intensNormalPW->entryType = ResultInfo::SCALAR;
+      intensNormalPW->definedOn = ResultInfo::SURF_ELEM;
+
+      //compute 1/(2*rho*c0)
+      //shared_ptr<CoefFunctionMulti> c0Fct  = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND];
+      //shared_ptr<CoefFunctionSurf> surfC0(new CoefFunctionSurf(false));
+      //surfC0->SetVolumeCoefs( c0Fct->GetRegionCoefs() );
+
+      PtrCoefFct c0Fct = this->GetCoefFct( ACOU_ELEM_SPEED_OF_SOUND);
+      PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "0.5");
+      PtrCoefFct val1 =
+                CoefFunction::Generate( mp_, Global::COMPLEX,
+                                       CoefXprBinOp(mp_,c0Fct, densFct, CoefXpr::OP_MULT ) );
+      PtrCoefFct val2 =
+                      CoefFunction::Generate( mp_, Global::COMPLEX,
+                                             CoefXprBinOp(mp_,constVal, val1, CoefXpr::OP_DIV ) );
+
+      velFctPW =
+          CoefFunction::Generate( mp_,  part,
+                                  CoefXprBinOp( mp_, val2, presFct, CoefXpr::OP_MULT ) );
+
+      PtrCoefFct intensPWfnc =
+                      CoefFunction::Generate( mp_, Global::COMPLEX,
+                                             CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ ) );
+
+      // normal acoustic intensity for plane waves
+      sNormIntensPW.reset(new CoefFunctionSurf(false, 1.0, intensNormalPW));
+      DefineFieldResult( sNormIntensPW, intensNormalPW );
+      surfCoefFcts_[sNormIntensPW] = intensPWfnc;
+
+
+      shared_ptr<ResultFunctor> powerFctPW;
+      powerFctPW.reset(new ResultFunctorIntegrate<Complex>(sNormIntensPW,
+                                                         feFct, powerPW ) );
+      resultFunctors_[ACOU_POWER_PLANEWAVE] = powerFctPW;
+      availResults_.insert(powerPW);
     }
     
     // === ACOUSTIC KINETIC ENERGY ===
