@@ -57,10 +57,6 @@ bool Cell2NodeInterpolator::Run(){
   CF::StdVector<UInt> eqnNums;
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-  std::cout<<"returnVec.GetSize()"<<returnVec.GetSize()<<std::endl;
-
-  std::cout<<"inVec"<<inVec<<std::endl;
-
   returnVec.Init();
 
   //perform interpolation
