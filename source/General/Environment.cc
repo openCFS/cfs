@@ -86,6 +86,10 @@ namespace CoupledField {
         return "W";
         break;
 
+      case ACOU_POWER_PLANEWAVE:
+         return "W";
+         break;
+
       case ACOU_PRESSURE:
         return "Pa";
         break;
@@ -109,6 +113,7 @@ namespace CoupledField {
       case ACOU_RHS_LOAD:
         return "kg m^-3 s^-2";
         break;
+
 
       case ACOU_RHS_LOADP:
         return "kg m^-3 s^-2";
@@ -1324,8 +1329,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
+    SolutionTypeEnum.Add(ACOU_POWER_PLANEWAVE, "acouPowerPlaneWave");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
+    SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY_PLANEWAVE, "acouNormalIntensityPlaneWave");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
     SolutionTypeEnum.Add(ACOU_POT_ENERGY, "acouPotEnergy");
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
