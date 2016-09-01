@@ -361,7 +361,6 @@ def write_gid_elements(out, elements, dim):
 
 def write_gid_mesh(mesh, filename,scale = 1):
   # Warning: mesh dimensions should be in [m]
-  print "Notification: Make sure that mesh dimensions are in meter [m]!! Otherwise use scale Parameter."
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
@@ -2178,14 +2177,17 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   
   return mesh
 
-def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres):
+def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
   from draw_profile_functions import *
   
   nx = xres
   ny = yres if yres <> None else xres 
   nz = zres if zres <> None else xres
-      
-  array = set_profile_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
+  
+  if ipo == "linear":    
+    array = set_lin_profiles_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
+  if ipo == "cubic":
+    array = set_cubic_profiles_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
   if z1 == 0.0 and z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
   else:

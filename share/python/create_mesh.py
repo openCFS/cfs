@@ -54,6 +54,7 @@ parser.add_argument('--y1', help="first radius for profile of bar in y-direction
 parser.add_argument('--y2', help="second radius for profile of bar in y-direction; 0 <= y2 <= 1", type=float, required = False)
 parser.add_argument('--z1', help="first radius for profile of bar in z-direction; 0 <= z1 <= 1", type=float, required = False)
 parser.add_argument('--z2', help="second radius for profile of bar in z-direction; 0 <= z2 <= 1", type=float, required = False)
+parser.add_argument('--interpolation', help="interpolation type of profile functions (linear or cubic)", choices=["linear","cubic"], required = False)
 
 args = parser.parse_args()
 
@@ -62,6 +63,10 @@ mesh_name = args.type
 # sanity checks
 if args.lbm and not (args.type == "lbm2d" or "lbm3d"):
   print "error: --lbm only for --type lbm2d or lbm3d"
+  sys.exit()
+  
+if args.type.startswith("profiles") and not args.interpolation:
+  print("interpolation type for profile functions required!")
   sys.exit()
   
 if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
@@ -110,13 +115,13 @@ elif args.type == '3D':
   mesh = create_regular3d_mesh(args.type, args.res)
 elif args.type.startswith('profiles'):
   if args.type == 'profiles2d':
-    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, 0, 0, args.res, args.y_res, 1)
+    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, 0, 0, args.res, args.y_res, 1,args.interpolation)
   elif args.type == 'profiles3d':  
-    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, args.z1, args.z2, args.res, args.y_res, args.z_res)
+    mesh = create_mesh_with_profiles(args.x1, args.x2, args.y1, args.y2, args.z1, args.z2, args.res, args.y_res, args.z_res,args.interpolation)
   else:
     print("available profile mesh type '" + args.type + "' not available!")
     sys.exit()
-  mesh_name = args.type
+  mesh_name = args.type + "_" + args.interpolation
 else: # default case 2d_mesh
   if not args.inclusion_overlap:  
     mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
