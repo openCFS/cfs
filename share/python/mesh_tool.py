@@ -2177,26 +2177,6 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   
   return mesh
 
-def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
-  from draw_profile_functions import *
-  
-  nx = xres
-  ny = yres if yres <> None else xres 
-  nz = zres if zres <> None else xres
-  
-  if ipo == "linear":    
-    array = set_lin_profiles_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
-  if ipo == "cubic":
-    array = set_cubic_profiles_array(nx, ny, nz, x1, x2, y1, y2, z1, z2)
-  if z1 == 0.0 and z2 == 0.0:
-    mesh = create_2d_mesh_from_array(array)
-  else:
-    mesh = create_3d_mesh_from_array(array)
-  
-#   visualize_structure(array,nx,ny,nz)
-  
-  return mesh
-
 def create_3d_mesh_from_array(array):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
