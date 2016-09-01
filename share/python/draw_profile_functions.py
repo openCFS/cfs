@@ -6,17 +6,22 @@ import sys
 import math
 from matplotlib import pyplot as plt
 
-def profx(x1,x2,x):
-  val = ((x2-x1) * x + x1) / 2.0
-  return val+0.1*x
+def profile(x1,x2,x, profType):
+  assert(x<=1 and x >=0)
+  if profType == "linear":
+    return ((x2-x1) * x + x1) / 2.0
+  else:
+    cornerx = np.sqrt(x1**2/2.0)
+    cornery = 1 - cornerx
+    if x <= cornerx:
+      return 0.5 - np.sqrt(x1**2 - x**2)
+    if x < 1 - cornerx:
+      return cornery - 0.5
+    else:
+      return 0.5 - np.sqrt(x1**2 - (1-x)**2)   
+
   
-def profy(y1,y2,y):
-  return ((y2-y1) * y + y1) / 2.0 
-
-def profz(z1,z2,z):
-  return ((z2-z1) * z + z1) / 2.0
-
-def within_lin_profiles3d(x1,x2,y1,y2,z1,z2,coords):
+def within_profiles3d(x1,x2,y1,y2,z1,z2,coords,profType,skip_x,skip_y,skip_z):
   xm = 0.5
   ym = 0.5
   zm = 0.5
@@ -24,9 +29,9 @@ def within_lin_profiles3d(x1,x2,y1,y2,z1,z2,coords):
   y = coords[1]
   z = coords[2]
   
-  px = profx(x1, x2, x)
-  py = profy(y1, y2, y)
-  pz = profz(z1, z2, z)
+  px = profile(x1, x2, x, profType) if not skip_x else 0.0
+  py = profile(y1, y2, y, profType) if not skip_y else 0.0
+  pz = profile(z1, z2, z, profType) if not skip_z else 0.0
   
   valx = (y-ym)**2 + (z-zm)**2
   valy = (x-xm)**2 + (z-zm)**2
@@ -41,31 +46,30 @@ def within_lin_profiles3d(x1,x2,y1,y2,z1,z2,coords):
   
   return -1
 
-def set_lin_profiles_array(nx,ny,nz,x1,x2,y1,y2,z1,z2):
-  array = np.zeros((nx,ny,nz))
-  sizex = 1.0
-  sizey = 1.0
-  sizez = 1.0
+# def create_profiles_array(nx,ny,nz,x1,x2,y1,y2,z1,z2):
+def create_profiles_array(args):
+  res = args.res
+  array = np.zeros((res,res,res))
+    
+  h = 1.0 / res
   
-  hx = sizex / nx
-  hy = sizey / ny
-  hz = sizez / nz
+  flag = None
   
-  for i in range(0,nx):
-    for j in range(0,ny):
-      for k in range(0,nz):  
+  for i in range(0,res):
+    for j in range(0,res):
+      for k in range(0,res):  
         coords = np.zeros(3)
-        x = i * hx + hx / 2.0
-        y = j * hy + hy / 2.0
-        z = k * hz + hz / 2.0
+        x = i * h + h / 2.0 # from array coordinates to cartesian ones (barycenter)
+        y = j * h + h / 2.0
+        z = k * h + h / 2.0
         coords[0] = x
         coords[1] = y
         coords[2] = z
-        if nz == 1:
+        if args.type == 'profiles2d':
 #           flag = within_profile2d(x1, x2, y1, y2, coords)
-          flag = within_lin_profiles3d(x1, x2, y1, y2, 0,0, coords)
+          flag = within_profiles3d(args.x1, args.x2, args.y1, args.y2, 0,0, coords, args.profile, args.skip_x, args.skip_y, args.skip_z)
         else:
-          flag = within_lin_profiles3d(x1, x2, y1, y2, z1, z2, coords) 
+          flag = within_profiles3d(args.x1, args.x2, args.y1, args.y2, args.z1, args.z2, coords, args.profile, args.skip_x, args.skip_y, args.skip_z) 
         if flag != -1:
           array[i,j,k] = flag
   return array
