@@ -6,73 +6,86 @@ import sys
 import math
 from matplotlib import pyplot as plt
 
-def profile(x1,x2,x, profType):
-  assert(x<=1 and x >=0)
-  if profType == "linear":
-    return ((x2-x1) * x + x1) / 2.0
-  else:
-    cornerx = np.sqrt(x1**2/2.0)
-    cornery = 1 - cornerx
-    if x <= cornerx:
-      return 0.5 - np.sqrt(x1**2 - x**2)
-    if x < 1 - cornerx:
-      return cornery - 0.5
+def profileLin(x1,x2,n):
+  x = np.linspace(0, 1.0,n)
+  return ((x2-x1) * x + x1) / 2.0
+  
+
+def profileCirc(x1,res):
+  x = np.linspace(0, 1.0, res)
+  r = 0.5-x1/2.0
+  r2 = r**2
+  cornerx = np.sqrt(r2/2.0)
+  cornery = 1 - cornerx
+  
+  vec = np.zeros(res)
+  
+  for i in range(res):
+    if x[i] <= cornerx:
+      vec[i] = 0.5 - np.sqrt(r2 - x[i]**2)
+    elif x[i] < 1 - cornerx:
+      vec[i] = cornery - 0.5
     else:
-      return 0.5 - np.sqrt(x1**2 - (1-x)**2)   
+      vec[i] = 0.5 - np.sqrt(r2 - (1-x[i])**2)
+  
+  return vec
+# def profileSpline(x1,x2):
 
-  
-def within_profiles3d(x1,x2,y1,y2,z1,z2,coords,profType,skip_x,skip_y,skip_z):
-  xm = 0.5
-  ym = 0.5
-  zm = 0.5
-  x = coords[0]
-  y = coords[1]
-  z = coords[2]
-  
-  px = profile(x1, x2, x, profType) if not skip_x else 0.0
-  py = profile(y1, y2, y, profType) if not skip_y else 0.0
-  pz = profile(z1, z2, z, profType) if not skip_z else 0.0
-  
-  valx = (y-ym)**2 + (z-zm)**2
-  valy = (x-xm)**2 + (z-zm)**2
-  valz = (y-ym)**2 + (x-xm)**2
-  
-  if (valx <= px*px):
-    return 1
-  elif (valy <= py*py):
-    return 2
-  elif (valz <= pz*pz):
-    return 3
-  
-  return -1
-
+def profile(args,dir):
+  if args.profile == 'linear':
+    if dir == 1:
+      return profileLin(args.x1, args.x2, args.res)
+    if dir == 2:   
+      return profileLin(args.y1, args.y2, args.res)
+    if dir == 3:
+      return profileLin(args.z1, args.z2, args.res)
+    
+  if args.profile == 'circular':
+    if dir == 1:
+      return profileCirc(args.x1, args.res)
+    if dir == 2:   
+      return profileCirc(args.y1, args.res)
+    if dir == 3:
+      return profileCirc(args.z1, args.res)  
 # def create_profiles_array(nx,ny,nz,x1,x2,y1,y2,z1,z2):
 def create_profiles_array(args):
   res = args.res
-  array = np.zeros((res,res,res))
+  array = np.ones((res,res,res)) * (-1)
+  
+  if not args.skip_x:
+    vec = profile(args,1)
+    draw_profile(array, vec, 1)
+  if not args.skip_y:
+    vec = profile(args,2)
+    draw_profile(array, vec, 2)  
+  if not args.skip_z:
+    vec = profile(args,3)
+    draw_profile(array, vec, 3)  
     
-  h = 1.0 / res
-  
-  flag = None
-  
+  return array
+
+def draw_profile(array,vec,dir):
+  res = array.shape[0]
+  h = 1.0/res
+  assert(res == len(vec))
+  assert(dir >=1 and dir <=3)
+
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):  
-        coords = np.zeros(3)
-        x = i * h + h / 2.0 # from array coordinates to cartesian ones (barycenter)
         y = j * h + h / 2.0
         z = k * h + h / 2.0
-        coords[0] = x
-        coords[1] = y
-        coords[2] = z
-        if args.type == 'profiles2d':
-#           flag = within_profile2d(x1, x2, y1, y2, coords)
-          flag = within_profiles3d(args.x1, args.x2, args.y1, args.y2, 0,0, coords, args.profile, args.skip_x, args.skip_y, args.skip_z)
-        else:
-          flag = within_profiles3d(args.x1, args.x2, args.y1, args.y2, args.z1, args.z2, coords, args.profile, args.skip_x, args.skip_y, args.skip_z) 
-        if flag != -1:
-          array[i,j,k] = flag
-  return array
+        valx = (y-0.5)**2 + (z-0.5)**2
+  
+        p = vec[i]   
+        if (valx <= p*p):
+          if dir == 1:
+            array[i,j,k] = dir
+          if dir == 2:
+            array[j,i,k] = dir
+          if dir == 3:
+            array[k,j,i] = dir  
+
 
 def visualize_structure(array, nx, ny, nz):
   import vtk
