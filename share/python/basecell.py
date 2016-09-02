@@ -27,6 +27,7 @@ parser.add_argument('--y2', help="second radius for profile of bar in y-directio
 parser.add_argument('--z1', help="first radius for profile of bar in z-direction; 0 <= z1 <= 1", type=float, default=0.5)
 parser.add_argument('--z2', help="second radius for profile of bar in z-direction; 0 <= z2 <= 1", type=float, default=0.5)
 parser.add_argument('--profile', help="type of profile functions", choices=["linear","circular","spline"])
+parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
