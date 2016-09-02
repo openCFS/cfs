@@ -61,7 +61,6 @@ def profileSpline(x1,y1,res,bend):
   ry = 0.5 - y1/2.0 # radius for center (0,1)
   
   P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
-  print P
   t = np.linspace(0, 1.0, 2*ry*res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
   G = np.zeros(len(C[0])) # numerical finite differences
@@ -136,16 +135,19 @@ def profile(args,dir):
   if args.profile == 'spline':
     if dir == 1:
       vec1,h = profileSpline(args.x1, args.y1, args.res, args.bend)
-      vec2 = profileSplineBisec(args.x1, args.y1, h, args.res, args.bend)
-      return (vec1,vec2,vec1) # assume vec3 = vec1
+      vec2 = profileSplineBisec(args.x1, 0.5*(args.y1+args.z1), h, args.res, args.bend)
+      vec3,h = profileSpline(args.x1, args.z1, args.res, args.bend)
+      return (vec1,vec2,vec3)
     if dir == 2:   
-      vec1, h = profileSpline(args.y1, args.z1, args.res, args.bend)
-      vec2 = profileSplineBisec(args.y1, args.z1, h, args.res, args.bend)
-      return (vec1,vec2,vec1) # assume vec3 = vec1
+      vec1, h = profileSpline(args.y1, args.x1, args.res, args.bend)
+      vec2 = profileSplineBisec(args.y1, 0.5*(args.z1+args.x1), h, args.res, args.bend)
+      vec3,h = profileSpline(args.y1, args.z1, args.res, args.bend)
+      return (vec1,vec2,vec3)
     if dir == 3:
-      vec1, h = profileSpline(args.z1, args.x1, args.res, args.bend)
-      vec2 = profileSplineBisec(args.z1, args.x1, h, args.res, args.bend)
-      return (vec1,vec2,vec1) # assume vec3 = vec1
+      vec1, h = profileSpline(args.z1, args.y1, args.res, args.bend)
+      vec2 = profileSplineBisec(args.z1, 0.5*(args.x1+args.y1), h, args.res, args.bend)
+      vec3,h = profileSpline(args.z1, args.x1, args.res, args.bend)
+      return (vec1,vec2,vec3)
 
 def create_profiles_array(args):
   res = args.res
