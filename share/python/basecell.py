@@ -49,14 +49,8 @@ if args.type == 'profiles2d':
   mesh = create_mesh_with_profiles(args)
 elif args.type == 'profiles3d':  
   mesh = create_mesh_with_profiles(args)
-else:
-  print("available profile mesh type '" + args.type + "' not available!")
-  sys.exit()
-  mesh_name = args.type + "_" + args.profile
   
-res_name = '_' + str(args.res)
-
-file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
+file = mesh_name + '.mesh' if args.file == None else args.file 
 
 write_gid_mesh(mesh, file)
 print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
