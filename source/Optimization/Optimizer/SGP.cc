@@ -263,6 +263,7 @@ void SGP::SolveProblem()
       double cond = 0;
       int count = 0;
       while (ki < bisect && penal_vol) {
+        std::cout<<"s-iteration: "<<ki<<" compliance: "<<obj->outer_val<<" volume: "<<constr[0]->GetValue()<< " ppeni: "<< ppeni<<" merit: "<<merit<<" pmaxi: "<<pmaxi<<" pmini: "<<pmini<<std::endl;
         if (configuration == DENSITY_ROTANGLE) {
           obj->SubSolve_Density_Rotangle(SGPApproximation::FUNC,df,ppeni,rho_outer,theta_outer);
         } else if (configuration == STIFF1_STIFF2) {
@@ -280,8 +281,9 @@ void SGP::SolveProblem()
         for(unsigned int i = 0; i < m; i++)
         {
           // Add non-physical constraint to merit functions
+          double fvol = constr[i]->GetValue();
           if (!constr[i]->IsPhysical()) {
-            merit += ppeni * constr[i]->GetValue();
+            merit += ppeni * constr[i]->GetValue()*n_elem;
           }
         }
         count = 0;
@@ -294,18 +296,18 @@ void SGP::SolveProblem()
               count++;
             //}
           }
-          std::cout<<"s-iteration: "<<ki<<" compliance: "<<obj->outer_val<<" volume: "<<constr[0]->GetValue()<< " ppeni: "<< ppeni<<" merit: "<<merit<<" pmaxi: "<<pmaxi<<" pmini: "<<pmini<<std::endl;
           // only one physical constraint should be used (currently: physical volume)
           assert(count <= 1);
           if (abs(cond) < 0.0001) {
             penal_vol = false;
-          }
-          if (cond > 0) {
-            pmini = ppeni;
-            ppeni = 0.5 * (pmaxi + ppeni);
           } else {
-            pmaxi = ppeni;
-            ppeni = 0.5 * (pmini + ppeni);
+            if (cond > 0) {
+              pmini = ppeni;
+              ppeni = 0.5 * (pmaxi + ppeni);
+            } else {
+              pmaxi = ppeni;
+              ppeni = 0.5 * (pmini + ppeni);
+            }
           }
         }
         ki++;
@@ -378,23 +380,27 @@ void SGP::UpdateToCurrentStep(bool inner)
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 }
 
-void SGP::OuterToDesign() {
+void SGP::OuterToDesign(bool filter) {
   DesignSpace* space = optimization->GetDesign();
   int e_num;
   for (unsigned int i = 0; i < n; i++) {
       e_num = space->data[i].elem->elemNum - 1.;
       switch (space->data[i].GetType()) {
         case (DesignElement::DENSITY):
-          space->data[i].SetDesign(rho_outer[e_num]);
+          if (!filter)
+            space->data[i].SetDesign(rho_outer[e_num]);
           break;
         case DesignElement::ROTANGLE:
-          space->data[i].SetDesign(theta_outer[e_num]);
+          if (!filter)
+            space->data[i].SetDesign(theta_outer[e_num]);
           break;
         case DesignElement::STIFF1:
-          space->data[i].SetDesign(s1_outer[e_num]);
+          if (!filter)
+            space->data[i].SetDesign(s1_outer[e_num]);
           break;
         case DesignElement::STIFF2:
-          space->data[i].SetDesign(s2_outer[e_num]);
+          if (!filter)
+            space->data[i].SetDesign(s2_outer[e_num]);
           break;
         case DesignElement::MECH_11:
           space->data[i].SetDesign(E_outer[e_num][0][0]);
@@ -420,7 +426,8 @@ void SGP::OuterToDesign() {
   }
 
   // enforce design update and solution of linear system
-  space->IncrementDesignId();
+  if (!filter)
+    space->IncrementDesignId();
 }
 
 void SGP::GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double> obj_grad) {
@@ -535,23 +542,35 @@ void SGP::DesignToOuter(bool inner) {
         helper_dm->ApplyHomRectC1Tensor(E_outer[i],p,DesignElement::NO_DERIVATIVE,PLANE);
       }
     }
-
+//    x_outer[mech11*n_elem+i] = E_outer[i][0][0];
+//    x_outer[mech12*n_elem+i] = E_outer[i][0][1];
+//    x_outer[mech13*n_elem+i] = E_outer[i][0][2];
+//    x_outer[mech22*n_elem+i] = E_outer[i][1][1];
+//    x_outer[mech23*n_elem+i] = E_outer[i][1][2];
+//    x_outer[mech33*n_elem+i] = E_outer[i][2][2];
     LOG_DBG3(sgp) << "A:E_outer["<< i << "]= "<< E_outer[i].ToString();
+  }
+  // write to Tensor to Design in order to apply filter
+  if (!inner)
+    OuterToDesign(true);
+  for (unsigned int i = 0; i < n_elem; i++) {
+    if (!inner) {
+      E_outer[i][0][0] = space->GetDesignElement(mech11+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][0][1] = space->GetDesignElement(mech12+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][0][2] = space->GetDesignElement(mech13+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][1][1] = space->GetDesignElement(mech22+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][1][2] = space->GetDesignElement(mech23+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][2][2] = space->GetDesignElement(mech33+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][1][0] = E_outer[i][0][1];
+      E_outer[i][2][0] =  E_outer[i][0][2];
+      E_outer[i][2][1] = E_outer[i][1][2];
+    }
     x_outer[mech11*n_elem+i] = E_outer[i][0][0];
     x_outer[mech12*n_elem+i] = E_outer[i][0][1];
     x_outer[mech13*n_elem+i] = E_outer[i][0][2];
     x_outer[mech22*n_elem+i] = E_outer[i][1][1];
     x_outer[mech23*n_elem+i] = E_outer[i][1][2];
     x_outer[mech33*n_elem+i] = E_outer[i][2][2];
-    /** E_outer[i][0][0] = space->GetDesignElement(mech11+i);
-    E_outer[i][0][1] = space->GetDesignElement(mech12+i);
-    E_outer[i][0][2] = space->GetDesignElement(mech13+i);
-    E_outer[i][1][1] = space->GetDesignElement(mech22+i);
-    E_outer[i][1][2] = space->GetDesignElement(mech23+i);
-    E_outer[i][2][2] = space->GetDesignElement(mech33+i);
-    E_outer[i][1][0] = E_outer[i][0][1];
-    E_outer[i][2][0] =  E_outer[i][0][2];
-    E_outer[i][2][1] = E_outer[i][1][2]; */
   }
 }
 
@@ -685,7 +704,7 @@ double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<d
   return obj;
 }
 
-double SGPApproximation::EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen, int index) {
+double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen, int index) {
 
   Matrix<double> E_tmp(3,3), E_tmpinv(3,3),LLL(3,3);
   double result = 0;
@@ -700,7 +719,7 @@ double SGPApproximation::EvalApproximation(double sum_inner_vars, Eval eval, Mat
     E_tmp *= common->tau;
     BB += E_tmp;
     E_tmpinv.Mult(BB,LLL);
-    result = LLL[0][0] + LLL[1][1] + LLL[2][2] + ppen * sum_inner_vars;
+    result = LLL[0][0] + LLL[1][1] + LLL[2][2] + ppen * vol_inner_vars * 1000;
     LOG_DBG3(sgp) << "A:E f=" << ToString() << " func r_= " << result;
     break;
   }
