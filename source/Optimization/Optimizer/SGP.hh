@@ -160,8 +160,8 @@ private:
   /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
   void DesignToOuter(bool inner = false);
 
-  /** writes rho_outer, theta_outer and E_outer back to design */
-  void OuterToDesign();
+  /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated */
+  void OuterToDesign(bool filter = false);
 
   /** create 2D rotation matrix for angle alpha */
   void GetRotationMatrix(double alpha, Matrix<Double> & rot);
