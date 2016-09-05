@@ -8,7 +8,10 @@
 #include "Utils/Interpolate1D.hh"
 #include "Domain/Domain.hh"
 #include "Utils/mathfunctions.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
+DECLARE_LOG(math)
+DEFINE_LOG(math, "mathParser")
 
 namespace CoupledField {
   
@@ -236,7 +239,7 @@ namespace CoupledField {
   void MathParser::RegisterExternalVar(  HandleType handle,
                                          const std::string& varName,
                                          Double * ptVar ) {
-
+    LOG_DBG(math) << "registering '" << varName << "'\n";
     // Get parser related to handle
     mu::Parser & myParser  =  GetParser( handle );
     /// register function with related parser object

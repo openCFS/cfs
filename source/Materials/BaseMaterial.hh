@@ -152,7 +152,12 @@ namespace CoupledField {
     //! Return a specific sub-tensor as coefficient function (linear)
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
-                                            bool transposed  ) ;
+                                            bool transposed  );
+
+    //! Return a sub-vector in Voigt notation
+    virtual PtrCoefFct GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real=false) {
+        EXCEPTION("Currently only implemented for Mechanic material");
+    }
 
     //! Return tensor-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,

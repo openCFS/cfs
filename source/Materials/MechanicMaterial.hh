@@ -67,6 +67,9 @@ namespace CoupledField {
     void GetVector( Vector<Double>& param, MaterialType matType,
 			    Global::ComplexPart dataType ) const;
 
+    //! get sub vector (e.g. thermal expansion tensor in Voigt notation)
+    PtrCoefFct GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real=false );
+
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
 		    Global::ComplexPart dataType,

@@ -1118,7 +1118,7 @@ namespace CoupledField
    PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                  SubTensorType tensorType,
                                                  bool transposed  ) {
-
+// TODO: include 'complexPart' in input arguments - this is now ignored!
      PtrCoefFct mFunct;
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
        CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );

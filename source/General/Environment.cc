@@ -1516,23 +1516,11 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
     MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
     MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
-    MaterialTypeEnum.Add( MECH_TEC, "Mechanic_ThermalExpCoef" );
-    MaterialTypeEnum.Add( MECH_TEC1, "Mechanic_ThermalExpCoef1" );
-    MaterialTypeEnum.Add( MECH_TEC2, "Mechanic_ThermalExpCoef2" );
-    MaterialTypeEnum.Add( MECH_TEC3, "Mechanic_ThermalExpCoef3" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
+    MaterialTypeEnum.Add( MECH_TE_TENSOR, "Mechanic_ThermalExpansionTensor" );
     MaterialTypeEnum.Add( MECH_VISCOALPHA_VECTOR, "Mechanic_ViscoAlpha_Vec" );
     MaterialTypeEnum.Add( MECH_VISCOG_VECTOR, "Mechanic_ViscoG_Vec" );
     MaterialTypeEnum.Add( MECH_VISCOK_VECTOR, "Mechanic_ViscoK_Vec" );
-
-
-    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
-    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORPLANE, "Mechanic_StiffTEC_VectorPlane" );
-    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORAXI, "Mechanic_StiffTEC_VectorAxi" );
-
-    MaterialTypeEnum.Add( MECH_TEC_REFTEMPERATURE, "refTemperature");
+    MaterialTypeEnum.Add( MECH_TE_REFTEMPERATURE, "refTemperature");
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
     MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
