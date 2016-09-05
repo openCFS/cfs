@@ -600,7 +600,7 @@ namespace CoupledField {
             if (node->Has("real")) {
                 ParamTools::AsStringTensor( node->Get("real"), 3, vals );
                 for (UInt i = 0; i < 3; ++i) {
-                    tecI[i] = vals[i];
+                    tecR[i] = vals[i];
                 }
             }
             if (node->Has("imag")) {
@@ -617,7 +617,7 @@ namespace CoupledField {
             if (node->Has("real")) {
                 ParamTools::AsStringTensor( node->Get("real"), 6, vals );
                 for (UInt i = 0; i < 6; ++i) {
-                    tecI[i] = vals[i];
+                    tecR[i] = vals[i];
                 }
             }
             if (node->Has("imag")) {
