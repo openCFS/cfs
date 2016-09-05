@@ -115,7 +115,31 @@ namespace CoupledField
         EXCEPTION("Wrong size of tensor '" << node->GetName() << "'. It contains of " 
                   << ret.GetSize() << " entries and should be " << dim ); 
       }
-    } 
+    }
+
+    //! Read the immediate child of a node and return it as a string vector usable to create a
+    //! tensor valued coefficient function via CoefFunction::Generate
+    static void AsStringVoigtTensor(PtrParamNode node, StdVector<std::string>& ret )
+    {
+        StdVector<std::string> elems;
+        SplitStringList(node->As<std::string>(), elems, ' ' );
+        UInt nelems = elems.GetSize();
+        if ( nelems == 6 ) {
+            ret.Resize(9); // 3x3 components
+            ret[0] = Bracket( elems[0] ); // 11
+            ret[1] = Bracket( elems[5] ); // 12
+            ret[2] = Bracket( elems[4] ); // 13
+            ret[3] = Bracket( elems[5] ); // 21 = 12
+            ret[4] = Bracket( elems[1] ); // 22
+            ret[5] = Bracket( elems[3] ); // 23
+            ret[6] = Bracket( elems[4] ); // 31 = 13
+            ret[7] = Bracket( elems[3] ); // 32 = 23
+            ret[8] = Bracket( elems[2] ); // 33
+        }
+        else {
+            EXCEPTION("Your specified '" << nelems << "' but symmetric tensors from Voigt notation only implemented for 3D (=6 components)!");
+        }
+    }
 
   }; 
 
