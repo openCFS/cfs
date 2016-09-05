@@ -1377,8 +1377,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  THERMAL STRAIN
     // ==================
     LOG_DBG(mechpde) << "Reading thermal strain definition";
-
-    ReadRhsExcitation("thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
+    StdVector<PtrCoefFct > tCoef;
+    ReadRhsExcitation("thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, tCoef, coefUpdateGeo, input);
 
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
@@ -1389,46 +1389,47 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         }
 
         RegionIdType myRegionId = ent[i]->GetRegion();
-        MaterialType typeStrain, typeStress;
-        if( subType_ == "axi" ) {
-          typeStrain =  MECH_TEC_VECTORAXI;
-          typeStress =  MECH_STIFFTENSOR_TEC_VECTORAXI;
+        // set sub tensor type
+        SubTensorType subType;
+        if (subType_=="axi") {
+            subType = AXI;
         }
-        else if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
-          typeStrain =  MECH_TEC_VECTORPLANE;
-          typeStress =  MECH_STIFFTENSOR_TEC_VECTORPLANE;
+        else if (subType_=="planeStrain") {
+            subType = PLANE_STRAIN;
         }
-        else if( subType_ == "3d") {
-          typeStrain = MECH_TEC_VECTOR;
-          typeStress = MECH_STIFFTENSOR_TEC_VECTOR;
+        else if (subType_=="planeStress") {
+            subType = PLANE_STRESS;
+        }else if (subType_=="3d") {
+            subType = FULL;
         }
-        else
-          EXCEPTION("Mechanical Tensortype not implemented!")
+        else {
+            EXCEPTION("Mechanical Tensortype '"<< subType_ <<"' not implemented!");
+        }
 
-        //get thermal expansion in Voigt notation
-        PtrCoefFct vecTEC = materials_[myRegionId]->GetVectorCoefFnc(typeStrain, part);
+        // get stiffness tensor and thermal expansion coefficient (reduced to problem dim)
+        PtrCoefFct cCoef, aCoef;
+        if( isComplex_ ) {
+          cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::COMPLEX);
+          aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType);
+        }
+        else {
+          cCoef = materials_[myRegionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, subType, Global::REAL);
+          aCoef = materials_[myRegionId]->GetSubVectorCoefFnc(MECH_TE_TENSOR, subType, true);
+        }
 
-        //get thermal expansion already multiplied with elasticity tensor
-        PtrCoefFct vecMechTEC = materials_[myRegionId]->GetVectorCoefFnc(typeStress, part);
+        // get reference temperature and compute dT = T - T_ref
+        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TE_REFTEMPERATURE, part);
+        PtrCoefFct dT = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,tCoef[i],refTemp,CoefXpr::OP_SUB));
 
-        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TEC_REFTEMPERATURE,
-                                                                    part);
-
-        PtrCoefFct TminusTref =
-                  CoefFunction::Generate( mp_, part,
-                                         CoefXprBinOp(mp_,coef[i],refTemp,CoefXpr::OP_SUB));
-
-        //compute the termal strain
-        PtrCoefFct thermalStrainCoef =
-                    CoefFunction::Generate( mp_, part,
-                                           CoefXprBinOp(mp_,TminusTref,vecTEC,CoefXpr::OP_MULT));
+        // compute the thermal strain eps_th = alpha*dT
+        PtrCoefFct thermalStrainCoef = CoefFunction::Generate( mp_, part,
+                CoefXprVecScalOp(mp_,aCoef,dT,CoefXpr::OP_MULT));
         // store the coefFunction for postprocessing
         thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
 
-
-        PtrCoefFct thermalStressCoef =
-                  CoefFunction::Generate( mp_, part,
-                                         CoefXprBinOp(mp_,TminusTref,vecMechTEC,CoefXpr::OP_MULT));
+        // compute the thermal stress = C*eps_th
+        PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part,
+                CoefXprBinOp(mp_,cCoef,thermalStrainCoef,CoefXpr::OP_MULT));
 
         // store the coefFunction for postprocessing
         thermalStress_->AddRegion( myRegionId, thermalStressCoef);
@@ -1436,7 +1437,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         BaseBOperator * bOp = GetStrainOperator( isComplex_, false );
 
         if(isComplex_) {
-            EXCEPTION("Complex thermal strain RHS linear form not implemented");
+            lin = new BUIntegrator<Complex>(bOp, 1.0, thermalStressCoef, coefUpdateGeo);
         }
         else {
             lin = new BUIntegrator<Double>(bOp, 1.0, thermalStressCoef, coefUpdateGeo);

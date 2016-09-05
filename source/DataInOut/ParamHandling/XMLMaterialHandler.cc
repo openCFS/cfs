@@ -562,53 +562,73 @@ namespace CoupledField {
 
     // check and read thermal expansion coefficients (TECs)
     if (mech->Has("thermalExpanison")) {
-      PtrParamNode tec = mech->Get("thermalExpanison");
+        PtrParamNode tec = mech->Get("thermalExpanison");
 
-      // check values for isotropic
-      if (tec->Has("isotropic"))  {
-        // read the real part
-        if (tec->Get("isotropic")->Has("real")) {
-          PtrParamNode real = tec->Get("isotropic")->Get("real");
-          // read reference temperature
-           if (real->Has("refTemperature")) {
-             material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
-           }
-          // read thermal expansion coefficient (TEC)
-          if (real->Has("TEC")) {
-            material->SetScalar(real->Get("TEC")->As<std::string>(), MECH_TEC, Global::REAL );
-          }
+        // read reference temperature
+        PtrCoefFct tRef;// = CoefFunction::Generate( mp_, Global::IMAG,tecR,tecI);
+        if (tec->Has("refTemperature")) {
+            PtrParamNode refT = tec->Get("refTemperature");
+            tRef = ParamTools::AsScalarCoefFct(mp_,refT);
         }
-        // read the imaginary part
-        if (tec->Get("isotropic")->Has("imag")) {
-          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        else { // set ref temperature to zero
+            tRef = CoefFunction::Generate( mp_, Global::REAL, "0.0");
         }
-      } // end of isotropic
-      // check values for isotropic
-      if (tec->Has("orthotropic"))  {
-        // read the real part
-        if (tec->Get("orthotropic")->Has("real")) {
-          PtrParamNode real = tec->Get("orthotropic")->Get("real");
-          // read real reference temperature
+        material->SetCoefFct(MECH_TE_REFTEMPERATURE,tRef);
 
-          if (real->Has("refTemperature")) {
-            material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
-          }
-          // read real thermal expansion coefficients (TEC)
-          if (real->Has("TEC1")) {
-            material->SetScalar(real->Get("TEC1")->As<std::string>(), MECH_TEC1, Global::REAL );
-          }
-          if (real->Has("TEC2")) {
-            material->SetScalar(real->Get("TEC2")->As<std::string>(), MECH_TEC2, Global::REAL );
-          }
-          if (real->Has("TEC3")) {
-            material->SetScalar(real->Get("TEC3")->As<std::string>(), MECH_TEC3, Global::REAL );
-          }
+        // read thermal expansion coefficient to create a vector valued coef function (in Voigt notation)
+        StdVector<std::string> tecR(6), tecI(6);
+        tecR.Init("0.0");
+        tecI.Init("0.0");
+        if (tec->Has("isotropic")) {
+            if (tec->Get("isotropic")->Has("real")) {
+                std::string coef = tec->Get("isotropic")->Get("real")->As<std::string>();
+                tecR[0] = coef;
+                tecR[1] = coef;
+                tecR[2] = coef;
+            }
+            if (tec->Get("isotropic")->Has("imag")) {
+                std::string coef = tec->Get("isotropic")->Get("imag")->As<std::string>();
+                tecI[0] = coef;
+                tecI[1] = coef;
+                tecI[2] = coef;
+            }
         }
-        // read the imaginary part
-        if (tec->Get("orthotropic")->Has("imag")) {
-          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        else if (tec->Has("orthotropic")) {
+            PtrParamNode node = tec->Get("orthotropic");
+            StdVector<std::string> vals(3);
+            vals.Init("0.0");
+            if (node->Has("real")) {
+                ParamTools::AsStringTensor( node->Get("real"), 3, vals );
+                for (UInt i = 0; i < 3; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
+            if (node->Has("imag")) {
+                ParamTools::AsStringTensor( node->Get("imag"), 3, vals );
+                for (UInt i = 0; i < 3; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
         }
-      }
+        else if(tec->Has("anisotropic")) {
+            PtrParamNode node = tec->Get("anisotropic");
+            StdVector<std::string> vals(6);
+            vals.Init("0.0");
+            if (node->Has("real")) {
+                ParamTools::AsStringTensor( node->Get("real"), 6, vals );
+                for (UInt i = 0; i < 6; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
+            if (node->Has("imag")) {
+                ParamTools::AsStringTensor( node->Get("imag"), 6, vals );
+                for (UInt i = 0; i < 6; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
+        }
+        PtrCoefFct tecVect = CoefFunction::Generate( mp_, Global::COMPLEX,tecR,tecI);
+        material->SetCoefFct(MECH_TE_TENSOR,tecVect);
     }
 
     // read mechanical damping

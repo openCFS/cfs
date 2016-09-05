@@ -6,6 +6,7 @@
 #include "Utils/tools.hh"
 #include "MatVec/Matrix.hh"
 #include "boost/lexical_cast.hpp"
+#include "Domain/CoefFunction/CoefFunction.hh"
 
 namespace CoupledField
 {
@@ -139,6 +140,29 @@ namespace CoupledField
         else {
             EXCEPTION("Your specified '" << nelems << "' but symmetric tensors from Voigt notation only implemented for 3D (=6 components)!");
         }
+    }
+
+    static PtrCoefFct AsScalarCoefFct(MathParser* mp, PtrParamNode node) {
+        PtrCoefFct ret;
+        std::string sR,sI;
+        bool complex = false;
+        if ( node->Has("real") ) {
+            sR = node->Get("real")->As<std::string>();
+            //tRef = CoefFunction::Generate( mp_,
+           // material->SetScalar(refT->Get("real")->As<std::string>(),MECH_TE_REFTEMPERATURE, Global::REAL );
+        }
+        if ( node->Has("imag")) {
+            sI = node->Get("imag")->As<std::string>();
+            complex = true;
+        }
+        if (complex) {
+            ret = CoefFunction::Generate( mp, Global::REAL, sR, sI);
+        }
+        else {
+            ret = CoefFunction::Generate( mp, Global::REAL, sR);
+        }
+        //Global::COMPLEX
+        return ret;
     }
 
   }; 
