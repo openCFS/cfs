@@ -227,7 +227,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
     } else {
       EXCEPTION( "Can not apply a function on arguments of type "
           << CoefFunction::CoefDimType_.ToString(a->GetDimType())
-          << " and " << CoefFunction::CoefDimType_.ToString(a->GetDimType()) );
+          << " and " << CoefFunction::CoefDimType_.ToString(b->GetDimType()) );
     }
     
   }
@@ -1019,6 +1019,7 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
   // +
   // -
   // cross
+  // *
 
   if( a_->GetDimType() == CoefFunction::VECTOR  &&
       b_->GetDimType() == CoefFunction::VECTOR ) {
@@ -1396,11 +1397,78 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       EXCEPTION( "The only allowed (scalar,vector)->vector operations "
           << "are OP_ADD, OP_SUB, OP_MULT, OP_MULT_CONJ and OP_DIV" );
     }
-  } else {
-    EXCEPTION("Arguments must be both of vector type.")
   }
-  
-  
+  else if( a_->GetDimType() == CoefFunction::TENSOR  &&
+          b_->GetDimType() == CoefFunction::VECTOR ) {
+      // --------------------
+      //  TENSOR-VECTOR CASE
+      // --------------------
+      if ( op_ == OP_MULT ) { // compute multiplication
+          // check size
+          UInt ai,aj;
+          a_->GetTensorSize(ai,aj);
+          UInt bi = b_->GetVecSize();
+          if (aj != bi) {
+              EXCEPTION( "Size must be compatible" )
+          }
+          // compute
+          StdVector<std::string> aR, aI;
+          StdVector<std::string> bR, bI;
+
+          UInt numRows, numCols; // size of a
+
+          if( isAnalytical_) {
+              CoefFunctionAnalytic & coefA =
+                      dynamic_cast<CoefFunctionAnalytic&>(*a_);
+              CoefFunctionAnalytic & coefB =
+                      dynamic_cast<CoefFunctionAnalytic&>(*b_);
+              coefA.GetStrTensor( numRows, numCols, aR, aI );
+              coefB.GetStrVector( bR, bI );
+          } else {
+              CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+              CoefFunction::GenVecCompNames(bR, bI, bName_, b_);
+              a_->GetTensorSize(numRows, numCols);
+          }
+          // output size
+          real.Resize( numRows );
+          imag.Resize( numRows );
+
+          if( !isComplex_ ) {
+              for( UInt i = 0; i < numRows; ++ i ) {
+                  std::string sum;
+                  CoefXpr::ApplyBinaryFunc(sum,aR[0],bR[0],CoefXpr::OP_MULT);
+                  for (UInt j = 1; j < numCols; ++ j) {
+                      CoefXpr::ApplyTernaryFunc( sum, sum, aR[j], bR[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
+                      //std::string prod;
+                      //CoefXpr::ApplyBinaryFunc( prod, Bracket(aR[j]), Bracket(bR[j]), CoefXpr::OP_MULT );
+                      //CoefXpr::ApplyBinaryFunc( sum, sum, prod, CoefXpr::OP_ADD );
+                  }
+                  real[i] = sum;
+                  imag[i] = "0.0";
+              }
+          }
+          else {
+              for( UInt i = 0; i < numRows; ++ i ) {
+                  std::string sumR = "";
+                  std::string sumI = "";
+                  for (UInt j = 0; j < numCols; ++ j) {
+                      CoefXpr::ApplyTernaryFunc( sumR, sumI, sumR, aR[j], bR[j], sumI, aI[j], bI[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
+                      //std::string prodR, prodI;
+                      //CoefXpr::ApplyBinaryFunc( prodR, prodI, Bracket(aR[j]), Bracket(bR[j]),Bracket(aI[j]), Bracket(bI[j]), CoefXpr::OP_MULT );
+                      //CoefXpr::ApplyBinaryFunc( sumR, sumI, sumR, prodR, sumI, prodI, CoefXpr::OP_ADD );
+                  }
+                  real[i] = sumR;
+                  imag[i] = sumI;
+              }
+          }
+      } else {
+          EXCEPTION("only tesor x vector possible")
+      }
+      //EXCEPTION("tesor x vector in progress.")
+  }
+  else {
+      EXCEPTION("Arguments must be both of vector type.")
+  }
 }
 
 void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
@@ -1987,6 +2055,7 @@ void CoefXprMechSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
     CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
     a_->GetTensorSize(numRowsA, numColsA);
   }
+  // TODO: check if material is tricilinic with symmetry plane 1-2, otherwise reduction is not allowed!
 
   // switch depending on subTensorType
   if( tensorType_ == AXI ) {
@@ -2323,6 +2392,117 @@ void CoefXprSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
 }
 
 void CoefXprSubTensor::GetArgs( std::map<std::string, PtrCoefFct > & vars ) const {
+  vars[aName_] = a_;
+}
+
+// ==========================================================================
+//  VECTOR REPRESENTATIONS (MECHANIC)
+// ==========================================================================
+void CoefXprMechSubVector::Init( PtrCoefFct a ) {
+  // check dimensionality
+  if( a->GetDimType() != CoefFunction::VECTOR ) {
+    EXCEPTION( "Argument must be of type VECTOR" );
+  }
+
+  // ensure that dimension is a full 6x vectorr
+  UInt size = a->GetVecSize();
+  if( size != 6  ) {
+    EXCEPTION( "Vector must have length 6" );
+  }
+
+  dimType_ = CoefFunction::VECTOR;
+  isAnalytical_ = a->IsAnalytic();
+  dependType_ = a->GetDependency();
+  coordSys_ = a->GetCoordinateSystem();
+  isComplex_ = a->IsComplex();
+  a_ = a;
+  aName_ = CoefXpr::GetUniqueVarName();
+  tensorType_ = NO_TENSOR;
+}
+
+CoefXprMechSubVector::CoefXprMechSubVector( MathParser * mp, PtrCoefFct a )
+: CoefXpr(mp) {
+  Init(a);
+}
+CoefXprMechSubVector::CoefXprMechSubVector( MathParser * mp, const CoefXpr& a)
+: CoefXpr(mp){
+
+  Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( mp_, part, a );
+}
+
+void CoefXprMechSubVector::SetSubTensorType(SubTensorType subType ) {
+  tensorType_ = subType;
+}
+
+
+void CoefXprMechSubVector::GetVectorXpr( StdVector<std::string>& real,
+                                     StdVector<std::string>& imag ) const {
+  // ensure, that a subtype is set
+  if( tensorType_ == NO_TENSOR ) {
+    EXCEPTION( "No tensor sub type was set");
+  }
+
+  StdVector<std::string> aR, aI;
+  UInt size;
+
+  if( isAnalytical_) {
+    CoefFunctionAnalytic & coefA =
+        dynamic_cast<CoefFunctionAnalytic&>(*a_);
+    coefA.GetStrVector( aR, aI );
+    size = coefA.GetVecSize();
+  } else {
+    CoefFunction::GenVecCompNames(aR, aI, aName_, a_);
+    size = a_->GetVecSize();
+  }
+
+  // switch depending on subTensorType
+  if( tensorType_ == AXI ) {
+    // resize to 4x Vector
+    size = 4;
+    real.Resize( size );
+    imag.Resize( size );
+    imag.Init("0.0");
+    UInt rowPtr[] = {1,2,6,3};
+    for(UInt i = 0; i < size; ++i ) {
+        real[i] = aR[(rowPtr[i]-1)];
+        if(isComplex_ )
+          imag[i] = aI[(rowPtr[i]-1)];
+    }
+    // TODO: check if a_5 & a_4 are zero: this is required for the reduction to be allowed!
+  } else if( (tensorType_ == PLANE_STRAIN) | (tensorType_ == PLANE_STRESS) ) {
+    // resize to 3x Vector
+    size = 3;
+    real.Resize( size );
+    imag.Resize( size );
+    imag.Init("0.0");
+    UInt rowPtr[] = {1,2,6};
+    for(UInt i = 0; i < size; ++i ) {
+        real[i] = aR[(rowPtr[i]-1)];
+        if(isComplex_ )
+          imag[i] = aI[(rowPtr[i]-1)];
+    }
+    // TODO: check if a_5 & a_4 are zero: this is required for the reduction to be allowed!
+  } else if( tensorType_ == FULL ) {
+    size = 6;
+    real = aR;
+    imag = aI;
+    if( !isComplex_ )
+      imag.Init("0.0");
+
+  } else {
+    EXCEPTION( "Desired sub-tensor type not known" );
+  }
+
+  // In the end, put everything in brackets
+  for( UInt i = 0; i < size; ++i ) {
+    real[i] = Bracket(real[i]);
+    imag[i] = Bracket(imag[i]);
+  }
+
+}
+
+void CoefXprMechSubVector::GetArgs( std::map<std::string, PtrCoefFct > & vars ) const {
   vars[aName_] = a_;
 }
 
