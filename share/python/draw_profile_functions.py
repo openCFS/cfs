@@ -6,7 +6,7 @@ import sys
 import math
 from matplotlib import pyplot as plt
 from scipy import interpolate
-from cmath import atan
+from mpl_toolkits.mplot3d import Axes3D
 
 def profileLin(x1,x2,n):
   x = np.linspace(0, 1.0,n)
@@ -55,6 +55,29 @@ def findGradOne(vec):
     
   return idx
 
+def sline_curve(x1, y1, bend):
+  rx = 0.5 - x1/2.0 # radius for center (0,1)
+  ry = 0.5 - y1/2.0 # radius for center (0,1)
+  
+  P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
+  t = np.linspace(0, 1.0, 2*ry*res) # double over-sampling
+  C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
+  G = np.zeros(len(C[0])) # numerical finite differences
+  for i in range(len(C[0])-1):
+    G[i] = (C[1,i+1] - C[1,i]) / (C[0,i+1] - C[0,i])
+
+  # interpolate for regular spacing  
+  fc = interpolate.interp1d(C[0],C[1])
+  fg = interpolate.interp1d(C[0],G)
+  
+  v = np.linspace(0,ry,ry*res)
+  c = fc(v)
+  g = fg(v)
+  
+  idx = findGradOne(g)
+  return c, idx
+
+
 def profileSpline(x1,y1,res,bend):
   assert(bend <= 1 and bend >= 0)
   rx = 0.5 - x1/2.0 # radius for center (0,1)
@@ -77,8 +100,6 @@ def profileSpline(x1,y1,res,bend):
   
   idx = findGradOne(g)
   
-#   print "index: ",idx,v[idx],c[idx] 
-  
   vec = np.zeros(res)
   
   vec[0:idx] = c[0:idx]
@@ -89,7 +110,7 @@ def profileSpline(x1,y1,res,bend):
 #   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
 #  plt.show()
   
-  return vec-0.5,c[idx]
+  return vec-0.5,v[idx],c[idx]
 
 # @param height is second return value from profileSpline
 def profileSplineBisec(x1,y1,height,res,bend):
@@ -134,20 +155,33 @@ def profile(args,dir):
     
   if args.profile == 'spline':
     if dir == 1:
-      vec1,h = profileSpline(args.x1, args.y1, args.res, args.bend)
-      vec2 = profileSplineBisec(args.x1, 0.5*(args.y1+args.z1), h, args.res, args.bend)
-      vec3,h = profileSpline(args.x1, args.z1, args.res, args.bend)
-      return (vec1,vec2,vec3)
+      vec1,hx,hy = profileSpline(args.x1, args.y1, args.res, args.bend)
+      vec3,hx,hy = profileSpline(args.x1, args.z1, args.res, args.bend)
+      dumm,hx,hy = profileSpline(args.y1, args.z1, args.res, args.bend)
+      vec2 = profileSplineBisec(args.x1, 0.5*(args.y1+args.z1), hy, args.res, args.bend)
+      
+      t = np.linspace(0, 1.0, args.res)
+#       plt.plot(t,vec1,label='x1y1')
+#       plt.plot(t,vec2,label='x1y1z1')
+#       plt.plot(t,vec3,label='x1z1')
+#       plt.plot(t,vec4,label='y1z1')
+#       plt.legend(loc='upper left', shadow=True)
+#       plt.show()
+
+      valx = (hx-0.5)**2 + (hy-0.5)**2
+        
+      phi = np.arccos(0.5*(hx-0.5)/(0.5*np.sqrt(valx)))
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
-      vec1, h = profileSpline(args.y1, args.x1, args.res, args.bend)
+      vec1, dumm, h = profileSpline(args.y1, args.x1, args.res, args.bend)
       vec2 = profileSplineBisec(args.y1, 0.5*(args.z1+args.x1), h, args.res, args.bend)
-      vec3,h = profileSpline(args.y1, args.z1, args.res, args.bend)
-      return (vec1,vec2,vec3)
+      vec3,  dumm, h = profileSpline(args.y1, args.z1, args.res, args.bend)
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 3:
-      vec1, h = profileSpline(args.z1, args.y1, args.res, args.bend)
+      vec1,  dumm, h = profileSpline(args.z1, args.y1, args.res, args.bend)
       vec2 = profileSplineBisec(args.z1, 0.5*(args.x1+args.y1), h, args.res, args.bend)
-      vec3,h = profileSpline(args.z1, args.x1, args.res, args.bend)
-      return (vec1,vec2,vec3)
+      vec3,  dumm, h = profileSpline(args.z1, args.x1, args.res, args.bend)
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
 
 def create_profiles_array(args):
   res = args.res
@@ -172,38 +206,40 @@ def give_interpolate_radius(vec, idx, dir):
     val = []
     rad = []
     
-    val.append(vec[0][idx]) # 0 deg
-    rad.append(0.0)
+    val.append(vec[0][0][idx]) # 0 deg
+    assert(vec[0][1] == 0.0)
+    rad.append(0.0) 
     
-    val.append(vec[1][idx]) # 45 de
-    rad.append(np.pi/4)
+    val.append(vec[1][0][idx]) # 45 de
+    rad.append(vec[1][1])
     
-    val.append(vec[2][idx]) # 90
+    val.append(vec[2][0][idx]) # 90
+    assert(vec[2][1] == np.pi/2)
     rad.append(np.pi/2)
     
-    val.append(vec[1][idx]) # 90+45
-    rad.append(3./4*np.pi)
+    val.append(vec[1][0][idx]) # 90+45
+    rad.append(np.pi-vec[1][1]) #np.pi/2+phi)
     
-    val.append(vec[0][idx]) # 90+90=180
+    val.append(vec[0][0][idx]) # 90+90=180
     rad.append(np.pi)
     
-    val.append(vec[1][idx]) # 180+45
-    rad.append(5./4*np.pi)
+    val.append(vec[1][0][idx]) # 180+45
+    rad.append(np.pi+vec[1][1])
     
-    val.append(vec[2][idx]) # 180+90=270
-    rad.append(6./4*np.pi)
+    val.append(vec[2][0][idx]) # 180+90=270
+    rad.append(6.0/4.0*np.pi)
     
-    val.append(vec[1][idx]) # 270+45
-    rad.append(7./4*np.pi)
+    val.append(vec[1][0][idx]) # 270+45
+    rad.append(2*np.pi-vec[1][1])
     
-    val.append(vec[0][idx]) # 270+90=360=0 (full cicle) 
-    rad.append(0.0)
+    val.append(vec[0][0][idx]) # 270+90=360=0 (full cicle) 
+    rad.append(2*np.pi)
       
     f = interpolate.interp1d(rad, val)
     return f
   else:
     assert(type(vec) <> tuple) # but a single vector
-    f = interpolate.interp1d((0, 7),(vec[idx], vec[idx]))
+    f = interpolate.interp1d((0, 7),(vec[idx], vec[idx])) # 7 is close to 2*pi
     return f                            
                                        
 
@@ -219,6 +255,22 @@ def draw_profile(array,vec,dir):
 #   a = []
 #   ya = []
 #   za = []
+
+  if False:
+
+    map = np.zeros((360, res))
+    for i in range(0,res):
+      f = give_interpolate_radius(vec, i, dir)
+      for alpha in range(0,360):
+        rad = np.pi/180. * alpha
+        map[alpha,i] = f(rad)
+    
+    X,Y = np.meshgrid(range(res),range(360))
+    
+    hf = plt.figure()
+    ha = hf.add_subplot(111, projection='3d')
+    ha.plot_surface(X, Y, map)
+    #   plt.show()
   
   for i in range(0,res):
     f = give_interpolate_radius(vec, i, dir)
