@@ -53,6 +53,10 @@ def findGradOne(vec):
       
   if not stop:
     idx = len(vec) - 1
+  
+  # the idx before 1 might be closer to 1
+  if abs(1-vec[idx-1]) < abs(1-vec[idx]):
+    idx = idx-1 
     
   return idx
 
@@ -63,10 +67,16 @@ def spline_curve(x1, y1, res, bend):
   P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
   t = np.linspace(0, 1.0, 2*ry*res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
-  G = np.zeros(len(C[0])) # numerical finite differences
-  for i in range(len(C[0])-1):
-    G[i] = (C[1,i+1] - C[1,i]) / (C[0,i+1] - C[0,i])
-
+#   G = np.zeros(len(C[0])) # numerical finite differences
+#   for i in range(len(C[0])-1):
+#     G[i] = (C[1,i+1] - C[1,i]) / (C[0,i+1] - C[0,i])
+  G = np.diff(C[1]) / np.diff(C[0]) # numerical finite differences
+  G.resize(len(C[0]))
+  
+#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
+#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
+#   plt.show()
+  
   # interpolate for regular spacing  
   fc = interpolate.interp1d(C[0],C[1])
   fg = interpolate.interp1d(C[0],G)
@@ -84,14 +94,10 @@ def profileSpline(x1,y1,res,bend):
 
   vec = np.zeros(res)
   c, idx, point = spline_curve(x1,y1,res,bend)
-  print 'profileSpline',x1,y1,point,idx
+  print 'profileSpline',point
   vec[0:idx] = c[0:idx]
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
   vec[res-idx:res] = c[0:idx][::-1]
-  
-#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
-#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
-#  plt.show()
   
   return vec-0.5
 
@@ -100,18 +106,22 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   assert(bend <= 1 and bend >= 0)
   
   c, idx, point = spline_curve(y1,z1,res,bend)
+  assert(point[1] >= 0.5 and point[0] <= 0.5 )
   height = np.sqrt((point[0]-0.5)**2+(point[1]-0.5)**2)
-  print 'profileSplineBisec', x1,y1,z1, point, height
+#   height = point[1]-0.5
+  print 'profileSplineBisec', point, height
+
 
   gamma = np.arccos((0.5-point[0])/(np.sqrt((0.5-point[0])**2 + (point[1]-0.5)**2)))
   phi = np.pi - gamma
-  print phi/np.pi*180, gamma/np.pi*180, (np.sqrt((0.5-point[0])**2 + (point[1]-0.5)**2))
-
   
-  rx = 0.5 - x1/2.0
-  P = np.transpose(np.array([[0,1-rx],[0.5*bend,1-rx],[0.5-0.5*bend,height+0.5],[0.5,height+0.5]]))
+  P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height+0.5],[0.5,height+0.5]]))
   t = np.linspace(0, 1.0, res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
+  
+#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
+#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
+#   plt.show()
 
   # interpolate for regular spacing  
   fc = interpolate.interp1d(C[0],C[1])
@@ -125,6 +135,9 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   vec[res/2:res] = c[::-1]
   
   return vec-0.5, phi
+
+def fun(x):
+  return (8624120426219727*x**3)/1125899906842624 - (7530911326209973*x**2)/562949953421312 + (8593732332755151*x)/1125899906842624 - 5545832868821253/4503599627370496.0
   
 # @return vector with profile or list of vectors
 def profile(args,dir):
@@ -150,13 +163,14 @@ def profile(args,dir):
       vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend)
       
-#       t = np.linspace(0, 1.0, args.res)
-#       plt.plot(t,vec1,label='x1y1')
-#       plt.plot(t,vec2,label='x1y1z1')
+      t = np.linspace(0, 1.0, args.res)
+      t2 = np.linspace(0.35795454545454547, 0.5, args.res/2.0)
+      plt.plot(t,vec1,label='x1y1')
+      plt.plot(t,vec2,label='x1y1z1')
+      plt.plot(t2,fun(t2),label='fun')
 #       plt.plot(t,vec3,label='x1z1')
-#       plt.plot(t,vec4,label='y1z1')
-#       plt.legend(loc='upper left', shadow=True)
-#       plt.show()
+      plt.legend(loc='upper left', shadow=True)
+      plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
@@ -164,13 +178,13 @@ def profile(args,dir):
       vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend)
       vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
 
-      t = np.linspace(0, 1.0, args.res)
+#       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1')
-      plt.plot(t,vec3,label='dir2 y1z1')
-      plt.ylim([0,1])
+#       plt.plot(t,vec3,label='dir2 y1z1')
+#       plt.ylim([0,1])
 #       plt.plot(t,vec3,label='x1z1')
 #       plt.plot(t,vec4,label='y1z1')
-      plt.legend(loc='upper left', shadow=True)
+#       plt.legend(loc='upper left', shadow=True)
 #       plt.show()
       
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
@@ -246,21 +260,15 @@ def draw_profile(array,vec,dir):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
-  
-  q = []
-  pa = []
-#   a = []
-#   ya = []
-#   za = []
 
-  if True:
-    map = np.zeros((360, res))
-    for i in range(0,res):
-      f = give_interpolate_radius(vec, i, dir)
-      for alpha in range(0,360):
-        rad = np.pi/180. * alpha
-        map[alpha,i] = f(rad)
-    
+  map = np.zeros((360, res))
+  for i in range(0,res):
+    f = give_interpolate_radius(vec, i, dir)
+    for alpha in range(0,360):
+      rad = np.pi/180. * alpha
+      map[alpha,i] = f(rad)
+        
+  if False:
     if False:
       X,Y = np.meshgrid(range(res),range(360))
       
@@ -274,7 +282,8 @@ def draw_profile(array,vec,dir):
       ax = plt.axes(polar=True)
       theta = np.linspace(0, 2*np.pi,360)
       plt.plot(theta,map[:,res/2])
-#       plt.show()
+      plt.show()
+      
   for i in range(0,res):
     f = give_interpolate_radius(vec, i, dir)
     for j in range(0,res):
@@ -287,17 +296,8 @@ def draw_profile(array,vec,dir):
         if y < 0:
           phi = 2*np.pi - phi
           
-        if i == 25:
-          q.append(phi)
-          pa.append(f(phi))
-         
-#           ya.append(y-0.5)
-#           za.append(z-0.5)  
-#           a.append(0.5*y/(0.5*np.sqrt(valx)))
-#          q.append(phi)
-#          v.append(valx)
-        
-        p = f(phi)   
+#         p = f(phi)
+        p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):
           if dir == 1:
             array[i,j,k] = dir
@@ -306,7 +306,6 @@ def draw_profile(array,vec,dir):
           if dir == 3:
             array[k,j,i] = dir  
 
-  return q, pa
 def visualize_structure(array, nx, ny, nz):
   import vtk
   
