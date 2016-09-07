@@ -93,7 +93,7 @@ def profileSpline(x1,y1,res,bend):
   assert(bend <= 1 and bend >= 0)
 
   vec = np.zeros(res)
-  c, idx, point, grad = spline_curve(x1,y1,res,bend)
+  c, idx, point, g = spline_curve(x1,y1,res,bend)
 #   print 'profileSpline',point
   vec[0:idx] = c[0:idx]
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
@@ -105,25 +105,29 @@ def profileSpline(x1,y1,res,bend):
 def profileSplineBisec(x1,y1,z1,res,bend):
   assert(bend <= 1 and bend >= 0)
   
+  # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
+  # where the curve has grad=1 we have point b
+  # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
+  # from the point p we determine the angle phi of this bisec profile function 
+  
   # left part is same spline as orhtogonal spline up to point
-  left = profileSpline(x1, 0.5*(y1+z1), res, bend)
+  left, idx, b, gb = spline_curve(x1, 0.5*(y1+z1), res, bend)
+  assert(gb > 0.8 and gb < 1.2)
+  assert(b[0] <= 0.5 and b[1] >= 0.5)
+
+  # serch for point p
+  t, t, p, t = spline_curve(y1,z1,res,bend)
+  assert(p[0] <= 0.5 and p[1] >= 0.5)
+  height = p[1]
   
-  # find point
-  c, idx, point, grad = spline_curve(y1,z1,res,bend)
-  
-  assert(grad > 0.8 and grad < 1.2)
-  assert(point[0] <= 0.5 and point[1] >= 0.5)
-  height = np.sqrt((point[0]-0.5)**2+(point[1]-0.5)**2)
-  
-#   print 'profileSplineBisec', point, height, grad
-  
-  gamma = np.arccos((0.5-point[0])/(np.sqrt((0.5-point[0])**2 + (point[1]-0.5)**2)))
+  gamma = np.arccos((0.5-p[0])/(np.sqrt((0.5-p[0])**2 + (p[1]-0.5)**2)))
   phi = np.pi - gamma
   
-  # right part is from point to 0.5
-  # polynomial interpolation
-  lx = point[0]
-  ly = point[1] 
+  print b,p,height
+  
+  # polynomial interpolation for right part from b to p
+  lx = b[0]
+  ly = b[1] 
   rx = 0.5
   A = np.array([
       [1, lx, lx**2, lx**3],
@@ -131,12 +135,36 @@ def profileSplineBisec(x1,y1,z1,res,bend):
       [1, rx, rx**2, rx**3],
       [0, 1,  2*rx, 3*rx**2]
       ])
-  b = np.array([ly, grad, height+0.5, 0])
+  b = np.array([ly, gb, height, 0])
   
   sol = np.linalg.solve(A, b)
   
-  p = np.poly1d(sol[::-1])
+  poly = np.poly1d(sol[::-1])
+  v = np.linspace(lx,0.5,res/2-idx)
+  right = poly(v)
   
+  # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-slpine from a to p
+  if np.amax(right) > p[1]:
+    print 'need to fallback',np.amax(right)
+    
+    height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
+    
+    P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])) 
+    t = np.linspace(0, 1.0, res) # double over-sampling
+    C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
+    # interpolate for regular spacing
+    fc = interpolate.interp1d(C[0],C[1])
+    v = np.linspace(0,0.5,res/2)
+    c = fc(v)
+    
+    vec = np.zeros(res)
+    vec[0:res/2] = c
+    vec[res/2:res] = c[::-1]
+    
+    plt.plot(vec)
+    plt.show()
+
+    return vec-0.5, phi
 #   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
 #   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
 #   plt.show()
@@ -145,8 +173,8 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   
   vec = np.zeros(res)
   
-  vec[0:idx] = left[0:idx]+0.5
-  vec[idx:res/2.0] = p(v)
+  vec[0:idx] = left[0:idx]
+  vec[idx:res/2.0] = right
   vec[res/2.0:res] = vec[0:res/2.0][::-1]
   
   return vec-0.5, phi
@@ -178,9 +206,9 @@ def profile(args,dir):
       t = np.linspace(0, 1.0, args.res)
       plt.plot(t,vec1,label='x1y1')
       plt.plot(t,vec2,label='x1y1z1')
-#       plt.plot(t,vec3,label='x1z1')
+      plt.plot(t,vec3,label='x1z1')
       plt.legend(loc='upper left', shadow=True)
-#       plt.show()
+      plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
