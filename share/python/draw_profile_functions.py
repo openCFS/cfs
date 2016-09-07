@@ -86,15 +86,15 @@ def spline_curve(x1, y1, res, bend):
   g = fg(v)
   
   idx = findGradOne(g)
-  return c, idx, (v[idx], c[idx])
+  return c, idx, (v[idx], c[idx]), g[idx]
 
 
 def profileSpline(x1,y1,res,bend):
   assert(bend <= 1 and bend >= 0)
 
   vec = np.zeros(res)
-  c, idx, point = spline_curve(x1,y1,res,bend)
-  print 'profileSpline',point
+  c, idx, point, grad = spline_curve(x1,y1,res,bend)
+#   print 'profileSpline',point
   vec[0:idx] = c[0:idx]
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
   vec[res-idx:res] = c[0:idx][::-1]
@@ -105,40 +105,52 @@ def profileSpline(x1,y1,res,bend):
 def profileSplineBisec(x1,y1,z1,res,bend):
   assert(bend <= 1 and bend >= 0)
   
-  c, idx, point = spline_curve(y1,z1,res,bend)
-  assert(point[1] >= 0.5 and point[0] <= 0.5 )
+  # left part is same spline as orhtogonal spline up to point
+  left = profileSpline(x1, 0.5*(y1+z1), res, bend)
+  
+  # find point
+  c, idx, point, grad = spline_curve(y1,z1,res,bend)
+  
+  assert(grad > 0.8 and grad < 1.2)
+  assert(point[0] <= 0.5 and point[1] >= 0.5)
   height = np.sqrt((point[0]-0.5)**2+(point[1]-0.5)**2)
-#   height = point[1]-0.5
-  print 'profileSplineBisec', point, height
-
-
+  
+#   print 'profileSplineBisec', point, height, grad
+  
   gamma = np.arccos((0.5-point[0])/(np.sqrt((0.5-point[0])**2 + (point[1]-0.5)**2)))
   phi = np.pi - gamma
   
-  P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height+0.5],[0.5,height+0.5]]))
-  t = np.linspace(0, 1.0, res) # double over-sampling
-  C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
+  # right part is from point to 0.5
+  # polynomial interpolation
+  lx = point[0]
+  ly = point[1] 
+  rx = 0.5
+  A = np.array([
+      [1, lx, lx**2, lx**3],
+      [0, 1,  2*lx, 3*lx**2],
+      [1, rx, rx**2, rx**3],
+      [0, 1,  2*rx, 3*rx**2]
+      ])
+  b = np.array([ly, grad, height+0.5, 0])
+  
+  sol = np.linalg.solve(A, b)
+  
+  p = np.poly1d(sol[::-1])
   
 #   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
 #   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
 #   plt.show()
 
-  # interpolate for regular spacing  
-  fc = interpolate.interp1d(C[0],C[1])
-  
-  v = np.linspace(0,0.5,res/2)
-  c = fc(v)
+  v = np.linspace(lx,0.5,res/2-idx)
   
   vec = np.zeros(res)
   
-  vec[0:res/2] = c
-  vec[res/2:res] = c[::-1]
+  vec[0:idx] = left[0:idx]+0.5
+  vec[idx:res/2.0] = p(v)
+  vec[res/2.0:res] = vec[0:res/2.0][::-1]
   
   return vec-0.5, phi
 
-def fun(x):
-  return (8624120426219727*x**3)/1125899906842624 - (7530911326209973*x**2)/562949953421312 + (8593732332755151*x)/1125899906842624 - 5545832868821253/4503599627370496.0
-  
 # @return vector with profile or list of vectors
 def profile(args,dir):
   if args.profile == 'linear':
@@ -164,13 +176,11 @@ def profile(args,dir):
       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend)
       
       t = np.linspace(0, 1.0, args.res)
-      t2 = np.linspace(0.35795454545454547, 0.5, args.res/2.0)
       plt.plot(t,vec1,label='x1y1')
       plt.plot(t,vec2,label='x1y1z1')
-      plt.plot(t2,fun(t2),label='fun')
 #       plt.plot(t,vec3,label='x1z1')
       plt.legend(loc='upper left', shadow=True)
-      plt.show()
+#       plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
