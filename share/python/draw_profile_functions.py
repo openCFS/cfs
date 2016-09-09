@@ -313,7 +313,6 @@ def draw_profile(array,vec,dir):
       plt.show()
       
   for i in range(0,res):
-    f = give_interpolate_radius(vec, i, dir)
     for j in range(0,res):
       for k in range(0,res):
         y = j * h + h / 2.0

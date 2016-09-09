@@ -2,7 +2,6 @@
 import argparse
 from draw_profile_functions import *
 from mesh_tool import *
-from scipy import interpolate
 
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
@@ -30,11 +29,10 @@ def calc_radius(stiff):
   
   print val  
   return val 
- 
-  
+
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args):
-  # calculating radii in relation to given stiffnesses x1,x2,y1,...
+    # calculating radii in relation to given stiffnesses x1,x2,y1,...
   args.x1 = calc_radius(args.x1)
   args.x2 = calc_radius(args.x2)
   args.y1 = calc_radius(args.y1)
@@ -43,15 +41,14 @@ def create_mesh_with_profiles(args):
   args.z2 = calc_radius(args.z2)
   
   array = create_profiles_array(args)
-  
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
   else:
     mesh = create_3d_mesh_from_array(array)
     
   mesh = convert_to_sparse_mesh(mesh)
-    
-  validate_periodicity(mesh)
+  
+  validate_periodicity(mesh)  
   
 #   visualize_structure(array,nx,ny,nz)
   
@@ -76,7 +73,11 @@ parser.add_argument('--skip_z', help="don't show bar in z direction", action='st
 
 args = parser.parse_args()
 
-mesh_name = args.type
+val = args.x1
+if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val:
+  mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_bend_" + str(args.bend) + "_" + str(args.res)
+else: 
+  mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
 
 # sanity checks
 if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
