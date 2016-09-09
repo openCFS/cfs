@@ -93,6 +93,10 @@ namespace CoupledField
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
 
+     /** Checks if tensor is positive definite. */
+     template <class T>
+     bool TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
       *  a single element -> as in the coupling term of Piezo SIMP.
