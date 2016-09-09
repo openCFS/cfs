@@ -101,7 +101,6 @@ def profileSpline(x1,y1,res,bend):
 # @param height is second return value from profileSpline
 def profileSplineBisec(x1,y1,z1,res,bend):
   assert(bend <= 1 and bend >= 0)
-  
   # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
   # where the curve has grad=1 we have point b
   # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
@@ -128,7 +127,7 @@ def profileSplineBisec(x1,y1,z1,res,bend):
       [0, 1,  2*lx, 3*lx**2],
       [1, rx, rx**2, rx**3],
       [0, 1,  2*rx, 3*rx**2]
-      ])
+      ]) 
   b = np.array([ly, gb, height, 0])
   
   sol = np.linalg.solve(A, b)
