@@ -2,14 +2,56 @@
 import argparse
 from draw_profile_functions import *
 from mesh_tool import *
+from scipy import interpolate
 
+def give_radiusFunction():
+  r = np.linspace(0.5, 0.5*np.sqrt(2),100)
+  # area F = circle area - 4*circle segment (outside of bounding box)
+  alpha = 2.0 * np.arccos(0.5/r) # 0,5 is half of side length of unit cube
+  areaSegment = 0.5 * r**2 * (alpha - np.sin(alpha)) # area of circle segment
+  areaCircle = np.pi * r**2  # area of circle
+  diff = areaCircle - 4.0 * areaSegment # effective area
+  
+#   plt.plot(r,diff)
+#   plt.show()
+  
+  f = interpolate.interp1d(diff,r) # approximate inverse function by linear interpolation
+  
+  return f
+
+# for given relative stiffness (from 0 to 1), calculate respective radius 
+def calc_radius(stiff):
+  val = 0
+  if stiff <= 0.5**2*np.pi:
+    val = 2*np.sqrt(stiff/np.pi)
+  else:
+    f = give_radiusFunction()
+    val = 2*f(stiff)
+  
+  print val  
+  return val 
+ 
+  
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args):
+  # calculating radii in relation to given stiffnesses x1,x2,y1,...
+  args.x1 = calc_radius(args.x1)
+  args.x2 = calc_radius(args.x2)
+  args.y1 = calc_radius(args.y1)
+  args.y2 = calc_radius(args.y2)
+  args.z1 = calc_radius(args.z1)
+  args.z2 = calc_radius(args.z2)
+  
   array = create_profiles_array(args)
+  
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
   else:
     mesh = create_3d_mesh_from_array(array)
+    
+  mesh = convert_to_sparse_mesh(mesh)
+    
+  validate_periodicity(mesh)
   
 #   visualize_structure(array,nx,ny,nz)
   
