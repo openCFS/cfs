@@ -438,8 +438,8 @@ def write_gid_mesh(mesh, filename,scale = 1):
   for b in range(len(mesh.bc)):
     bc = mesh.bc[b]
     for n in range(len(bc[1])):
-      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n")
-      
+      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
+  
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
@@ -451,6 +451,24 @@ def write_gid_mesh(mesh, filename,scale = 1):
   
   out.write("\n \n")
   out.close()
+  
+def validate_periodicity(mesh):
+  assert(mesh.nz > 1)
+  countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
+  countRight = len([x for x in mesh.bc if x[0] == 'right'][0][1]);
+  countFront = len([x for x in mesh.bc if x[0] == 'front'][0][1]);
+  countBack = len([x for x in mesh.bc if x[0] == 'back'][0][1]);
+  countTop = len([x for x in mesh.bc if x[0] == 'top'][0][1]);
+  countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
+  
+  if countLeft <> countRight:
+    print "left: ", countLeft, " right: ", countRight
+  
+  if countFront <> countBack:
+    print "front: ", countFront, " back: ", countBack
+  
+  if countTop <> countBottom:
+    print "top: ", countTop, " bottom: ", countBottom
   
   
 ## creates a 2D mesh of predefined geometry
@@ -2210,15 +2228,30 @@ def create_3d_mesh_from_array(array):
     
   mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
   mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
-
-  mesh.bc.append(("left_bottom_back", [0]))
-  mesh.bc.append(("right_bottom_back", [nx]))
-  mesh.bc.append(("left_top_back", [nnx * ny]))
-  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  mesh.bc.append(("left", range(0, (nnx*nny*nz)+(nnx*ny)+1, nnx))) 
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx))) 
+   
+  side = (("bottom", [])) 
+  mesh.bc.append(side) 
+  for z in range(0, nnz): 
+    for x in range(0, nnx): 
+      side[1].append((z*nny)*nnx+x) 
+ 
+  side = (("top", [])) 
+  mesh.bc.append(side) 
+  for z in range(0, nnz): 
+    for x in range(0, nnx): 
+      side[1].append((z*nny+ny)*nnx+x) 
+  
+#   mesh.bc.append(("left_bottom_back", [0]))
+#   mesh.bc.append(("right_bottom_back", [nx]))
+#   mesh.bc.append(("left_top_back", [nnx * ny]))
+#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
   
   return mesh
 

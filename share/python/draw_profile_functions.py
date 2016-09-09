@@ -67,9 +67,6 @@ def spline_curve(x1, y1, res, bend):
   P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
   t = np.linspace(0, 1.0, 2*ry*res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
-#   G = np.zeros(len(C[0])) # numerical finite differences
-#   for i in range(len(C[0])-1):
-#     G[i] = (C[1,i+1] - C[1,i]) / (C[0,i+1] - C[0,i])
   G = np.diff(C[1]) / np.diff(C[0]) # numerical finite differences
   G.resize(len(C[0]))
   
@@ -112,7 +109,6 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   
   # left part is same spline as orhtogonal spline up to point
   left, idx, b, gb = spline_curve(x1, 0.5*(y1+z1), res, bend)
-  assert(gb > 0.8 and gb < 1.2)
   assert(b[0] <= 0.5 and b[1] >= 0.5)
 
   # serch for point p
@@ -122,8 +118,6 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   
   gamma = np.arccos((0.5-p[0])/(np.sqrt((0.5-p[0])**2 + (p[1]-0.5)**2)))
   phi = np.pi - gamma
-  
-  print b,p,height
   
   # polynomial interpolation for right part from b to p
   lx = b[0]
@@ -145,7 +139,7 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   
   # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-slpine from a to p
   if np.amax(right) > p[1]:
-    print 'need to fallback',np.amax(right)
+#     print 'need to fallback',np.amax(right)
     
     height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
     
@@ -161,9 +155,6 @@ def profileSplineBisec(x1,y1,z1,res,bend):
     vec[0:res/2] = c
     vec[res/2:res] = c[::-1]
     
-    plt.plot(vec)
-    plt.show()
-
     return vec-0.5, phi
 #   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
 #   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
@@ -203,12 +194,12 @@ def profile(args,dir):
       vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend)
       
-      t = np.linspace(0, 1.0, args.res)
-      plt.plot(t,vec1,label='x1y1')
-      plt.plot(t,vec2,label='x1y1z1')
-      plt.plot(t,vec3,label='x1z1')
-      plt.legend(loc='upper left', shadow=True)
-      plt.show()
+#       t = np.linspace(0, 1.0, args.res)
+#       plt.plot(t,vec1,label='x1y1')
+#       plt.plot(t,vec2,label='x1y1z1')
+#       plt.plot(t,vec3,label='x1z1')
+#       plt.legend(loc='upper left', shadow=True)
+#       plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
@@ -403,3 +394,4 @@ def visualize_structure(array, nx, ny, nz):
   # Render and interact
   renderWindow.Render()
   renderWindowInteractor.Start()
+ 
