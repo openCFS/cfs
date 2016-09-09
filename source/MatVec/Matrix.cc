@@ -1315,8 +1315,8 @@ namespace CoupledField
 
 #ifdef USE_LAPACK
   // Compile OLAS and CFS++ with USE_LAPACK
-  template<>
-  void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
+  template <class T>
+  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w)
   {
     // computes all eigenvalues of a complex hermitian matrix
 
@@ -1336,7 +1336,7 @@ namespace CoupledField
     lp_work.Resize(lp_lworkf77);
     lp_work.Init();
       
-    // workspace array - double precission
+    // workspace array - double precision
     Vector<Double> lp_rwork;
     lp_rwork.Resize(3*size_row_-2);
     lp_rwork.Init();

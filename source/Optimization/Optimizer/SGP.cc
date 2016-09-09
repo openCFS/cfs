@@ -40,7 +40,7 @@ SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
 
   ppen = 0;
   ppeni = 0;
-  bisect = 10;
+  bisect = this_opt_pn_->Get("bisect_iter")->As<int>();
 
   merit = 0;
 
@@ -555,12 +555,12 @@ void SGP::DesignToOuter(bool inner) {
     OuterToDesign(true);
   for (unsigned int i = 0; i < n_elem; i++) {
     if (!inner) {
-      E_outer[i][0][0] = space->GetDesignElement(mech11+i)->GetDesign(DesignElement::SMART);
-      E_outer[i][0][1] = space->GetDesignElement(mech12+i)->GetDesign(DesignElement::SMART);
-      E_outer[i][0][2] = space->GetDesignElement(mech13+i)->GetDesign(DesignElement::SMART);
-      E_outer[i][1][1] = space->GetDesignElement(mech22+i)->GetDesign(DesignElement::SMART);
-      E_outer[i][1][2] = space->GetDesignElement(mech23+i)->GetDesign(DesignElement::SMART);
-      E_outer[i][2][2] = space->GetDesignElement(mech33+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][0][0] = space->GetDesignElement(mech11*n_elem+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][0][1] = space->GetDesignElement(mech12*n_elem+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][0][2] = space->GetDesignElement(mech13*n_elem+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][1][1] = space->GetDesignElement(mech22*n_elem+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][1][2] = space->GetDesignElement(mech23*n_elem+i)->GetDesign(DesignElement::SMART);
+      E_outer[i][2][2] = space->GetDesignElement(mech33*n_elem+i)->GetDesign(DesignElement::SMART);
       E_outer[i][1][0] = E_outer[i][0][1];
       E_outer[i][2][0] =  E_outer[i][0][2];
       E_outer[i][2][1] = E_outer[i][1][2];
