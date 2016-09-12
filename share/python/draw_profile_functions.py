@@ -118,6 +118,9 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   gamma = np.arccos((0.5-p[0])/(np.sqrt((0.5-p[0])**2 + (p[1]-0.5)**2)))
   phi = np.pi - gamma
   
+#   print "x1: ",x1," y1: ",y1, " z1:",z1
+#   print "p: ", p, " b: ",b
+  
   # polynomial interpolation for right part from b to p
   lx = b[0]
   ly = b[1] 
@@ -128,9 +131,10 @@ def profileSplineBisec(x1,y1,z1,res,bend):
       [1, rx, rx**2, rx**3],
       [0, 1,  2*rx, 3*rx**2]
       ]) 
-  b = np.array([ly, gb, height, 0])
+  rhs = np.array([ly, gb, height, 0])
   
-  sol = np.linalg.solve(A, b)
+  
+  sol = np.linalg.solve(A, rhs)
   
   poly = np.poly1d(sol[::-1])
   v = np.linspace(lx,0.5,res/2-idx)
@@ -138,7 +142,7 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   
   # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-slpine from a to p
   if np.amax(right) > p[1]:
-#     print 'need to fallback',np.amax(right)
+    print 'need to fallback',np.amax(right)
     
     height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
     
@@ -153,8 +157,13 @@ def profileSplineBisec(x1,y1,z1,res,bend):
     vec = np.zeros(res)
     vec[0:res/2] = c
     vec[res/2:res] = c[::-1]
+    vec -= 0.5
     
-    return vec-0.5, phi
+    # in case undershooting for x1=0.9, y1=0.1, z1=0.1
+    if np.amin(vec) < x1/2.0: 
+      vec = profileLin(x1, x1, res)
+      
+    return vec, phi
 #   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
 #   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
 #   plt.show()
@@ -210,8 +219,8 @@ def profile(args,dir):
 #       plt.plot(t,vec1,label='x1y1')
 #       plt.plot(t,vec3,label='dir2 y1z1')
 #       plt.ylim([0,1])
-#       plt.plot(t,vec3,label='x1z1')
-#       plt.plot(t,vec4,label='y1z1')
+# #       plt.plot(t,vec3,label='x1z1')
+# #       plt.plot(t,vec4,label='y1z1')
 #       plt.legend(loc='upper left', shadow=True)
 #       plt.show()
       
