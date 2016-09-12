@@ -227,7 +227,7 @@ def create_profiles_array(args):
   array = np.ones((res,res,res)) * (-1)
   
   if not args.skip_x:
-    vec = profile(args,1)
+    vec = profile(args,1,)
     draw_profile(array, vec, 1)
   if not args.skip_y:
     vec = profile(args,2)
@@ -331,7 +331,7 @@ def draw_profile(array,vec,dir):
           if dir == 2:
             array[j,i,k] = dir
           if dir == 3:
-            array[k,j,i] = dir  
+            array[k,j,i] = dir
 
 def visualize_structure(array, nx, ny, nz):
   import vtk
@@ -380,9 +380,9 @@ def visualize_structure(array, nx, ny, nz):
         
         if array[i,j,k] == 1:
           cubeActor.GetProperty().SetColor(255, 0, 0)
-        elif array[i,j,k]  == 2:
+        elif array[i,j,k] == 2:
           cubeActor.GetProperty().SetColor(0, 255, 0)
-        elif array[i,j,k]  == 3:
+        elif array[i,j,k] == 3:
           cubeActor.GetProperty().SetColor(0, 0, 255)
 #         else:
 #           print i,j,k,array[i,j,k]

@@ -451,7 +451,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
   
   out.write("\n \n")
   out.close()
-  
+ 
 def validate_periodicity(mesh):
   assert(mesh.nz > 1)
   countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
@@ -2195,7 +2195,9 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   
   return mesh
 
-def create_3d_mesh_from_array(array):
+# @param array to be written out
+# @singRegion do we want a mesh with only one region?
+def create_3d_mesh_from_array(array,singRegion):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
   
@@ -2217,8 +2219,10 @@ def create_3d_mesh_from_array(array):
       for x in range(nx):
         e = Element()
         e.type = HEXA8
-        if (array[x][y][z] > 0.0):
+        if (array[x][y][z] > 0.0 and not singRegion):
           e.region = "mech" + str(int(array[x][y][z]))
+        elif (array[x][y][z] > 0.0 and singRegion):
+          e.region = "mech"
         else:
           e.region = "void"
           
