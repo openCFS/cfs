@@ -451,6 +451,67 @@ def write_gid_mesh(mesh, filename,scale = 1):
   
   out.write("\n \n")
   out.close()
+
+# names all nodes on edges, faces and corners of cubic domain
+def name_bc_nodes(mesh):
+  assert(mesh <> None)
+  assert(mesh.nz > 1)
+  nx = mesh.nx
+  ny = mesh.ny
+  nz = mesh.nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+  
+  # naming faces of cube
+  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny) * nnx + x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny + ny) * nnx + x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+
+  # naming cube corners
+  mesh.bc.append(("left_bottom_back", [0]))
+  mesh.bc.append(("right_bottom_back", [nx]))
+  mesh.bc.append(("left_top_back", [nnx * ny]))
+  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  # naming cube edges
+  mesh.bc.append(("bottom_back",range(nnx)))
+  mesh.bc.append(("bottom_front",range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx)))
+  mesh.bc.append(("bottom_left",range(0,nnx*nny*nnz-nnx-1,nnx*nny)))
+  mesh.bc.append(("bottom_right",range(nnx-1,nnx*nny*nnz-1-1,nnx*nny)))
+  mesh.bc.append(("top_back",range(nnx*nny-nnx,nnx*nny)))
+  mesh.bc.append(("top_front",range(nnx*nny*nny-nnx,nnx*nny*nny)))
+  mesh.bc.append(("top_left",range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("top_right",range(nnx*nny-1,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("back_left",range(0,nnx*nny-nnx+1,nnx)))
+  mesh.bc.append(("back_right",range(nnx-1,nnx*nny,nnx)))
+  mesh.bc.append(("front_left",range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx)))
+  mesh.bc.append(("front_right",range(nnx * nny * nz + nx,nnx * nny * nnz,nnx)))
+  
+  
+  
+  return mesh  
  
 def validate_periodicity(mesh):
   assert(mesh.nz > 1)
@@ -870,35 +931,36 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
               
         mesh.elements.append(e)
 
-  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
-  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
-
-  side = (("bottom", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny) * nnx + x)
-
-  side = (("top", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny + ny) * nnx + x)
-
-  
-  # back and front as it appears with paraview
-  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
-
-
-  mesh.bc.append(("left_bottom_back", [0]))
-  mesh.bc.append(("right_bottom_back", [nx]))
-  mesh.bc.append(("left_top_back", [nnx * ny]))
-  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+#   mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+#   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+# 
+#   side = (("bottom", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny) * nnx + x)
+# 
+#   side = (("top", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny + ny) * nnx + x)
+# 
+#   
+#   # back and front as it appears with paraview
+#   mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+#   mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+# 
+# 
+#   mesh.bc.append(("left_bottom_back", [0]))
+#   mesh.bc.append(("right_bottom_back", [nx]))
+#   mesh.bc.append(("left_top_back", [nnx * ny]))
+#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  mesh = name_bc_nodes(mesh)
   
   print "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements ",
   print " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)",
@@ -2230,32 +2292,8 @@ def create_3d_mesh_from_array(array,singRegion):
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
         mesh.elements.append(e)
     
-  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
   
-  mesh.bc.append(("left", range(0, (nnx*nny*nz)+(nnx*ny)+1, nnx))) 
-  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx))) 
-   
-  side = (("bottom", [])) 
-  mesh.bc.append(side) 
-  for z in range(0, nnz): 
-    for x in range(0, nnx): 
-      side[1].append((z*nny)*nnx+x) 
- 
-  side = (("top", [])) 
-  mesh.bc.append(side) 
-  for z in range(0, nnz): 
-    for x in range(0, nnx): 
-      side[1].append((z*nny+ny)*nnx+x) 
-  
-#   mesh.bc.append(("left_bottom_back", [0]))
-#   mesh.bc.append(("right_bottom_back", [nx]))
-#   mesh.bc.append(("left_top_back", [nnx * ny]))
-#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  mesh = name_bc_nodes(mesh)
   
   return mesh
 
