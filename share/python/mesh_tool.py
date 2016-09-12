@@ -834,7 +834,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "cantilever3d")
+  assert(type == "bulk3d")
 
   nx = x_res  
    
