@@ -373,6 +373,9 @@ namespace CoupledField
      /** returns the current design id */
      int GetCurrentDesignId() const { return design_id; }
 
+     /** Currently only used by SGP::OuterToDesign() */
+     void IncrementDesignId() { design_id++; }
+
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />
       * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>

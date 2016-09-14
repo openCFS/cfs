@@ -2965,6 +2965,9 @@ namespace CoupledField {
       in_->Get("nodes")->SetValue(GetNumNodes(rd.id));
       in_->Get("elems")->SetValue(GetNumElems(rd.id));
       in_->Get("isQuadratic")->SetValue(IsQuadratic());
+      if(progOpts->DoDetailedInfo()) {
+        in_->Get("vol")->SetValue(this->CalcVolumeOfRegion(rd.id,true));
+      }
     }
 
     list = in->Get("namedNodes");

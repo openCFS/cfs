@@ -14,7 +14,7 @@ using namespace boost::numeric::ublas;
 namespace CoupledField
 {
 
-class Approximation;
+class MMAApproximation;
 class FeasPP;
 template <class TYPE> class SCRS_Matrix;
 
@@ -45,9 +45,9 @@ public:
    * @see m_c and m_e */
   unsigned int m;
 
-  Approximation* obj; // created in PostInit()
+  MMAApproximation* obj; // created in PostInit()
 
-  StdVector<Approximation*> constr;
+  StdVector<MMAApproximation*> constr;
 
   /** the cfs design variable */
   Vector<double> x_outer;
@@ -231,11 +231,11 @@ private:
 };
 
 /** this is either the approximation of a function or the function itself */
-class Approximation
+class MMAApproximation
 {
 public:
   /** @param constraint_idx -1 for objective */
-  Approximation(FeasPP* feas_pp, int constraint_idx, bool approximate);
+  MMAApproximation(FeasPP* feas_pp, int constraint_idx, bool approximate);
 
   /** needs to be called to finish constructor. But determinant_shift is not known at constructor time! */
   void PostInit();
