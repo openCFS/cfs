@@ -144,14 +144,25 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
-
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= sqrt(2);
-      data_[size_row_-1][i] *= sqrt(2);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= sqrt(2);
+        data_[size_row_-1][i] *= sqrt(2);
+      }
+      data_[size_row_-1][ size_row_-1] *= 2.0;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= sqrt(2);
+            data_[j][i] *= sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 2.0;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][ size_row_-1] *= 2.0;
   }
 
     /** Convert from Hill-Mandel to Voigt Notation */
@@ -161,14 +172,26 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= 1/sqrt(2);
+        data_[size_row_-1][i] *= 1/sqrt(2);
+      }
 
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= 1/sqrt(2);
-      data_[size_row_-1][i] *= 1/sqrt(2);
+      data_[size_row_-1][size_row_-1] *= 0.5;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= 1/sqrt(2);
+            data_[j][i] *= 1/sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 0.5;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][size_row_-1] *= 0.5;
   }
 
   template<class TYPE>
@@ -270,6 +293,26 @@ namespace CoupledField
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");
   }
   
+  template<>
+  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, std::string notation ) const {
+    if (notation == "HILL_MANDEL") {
+      Matrix<Double> theta(3,3);
+      Matrix<Double> help(3,3);
+      theta[0][0] = pow(cos(a),2);
+      theta[0][1] = pow(sin(a),2);
+      theta[0][2] = -sqrt(2)/2*sin(2.*a);
+      theta[1][0] = theta[0][1];
+      theta[1][1] = theta[0][0];
+      theta[1][2] = -theta[0][2];
+      theta[2][0] = theta[1][2];
+      theta[2][1] = theta[0][2];
+      theta[2][2] = cos(2.*a);
+      this->Mult(theta, help);
+      theta.MultT(help, retMat);
+    } else {
+      EXCEPTION("Material tensor should be Hill-Mandel!")
+    }
+  }
   
   template<class TYPE>
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
@@ -278,23 +321,43 @@ namespace CoupledField
     // However, we should generalize the rotation also for 2x2, 2x4 and 4x4 matrices for the
     // 2D and axi case for mechanics.
 
-    // get memory for transposed rotation matrix
-    Matrix<Double> RT;
-    RT.Resize(3,3);
-    R.Transpose(RT);
-
     //get dimension of matrix
     UInt rowSize = size_row_;
     UInt colSize = size_col_;
 
     Matrix<TYPE> helpMat;
 
-    if ( rowSize == 3 && colSize == 3) {
+    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 and R.GetNumRows() == 3) {
+      // get memory for transposed rotation matrix
+      Matrix<Double> RT;
+      RT.Resize(3,3);
+      R.Transpose(RT);
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    }
-    else if( (rowSize == 3 && colSize == 6) ||
+    } else if (R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+      // 2D tensor rotation
+
+      Matrix<Double> Q;
+      Q.Resize(3,3);
+      Q[0][0] = R[0][0]*R[0][0];
+      Q[0][1] = R[0][1]*R[0][1];
+      Q[0][2] = 2.0*R[0][0]*R[0][1];
+      Q[1][0] = R[1][0]*R[1][0];
+      Q[1][1] = R[1][1]*R[1][1];
+      Q[1][2] = 2.0*R[1][0]*R[1][1];
+      Q[2][0] = R[0][0]*R[1][0];
+      Q[2][1] = R[0][1]*R[1][1];
+      Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+
+      Matrix<Double> QT;
+      QT.Resize(3,3);
+      Q.Transpose(QT);
+      helpMat   = (*this) * QT;
+      retMat = Q * helpMat;
+      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+
+    } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
       // we also need Q;
       Matrix<Double> Q;

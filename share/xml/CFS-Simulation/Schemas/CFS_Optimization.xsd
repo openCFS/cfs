@@ -671,6 +671,19 @@
               </xsd:complexType>
             </xsd:element>
             
+            <xsd:element name="sgp" minOccurs="0" >
+              <xsd:complexType>
+                <!-- penalty parameter bounds -->  
+                <xsd:attribute name="pmin" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmax" type="xsd:float" default="0.05" use="optional"/>
+               
+                <!-- convergence tolerance for sgp algorithm -->
+                <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional"/>
+                <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
+                <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>                 
+              </xsd:complexType>
+            </xsd:element>
+            
 
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
@@ -924,6 +937,7 @@
                 <xsd:enumeration value="feasSCP"/>
                 <!-- this is a own strictly feasible MMA implemenation using IPOPT as subsolver -->
                 <xsd:enumeration value="feasPP"/>
+                <xsd:enumeration value="sgp"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
                 <!-- this evaluates only the initial design -->

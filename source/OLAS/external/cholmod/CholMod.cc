@@ -192,6 +192,7 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
   T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();
   std::copy(static_cast<T*>(sol->x), static_cast<T*>(sol->x) + sol->nrow, sol_ptr);
   cholmod_free_dense(&sol, &common_); // free the temp. solution
+  LOG_TRACE2(cholmod) <<  "Solve: sol= " << base_sol.ToString();
 }
 
 

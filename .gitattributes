@@ -1267,7 +1267,6 @@ share/python/material_catalogue/interpolation3D/test_3D.m -text
 share/python/material_catalogue/interpolation3D/test_data.dat -text
 share/python/material_catalogue/interpolation3D/text -text
 share/python/material_catalogue/interpolation3D/tri -text
-share/python/material_catalogue/interpolation3D/tricubic -text
 share/python/material_catalogue/interpolation3D/tricubic2 -text
 share/python/material_catalogue/interpolation3D/tricubic_coeff.m -text
 share/python/material_catalogue/interpolation3D/tricubic_deriv.m -text
@@ -1311,6 +1310,7 @@ share/python/show_density.py -text
 share/python/sort_bloch.py -text
 share/python/spy.py -text
 share/python/test.py -text
+share/python/two_scale_tools.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/python/xmlreplace.py -text
@@ -2118,6 +2118,8 @@ source/Optimization/Optimizer/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/SCPIP_HS071.cc -text
 source/Optimization/Optimizer/SCPIP_HS071.hh -text
+source/Optimization/Optimizer/SGP.cc -text
+source/Optimization/Optimizer/SGP.hh -text
 source/Optimization/Optimizer/ShapeOptimizer.cc -text
 source/Optimization/Optimizer/ShapeOptimizer.hh -text
 source/Optimization/Optimizer/SnOpt.cc -text

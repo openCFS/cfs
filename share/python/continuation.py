@@ -47,7 +47,7 @@ parser.add_argument('problem', help="the problem xml without extension where '-b
 parser.add_argument('-m', "--mesh", help="the mesh file with extension", required=True)
 parser.add_argument('-x', '--initial', help="optional density.xml for initial beta (with extension)")
 parser.add_argument('--start', help="initial beta", type=int, default=1)
-parser.add_argument('--max', help="maxmum beta which will be calculated", type=int, default=64)
+parser.add_argument('--max', help="maximum beta which will be calculated", type=int, default=64)
 parser.add_argument('--inc', help="beta increment b += inc*b. inc=1 doubles", type=float, default=1.0)
 parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
 parser.add_argument('--noshow', help="suppress calling show_density.py, e.g. for 3d!", action='store_true')

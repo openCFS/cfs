@@ -27,7 +27,7 @@ def calc_radius(stiff):
     f = give_radiusFunction()
     val = 2*f(stiff)
   
-#   print val/2.0  
+  print val/2.0  
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):

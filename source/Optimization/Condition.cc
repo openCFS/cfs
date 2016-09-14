@@ -763,6 +763,9 @@ string Condition::ToString() const
     else
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
+  // add bound type if multiple unique conditions exist
+  if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
+    os << "_" << bound.ToString(bound_);
 
   return os.str();  
 }
@@ -1319,6 +1322,47 @@ StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignEl
   return result;
 }
 
+
+bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
+{
+  bool lower = false;
+  bool upper = false;
+  bool equal = false;
+
+  for(unsigned int i = 0;i < list.GetSize();i++) {
+    switch (list[i]->GetBound()) {
+     case Condition::LOWER_BOUND:
+       if (lower) {
+         return false;
+       } else {
+         lower = true;
+       }
+       break;
+     case Condition::UPPER_BOUND:
+       if (upper) {
+         return false;
+       } else {
+         upper = true;
+       }
+       break;
+     case Condition::EQUAL:
+       if (equal) {
+         return false;
+       } else {
+         equal = true;
+       }
+       break;
+    }
+  }
+  return true;
+}
+
+bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
+  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false);
+  return list.GetSize() > 1 && HasUniqueBounds(list);
+}
+
+
 bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
   // be save and check for uniqueness!
@@ -1341,7 +1385,7 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
       return NULL;
   }
 
-  if(list.GetSize() > 1 && throw_exception)
+  if(list.GetSize() > 1 && !HasUniqueBounds(list) && throw_exception)
     throw Exception("constraint " + Condition::type.ToString(type) + " is not unique");
 
   return list[0];
@@ -1409,7 +1453,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:R g=" << Condition::type.ToString(g->GetType()) << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }
