@@ -2350,7 +2350,6 @@ def create_3d_mesh_from_array(array,singRegion):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
   
-<<<<<<< .working
   dx = 1.0 / nx
   dy = 1.0 / ny
   dz = 1.0 / nz
@@ -2419,7 +2418,7 @@ def create_2d_mesh_from_array(array):
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
-  return mesh=======
+  return mesh
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position, valid_ring_position, type = "apod6",thres=0.0,csize = None,simp = None):
   centers, mi, ma = coords[0:3]  # design elements
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
@@ -2594,6 +2593,3 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print 'mesh has ' + str(number) + "design and non-design elements"
   print 'volume = ' +str(float(number)/float(number + void3_count))
   return mesh
-
-
->>>>>>> .merge-right.r15110
