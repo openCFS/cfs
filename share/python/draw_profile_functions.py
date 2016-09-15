@@ -196,7 +196,8 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
       print "bspline: ",np.amin(biqua)
     return bsp - 0.5,phi
   
-  print 'return lin'
+  if verbose == 'bisec':  
+    print 'return lin'
   return lin, phi
 # @return vector with profile or list of vectors
 def profile(args,dir):
