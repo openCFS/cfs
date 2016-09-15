@@ -2,7 +2,53 @@
 import argparse
 from draw_profile_functions import *
 from mesh_tool import *
+import numpy as np
+import matviz_rot
+from matviz_vtk import *
+import vtk
 
+def visualize_structure(array,singRegion,show,save):
+  print "starting visualization..."
+  # create vtk cells and points
+  cells = vtk.vtkCellArray()
+  points = vtk.vtkPoints()
+  
+#   count = 0
+  
+  res, res, res = array.shape
+  
+  h = 1.0 / res
+  
+  centers = []
+  
+  for i in range(0,res):
+    for j in range(0,res):
+      for k in range(0,res):
+        x = i * h + h / 2.0
+        y = j * h + h / 2.0
+        z = k * h + h / 2.0
+        
+        if array[i,j,k] > 0:
+          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
+            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+              centers.append([x,y,z])
+          else:
+            centers.append([x,y,z]) 
+        
+  
+  create_centered_bars(cells,points,centers,[h,h,h])
+  
+  polydata = vtk.vtkPolyData()
+  polydata.SetPoints(points)
+  polydata.SetPolys(cells)
+
+#   print count," surface elements"
+  
+  if save:
+    show_write_vtk(polydata,1000,save)
+  if show: 
+    show_vtk(polydata, 1000)
+  
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
   # area F = circle area - 4*circle segment (outside of bounding box)
@@ -48,9 +94,10 @@ def create_mesh_with_profiles(args):
     
   mesh = convert_to_sparse_mesh(mesh)
   
-  validate_periodicity(mesh)  
+  validate_periodicity(mesh)
   
-#   visualize_structure(array,nx,ny,nz)
+  if args.show or args.save:
+    visualize_structure(array,args.single_region,args.show,args.save)  
   
   return mesh
 
@@ -71,8 +118,10 @@ parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
+parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true')
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all","bisec"], default='off')
+parser.add_argument('--save', help="save vtk file", )
 
 args = parser.parse_args()
 
@@ -107,5 +156,8 @@ elif args.type == 'profiles3d':
 file = mesh_name + '.mesh' if args.file == None else args.file 
 
 write_gid_mesh(mesh, file)
+
 print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
+
+
 

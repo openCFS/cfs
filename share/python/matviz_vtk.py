@@ -900,7 +900,8 @@ def show_write_vtk(poly, res, save, actors=[]):
     else:
       writer.SetInputData(poly)
     writer.SetFileName(save)
-    writer.Write()    
+    writer.Write()
+    print "saved to file", save
   else:
     show_vtk(poly, res, actors)  
     

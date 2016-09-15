@@ -5,7 +5,6 @@ import sys, os, numpy, math
 from copy import deepcopy
 from hdf5_tools import *
 import scipy.interpolate as ip
-from draw_profile_functions import visualize_structure
 #from matviz_vtk import *
 
 
