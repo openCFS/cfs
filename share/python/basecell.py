@@ -27,7 +27,7 @@ def calc_radius(stiff):
     f = give_radiusFunction()
     val = 2*f(stiff)
   
-  print val/2.0  
+#   print val/2.0  
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
@@ -72,6 +72,7 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true')
+parser.add_argument('--verbose', help="show spline plots",choices=["off","all","bisec"], default='off')
 
 args = parser.parse_args()
 
