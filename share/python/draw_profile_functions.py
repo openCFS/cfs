@@ -70,10 +70,11 @@ def spline_curve(x1, y1, res, bend):
   G = np.diff(C[1]) / np.diff(C[0]) # numerical finite differences
   G.resize(len(C[0]))
   
-  plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]), linewidth=5.0)
-  plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r', marker='o', markersize=15, linewidth=5.0)
-  plt.rcParams.update({'font.size': 18})
-  plt.show()
+#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]), linewidth=5.0)
+#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r', marker='o', markersize=15, linewidth=5.0)
+#   plt.rcParams.update({'font.size': 18})
+#   plt.savefig("spline_bend_" + str(bend) + ".png")
+#   plt.show()
   
   # interpolate for regular spacing  
   fc = interpolate.interp1d(C[0],C[1])
@@ -100,8 +101,10 @@ def profileSpline(x1,y1,res,bend):
   return vec-0.5
 
 # @param height is second return value from profileSpline
-def profileSplineBisec(x1,y1,z1,res,bend):
+# @param verbose 'bisec' to plot all cases
+def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   assert(bend <= 1 and bend >= 0)
+  ###### case 1 : bisec + quadratic --> biqua ###################
   # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
   # where the curve has grad=1 we have point b
   # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
@@ -141,44 +144,60 @@ def profileSplineBisec(x1,y1,z1,res,bend):
   v = np.linspace(lx,0.5,res/2-idx)
   right = poly(v)
   
-  # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-slpine from a to p
-  if np.amax(right) > p[1]:
-#     print 'need to fallback',np.amax(right)
-    
-    height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
-    
-    P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])) 
-    t = np.linspace(0, 1.0, res) # double over-sampling
-    C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
-    # interpolate for regular spacing
-    fc = interpolate.interp1d(C[0],C[1])
-    v = np.linspace(0,0.5,res/2)
-    c = fc(v)
-    
-    vec = np.zeros(res)
-    vec[0:res/2] = c
-    vec[res/2:res] = c[::-1]
-    vec -= 0.5
-    
-    # in case undershooting for x1=0.9, y1=0.1, z1=0.1
-    if np.amin(vec) < x1/2.0: 
-      vec = profileLin(x1, x1, res)
-      
-    return vec, phi
-#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
-#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r')
-#   plt.show()
-
   v = np.linspace(lx,0.5,res/2-idx)
   
-  vec = np.zeros(res)
+  biqua = np.zeros(res)
   
-  vec[0:idx] = left[0:idx]
-  vec[idx:res/2.0] = right
-  vec[res/2.0:res] = vec[0:res/2.0][::-1]
+  biqua[0:idx] = left[0:idx]
+  biqua[idx:res/2.0] = right
+  biqua[res/2.0:res] = biqua[0:res/2.0][::-1]
   
-  return vec-0.5, phi
+#   biqua -= 0.5
+  
+  #### case 2: b-spline --> bsp #############
+  # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
+  
+#     print 'need to fallback',np.amax(right)
+    
+  height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
+    
+  P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])) 
+  t = np.linspace(0, 1.0, res) # double over-sampling
+  C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
+  # interpolate for regular spacing
+  fc = interpolate.interp1d(C[0],C[1])
+  v = np.linspace(0,0.5,res/2)
+  c = fc(v)
+  
+  bsp = np.zeros(res)
+  bsp[0:res/2] = c
+  bsp[res/2:res] = c[::-1]
 
+  #### case 3: linear --> lin ###########
+  # in case undershooting for x1=0.9, y1=0.1, z1=0.1
+  lin = profileLin(x1, x1, res)
+  
+  if verbose == 'bisec':
+    print "amax right: ",np.amax(right), " p: ",p[1], " amin vec: ",np.amin(biqua) 
+    plt.plot(t,biqua-0.5,label='bspline-quadratic')
+    plt.plot(t,bsp-0.5,label='bspline')
+    plt.plot(t,lin,label='linear')
+    plt.legend(loc='upper left', shadow=True)
+    plt.show()
+    
+
+  if np.amax(right) <= p[1]:
+    if verbose == 'bisec':
+      print "bisec: ",np.amax(right),p[1]
+    return biqua - 0.5,phi
+  
+  if np.amin(biqua) >= x1/2.0:
+    if verbose == 'bisec':
+      print "bspline: ",np.amin(biqua)
+    return bsp - 0.5,phi
+  
+  print 'return lin'
+  return lin, phi
 # @return vector with profile or list of vectors
 def profile(args,dir):
   if args.profile == 'linear':
@@ -201,19 +220,21 @@ def profile(args,dir):
     if dir == 1:
       vec1 = profileSpline(args.x1, args.y1, args.res, args.bend)
       vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend)
+      vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend, args.verbose)
       
-      t = np.linspace(0, 1.0, args.res)
-      plt.plot(t,vec1,label='x1y1')
-      plt.plot(t,vec2,label='bisec')
-      plt.plot(t,vec3,label='x1z1')
-      plt.legend(loc='upper left', shadow=True)
-      plt.show()
+#       t = np.linspace(0, 1.0, args.res)
+#       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
+#       plt.plot(t,vec2,label='bisec', linewidth=5.0)
+#       plt.plot(t,vec3,label='x1z1', linewidth=5.0)
+#       plt.legend(loc='upper left', shadow=True)
+#       plt.rcParams.update({'font.size': 18})
+#       plt.savefig("3splines.png")
+#       plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
       vec1 = profileSpline(args.y1, args.x1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend)
+      vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose)
       vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
 
 #       t = np.linspace(0, 1.0, args.res)
@@ -228,23 +249,39 @@ def profile(args,dir):
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 3:
       vec1 = profileSpline(args.z1, args.y1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend)
+      vec2,phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
       vec3 = profileSpline(args.z1, args.x1, args.res, args.bend)
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
 
 def create_profiles_array(args):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
+  vec = None
+  t = np.linspace(0, 1.0, args.res)
+  
+  plotArray = []
   
   if not args.skip_x:
     vec = profile(args,1,)
     draw_profile(array, vec, 1)
+    plotArray.append(vec)
   if not args.skip_y:
     vec = profile(args,2)
-    draw_profile(array, vec, 2)  
+    draw_profile(array, vec, 2)
+    plotArray.append(vec)
   if not args.skip_z:
     vec = profile(args,3)
-    draw_profile(array, vec, 3)  
+    draw_profile(array, vec, 3)
+    plotArray.append(vec)  
+    
+  if args.verbose == "all":
+    t = np.linspace(0, 1.0, args.res)
+    for vec in plotArray:
+      for v in vec:
+        if type(v) == tuple:
+          plt.plot(t,v[0],label=str(v[1]))
+#     plt.legend(loc='upper left', shadow=True)
+    plt.show()
     
   return array
 
