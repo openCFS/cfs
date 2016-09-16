@@ -343,6 +343,9 @@ def draw_profile(array,vec,dir):
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
       map[alpha,i] = f(rad)
+      
+#   plt.savefig("spline_bend_" + str(bend) + ".png")
+    
         
   if False:
     if False:
@@ -351,13 +354,18 @@ def draw_profile(array,vec,dir):
       hf = plt.figure()
       ha = hf.add_subplot(111, projection='3d')
       ha.plot_surface(X, Y, map)
-      #   plt.show()
+      plt.show()
   
     else:
-      plt.figure()
+      plt.figure(figsize=(10,10))
       ax = plt.axes(polar=True)
       theta = np.linspace(0, 2*np.pi,360)
-      plt.plot(theta,map[:,res/2])
+      plt.plot(theta,map[:,0],linewidth=5.0)
+      plt.rcParams.update({'font.size': 18})
+      plt.savefig("xpart_x_0.png")
+      plt.plot(theta,map[:,res/4],linewidth=5.0)
+      plt.plot(theta,map[:,res/2],linewidth=5.0)
+      plt.savefig("xpart_all.png")
       plt.show()
       
   for i in range(0,res):

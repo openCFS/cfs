@@ -136,7 +136,7 @@ def create_symmety_planes(minima, scale, add_planes):
 
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata, res, planes=[]):
+def show_vtk(polydata, res, planes=[],show_edges=False):
   # Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
@@ -147,6 +147,10 @@ def show_vtk(polydata, res, planes=[]):
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
   actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
+  
+  if show_edges: # show surface with edges
+    actor.GetProperty().EdgeVisibilityOn()
+    
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
   renderWindow = vtk.vtkRenderWindow()
@@ -163,6 +167,7 @@ def show_vtk(polydata, res, planes=[]):
     renderer.AddActor(planes[i])
 
   renderer.AddActor(actor)
+  
   renderer.SetBackground(1, 1, 1)  # Background color white
    
 
@@ -901,7 +906,7 @@ def show_write_vtk(poly, res, save, actors=[]):
       writer.SetInputData(poly)
     writer.SetFileName(save)
     writer.Write()
-    print "saved to file", save
+    print "saved polydata to file", save
   else:
     show_vtk(poly, res, actors)  
     

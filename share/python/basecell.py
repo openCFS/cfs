@@ -34,7 +34,6 @@ def visualize_structure(array,singRegion,show,save):
               centers.append([x,y,z])
           else:
             centers.append([x,y,z]) 
-        
   
   create_centered_bars(cells,points,centers,[h,h,h])
   
@@ -47,7 +46,7 @@ def visualize_structure(array,singRegion,show,save):
   if save:
     show_write_vtk(polydata,1000,save)
   if show: 
-    show_vtk(polydata, 1000)
+    show_vtk(polydata, 1000, [], True)
   
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
@@ -121,7 +120,7 @@ parser.add_argument('--skip_z', help="don't show bar in z direction", action='st
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true')
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all","bisec"], default='off')
-parser.add_argument('--save', help="save vtk file", )
+parser.add_argument('--save', help="name of vtk file for saving", )
 
 args = parser.parse_args()
 
