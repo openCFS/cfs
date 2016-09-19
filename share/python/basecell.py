@@ -85,6 +85,8 @@ def create_mesh_with_profiles(args):
   args.z1 = calc_radius(args.z1)
   args.z2 = calc_radius(args.z2)
   
+  
+  
   array = create_profiles_array(args)
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
@@ -95,15 +97,16 @@ def create_mesh_with_profiles(args):
   
   validate_periodicity(mesh)
   
-  if args.show or args.save:
-    visualize_structure(array,args.single_region,args.show,args.save)  
+  if args.show or args.target == "volume_vtk":
+    save = "volume.vtp" if not args.save else args.save
+    assert(save.endswith('.vtp'))
+    visualize_structure(array,args.single_region,args.show,save)  
   
   return mesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
 parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required = True)
-parser.add_argument('--file', help="optional give output file name. ")
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
 parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float, default=0.5)
@@ -119,8 +122,10 @@ parser.add_argument('--skip_y', help="don't show bar in y direction", action='st
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true')
-parser.add_argument('--verbose', help="show spline plots",choices=["off","all","bisec"], default='off')
-parser.add_argument('--save', help="name of vtk file for saving", )
+parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
+parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None"], required=True)
+parser.add_argument('--save', help="overwrite default target name")
+
 
 args = parser.parse_args()
 
@@ -148,15 +153,18 @@ if args.type == "profiles3d" and not (args.x1 and args.x2 and args.y1 and args.y
   sys.exit()
 
 if args.type == 'profiles2d':
-  mesh = create_mesh_with_profiles(args)
+  assert(False)
+  #mesh = create_mesh_with_profiles(args)
 elif args.type == 'profiles3d':
   mesh = create_mesh_with_profiles(args)
-  
-file = mesh_name + '.mesh' if args.file == None else args.file 
 
-write_gid_mesh(mesh, file)
+if args.target == 'volume_mesh':   
+  file = mesh_name + '.mesh' if args.save == None else args.save
+  assert(file.endswith('.mesh')) 
 
-print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
+  write_gid_mesh(mesh, file)
+
+  print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
 
 
 

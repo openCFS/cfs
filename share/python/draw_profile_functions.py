@@ -98,7 +98,7 @@ def profileSpline(x1,y1,res,bend):
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
   vec[res-idx:res] = c[0:idx][::-1]
   
-  return vec-0.5,idx
+  return vec-0.5
 
 # @param height is second return value from profileSpline
 # @param verbose 'bisec' to plot all cases
@@ -219,8 +219,8 @@ def profile(args,dir):
     
   if args.profile == 'spline':
     if dir == 1:
-      vec1,idx1 = profileSpline(args.x1, args.y1, args.res, args.bend)
-      vec3,idx3 = profileSpline(args.x1, args.z1, args.res, args.bend)
+      vec1 = profileSpline(args.x1, args.y1, args.res, args.bend)
+      vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend, args.verbose)
       
 #       t = np.linspace(0, 1.0, args.res)
@@ -232,11 +232,11 @@ def profile(args,dir):
 #       plt.savefig("3splines.png")
 #       plt.show()
 
-      return ((vec1,0,idx1), (vec2,phi,-1), (vec3,np.pi/2.0,idx3))
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:   
-      vec1,idx1 = profileSpline(args.y1, args.x1, args.res, args.bend)
+      vec1 = profileSpline(args.y1, args.x1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose)
-      vec3,idx3 = profileSpline(args.y1, args.z1, args.res, args.bend)
+      vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
 
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1')
@@ -247,12 +247,43 @@ def profile(args,dir):
 #       plt.legend(loc='upper left', shadow=True)
 #       plt.show()
       
-      return ((vec1,0,idx1), (vec2,phi,-1), (vec3,np.pi/2.0,idx2))
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 3:
-      vec1,idx1 = profileSpline(args.z1, args.y1, args.res, args.bend)
+      vec1 = profileSpline(args.z1, args.y1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
-      vec3,idx3 = profileSpline(args.z1, args.x1, args.res, args.bend)
-      return ((vec1,0,idx1), (vec2,phi), (vec3,np.pi/2.0,idx3))
+      vec3 = profileSpline(args.z1, args.x1, args.res, args.bend)
+      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
+
+# return information on profiles 
+def create_profiles(args):
+  profiles = []
+  if not args.skip_x:
+    vec = profile(args,1)
+    profiles.append(vec)
+  else:
+    profiles.append(None)
+  if not args.skip_y:
+    vec = profile(args,2)
+    profiles.append(vec)
+  else:
+    profiles.append(None)
+  if not args.skip_z:
+    vec = profile(args,3)
+    profiles.append(vec)
+  else:
+    profiles.append(None)
+  
+  if args.verbose == "all_profiles":
+    t = np.linspace(0, 1.0, args.res)
+    for vec in profiles:
+      if vec <> None:
+        for v in vec:
+          if type(v) == tuple:
+            plt.plot(t,v[0],label=str(v[1]))
+            
+    plt.show()
+    
+  return profiles
 
 def create_profiles_array(args):
   res = args.res
@@ -260,34 +291,75 @@ def create_profiles_array(args):
   vec = None
   t = np.linspace(0, 1.0, args.res)
   
-  plotArray = []
-  
   hf = plt.figure()
   ha = hf.add_subplot(111, projection='3d')
   
-  if not args.skip_x:
-    vec = profile(args,1)
-    draw_profile(array, vec, 1,ha)
-    plotArray.append(vec)
-  if not args.skip_y:
-    vec = profile(args,2)
-    draw_profile(array, vec, 2,ha)
-    plotArray.append(vec)
-  if not args.skip_z:
-    vec = profile(args,3)
-    draw_profile(array, vec, 3,ha)
-    plotArray.append(vec)  
+  profiles = create_profiles(args)
+  assert(len(profiles) == 3)
+  for i in range(0,3):
+    if args.target == "volume_mesh" or args.target == "volume_vtk":
+      write_profile_to_array(array, profiles[i], i+1)
+    if args.target == "3dlines":
+      plot_3dlines(profiles[i], res, i+1, ha)
+    if args.verbose == 'profile_map':
+      create_profile_map(profiles[i], res, i+1, args.verbose, ha)
   
-  if args.verbose == "all":
-    t = np.linspace(0, 1.0, args.res)
-    for vec in plotArray:
-      for v in vec:
-        if type(v) == tuple:
-          plt.plot(t,v[0],label=str(v[1]))
-#     plt.legend(loc='upper left', shadow=True)
-    #plt.show()
-  plt.show()
+  if args.target == '3dlines':
+    plt.show()
+  
   return array
+
+# creates map with info on profile depending on radius
+def create_profile_map(profile,res,dir,verbose=None,ha=None):
+  map = np.zeros((360, res))
+  for i in range(0,res):
+    f = give_interpolate_radius(profile, i, dir)
+    for alpha in range(0,360):
+      rad = np.pi/180. * alpha
+      map[alpha,i] = f(rad)
+  
+  if verbose == 'profile_map':
+    X,Y = np.meshgrid(range(res),range(360))
+    ha.plot_surface(X, Y, map)
+    plt.show()
+  
+  return map
+
+def plot_3dlines(profile,res,dir,ha):
+  Z = np.linspace(0,2*np.pi,360)
+  
+  map = create_profile_map(profile, res, dir)
+        
+  for ii in range(0,res,2):
+    radius = map[:,ii]
+    X,Y = radius*np.cos(Z),radius*np.sin(Z)
+    if dir == 1:
+      ha.plot(X,Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),'b')
+    if dir == 2:
+      ha.plot(ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,Y,'r')
+    if dir == 3:
+      ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
+  
+  for angle in range(0,360,10):
+    radii = map[angle,:]
+    rangle = angle/180.0*np.pi
+    X,Y = radii*np.cos(rangle),radii*np.sin(rangle)
+    if dir == 1:
+      ha.plot(X,Y,np.linspace(-.5,.5,np.size(X)),'b')
+    if dir == 2:
+      ha.plot(np.linspace(-.5,.5,np.size(X)),X,Y,'r')
+    if dir == 3:
+      ha.plot(Y,np.linspace(-.5,.5,np.size(X)),X,'g')
+ 
+    #  plt.figure(figsize=(10,10))
+    #  ax = plt.axes(polar=True)
+    #  theta = np.linspace(0, 2*np.pi,360)
+    #  plt.plot(theta,map[:,0],linewidth=5.0)
+    #  plt.rcParams.update({'font.size': 18})
+    #  plt.savefig("xpart_x_0.png")
+    #  plt.plot(theta,map[:,res/4],linewidth=5.0)
+    #  plt.plot(theta,map[:,res/2],linewidth=5.0)
+    #  plt.savefig("xpart_all.png")
 
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx, dir):
@@ -333,61 +405,14 @@ def give_interpolate_radius(vec, idx, dir):
     return f                            
                                        
 
-
 # @param vec can be one vector or list of vector
-def draw_profile(array,vec,dir,ha):
+def write_profile_to_array(array,vec,dir):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
 
-  map = np.zeros((360, res))
-  for i in range(0,res):
-    f = give_interpolate_radius(vec, i, dir)
-    for alpha in range(0,360):
-      rad = np.pi/180. * alpha
-      map[alpha,i] = f(rad)
-      
+  map = create_profile_map(vec, res, dir)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
-    
-        
-  if True:
-    if True:
-      X,Y = np.meshgrid(range(res),range(360))
-      Z = np.linspace(0,2*np.pi,360)
-      
-      for ii in range(0,vec[2],2):
-        radius = map[:,ii]
-        X,Y = radius*np.cos(Z),radius*np.sin(Z)
-        if dir == 1:
-          ha.plot(X,Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),'b')
-        if dir == 2:
-          ha.plot(ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,Y,'r')
-        if dir == 3:
-          ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
-      for angle in range(0,360,10):
-        radii = map[angle,:]
-        rangle = angle/180.0*np.pi
-        X,Y = radii*np.cos(rangle),radii*np.sin(rangle)
-        if dir == 1:
-          ha.plot(X,Y,np.linspace(-.5,.5,np.size(X)),'b')
-        if dir == 2:
-          ha.plot(np.linspace(-.5,.5,np.size(X)),X,Y,'r')
-        if dir == 3:
-          ha.plot(Y,np.linspace(-.5,.5,np.size(X)),X,'g')
-      # ha.plot_surface(X, Y, map)
-
-  
-    else:
-      plt.figure(figsize=(10,10))
-      ax = plt.axes(polar=True)
-      theta = np.linspace(0, 2*np.pi,360)
-      plt.plot(theta,map[:,0],linewidth=5.0)
-      plt.rcParams.update({'font.size': 18})
-      plt.savefig("xpart_x_0.png")
-      plt.plot(theta,map[:,res/4],linewidth=5.0)
-      plt.plot(theta,map[:,res/2],linewidth=5.0)
-      plt.savefig("xpart_all.png")
-      plt.show()
       
   for i in range(0,res):
     for j in range(0,res):
