@@ -149,8 +149,8 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   biqua = np.zeros(res)
   
   biqua[0:idx] = left[0:idx]
-  biqua[idx:res/2.0] = right
-  biqua[res/2.0:res] = biqua[0:res/2.0][::-1]
+  biqua[idx:res/2] = right
+  biqua[res/2:res] = biqua[0:res/2][::-1]
   
 #   biqua -= 0.5
   
@@ -262,19 +262,22 @@ def create_profiles_array(args):
   
   plotArray = []
   
+  hf = plt.figure()
+  ha = hf.add_subplot(111, projection='3d')
+  
   if not args.skip_x:
-    vec = profile(args,1,)
-    draw_profile(array, vec, 1)
+    vec = profile(args,1)
+    draw_profile(array, vec, 1,ha)
     plotArray.append(vec)
   if not args.skip_y:
     vec = profile(args,2)
-    draw_profile(array, vec, 2)
+    draw_profile(array, vec, 2,ha)
     plotArray.append(vec)
   if not args.skip_z:
     vec = profile(args,3)
-    draw_profile(array, vec, 3)
+    draw_profile(array, vec, 3,ha)
     plotArray.append(vec)  
-    
+  
   if args.verbose == "all":
     t = np.linspace(0, 1.0, args.res)
     for vec in plotArray:
@@ -282,8 +285,8 @@ def create_profiles_array(args):
         if type(v) == tuple:
           plt.plot(t,v[0],label=str(v[1]))
 #     plt.legend(loc='upper left', shadow=True)
-    plt.show()
-    
+    #plt.show()
+  plt.show()
   return array
 
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
@@ -332,7 +335,7 @@ def give_interpolate_radius(vec, idx, dir):
 
 
 # @param vec can be one vector or list of vector
-def draw_profile(array,vec,dir):
+def draw_profile(array,vec,dir,ha):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
@@ -347,14 +350,32 @@ def draw_profile(array,vec,dir):
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
     
         
-  if False:
-    if False:
+  if True:
+    if True:
       X,Y = np.meshgrid(range(res),range(360))
+      Z = np.linspace(0,2*np.pi,360)
       
-      hf = plt.figure()
-      ha = hf.add_subplot(111, projection='3d')
-      ha.plot_surface(X, Y, map)
-      plt.show()
+      for ii in range(0,res,2):
+        radius = map[:,ii]
+        X,Y = radius*np.cos(Z),radius*np.sin(Z)
+        if dir == 1:
+          ha.plot(X,Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),'b')
+        if dir == 2:
+          ha.plot(ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,Y,'r')
+        if dir == 3:
+          ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
+      for angle in range(0,360,10):
+        radii = map[angle,:]
+        rangle = angle/180.0*np.pi
+        X,Y = radii*np.cos(rangle),radii*np.sin(rangle)
+        if dir == 1:
+          ha.plot(X,Y,np.linspace(-.5,.5,np.size(X)),'b')
+        if dir == 2:
+          ha.plot(np.linspace(-.5,.5,np.size(X)),X,Y,'r')
+        if dir == 3:
+          ha.plot(Y,np.linspace(-.5,.5,np.size(X)),X,'g')
+      # ha.plot_surface(X, Y, map)
+
   
     else:
       plt.figure(figsize=(10,10))
@@ -388,3 +409,4 @@ def draw_profile(array,vec,dir):
             array[j,i,k] = dir
           if dir == 3:
             array[k,j,i] = dir
+  
