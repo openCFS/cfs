@@ -98,7 +98,7 @@ def profileSpline(x1,y1,res,bend):
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
   vec[res-idx:res] = c[0:idx][::-1]
   
-  return vec-0.5
+  return vec-0.5,idx
 
 # @param height is second return value from profileSpline
 # @param verbose 'bisec' to plot all cases
@@ -219,8 +219,8 @@ def profile(args,dir):
     
   if args.profile == 'spline':
     if dir == 1:
-      vec1 = profileSpline(args.x1, args.y1, args.res, args.bend)
-      vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
+      vec1,idx1 = profileSpline(args.x1, args.y1, args.res, args.bend)
+      vec3,idx3 = profileSpline(args.x1, args.z1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend, args.verbose)
       
 #       t = np.linspace(0, 1.0, args.res)
@@ -232,11 +232,11 @@ def profile(args,dir):
 #       plt.savefig("3splines.png")
 #       plt.show()
 
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
+      return ((vec1,0,idx1), (vec2,phi,-1), (vec3,np.pi/2.0,idx3))
     if dir == 2:   
-      vec1 = profileSpline(args.y1, args.x1, args.res, args.bend)
+      vec1,idx1 = profileSpline(args.y1, args.x1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose)
-      vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
+      vec3,idx3 = profileSpline(args.y1, args.z1, args.res, args.bend)
 
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1')
@@ -247,12 +247,12 @@ def profile(args,dir):
 #       plt.legend(loc='upper left', shadow=True)
 #       plt.show()
       
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
+      return ((vec1,0,idx1), (vec2,phi,-1), (vec3,np.pi/2.0,idx2))
     if dir == 3:
-      vec1 = profileSpline(args.z1, args.y1, args.res, args.bend)
+      vec1,idx1 = profileSpline(args.z1, args.y1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
-      vec3 = profileSpline(args.z1, args.x1, args.res, args.bend)
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
+      vec3,idx3 = profileSpline(args.z1, args.x1, args.res, args.bend)
+      return ((vec1,0,idx1), (vec2,phi), (vec3,np.pi/2.0,idx3))
 
 def create_profiles_array(args):
   res = args.res
@@ -355,7 +355,7 @@ def draw_profile(array,vec,dir,ha):
       X,Y = np.meshgrid(range(res),range(360))
       Z = np.linspace(0,2*np.pi,360)
       
-      for ii in range(0,res,2):
+      for ii in range(0,vec[2],2):
         radius = map[:,ii]
         X,Y = radius*np.cos(Z),radius*np.sin(Z)
         if dir == 1:
