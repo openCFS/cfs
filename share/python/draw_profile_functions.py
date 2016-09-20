@@ -7,6 +7,7 @@ import math
 from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial import Delaunay
 # from base_structures_images import height
 
 def profileLin(x1,x2,n):
@@ -301,31 +302,30 @@ def create_profiles(args):
   return profiles
 
 def get_surface_lines(map,grad_res,dir):
-  nodesX = []
-  nodesY = []
-  nodesZ = []
-  for grad in range(0,360,grad_res):
+  lenx = np.size(map,1)
+  nodes = np.zeros((360/grad_res, lenx, 3))
+  for i,grad in enumerate(range(0,360,grad_res)):
     radii = map[grad,:]
     rad = grad/180.0*np.pi
     
-    lenx = np.size(radii)
     #transformation to cartesian coordinates
     X = radii*np.cos(rad) + 0.5*np.ones(lenx)
     Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
     if dir == 1:
-      nodesX.append(np.linspace(0.0,1.0,lenx))
-      nodesY.append(X)
-      nodesZ.append(Y)
+      nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
+      nodes[i,:,1] = X
+      nodes[i,:,2] = Y
     if dir == 2:
-      nodesX.append(Y)
-      nodesY.append(np.linspace(0.0,1.0,lenx))
-      nodesZ.append(X)
+      nodes[i,:,0] = Y
+      nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
+      nodes[i,:,2] = X
+      
     if dir == 3:
-      nodesX.append(X)
-      nodesY.append(Y)
-      nodesZ.append(np.linspace(0.0,1.0,lenx))
-  
-  return nodesX,nodesY,nodesZ
+      nodes[i,:,0] = X
+      nodes[i,:,1] = Y
+      nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
+      
+  return nodes  
     
 def create_profiles_array(args):
   res = args.res
@@ -345,24 +345,24 @@ def create_profiles_array(args):
       map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
       map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
       
-      X,Y,Z = get_surface_lines(map_x, args.res/10, 1)
-      for i in range(np.size(X,0)):
-        for j in range(np.size(X,1)):
-          if not contains_point(j, X[i][j], Z[i][j], map_y) and not contains_point(j, X[i][j], Y[i][j], map_z):
-            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
-      
-      X,Y,Z = get_surface_lines(map_y, args.res/10, 2)
-      for i in range(len(X)):
-        for j in range(np.size(X,1)):
-          if not contains_point(j, Y[i][j], Z[i][j], map_x) and not contains_point(j, X[i][j], Y[i][j], map_z):
-            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
+      nodes = get_surface_lines(map_x, args.res/10, 1)
+      for prof in nodes:
+        for i,p in enumerate(prof):
+          if not contains_point(i,p[0],p[2],map_y) and not contains_point(i, p[0], p[1], map_z):
+            surfNodes.append(p)
           
-      X,Y,Z = get_surface_lines(map_z, args.res/10, 3)
-      for i in range(len(X)):
-        for j in range(np.size(X,1)):
-          if not contains_point(j, Y[i][j], Z[i][j], map_x) and not contains_point(j, X[i][j], Z[i][j], map_y):
-            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
-
+      nodes = get_surface_lines(map_y, args.res/10, 2)
+      for prof in nodes:
+        for i,p in enumerate(prof):
+          if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[1], map_z):
+            surfNodes.append(p)
+            
+      nodes = get_surface_lines(map_z, args.res/10, 3)
+      for prof in nodes:
+        for i,p in enumerate(prof):
+          if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[2], map_y):
+            surfNodes.append(p) 
+      
       surfNodes = np.array(surfNodes)
       ha.scatter(surfNodes[:,0],surfNodes[:,1],surfNodes[:,2])
         
