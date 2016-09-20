@@ -250,7 +250,7 @@ def profile(args,dir):
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 3:
       vec1 = profileSpline(args.z1, args.y1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
+      vec2, phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
       vec3 = profileSpline(args.z1, args.x1, args.res, args.bend)
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
 
@@ -297,12 +297,14 @@ def create_profiles_array(args):
   profiles = create_profiles(args)
   assert(len(profiles) == 3)
   for i in range(0,3):
+    if profiles[i] == None:
+      continue
     if args.target == "volume_mesh" or args.target == "volume_vtk":
       write_profile_to_array(array, profiles[i], i+1)
     if args.target == "3dlines":
       plot_3dlines(profiles[i], res, i+1, ha)
     if args.verbose == 'profile_map':
-      create_profile_map(profiles[i], res, i+1, args.verbose, ha)
+      create_profile_map(profiles[i], res, args.verbose, ha)
   
   if args.target == '3dlines':
     plt.show()
@@ -310,10 +312,11 @@ def create_profiles_array(args):
   return array
 
 # creates map with info on profile depending on radius
-def create_profile_map(profile,res,dir,verbose=None,ha=None):
+# profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
+def create_profile_map(profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
   for i in range(0,res):
-    f = give_interpolate_radius(profile, i, dir)
+    f = give_interpolate_radius(profile,i)
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
       map[alpha,i] = f(rad)
@@ -328,11 +331,15 @@ def create_profile_map(profile,res,dir,verbose=None,ha=None):
 def plot_3dlines(profile,res,dir,ha):
   Z = np.linspace(0,2*np.pi,360)
   
-  map = create_profile_map(profile, res, dir)
+  #ax = plt.axes(polar=True)
+  #plt.plot(Z,o(Z))
+  #plt.show()
+  
+  map = create_profile_map(profile, res)
         
   for ii in range(0,res,2):
-    radius = map[:,ii]
-    X,Y = radius*np.cos(Z),radius*np.sin(Z)
+    radii = map[:,ii]
+    X,Y = radii*np.cos(Z),radii*np.sin(Z)
     if dir == 1:
       ha.plot(X,Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),'b')
     if dir == 2:
@@ -340,10 +347,11 @@ def plot_3dlines(profile,res,dir,ha):
     if dir == 3:
       ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
   
-  for angle in range(0,360,10):
-    radii = map[angle,:]
-    rangle = angle/180.0*np.pi
-    X,Y = radii*np.cos(rangle),radii*np.sin(rangle)
+  for grad in range(0,360,5):
+    radii = map[grad,:]
+    rad = grad/180.0*np.pi
+    #transformation to cartesian coordinates
+    X,Y = radii*np.cos(rad),radii*np.sin(rad)
     if dir == 1:
       ha.plot(X,Y,np.linspace(-.5,.5,np.size(X)),'b')
     if dir == 2:
@@ -362,7 +370,7 @@ def plot_3dlines(profile,res,dir,ha):
     #  plt.savefig("xpart_all.png")
 
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
-def give_interpolate_radius(vec, idx, dir):
+def give_interpolate_radius(vec, idx):
   if type(vec) == tuple:
     assert(len(vec) == 3)
     val = []
@@ -394,7 +402,7 @@ def give_interpolate_radius(vec, idx, dir):
     val.append(vec[1][0][idx]) # 270+45
     rad.append(2*np.pi-vec[1][1])
     
-    val.append(vec[0][0][idx]) # 270+90=360=0 (full cicle) 
+    val.append(vec[0][0][idx]) # 270+90=360=0 (full circle) 
     rad.append(2*np.pi)
       
     f = interpolate.interp1d(rad, val)
@@ -411,7 +419,7 @@ def write_profile_to_array(array,vec,dir):
   h = 1.0/res
   assert(dir >=1 and dir <=3)
 
-  map = create_profile_map(vec, res, dir)
+  map = create_profile_map(vec, res)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
       
   for i in range(0,res):
