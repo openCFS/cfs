@@ -123,7 +123,7 @@ parser.add_argument('--skip_z', help="don't show bar in z direction", action='st
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true')
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
-parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None"], required=True)
+parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 
 
