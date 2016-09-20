@@ -58,7 +58,22 @@ def findGradOne(vec):
   if abs(1-vec[idx-1]) < abs(1-vec[idx]):
     idx = idx-1 
     
-  return idx
+  return idx+1
+
+def contains_point(id_x,y,z,map):
+  
+  valx = (y-0.5)**2 + (z-0.5)**2
+  phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
+  
+  if y < 0.5:
+    phi = 2.0 * np.pi - phi
+          
+  r = map[int(phi/np.pi*180),id_x]
+  
+  if (valx <= r*r):
+    return True
+  
+  return False
 
 def spline_curve(x1, y1, res, bend):
   rx = 0.5 - x1/2.0 # radius for center (0,1)
@@ -285,6 +300,33 @@ def create_profiles(args):
     
   return profiles
 
+def get_surface_lines(map,grad_res,dir):
+  nodesX = []
+  nodesY = []
+  nodesZ = []
+  for grad in range(0,360,grad_res):
+    radii = map[grad,:]
+    rad = grad/180.0*np.pi
+    
+    lenx = np.size(radii)
+    #transformation to cartesian coordinates
+    X = radii*np.cos(rad) + 0.5*np.ones(lenx)
+    Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
+    if dir == 1:
+      nodesX.append(np.linspace(0.0,1.0,lenx))
+      nodesY.append(X)
+      nodesZ.append(Y)
+    if dir == 2:
+      nodesX.append(Y)
+      nodesY.append(np.linspace(0.0,1.0,lenx))
+      nodesZ.append(X)
+    if dir == 3:
+      nodesX.append(X)
+      nodesY.append(Y)
+      nodesZ.append(np.linspace(0.0,1.0,lenx))
+  
+  return nodesX,nodesY,nodesZ
+    
 def create_profiles_array(args):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
@@ -296,15 +338,46 @@ def create_profiles_array(args):
   
   profiles = create_profiles(args)
   assert(len(profiles) == 3)
-  for i in range(0,3):
-    if profiles[i] == None:
-      continue
-    if args.target == "volume_mesh" or args.target == "volume_vtk":
-      write_profile_to_array(array, profiles[i], i+1)
-    if args.target == "3dlines":
-      plot_3dlines(profiles[i], res, i+1, ha)
-    if args.verbose == 'profile_map':
-      create_profile_map(profiles[i], res, args.verbose, ha)
+  surfNodes = []
+  if args.target == "surface_mesh":
+      assert(not args.skip_x and not args.skip_y and not args.skip_z)
+      map_x = create_profile_map(profiles[0], args.res) if profiles[0] <> None else None
+      map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
+      map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
+      
+      X,Y,Z = get_surface_lines(map_x, args.res/10, 1)
+      for i in range(np.size(X,0)):
+        for j in range(np.size(X,1)):
+          if not contains_point(j, X[i][j], Z[i][j], map_y) and not contains_point(j, X[i][j], Y[i][j], map_z):
+            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
+      
+      X,Y,Z = get_surface_lines(map_y, args.res/10, 2)
+      for i in range(len(X)):
+        for j in range(np.size(X,1)):
+          if not contains_point(j, Y[i][j], Z[i][j], map_x) and not contains_point(j, X[i][j], Y[i][j], map_z):
+            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
+          
+      X,Y,Z = get_surface_lines(map_z, args.res/10, 3)
+      for i in range(len(X)):
+        for j in range(np.size(X,1)):
+          if not contains_point(j, Y[i][j], Z[i][j], map_x) and not contains_point(j, X[i][j], Z[i][j], map_y):
+            surfNodes.append([X[i][j],Y[i][j],Z[i][j]])
+
+      surfNodes = np.array(surfNodes)
+      ha.scatter(surfNodes[:,0],surfNodes[:,1],surfNodes[:,2])
+        
+      plt.show()
+      
+  else:
+    for i in range(0,3):
+      if profiles[i] == None:
+        continue
+      if args.target == "volume_mesh" or args.target == "volume_vtk":
+        write_profile_to_array(array, profiles[i], i+1)
+      if args.target == "3dlines":
+        plot_3dlines(profiles[i], res, i+1, ha)
+      if args.verbose == 'profile_map':
+        create_profile_map(profiles[i], res, args.verbose, ha)
   
   if args.target == '3dlines':
     plt.show()
@@ -335,40 +408,26 @@ def plot_3dlines(profile,res,dir,ha):
   #plt.plot(Z,o(Z))
   #plt.show()
   
+  nodes = []
+  
   map = create_profile_map(profile, res)
         
-  for ii in range(0,res,2):
+  for ii in range(0,res,10):
     radii = map[:,ii]
-    X,Y = radii*np.cos(Z),radii*np.sin(Z)
+    X = radii*np.cos(Z)+.5*np.ones(np.size(radii))
+    Y = radii*np.sin(Z)+.5*np.ones(np.size(radii))
     if dir == 1:
-      ha.plot(X,Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),'b')
+      ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
     if dir == 2:
-      ha.plot(ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,Y,'r')
+      ha.plot(ii*np.ones(np.size(X))/res,X,Y,'r')
     if dir == 3:
-      ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
-  
-  for grad in range(0,360,5):
-    radii = map[grad,:]
-    rad = grad/180.0*np.pi
-    #transformation to cartesian coordinates
-    X,Y = radii*np.cos(rad),radii*np.sin(rad)
-    if dir == 1:
-      ha.plot(X,Y,np.linspace(-.5,.5,np.size(X)),'b')
-    if dir == 2:
-      ha.plot(np.linspace(-.5,.5,np.size(X)),X,Y,'r')
-    if dir == 3:
-      ha.plot(Y,np.linspace(-.5,.5,np.size(X)),X,'g')
+      #ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
+      ha.plot(Y,ii*np.ones(np.size(X))/res,X,'g')
+      
+  X,Y,Z = get_surface_lines(map, 5, dir)  
+  for i in range(np.size(X,0)):  
+    ha.plot(X[i],Y[i],Z[i],'r')
  
-    #  plt.figure(figsize=(10,10))
-    #  ax = plt.axes(polar=True)
-    #  theta = np.linspace(0, 2*np.pi,360)
-    #  plt.plot(theta,map[:,0],linewidth=5.0)
-    #  plt.rcParams.update({'font.size': 18})
-    #  plt.savefig("xpart_x_0.png")
-    #  plt.plot(theta,map[:,res/4],linewidth=5.0)
-    #  plt.plot(theta,map[:,res/2],linewidth=5.0)
-    #  plt.savefig("xpart_all.png")
-
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx):
   if type(vec) == tuple:
@@ -429,8 +488,8 @@ def write_profile_to_array(array,vec,dir):
         z = k * h + h / 2.0
         valx = (y-0.5)**2 + (z-0.5)**2
         
-        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0) and (y,z)
-        if y < 0:
+        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
+        if y < 0.5:
           phi = 2*np.pi - phi
           
 #         p = f(phi)
