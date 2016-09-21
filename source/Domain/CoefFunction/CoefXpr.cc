@@ -1436,12 +1436,9 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
           if( !isComplex_ ) {
               for( UInt i = 0; i < numRows; ++ i ) {
                   std::string sum;
-                  CoefXpr::ApplyBinaryFunc(sum,aR[0],bR[0],CoefXpr::OP_MULT);
+                  CoefXpr::ApplyBinaryFunc(sum,aR[i*numCols],bR[0],CoefXpr::OP_MULT);
                   for (UInt j = 1; j < numCols; ++ j) {
-                      CoefXpr::ApplyTernaryFunc( sum, sum, aR[j], bR[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
-                      //std::string prod;
-                      //CoefXpr::ApplyBinaryFunc( prod, Bracket(aR[j]), Bracket(bR[j]), CoefXpr::OP_MULT );
-                      //CoefXpr::ApplyBinaryFunc( sum, sum, prod, CoefXpr::OP_ADD );
+                      CoefXpr::ApplyTernaryFunc( sum, sum, aR[i*numCols+j], bR[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
                   }
                   real[i] = sum;
                   imag[i] = "0.0";
@@ -1449,13 +1446,11 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
           }
           else {
               for( UInt i = 0; i < numRows; ++ i ) {
-                  std::string sumR = "";
-                  std::string sumI = "";
-                  for (UInt j = 0; j < numCols; ++ j) {
-                      CoefXpr::ApplyTernaryFunc( sumR, sumI, sumR, aR[j], bR[j], sumI, aI[j], bI[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
-                      //std::string prodR, prodI;
-                      //CoefXpr::ApplyBinaryFunc( prodR, prodI, Bracket(aR[j]), Bracket(bR[j]),Bracket(aI[j]), Bracket(bI[j]), CoefXpr::OP_MULT );
-                      //CoefXpr::ApplyBinaryFunc( sumR, sumI, sumR, prodR, sumI, prodI, CoefXpr::OP_ADD );
+                  std::string sumR;
+                  std::string sumI;
+                  CoefXpr::ApplyBinaryFunc(sumR,sumI,aR[i*numCols],bR[0],aI[i*numCols],bI[0],CoefXpr::OP_MULT);
+                  for (UInt j = 1; j < numCols; ++ j) {
+                      CoefXpr::ApplyTernaryFunc( sumR, sumI, sumR, aR[i*numCols+j], bR[j], sumI, aI[i*numCols+j], bI[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
                   }
                   real[i] = sumR;
                   imag[i] = sumI;
@@ -1464,7 +1459,6 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       } else {
           EXCEPTION("only tesor x vector possible")
       }
-      //EXCEPTION("tesor x vector in progress.")
   }
   else {
       EXCEPTION("Arguments must be both of vector type.")
