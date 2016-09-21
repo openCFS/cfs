@@ -1427,9 +1427,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         // store the coefFunction for postprocessing
         thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
 
-        // compute the thermal stress = C*eps_th
-        PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part,
-                CoefXprBinOp(mp_,cCoef,thermalStrainCoef,CoefXpr::OP_MULT));
+        // Compute thermal stress (C*alpha)*dT
+        // Note: the order of combining coef functions is important: C*alpha can unsually be evaluated anaytically. 
+        // Therefore, we combine it first. Then it is multiplied with dT, which might be a CoefFuctionGrid. 
+        PtrCoefFct Calpha = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,cCoef,aCoef,CoefXpr::OP_MULT));
+        PtrCoefFct thermalStressCoef = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_,Calpha,dT,CoefXpr::OP_MULT));
 
         // store the coefFunction for postprocessing
         thermalStress_->AddRegion( myRegionId, thermalStressCoef);
