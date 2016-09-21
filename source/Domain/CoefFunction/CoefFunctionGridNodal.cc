@@ -18,6 +18,7 @@
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 
 #include "FeBasis/FeSpace.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/tr1/type_traits.hpp>
 #include <set>
@@ -25,8 +26,11 @@
 
 namespace CoupledField{
 
+// declare class specific logging stream
+DECLARE_LOG(coeffunctiongridnodal);
+DEFINE_LOG(coeffunctiongridnodal, "coefFunctionGridNodal");
 
-  template<class DATA_TYPE>
+template<class DATA_TYPE>
   CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(Domain* ptDomain,
                                                           PtrParamNode configNode)
                                    :CoefFunctionGrid(ptDomain, configNode){
@@ -214,7 +218,7 @@ namespace CoupledField{
         DATA_TYPE factor;
         LocPointMapped lpm;
         factorFnc_->GetScalar(factor,lpm);
-        //std::cout << "Computed Factor for timestep: " << factor << std::endl;
+        LOG_DBG3(coeffunctiongridnodal) << "Computed Factor for timestep: " << factor << std::endl;
 
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
           UInt idx = nodeIdxMap_[nodeNums[aN]];
@@ -286,11 +290,11 @@ namespace CoupledField{
             this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
           }
         }else{
-          std::cout << "++ Reading source step #" << stepnumber << " ...";
+          LOG_DBG(coeffunctiongridnodal) << "++ Reading source step #" << stepnumber << " ...";
           this->ReadSolution(stepnumber,this->solVec_);
           lastStepRead_ = stepnumber;
           updated = true;
-          std::cout << "Done." << std::endl;
+          LOG_DBG(coeffunctiongridnodal) << "Done." << std::endl;
         }
       }
     }
