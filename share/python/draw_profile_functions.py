@@ -328,9 +328,12 @@ def get_surface_lines(map,grad_res,dir):
   return nodes
 
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
-def find_points_on_surface(nodes,dir,otherMap1,otherMap2):
+# each surface point is also given a unique id
+# @param pointId indicates the point id that already exists
+def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
   nodesLeft = []
   nodesRight = []
+  pointId += 1
   
   if dir == 1:
     id0 = 0
@@ -356,10 +359,11 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2):
     for i,p in enumerate(prof):
       if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
         if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-          lineLeft.append(p)
+          lineLeft.append((p,pointId))
         else:
-          lineRight.append(p)
-    
+          lineRight.append((p,pointId))
+        pointId += 1
+        
     nodesLeft.append(lineLeft)
     nodesRight.append(lineRight)   
       
@@ -412,26 +416,14 @@ def create_profiles_array(args):
       map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
       map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
       
-      idx = 0 # enumerating all surface nodes in order to create triangles
+      idx = -1 # enumerating all surface nodes in order to create triangles
+      
       # first dimension of nodes : surface lines
       # second dimension of nodes: resolution of unit cube
       # third dimension: tuple with x,y,z coordinate
       nodes = get_surface_lines(map_x, args.res/10, 1)
-      #surfNodesXLeft = np.zeros(nodes.shape[0]) # list; stores for each surface line all surface points on it
-      #surfNodesXLeft = np.zeros(nodes.shape[0])
       
-      #for numLine,prof in enumerate(nodes):
-      #  listLeft = [] # store points on one surface line temporally
-      #  listRight = []
-      #  for i,p in enumerate(prof):
-      #    if not contains_point(i,p[0],p[2],map_y) and not contains_point(i, p[0], p[1], map_z):
-      #      surfNodes.append(p) # if point is not contained in other profiles, then it is a surface point
-      #      if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-      #        listLeft.append((p,id))
-      #      else:
-      #        listRight.append(p)
-      
-      surfNodesXLeft, surfNodesXRight = find_points_on_surface(nodes, 1, map_y, map_z)              
+      surfNodesXLeft, surfNodesXRight = find_points_on_surface(nodes, 1, map_y, map_z, startId)              
       
       nodes = get_surface_lines(map_y, args.res/10, 2)
       surfNodesYLeft, surfNodesYRight = find_points_on_surface(nodes, 2, map_x, map_z)  
@@ -441,12 +433,12 @@ def create_profiles_array(args):
       
       surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
       
-      for list in surfNodes:
-        for line in list:
-          for tuple in line:
-            ha.scatter(tuple[0],tuple[1],tuple[2])
-      
       if args.show:
+        for list in surfNodes:
+          for line in list:
+            for tuple in line:
+              ha.scatter(tuple[0],tuple[1],tuple[2])
+
         plt.show()
       
   else:
