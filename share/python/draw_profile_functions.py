@@ -331,32 +331,6 @@ def get_surface_lines(map,grad_res,dir):
 def calc_normal_vector(r1,r2):
   return np.cross(r1, r2)  
 
-# write surface nodes in 'nodes' and respective normals to file
-def export_nodes_to_file(file,nodes):
-  dirVec1 = None
-  dirVec2 = None
-  
-  for list in nodes:
-    for i,point in enumerate(list):
-      if i == 0: # for first point on surface line, we only have one neighbor to determine normal vector
-        right = list[i+1] # right neighbor
-        dirVec1 = [point[0],point[1],point[2]]
-        dirVec2 = [point[0]-right[0],point[1]-right[1],point[2]-right[2]] # directional vector
-      elif i == len(list)-1:
-          left = list[i-1] # left neighbor 
-          dirVec1 = [left[0]-point[0],left[1]-point[1],left[2]-point[2]] 
-          dirVec2 = [point[0],point[1],point[2]]
-      else: # if current point has left and right vector
-          left = list[i-1] # left neighbor
-          right = list[i+1] # right neighbor
-          dirVec1 = [left[0]-point[0],left[1]-point[1],left[2]-point[2]]
-          dirVec2 = [point[0]-right[0],point[1]-right[1],point[2]-right[2]]
-                                 
-      normVec = calc_normal_vector(dirVec2,dirVec1) # calc normal vector
-      assert(np.linalg.norm(normVec) > 0)
-            
-      file.write(str(point[0]) + " " + str(point[1]) + " " + str(point[2]) + " " + str(normVec[0]) + " " + str(normVec[1]) + " " + str(normVec[2]) + "\n")      
-    
 def create_profiles_array(args):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
@@ -451,19 +425,6 @@ def create_profiles_array(args):
       #    ha.scatter(tuple[0],tuple[1],tuple[2])
           
       plt.show()
-        
-      
-      dirVec1 = None
-      dirVec2 = None
-      
-      file = open('surface.dat','w') #write points on surface and corresponding normal directly to file
-      export_nodes_to_file(file,surfNodesXLeft)
-      export_nodes_to_file(file,surfNodesYLeft)
-      export_nodes_to_file(file,surfNodesZLeft)
-      export_nodes_to_file(file,surfNodesXRight)
-      export_nodes_to_file(file,surfNodesYRight)
-      export_nodes_to_file(file,surfNodesZRight)
-      file.close()
       
   else:
     for i in range(0,3):
