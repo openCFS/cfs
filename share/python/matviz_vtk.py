@@ -904,6 +904,7 @@ def show_write_vtk(poly, res, save, actors=[]):
       writer.SetInput(poly)
     else:
       writer.SetInputData(poly)
+    #writer.SetDataModeToAscii()
     writer.SetFileName(save)
     writer.Write()
     print "saved polydata to file", save
