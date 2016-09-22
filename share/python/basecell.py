@@ -97,7 +97,7 @@ def create_mesh_with_profiles(args):
   
   validate_periodicity(mesh)
   
-  if args.show or args.target == "volume_vtk":
+  if args.show and args.target == "volume_vtk":
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)  

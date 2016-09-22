@@ -4,6 +4,8 @@ import numpy as np
 # from mesh_tool import *
 import sys
 import math
+import vtk
+from matviz_vtk import *
 from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
@@ -367,19 +369,48 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
     nodesLeft.append(lineLeft)
     nodesRight.append(lineRight)   
       
-  return nodesLeft, nodesRight
+  return nodesLeft, nodesRight, pointId
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
-def define_triangles(list,base):
-  # create vtk cells and points
-  cells = vtk.vtkCellArray()
-  
+def define_triangles(list,cells):
+  prevLine = None
+  for i,line in enumerate(list):
+    if i > 0:
+      prevLine = list[i-1]
+    else:
+      prevLine = list[len(list)-1] # last line in list
+      
+    for j in range(0,len(line)-1,2): # get coordinates of each point
+      if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, line[j][1]) 
+        tri.GetPointIds().SetId(1, prevLine[j][1])
+        tri.GetPointIds().SetId(2, line[j+1][1])
+        cells.InsertNextCell(tri)
+#         
+        print line[j][1],prevLine[j][1],line[j+1][1]
+        print line[j][0]
+        print prevLine[j][0]
+        print line[j+1][0]
+        
+      if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, line[j+1][1])
+        tri.GetPointIds().SetId(1, prevLine[j][1])
+        tri.GetPointIds().SetId(2, prevLine[j+1][1])
+        cells.InsertNextCell(tri)
+         
+        print line[j+1][1],prevLine[j][1],prevLine[j+1][1]
+        print line[j+1][0]
+        print prevLine[j][0]
+        print prevLine[j+1][0]
+    break
+  print cells      
+  return cells
   #for nodes in list:
     
   
   #triangle = vtk.vtkTriangle()
-  
-  
   
   #quad = vtk.vtkQuad()
   #quad.GetPointIds().SetId(0, base + 0)
@@ -423,24 +454,49 @@ def create_profiles_array(args):
       # third dimension: tuple with x,y,z coordinate
       nodes = get_surface_lines(map_x, args.res/10, 1)
       
-      surfNodesXLeft, surfNodesXRight = find_points_on_surface(nodes, 1, map_y, map_z, startId)              
+      surfNodesXLeft, surfNodesXRight, idx = find_points_on_surface(nodes, 1, map_y, map_z, idx)              
       
       nodes = get_surface_lines(map_y, args.res/10, 2)
-      surfNodesYLeft, surfNodesYRight = find_points_on_surface(nodes, 2, map_x, map_z)  
+      surfNodesYLeft, surfNodesYRight, idx = find_points_on_surface(nodes, 2, map_x, map_z, idx)  
             
       nodes = get_surface_lines(map_z, args.res/10, 3)
-      surfNodesZLeft, surfNodesZRight = find_points_on_surface(nodes, 3, map_x, map_y)
+      surfNodesZLeft, surfNodesZRight, idx = find_points_on_surface(nodes, 3, map_x, map_y, idx)
       
       surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
       
       if args.show:
         for list in surfNodes:
           for line in list:
-            for tuple in line:
-              ha.scatter(tuple[0],tuple[1],tuple[2])
+            for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
+              ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
+            break
+        
 
         plt.show()
       
+      for line in surfNodesXLeft:
+        for tuple in line:
+          ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
+        break
+      
+      plt.show()
+      # create vtk cells and points
+      cells = vtk.vtkCellArray()
+      points = vtk.vtkPoints()
+        
+      cells = define_triangles(surfNodesXLeft,cells)
+      
+      for line in surfNodesXLeft:
+        for tuple in line:
+          p = tuple[0]
+          points.InsertNextPoint(p)
+            
+      polydata = vtk.vtkPolyData()
+      polydata.SetPoints(points)
+      polydata.SetPolys(cells)
+      
+      show_vtk(polydata, 1000, [], True)
+      show_write_vtk(polydata,1000,"surface.vtp")
   else:
     for i in range(0,3):
       if profiles[i] == None:
