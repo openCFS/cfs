@@ -327,10 +327,64 @@ def get_surface_lines(map,grad_res,dir):
       
   return nodes
 
-# normal vector is cross product of two directional vectors
-def calc_normal_vector(r1,r2):
-  return np.cross(r1, r2)  
-
+# for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
+def find_points_on_surface(nodes,dir,otherMap1,otherMap2):
+  nodesLeft = []
+  nodesRight = []
+  
+  if dir == 1:
+    id0 = 0
+    id1 = 2
+    id2 = 0
+    id3 = 1
+  elif dir == 2:
+    id0 = 1
+    id1 = 2
+    id2 = 0
+    id3 = 1
+  else: #dir == 3
+    id0 = 1
+    id1 = 2
+    id2 = 0
+    id3 = 2
+        
+  assert(dir == 1 or dir == 2 or dir == 3)
+  res = nodes.shape[1]
+  for numLine,prof in enumerate(nodes):
+    lineLeft = [] # store points on one surface line temporally
+    lineRight = []
+    for i,p in enumerate(prof):
+      if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
+        if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+          lineLeft.append(p)
+        else:
+          lineRight.append(p)
+    
+    nodesLeft.append(lineLeft)
+    nodesRight.append(lineRight)   
+      
+  return nodesLeft, nodesRight
+# list is list of lists contains surface lines and all respective points
+# base used for setting right ids
+def define_triangles(list,base):
+  # create vtk cells and points
+  cells = vtk.vtkCellArray()
+  
+  #for nodes in list:
+    
+  
+  #triangle = vtk.vtkTriangle()
+  
+  
+  
+  #quad = vtk.vtkQuad()
+  #quad.GetPointIds().SetId(0, base + 0)
+  #quad.GetPointIds().SetId(1, base + 1)
+  #quad.GetPointIds().SetId(2, base + 2)
+  #quad.GetPointIds().SetId(3, base + 3)
+  #cells.InsertNextCell(quad)
+  
+  
 def create_profiles_array(args):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
@@ -343,7 +397,6 @@ def create_profiles_array(args):
   profiles = create_profiles(args)
   assert(len(profiles) == 3)
   
-  surfNodes = []
   surfNodesXLeft = []
   surfNodesYLeft = []
   surfNodesZLeft = []
@@ -351,12 +404,15 @@ def create_profiles_array(args):
   surfNodesYRight = []
   surfNodesZRight = []
   
+  id = 0 # assign an id to each surface point 
+  
   if args.target == "surface_mesh":
       assert(not args.skip_x and not args.skip_y and not args.skip_z)
       map_x = create_profile_map(profiles[0], args.res) if profiles[0] <> None else None
       map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
       map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
       
+      idx = 0 # enumerating all surface nodes in order to create triangles
       # first dimension of nodes : surface lines
       # second dimension of nodes: resolution of unit cube
       # third dimension: tuple with x,y,z coordinate
@@ -364,67 +420,34 @@ def create_profiles_array(args):
       #surfNodesXLeft = np.zeros(nodes.shape[0]) # list; stores for each surface line all surface points on it
       #surfNodesXLeft = np.zeros(nodes.shape[0])
       
-      for numLine,prof in enumerate(nodes):
-        listLeft = [] # store points on one surface line temporally
-        listRight = []
-        for i,p in enumerate(prof):
-          if not contains_point(i,p[0],p[2],map_y) and not contains_point(i, p[0], p[1], map_z):
-            surfNodes.append(p) # if point is not contained in other profiles, then it is a surface point
-            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-              listLeft.append(p)
-            else:
-              listRight.append(p)
-              
-        surfNodesXLeft.append(listLeft)
-        surfNodesXRight.append(listRight) 
+      #for numLine,prof in enumerate(nodes):
+      #  listLeft = [] # store points on one surface line temporally
+      #  listRight = []
+      #  for i,p in enumerate(prof):
+      #    if not contains_point(i,p[0],p[2],map_y) and not contains_point(i, p[0], p[1], map_z):
+      #      surfNodes.append(p) # if point is not contained in other profiles, then it is a surface point
+      #      if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+      #        listLeft.append((p,id))
+      #      else:
+      #        listRight.append(p)
+      
+      surfNodesXLeft, surfNodesXRight = find_points_on_surface(nodes, 1, map_y, map_z)              
       
       nodes = get_surface_lines(map_y, args.res/10, 2)
-      for numLine,prof in enumerate(nodes):
-        listLeft = [] # store points on one surface line temporally
-        listRight = []
-        for i,p in enumerate(prof):
-          if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[1], map_z):
-            surfNodes.append(p)
-            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-              listLeft.append(p)
-            else:
-              listRight.append(p)
-        
-        surfNodesYLeft.append(listLeft)
-        surfNodesYRight.append(listRight)      
+      surfNodesYLeft, surfNodesYRight = find_points_on_surface(nodes, 2, map_x, map_z)  
             
       nodes = get_surface_lines(map_z, args.res/10, 3)
-      for numLine,prof in enumerate(nodes):
-        listLeft = [] # store points on one surface line temporally
-        listRight = []
-        for i,p in enumerate(prof):
-          if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[2], map_y):
-            surfNodes.append(p) 
-            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-              listLeft.append(p)
-            else:
-              listRight.append(p)
-        
-        surfNodesZLeft.append(listLeft)
-        surfNodesZRight.append(listRight)      
+      surfNodesZLeft, surfNodesZRight = find_points_on_surface(nodes, 3, map_x, map_y)
       
-      surfNodes = np.array(surfNodes)
-      surfNodesXLeft = np.array(surfNodesXLeft)
-      surfNodesYLeft = np.array(surfNodesYLeft)
-      surfNodesZLeft = np.array(surfNodesZLeft)
-      surfNodesXRight = np.array(surfNodesXRight)
-      surfNodesYRight = np.array(surfNodesYRight)
-      surfNodesZRight = np.array(surfNodesZRight)
-      ha.scatter(surfNodes[:,0],surfNodes[:,1],surfNodes[:,2])
-      #ha.scatter(surfNodesXLeft,surfNodesYLeft,surfNodesZLeft)
+      surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
       
-      #debugging
-      # left part of surface nodes
-      #for list in surfNodesXLeft:
-      #  for tuple in list:
-      #    ha.scatter(tuple[0],tuple[1],tuple[2])
-          
-      plt.show()
+      for list in surfNodes:
+        for line in list:
+          for tuple in line:
+            ha.scatter(tuple[0],tuple[1],tuple[2])
+      
+      if args.show:
+        plt.show()
       
   else:
     for i in range(0,3):
