@@ -59,7 +59,7 @@ def findGradOne(vec):
   if abs(1-vec[idx-1]) < abs(1-vec[idx]):
     idx = idx-1 
     
-  return idx+1
+  return idx
 
 def contains_point(id_x,y,z,map):
   
@@ -325,7 +325,37 @@ def get_surface_lines(map,grad_res,dir):
       nodes[i,:,1] = Y
       nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
       
-  return nodes  
+  return nodes
+
+# normal vector is cross product of two directional vectors
+def calc_normal_vector(r1,r2):
+  return np.cross(r1, r2)  
+
+# write surface nodes in 'nodes' and respective normals to file
+def export_nodes_to_file(file,nodes):
+  dirVec1 = None
+  dirVec2 = None
+  
+  for list in nodes:
+    for i,point in enumerate(list):
+      if i == 0: # for first point on surface line, we only have one neighbor to determine normal vector
+        right = list[i+1] # right neighbor
+        dirVec1 = [point[0],point[1],point[2]]
+        dirVec2 = [point[0]-right[0],point[1]-right[1],point[2]-right[2]] # directional vector
+      elif i == len(list)-1:
+          left = list[i-1] # left neighbor 
+          dirVec1 = [left[0]-point[0],left[1]-point[1],left[2]-point[2]] 
+          dirVec2 = [point[0],point[1],point[2]]
+      else: # if current point has left and right vector
+          left = list[i-1] # left neighbor
+          right = list[i+1] # right neighbor
+          dirVec1 = [left[0]-point[0],left[1]-point[1],left[2]-point[2]]
+          dirVec2 = [point[0]-right[0],point[1]-right[1],point[2]-right[2]]
+                                 
+      normVec = calc_normal_vector(dirVec2,dirVec1) # calc normal vector
+      assert(np.linalg.norm(normVec) > 0)
+            
+      file.write(str(point[0]) + " " + str(point[1]) + " " + str(point[2]) + " " + str(normVec[0]) + " " + str(normVec[1]) + " " + str(normVec[2]) + "\n")      
     
 def create_profiles_array(args):
   res = args.res
@@ -338,35 +368,102 @@ def create_profiles_array(args):
   
   profiles = create_profiles(args)
   assert(len(profiles) == 3)
+  
   surfNodes = []
+  surfNodesXLeft = []
+  surfNodesYLeft = []
+  surfNodesZLeft = []
+  surfNodesXRight = []
+  surfNodesYRight = []
+  surfNodesZRight = []
+  
   if args.target == "surface_mesh":
       assert(not args.skip_x and not args.skip_y and not args.skip_z)
       map_x = create_profile_map(profiles[0], args.res) if profiles[0] <> None else None
       map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
       map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
       
+      # first dimension of nodes : surface lines
+      # second dimension of nodes: resolution of unit cube
+      # third dimension: tuple with x,y,z coordinate
       nodes = get_surface_lines(map_x, args.res/10, 1)
-      for prof in nodes:
+      #surfNodesXLeft = np.zeros(nodes.shape[0]) # list; stores for each surface line all surface points on it
+      #surfNodesXLeft = np.zeros(nodes.shape[0])
+      
+      for numLine,prof in enumerate(nodes):
+        listLeft = [] # store points on one surface line temporally
+        listRight = []
         for i,p in enumerate(prof):
           if not contains_point(i,p[0],p[2],map_y) and not contains_point(i, p[0], p[1], map_z):
-            surfNodes.append(p)
-          
+            surfNodes.append(p) # if point is not contained in other profiles, then it is a surface point
+            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+              listLeft.append(p)
+            else:
+              listRight.append(p)
+              
+        surfNodesXLeft.append(listLeft)
+        surfNodesXRight.append(listRight) 
+      
       nodes = get_surface_lines(map_y, args.res/10, 2)
-      for prof in nodes:
+      for numLine,prof in enumerate(nodes):
+        listLeft = [] # store points on one surface line temporally
+        listRight = []
         for i,p in enumerate(prof):
           if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[1], map_z):
             surfNodes.append(p)
+            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+              listLeft.append(p)
+            else:
+              listRight.append(p)
+        
+        surfNodesYLeft.append(listLeft)
+        surfNodesYRight.append(listRight)      
             
       nodes = get_surface_lines(map_z, args.res/10, 3)
-      for prof in nodes:
+      for numLine,prof in enumerate(nodes):
+        listLeft = [] # store points on one surface line temporally
+        listRight = []
         for i,p in enumerate(prof):
           if not contains_point(i,p[1],p[2],map_x) and not contains_point(i, p[0], p[2], map_y):
             surfNodes.append(p) 
+            if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+              listLeft.append(p)
+            else:
+              listRight.append(p)
+        
+        surfNodesZLeft.append(listLeft)
+        surfNodesZRight.append(listRight)      
       
       surfNodes = np.array(surfNodes)
+      surfNodesXLeft = np.array(surfNodesXLeft)
+      surfNodesYLeft = np.array(surfNodesYLeft)
+      surfNodesZLeft = np.array(surfNodesZLeft)
+      surfNodesXRight = np.array(surfNodesXRight)
+      surfNodesYRight = np.array(surfNodesYRight)
+      surfNodesZRight = np.array(surfNodesZRight)
       ha.scatter(surfNodes[:,0],surfNodes[:,1],surfNodes[:,2])
-        
+      #ha.scatter(surfNodesXLeft,surfNodesYLeft,surfNodesZLeft)
+      
+      #debugging
+      # left part of surface nodes
+      #for list in surfNodesXLeft:
+      #  for tuple in list:
+      #    ha.scatter(tuple[0],tuple[1],tuple[2])
+          
       plt.show()
+        
+      
+      dirVec1 = None
+      dirVec2 = None
+      
+      file = open('surface.dat','w') #write points on surface and corresponding normal directly to file
+      export_nodes_to_file(file,surfNodesXLeft)
+      export_nodes_to_file(file,surfNodesYLeft)
+      export_nodes_to_file(file,surfNodesZLeft)
+      export_nodes_to_file(file,surfNodesXRight)
+      export_nodes_to_file(file,surfNodesYRight)
+      export_nodes_to_file(file,surfNodesZRight)
+      file.close()
       
   else:
     for i in range(0,3):
