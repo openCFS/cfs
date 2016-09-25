@@ -182,7 +182,7 @@ if args.gnuplot:
     print 'set output "' + args.bloch[:-len(".dat")] + '.eps"'
   if args.gnuplot == "png":
     print 'set size ratio 1.0'
-    print 'set terminal png font Helvetica size 1000,1000'
+    print 'set terminal png size 1000,1000 font "Helvetica, 16"'
     print 'set output "' + args.bloch[:-len(".dat")] + '.png"' # leave it as bloch.png
         
     # print 'set output "tmp.eps"'
@@ -237,7 +237,7 @@ if args.gnuplot:
   lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i-offset+1) + '. mode" ' 
-    print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
+    print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '') 
  
  
 if args.xml:
