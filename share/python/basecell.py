@@ -7,6 +7,13 @@ import matviz_rot
 from matviz_vtk import *
 import vtk
 
+def calc_volume(array):
+  res, res, res = array.shape
+  
+  elems = np.where(array <> -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  
+  print "volume:", float(elems)/float(res**3)
+
 def visualize_structure(array,singRegion,show,save):
   print "starting visualization..."
   # create vtk cells and points
@@ -72,7 +79,7 @@ def calc_radius(stiff):
     f = give_radiusFunction()
     val = 2*f(stiff)
   
-#   print val/2.0  
+  #print val/2.0  
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
@@ -85,9 +92,10 @@ def create_mesh_with_profiles(args):
   args.z1 = calc_radius(args.z1)
   args.z2 = calc_radius(args.z2)
   
-  
-  
   array = create_profiles_array(args)
+  
+  calc_volume(array)
+  
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
   else:
@@ -129,7 +137,7 @@ parser.add_argument('--save', help="overwrite default target name")
 
 args = parser.parse_args()
 
-if args.stiffness:
+if args.stiffness <> None:
   args.x1 = args.stiffness
   args.x2 = args.stiffness
   args.y1 = args.stiffness
