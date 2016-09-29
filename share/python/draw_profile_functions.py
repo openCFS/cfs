@@ -132,10 +132,11 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   left, idx, b, gb = spline_curve(x1, 0.5*(y1+z1), res, bend)
   assert(b[0] <= 0.5 and b[1] >= 0.5)
 
-  # serch for point p
+  # search for point p
   t, t, p, t = spline_curve(y1,z1,res,bend)
   assert(p[0] <= 0.5 and p[1] >= 0.5)
-  height = p[1]
+  #height = p[1]
+  height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
   
   gamma = np.arccos((0.5-p[0])/(np.sqrt((0.5-p[0])**2 + (p[1]-0.5)**2)))
   phi = np.pi - gamma
@@ -179,6 +180,7 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
     
   height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
     
+  #P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]]))
   P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])) 
   t = np.linspace(0, 1.0, res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
@@ -196,20 +198,25 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   lin = profileLin(x1, x1, res)
   
   if verbose == 'bisec':
-    print "amax right: ",np.amax(right), " p: ",p[1], " amin vec: ",np.amin(biqua) 
-    plt.plot(t,biqua-0.5,label='bspline-quadratic')
-    plt.plot(t,bsp-0.5,label='bspline')
-    plt.plot(t,lin,label='linear')
-    plt.legend(loc='upper left', shadow=True)
+    print "amax right: ",np.amax(right), " p: ",p[1], " amin vec: ",np.amin(biqua)
+    plt.gcf().clear() 
+#     plt.figure(figsize=(10,8))
+    plt.plot(t,biqua-0.5,label='bspline-quadratic',linewidth=5.0)
+    plt.plot(t,bsp-0.5,label='bspline',linewidth=5.0)
+    plt.plot(t,lin,label='linear',linewidth=5.0)
+#     plt.rcParams.update({'font.size': 18})
+    plt.legend(loc='upper left', shadow=True,prop={'size':20})
+#     plt.savefig("bisec_0.2.png")
     plt.show()
-    
+  
+#   return biqua - 0.5,phi  
 
-  if np.amax(right) <= p[1]:
+  if np.abs(np.amax(right) - height) < 1e-3:
     if verbose == 'bisec':
-      print "bisec: ",np.amax(right),p[1]
+      print "bisec: ",np.amax(right),height
     return biqua - 0.5,phi
   
-  if np.amin(biqua) >= x1/2.0:
+  if np.abs(np.amin(biqua) - x1/2.0) > 1e-3:
     if verbose == 'bisec':
       print "bspline: ",np.amin(biqua)
     return bsp - 0.5,phi
@@ -290,15 +297,19 @@ def create_profiles(args):
     profiles.append(vec)
   else:
     profiles.append(None)
-  
+    
   if args.verbose == "all_profiles":
+    plt.gcf().clear()
     t = np.linspace(0, 1.0, args.res)
     for vec in profiles:
       if vec <> None:
         for v in vec:
           if type(v) == tuple:
-            plt.plot(t,v[0],label=str(v[1]))
-            
+            plt.plot(t,v[0],label=str(v[1]),linewidth=5.0)
+
+    plt.rcParams.update({'font.size': 18})
+    plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
+
     plt.show()
     
   return profiles
@@ -606,7 +617,7 @@ def write_profile_to_array(array,vec,dir):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
-
+  
   map = create_profile_map(vec, res)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
       
@@ -630,4 +641,3 @@ def write_profile_to_array(array,vec,dir):
             array[j,i,k] = dir
           if dir == 3:
             array[k,j,i] = dir
-  

@@ -478,7 +478,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
       sys.exit(1)
   
     dim_2D = len(input) <> 21
-  else :
+  else:
     assert(args.input.endswith(".info.xml"))
     doc = libxml2.parseFile(args.input)
     xml = doc.xpathNewContext()
