@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import Delaunay
+from sympy.physics.quantum.circuitplot import pyplot
 # from base_structures_images import height
 
 def profileLin(x1,x2,n):
@@ -300,6 +301,7 @@ def create_profiles(args):
     
   if args.verbose == "all_profiles":
     plt.gcf().clear()
+    plt.gcf().subplots_adjust(bottom=0.15)
     t = np.linspace(0, 1.0, args.res)
     for vec in profiles:
       if vec <> None:
@@ -308,19 +310,23 @@ def create_profiles(args):
             plt.plot(t,v[0],label=str(v[1]),linewidth=5.0)
 
     plt.rcParams.update({'font.size': 18})
-    plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
+    plt.ylim([0,0.5])
+    plt.xlabel("x",labelpad=5)
+    plt.ylabel("radius",labelpad=20)
+#     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
 
     plt.show()
     
   return profiles
 
 def get_surface_lines(map,grad_res,dir):
+  assert(dir == 1  or dir == 2 or dir == 3)
   lenx = np.size(map,1)
   nodes = np.zeros((360/grad_res, lenx, 3))
   for i,grad in enumerate(range(0,360,grad_res)):
     radii = map[grad,:]
     rad = grad/180.0*np.pi
-    
+     
     #transformation to cartesian coordinates
     X = radii*np.cos(rad) + 0.5*np.ones(lenx)
     Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
@@ -332,12 +338,12 @@ def get_surface_lines(map,grad_res,dir):
       nodes[i,:,0] = Y
       nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,2] = X
-      
+       
     if dir == 3:
       nodes[i,:,0] = X
       nodes[i,:,1] = Y
       nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
-      
+    
   return nodes
 
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
@@ -438,7 +444,11 @@ def create_profiles_array(args):
   t = np.linspace(0, 1.0, args.res)
   
   hf = plt.figure()
-  ha = hf.add_subplot(111, projection='3d')
+  ha = hf.gca(projection='3d')
+  #ha = hf.add_subplot(111, projection='3d')
+  ha.set_xlabel('X')
+  ha.set_ylabel('Y')
+  ha.set_zlabel('Z')
   
   profiles = create_profiles(args)
   assert(len(profiles) == 3)
@@ -544,10 +554,6 @@ def create_profile_map(profile,res,verbose=None,ha=None):
 def plot_3dlines(profile,res,dir,ha):
   Z = np.linspace(0,2*np.pi,360)
   
-  #ax = plt.axes(polar=True)
-  #plt.plot(Z,o(Z))
-  #plt.show()
-  
   nodes = []
   
   map = create_profile_map(profile, res)
@@ -557,16 +563,15 @@ def plot_3dlines(profile,res,dir,ha):
     X = radii*np.cos(Z)+.5*np.ones(np.size(radii))
     Y = radii*np.sin(Z)+.5*np.ones(np.size(radii))
     if dir == 1:
-      ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
-    if dir == 2:
       ha.plot(ii*np.ones(np.size(X))/res,X,Y,'r')
-    if dir == 3:
-      #ha.plot(Y,ii*np.ones(np.size(X))/res-.5*np.ones(np.size(X)),X,'g')
+    if dir == 2:
       ha.plot(Y,ii*np.ones(np.size(X))/res,X,'g')
+    if dir == 3:
+      ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
       
-  X,Y,Z = get_surface_lines(map, 5, dir)  
-  for i in range(np.size(X,0)):  
-    ha.plot(X[i],Y[i],Z[i],'r')
+  nodes = get_surface_lines(map, 5, dir)
+  for i in range(np.size(map,0)/5):
+    ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
  
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx):

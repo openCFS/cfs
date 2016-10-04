@@ -94,7 +94,8 @@ def create_mesh_with_profiles(args):
   
   array = create_profiles_array(args)
   
-  calc_volume(array)
+  if args.target.startswith("volume"):
+    calc_volume(array)
   
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
@@ -105,7 +106,7 @@ def create_mesh_with_profiles(args):
   
   validate_periodicity(mesh)
   
-  if args.show and args.target == "volume_vtk":
+  if args.show and args.target.startswith("volume"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)  
