@@ -225,6 +225,7 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   if verbose == 'bisec':  
     print 'return lin'
   return lin, phi
+
 # @return vector with profile or list of vectors
 def profile(args,dir):
   if args.profile == 'linear':
@@ -303,7 +304,7 @@ def create_profiles(args):
     plt.gcf().clear()
     plt.gcf().subplots_adjust(bottom=0.15)
     t = np.linspace(0, 1.0, args.res)
-    for vec in profiles:
+    for vec in profiles[0:1]:
       if vec <> None:
         for v in vec:
           if type(v) == tuple:
@@ -313,7 +314,7 @@ def create_profiles(args):
     plt.ylim([0,0.5])
     plt.xlabel("x",labelpad=5)
     plt.ylabel("radius",labelpad=20)
-#     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
+    plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
 
     plt.show()
     
@@ -377,7 +378,7 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
     lineRight = []
     for i,p in enumerate(prof):
       if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
-        if i < res/2: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+        if p[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
           lineLeft.append((p,pointId))
         else:
           lineRight.append((p,pointId))
@@ -385,7 +386,7 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
         
     nodesLeft.append(lineLeft)
     nodesRight.append(lineRight)   
-      
+    
   return nodesLeft, nodesRight, pointId
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
@@ -475,7 +476,9 @@ def create_profiles_array(args):
       # third dimension: tuple with x,y,z coordinate
       nodes = get_surface_lines(map_x, args.res/10, 1)
       
-      surfNodesXLeft, surfNodesXRight, idx = find_points_on_surface(nodes, 1, map_y, map_z, idx)              
+      surfNodesXLeft, surfNodesXRight, idx = find_points_on_surface(nodes, 1, map_y, map_z, idx)
+      
+      sys.exit()              
       
       nodes = get_surface_lines(map_y, args.res/10, 2)
       surfNodesYLeft, surfNodesYRight, idx = find_points_on_surface(nodes, 2, map_x, map_z, idx)  
@@ -491,8 +494,8 @@ def create_profiles_array(args):
             for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
               ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
             break
-        
-
+         
+ 
         plt.show()
       
       for line in surfNodesXLeft:
