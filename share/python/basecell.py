@@ -79,11 +79,12 @@ def calc_radius(stiff):
     f = give_radiusFunction()
     val = 2*f(stiff)
   
-  #print val/2.0  
+#   print val/2.0  
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args):
+  print "stiffnesses: ",args.x1,args.x2,args.y1,args.y2,args.z1,args.z2
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
   args.x1 = calc_radius(args.x1)
   args.x2 = calc_radius(args.x2)
@@ -91,6 +92,8 @@ def create_mesh_with_profiles(args):
   args.y2 = calc_radius(args.y2)
   args.z1 = calc_radius(args.z1)
   args.z2 = calc_radius(args.z2)
+  
+  print "radii: ",args.x1/2.0,args.x2/2.0,args.y1/2.0,args.y2/2.0,args.z1/2.0,args.z2/2.0    
   
   array = create_profiles_array(args)
   
@@ -118,12 +121,12 @@ parser.add_argument("--res", help="x-discretization of length 1m", type=int, req
 parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required = True)
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
-parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float, default=0.5)
-parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 <= x2 <= 1", type=float, default=0.5)
-parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 <= y1 <= 1", type=float, default=0.5)
-parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 <= y2 <= 1", type=float, default=0.5)
-parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 <= z1 <= 1", type=float, default=0.5)
-parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 <= z2 <= 1", type=float, default=0.5)
+parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float)
+parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 <= x2 <= 1", type=float)
+parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 <= y1 <= 1", type=float)
+parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 <= y2 <= 1", type=float)
+parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 <= z1 <= 1", type=float)
+parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 <= z2 <= 1", type=float)
 parser.add_argument('--profile', help="type of profile functions", choices=["linear","circular","spline"])
 parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
@@ -145,7 +148,20 @@ if args.stiffness <> None:
   args.y2 = args.stiffness
   args.z1 = args.stiffness
   args.z2 = args.stiffness
+else:
+  if args.x1 == None or args.y1 == None or args.z1 == None:
+    print "Error:stiffness or x1, y1, z1 necessary!"
+    sys.exit(1)
 
+  if args.x2 == None:
+    args.x2 = args.x1
+    
+  if args.y2 == None:
+    args.y2 = args.y1
+    
+  if args.z2 == None:
+    args.z2 = args.z1
+    
 val = args.x1
 if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val:
   mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_bend_" + str(args.bend) + "_" + str(args.res)
