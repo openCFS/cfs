@@ -61,7 +61,7 @@ def findGradOne(vec):
   # the idx before 1 might be closer to 1
   if abs(1-vec[idx-1]) < abs(1-vec[idx]):
     idx = idx-1 
-    
+   
   return idx
 
 def contains_point(id_x,y,z,map):
@@ -84,7 +84,7 @@ def spline_curve(x1, y1, res, bend):
   ry = 0.5 - y1/2.0 # radius for center (0,1)
   
   P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
-  t = np.linspace(0, 1.0, 2*ry*res) # double over-sampling
+  t = np.linspace(0, 1.0, 2*res) # double over-sampling
   C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
   G = np.diff(C[1]) / np.diff(C[0]) # numerical finite differences
   G.resize(len(C[0]))
@@ -211,18 +211,13 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
     plt.show()
   
 #   return biqua - 0.5,phi  
-
-  if np.abs(np.amax(right) - height) < 1e-3:
-    if verbose == 'bisec':
-      print "bisec: ",np.amax(right),height
-    return biqua - 0.5,phi
   
   # in case we have undershooting for biqua and not for spline
-  if np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - x1/2.0)) < 1e-3:
+  if np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - 0.5 - x1/2.0)) < 1e-3:
     if verbose == 'bisec':
       print "bspline: ",np.amin(biqua),x1/2.0
     return bsp - 0.5,phi
-  
+   
   # in case we have undershooting for biqua AND for spline
   if verbose == 'bisec':  
     print 'return lin'
@@ -262,7 +257,7 @@ def profile(args,dir):
 #       plt.show()
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
-    if dir == 2:   
+    if dir == 2:
       vec1 = profileSpline(args.y1, args.x1, args.res, args.bend)
       vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose)
       vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
