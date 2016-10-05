@@ -211,9 +211,15 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
     plt.show()
   
 #   return biqua - 0.5,phi  
+
+  if np.abs(np.amax(right) - height) < 1e-3:
+    if verbose == 'bisec':
+      print "bisec: ",np.amax(right),height
+    return biqua - 0.5,phi
   
   # in case we have undershooting for biqua and not for spline
   if np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - 0.5 - x1/2.0)) < 1e-3:
+#   if np.abs(np.amin(biqua) - x1/2.0) > 1e-3:
     if verbose == 'bisec':
       print "bspline: ",np.amin(biqua),x1/2.0
     return bsp - 0.5,phi
