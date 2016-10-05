@@ -118,7 +118,7 @@ def create_mesh_with_profiles(args):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
-parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required = True)
+parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required=True)
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
 parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float)
@@ -127,7 +127,7 @@ parser.add_argument('--y1', help="first stiffness for profile of bar in y-direct
 parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 <= y2 <= 1", type=float)
 parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 <= z1 <= 1", type=float)
 parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 <= z2 <= 1", type=float)
-parser.add_argument('--profile', help="type of profile functions", choices=["linear","circular","spline"])
+parser.add_argument('--profile', help="type of profile functions", choices=["linear","circular","spline"], required=True)
 parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
