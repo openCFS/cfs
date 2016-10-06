@@ -83,19 +83,30 @@ def calc_radius(stiff):
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
-def create_mesh_with_profiles(args):
+def create_mesh_with_profiles(args,infoXml):
   print "stiffnesses: ",args.x1,args.x2,args.y1,args.y2,args.z1,args.z2
+  
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
   args.x1 = calc_radius(args.x1)
+  infoStr = '  <radii rx1="' + str(args.x1) + '" '
   args.x2 = calc_radius(args.x2)
+  infoStr += ' rx2="' + str(args.x2) + '" '
   args.y1 = calc_radius(args.y1)
+  infoStr += ' ry1="' + str(args.y1) + '" '
   args.y2 = calc_radius(args.y2)
+  infoStr += ' ry2="' + str(args.y2) + '" '
   args.z1 = calc_radius(args.z1)
+  infoStr += ' rz1="' + str(args.z1) + '" '
   args.z2 = calc_radius(args.z2)
+  infoStr += ' rz2="' + str(args.z2) + '"'
+  
+  if infoXml <> None:
+    assert(infoStr)
+    infoXml.write(infoStr + "/>\n\n")
   
   print "radii: ",args.x1/2.0,args.x2/2.0,args.y1/2.0,args.y2/2.0,args.z1/2.0,args.z2/2.0    
   
-  array = create_profiles_array(args)
+  array = create_profiles_array(args,infoXml)
   
   if args.target.startswith("volume"):
     calc_volume(array)
@@ -112,7 +123,10 @@ def create_mesh_with_profiles(args):
   if args.show and args.target.startswith("volume"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
-    visualize_structure(array,args.single_region,args.show,save)  
+    visualize_structure(array,args.single_region,args.show,save)
+    
+  if infoXml <> None:
+    infoXml.write('</basecell>')  
   
   return mesh
 
@@ -137,7 +151,7 @@ parser.add_argument('--single_region', help="create mesh with only one region", 
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
-
+parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -168,6 +182,21 @@ if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and a
 else: 
   mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
 
+infoXml = None
+
+if args.to_info_xml:
+   # command line
+  cmd = sys.argv[0].split('/')[-1]
+  for i in range(1, len(sys.argv)):
+    cmd += ' ' + sys.argv[i] 
+  
+  print "cmd:",cmd
+  infoXmlName = mesh_name + ".info.xml"
+  infoXml = open(infoXmlName,"w") 
+  infoXml.write('<?xml version="1.0"?>\n')
+  infoXml.write('<basecell res="' + str(args.res) +'">\n')
+  infoXml.write('<cmd cmd="' + cmd + '"/>\n')
+  infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
 # sanity checks
 if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
   print("error: profiles2d needs values for x1,x2 and y1,y2")
@@ -181,15 +210,31 @@ if args.type == 'profiles2d':
   assert(False)
   #mesh = create_mesh_with_profiles(args)
 elif args.type == 'profiles3d':
-  mesh = create_mesh_with_profiles(args)
+  mesh = create_mesh_with_profiles(args,infoXml)
 
 if args.target == 'volume_mesh':   
   file = mesh_name + '.mesh' if args.save == None else args.save
-  assert(file.endswith('.mesh')) 
-
+  assert(file.endswith('.mesh'))
+  
   write_gid_mesh(mesh, file)
 
   print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
 
-
-
+############## info xml scheme #####################
+# <basecell>
+# <input x1="" x2="" y1="" y2="" z1="" z2=""/>
+# <radii rx1="" rx2="" ry1="" ry2="" rz1="" rz2=""/>
+# <profile type="{bspline,bisectionSpline,linear}" dir"{x,y,z}">
+#  <bSpline rad1="" rad2="" bend="">
+#    <controlPolgygon>
+#      <P1 x="" y=""/>
+#      <P2 x="" y=""/>
+#      <P3 x="" y=""/>
+#      <P4 x="" y=""/>
+#    </controlPolgygon>
+#  </bSpline>
+#  <bisectionSpline type="{biquadratic,bspline,linear}" angle="" >
+#
+#  </bisectionSpline>
+# </profile>
+# /<basecell>

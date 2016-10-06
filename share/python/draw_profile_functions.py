@@ -13,10 +13,19 @@ from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
 # from base_structures_images import height
 
+def dirToString(dir):
+  assert(dir > 0 and dir < 4)
+  res = 'x'
+  if dir == 2:
+    res = 'y'
+  if dir == 3:
+    res = 'z'
+   
+  return res  
+
 def profileLin(x1,x2,n):
   x = np.linspace(0, 1.0,n)
   return ((x2-x1) * x + x1) / 2.0
-  
 
 def profileCirc(x1,res):
   x = np.linspace(0, 1.0, res)
@@ -79,7 +88,7 @@ def contains_point(id_x,y,z,map):
   
   return False
 
-def spline_curve(x1, y1, res, bend):
+def spline_curve(x1, y1, res, bend, infoXml=None):
   rx = 0.5 - x1/2.0 # radius for center (0,1)
   ry = 0.5 - y1/2.0 # radius for center (0,1)
   
@@ -104,25 +113,42 @@ def spline_curve(x1, y1, res, bend):
   g = fg(v)
   
   idx = findGradOne(g)
-  return c, idx, (v[idx], c[idx]), g[idx]
+  
+  return c, idx, (v[idx], c[idx]), g[idx], P
 
 
-def profileSpline(x1,y1,res,bend):
+def profileSpline(x1,y1,res,bend,dir,infoXml=None):
   assert(bend <= 1 and bend >= 0)
 
   vec = np.zeros(res)
-  c, idx, point, g = spline_curve(x1,y1,res,bend)
+  c, idx, point, g, cp = spline_curve(x1,y1,res,bend,infoXml)
 #   print 'profileSpline',point
   vec[0:idx] = c[0:idx]
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
   vec[res-idx:res] = c[0:idx][::-1]
   
+  # write info on x1,y1, control polygon to file
+  if infoXml <> None:
+    strDir = dirToString(dir)
+      
+    infoXml.write('    <profile type="b-spline" dir="' + strDir + '">\n')
+    infoXml.write('      <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+    infoXml.write('        <controlPolygon>\n')
+    infoXml.write('          <P1 x="' + str(cp[0][0]) + '" y="' + str(cp[1][0]) + '">\n')
+    infoXml.write('          <P2 x="' + str(cp[0][1]) + '" y="' + str(cp[1][1]) + '">\n')
+    infoXml.write('          <P3 x="' + str(cp[0][2]) + '" y="' + str(cp[1][2]) + '">\n')
+    infoXml.write('          <P4 x="' + str(cp[0][3]) + '" y="' + str(cp[1][3]) + '">\n')
+    infoXml.write('        </controlPolygon>\n')
+    infoXml.write('      </bSpline>\n')
+    infoXml.write('    </profile>\n\n')
+    
   return vec-0.5
 
 # @param height is second return value from profileSpline
 # @param verbose 'bisec' to plot all cases
-def profileSplineBisec(x1,y1,z1,res,bend,verbose):
+def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
   assert(bend <= 1 and bend >= 0)
+  type = None
   ###### case 1 : bisec + quadratic --> biqua ###################
   # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
   # where the curve has grad=1 we have point b
@@ -130,11 +156,11 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   # from the point p we determine the angle phi of this bisec profile function 
   
   # left part is same spline as orhtogonal spline up to point
-  left, idx, b, gb = spline_curve(x1, 0.5*(y1+z1), res, bend)
+  left, idx, b, gb, cp = spline_curve(x1, 0.5*(y1+z1), res, bend)
   assert(b[0] <= 0.5 and b[1] >= 0.5)
 
   # search for point p
-  t, t, p, t = spline_curve(y1,z1,res,bend)
+  t, t, p, t, cp = spline_curve(y1,z1,res,bend)
   assert(p[0] <= 0.5 and p[1] >= 0.5)
   #height = p[1]
   height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
@@ -198,6 +224,8 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
   # in case undershooting for x1=0.9, y1=0.1, z1=0.1
   lin = profileLin(x1, x1, res)
   
+  result = None
+  
   if verbose == 'bisec':
     print "amax right: ",np.amax(right), " p: ",p[1], " amin vec: ",np.amin(biqua)
     plt.gcf().clear() 
@@ -210,27 +238,52 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose):
 #     plt.savefig("bisec_0.2.png")
     plt.show()
   
-#   return biqua - 0.5,phi  
-
   if np.abs(np.amax(right) - height) < 1e-3:
+    type = "biquadratic"
     if verbose == 'bisec':
       print "bisec: ",np.amax(right),height
-    return biqua - 0.5,phi
+      
+    result = biqua - 0.5
   
   # in case we have undershooting for biqua and not for spline
-  if np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - 0.5 - x1/2.0)) < 1e-3:
-#   if np.abs(np.amin(biqua) - x1/2.0) > 1e-3:
+  elif np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - 0.5 - x1/2.0)) < 1e-3:
+    type = "bSpline"
     if verbose == 'bisec':
       print "bspline: ",np.amin(biqua),x1/2.0
-    return bsp - 0.5,phi
+    result = bsp - 0.5
    
   # in case we have undershooting for biqua AND for spline
-  if verbose == 'bisec':  
-    print 'return lin'
-  return lin, phi
-
+  else:
+    type = "linear"
+    if verbose == 'bisec':  
+      print 'return lin'
+    result = lin
+  
+  assert(type <> None)
+  if infoXml <> None:
+    strDir = dirToString(dir)
+      
+    infoXml.write('    <profile type="bisection" dir="' + strDir + '">\n')
+    infoXml.write('      <bisectionSpline type="' + type + '" angle="' + str(phi*180/np.pi) + '">\n')
+    infoXml.write('        <biquadratic coeff0="' + str(sol[0]) + '" coeff1="' + str(sol[1]) + '" coeff2="' + str(sol[2]) + '" coeff3="' + str(sol[3]) +'"/>\n')
+    infoXml.write('        <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+    infoXml.write('          <controlPolygon>\n')
+    infoXml.write('            <P1 x="' + str(P[0][0]) + '" y="' + str(P[1][0]) + '">\n')
+    infoXml.write('            <P2 x="' + str(P[0][1]) + '" y="' + str(P[1][1]) + '">\n')
+    infoXml.write('            <P3 x="' + str(P[0][2]) + '" y="' + str(P[1][2]) + '">\n')
+    infoXml.write('            <P4 x="' + str(P[0][3]) + '" y="' + str(P[1][3]) + '">\n')
+    infoXml.write('          </controlPolygon>\n')
+    infoXml.write('        </bSpline>\n')
+    infoXml.write('        <linear xStart="' + str(x1) + '" xEnd="' + str(x1) + '"/>\n')
+    infoXml.write('      </bisectionSpline>\n')
+    infoXml.write('    </profile>\n\n')
+    
+  return result, phi
 # @return vector with profile or list of vectors
-def profile(args,dir):
+def profile(args,dir,infoXml=None):
+  if (infoXml <> None):
+    assert(args.profile == 'spline')
+    
   if args.profile == 'linear':
     if dir == 1:
       return profileLin(args.x1, args.x2, args.res)
@@ -249,9 +302,9 @@ def profile(args,dir):
     
   if args.profile == 'spline':
     if dir == 1:
-      vec1 = profileSpline(args.x1, args.y1, args.res, args.bend)
-      vec3 = profileSpline(args.x1, args.z1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend, args.verbose)
+      vec1 = profileSpline(args.x1, args.y1, args.res, args.bend, dir, infoXml)
+      vec3 = profileSpline(args.x1, args.z1, args.res, args.bend, dir, infoXml)
+      vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.res, args.bend, args.verbose, dir, infoXml)
       
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
@@ -264,9 +317,9 @@ def profile(args,dir):
 
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 2:
-      vec1 = profileSpline(args.y1, args.x1, args.res, args.bend)
-      vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose)
-      vec3 = profileSpline(args.y1, args.z1, args.res, args.bend)
+      vec1 = profileSpline(args.y1, args.x1, args.res, args.bend, dir, infoXml)
+      vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose, dir, infoXml)
+      vec3 = profileSpline(args.y1, args.z1, args.res, args.bend, dir, infoXml)
 
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1')
@@ -279,26 +332,26 @@ def profile(args,dir):
       
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
     if dir == 3:
-      vec1 = profileSpline(args.z1, args.y1, args.res, args.bend)
-      vec2, phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose)
-      vec3 = profileSpline(args.z1, args.x1, args.res, args.bend)
+      vec1 = profileSpline(args.z1, args.y1, args.res, args.bend, dir, infoXml)
+      vec2, phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose, dir, infoXml)
+      vec3 = profileSpline(args.z1, args.x1, args.res, args.bend, dir, infoXml)
       return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
 
 # return information on profiles 
-def create_profiles(args):
+def create_profiles(args,infoXml=None):
   profiles = []
   if not args.skip_x:
-    vec = profile(args,1)
+    vec = profile(args,1,infoXml)
     profiles.append(vec)
   else:
     profiles.append(None)
   if not args.skip_y:
-    vec = profile(args,2)
+    vec = profile(args,2,infoXml)
     profiles.append(vec)
   else:
     profiles.append(None)
   if not args.skip_z:
-    vec = profile(args,3)
+    vec = profile(args,3,infoXml)
     profiles.append(vec)
   else:
     profiles.append(None)
@@ -441,7 +494,7 @@ def define_triangles(list,cells):
   #cells.InsertNextCell(quad)
   
   
-def create_profiles_array(args):
+def create_profiles_array(args,infoXml):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
   vec = None
@@ -454,7 +507,7 @@ def create_profiles_array(args):
   ha.set_ylabel('Y')
   ha.set_zlabel('Z')
   
-  profiles = create_profiles(args)
+  profiles = create_profiles(args,infoXml)
   assert(len(profiles) == 3)
   
   surfNodesXLeft = []
