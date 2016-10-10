@@ -362,7 +362,6 @@ def write_gid_elements(out, elements, dim):
 
 def write_gid_mesh(mesh, filename,scale = 1):
   # Warning: mesh dimensions should be in [m]
-  print "Notification: Make sure that mesh dimensions are in meter [m]!! Otherwise use scale Parameter."
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
@@ -440,8 +439,8 @@ def write_gid_mesh(mesh, filename,scale = 1):
   for b in range(len(mesh.bc)):
     bc = mesh.bc[b]
     for n in range(len(bc[1])):
-      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n")
-      
+      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
+  
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
@@ -453,6 +452,85 @@ def write_gid_mesh(mesh, filename,scale = 1):
   
   out.write("\n \n")
   out.close()
+
+# names all nodes on edges, faces and corners of cubic domain
+def name_bc_nodes(mesh):
+  assert(mesh <> None)
+  assert(mesh.nz > 1)
+  nx = mesh.nx
+  ny = mesh.ny
+  nz = mesh.nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+  
+  # naming faces of cube
+  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny) * nnx + x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny + ny) * nnx + x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+
+  # naming cube corners
+  mesh.bc.append(("left_bottom_back", [0]))
+  mesh.bc.append(("right_bottom_back", [nx]))
+  mesh.bc.append(("left_top_back", [nnx * ny]))
+  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  # naming cube edges
+  mesh.bc.append(("bottom_back",range(nnx)))
+  mesh.bc.append(("bottom_front",range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx)))
+  mesh.bc.append(("bottom_left",range(0,nnx*nny*nnz-nnx-1,nnx*nny)))
+  mesh.bc.append(("bottom_right",range(nnx-1,nnx*nny*nnz-1-1,nnx*nny)))
+  mesh.bc.append(("top_back",range(nnx*nny-nnx,nnx*nny)))
+  mesh.bc.append(("top_front",range(nnx*nny*nny-nnx,nnx*nny*nny)))
+  mesh.bc.append(("top_left",range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("top_right",range(nnx*nny-1,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("back_left",range(0,nnx*nny-nnx+1,nnx)))
+  mesh.bc.append(("back_right",range(nnx-1,nnx*nny,nnx)))
+  mesh.bc.append(("front_left",range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx)))
+  mesh.bc.append(("front_right",range(nnx * nny * nz + nx,nnx * nny * nnz,nnx)))
+  
+  
+  
+  return mesh  
+ 
+def validate_periodicity(mesh):
+  assert(mesh.nz > 1)
+  countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
+  countRight = len([x for x in mesh.bc if x[0] == 'right'][0][1]);
+  countFront = len([x for x in mesh.bc if x[0] == 'front'][0][1]);
+  countBack = len([x for x in mesh.bc if x[0] == 'back'][0][1]);
+  countTop = len([x for x in mesh.bc if x[0] == 'top'][0][1]);
+  countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
+  
+  if countLeft <> countRight:
+    print "left: ", countLeft, " right: ", countRight
+  
+  if countFront <> countBack:
+    print "front: ", countFront, " back: ", countBack
+  
+  if countTop <> countBottom:
+    print "top: ", countTop, " bottom: ", countBottom
   
   
 ## creates a 2D mesh of predefined geometry
@@ -757,7 +835,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test")
+  assert(type == "bulk3d" or type == "validation_test")
 
   nx = x_res  
    
@@ -858,35 +936,36 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
 
-  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
-  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
-
-  side = (("bottom", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny) * nnx + x)
-
-  side = (("top", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny + ny) * nnx + x)
-
-  
-  # back and front as it appears with paraview
-  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
-
-
-  mesh.bc.append(("left_bottom_back", [0]))
-  mesh.bc.append(("right_bottom_back", [nx]))
-  mesh.bc.append(("left_top_back", [nnx * ny]))
-  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+#   mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+#   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+# 
+#   side = (("bottom", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny) * nnx + x)
+# 
+#   side = (("top", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny + ny) * nnx + x)
+# 
+#   
+#   # back and front as it appears with paraview
+#   mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+#   mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+# 
+# 
+#   mesh.bc.append(("left_bottom_back", [0]))
+#   mesh.bc.append(("right_bottom_back", [nx]))
+#   mesh.bc.append(("left_top_back", [nnx * ny]))
+#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  mesh = name_bc_nodes(mesh)
   
   if type == "validation_test":
     # create four support pins on bottom face
@@ -2263,7 +2342,82 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
   mesh.bc.append(('back', back))
   
   return mesh
+
+# @param array to be written out
+# @singRegion do we want a mesh with only one region?
+def create_3d_mesh_from_array(array,singRegion):
+  nx, ny, nz = array.shape
+  mesh = Mesh(nx,ny,nz)
   
+  dx = 1.0 / nx
+  dy = 1.0 / ny
+  dz = 1.0 / nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+
+  for z in range(nnz):
+    for y in range(nny):
+      for x in range(nnx):
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+    
+  for z in range(nz):    
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.type = HEXA8
+        if (array[x][y][z] > 0.0 and not singRegion):
+          e.region = "mech" + str(int(array[x][y][z]))
+        elif (array[x][y][z] > 0.0 and singRegion):
+          e.region = "mech"
+        else:
+          e.region = "void"
+          
+        ll = nnx*nny*z + nnx*y + x
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        mesh.elements.append(e)
+    
+  
+  mesh = name_bc_nodes(mesh)
+  
+  return mesh
+
+def create_2d_mesh_from_array(array):
+  nx, ny, dummy = array.shape
+  
+  mesh = Mesh(nx,ny)
+  
+  dx = 1.0 / nx
+  dy = 1.0 / ny
+  
+  for y in range(ny + 1):
+    for x in range(nx + 1):
+      mesh.nodes.append((x * dx, y * dy))
+     
+  for y in range(ny):
+    for x in range(nx):
+      e = Element()
+      e.type = QUAD4
+      if (array[x][y] > 0.0):
+        e.region = "mech" + str(int(array[x][y]))
+      else:
+        e.region = "void"
+       
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
+      mesh.elements.append(e)
+  
+  mesh.bc.append(("south", range(0, nx + 1)))
+  mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+  mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  return mesh
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position, valid_ring_position, type = "apod6",thres=0.0,csize = None,simp = None):
   centers, mi, ma = coords[0:3]  # design elements
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
@@ -2438,5 +2592,3 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print 'mesh has ' + str(number) + "design and non-design elements"
   print 'volume = ' +str(float(number)/float(number + void3_count))
   return mesh
-
-
