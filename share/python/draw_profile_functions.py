@@ -131,16 +131,16 @@ def profileSpline(x1,y1,res,bend,dir,infoXml=None):
   if infoXml <> None:
     strDir = dirToString(dir)
       
-    infoXml.write('    <profile type="b-spline" dir="' + strDir + '">\n')
-    infoXml.write('      <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
-    infoXml.write('        <controlPolygon>\n')
-    infoXml.write('          <P1 x="' + str(cp[0][0]) + '" y="' + str(cp[1][0]) + '">\n')
-    infoXml.write('          <P2 x="' + str(cp[0][1]) + '" y="' + str(cp[1][1]) + '">\n')
-    infoXml.write('          <P3 x="' + str(cp[0][2]) + '" y="' + str(cp[1][2]) + '">\n')
-    infoXml.write('          <P4 x="' + str(cp[0][3]) + '" y="' + str(cp[1][3]) + '">\n')
-    infoXml.write('        </controlPolygon>\n')
-    infoXml.write('      </bSpline>\n')
-    infoXml.write('    </profile>\n\n')
+    infoXml.write('  <profile type="b-spline" dir="' + strDir + '">\n')
+    infoXml.write('    <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+    infoXml.write('      <controlPolygon>\n')
+    infoXml.write('        <P1 x="' + str(cp[0][0]) + '" y="' + str(cp[1][0]) + '">\n')
+    infoXml.write('        <P2 x="' + str(cp[0][1]) + '" y="' + str(cp[1][1]) + '">\n')
+    infoXml.write('        <P3 x="' + str(cp[0][2]) + '" y="' + str(cp[1][2]) + '">\n')
+    infoXml.write('        <P4 x="' + str(cp[0][3]) + '" y="' + str(cp[1][3]) + '">\n')
+    infoXml.write('      </controlPolygon>\n')
+    infoXml.write('    </bSpline>\n')
+    infoXml.write('  </profile>\n\n')
     
   return vec-0.5
 
@@ -263,20 +263,20 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
   if infoXml <> None:
     strDir = dirToString(dir)
       
-    infoXml.write('    <profile type="bisection" dir="' + strDir + '">\n')
-    infoXml.write('      <bisectionSpline type="' + type + '" angle="' + str(phi*180/np.pi) + '">\n')
-    infoXml.write('        <biquadratic coeff0="' + str(sol[0]) + '" coeff1="' + str(sol[1]) + '" coeff2="' + str(sol[2]) + '" coeff3="' + str(sol[3]) +'"/>\n')
-    infoXml.write('        <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
-    infoXml.write('          <controlPolygon>\n')
-    infoXml.write('            <P1 x="' + str(P[0][0]) + '" y="' + str(P[1][0]) + '">\n')
-    infoXml.write('            <P2 x="' + str(P[0][1]) + '" y="' + str(P[1][1]) + '">\n')
-    infoXml.write('            <P3 x="' + str(P[0][2]) + '" y="' + str(P[1][2]) + '">\n')
-    infoXml.write('            <P4 x="' + str(P[0][3]) + '" y="' + str(P[1][3]) + '">\n')
-    infoXml.write('          </controlPolygon>\n')
-    infoXml.write('        </bSpline>\n')
-    infoXml.write('        <linear xStart="' + str(x1) + '" xEnd="' + str(x1) + '"/>\n')
-    infoXml.write('      </bisectionSpline>\n')
-    infoXml.write('    </profile>\n\n')
+    infoXml.write('  <profile type="bisection" dir="' + strDir + '">\n')
+    infoXml.write('    <bisectionSpline type="' + type + '" angle="' + str(phi*180/np.pi) + '">\n')
+    infoXml.write('      <biquadratic coeff0="' + str(sol[0]) + '" coeff1="' + str(sol[1]) + '" coeff2="' + str(sol[2]) + '" coeff3="' + str(sol[3]) +'"/>\n')
+    infoXml.write('      <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+    infoXml.write('        <controlPolygon>\n')
+    infoXml.write('          <P1 x="' + str(P[0][0]) + '" y="' + str(P[1][0]) + '">\n')
+    infoXml.write('          <P2 x="' + str(P[0][1]) + '" y="' + str(P[1][1]) + '">\n')
+    infoXml.write('          <P3 x="' + str(P[0][2]) + '" y="' + str(P[1][2]) + '">\n')
+    infoXml.write('          <P4 x="' + str(P[0][3]) + '" y="' + str(P[1][3]) + '">\n')
+    infoXml.write('        </controlPolygon>\n')
+    infoXml.write('      </bSpline>\n')
+    infoXml.write('      <linear xStart="' + str(x1) + '" xEnd="' + str(x1) + '"/>\n')
+    infoXml.write('    </bisectionSpline>\n')
+    infoXml.write('  </profile>\n\n')
     
   return result, phi
 # @return vector with profile or list of vectors

@@ -523,9 +523,9 @@ IF(BUILD_TESTING)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables testsuite for matviz.py used be the optimization group
+# Enables python testsuite (contains matviz.py tests) used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+OPTION(PYTHON_TESTS "Adds python tests (visualization tests for matviz.py,...) to the test-cases")
   
 #-----------------------------------------------------------------------------
 # Switch on/off usage of intel optimization report
