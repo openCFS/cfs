@@ -80,7 +80,7 @@ SET(CTEST_INITIAL_CACHE
    CMAKE_TOOLCHAIN_FILE:FILEPATH=${CTEST_SOURCE_DIRECTORY}/share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake
    MKL_ROOT_DIR:PATH=/opt/pckg/mkl_win/composer_xe_2013
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
-   MATVIZ_TESTS:BOOL=OFF
+   PYTHON_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
    USE_PARDISO:BOOL=ON

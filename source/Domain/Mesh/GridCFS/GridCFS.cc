@@ -3073,7 +3073,7 @@ namespace CoupledField {
       cube_vol *= m[d][1] - m[d][0];
     }
 
-    if( (s - cube_vol) / s < 1e-5 ) {
+    if( std::abs(s - cube_vol) / s < 1e-5 ) {
       LOG_DBG2(gridcfs) << "Volume of rectangular dense mesh: " << s;
       return s;
     }
@@ -3214,7 +3214,7 @@ namespace CoupledField {
         if( abs(det) > 1e-10 ) break;
       }
 
-      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      LOG_DBG2(gridcfs) << "3D Volume of sparse and/or non rectangular mesh: " << det;
       return std::abs(det);
     }
     return -1;
