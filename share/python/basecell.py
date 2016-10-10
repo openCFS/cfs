@@ -7,12 +7,17 @@ import matviz_rot
 from matviz_vtk import *
 import vtk
 
-def calc_volume(array):
+def calc_volume(array,infoXml):
   res, res, res = array.shape
   
   elems = np.where(array <> -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
   
-  print "volume:", float(elems)/float(res**3)
+  vol = float(elems)/float(res**3)
+  
+  if infoXml <> None:
+    infoXml.write('  <volume value="' + str(vol) + '"/>\n')
+  
+  print "volume:", vol
 
 def visualize_structure(array,singRegion,show,save):
   print "starting visualization..."
@@ -109,7 +114,7 @@ def create_mesh_with_profiles(args,infoXml):
   array = create_profiles_array(args,infoXml)
   
   if args.target.startswith("volume"):
-    calc_volume(array)
+    calc_volume(array,infoXml)
   
   if args.z1 == 0.0 and args.z2 == 0.0:
     mesh = create_2d_mesh_from_array(array)
@@ -190,12 +195,11 @@ if args.to_info_xml:
   for i in range(1, len(sys.argv)):
     cmd += ' ' + sys.argv[i] 
   
-  print "cmd:",cmd
   infoXmlName = mesh_name + ".info.xml"
   infoXml = open(infoXmlName,"w") 
-  infoXml.write('<?xml version="1.0"?>\n')
-  infoXml.write('<basecell res="' + str(args.res) +'">\n')
-  infoXml.write('<cmd cmd="' + cmd + '"/>\n')
+  infoXml.write('<?xml version="1.0"?>\n\n')
+  infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
+  infoXml.write('  <cmd value="' + cmd + '"/>\n')
   infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
 # sanity checks
 if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
