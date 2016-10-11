@@ -1092,6 +1092,31 @@ double LocalCondition::CalcMaxValue() const
 }
 
 
+int LocalCondition::CountInfeasibles() const
+{
+  int cnt = 0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = local->virtual_elem_map[i].EvalFunction(local);
+    double d = v - GetBoundValue();
+    LOG_DBG2(conditions) << "LC:CI check f=" << ToString() << " i=" << i << " b=" << Condition::bound.ToString(bound_) << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+
+    // upper_bound: 0 < 3 -> -3 < 0 (ok)   4 < 3 -> 1 < 0 (false)
+    // lower_bound: 3 > 2 ->  1 > 0 (ok)   3 > 4 -> -1 > 0 (false)
+
+
+    if((bound_ == Condition::EQUAL && std::abs(d) > 1e-5) ||
+       (bound_ == Condition::LOWER_BOUND && d <= 1e-6) ||
+       (bound_ == Condition::UPPER_BOUND && d >= -1e-6))
+    {
+      cnt++;
+      LOG_DBG(conditions) << "LC:CI -> count f=" << ToString() << " i=" << i << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+    }
+  }
+
+  return cnt;
+}
+
 double LocalCondition::GetValue() const
 {
   if(IsLocal())

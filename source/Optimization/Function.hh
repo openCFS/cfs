@@ -589,10 +589,6 @@ class Function
       /** Store the local values. */
       Vector<double> values;
 
-      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of infeasible element functions and prints the
-       * value in Optimization::LogFileLine() -> just a service */
-      int infeasible;
-
     private:
       /** Service method for the constructor
        * @param phase see SetupStarLocalityElementMap() */
