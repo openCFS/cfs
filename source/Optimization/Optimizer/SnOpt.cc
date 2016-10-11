@@ -144,7 +144,7 @@ void SnOpt::Init()
   LOG_TRACE(snopt) << "I: get_bounds_info";
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   LOG_DBG3(snopt) << "I lb=" << xlow.ToString();
-  LOG_DBG3(snopt) << "I ub=" << xlow.ToString();
+  LOG_DBG3(snopt) << "I ub=" << xupp.ToString();
   LOG_DBG3(snopt) << "I nF=" << nF << " Flow=" << Flow[1] << " Fupp=" << Fupp[1];
   
   //for(unsigned int i = 0; i < Flow.GetSize(); ++i)

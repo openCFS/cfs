@@ -373,7 +373,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     // Get value of the relative bound for current design variable. If value not set, db = -1.
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
     ShapeParam* shape = FindShape(&spe);
-    assert(!shape->fixed && rb >= 0.0);
+    assert(!(shape->fixed && rb >= 0.0));
 
     // consider ShapeParam::clamped which overwrites relative_*_bound for the first and last element
     if(shape->clamp >= 0.0 && ((int) i == shape->start_param || (int) i == shape->end_param-1)) {

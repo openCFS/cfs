@@ -321,6 +321,9 @@ namespace CoupledField
      /** Calculates the max |value| */
      double CalcMaxValue() const;
 
+     /** count the infeasible elements where the value is out of bound. This can be problematic for linear functions! */
+     int CountInfeasibles() const;
+
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
      double GetValue() const;

@@ -3375,7 +3375,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // evaluate the function values, which is
       // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
       double res = 0.0;
-      local->infeasible = 0;
 
       assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
       for(unsigned int i = 0; i < vem.GetSize(); i++)
@@ -3383,9 +3382,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
         res += fv;
-        if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign
+                     << " fv=" << fv << " -> " << res;
       }
 
       return res;

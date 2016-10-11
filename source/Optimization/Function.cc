@@ -933,7 +933,6 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   this->space = space;
   this->func_ = func;
   this->structure_ = NULL;
-  this->infeasible = 0;
   this->element_dimension_ = -1;
 
   // shortcuts

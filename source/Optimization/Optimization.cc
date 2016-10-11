@@ -211,6 +211,7 @@ void Optimization::PostInitSecond()
       if(progOpts->DoDetailedInfo()) {
         log.AddToHeader("max_" + g->ToString());
         log.AddToHeader("mean_" + g->ToString());
+        log.AddToHeader("infeas_" + g->ToString());
       }
     }
     LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
@@ -1139,9 +1140,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       iteration->Get("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv")->SetValue(f->bandgap.lower.col);
       iteration->Get("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv")->SetValue(f->bandgap.upper.col);
     }
-
-    if(f->GetLocal() != NULL)
-      iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
   }
 
   // we might have bloch information calculated int ErsatzMaterial::CommitIteration()
@@ -1174,13 +1172,18 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
-      double max  = local->CalcMaxValue();
-      double mean = local->CalcMeanValue();
+      double max     = local->CalcMaxValue();
+      int    inf_cnt = local->CountInfeasibles();
+      double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanValue() : -1.0;
       if(progOpts->DoDetailedInfo() && out)
-        *out << " \t" << max << " \t" << mean;
+        *out << " \t" << max << " \t" << mean << " \t" << inf_cnt;
+
       iteration->Get("max_" + g->ToString())->SetValue(max);
-      iteration->Get("mean_" + g->ToString())->SetValue(mean);
+      if(progOpts->DoDetailedInfo())
+        iteration->Get("mean_" + g->ToString())->SetValue(mean);
+      iteration->Get("infeas_" + g->ToString())->SetValue(inf_cnt);
     }
+
     else
     {
       double value = g->GetValue();
@@ -1190,12 +1193,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one (ErsatzMaterial::CommitIteration())
       if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
-      {
         iteration->Get(g->ToString())->SetValue(value);
-        // don't report for local, they should be almost always feasible for MMA, ...
-        if(g->GetLocal() != NULL )
-          iteration->Get("infeasible_" + g->ToString())->SetValue(g->GetLocal()->infeasible);
-      }
     }
   }
   // max output_constraint value
