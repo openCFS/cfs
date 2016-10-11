@@ -187,6 +187,8 @@ if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and a
 else: 
   mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
 
+mesh_name = mesh_name if args.save == None else args.save
+
 infoXml = None
 
 if args.to_info_xml:
@@ -201,6 +203,7 @@ if args.to_info_xml:
   infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
   infoXml.write('  <cmd value="' + cmd + '"/>\n')
   infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
+  
 # sanity checks
 if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
   print("error: profiles2d needs values for x1,x2 and y1,y2")
@@ -217,7 +220,7 @@ elif args.type == 'profiles3d':
   mesh = create_mesh_with_profiles(args,infoXml)
 
 if args.target == 'volume_mesh':   
-  file = mesh_name + '.mesh' if args.save == None else args.save
+  file = mesh_name + '.mesh'
   assert(file.endswith('.mesh'))
   
   write_gid_mesh(mesh, file)
