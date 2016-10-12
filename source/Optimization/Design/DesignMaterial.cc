@@ -23,7 +23,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
@@ -124,9 +124,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     std::cout << "Reading files " << std::endl;
 
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode root = xerces.CreateParamNodeInstance();
+    PtrParamNode root = XmlReader::ParseFile(file);
     PtrParamNode hr = root->Get("modRed");
     dimension_ = hr->Get("dimension")->As<UInt>();
     all_param_ = hr->Get("allParameters")->As<bool>();
@@ -162,9 +160,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if((type_ == GREEDY_FREE) || (type_ == GREEDY_PARAM) || (type_ == GREEDY_MAPPING))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode root = xerces.CreateParamNodeInstance();
+    PtrParamNode root = XmlReader::ParseFile(file);
     PtrParamNode hr = root->Get("modRed");
 
     //Here dimension is the number of terms in the tensor-product expansion
@@ -420,9 +416,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // full C1 interpolation with XML coefficients
     } else if (interpolation_str == "c1") {
       interpolation_ = C1;
-      Xerces xerces;
-      xerces.SetFile(file);
-      PtrParamNode root = xerces.CreateParamNodeInstance();
+      PtrParamNode root = XmlReader::ParseFile(file);
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       if (dim == 2) {
         //Check for old format of coefficient file. Delete at some point in the future.
@@ -552,9 +546,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       } else if (interpolation_str == "full_bspline") {
         interpolation_ = FULL_BSPLINE;
         bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
-        Xerces xerces;
-        xerces.SetFile(file);;
-        PtrParamNode root = xerces.CreateParamNodeInstance();
+        PtrParamNode root = XmlReader::ParseFile(file);
         Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
         // read coefficients from XML
         ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
@@ -638,9 +630,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // Read interpolation coefficients of MSFEM element stiffness matrices from material catalogue
         PtrParamNode hr = pn->Get("MSFEMC1");
         std::string file = hr->Get("file")->As<std::string>();
-        Xerces xerces;
-        xerces.SetFile(file);
-        PtrParamNode root = xerces.CreateParamNodeInstance();
+        PtrParamNode root = XmlReader::ParseFile(file);
         ParamTools::AsMatrix<double>(root->Get("a/matrix"),msfem_a_);
         ParamTools::AsMatrix<double>(root->Get("b/matrix"),msfem_b_);
         StdVector<std::string> index;

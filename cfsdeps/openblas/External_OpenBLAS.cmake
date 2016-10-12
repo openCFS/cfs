@@ -114,7 +114,8 @@ SET(CFSDEPS ${CFSDEPS} openblas)
 #-------------------------------------------------------------------------------
 # Determine paths of OpenBLAS libraries.
 # There is no separation between BLAS and LAPACK, both are combined. While BLAS is optimized
-# only parts of LAPACK are optimized. OpenBLAS can be build without LAPACK in request.
+# only parts of LAPACK are optimized. OpenBLAS can be build without LAPACK in request but then 
+# cfs does not link
 #-------------------------------------------------------------------------------
 SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread")
 SET(LAPACK_LIB "${BLAS_LIB}")

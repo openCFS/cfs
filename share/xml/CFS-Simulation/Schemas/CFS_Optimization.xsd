@@ -1235,6 +1235,9 @@
                         <!-- optional symmetries -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none"/>
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none"/>
+                        <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). 
+                             Overwrites shapeMap relative_*_bound if given. Negative disables.-->
+                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1"/>
                       </xsd:complexType>
                    </xsd:element>
                    <xsd:element name="profile" minOccurs="1" maxOccurs="1">
@@ -1250,6 +1253,9 @@
                         <xsd:attribute name="upper" type="xsd:token" use="optional"/>
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
                         <xsd:attribute name="fixed" type="xsd:token" use="optional"/>
+                        <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). 
+                             Overwrites shapeMap relative_*_bound if given. Negative disables.-->
+                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1"/>
                      </xsd:complexType>
                    </xsd:element>
                 </xsd:sequence>
@@ -1273,7 +1279,9 @@
                 <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
                 <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
                 
-                <!--  Set node bounds relative to the initial element value in load ersatz material -->                
+                <!--  Set node bounds relative to the initial element value in load ersatz material. The value is the total range.
+                      The lower bound will be start minus half rel_bound and upper start plus half rel_bound. 
+                      The shape param clamled will overwrite the value for the first and last element. -->                
                 <xsd:attribute name="relative_node_bound" use="optional" type="xsd:float" default="-1.0"/>
                 <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0"/>
 

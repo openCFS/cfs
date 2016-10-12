@@ -253,7 +253,7 @@ namespace CoupledField
 
           /** @param log_name is interpreted. If allows a file, the logFile is created.
            * @param pn_log pointer to the 'log' element. Might be NULL */
-          void Init(const std::string& log_name, PtrParamNode pn_log);
+          void Init(Optimization* opt, const std::string& log_name, PtrParamNode pn_log);
 
           /** append an item to the fileHeader and adds the index to the label */
           void AddToHeader(const std::string& label);
@@ -265,6 +265,13 @@ namespace CoupledField
 
            /** if set write the design to the logfile */
            bool design;
+
+           /** shall the ev constraints be written to plot.dat? Not in full bloch case when not in detail mode */
+           bool plot_ev;
+
+           /** here ErsatzMaterial::CommitIteration() stores bloch information for plot.dat writing.
+            * First entry is bandgap then the ev_min or ev_max info for each ev constraint. First label then the value */
+           StdVector<boost::tuple<std::string, double> > bloch_info;
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;

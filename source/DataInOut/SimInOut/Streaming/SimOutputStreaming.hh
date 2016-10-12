@@ -1,26 +1,34 @@
 #ifndef SIMOUTSTREAMING_HH_
 #define SIMOUTSTREAMING_HH_
 
+#include <iosfwd>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimOutput.hh"
-#include "Domain/ElemMapping/EntityLists.hh"
+#include "Utils/StdVector.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+}  // namespace CoupledField
 
 using boost::asio::ip::tcp;
 
 namespace CoupledField
 {
+
   /** This class collects the information, the basic text writer writes to files
    * in to info.xml output.
    * This writer is intialized by default */
   class SimOutputStreaming : public SimOutput
   {
   public:
+    SimOutputStreaming(PtrParamNode outputNode, PtrParamNode infoNode, bool isRestart);
 
-    SimOutputStreaming(PtrParamNode outputNode,
-                       PtrParamNode infoNode, bool isRestart );
-
-    ~SimOutputStreaming();
+    virtual ~SimOutputStreaming();
 
     //! Initialize class
     void Init(Grid * ptGrid, bool printGridOnly );
@@ -83,8 +91,8 @@ namespace CoupledField
       boost::asio::streambuf response_;
     };
 
-    /** root in info.xml */
-    PtrParamNode info_root;
+    /** do http streaming or file? */
+    bool http_;
 
     /** by default localhost */
     std::string host_;
@@ -95,8 +103,17 @@ namespace CoupledField
     /** this is the path on the server the POST is sent to */
     std::string path_;
 
+    /** add the mesh ? */
+    bool send_mesh_;
+
+    /** compression is not zipped but no identation and no 'nr' in result/data/item */
+    bool compressed_;
+
     /** should we output more information to the command line? */
     bool silent_;
+
+    /** this is the output data. overwritten to save multiple grid writing */
+    PtrParamNode content_;
   };
 }
 

@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include <boost/algorithm/string/trim.hpp>
 #include "Exception.hh"
 
 namespace CoupledField {

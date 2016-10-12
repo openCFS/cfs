@@ -82,7 +82,9 @@
 #include <flann/flann.hpp>
 #endif
 
+#ifdef USE_XERCES
 #include <xercesc/util/XercesVersion.hpp>
+#endif
 
 #ifdef USE_GIDPOST
 #include <gidpost.h>
@@ -904,6 +906,7 @@ namespace CoupledField {
 
     out << endl;
 
+#ifdef USE_XERCES
     out << "CFS_XERCES_VERSION:    "
         << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
     out << "XMLSCHEMA:             ";
@@ -911,7 +914,10 @@ namespace CoupledField {
       out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
     else
       out << fg_blue << XMLSCHEMA << fg_reset << endl;
-
+#else
+      out << "USE_XERCES:            "
+          << fg_blue << "NO" << fg_reset << endl;
+#endif
 
     out << endl;
 
