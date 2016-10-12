@@ -176,30 +176,15 @@ OPTION(USE_PYTHON
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
-OPTION(USE_MESH
-  "Use the mesh file reader for input from ANSYS/GiD."
-  ${USE_MESH_DEFAULT})
-OPTION(USE_COMSOL
-  "Use Comsol .mphtxt meshes for simulation input."
-  ${USE_COMSOL_DEFAULT})
-OPTION(USE_GIDPOST
-  "Use the GiD library for simulation output."
-  ${USE_GIDPOST_DEFAULT})
-OPTION(USE_GMSH
-  "Use Gmsh meshes for simulation input."
-  ${USE_GMSH_DEFAULT})
-OPTION(USE_GMV
-  "Use General Mesh Viewer (GMV) for simulation in/output."
-  ${USE_GMV_DEFAULT})
-OPTION(USE_UNV
-  "Use Universal File for simulation output."
-  ${USE_UNV_DEFAULT})
-OPTION(USE_ENSIGHT
-  "Support for Ensight Gold file format for input.."
-  ${USE_ENSIGHT_DEFAULT})
-OPTION(USE_SGPP
-  "Enable support for sparse grid interpolation."
-  ${USE_SGPP_DEFAULT})
+OPTION(USE_MESH "Use the mesh file reader for input from ANSYS/GiD."  ${USE_MESH_DEFAULT})
+OPTION(USE_COMSOL "Use Comsol .mphtxt meshes for simulation input." ${USE_COMSOL_DEFAULT})
+OPTION(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
+OPTION(USE_GMSH "Use Gmsh meshes for simulation input." ${USE_GMSH_DEFAULT})
+OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output."  ${USE_GMV_DEFAULT})
+OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
+# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
+OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
+OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   OPTION(USE_ANSYSRST
@@ -293,12 +278,6 @@ OPTION(USE_FFTW
   "Activate DFT and filtering capabilities of cfstool." 
   ${USE_FFTW_DEFAULT})
  
-#-----------------------------------------------------------------------------
-# VTK - Build VTK library 
-#-----------------------------------------------------------------------------
-OPTION(USE_VTK "Enable VTK Library."
-  ${USE_VTK_DEFAULT})
-
 #-----------------------------------------------------------------------------
 # CGNS - CFD General Notation System
 #-----------------------------------------------------------------------------
@@ -461,7 +440,6 @@ MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
-MARK_AS_ADVANCED(USE_VTK)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -724,9 +702,10 @@ ENDIF(USE_UNV)
  
 IF(USE_ENSIGHT)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/VTKBased/Ensight)
-  SET(USE_VTK ON 
-      CACHE INTERNAL "Enable VTK Ensight reader.")
-ENDIF(USE_ENSIGHT)
+  SET(USE_VTK ON  CACHE INTERNAL "Surplus comment for cached variable") 
+ELSE()
+  SET(USE_VTK OFF CACHE INTERNAL "Surplus comment for cached variable")      
+ENDIF()
 
 IF(USE_ANSYSRST)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
