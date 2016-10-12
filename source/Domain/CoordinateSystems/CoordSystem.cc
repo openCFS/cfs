@@ -1,6 +1,7 @@
 #include "CoordSystem.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <boost/math/special_functions/fpclassify.hpp>
 
 namespace CoupledField{
 

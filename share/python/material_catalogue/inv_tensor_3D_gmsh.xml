@@ -41,6 +41,7 @@
         </bcsAndLoads>
         
         <storeResults>
+          <nodeResult type="mechDisplacement">  <allRegions/> </nodeResult>
           <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult>
           <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult>
         </storeResults>
@@ -61,7 +62,6 @@
     </linearSystems>   
   </sequenceStep>
  
-  <loadErsatzMaterial file="0-0-0.dens.xml" set="last" force_region="mech"/>
   
   <optimization log="[problem]">
     <costFunction type="youngsModulus" task="minimize" multiple_excitation="true">

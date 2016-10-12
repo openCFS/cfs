@@ -551,8 +551,11 @@ if dim == 2:
         if args.shape == "frame_modified":
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, True)
         elif args.shape == "auxetic":
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system("gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
           create_mesh_from_gmsh(str(args.gmsh)+"/" + problem,"aux_cells")
           os.system('cp ' +str(args.gmsh)+"/" + problem +".mesh " + str(folder) + '/' + problem + '.mesh')
         else:
@@ -728,8 +731,10 @@ elif dim == 3:
             replace(xml, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
             doc.saveFile(file)
         else:          
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system("gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
           os.system('cp ' +str(args.gmsh)+"/" + problem +".msh " + str(folder) + '/' + problem + '.mesh')
           os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
           jobfile.write('cfs.rel ' + problem + ' \n')

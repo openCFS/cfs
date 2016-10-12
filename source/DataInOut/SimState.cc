@@ -116,8 +116,7 @@ class MaterialHandler;
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node
-    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
-                                        false));
+    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT, false));
 
     // Load grids only if not provided 
     std::map<std::string, shared_ptr<SimInput> > inFiles;

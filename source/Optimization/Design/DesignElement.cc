@@ -327,6 +327,7 @@ std::string ShapeParamElement::ToString() const
 DesignElement::DesignElement() : BaseDesignElement()
 {
   Init();
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 /** The default constructor for StdVector and ghost elements*/
@@ -341,7 +342,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->lower_ = 1.0;
   this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
-  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 
@@ -352,7 +353,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
-  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 
   type_ = dt;
   upper_ = upper;

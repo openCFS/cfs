@@ -51,6 +51,9 @@ public:
    * @return 0-based index of (firt) non-zero index. */
   static int GetCartesianOrientation(const Vector<double>* vec);
 
+  /** Returns data vector */
+  inline const Vector<double>& GetCoordVector() { return data;}
+
   //!
   Point & operator=(const Point & t);
 
