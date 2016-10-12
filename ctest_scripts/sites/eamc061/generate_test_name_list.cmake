@@ -2,7 +2,7 @@
 MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
   IF(SITE_DIR MATCHES "trunk")
     SET(${TEST_NAME_LIST} 
-     linux64_trunk_gcc_release_test
+     linux64_trunk_gcc_release
      linux64_trunk_gcc_debug
      linux64_trunk_intel_release
      linux64_trunk_clang_release)
