@@ -1344,6 +1344,7 @@ share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/toolchain_cross_linux_macosx_x86_64.cmake -text
+share/scripts/toolchain_cross_linux_mingw_w64_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
