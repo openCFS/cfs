@@ -190,6 +190,8 @@ cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
 cfsdeps/lapack/lapack-for-cfs.patch -text
 cfsdeps/lapack/lapack-patch.cmake.in -text
+cfsdeps/libxml2/External_LibXml2.cmake -text
+cfsdeps/libxml2/libxml2-post_install.cmake.in -text
 cfsdeps/lis/CMakeLists.txt -text
 cfsdeps/lis/External_LIS.cmake -text
 cfsdeps/lis/cmake/CheckTypeSizes.cmake -text
@@ -524,6 +526,7 @@ include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_libfbi.hh.in -text
+include/def_use_libxml2.hh.in -text
 include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
@@ -1309,6 +1312,7 @@ share/python/shape_map.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
 share/python/spy.py -text
+share/python/streamviz/streamviz.py -text
 share/python/test.py -text
 share/python/two_scale_tools.py -text
 share/python/wedge15.py -text
@@ -1463,6 +1467,8 @@ source/DataInOut/Logging/log.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_impl.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_manager.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/ParamHandling/LibXml2.cc -text
+source/DataInOut/ParamHandling/LibXml2.hh -text
 source/DataInOut/ParamHandling/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -1473,6 +1479,8 @@ source/DataInOut/ParamHandling/XMLMaterialHandler.hh -text
 source/DataInOut/ParamHandling/XMLSkeletonConf.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/XmlReader.cc -text
+source/DataInOut/ParamHandling/XmlReader.hh -text
 source/DataInOut/PostProc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/PostProc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ProgramOptions.cc svneol=native#text/plain

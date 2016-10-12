@@ -4,7 +4,8 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "General/Exception.hh"
@@ -36,13 +37,10 @@ ShapeDesign::~ShapeDesign(){
 
 void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   // done as in domain.cc Domain::ReadErsatzMaterial
-  /* it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example 
+  // it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example
   std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd";
-  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>(), schema); */
-  Xerces xerces;
-  xerces.SetFile(pn->Get("meshdeformationfile")->As<std::string>());
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(pn->Get("meshdeformationfile")->As<std::string>());
   PtrParamNode meshdefs = xml->Get("meshdeformations");
   unsigned int nshapeparams = meshdefs->Get("parameters")->As<Integer>();
   ParamNodeList deformations = meshdefs->GetList("deformation");

@@ -116,10 +116,11 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
-  SET(HDF5_VER "1.8.12")
+  SET(HDF5_VER "1.8.17")
   # SET(HDF5_VER "1.8.15-patch1")
   SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
-  SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
+  SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203")
+  #SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
  # SET(HDF5_MD5 "3c0d7a8c38d1abc7b40fc12c1d5f2bb8") # 1.8.15-patch1
 
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
@@ -226,10 +227,11 @@ IF(USE_BLAS OR USE_LAPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
 
-  IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
-    SET(BLAS_LIBRARY "-framework Accelerate")
-    SET(LAPACK_LIBRARY "-framework Accelerate")
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+  # unclear what it means. Fabian 30.5.16
+  #IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+  #  SET(BLAS_LIBRARY "-framework Accelerate")
+  #  SET(LAPACK_LIBRARY "-framework Accelerate")
+  #ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
 
   #-----------------------------------------------------------------------------
   # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
@@ -353,16 +355,26 @@ SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
-# Xerces library is mandatory
+# Xerces library or libxml2, triggered by XML_READER
 #-------------------------------------------------------------------------------
-SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
-SET(XERCES_BASE "xerces")
-SET(XERCES_VER "3.1.3")
-SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
-# SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
-SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
- 
-INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
+IF(USE_XERCES)
+  SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
+  SET(XERCES_BASE "xerces")
+  SET(XERCES_VER "3.1.3")
+  SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
+  SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
+  INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
+ENDIF(USE_XERCES)
+
+#-------------------------------------------------------------------------------
+# libxml is an alternative for Xerces
+#-------------------------------------------------------------------------------
+IF(USE_LIBXML2)
+  SET(LIBXML2_VER "2.9.4")
+  SET(LIBXML2_GZ "libxml2-${LIBXML2_VER}.tar.gz")
+  SET(LIBXML2_MD5 "ae249165c173b1ff386ee8ad676815f5") 
+  INCLUDE("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
+ENDIF(USE_LIBXML2)
 
 #-----------------------------------------------------------------------------
 # Find CGAL
