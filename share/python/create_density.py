@@ -9,6 +9,7 @@ import math
 from optimization_tools import *
 from mesh_tool import *
 import argparse
+import cmath
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
@@ -133,23 +134,35 @@ def find_radius(dim, div, vol, order, invert, lower_val):
   return data
 
 def cross(dim, vol, res, lower):
-  assert(dim == 2)
-  
   # v = 2*h - h^2 
-  h = 1.0-numpy.sqrt(1-vol) # the other solution is > 1
-  assert(h >= 1/res and h <= 1)
+  if dim == 2:
+    h = 1.0-numpy.sqrt(1-vol) # the other solution is > 1
+  else:
+    j = complex(0.,1.)
+    h = 0.5-(1.- cmath.sqrt(3)*j)/(4. *(1.-2. *vol+ 2. * cmath.sqrt(-vol+vol**2))**(1./3.))-1./4.* (1.+cmath.sqrt(3)*j)* (1.-2. *vol+2. *cmath.sqrt(-vol+vol**2))**(1./3.)
+  if dim == 2:
+    assert(h >= 1/res and h <= 1)
+  else:
+    h = h.real
   s = h * res
 
   print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
 
-  data = numpy.ones((res, res)) * lower # violate exact volume
-  
+  if dim == 2:
+    data = numpy.ones((res, res)) * lower # violate exact volume
+  else:
+    data = numpy.ones((res,res,res)) * lower
   start = int(res/2. - s/2. + 0.5)
   end   = int(res/2. + s/2. + 0.5)
-  
-  data[:,start : end   ] = 1
-  data[  start : end, :] = 1
-  
+
+  if dim == 2:
+    data[:,start : end   ] = 1
+    data[  start : end, :] = 1
+  else:
+    data[start:end,start : end,:   ] = 1
+    data[:,start : end,start:end   ] = 1
+    data[start:end,:,start : end   ] = 1
+    
   return data
 
 

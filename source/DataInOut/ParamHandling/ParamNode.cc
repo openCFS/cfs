@@ -59,9 +59,8 @@ void ParamNode::SetValue(const boost::any& value)
   this->value_ = value;
 
   // check for a valid string if it is a string
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
-
+//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos)); //FIXME second expression does not allow &lt; and &gt; but we might need this for MathParser
+//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
   if(this->name_ == WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;

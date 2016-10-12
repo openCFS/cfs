@@ -355,7 +355,7 @@ string Function::ToString() const
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
   if (IsPhysical())
-    return "access_ " + type.ToString(type_);
+    return "physical_ " + type.ToString(type_);
 
   return type.ToString(type_);
 }
@@ -4252,6 +4252,9 @@ double Function::Local::Identifier::CalcDesignBound(Function* f, const Local* l,
       // LOG_DBG3(func) << "L::I::CDB e=" << element->GetIndex() << " de=" << de->ToString() << " plain=" << element->GetPlainDesignValue() << " smart=" << de->GetDesign(DesignElement::SMART) << " -> " << val;
       assert(false);
       EXCEPTION("not implemented");
+
+    case Function::NO_ACCESS:
+      assert(false);
     }
   }
   assert(false);

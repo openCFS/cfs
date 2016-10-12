@@ -179,7 +179,7 @@ class Function
      * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
      * DEFAULT: as given in usual implementation
      * FIXME: This is not used consistently. Current state: local constraints in Function use PLAIN, FILTERED/PHYSICAL is the same and DEFAULT is set in ForDensityFiltering(), ErsatzMaterial::CalcVolume uses PHYSICAL or FILTERED  */
-    typedef enum { PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
+    typedef enum { NO_ACCESS = -1, PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
 
     /** to convert string/enum for this type */
     static Enum<Access> access;

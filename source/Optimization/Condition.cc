@@ -761,6 +761,9 @@ string Condition::ToString() const
     else
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
+  // add bound type if multiple unique conditions exist
+  if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
+    os << "_" << bound.ToString(bound_);
 
   return os.str();  
 }
@@ -1327,20 +1330,69 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   return NULL;
 }
 
-StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
+StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active, Function::Access access)
 {
   StdVector<Condition*> result;
 
-  for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
-      result.Push_back(active[i]);
+  for(unsigned int i = 0, n = active.GetSize() + (only_active ? 0 : observe.GetSize()); i < n; i++)
+  {
+    assert(!(only_active && i >= active.GetSize()));
+    Condition* g = i < active.GetSize() ? active[i] : observe[i-active.GetSize()];
 
-  for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
-      result.Push_back(observe[i]);
+    if(g->GetType() != type)
+      continue;
 
+    if(design != DesignElement::NO_TYPE && g->design_ != design)
+      continue;
+
+    if(access != Function::NO_ACCESS && g->GetAccess() != access)
+      continue;
+
+      result.Push_back(g);
+  }
   return result;
 }
+
+
+bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
+{
+  bool lower = false;
+  bool upper = false;
+  bool equal = false;
+
+  for(unsigned int i = 0;i < list.GetSize();i++) {
+    switch (list[i]->GetBound()) {
+     case Condition::LOWER_BOUND:
+       if (lower) {
+         return false;
+       } else {
+         lower = true;
+       }
+       break;
+     case Condition::UPPER_BOUND:
+       if (upper) {
+         return false;
+       } else {
+         upper = true;
+       }
+       break;
+     case Condition::EQUAL:
+       if (equal) {
+         return false;
+       } else {
+         equal = true;
+       }
+       break;
+    }
+  }
+  return true;
+}
+
+bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
+  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false, g->GetAccess());
+  return list.GetSize() > 1 && HasUniqueBounds(list);
+}
+
 
 bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
@@ -1364,7 +1416,7 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
       return NULL;
   }
 
-  if(list.GetSize() > 1 && throw_exception)
+  if(list.GetSize() > 1 && !HasUniqueBounds(list) && throw_exception)
     throw Exception("constraint " + Condition::type.ToString(type) + " is not unique");
 
   return list[0];
@@ -1432,7 +1484,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:R g=" << Condition::type.ToString(g->GetType()) << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }

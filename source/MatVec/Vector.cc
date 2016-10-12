@@ -2,6 +2,7 @@
 #include "Vector.hh"
 #include "opdefs.hh"
 #include <boost/type_traits/is_complex.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include <cstdio>
 #include <cmath>

@@ -5,12 +5,14 @@ from matviz_2d  import *
 from matviz_streamline import *
 from hdf5_tools import *
 from mesh_tool import *
+from two_scale_tools import *
 import argparse
 import sys
 import os
 import StringIO
 import xml.etree.ElementTree
 import xml.dom.minidom
+from cfs_utils import *
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
@@ -164,6 +166,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   
   scale = force_scale if force_scale else args.scale
   
+  min, max = find_corners(centers)
+  
   coords = (centers, min, max, elem_dim)  
   
   # perform 2D and 3D from file
@@ -284,20 +288,25 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
                 if args.type == "apod6":
                   valid_position = valid_position_apod6
+                  valid_ring_position = valid_ring_position_apod6
                   print 'Apod6 is validated!'
                 elif args.type == "robot":
                   valid_position = valid_position_robot
+                  #TODO: not implemented yet for robot arm
+                  valid_ring_position = None
                   print 'Robot is validated!'
 
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale, n_f, valid_position, args.type, args.thres, csize, args.show)
+                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
-                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale, n_f, valid_position, args.type, args.thres, csize)
+                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, scale, valid_position, args.thres, csize)
-
+                if args.show == "hom_rot_cross":
+                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
+                elif args.show == "hom_rect":
+                  viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
@@ -332,7 +341,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
     else:
       if args.tensor == 'mechTensor':
         print "Input data is read as " + args.notation
-      tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      if h5_read:
+        tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      else:
+        print tensor
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot <> None:
@@ -355,7 +367,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
     if len(aux) > 0:
       print "largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
     
-    poly = create_vtk_poly_data(angle, data if args.show == "default" else aux)
+    poly = create_vtk_poly_data(angle, data if args.show == None else aux)
     
     actors = []
     if not args.symmetries == "default":
@@ -374,7 +386,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       for i in range(len(tmp3)):
         if tmp3[i][1] <= float(args.symmetries_threshold):
           mins.append(tmp3[i]) 
-      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == "default" else aux), not args.symmetries_planes == "false")
+      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
   
     show_write_vtk(poly, args.res, args.save, actors)  
   
@@ -383,7 +395,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   
   
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D")
+parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="region name (default 'mech')", default="mech")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
@@ -431,10 +443,10 @@ parser.add_argument("--type", help="type of 3D object for 2-scale visualization"
 args = parser.parse_args()
 
 # check ans postproc arguments
-if not args.symmetries == "default" and not args.show == "default" and not args.symmetries == args.show:
+if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
   print "'show' and 'symmetries' do not match"
   sys.exit(1)
-aux_code = args.show if not args.show == "default" else args.symmetries  # might still be default
+aux_code = args.show if not args.show == None else args.symmetries  # might still be default
 
 # in this global variable we can store meta-information to be exported as xml file 
 info = None
@@ -451,16 +463,37 @@ tensor = []  # becomes a single tensor or a tensor array
 centers = []
 dim_2D = None
 h5_read = None
-# check if we read data from command line instead from an h5 file
-if args.input.startswith('['):
+infoXml_read = None
+# check if we read data from command line instead from an h5 file or a info.xml was given
+if args.input.startswith('[') or args.input.endswith(".info.xml"):
   h5_read = False
-  input = eval(args.input)
-  if len(input) <> 21 and len(input) <> 6:
-    print "the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)"
-    sys.exit(1)
-
-  dim_2D = len(input) <> 21
+  dim_2D = None
+  input = None
   
+  if args.input.startswith('['):
+    input = eval(args.input)
+    print input
+    if len(input) <> 21 and len(input) <> 6:
+      print "the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)"
+      sys.exit(1)
+  
+    dim_2D = len(input) <> 21
+  else:
+    assert(args.input.endswith(".info.xml"))
+    doc = libxml2.parseFile(args.input)
+    xml = doc.xpathNewContext()
+    dim = xpath(xml, "//domain/@dimensions")
+    matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real")
+    res = map(float, matrix.split()) # convert list with string elements to list with float elements
+    res = np.asarray(res)            # convert list to array
+    if dim == '2':
+      res = res.reshape(3,3)         # reshaping array
+      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2]]
+    else:
+      assert(dim == '3')
+      res = res.reshape(6,6)         # reshaping array
+      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
+
   if args.tensor == 'mechTensor':  
     tensor = to_mech_tensor(input)
     tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
@@ -486,6 +519,7 @@ if args.input.startswith('['):
 # read 2D or 3D data from h5 file     
 else:   
   h5_read = True
+  infoXml_read = False
   if not os.path.exists(args.input):
     print 'Error: file does not exist: ' + args.input
     sys.exit(1)

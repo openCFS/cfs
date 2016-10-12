@@ -569,8 +569,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   if(densityFile != NULL)
     densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()
 
-    return iter;
-  }
+  return iter;
+}
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
   {
@@ -1679,9 +1679,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       case Function::PRESSURE_DROP:
         if (!derivative)
-          result = context->GetLatticeBoltzmannPDE()->CalcPressureDrop();
+          result = f->ctxt->GetLatticeBoltzmannPDE()->CalcPressureDrop();
         else
-          context->GetLatticeBoltzmannPDE()->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+          f->ctxt->GetLatticeBoltzmannPDE()->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
 
       case Function::SLACK:
