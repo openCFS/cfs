@@ -387,6 +387,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::BANDGAP, "bandgap");
+  Function::type.Add(Function::REL_SLACK_BANDGAP, "relSlackBandGap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
