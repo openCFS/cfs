@@ -64,6 +64,7 @@ class Function
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
       BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
+      REL_SLACK_BANDGAP,         /*!< relative band gap formulation (alpha + slack - (alpha - slack))/(alpha - slack) = 2*slack/(alpha-slack) based on 'alpha+/-slack' eigenfrequency bounds */
 
       // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */

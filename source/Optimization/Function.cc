@@ -87,7 +87,8 @@ Function::Function(PtrParamNode pn) {
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
-  if(type_ == BANDGAP) {
+  if(type_ == BANDGAP)
+  {
     if(!pn->Has("bandgap"))
       throw Exception("function 'bandgap' required child element 'bandgap'");
     bandgap.lower_ev = pn->Get("bandgap/lower_ev")->As<int>();
@@ -97,7 +98,6 @@ Function::Function(PtrParamNode pn) {
     if(bandgap.upper_ev - bandgap.lower_ev > 1)
       preInfo_->SetWarning("'bandgap' defines a gap non-adjacent modes");
   }
-
 
   int sequence = pn->Get("sequence")->As<int>();
   if(sequence > (int) Optimization::manager.context.GetSize()) // note 1-based!
@@ -433,6 +433,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
+  case REL_SLACK_BANDGAP:
   case EXPRESSION:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
@@ -729,6 +730,7 @@ bool Function::ForSensitivityFiltering() const {
   case TRACE_MAPPING:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case REL_SLACK_BANDGAP:
   case TEMP_TRACKING_AT_INTERFACE:
   case EXPRESSION:
   case SHAPE_INF:

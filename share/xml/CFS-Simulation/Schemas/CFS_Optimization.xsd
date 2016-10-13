@@ -1747,6 +1747,8 @@
       <xsd:enumeration value="slack"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
+      <!--  relative band gap based on slack and alpha -->
+      <xsd:enumeration value="relSlackBandGap"/>
       <!--  temperature tracking at interface -->
       <xsd:enumeration value="tempTrackingAtInterface"/>
     </xsd:restriction>
