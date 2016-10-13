@@ -376,11 +376,14 @@ def create_profiles(args,infoXml=None):
     
   return profiles
 
-def get_surface_lines(map,grad_res,dir):
+# @param map: profile map
+# @param numLines: number of lines on surface that we want to plot
+# @param dir: direction (x,y or z) as (1,2,3)
+def get_surface_lines(map,numLines,dir):
   assert(dir == 1  or dir == 2 or dir == 3)
   lenx = np.size(map,1)
-  nodes = np.zeros((360/grad_res, lenx, 3))
-  for i,grad in enumerate(range(0,360,grad_res)):
+  nodes = np.zeros((numLines, lenx, 3))
+  for i,grad in enumerate(np.arange(0,360,360.0/numLines)):
     radii = map[grad,:]
     rad = grad/180.0*np.pi
      
@@ -441,7 +444,7 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
         pointId += 1
         
     nodesLeft.append(lineLeft)
-    nodesRight.append(lineRight)   
+    nodesRight.append(lineRight[::-1])   
     
   return nodesLeft, nodesRight, pointId
 # list is list of lists contains surface lines and all respective points
@@ -449,50 +452,39 @@ def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
 def define_triangles(list,cells):
   prevLine = None
   for i,line in enumerate(list):
-    if i > 0:
-      prevLine = list[i-1]
+    if i < len(list) - 1:
+      prevLine = list[i+1]
     else:
-      prevLine = list[len(list)-1] # last line in list
+      prevLine = list[0] # last line in list
       
-    for j in range(0,len(line)-1,2): # get coordinates of each point
+    for j in range(0,len(line),1): # get coordinates of each point
       if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
         tri = vtk.vtkTriangle()
         tri.GetPointIds().SetId(0, line[j][1]) 
         tri.GetPointIds().SetId(1, prevLine[j][1])
         tri.GetPointIds().SetId(2, line[j+1][1])
         cells.InsertNextCell(tri)
-#         
-        print line[j][1],prevLine[j][1],line[j+1][1]
-        print line[j][0]
-        print prevLine[j][0]
-        print line[j+1][0]
-        
+         
+#         print "triangle:",line[j][1],prevLine[j][1],line[j+1][1]
+#         print "point",line[j][1], ": ",line[j][0][0],line[j][0][1],line[j][0][2]
+#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
+#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
       if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
         tri = vtk.vtkTriangle()
         tri.GetPointIds().SetId(0, line[j+1][1])
         tri.GetPointIds().SetId(1, prevLine[j][1])
         tri.GetPointIds().SetId(2, prevLine[j+1][1])
         cells.InsertNextCell(tri)
-         
-        print line[j+1][1],prevLine[j][1],prevLine[j+1][1]
-        print line[j+1][0]
-        print prevLine[j][0]
-        print prevLine[j+1][0]
-    break
-  print cells      
-  return cells
-  #for nodes in list:
     
-  
-  #triangle = vtk.vtkTriangle()
-  
-  #quad = vtk.vtkQuad()
-  #quad.GetPointIds().SetId(0, base + 0)
-  #quad.GetPointIds().SetId(1, base + 1)
-  #quad.GetPointIds().SetId(2, base + 2)
-  #quad.GetPointIds().SetId(3, base + 3)
-  #cells.InsertNextCell(quad)
-  
+#         print "triangle:",line[j+1][1],prevLine[j][1],prevLine[j+1][1]
+       
+#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
+#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
+#         print "point",prevLine[j+1][1], ": ",prevLine[j+1][0][0],prevLine[j+1][0][1],prevLine[j+1][0][2]
+
+#     if i == 9:
+#       break  
+  return cells
   
 def create_profiles_array(args,infoXml):
   res = args.res
@@ -501,8 +493,7 @@ def create_profiles_array(args,infoXml):
   t = np.linspace(0, 1.0, args.res)
   
   hf = plt.figure()
-  ha = hf.gca(projection='3d')
-  #ha = hf.add_subplot(111, projection='3d')
+  ha = hf.add_subplot(111, projection='3d')
   ha.set_xlabel('X')
   ha.set_ylabel('Y')
   ha.set_zlabel('Z')
@@ -530,16 +521,31 @@ def create_profiles_array(args,infoXml):
       # first dimension of nodes : surface lines
       # second dimension of nodes: resolution of unit cube
       # third dimension: tuple with x,y,z coordinate
-      nodes = get_surface_lines(map_x, args.res/10, 1)
+      nodes = get_surface_lines(map_x, args.res_surf_lines, 1)
+      
+      #ha.scatter(nodes[:,:,0],nodes[:,:,1],nodes[:,:,2])
+      
+      #ha.scatter(nodes[0:4,:,0],nodes[0:4,:,1],nodes[0:4,:,2],color='red')
       
       surfNodesXLeft, surfNodesXRight, idx = find_points_on_surface(nodes, 1, map_y, map_z, idx)
       
-      sys.exit()              
+#       for i,line in enumerate(surfNodesXRight):
+#         for tuple in line:
+#           ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
+#           ha.text(tuple[0][0],tuple[0][1],tuple[0][2],tuple[1])
+#         if i == 10:
+#           break
+#       plt.show()
       
-      nodes = get_surface_lines(map_y, args.res/10, 2)
+      out = open("surfNodesXLeft.coords","w")
+      for i,line in enumerate(surfNodesXLeft):
+        for tuple in line:
+          out.write("id=" + str(tuple[1]) + ": x=" + str(tuple[0][0]) + " y=" + str(tuple[0][1]) + " z=" + str(tuple[0][2]) + "\n")
+      out.close()
+      nodes = get_surface_lines(map_y, args.res_surf_lines, 2)
       surfNodesYLeft, surfNodesYRight, idx = find_points_on_surface(nodes, 2, map_x, map_z, idx)  
             
-      nodes = get_surface_lines(map_z, args.res/10, 3)
+      nodes = get_surface_lines(map_z, args.res_surf_lines, 3)
       surfNodesZLeft, surfNodesZRight, idx = find_points_on_surface(nodes, 3, map_x, map_y, idx)
       
       surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
@@ -550,32 +556,42 @@ def create_profiles_array(args,infoXml):
             for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
               ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
             break
-         
- 
+
         plt.show()
       
-      for line in surfNodesXLeft:
-        for tuple in line:
-          ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
-        break
-      
-      plt.show()
       # create vtk cells and points
       cells = vtk.vtkCellArray()
       points = vtk.vtkPoints()
-        
-      cells = define_triangles(surfNodesXLeft,cells)
+      points.SetNumberOfPoints(idx)
       
-      for line in surfNodesXLeft:
-        for tuple in line:
-          p = tuple[0]
-          points.InsertNextPoint(p)
+      cells = define_triangles(surfNodesXLeft,cells)
+      cells = define_triangles(surfNodesXRight,cells)
+      cells = define_triangles(surfNodesYLeft,cells)
+      cells = define_triangles(surfNodesYRight,cells)
+      cells = define_triangles(surfNodesZLeft,cells)
+      cells = define_triangles(surfNodesZRight,cells)
+      
+      for part in surfNodes:
+        for line in part:
+          for tuple in line:
+            p = tuple[0]
+            # set point with respectived ids as set in find_points_on_surface()
+            points.SetPoint(tuple[1], (tuple[0][0], tuple[0][1], tuple[0][2]))
+          
+#       out = open("vtk_point_ids.txt","w")
+#       for i in range(points.GetNumberOfPoints()):
+#         p = points.GetPoint(i)
+#         out.write("id=" + str(i) + ": x=" + str(p[0]) + " y=" + str(p[1]) + " z=" + str(p[2]) + "\n")
+#       
+#       out.close()  
             
       polydata = vtk.vtkPolyData()
       polydata.SetPoints(points)
       polydata.SetPolys(cells)
       
-      show_vtk(polydata, 1000, [], True)
+      if args.show:
+        show_vtk(polydata, 1000, [], True)
+        
       show_write_vtk(polydata,1000,"surface.vtp")
   else:
     for i in range(0,3):
@@ -584,7 +600,7 @@ def create_profiles_array(args,infoXml):
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
-        plot_3dlines(profiles[i], res, i+1, ha)
+        plot_3dlines(profiles[i], res, args.res_surf_lines, i+1, ha)
       if args.verbose == 'profile_map':
         create_profile_map(profiles[i], res, args.verbose, ha)
   
@@ -610,26 +626,26 @@ def create_profile_map(profile,res,verbose=None,ha=None):
   
   return map
 
-def plot_3dlines(profile,res,dir,ha):
+def plot_3dlines(profile,res,numLines,dir,ha):
   Z = np.linspace(0,2*np.pi,360)
   
   nodes = []
   
   map = create_profile_map(profile, res)
         
-  for ii in range(0,res,10):
-    radii = map[:,ii]
-    X = radii*np.cos(Z)+.5*np.ones(np.size(radii))
-    Y = radii*np.sin(Z)+.5*np.ones(np.size(radii))
-    if dir == 1:
-      ha.plot(ii*np.ones(np.size(X))/res,X,Y,'r')
-    if dir == 2:
-      ha.plot(Y,ii*np.ones(np.size(X))/res,X,'g')
-    if dir == 3:
-      ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
+#   for ii in range(0,res,10):
+#     radii = map[:,ii]
+#     X = radii*np.cos(Z)+.5*np.ones(np.size(radii))
+#     Y = radii*np.sin(Z)+.5*np.ones(np.size(radii))
+#     if dir == 1:
+#       ha.plot(ii*np.ones(np.size(X))/res,X,Y,'r')
+#     if dir == 2:
+#       ha.plot(Y,ii*np.ones(np.size(X))/res,X,'g')
+#     if dir == 3:
+#       ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
       
-  nodes = get_surface_lines(map, 5, dir)
-  for i in range(np.size(map,0)/5):
+  nodes = get_surface_lines(map, numLines, dir)
+  for i in range(numLines):
     ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
  
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
