@@ -20,7 +20,6 @@ def calc_volume(array,infoXml):
   print "volume:", vol
 
 def visualize_structure(array,singRegion,show,save):
-  print "starting visualization..."
   # create vtk cells and points
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
@@ -58,6 +57,7 @@ def visualize_structure(array,singRegion,show,save):
   if save:
     show_write_vtk(polydata,1000,save)
   if show: 
+    print "starting visualization..."
     show_vtk(polydata, 1000, [], True)
   
 def give_radiusFunction():
@@ -127,7 +127,7 @@ def create_mesh_with_profiles(args,infoXml):
     
     validate_periodicity(mesh)
   
-  if args.show and args.target.startswith("volume"):
+  if args.show or args.target.startswith("volume"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)
