@@ -540,7 +540,7 @@ ENDIF(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 # Enables python testsuite (contains matviz.py tests) used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(PYTHON_TESTS "Adds python tests (visualization tests for matviz.py,...) to the test-cases")
+OPTION(PYTHON_TESTS "Add testing of python modules (currently stuff from the optimization group)")
   
 #-----------------------------------------------------------------------------
 # Switch on/off usage of intel optimization report
