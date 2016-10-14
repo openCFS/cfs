@@ -46,6 +46,12 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupShapeDesign(pn->Get("shapeMap"));
 
+  if(IsProfileFixed() && relative_profile_bound_ >= 0.0) {
+    info_->Get(ParamNode::HEADER)->SetWarning("reset 'relative_profile_bound' as the profile is fixed");
+    this->relative_profile_bound_ = -1.0;
+  }
+
+
   // copy the non-fixed stuff opt_shape_param_
   // TODO one could do a better approximation using symmetries
   opt_shape_param_.Reserve(IsProfileFixed() ? num_node_shape_params_ : shape_param_.GetSize());
@@ -55,6 +61,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
     ShapeParam& shape = shape_[s];
 
     LOG_DBG(SMD) << "SMD opt " << shape.ToString() << ": sp=" << shape.start_param << " ep=" << shape.end_param << " ind=" << shape.sym_induced;
+
 
     // fixed and symmetry induced shapes don't belong to opt_shape_param_ by definition
     if(!shape.fixed && !shape.sym_induced)
@@ -342,6 +349,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
   {
     const PtrParamNode pn = list[i];
     ShapeParamElement& spe = shape_param_[i];
+    ShapeParam* shape = FindShape(&spe);
     assert(spe.GetIndex() == i);
     assert(pn->Get("nr")->As<unsigned int>() == i);
 
@@ -358,21 +366,26 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
       EXCEPTION("shapeParamElement nr " << i << " has not the expected dof " << Dof(spe.dof));
 
     double val = pn->Get("design")->As<double>();
-
-    lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
-    upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
-
-    if(enforce_bounds_) {
-      spe.SetDesign(std::max(spe.GetLowerBound(), std::min(spe.GetUpperBound(), val)));
-      val = spe.GetPlainDesignValue();
+    LOG_DBG2(SMD) << "RDX: design val=" << val;
+    if(val < 0.1001 && val > 0.099) {
+      std::cout << "val =" << val << " lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound() << "\n";
+      std::cout.flush();
     }
-    else
-      spe.SetDesign(val);
-    assert(!(enforce_bounds_ && (spe.GetPlainDesignValue() < spe.GetLowerBound() || spe.GetPlainDesignValue() > spe.GetUpperBound())));
+
+    if(!shape->fixed) // with fixed we don't read bounds
+    {
+      lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
+      upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
+
+      if(enforce_bounds_) {
+        spe.SetDesign(std::max(spe.GetLowerBound(), std::min(spe.GetUpperBound(), val)));
+        val = spe.GetPlainDesignValue();
+      }
+    }
+    spe.SetDesign(val); // possibly corrected val
 
     // Get value of the relative bound for current design variable. If value not set, db = -1.
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
-    ShapeParam* shape = FindShape(&spe);
     assert(!(shape->fixed && rb >= 0.0));
 
     // consider ShapeParam::clamped which overwrites relative_*_bound for the first and last element
@@ -391,7 +404,6 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     }
     LOG_DBG2(SMD) << "RDX: e=" << i << spe.ToString() << "  v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
     assert(spe.GetLowerBound() <= spe.GetUpperBound());
-    assert(spe.GetLowerBound() >= 0);
   }
 
   MapShapeToDensity();
@@ -489,7 +501,7 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
 
   // we assume fixed only for profile
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
-    throw Exception("cannot have local constraint of shape map design 'profile' when this design is fixed.");
+    throw Exception("Configuration error: cannot have local constraint of shape map design 'profile' when this design is fixed.");
 
   // a lot copy&paste from Function::SetupVirtualElementMap()
   bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
