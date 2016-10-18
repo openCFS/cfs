@@ -116,13 +116,16 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
-  SET(HDF5_VER "1.8.17")
-  # SET(HDF5_VER "1.8.15-patch1")
+  SET(HDF5_VER "1.8.12")
+  # This is a comment for hdf5-1.8.17:
+  # 1.8.17 required cmake > 3.0 therefore I reverted to 1.8.12 but I want to share my observations for cross-compiling:
+  # - hdf5-cross-compile.patch shall be replaced by hdf5-cross-compile.hdf5-1.8.17.patch (mosty case sensitive stuff)
+  # - hdf5-mingw.patch becomes obsolete as the patch now comes from upstream
+  # - TryRun* needs to be checked for the prefix (H5 -> HDF5) ...
+  # SET(HDF5_VER "1.8.17")
   SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
-  SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203")
-  #SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
- # SET(HDF5_MD5 "3c0d7a8c38d1abc7b40fc12c1d5f2bb8") # 1.8.15-patch1
-
+  SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
+  # SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203") # 1.8.17
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
 
