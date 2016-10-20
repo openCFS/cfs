@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
+from numpy import outer
+import sympy.solvers
 #from PIL import Image
 # from mesh_tool import *
 import sys
@@ -11,8 +13,74 @@ from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
-# from base_structures_images import height
+from sympy import Symbol, symbols
 
+class cubic_spline():
+  # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
+  # a cubic spline is defined by its base functions and control polygon
+  #f03 = (1-t)**3
+  #f13 = 3*t*(1-t)**2
+  #f23 = 3*t**2*(1-t)
+  #f33 = t**3"
+   
+  bend = None
+   
+  #control polygon contains 4 ponts (array of lists, 1 list per point) 
+  CP = None
+   
+  def __init__(self):
+    print "Default instantiation not allowed for cubic splines!"
+    sys.exit(1)
+   
+  # CP is numpy array with 4 coordinates; for each coordinate use a list with x- and y-component
+  def __init__(self, CP):
+    self.CP = np.transpose(CP)
+    
+  # base functions for cubic spline with 4 control points
+  def f03(self,t):
+    return (1-t)**3
+  def f13(self,t):
+    return 3*t*(1-t)**2
+  def f23(self,t):
+    return 3*t**2*(1-t)
+  def f33(self,t):
+    return t**3
+    
+  def eval(self,t):
+    return outer(self.CP[:,0], f03(t)) + outer(self.CP[:,1],f13(t)) + outer(self.CP[:,2],f23(t)) + outer(self.CP[:,3],f33(t))
+  
+  def calc_d_spline_d_t(self,t):
+    return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(t**2 ,self.CP[:,3]-self.CP[:,2])
+  
+  def calc_t_grad_1(self):
+    u = Symbol('u')
+    
+    dC = self.calc_d_spline_d_t(u) # dC/dt
+#     dcx = 3*(u-1)**2*p1x+6*u*(1-u)*(p2x-p1x)+u**2*(p3x-p2x)
+#     dcy = 3*(u-1)**2*(p1y-p0y)+6*u*(1-u)*(p2y-p1y)+u**2*(1-p2y)
+    sol = sympy.solvers.solve(dC[0][1]-dC[0][0],u)
+    t = -100
+    if sol[0] > 0 and sol[0] <= 1:
+      t = sol[0]
+    elif  sol[1] > 0 and sol[1] <= 1:
+      t = sol[1]
+    else:
+      print "No t found where dx/dy = 1"
+     
+    return t
+  
+  def plot(self):
+    t = np.linspace(0, 1, 100)
+    C = self.eval(t)
+    plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]))
+    t1 = self.calc_t_grad_1()
+    Ct = self.eval(t1)
+    plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
+    plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
+    plt.xlim((0,0.5))
+    plt.ylim((0.5,1.0))
+    plt.show()
+    
 def dirToString(dir):
   assert(dir > 0 and dir < 4)
   res = 'x'
@@ -71,7 +139,7 @@ def findGradOne(vec):
   if abs(1-vec[idx-1]) < abs(1-vec[idx]):
     idx = idx-1 
    
-  return idx
+  return idx+1
 
 def contains_point(id_x,y,z,map):
   
@@ -104,7 +172,7 @@ def spline_curve(x1, y1, res, bend, infoXml=None):
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
 #   plt.show()
   
-  # interpolate for regular spacing  
+  # interpolate for regular spacing
   fc = interpolate.interp1d(C[0],C[1])
   fg = interpolate.interp1d(C[0],G)
   
