@@ -36,7 +36,7 @@ def visualize_structure(array,singRegion,show,save):
     for j in range(0,res):
       for k in range(0,res):
         x = i * h + h / 2.0
-        y = j * h + h / 2.0
+        y = j * h + h / 2.0 
         z = k * h + h / 2.0
         
         if array[i,j,k] > 0:

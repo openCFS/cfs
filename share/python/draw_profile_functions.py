@@ -15,7 +15,7 @@ from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 
-class cubic_spline():
+class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
   #f03 = (1-t)**3
@@ -47,12 +47,12 @@ class cubic_spline():
     return t**3
     
   def eval(self,t):
-    return outer(self.CP[:,0], f03(t)) + outer(self.CP[:,1],f13(t)) + outer(self.CP[:,2],f23(t)) + outer(self.CP[:,3],f33(t))
+    return outer(self.CP[:,0], self.f03(t)) + outer(self.CP[:,1],self.f13(t)) + outer(self.CP[:,2],self.f23(t)) + outer(self.CP[:,3],self.f33(t))
   
   def calc_d_spline_d_t(self,t):
-    return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(t**2 ,self.CP[:,3]-self.CP[:,2])
+    return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
   
-  def calc_t_grad_1(self):
+  def calc_param_grad_1(self):
     u = Symbol('u')
     
     dC = self.calc_d_spline_d_t(u) # dC/dt
@@ -73,13 +73,17 @@ class cubic_spline():
     t = np.linspace(0, 1, 100)
     C = self.eval(t)
     plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]))
-    t1 = self.calc_t_grad_1()
+    t1 = self.calc_param_grad_1()
     Ct = self.eval(t1)
     plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
     plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
     plt.xlim((0,0.5))
     plt.ylim((0.5,1.0))
     plt.show()
+    
+  def calc_coords_grad_1(self):
+    t1 = self.calc_param_grad_1()
+    return eval(t1)
     
 def dirToString(dir):
   assert(dir > 0 and dir < 4)
@@ -89,12 +93,31 @@ def dirToString(dir):
   if dir == 3:
     res = 'z'
    
-  return res  
+  return res
 
-def profileLin(x1,x2,n):
-  x = np.linspace(0, 1.0,n)
-  return ((x2-x1) * x + x1) / 2.0
+# calculates euklidian distance to origin (0,0)
+# @param p: tuple with x-,y-component of point
+def distance_to_origin(p):  
+  return np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2)
 
+# calculates angle between (0.5,0.5) and point p
+def angle_to_center(p):
+  phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt((y-0.5)**2 + (z-0.5)**2)))
+  if y < 0.5:
+    phi = 2.0 * np.pi - phi
+ 
+# defines a 1D linear function
+class Linear_profile_1D():
+  x1 = None
+  x2 = None
+  # @param x1 and x2 define the function  
+  def __init__(self,x1,x2):
+    self.x1 = x1
+    self.x2 = x2
+    
+  def eval(self,x):
+    return ((x2-x1) * x + x1) / 2.0
+    
 def profileCirc(x1,res):
   x = np.linspace(0, 1.0, res)
   r = 0.5-x1/2.0 # radius for circular holes not stiffness
@@ -114,37 +137,10 @@ def profileCirc(x1,res):
   
   return vec
 
-def f03(t):
-  return (1-t)**3
-def f13(t):
-  return 3*t*(1-t)**2
-def f23(t):
-  return 3*t**2*(1-t)
-def f33(t):
-  return t**3
-
-def findGradOne(vec):
-  idx = 0 # idx where grad is about 1
-  stop = False
-  while not stop and idx < len(vec):
-    if vec[idx] <= 1:
-      idx += 1
-    else:
-      stop = True
-      
-  if not stop:
-    idx = len(vec) - 1
-  
-  # the idx before 1 might be closer to 1
-  if abs(1-vec[idx-1]) < abs(1-vec[idx]):
-    idx = idx-1 
-   
-  return idx+1
-
 def contains_point(id_x,y,z,map):
   
   valx = (y-0.5)**2 + (z-0.5)**2
-  phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
+  phi = angle_to_center((y,z)) # angle between (0.5,0.5) and (y,z)
   
   if y < 0.5:
     phi = 2.0 * np.pi - phi
@@ -156,40 +152,20 @@ def contains_point(id_x,y,z,map):
   
   return False
 
-def spline_curve(x1, y1, res, bend, infoXml=None):
+def define_spline_curve(x1, y1, res, bend, infoXml=None):
   rx = 0.5 - x1/2.0 # radius for center (0,1)
   ry = 0.5 - y1/2.0 # radius for center (0,1)
   
-  P = np.transpose(np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]))
-  t = np.linspace(0, 1.0, 2*res) # double over-sampling
-  C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
-  G = np.diff(C[1]) / np.diff(C[0]) # numerical finite differences
-  G.resize(len(C[0]))
+  P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
+  spline = Cubic_spline(P)
   
-#   plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]), linewidth=5.0)
-#   plt.plot(np.transpose(P[0,:]),np.transpose(P[1,:]), 'r', marker='o', markersize=15, linewidth=5.0)
-#   plt.rcParams.update({'font.size': 18})
-#   plt.savefig("spline_bend_" + str(bend) + ".png")
-#   plt.show()
-  
-  # interpolate for regular spacing
-  fc = interpolate.interp1d(C[0],C[1])
-  fg = interpolate.interp1d(C[0],G)
-  
-  v = np.linspace(0,ry,ry*res)
-  c = fc(v)
-  g = fg(v)
-  
-  idx = findGradOne(g)
-  
-  return c, idx, (v[idx], c[idx]), g[idx], P
-
+  return spline
 
 def profileSpline(x1,y1,res,bend,dir,infoXml=None):
   assert(bend <= 1 and bend >= 0)
 
   vec = np.zeros(res)
-  c, idx, point, g, cp = spline_curve(x1,y1,res,bend,infoXml)
+  c, idx, point, g, cp = define_spline_curve(x1,y1,res,bend,infoXml)
 #   print 'profileSpline',point
   vec[0:idx] = c[0:idx]
   vec[idx:res-idx] = c[idx] # constant value at position where grad is one
@@ -217,23 +193,23 @@ def profileSpline(x1,y1,res,bend,dir,infoXml=None):
 def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
   assert(bend <= 1 and bend >= 0)
   type = None
-  ###### case 1 : bisec + quadratic --> biqua ###################
+  ###### case 1 : bisec spline + quadratic --> biqua ###################
   # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
   # where the curve has grad=1 we have point b
   # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
   # from the point p we determine the angle phi of this bisec profile function 
   
   # left part is same spline as orhtogonal spline up to point
-  left, idx, b, gb, cp = spline_curve(x1, 0.5*(y1+z1), res, bend)
+  left = define_spline_curve(x1, 0.5*(y1+z1), res, bend)
+  b = left.calc_coords_grad_1()
   assert(b[0] <= 0.5 and b[1] >= 0.5)
 
   # search for point p
-  t, t, p, t, cp = spline_curve(y1,z1,res,bend)
+  p = define_spline_curve(x1, y1, res, bend, infoXml).calc_coords_grad_1()
   assert(p[0] <= 0.5 and p[1] >= 0.5)
-  #height = p[1]
-  height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
+  height = distance_to_origin(p) + 0.5
   
-  gamma = np.arccos((0.5-p[0])/(np.sqrt((0.5-p[0])**2 + (p[1]-0.5)**2)))
+  gamma = angle_to_center(p)
   phi = np.pi - gamma
   
 #   print "x1: ",x1," y1: ",y1, " z1:",z1
@@ -254,50 +230,46 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
   
   sol = np.linalg.solve(A, rhs)
   
-  poly = np.poly1d(sol[::-1])
+  parabola = np.poly1d(sol[::-1]) # quadratic polynomial
   v = np.linspace(lx,0.5,res/2-idx)
   right = poly(v)
   
   v = np.linspace(lx,0.5,res/2-idx)
   
-  biqua = np.zeros(res)
-  
-  biqua[0:idx] = left[0:idx]
-  biqua[idx:res/2] = right
-  biqua[res/2:res] = biqua[0:res/2][::-1]
+#   biqua = np.zeros(res)
+#   biqua[0:idx] = left[0:idx]
+#   biqua[idx:res/2] = right
+#   biqua[res/2:res] = biqua[0:res/2][::-1]
   
 #   biqua -= 0.5
   
   #### case 2: b-spline --> bsp #############
   # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
+  # curve as undershoot
   
 #     print 'need to fallback',np.amax(right)
     
-  height = np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2) + 0.5
-    
-  #P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]]))
-  P = np.transpose(np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])) 
-  t = np.linspace(0, 1.0, res) # double over-sampling
-  C = np.multiply.outer(P[:,0],f03(t)) + np.multiply.outer(P[:,1],f13(t)) + np.multiply.outer(P[:,2],f23(t)) + np.multiply.outer(P[:,3],f33(t))
-  # interpolate for regular spacing
-  fc = interpolate.interp1d(C[0],C[1])
-  v = np.linspace(0,0.5,res/2)
-  c = fc(v)
+  P = np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])
+  bspline = Cubic_spline(P) 
   
-  bsp = np.zeros(res)
-  bsp[0:res/2] = c
-  bsp[res/2:res] = c[::-1]
+#   bsp = np.zeros(res)
+#   bsp[0:res/2] = c
+#   bsp[res/2:res] = c[::-1]
 
   #### case 3: linear --> lin ###########
   # in case undershooting for x1=0.9, y1=0.1, z1=0.1
-  lin = profileLin(x1, x1, res)
+  lin = Linear_profile_1D(x1, x1)
   
   result = None
   
   if verbose == 'bisec':
-    print "amax right: ",np.amax(right), " p: ",p[1], " amin vec: ",np.amin(biqua)
-    plt.gcf().clear() 
+    plt.gcf().clear()
+    
+    t = np.linspace(0,left.calc_param_grad_1(),100)
+    C = left.eval(t)
+     
 #     plt.figure(figsize=(10,8))
+    plt.plot(C[0,:],C[1,:])
     plt.plot(t,biqua-0.5,label='bspline-quadratic',linewidth=5.0)
     plt.plot(t,bsp-0.5,label='bspline',linewidth=5.0)
     plt.plot(t,lin,label='linear',linewidth=5.0)
@@ -306,7 +278,9 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
 #     plt.savefig("bisec_0.2.png")
     plt.show()
   
-  if np.abs(np.amax(right) - height) < 1e-3:
+  # in case function composed of b-spline and quadratic ones has undershoot
+  # y-component of b is greater than y-component of point p
+  if p[1] >= b[1] + 1e-3:
     type = "biquadratic"
     if verbose == 'bisec':
       print "bisec: ",np.amax(right),height
@@ -776,9 +750,7 @@ def write_profile_to_array(array,vec,dir):
         z = k * h + h / 2.0
         valx = (y-0.5)**2 + (z-0.5)**2
         
-        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
-        if y < 0.5:
-          phi = 2*np.pi - phi
+        phi = angle_to_center((y,z))
           
 #         p = f(phi)
         p = map[int(phi/np.pi*180),i]
