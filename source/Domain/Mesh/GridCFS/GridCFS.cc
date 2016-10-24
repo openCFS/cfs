@@ -3073,8 +3073,9 @@ namespace CoupledField {
       cube_vol *= m[d][1] - m[d][0];
     }
 
+    LOG_DBG(gridcfs) << "Volume of rectangular dense mesh: " << s;
+
     if( std::abs(s - cube_vol) / s < 1e-5 ) {
-      LOG_DBG2(gridcfs) << "Volume of rectangular dense mesh: " << s;
       return s;
     }
 
