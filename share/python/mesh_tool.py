@@ -31,6 +31,30 @@ def calc_barycenter(mesh,e):
   
   return center
 
+# node1/2: coordinates of respective node
+def calc_edge_length(mesh,node1,node2):
+  return numpy.linalg.norm(numpy.array(node1)-numpy.array(node2))
+
+# calculates longest edge of element e
+def calc_longest_edge(mesh,e):
+  # so far only tested for 3D elements
+  assert(elem_dim(e.type) == 3) 
+  result = 0
+  
+  nodes = e.nodes
+  
+  for i,node in enumerate(nodes):
+    for j,other in enumerate(nodes):
+      if i == j:
+        continue
+      # euklidian distance
+      distance = calc_edge_length(mesh, mesh.nodes[node], mesh.nodes[other])
+    
+      if distance > result:
+        result = distance  
+    
+  return result  
+
 def calc_min_max_coords(mesh):
   ma_x = -100000.
   mi_x = 100000.
@@ -129,7 +153,7 @@ class Mesh:
   
 # adds same number of boundary nodes on adjacent sides to assure periodic b.c
 # @ min_diam
-def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=0):
+def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-4):
   left_c = 0
   right_c = 0
   top_c = 0
@@ -148,17 +172,17 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   
   # count number of boundary nodes per region
   for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta:
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta:
       left_c += 1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta:
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta:
       right_c += 1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta:
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta:
       bottom_c += 1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta:
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta:
       top_c += 1
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta:
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta:
       back_c += 1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta:
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta:
       front_c += 1
   
   lr_counter = min(left_c,right_c)
@@ -173,22 +197,22 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   front_c = 0
   
   for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta and left_c < lr_counter:
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta and left_c < lr_counter:
       left.append(i)
       left_c +=1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta and right_c < lr_counter:
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta and right_c < lr_counter:
       right.append(i)
       right_c +=1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta and bottom_c < bt_counter:
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta and bottom_c < bt_counter:
       bottom.append(i)
       bottom_c +=1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta and top_c < bt_counter:
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta and top_c < bt_counter:
       top.append(i)
       top_c +=1 
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta and back_c < bf_counter:
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta and back_c < bf_counter:
       back.append(i)
       back_c +=1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta and front_c < bf_counter:
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
       front.append(i)
       front_c +=1 
   
@@ -1901,7 +1925,7 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   
   out.close()    
   
-def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
+def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   # currently only used for apod6
   # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
   
@@ -1921,6 +1945,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
   num_elem = 0
   des = False
   nondes = False
+  offsetSet = False
   for i in range(len(inp)):
     #item = str.split(inp[i])
     #if i < len(inp)-1:
@@ -1958,6 +1983,13 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
       y = float(convert_optistruct_notation(inp[i][32:40],[0,8]))
       z = float(convert_optistruct_notation(inp[i][40:48],[0,8]))
       nodes.append([int(inp[i][8:16].strip()),x,y,z])
+      
+      if not offsetSet: # set offset automatically
+        offset = int(inp[i][8:16].strip())
+        offsetSet = True
+      
+      assert(offset >= 1)
+        
     elif inp[i][0:8].strip() == 'CTETRA':
       # read 3D tetra elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
@@ -1997,7 +2029,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
   else:
     print "Error: No correct type was selected! options: apod6, cell_opt"
-  write_gid_mesh(mesh, meshfile+".mesh",scale)
+#   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
   
   return mesh
 
@@ -2017,13 +2049,49 @@ def voxelize_mesh_from_optistruct(filename,res):
   
   elems = mesh.elements
   
-  for e in elems:
-    coords = calc_barycenter(mesh,e)
-    i = int((coords[0] - minx)/hx + eps)
-    j = int((coords[1] - miny)/hy + eps)
-    k = int((coords[2] - minz)/hz + eps)
+  # contains barycenters of optistruct elements and in additional points of optistruct mesh is too coarse
+  samples = []
+  
+#   for e in elems:
+#     coords = calc_barycenter(mesh,e)
+#     i = int((coords[0] - minx)/hx - eps)
+#     j = int((coords[1] - miny)/hy - eps)
+#     k = int((coords[2] - minz)/hz - eps)
+#     array[i,j,k] = 1
     
-    array[i,j,k] = 1    
+  for e in elems:
+    barycenter = calc_barycenter(mesh,e)
+    samples.append(barycenter)
+    # calc longest side of triangle
+    long_edge = calc_longest_edge(mesh,e)
+#     print "longest edge: ",long_edge
+#     print "barycenter: ", barycenter
+#     print "hx: ", hx
+
+    # if original mesh is too coarse for new resolution res**3, sample more points inside TETRA elem
+    if long_edge > 0.5*hx: # assume hx = hy = hz
+      for node in e.nodes:
+        npoints = int(calc_edge_length(mesh, barycenter, mesh.nodes[node]) / hx);
+#         print "\nnpoints: ", npoints
+        # directional vector from barycenter to one vertex
+        dir_vector = numpy.array(mesh.nodes[node]) - barycenter
+        # defines all points on line betwee barycenter and vertex 'node'
+#         print "node: ",mesh.nodes[node]
+#         print "direction: ", dir_vector
+        for n in range(1,npoints+1):
+#           print "n = ", n," sample: ", barycenter + n/(npoints+1)  * dir_vector
+#           print barycenter, " + ", n/float(npoints+1), " * ", dir_vector, " = ", barycenter + n/float(npoints+1) * dir_vector
+          samples.append(barycenter + n/float(npoints+1) * dir_vector)
+             
+#     sys.exit()
+  for point in samples:
+    i = int((point[0] - minx)/hx + eps)
+    j = int((point[1] - miny)/hy + eps)
+    k = int((point[2] - minz)/hz + eps)
+    array[i,j,k] = 1
+    
+  # stores points at which we sample optistruct mesh
+      
   
   minDim = [minx,miny,minz]
   maxDim = [maxx,maxy,maxz]
@@ -2039,7 +2107,10 @@ def voxelize_mesh_from_optistruct(filename,res):
   
   validate_periodicity(meshNew)
   
-  write_gid_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
+  # moved to create_mesh.py
+  # write_gid_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
+  
+  return meshNew
   
 
 def convert_optistruct_notation(s,indexes):
@@ -2402,20 +2473,10 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       mesh.elements.append(e)
        
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
+
+  delta = 1e-4  
   
-  delta = 1e-4
-  top = []
-  bottom = []
-  left = []
-  right = []
-  front = []
-  back = []
-
-  min_diam_x = 1e-3
-  min_diam_y = 1e-3
-  min_diam_z = 1e-3
-
-  mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z, delta)
+  mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z,delta)
   
   return mesh
 
@@ -2625,11 +2686,6 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
             count +=1
         # calculate center of element
         center = calc_barycenter(mesh, e)
-#         center = numpy.array([0.0, 0.0, 0.0])
-#         len_nod = len(e.nodes)
-#         for n in range(len_nod):
-#           center += mesh.nodes[e.nodes[n]]
-#         center *= 1.0 / len_nod
         
         if count >= 5:
           # test if is in convex hull of non-design nodes
