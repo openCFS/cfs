@@ -6,6 +6,7 @@ from copy import deepcopy
 from hdf5_tools import *
 import scipy.interpolate as ip
 from numpy import ceil
+import scipy.spatial
 #from matviz_vtk import *
 
 
@@ -21,6 +22,24 @@ HEXA8 = 10
 WEDGE6 = 14
 LINE = 100
 
+def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
+  i = int((point[0] - minx)/hx)
+  j = int((point[1] - miny)/hy)
+  k = int((point[2] - minz)/hz)
+  array[i,j,k] = val
+
+# checks whether point p is inside cube
+# @param tetra: list with 4 vertices of tetrahedron
+def inside_cube(p,tetra):
+  d0 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d1 = numpy.linalg.det(numpy.array([[p[0],p[1],p[2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d2 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [p[0],p[1],p[2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d3 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [p[0],p[1],p[2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d4 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [p[0],p[1],p[2],1]]))
+  
+  det = [d0,d1,d2,d3,d4]
+  # point is inside cube if all determinats have same sign
+  return all(item >= 0 for item in det) or all(item < 0 for item in det)
 # calculates barycenter of element e
 def calc_barycenter(mesh,e):
   center = numpy.array([0.0, 0.0, 0.0])
@@ -2033,6 +2052,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   
   return mesh
 
+# @profile
 def voxelize_mesh_from_optistruct(filename,res):
   eps = 1e-3
   mesh = create_mesh_from_optistruct(filename, 1.0, 'cell_opt')
@@ -2049,9 +2069,6 @@ def voxelize_mesh_from_optistruct(filename,res):
   
   elems = mesh.elements
   
-  # contains barycenters of optistruct elements and in additional points of optistruct mesh is too coarse
-  samples = []
-  
 #   for e in elems:
 #     coords = calc_barycenter(mesh,e)
 #     i = int((coords[0] - minx)/hx - eps)
@@ -2061,7 +2078,8 @@ def voxelize_mesh_from_optistruct(filename,res):
     
   for e in elems:
     barycenter = calc_barycenter(mesh,e)
-    samples.append(barycenter)
+    set_array_point(array,barycenter, hx, hy, hz, minx, miny, minz, 1)
+    
     # calc longest side of triangle
     long_edge = calc_longest_edge(mesh,e)
 #     print "longest edge: ",long_edge
@@ -2069,33 +2087,26 @@ def voxelize_mesh_from_optistruct(filename,res):
 #     print "hx: ", hx
 
     # if original mesh is too coarse for new resolution res**3, sample more points inside TETRA elem
-    if long_edge > 0.5*hx: # assume hx = hy = hz
-      for node in e.nodes:
-        npoints = int(calc_edge_length(mesh, barycenter, mesh.nodes[node]) / hx);
-#         print "\nnpoints: ", npoints
-        # directional vector from barycenter to one vertex
-        dir_vector = numpy.array(mesh.nodes[node]) - barycenter
-        # defines all points on line betwee barycenter and vertex 'node'
-#         print "node: ",mesh.nodes[node]
-#         print "direction: ", dir_vector
-        for n in range(1,npoints+1):
-#           print "n = ", n," sample: ", barycenter + n/(npoints+1)  * dir_vector
-#           print barycenter, " + ", n/float(npoints+1), " * ", dir_vector, " = ", barycenter + n/float(npoints+1) * dir_vector
-          samples.append(barycenter + n/float(npoints+1) * dir_vector)
-             
-#     sys.exit()
-  for point in samples:
-    i = int((point[0] - minx)/hx + eps)
-    j = int((point[1] - miny)/hy + eps)
-    k = int((point[2] - minz)/hz + eps)
-    array[i,j,k] = 1
-    
-  # stores points at which we sample optistruct mesh
+    if long_edge > 0.9*hx: # assume hx = hy = hz
+      points = []
+      for idx,node in enumerate(e.nodes):
+        points.append(mesh.nodes[node])
       
-  
+      tri = scipy.spatial.Delaunay(points)
+      
+      # create virtual cube around barycenter
+      for x in numpy.arange(barycenter[0]-0.5*long_edge,barycenter[0]+0.51*long_edge,0.5*hx):
+        for y in numpy.arange(barycenter[1]-0.5*long_edge,barycenter[1]+0.51*long_edge,0.5*hy):
+          for z in numpy.arange(barycenter[2]-0.5*long_edge,barycenter[2]+0.51*long_edge,0.5*hz):
+            if tri.find_simplex((x,y,z)) >= 0:
+#               if inside_cube((x,y,z), points):
+              set_array_point(array,(x,y,z), hx, hy, hz, minx, miny, minz, 2)
+#     else:
+#       print "long_edge:",long_edge
+      
   minDim = [minx,miny,minz]
   maxDim = [maxx,maxy,maxz]
-  meshNew = create_3d_mesh_from_array(array, True, widthx, widthy, widthz, minDim, maxDim)
+  meshNew = create_3d_mesh_from_array(array, False, widthx, widthy, widthz, minDim, maxDim)
   
   meshNew.nx = res
   meshNew.ny = res
