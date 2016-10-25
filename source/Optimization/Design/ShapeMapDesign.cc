@@ -367,12 +367,8 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
 
     double val = pn->Get("design")->As<double>();
     LOG_DBG2(SMD) << "RDX: design val=" << val;
-    if(val < 0.1001 && val > 0.099) {
-      std::cout << "val =" << val << " lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound() << "\n";
-      std::cout.flush();
-    }
 
-    if(!shape->fixed) // with fixed we don't read bounds
+    if(!shape->fixed && !shape->sym_induced) // with fixed we don't read bounds
     {
       lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
       upper_violation = std::max(upper_violation, val - spe.GetUpperBound());

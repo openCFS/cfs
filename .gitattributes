@@ -1305,6 +1305,7 @@ share/python/pcolorSBM.py -text
 share/python/performance_test.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
+share/python/postproc_bloch.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/process_density.py -text
 share/python/process_image.py -text

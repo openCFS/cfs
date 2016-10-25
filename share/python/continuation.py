@@ -29,7 +29,10 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
   if old_var < 1 and initial <> None:
     assert(start == "")
     start = "-x " + initial    
-  
+
+  if not os.path.exists(short_problem + ".xml"):
+    print "error: file '" + short_problem + ".xml' not found"
+    os.sys.exit()   
   doc = libxml2.parseFile(short_problem + ".xml")
   xml = doc.xpathNewContext()
   xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
