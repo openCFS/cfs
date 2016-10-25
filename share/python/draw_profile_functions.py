@@ -107,7 +107,7 @@ def angle_to_center(p):
     phi = 2.0 * np.pi - phi
  
 # defines a 1D linear function
-class Linear_profile_1D():
+class Lineaer_1D():
   x1 = None
   x2 = None
   # @param x1 and x2 define the function  
@@ -258,7 +258,7 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
 
   #### case 3: linear --> lin ###########
   # in case undershooting for x1=0.9, y1=0.1, z1=0.1
-  lin = Linear_profile_1D(x1, x1)
+  lin = Lineaer_1D(x1, x1)
   
   result = None
   
