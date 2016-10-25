@@ -94,6 +94,10 @@ def calc_min_max_coords(mesh):
 
   return mi_x, mi_y, mi_z, ma_x, ma_y, ma_z
 
+# for given node ide (e.g. from optistruct), return id in gid mesh
+#def node_id_to_mesh_id(nodeId):
+  
+
 def nodes_by_type(type):
   if type == QUAD4:
     return 4
@@ -165,7 +169,7 @@ class Mesh:
    self.nx = nx
    self.ny = ny
    self.nz = nz
-  
+   
   def element(self, i, j):
     assert(self.nx > 0 and self.ny > 0)
     return self.elements[i * self.nx + j]
@@ -671,7 +675,6 @@ def validate_periodicity(mesh):
   countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
   
   if countLeft <> countRight:
-    print
     print "left: ", countLeft, " right: ", countRight
    
   if countFront <> countBack:
@@ -1948,8 +1951,8 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   # currently only used for apod6
   # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
   
-  inp = open(meshfile).readlines()
-  nodes = []
+  file = open(meshfile)
+  inp = file.readlines()
   elem = []
   force1 = []
   force2 = []
@@ -1965,14 +1968,35 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   des = False
   nondes = False
   offsetSet = False
+  
+  last_node_id = 0
+  
+  for i in range(len(inp)):
+    if inp[i][0:8].strip() == 'GRID':
+      last_node_id = int(inp[i][8:16].strip())
+      
+  nodes = [None] * (last_node_id)
+  
+  #rewind file
+  file.seek(0)
+  
+  nodes_last_idx = 0 # count current last index of list 'nodes'
+  
   for i in range(len(inp)):
     #item = str.split(inp[i])
     #if i < len(inp)-1:
     #  item_n = str.split(inp[i+1])
+        
     if len(inp[i]) == 0:
       continue
     # read and check header
     if inp[i][0:8].strip() == 'GRID':
+      
+      if not offsetSet: # set offset automatically
+        offset = int(inp[i][8:16].strip())
+        offsetSet = True
+        
+      assert(offset >= 1)  
       #add nodes
       #x_str = 0
       #y_str = 0
@@ -2001,14 +2025,11 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
       x = float(convert_optistruct_notation(inp[i][24:32],[0,8]))
       y = float(convert_optistruct_notation(inp[i][32:40],[0,8]))
       z = float(convert_optistruct_notation(inp[i][40:48],[0,8]))
-      nodes.append([int(inp[i][8:16].strip()),x,y,z])
       
-      if not offsetSet: # set offset automatically
-        offset = int(inp[i][8:16].strip())
-        offsetSet = True
+#      map_mesh_nodeId[]
+      nodes[int(inp[i][8:16].strip())-offset] = [x,y,z]
+#       nodes.append([int(inp[i][8:16].strip()),x,y,z])
       
-      assert(offset >= 1)
-        
     elif inp[i][0:8].strip() == 'CTETRA':
       # read 3D tetra elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
@@ -2106,7 +2127,7 @@ def voxelize_mesh_from_optistruct(filename,res):
       
   minDim = [minx,miny,minz]
   maxDim = [maxx,maxy,maxz]
-  meshNew = create_3d_mesh_from_array(array, False, widthx, widthy, widthz, minDim, maxDim)
+  meshNew = create_3d_mesh_from_array(array, True, widthx, widthy, widthz, minDim, maxDim)
   
   meshNew.nx = res
   meshNew.ny = res
@@ -2444,14 +2465,17 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
   if not mesh_in == []:
     offset = 0.;
     elements = zeros((len(mesh.elements[:][0]),4))
-    all_nodes = zeros((len(mesh.nodes[:][0],3)))
+#     all_nodes = zeros((len(mesh.nodes[:][0],3)))
     for i in range(len(mesh.elements[:][0])):
       elements[i][1:] = mesh.elements[i].nodes
-    for i in range(len(mesh.nodes[:][0])):
-      all_nodes[i][:] = mesh.nodes[i][:]
+#     for i in range(len(mesh.nodes[:][0])):
+#       all_nodes[i][:] = mesh.nodes[i][:]
   # insert nodes  
-  for i in range(len(all_nodes)):
-    mesh.nodes.append([all_nodes[i, 1], all_nodes[i, 2], all_nodes[i, 3]])
+#   for i in range(1,len(all_nodes)):
+#     mesh.nodes.append([all_nodes[i][1], all_nodes[i][2], all_nodes[i][3]])
+  mesh.nodes = all_nodes
+
+  
   min_diam_x = 1000000. 
   min_diam_y = 1000000. 
   min_diam_z = 1000000. 
@@ -2462,7 +2486,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       for k in range(len(e.nodes)):
         e.nodes[k] -= offset
       count = 0
-      for k in range (len(e.nodes)):
+      for k in range (offset,len(e.nodes)):
         # determine the min_diam and max_diam of an element  
         if count + 1 == len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
@@ -2482,9 +2506,11 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-       
+  
+  mesh = convert_to_sparse_mesh(mesh)
+  
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
-
+  
   delta = 1e-4  
   
   mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z,delta)

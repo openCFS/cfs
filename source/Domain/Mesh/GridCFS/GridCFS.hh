@@ -471,6 +471,14 @@ namespace CoupledField
      */
     void SetNodesToElemsMap();
 
+    inline double CalcVolumeOfAllRegions(bool updated=false) {
+      // Volume of all regions
+      Double s = 0.0;
+      for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+      return s;
+    }
+
 
     //! helper struct for passing information about nodes
     struct PointSelection{

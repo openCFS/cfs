@@ -7,7 +7,6 @@
 #include <set>
 
 #include "GridCFS.hh"
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -2953,6 +2952,9 @@ namespace CoupledField {
     }
 
     PtrParamNode list = in->Get("regions"); 
+
+    double total_vol = CalcVolumeOfAllRegions();
+    list->Get("total_volume")->SetValue(total_vol);
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )
     { 
       PtrParamNode in_ = list->Get("region", ParamNode::APPEND);
@@ -3060,10 +3062,7 @@ namespace CoupledField {
 
   Double GridCFS::CalcGridVolume(bool updated)
   {
-    // Volume of all regions
-    Double s = 0.0;
-    for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
-      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+    double s = CalcVolumeOfAllRegions(updated);
 
     // Volume of the bounding box of the grid
     Double cube_vol = 1.0;
