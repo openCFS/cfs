@@ -5,6 +5,7 @@
  *      Author: fwein
  */
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Excitation.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -51,6 +52,11 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
     this->relative_profile_bound_ = -1.0;
   }
 
+  // give a warning that relative bounds are set even when we have no given non-trivial initial design.
+  // the the relative_bounds my be a mistake we need to warn. It must not be an error as for continuation without
+  // initial design we need that setting
+  if((relative_node_bound_ >= 0.0 || relative_profile_bound_ >= 0.0) && !DensityFile::NeedLoadErsatzMaterial())
+    info_->Get(ParamNode::HEADER)->SetWarning("relative shape map bounds overwrite design bounds");
 
   // copy the non-fixed stuff opt_shape_param_
   // TODO one could do a better approximation using symmetries
@@ -1209,14 +1215,25 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   shape_param_.Push_back(ShapeParamElement(Convert(param->type), shape_param_.GetSize()));
   ShapeParamElement& spe = shape_param_.Last();
   spe.SetDesign(param->value);
-  if(param->clamp >= 0.0 && start_end) {
+  if(param->clamp >= 0.0 && start_end)
+  {
     spe.SetLowerBound(param->value - param->clamp/2);
     spe.SetUpperBound(param->value + param->clamp/2);
     LOG_DBG(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " shape=" << param->ToString() << " clamped! lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
   }
-  else {
-    spe.SetLowerBound(param->lower);
-    spe.SetUpperBound(param->upper);
+  else
+  {
+    double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
+    if(rb >= 0)
+    {
+      spe.SetUpperBound(std::min(param->upper, std::max(param->value + rb/2, param->lower)));
+      spe.SetLowerBound(std::max(param->lower, std::min(param->value - rb/2, param->upper)));
+    }
+    else
+    {
+      spe.SetLowerBound(param->lower);
+      spe.SetUpperBound(param->upper);
+    }
   }
 
   spe.dof = param->dof;
