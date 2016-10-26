@@ -107,7 +107,7 @@ def angle_to_center(p):
     phi = 2.0 * np.pi - phi
  
 # defines a 1D linear function
-class Lineaer_1D():
+class Linear_1D():
   x1 = None
   x2 = None
   # @param x1 and x2 define the function  
@@ -230,7 +230,7 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
   
   sol = np.linalg.solve(A, rhs)
   
-  parabola = np.poly1d(sol[::-1]) # quadratic polynomial
+  cubic = np.poly1d(sol[::-1]) # cubic polynomial
   v = np.linspace(lx,0.5,res/2-idx)
   right = poly(v)
   
@@ -258,7 +258,7 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
 
   #### case 3: linear --> lin ###########
   # in case undershooting for x1=0.9, y1=0.1, z1=0.1
-  lin = Lineaer_1D(x1, x1)
+  lin = Linear_1D(x1, x1)
   
   result = None
   
@@ -278,7 +278,6 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
 #     plt.savefig("bisec_0.2.png")
     plt.show()
   
-  # in case function composed of b-spline and quadratic ones has undershoot
   # y-component of b is greater than y-component of point p
   if p[1] >= b[1] + 1e-3:
     type = "biquadratic"
@@ -286,8 +285,9 @@ def profileSplineBisec(x1,y1,z1,res,bend,verbose,dir,infoXml):
       print "bisec: ",np.amax(right),height
       
     result = biqua - 0.5
-  
-  # in case we have undershooting for biqua and not for spline
+
+  # in case function composed of b-spline and cubic function has undershoot  
+  # in case b-spline has no undershoot
   elif np.abs(np.amin(biqua) - x1/2.0) > 1e-3 and np.abs(np.amin(bsp - 0.5 - x1/2.0)) < 1e-3:
     type = "bSpline"
     if verbose == 'bisec':
