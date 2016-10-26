@@ -5,30 +5,30 @@ import argparse
 
 from cfs_utils import *
 
-## performs heaviside continuation by doubling filter/density/beta, starting from 1
+## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on 
 def continuation(initial, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1):
 
   assert(range_idx < 26) # is 25 is z
-  # to make use of range_idx. In the -1 case we don't use this anysway below
+  # to make use of range_idx. In the -1 case we don't use this below anyway
   old_var_str = str(old_var) + ('_' + chr(ord('a') + range_idx-2) if range_idx > 1 else '') # _a for ri=2 
   new_var_str = str(var) + ('_' + chr(ord('a') + range_idx-1) if range_idx > 0 else '') # _a for ri=1
-  print range_idx, old_var_str, new_var_str
+  #print range_idx, old_var_str, new_var_str
   var_name = '-' + type + '_'
   if type == 'curvature':
     var_name = '-curv_'
   if type == 'rel_profile_bound':
     var_name = '-rpb_'
   if type == 'rel_node_bound':
-    var_name = '-rnb-'      
+    var_name = '-rnb_'      
   var_problem = short_problem + var_name + new_var_str  
     
-  # first without iniital  
-  start = "" if old_var < 1 else "-x " + short_problem + var_name + old_var_str + ".density.xml"
-  # now check for initial
-  if old_var < 1 and initial <> None:
-    assert(start == "")
-    start = "-x " + initial    
+  # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
+  start = ""  
+  if old_var == -1 and initial <> None:
+    start = "-x " + initial
+  if old_var > -1:   
+    start = "-x " + short_problem + var_name + old_var_str + ".density.xml"
 
   if not os.path.exists(short_problem + ".xml"):
     print "error: file '" + short_problem + ".xml' not found"
