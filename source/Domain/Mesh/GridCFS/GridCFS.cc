@@ -871,8 +871,10 @@ namespace CoupledField {
 
     // in case of internalMesh the region is already marked as regular
     // so we can skip the test here
-    for(unsigned int i = 0; i < regionData.GetSize(); i++)
+    for(unsigned int i = 0; i < regionData.GetSize(); i++) {
       regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
+      LOG_DBG(gridcfs) << "FI: region " << regionData[i].name << " regular? " << regionData[i].regular;
+    }
 
     isInitialized_ = true;
 
@@ -2944,6 +2946,9 @@ namespace CoupledField {
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
+    in->Get("hull_volume")->SetValue(CalcGridVolume());
+    in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
+
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {
       in->Get("nx")->SetValue(reg[0]);
@@ -2953,8 +2958,6 @@ namespace CoupledField {
 
     PtrParamNode list = in->Get("regions"); 
 
-    double total_vol = CalcVolumeOfAllRegions();
-    list->Get("total_volume")->SetValue(total_vol);
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )
     { 
       PtrParamNode in_ = list->Get("region", ParamNode::APPEND);
@@ -3145,7 +3148,7 @@ namespace CoupledField {
       q = verts[2] - verts[0];
       det = p[0] * q[1] - p[1] * q[0];
 
-      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      LOG_DBG(gridcfs) << "CGV: 2D Volume of sparse and/or non rectangular mesh: " << det;
       return std::abs(det);
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
@@ -3158,6 +3161,8 @@ namespace CoupledField {
         n[0] = p[1]*q[2] - p[2]*q[1];
         n[1] = p[2]*q[0] - p[0]*q[2];
         n[2] = p[0]*q[1] - p[1]*q[0];
+        LOG_DBG(gridcfs) << "CGV: p=" << p.ToString() << " q=" << q.ToString();
+        assert(pow(n[0],2) + pow(n[1],2) + pow(n[2],2) > 0);
         n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
         normals.Push_back(n);
       }
@@ -3203,20 +3208,23 @@ namespace CoupledField {
           }
         }
       }
+      assert(!verts.IsEmpty());
       // We have to find three linearly independent vectors
       det = 0.0;
-      for( UInt i=verts.GetSize()-1; i > 2; i-- )
+      for( UInt i=verts.GetSize()-1; i > 2 && abs(det) < 1e-10 ; i-- )
       {
         p = verts[1] - verts[0];
         q = verts[2] - verts[0];
         r = verts[i] - verts[0];
         det = p[0]*q[1]*r[2] + q[0]*r[1]*p[2] + r[0]*p[1]*q[2] - p[0]*r[1]*q[2] - q[0]*p[1]*r[2] - r[0]*q[1]*p[2];
-        if( abs(det) > 1e-10 ) break;
+        LOG_DBG2(gridcfs) << "CGV: " << i << " det=" << det << " p=" << p << " q=" << q << " r=" << r;
       }
 
-      LOG_DBG2(gridcfs) << "3D Volume of sparse and/or non rectangular mesh: " << det;
+      LOG_DBG(gridcfs) << "3D Volume of sparse and/or non rectangular mesh: " << det;
+      assert(det != 0);
       return std::abs(det);
     }
+    assert(false);
     return -1;
   }
 
