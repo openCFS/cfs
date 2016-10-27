@@ -3148,15 +3148,28 @@ namespace CoupledField {
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
       StdVector<Vector<Double> > normals;
+      Double radicand;
       for( UInt i=0; i < points.GetSize()/3.0; i++ )
       {
-        p = points[3*i+1] - points[3*i];
-        q = points[3*i+2] - points[3*i];
-        // normal vector
-        n[0] = p[1]*q[2] - p[2]*q[1];
-        n[1] = p[2]*q[0] - p[0]*q[2];
-        n[2] = p[0]*q[1] - p[1]*q[0];
-        n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
+        int j = 1;
+        // Calculate the normal of each plane. If the normal is zero the
+        // three points lie on a straight line. We then replace the
+        // second point.
+        while (true) {
+          p = points[3*i+1] - points[3*i];
+          q = points[3*i+2] - points[3*i];
+          // normal vector
+          n[0] = p[1]*q[2] - p[2]*q[1];
+          n[1] = p[2]*q[0] - p[0]*q[2];
+          n[2] = p[0]*q[1] - p[1]*q[0];
+          radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
+          if (std::abs(radicand) > 1e-8) {
+            break;
+          }
+          points[3*i+1] = namedNodes_[i][j];
+          j++;
+        }
+        n = n / sqrt( radicand );
         normals.Push_back(n);
       }
 
