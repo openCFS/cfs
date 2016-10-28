@@ -104,7 +104,7 @@ void SGP::PostInit()
     E_inner[i][2][0] = 0.;
     E_inner[i][1][2] = 0.;
     E_inner[i][2][1] = 0.;
-    E_inner[i][2][2] = 2*(1-0.333-0.333);
+    E_inner[i][2][2] = (1-0.333-0.333);
   }
 
   // setup lower and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLower/UpperBound() !!
@@ -557,7 +557,7 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
         if (configuration == FOMO || configuration == FMO) {
           tmp = E_inner[i];
         }
-        space->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CW, true, theta_outer[i]);
+        space->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
         //LOG_DBG3(sgp) << "A:before rho E_outer["<< i << "]= "<< E_outer[i].ToString();
         E_outer[i] = tmp;
         E_outer[i] *= tf->Transform(rho_outer[i]);
@@ -750,9 +750,9 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
 
   double rho1, rho2, rho,rho1_min,rho2_min;
-  Vector<double> ev;
-  Matrix<double> ev_vector,ev_vectorT, ev_vector_min;
-  Matrix<double> atmp(2,2), tmp(3,3);
+  Vector<double> ev(2);
+  Matrix<double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
+  Matrix<double> atmp(2,2),help(2,2);
   double l1_min,l2_min;
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
@@ -781,12 +781,17 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
       if (obj < obj_min) {
         atmp[0][0] = rho1;
         atmp[1][1] = rho2;
-        atmp[0][1] = 0;
-        atmp[1][0] = 0;
-        atmp = ev_vector*atmp*ev_vectorT;
+        atmp[0][1] = 0.;
+        atmp[1][0] = 0.;
+
+        //atmp = ev_vector*tmp2*ev_vectorT
+        atmp.Mult(ev_vectorT,help);
+        ev_vector.Mult(help,atmp);
+
         rho_outer[i] = rho;
         theta_outer[i] = theta;
         ev_vector_min = ev_vector;
+        ev_vectorT_min = ev_vectorT;
         l1_min = ev[0];
         l2_min = ev[1];
         rho1_min = rho1;
@@ -803,7 +808,7 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
         obj_min = obj;
       }
     }
-    LOG_DBG3(sgp) << "Subsolve: theta_min = " << theta_outer[i] << ", obj_min = "<<obj_min<< ", rho_min= "<<rho_outer[i];
+    LOG_DBG3(sgp)<< "Subsolve: theta_min = " << theta_outer[i] << ", obj_min = "<<obj_min<< ", rho_min= "<<rho_outer[i];
     LOG_DBG3(sgp) << "Subsolve: E_inner =" << common->E_inner[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: ev_vector_min =" << ev_vector_min.ToString();
     LOG_DBG3(sgp) << "Subsolve: l1_min =" <<l1_min <<" l2_min = "<<l2_min;
