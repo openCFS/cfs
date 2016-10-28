@@ -56,8 +56,6 @@ class Cubic_spline():
     u = Symbol('u')
     
     dC = self.calc_d_spline_d_t(u) # dC/dt
-#     dcx = 3*(u-1)**2*p1x+6*u*(1-u)*(p2x-p1x)+u**2*(p3x-p2x)
-#     dcy = 3*(u-1)**2*(p1y-p0y)+6*u*(1-u)*(p2y-p1y)+u**2*(1-p2y)
     sol = sympy.solvers.solve(dC[0][1]-dC[0][0],u)
     t = -100
     if sol[0] > 0 and sol[0] <= 1:
@@ -74,10 +72,10 @@ class Cubic_spline():
     t = np.linspace(0, 1, 100)
     C = self.eval(t)
     plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]))
-    t1 = self.calc_param_grad_1()
-    Ct = self.eval(t1)
+#     t1 = self.calc_param_grad_1()
+#     Ct = self.eval(t1)
     plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
-    plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
+#     plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
     plt.xlim((0,0.5))
     plt.ylim((0.5,1.0))
     plt.show()
@@ -156,11 +154,11 @@ def contains_point(id_x,y,z,map):
   
   return False
 
-def define_spline_curve(x1, y1, bend, infoXml=None):
+def define_spline_curve(x1, y1, bend, CP=None, infoXml=None):
   rx = 0.5 - x1/2.0 # radius for center (0,1)
   ry = 0.5 - y1/2.0 # radius for center (0,1)
   
-  P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
+  P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]) if CP == None else CP
   spline = Cubic_spline(P)
   
   return spline
@@ -275,39 +273,26 @@ class profileSplineBisec:
     else:
       self.type = "linear"
   
-    # TODO: Fix me
-#     assert(self.type <> None)
-#     if infoXml <> None:
-#       strDir = dirToString(dir)
-#         
-#       infoXml.write('  <profile type="bisection" dir="' + strDir + '">\n')
-#       infoXml.write('    <bisectionSpline type="' + type + '" angle="' + str(phi*180/np.pi) + '">\n')
-#       infoXml.write('      <biquadratic coeff0="' + str(sol[0]) + '" coeff1="' + str(sol[1]) + '" coeff2="' + str(sol[2]) + '" coeff3="' + str(sol[3]) +'"/>\n')
-#       infoXml.write('      <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
-#       infoXml.write('        <controlPolygon>\n')
-#       infoXml.write('          <P1 x="' + str(P[0][0]) + '" y="' + str(P[1][0]) + '"/>\n')
-#       infoXml.write('          <P2 x="' + str(P[0][1]) + '" y="' + str(P[1][1]) + '"/>\n')
-#       infoXml.write('          <P3 x="' + str(P[0][2]) + '" y="' + str(P[1][2]) + '"/>\n')
-#       infoXml.write('          <P4 x="' + str(P[0][3]) + '" y="' + str(P[1][3]) + '"/>\n')
-#       infoXml.write('        </controlPolygon>\n')
-#       infoXml.write('      </bSpline>\n')
-#       infoXml.write('      <linear xStart="' + str(x1) + '" xEnd="' + str(x1) + '"/>\n')
-#       infoXml.write('    </bisectionSpline>\n')
-#       infoXml.write('  </profile>\n\n')
-
   def eval_spline(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
     t = np.linspace(0,1,1000)
-    Cleft = self.spline.eval(t)
+    CLeft = self.spline.eval(t)
     # spline is only defined up to point x = 0.5
     left = interpolate.interp1d(CLeft[0,:],CLeft[1,:])  
     # mirror spline at x = 0.5
     right = interpolate.interp1d(1-CLeft[0,:],CLeft[1,:])
-    if x <= 0.5:
-      return left(x)
-    else:
-      return right(x)
+    res = []
+    for i in x:
+      if i <= 0.5:
+        val = left(i)
+      else:
+        val = right(i)
+      
+      assert(val is not None)
+      res.append(val)  
+    
+    return res
   
   def eval_bicubic(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
@@ -318,17 +303,22 @@ class profileSplineBisec:
     t = np.linspace(0,1,1000)
     C = spline.eval(t)
     left = interpolate.interp1d(C[0,:],C[1,:])
-    if x <= 0.5:
-      if x <= coords1[0] :
-        return left(x)
+    res = []
+    print "p1:",coords1
+    for i in x:
+      if i <= 0.5:
+        if i <= coords1[0]:
+          val = left(i)
+        else:
+          val = cubic(i)
       else:
-        return cubic(x)
-    else:
-      if x <= 0.5 + coords1[0]: # mirror of cubic 
-       return cubic(1-x)
-      else:
-       return left(1-x)
-  
+        if i <= 1.0-coords1[0]: # mirror of cubic 
+         val = cubic(1-i)
+        else:
+         val = left(1-i)
+      
+      res.append(val)
+    return res
   def eval_linear(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
     return self.linear.eval(x)
@@ -383,12 +373,13 @@ def profile(args,dir,infoXml=None):
     
   if args.profile == 'spline':
     if dir == 1:
-      vec1 = profileSpline(args.x1, args.y1, args.res, args.bend, dir, infoXml)
-      vec3 = profileSpline(args.x1, args.z1, args.res, args.bend, dir, infoXml)
+      spline_0 = profileSpline(args.x1, args.y1, args.res, args.bend, dir, infoXml)
+      spline_90 = profileSpline(args.x1, args.z1, args.res, args.bend, dir, infoXml)
 #       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.bend)
-      vec2 = profileSplineBisec(args.x1, args.y1, args.z1, args.bend)
-      
-      vec2.plot()
+      bisec = profileSplineBisec(args.x1, args.y1, args.z1, args.bend)
+      bisec_angle = bisec.phi
+       
+      bisec.plot()
       
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1', linewidth=5.0)

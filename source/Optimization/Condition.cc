@@ -9,7 +9,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -652,9 +652,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
   string file = pn->Get("designTarget")->As<string>();
-  Xerces xerces;
-  xerces.SetFile(file);
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(file);
 
   // check this file
   if (xml->Count("set") == 0)
@@ -1097,6 +1095,31 @@ double LocalCondition::CalcMaxValue() const
 }
 
 
+int LocalCondition::CountInfeasibles() const
+{
+  int cnt = 0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = local->virtual_elem_map[i].EvalFunction(local);
+    double d = v - GetBoundValue();
+    LOG_DBG2(conditions) << "LC:CI check f=" << ToString() << " i=" << i << " b=" << Condition::bound.ToString(bound_) << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+
+    // upper_bound: 0 < 3 -> -3 < 0 (ok)   4 < 3 -> 1 < 0 (false)
+    // lower_bound: 3 > 2 ->  1 > 0 (ok)   3 > 4 -> -1 > 0 (false)
+
+
+    if((bound_ == Condition::EQUAL && std::abs(d) > 1e-5) ||
+       (bound_ == Condition::LOWER_BOUND && d <= 1e-6) ||
+       (bound_ == Condition::UPPER_BOUND && d >= -1e-6))
+    {
+      cnt++;
+      LOG_DBG(conditions) << "LC:CI -> count f=" << ToString() << " i=" << i << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+    }
+  }
+
+  return cnt;
+}
+
 double LocalCondition::GetValue() const
 {
   if(IsLocal())
@@ -1307,18 +1330,26 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   return NULL;
 }
 
-StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
+StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active, Function::Access access)
 {
   StdVector<Condition*> result;
 
-  for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
-      result.Push_back(active[i]);
+  for(unsigned int i = 0, n = active.GetSize() + (only_active ? 0 : observe.GetSize()); i < n; i++)
+  {
+    assert(!(only_active && i >= active.GetSize()));
+    Condition* g = i < active.GetSize() ? active[i] : observe[i-active.GetSize()];
 
-  for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
-      result.Push_back(observe[i]);
+    if(g->GetType() != type)
+      continue;
 
+    if(design != DesignElement::NO_TYPE && g->design_ != design)
+      continue;
+
+    if(access != Function::NO_ACCESS && g->GetAccess() != access)
+      continue;
+
+      result.Push_back(g);
+  }
   return result;
 }
 
@@ -1358,7 +1389,7 @@ bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
 }
 
 bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
-  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false);
+  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false, g->GetAccess());
   return list.GetSize() > 1 && HasUniqueBounds(list);
 }
 

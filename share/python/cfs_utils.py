@@ -80,6 +80,12 @@ def digits(value, decimal_place):
   string = format % value
   return float(string) 
 
+# get the real part of a complex number string of type '(r,i)' as float
+def getReal(complex_string):
+  assert(complex_string[0] == '(')
+  assert(complex_string.find(',') > 1)
+  return float(complex_string[1:complex_string.find(',')])
+
 # covert a complex number "(a,b)" to two gnuplot compatible strings "a \t b" 
 # -> remove brackets and replace the comma by a tab, nothing else
 # return the string for gnuplot printing

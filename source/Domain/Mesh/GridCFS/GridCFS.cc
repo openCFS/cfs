@@ -15,7 +15,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 namespace CoupledField {
 
@@ -661,9 +661,7 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode xml = xerces.CreateParamNodeInstance();
+    PtrParamNode xml = XmlReader::ParseFile(file);
 
     // check this file
     if (xml->Count("set") == 0)
@@ -3153,17 +3151,32 @@ namespace CoupledField {
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
       StdVector<Vector<Double> > normals;
+      Double radicand;
       for( UInt i=0; i < points.GetSize()/3.0; i++ )
       {
-        p = points[3*i+1] - points[3*i];
-        q = points[3*i+2] - points[3*i];
-        // normal vector
-        n[0] = p[1]*q[2] - p[2]*q[1];
-        n[1] = p[2]*q[0] - p[0]*q[2];
-        n[2] = p[0]*q[1] - p[1]*q[0];
-        LOG_DBG(gridcfs) << "CGV: p=" << p.ToString() << " q=" << q.ToString();
-        assert(pow(n[0],2) + pow(n[1],2) + pow(n[2],2) > 0);
-        n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
+        int j = 1;
+        // Calculate the normal of each plane. If the normal is zero the
+        // three points lie on a straight line. We then replace the
+        // second point.
+        while (true) {
+          p = points[3*i+1] - points[3*i];
+          q = points[3*i+2] - points[3*i];
+          // normal vector
+          n[0] = p[1]*q[2] - p[2]*q[1];
+          n[1] = p[2]*q[0] - p[0]*q[2];
+          n[2] = p[0]*q[1] - p[1]*q[0];
+	  
+          LOG_DBG3(gridcfs) << "CGV: p=" << p.ToString() << " q=" << q.ToString();
+	  
+          radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
+          if (std::abs(radicand) > 1e-8) {
+            break;
+          }
+          points[3*i+1] = namedNodes_[i][j];
+          j++;
+        }
+        assert(radicand > 0);
+        n = n / sqrt( radicand );
         normals.Push_back(n);
       }
 
@@ -3703,5 +3716,82 @@ namespace CoupledField {
     }
   }
 
+  void GridCFS::ExportGrid(PtrParamNode out)
+  {
+    PtrParamNode nl = out->Get("nodeList");
+    // Setup large array to resolve zero to many node names
+    StdVector<StdVector<unsigned int> > node_names(coords_.GetSize() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedNodeNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedNodes_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
+    }
+
+    StdVector<std::string>& block = nl->GetFastBulkBlock();
+    block.Resize(coords_.GetSize());
+    for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
+    {
+      std::stringstream ss;
+
+      ss << "<node id=\"" << (n + 1)
+         << "\" x=\"" << coords_[n][0]
+         << "\" y=\"" << coords_[n][1]
+         << "\" z=\"" << (dim_ > 2 ? coords_[n][2] : 0.0) << "\"";
+
+      const StdVector<unsigned int>& ni = node_names[n];
+      ss << " names=\"" << ni.GetSize() << "\"";
+      for(unsigned int c = 0; c < ni.GetSize(); c++)
+        ss << " name_" << c << "=\"" << namedNodeNames_[ni[c]] << "\"";
+      ss << "/>";
+      block[n] = ss.str();
+    }
+    node_names.Clear();
+    // same game for the element names as for the nodes
+    StdVector<StdVector<unsigned int> > elem_names(GetNumElems() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedElemNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedElems_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        elem_names[nn[n]-1].Push_back(s);
+    }
+
+    PtrParamNode rl = out->Get("regionList");
+    for(unsigned int r = 0; r < regionData.GetSize(); r++)
+    {
+      RegionData& rd = regionData[r];
+      SetElementBarycenters(rd.id, false);
+      PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
+      reg->Get("name")->SetValue(rd.name);
+      const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+
+      StdVector<std::string>& block = reg->GetFastBulkBlock();
+      block.Resize(elems.GetSize());
+      for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
+      {
+        const Elem* elem = elems[e];
+        const Point& bc = elem->barycenter;
+        const StdVector<unsigned int>& con = elem->connect;
+        const StdVector<unsigned int>& ni = elem_names[n];
+
+        std::stringstream ss;
+        ss << "<element id=\"" << (e + 1)
+           << "\" type=\"" << Elem::feType.ToString(elem->type)
+           << "\" x=\"" << bc.data[0]
+           << "\" y=\"" << bc.data[1]
+           << "\" z=\"" << bc.data[2]
+           << "\" nodes=\"" << con.GetSize() << "\"";
+
+        for(unsigned int c = 0; c < con.GetSize(); c++)
+          ss << " node_" << c << "=\"" << con[c] << "\"";
+
+        ss << " name=\"" << ni.GetSize() << "\"";
+        for(unsigned int c = 0; c < ni.GetSize(); c++)
+          ss << " name_" << c << "=\"" << namedElemNames_[ni[c]] << "\"";
+        ss << "/>";
+        block[e] = ss.str();
+      }
+    }
+  }
 
 } // end namespace

@@ -4,7 +4,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -213,12 +213,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-  // Initialize our xerces dom parser to handle the external xml file
-  Xerces x;
-  x.SetFile(file);
+  // Initialize our xml parser to handle the external xml file
   // set the global ParamNode tree pointer
-  PtrParamNode xml = x.CreateParamNodeInstance();
-  // release the xerces resources, param is not affected
+  PtrParamNode xml = XmlReader::ParseFile(file);
+
   // check this file
   if (xml->Count("set") == 0)
     throw Exception("There are no design sets in the ersatz material file");

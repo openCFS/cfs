@@ -132,6 +132,9 @@ public:
     double upper = -1.0;
     double value = -1.0; // initial or fixed
 
+    /** if >= 0 this is the relative bound for the first and last element */
+    double clamp = -1.0;
+
     /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
     double max = 1.0; // fixme an make it smart
 
@@ -141,7 +144,7 @@ public:
     /** this stores the reference to shape_param_ */
     int start_param = -1;
     /** this stores the reference to the first parameter within opt_shape_param_. -1 if no design.
-     * It becomes complex due to fixed and partial symmetriy */
+     * It becomes complex due to fixed and partial symmetry */
     int start_opt = -1;
 
     /** this end does not reflect symmetry */
@@ -193,8 +196,9 @@ protected:
   ShapeParam* FindShape(const ShapeParamElement* spe);
 
   /** helper to fill shape_param_
-   * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1*/
-  void CreateShapeVariable(const ShapeParam* param, int free);
+   * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
+   * @param start_end indicate the first and last element to enable check for clamed */
+  void CreateShapeVariable(const ShapeParam* param, int free, bool start_end);
 
   /** helper for debugging */
   void DumpMap();
@@ -397,7 +401,9 @@ protected:
   /** checks lower and upper when loading from ersatz material */
   bool enforce_bounds_;
 
-  /** set element upper and lower relative to the initial value from load ersatz material. <0 disables */
+  /** set element upper and lower relative to the initial value from load ersatz material.
+   * lower is start - half rel_bound and upper is start + half rel_bound.
+   * To overwritten by ShapeParam::clamped. smaller 0 disables */
   double relative_node_bound_;
   double relative_profile_bound_;
 
