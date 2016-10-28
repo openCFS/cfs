@@ -1847,7 +1847,7 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   double e23 = set ? params_[DesignElement::MECH_23] : 0;
   double e13 = set ? params_[DesignElement::MECH_13] : 0;
   double e12 = set ? params_[DesignElement::MECH_12] : 0;
-  // We don't use rotAngle for FMO anymore due to GSP Optimizer
+  // We don't use rotAngle for FMO anymore due to SGP Optimizer
   //double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
@@ -4553,6 +4553,20 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22,
   t[2][2] = t33;
 }
 
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33) {
+  t.Resize(3, 3);
+  t.Init();
+  t[0][0] = t11;
+  t[0][1] = t12;
+  t[0][2] = t13;
+  t[1][0] = t21;
+  t[1][1] = t22;
+  t[1][2] = t23;
+  t[2][0] = t31;
+  t[2][1] = t32;
+  t[2][2] = t33;
+}
+
 void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
     SubTensorType subTensor, double e11, double e12, double e13, double e22,
     double e23, double e33, double e44, double e55, double e66) {
@@ -5162,7 +5176,7 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
   switch (type_) {
   case FMO:
-    GetElasticFMOTensor(t, direction, notation);
+      GetElasticFMOTensor(t, direction, notation);
     break;
   case ORTHOTROPIC:
   case DENSITY_TIMES_ORTHOTROPIC:

@@ -677,7 +677,7 @@
                   <xsd:element name="subsolver" minOccurs="1" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
-                       <xsd:element name="var" minOccurs="0" maxOccurs="3">
+                       <xsd:element name="var" minOccurs="0" maxOccurs="11">
                        <xsd:complexType>
                            <xsd:attribute name="design" use="required">
                              <xsd:simpleType>  
@@ -687,6 +687,12 @@
                                   <xsd:enumeration value="stiff1"/>
                                   <xsd:enumeration value="stiff2"/>
                                   <xsd:enumeration value="stiff3"/>
+                                  <xsd:enumeration value="mech_11"/>
+                                  <xsd:enumeration value="mech_12"/>
+                                  <xsd:enumeration value="mech_22"/>
+                                  <xsd:enumeration value="mech_23"/>
+                                  <xsd:enumeration value="mech_13"/>
+                                  <xsd:enumeration value="mech_33"/>
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
