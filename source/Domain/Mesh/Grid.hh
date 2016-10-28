@@ -112,7 +112,10 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() const = 0;
 
-        
+    /** exports the grid to a param node. For command line option --export-grid or for streaming with mesh. */
+    virtual void ExportGrid(PtrParamNode out)
+    { EXCEPTION( "Not implemented" ); }
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

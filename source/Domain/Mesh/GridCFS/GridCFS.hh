@@ -61,6 +61,9 @@ namespace CoupledField
 
     //@}
 
+    /**  @see Grid::ExportGrid() */
+    void ExportGrid(PtrParamNode out);
+
 
     // =======================================================================
     // GENERAL GRID INFORMATION

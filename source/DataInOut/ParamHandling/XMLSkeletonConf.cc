@@ -5,8 +5,6 @@
 #include <fstream>
 #include <cstdio>
 
-#include <def_use_xerces.hh>
-
 #include "Utils/tools.hh"
 #include "General/Environment.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"

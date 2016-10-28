@@ -356,8 +356,9 @@ namespace CoupledField
     /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
-     * @param depth number of ident steps, will be interpreted as one space */
-    void ToXML(std::ostream& os, int depth = 0);
+     * @param depth number of ident steps, will be interpreted as one space
+    * @param adjust_element_type this is done in ToFile(), here only for the stream output writer */
+    void ToXML(std::ostream& os, int depth = 0, bool adjust_element_type = false);
     
     /** Print Param / INfo node to file 
      * Note: This is just a temporary solution, until we move the serialization of the 
