@@ -351,10 +351,21 @@ class profileSplineBisec:
     plt.show()
     
 # @return vector with profile or list of vectors
-def profile(args,dir,infoXml=None):
-  if (infoXml <> None):
-    assert(args.profile == 'spline')
+class profile:
+  def  __init__(self):
+    self.angle = -1
+    self.type = None
+    # 0th entry: function for 0°; 1st entry: function for bisec; 2nd entry: function for 90°
+    self.functions = [None] * 3 
     
+  def __init__(self, args):
+    self.type = args.type
+    if self.type == "linear":
+      self.splines[0] = Linear_1D()
+    
+  def eval(self,x):
+    
+      
   if args.profile == 'linear':
     if dir == 1:
       return profileLin(args.x1, args.x2, args.res)
