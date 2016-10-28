@@ -33,9 +33,12 @@ class Cubic_spline():
     sys.exit(1)
    
   # CP is numpy array with 4 coordinates; for each coordinate use a list with x- and y-component
-  def __init__(self, CP):
-    self.CP = np.transpose(CP)
-    
+  def __init__(self, CP = None):
+    if CP <> None:
+      self.CP = np.transpose(CP)
+    else:
+      self.CP = CP 
+      
   # base functions for cubic spline with 4 control points
   def f03(self,t):
     return (1-t)**3
@@ -46,8 +49,20 @@ class Cubic_spline():
   def f33(self,t):
     return t**3
     
-  def eval(self,t):
+  # evaluates spline for parameter t
+  def eval_t(self,t):
     return outer(self.CP[:,0],self.f03(t)) + outer(self.CP[:,1],self.f13(t)) + outer(self.CP[:,2],self.f23(t)) + outer(self.CP[:,3],self.f33(t))
+  
+  # evaluates spline for given x
+  # use interpolation to obtain explicit spline representation
+  def eval_x(self,x):
+    print "x: ", x, " type:", type(x)
+    assert( x.all() >= 0 and x.all() <= 1)
+    t = np.linspace(0,1,1000) # over-sampling
+    C = self.eval_t(t)
+    explicit = interpolate.interp1d(C[0,:],C[1,:])
+    
+    return explicit(x)  
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
@@ -70,7 +85,7 @@ class Cubic_spline():
   
   def plot(self):
     t = np.linspace(0, 1, 100)
-    C = self.eval(t)
+    C = self.eval_t(t)
     plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]))
 #     t1 = self.calc_param_grad_1()
 #     Ct = self.eval(t1)
@@ -82,7 +97,7 @@ class Cubic_spline():
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
-    return self.eval(t1)
+    return self.eval_t(t1)
   
   def calc_min(self):
     dC = self.calc_d_spline_d_t(u)
@@ -107,6 +122,8 @@ def angle_to_center(p):
   phi = np.arccos(0.5*(p[0]-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (p[1]-0.5)**2)))
   if p[0] < 0.5:
     phi = 2.0 * np.pi - phi
+    
+  return phi
  
 # defines a 1D linear function
 class Linear_1D():
@@ -154,43 +171,47 @@ def contains_point(id_x,y,z,map):
   
   return False
 
-def define_spline_curve(x1, y1, bend, CP=None, infoXml=None):
-  rx = 0.5 - x1/2.0 # radius for center (0,1)
-  ry = 0.5 - y1/2.0 # radius for center (0,1)
+# obejct defines spline in a principle plane, e.g. spline for 0 or 90 degree
+class PrincipleSpline():
   
-  P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]]) if CP == None else CP
-  spline = Cubic_spline(P)
+  def __init__(self):
+    self.spline = None
+    self.angle = -1
   
-  return spline
-
-def profileSpline(x1,y1,res,bend,dir,infoXml=None):
-  assert(bend <= 1 and bend >= 0)
-
-  vec = np.zeros(res)
-  spline = define_spline_curve(x1,y1,bend,infoXml)
+  def __init__(self, x1, y1, bend, angle=0):
+    rx = 0.5 - x1/2.0 # radius for center (0,1)
+    ry = 0.5 - y1/2.0 # radius for center (0,1)
   
-  # write info on x1,y1, control polygon to file
-  if infoXml <> None:
-    strDir = dirToString(dir)
-      
-    infoXml.write('  <profile type="b-spline" dir="' + strDir + '">\n')
-    infoXml.write('    <bSpline type="spline" rad1 = "' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
-    infoXml.write('      <controlPolygon>\n')
-    infoXml.write('        <P1 x="' + str(cp[0][0]) + '" y="' + str(cp[1][0]) + '"/>\n')
-    infoXml.write('        <P2 x="' + str(cp[0][1]) + '" y="' + str(cp[1][1]) + '"/>\n')
-    infoXml.write('        <P3 x="' + str(cp[0][2]) + '" y="' + str(cp[1][2]) + '"/>\n')
-    infoXml.write('        <P4 x="' + str(cp[0][3]) + '" y="' + str(cp[1][3]) + '"/>\n')
-    infoXml.write('      </controlPolygon>\n')
-    infoXml.write('    </bSpline>\n')
-    infoXml.write('  </profile>\n\n')
+    P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
+    self.spline = Cubic_spline(P)
+    self.angle = angle
+  
+  #@param x: can be one argument value or list or aguments
+  def eval(self,x):
+    coord_cut = self.spline.calc_coords_grad_1()
+    res = []
     
-  return vec-0.5
-
-# @param height is second return value from profileSpline
-# @param verbose 'bisec' to plot all cases
-class profileSplineBisec:
+    # make x iterable in case it's one float element and not a list
+    x = np.reshape(x, np.size(x), )
+    
+    for i in x:
+      if i < coord_cut[0]:
+        val = self.spline.eval_x(i)
+      elif i > coord_cut[0] and i < 1 - coord_cut[0]:
+        val = coord_cut[1]
+      else: #i >= 1- coord_cut[0]
+        val = self.spline.eval_x(1-i)
+    
+      res.append(val)
+    
+    return res
+  def calc_coords_grad_1(self):
+    return self.spline.calc_coords_grad_1()
+  
+# object defining spline for angles between 0,...,90 degree
+class BisecSpline:
   bicubic = []
-  def _init_(self):
+  def __init__(self):
     self.bicubic = [] # 0-th entry is spline function and 1st entry is cubic polynomial
     self.cubic = None
     self.spline = None
@@ -199,6 +220,7 @@ class profileSplineBisec:
     self.y1 = 0
     self.z1 = 0
     self.type = None
+    self.angle = None
   
   def __init__(self,x1,y1,z1,bend):
     self.x1 = x1
@@ -212,22 +234,24 @@ class profileSplineBisec:
     # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
     # where the curve has grad=1 we have point b
     # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
-    # from the point p we determine the angle phi of this bisec profile function 
+    # from the point p we determine the angle phi of this bisec Profile function 
   
     # left part is same spline as orhtogonal spline up to point
-    left = define_spline_curve(x1, 0.5*(y1+z1), bend)
+    left = PrincipleSpline(x1, 0.5*(y1+z1), bend)
     b = left.calc_coords_grad_1() 
     assert(b[0] <= 0.5 and b[1] >= 0.5)
 
     # search for point p
-    right = define_spline_curve(y1, z1, bend)
+    right = PrincipleSpline(y1, z1, bend)
     p = right.calc_coords_grad_1()
   
     assert(p[0] <= 0.5 and p[1] >= 0.5)
     height = distance_to_center(p) + 0.5
   
-    self.phi = angle_to_center(p)
-  
+    self.angle = angle_to_center(p)
+    
+    print "angle: ", self.angle
+    
     # polynomial interpolation for right part from b to p
     lx = b[0]
     ly = b[1] 
@@ -276,46 +300,43 @@ class profileSplineBisec:
   def eval_spline(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
-    t = np.linspace(0,1,1000)
-    CLeft = self.spline.eval(t)
-    # spline is only defined up to point x = 0.5
-    left = interpolate.interp1d(CLeft[0,:],CLeft[1,:])  
-    # mirror spline at x = 0.5
-    right = interpolate.interp1d(1-CLeft[0,:],CLeft[1,:])
     res = []
+    
+    # make x iterable in case it's one float element and not a list
+    x = np.reshape(x, np.size(x), )
     for i in x:
+      print "i:", i
       if i <= 0.5:
-        val = left(i)
+        val = self.spline.eval_x(i)
       else:
-        val = right(i)
+        val = self.spline.eval_x(1-i)
       
       assert(val is not None)
+      
       res.append(val)  
     
+    
+    print res
     return res
   
   def eval_bicubic(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
     # coordinate at which slope is 1
-    spline = self.bicubic[0]
+    left = self.bicubic[0]
     cubic = self.bicubic[1]
-    coords1 = spline.calc_coords_grad_1()
-    t = np.linspace(0,1,1000)
-    C = spline.eval(t)
-    left = interpolate.interp1d(C[0,:],C[1,:])
+    coords1 = left.calc_coords_grad_1()
     res = []
-    print "p1:",coords1
-    for i in x:
+    for i in np.array(x):
       if i <= 0.5:
         if i <= coords1[0]:
-          val = left(i)
+          val = left.eval(i)
         else:
           val = cubic(i)
       else:
         if i <= 1.0-coords1[0]: # mirror of cubic 
          val = cubic(1-i)
         else:
-         val = left(1-i)
+         val = left.eval(1-i)
       
       res.append(val)
     return res
@@ -350,47 +371,44 @@ class profileSplineBisec:
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
     plt.show()
     
-# @return vector with profile or list of vectors
-class profile:
+  def angle(self):
+    return self.angle
+    
+# @return vector with Profile or list of vectors
+class Profile:
   def  __init__(self):
-    self.angle = -1
+    self.bisec_angle = -1
     self.type = None
-    # 0th entry: function for 0°; 1st entry: function for bisec; 2nd entry: function for 90°
-    self.functions = [None] * 3 
+    # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
+    self.functions = [None] * 3
+    self.direction = 0
     
-  def __init__(self, args):
+  def __init__(self, args, dir):
+    assert(args.profile == "linear" or args.profile == "spline")
+    assert (dir == 1 or dir == 2 or dir == 3)
+    self.dir = dir
     self.type = args.type
+    self.functions = [None] * 3
     if self.type == "linear":
-      self.splines[0] = Linear_1D()
-    
-  def eval(self,x):
-    
-      
-  if args.profile == 'linear':
-    if dir == 1:
-      return profileLin(args.x1, args.x2, args.res)
-    if dir == 2:   
-      return profileLin(args.y1, args.y2, args.res)
-    if dir == 3:
-      return profileLin(args.z1, args.z2, args.res)
-    
-  if args.profile == 'circular':
-    if dir == 1:
-      return profileCirc(args.x1, args.res)
-    if dir == 2:   
-      return profileCirc(args.y1, args.res)
-    if dir == 3:
-      return profileCirc(args.z1, args.res)  
-    
-  if args.profile == 'spline':
-    if dir == 1:
-      spline_0 = profileSpline(args.x1, args.y1, args.res, args.bend, dir, infoXml)
-      spline_90 = profileSpline(args.x1, args.z1, args.res, args.bend, dir, infoXml)
-#       vec2,phi = profileSplineBisec(args.x1, args.y1, args.z1, args.bend)
-      bisec = profileSplineBisec(args.x1, args.y1, args.z1, args.bend)
-      bisec_angle = bisec.phi
-       
-      bisec.plot()
+      self.functions[0] = Linear_1D(args.x1, args.x2)
+      self.functions[1] = self.splines[0]
+      self.functions[2] = self.splines[0]
+    else: # 'spline' case
+      if dir == 1:
+        PrincipleSpline(args.x1, args.y1, args.bend, 0)
+        self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
+        self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
+        self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
+      elif dir == 2:
+        self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
+        self.functions[1] = BisecSpline(args.y1, args.z1, args.x1, args.bend)  
+        self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
+      else:
+        self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
+        self.functions[1] = BisecSpline(args.z1, args.x1, args.y1, args.bend)  
+        self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
+        
+      self.bisec_angle = self.functions[1].angle
       
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
@@ -400,60 +418,36 @@ class profile:
 #       plt.rcParams.update({'font.size': 18})
 #       plt.savefig("3splines.png")
 #       plt.show()
-
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
-    if dir == 2:
-      vec1 = profileSpline(args.y1, args.x1, args.res, args.bend, dir, infoXml)
-      vec2,phi = profileSplineBisec(args.y1, args.z1,args.x1, args.res, args.bend, args.verbose, dir, infoXml)
-      vec3 = profileSpline(args.y1, args.z1, args.res, args.bend, dir, infoXml)
-
-#       t = np.linspace(0, 1.0, args.res)
-#       plt.plot(t,vec1,label='x1y1')
-#       plt.plot(t,vec3,label='dir2 y1z1')
-#       plt.ylim([0,1])
-# #       plt.plot(t,vec3,label='x1z1')
-# #       plt.plot(t,vec4,label='y1z1')
-#       plt.legend(loc='upper left', shadow=True)
-#       plt.show()
+    
       
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
-    if dir == 3:
-      vec1 = profileSpline(args.z1, args.y1, args.res, args.bend, dir, infoXml)
-      vec2, phi = profileSplineBisec(args.z1, args.x1, args.y1, args.res, args.bend, args.verbose, dir, infoXml)
-      vec3 = profileSpline(args.z1, args.x1, args.res, args.bend, dir, infoXml)
-      return ((vec1,0), (vec2,phi), (vec3,np.pi/2.0))
-
 # return information on profiles 
 def create_profiles(args,infoXml=None):
-  profiles = []
+  profiles = [None]*3 # x-,y-,z-part
+  
   if not args.skip_x:
-    vec = profile(args,1,infoXml)
-    profiles.append(vec)
-  else:
-    profiles.append(None)
+    profiles[0] = Profile(args,1)
+    
   if not args.skip_y:
-    vec = profile(args,2,infoXml)
-    profiles.append(vec)
-  else:
-    profiles.append(None)
+    profiles[1] = Profile(args,2)
+
   if not args.skip_z:
-    vec = profile(args,3,infoXml)
-    profiles.append(vec)
-  else:
-    profiles.append(None)
+    profiles[2] = Profile(args,3)
     
   if args.verbose == "all_profiles":
     plt.gcf().clear()
     plt.gcf().subplots_adjust(bottom=0.15)
-    t = np.linspace(0, 1.0, args.res)
-    for vec in profiles[0:1]:
-      if vec <> None:
-        for v in vec:
-          if type(v) == tuple:
-            plt.plot(t,v[0],label=str(v[1]),linewidth=5.0)
-
+    x = np.linspace(0, 1.0, args.res)
+    
+    for profile in profiles:
+      res = profile.functions[0].eval(x)
+      print profile.bisec_angle
+      plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle))
+      plt.plot(x,profile.functions[1].eval(x))
+#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
+      plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
+    
     plt.rcParams.update({'font.size': 18})
-    plt.ylim([0,0.5])
+    #plt.ylim([0,0.5])
     plt.xlabel("x",labelpad=5)
     plt.ylabel("radius",labelpad=20)
     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
@@ -462,7 +456,7 @@ def create_profiles(args,infoXml=None):
     
   return profiles
 
-# @param map: profile map
+# @param map: Profile map
 # @param numLines: number of lines on surface that we want to plot
 # @param dir: direction (x,y or z) as (1,2,3)
 def get_surface_lines(map,numLines,dir):
@@ -695,12 +689,12 @@ def create_profiles_array(args,infoXml):
   
   return array
 
-# creates map with info on profile depending on radius
-# profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
-def create_profile_map(profile,res,verbose=None,ha=None):
+# creates map with info on Profile depending on radius
+# Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
+def create_profile_map(Profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
   for i in range(0,res):
-    f = give_interpolate_radius(profile,i)
+    f = give_interpolate_radius(Profile,i)
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
       map[alpha,i] = f(rad)
@@ -712,12 +706,12 @@ def create_profile_map(profile,res,verbose=None,ha=None):
   
   return map
 
-def plot_3dlines(profile,res,numLines,dir,ha):
+def plot_3dlines(Profile,res,numLines,dir,ha):
   Z = np.linspace(0,2*np.pi,360)
   
   nodes = []
   
-  map = create_profile_map(profile, res)
+  map = create_profile_map(Profile, res)
         
 #   for ii in range(0,res,10):
 #     radii = map[:,ii]
