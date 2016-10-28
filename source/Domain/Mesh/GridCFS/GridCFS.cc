@@ -3081,6 +3081,8 @@ namespace CoupledField {
     // vertices.
     Vector<Double> p(dim_), q(dim_), r(dim_);
     StdVector<Vector<Double> > points, verts;
+    points.Reserve(namedNodeNames_.GetSize() * dim_);
+    verts.Reserve(pow(2,dim_) * dim_);
     for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
     {
       if( namedNodeNames_[i] == "center" ) continue;
@@ -3166,7 +3168,7 @@ namespace CoupledField {
           if (std::abs(radicand) > 1e-8) {
             break;
           }
-          points[3*i+1] = namedNodes_[i][j];
+          GetNodeCoordinate(points[3*i+1], namedNodes_[i][j], false);
           j++;
         }
         n = n / sqrt( radicand );
