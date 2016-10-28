@@ -54,6 +54,8 @@ public:
 
   StdVector<Matrix<double> > E_outer;
 
+  StdVector<Matrix<double> > E_inner;
+
   /** lower asymptote */
   StdVector<Matrix<double> > L;
 
@@ -125,7 +127,7 @@ protected:
   void SetConfiguration();
 
   /** kind of inner variables configuration */
-  typedef enum {NO_CONF= -1, DENSITY_ROTANGLE = 0, STIFF1_STIFF2 = 1} Configuration;
+  typedef enum {NO_CONF= -1, DENSITY_ROTANGLE = 0, STIFF1_STIFF2 = 1, FOMO = 2, FMO = 3} Configuration;
 
   Configuration configuration = NO_CONF;
 private:
@@ -158,9 +160,9 @@ private:
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
   /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
-  void DesignToOuter(bool inner = false);
+  void DesignToOuter(bool inner = false, bool only_update_outer = false);
 
-  /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated */
+  /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated. */
   void OuterToDesign(bool filter = false);
 
   /** create 2D rotation matrix for angle alpha */
@@ -205,20 +207,12 @@ public:
   /** evaluate function according to the SGP approximation for density_rotangle configuration*/
   double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
 
-  /** gives the position within the gradient for a special design.
-   * @return for dense gradients this is design otherwise a search is performed */
-  unsigned int FindGradIndex(unsigned int design) const;
-
-  /** When we have benson vanderbei constraints in the outer problem (to calc KKT and augmented Lagrangian), we need
-   * solve the subproblem with determinant constraints. Then the Lagrange multipliers obtained from IPOPT need to be
-   * transformed according to the feasibility paper. If this dies not apply for this function the input value is
-   * returned.
-   * You need to make sure, that the current CFS design is the final design of ipopt!! */
-  double TransformMultiplyer(double lambda_ipopt);
+  /** evaluate functiong according to the SGP approximation, parameterization FOMO*/
+  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
 
   /** helper for logging
    * @param determinant @see GetCondition() */
-  std::string ToString(bool determinant = false);
+  std::string ToString();
 
   /** the gradient of the real (outer) function) */
   StdVector<double> outer_grad;
@@ -246,17 +240,13 @@ public:
   /** Remember do reset the condition container via Done()!
    * @see constraint_idx.
    * @param determinant see GetCondition() */
-  Function* GetFunction(bool determinant = false);
+  Function* GetFunction();
 
-  /** It is important to use only this method to get a condition and not optimization->conditions.view->Get()!
-   * The reason is that we might have to differentiate between determinant constraints and benson vanderbei constraints.
-   * Nevertheless, one needs to call optimization->conditions.view->Done() when all constraints are traversed!
-   * @param determiant gives corresponding determinant constraint instead of benson vanderbei if it applyies. Otherwise ignored */
-  Condition* GetCondition(bool determinant = false);
 
 private:
 
   double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
+  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
   void CalcE_inner(Matrix<double> & E_inner, double s1, double s2);
