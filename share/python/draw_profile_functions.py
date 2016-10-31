@@ -34,10 +34,7 @@ class Cubic_spline():
    
   # CP is numpy array with 4 coordinates; for each coordinate use a list with x- and y-component
   def __init__(self, CP = None):
-    if CP <> None:
-      self.CP = np.transpose(CP)
-    else:
-      self.CP = CP 
+    self.CP = np.transpose(CP) if CP is not None else None
       
   # base functions for cubic spline with 4 control points
   def f03(self,t):
@@ -56,13 +53,13 @@ class Cubic_spline():
   # evaluates spline for given x
   # use interpolation to obtain explicit spline representation
   def eval_x(self,x):
-    print "x: ", x, " type:", type(x)
     assert( x.all() >= 0 and x.all() <= 1)
     t = np.linspace(0,1,1000) # over-sampling
     C = self.eval_t(t)
     explicit = interpolate.interp1d(C[0,:],C[1,:])
     
-    return explicit(x)  
+    # interpolate returns ndarray, need to convert it to float
+    return explicit(x)[()]
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
@@ -185,32 +182,39 @@ class PrincipleSpline():
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
     self.spline = Cubic_spline(P)
     self.angle = angle
+    
+  # eval function in case x is one element, not a list  
+  def eval_elem(self,x):
+    coord_cut = self.spline.calc_coords_grad_1()
+    
+    if x < coord_cut[0]:
+      val = self.spline.eval_x(x)
+    elif x > coord_cut[0] and x < 1 - coord_cut[0]:
+      val = coord_cut[1]
+    else: #x >= 1- coord_cut[0]
+      val = self.spline.eval_x(1-x)
+    
+    return val
   
+  # wrapper function
   #@param x: can be one argument value or list or aguments
   def eval(self,x):
-    coord_cut = self.spline.calc_coords_grad_1()
+    if isinstance(x, (float,int,long)):
+      return self.eval_elem(x)
+    
+    # in case x is a list    
     res = []
     
-    # make x iterable in case it's one float element and not a list
-    x = np.reshape(x, np.size(x), )
-    
     for i in x:
-      if i < coord_cut[0]:
-        val = self.spline.eval_x(i)
-      elif i > coord_cut[0] and i < 1 - coord_cut[0]:
-        val = coord_cut[1]
-      else: #i >= 1- coord_cut[0]
-        val = self.spline.eval_x(1-i)
-    
-      res.append(val)
-    
+      res.append(self.eval_elem(i))
+
     return res
+  
   def calc_coords_grad_1(self):
     return self.spline.calc_coords_grad_1()
   
 # object defining spline for angles between 0,...,90 degree
 class BisecSpline:
-  bicubic = []
   def __init__(self):
     self.bicubic = [] # 0-th entry is spline function and 1st entry is cubic polynomial
     self.cubic = None
@@ -226,6 +230,7 @@ class BisecSpline:
     self.x1 = x1
     self.y1 = y1
     self.z1 = z1
+    self.bicubic = [] # 0-th entry is spline function and 1st entry is cubic polynomial
   
     assert(bend <= 1 and bend >= 0)
     self.type = None
@@ -250,8 +255,6 @@ class BisecSpline:
   
     self.angle = angle_to_center(p)
     
-    print "angle: ", self.angle
-    
     # polynomial interpolation for right part from b to p
     lx = b[0]
     ly = b[1] 
@@ -263,12 +266,11 @@ class BisecSpline:
         [0, 1,  2*rx, 3*rx**2]
         ]) 
     rhs = np.array([ly, 1.0, height, 0])
-  
-  
+    
     sol = np.linalg.solve(A, rhs)
   
     cubic = np.poly1d(sol[::-1]) # cubic polynomial
-  
+    
     #### case 2: b-spline --> bsp #############
     # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
     # curve as undershoot
@@ -305,7 +307,6 @@ class BisecSpline:
     # make x iterable in case it's one float element and not a list
     x = np.reshape(x, np.size(x), )
     for i in x:
-      print "i:", i
       if i <= 0.5:
         val = self.spline.eval_x(i)
       else:
@@ -315,8 +316,6 @@ class BisecSpline:
       
       res.append(val)  
     
-    
-    print res
     return res
   
   def eval_bicubic(self,x):
@@ -326,7 +325,11 @@ class BisecSpline:
     cubic = self.bicubic[1]
     coords1 = left.calc_coords_grad_1()
     res = []
-    for i in np.array(x):
+    
+    # make x iterable in case it's one float element and not a list
+    x = np.reshape(x, np.size(x), )
+    
+    for i in x:
       if i <= 0.5:
         if i <= coords1[0]:
           val = left.eval(i)
@@ -340,6 +343,7 @@ class BisecSpline:
       
       res.append(val)
     return res
+  
   def eval_linear(self,x):
     assert( x.all() >= 0 and x.all() <= 1)
     return self.linear.eval(x)
@@ -410,6 +414,9 @@ class Profile:
         
       self.bisec_angle = self.functions[1].angle
       
+    if args.verbose == "bisec":
+      self.functions[1].plot()
+      
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
 #       plt.plot(t,vec2,label='bisec', linewidth=5.0)
@@ -439,21 +446,19 @@ def create_profiles(args,infoXml=None):
     x = np.linspace(0, 1.0, args.res)
     
     for profile in profiles:
-      res = profile.functions[0].eval(x)
-      print profile.bisec_angle
       plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle))
-      plt.plot(x,profile.functions[1].eval(x))
+#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
 #       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
       plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
     
     plt.rcParams.update({'font.size': 18})
     #plt.ylim([0,0.5])
     plt.xlabel("x",labelpad=5)
-    plt.ylabel("radius",labelpad=20)
-    plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
+#     plt.ylabel("radius",labelpad=20)
+#     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
 
     plt.show()
-    
+  
   return profiles
 
 # @param map: Profile map
