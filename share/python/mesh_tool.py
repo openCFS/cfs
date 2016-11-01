@@ -2486,7 +2486,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       for k in range(len(e.nodes)):
         e.nodes[k] -= offset
       count = 0
-      for k in range (offset,len(e.nodes)):
+      for k in range (len(e.nodes)):
         # determine the min_diam and max_diam of an element  
         if count + 1 == len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))

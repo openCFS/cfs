@@ -696,10 +696,10 @@ def create_profiles_array(args,infoXml):
 
 # creates map with info on Profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
-def create_profile_map(Profile,res,verbose=None,ha=None):
+def create_profile_map(profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
   for i in range(0,res):
-    f = give_interpolate_radius(Profile,i)
+    f = give_interpolate_radius(profile,i)
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
       map[alpha,i] = f(rad)
@@ -711,12 +711,12 @@ def create_profile_map(Profile,res,verbose=None,ha=None):
   
   return map
 
-def plot_3dlines(Profile,res,numLines,dir,ha):
+def plot_3dlines(profile,res,numLines,dir,ha):
   Z = np.linspace(0,2*np.pi,360)
   
   nodes = []
   
-  map = create_profile_map(Profile, res)
+  map = create_profile_map(profile, res)
         
 #   for ii in range(0,res,10):
 #     radii = map[:,ii]
@@ -778,12 +778,12 @@ def give_interpolate_radius(vec, idx):
                                        
 
 # @param vec can be one vector or list of vector
-def write_profile_to_array(array,vec,dir):
+def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
   
-  map = create_profile_map(vec, res)
+  map = create_profile_map(profile, res)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
       
   for i in range(0,res):
