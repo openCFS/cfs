@@ -14,6 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
+import timeit
 
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
@@ -35,6 +36,9 @@ class Cubic_spline():
   # CP is numpy array with 4 coordinates; for each coordinate use a list with x- and y-component
   def __init__(self, CP = None):
     self.CP = np.transpose(CP) if CP is not None else None
+    t = np.linspace(0,1,1000) # over-sampling
+    C = self.eval_t(t)
+    self.explicit = interpolate.interp1d(C[0,:],C[1,:])
       
   # base functions for cubic spline with 4 control points
   def f03(self,t):
@@ -53,13 +57,9 @@ class Cubic_spline():
   # evaluates spline for given x
   # use interpolation to obtain explicit spline representation
   def eval_x(self,x):
-    assert( x.all() >= 0 and x.all() <= 1)
-    t = np.linspace(0,1,1000) # over-sampling
-    C = self.eval_t(t)
-    explicit = interpolate.interp1d(C[0,:],C[1,:])
-    
+#     assert( x.all() >= 0 and x.all() <= 1)
     # interpolate returns ndarray, need to convert it to float
-    return explicit(x)[()]
+    return self.explicit(x)[()]
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
@@ -300,7 +300,7 @@ class BisecSpline:
       self.type = "linear"
   
   def eval_spline(self,x):
-    assert( x.all() >= 0 and x.all() <= 1)
+#     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
     res = []
     
@@ -698,16 +698,29 @@ def create_profiles_array(args,infoXml):
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
 def create_profile_map(profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
-  for i in range(0,res):
-    f = give_interpolate_radius(profile,i)
-    for alpha in range(0,360):
+  h = 1.0 / res
+  for i in range(0,res/4):
+    x = i * h + h / 2.0
+    print x
+    for alpha in range(0,90):
       rad = np.pi/180. * alpha
-      map[alpha,i] = f(rad)
+      map[alpha,i] = get_radius(profile, x, dir, rad)
+    for alpha in range(90,180):
+      rad = np.pi/180. * alpha
+      map[alpha,i] = get_radius(profile, x, dir, np.pi-rad)
+    for alpha in range(180,270):
+      rad = np.pi/180. * alpha
+      map[alpha,i] = get_radius(profile, x, dir, rad-np.pi)
+    for alpha in range(270,360):
+      rad = np.pi/180. * alpha
+      map[alpha,i] = get_radius(profile, x, dir, 2*np.pi-rad)
   
   if verbose == 'profile_map':
     X,Y = np.meshgrid(range(res),range(360))
     ha.plot_surface(X, Y, map)
     plt.show()
+    
+  print map
   
   return map
 
@@ -732,7 +745,35 @@ def plot_3dlines(profile,res,numLines,dir,ha):
   nodes = get_surface_lines(map, numLines, dir)
   for i in range(numLines):
     ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
- 
+    
+# returns radius in direction 'dir' and radiant 'rad'
+#
+def get_radius(profile,x,dir,rad):
+  # determine in which quadrant we are
+  assert (rad >= 0)
+  
+  phi = profile.functions[1].angle
+  
+#   if rad <= np.pi/2:
+  return calc_radius_for_quadrant(profile, phi, x, rad)
+#   elif rad <= np.pi:
+#     return calc_radius_for_quadrant(profile, phi, x, np.pi-rad)
+#   elif rad <= 3*np.pi/2:
+#     return calc_radius_for_quadrant(profile, phi, x, rad-np.pi)
+#   else: #rad between 3pi/2 and 2*pi
+#     return calc_radius_for_quadrant(profile, phi, x, 2*np.pi-rad)
+# called by get_radius
+# calculates interpolated radius for one quadrant (0 to pi/2)
+# @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
+# @param x: parameter for function evaluation
+# @param rad: radiant for evaluation
+def calc_radius_for_quadrant(profile,phi,x,rad):
+  funcs = profile.functions
+  assert(rad >= 0 and rad <= np.pi/2.0)
+  if rad <= phi:
+    return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x)
+  else : # rad <= np.pi/2.0 
+    return  1.0/phi * rad * funcs[1].eval(x) + (1.0/phi*rad - 1.0) * funcs[2]
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx):
   if type(vec) == tuple:
