@@ -174,6 +174,7 @@ class PrincipleSpline():
   def __init__(self):
     self.spline = None
     self.angle = -1
+    self.type = "bspline"
   
   def __init__(self, x1, y1, bend, angle=0):
     rx = 0.5 - x1/2.0 # radius for center (0,1)
@@ -182,15 +183,16 @@ class PrincipleSpline():
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
     self.spline = Cubic_spline(P)
     self.angle = angle
+    # coordinate where slope is 1
+    self.coords_cut = self.calc_coords_grad_1()
+    self.type = "bspline"
     
   # eval function in case x is one element, not a list  
   def eval_elem(self,x):
-    coord_cut = self.spline.calc_coords_grad_1()
-    
-    if x < coord_cut[0]:
+    if x < self.coords_cut[0]:
       val = self.spline.eval_x(x)
-    elif x > coord_cut[0] and x < 1 - coord_cut[0]:
-      val = coord_cut[1]
+    elif x > self.coords_cut[0] and x < 1 - self.coords_cut[0]:
+      val = self.coords_cut[1]
     else: #x >= 1- coord_cut[0]
       val = self.spline.eval_x(1-x)
     
@@ -243,12 +245,12 @@ class BisecSpline:
   
     # left part is same spline as orhtogonal spline up to point
     left = PrincipleSpline(x1, 0.5*(y1+z1), bend)
-    b = left.calc_coords_grad_1() 
+    b = left.coords_cut 
     assert(b[0] <= 0.5 and b[1] >= 0.5)
 
     # search for point p
     right = PrincipleSpline(y1, z1, bend)
-    p = right.calc_coords_grad_1()
+    p = right.coords_cut
   
     assert(p[0] <= 0.5 and p[1] >= 0.5)
     height = distance_to_center(p) + 0.5
@@ -287,18 +289,18 @@ class BisecSpline:
     self.spline = bspline
     self.linear = lin
     # to check if bicubic has under/overshooting when point p is much lower than point b
-    if p[1] >= b[1] + 1e-3:
+    if height >= b[1] + 1e-3:
       self.type = "bicubic"
       
     # in case function composed of b-spline and cubic function has undershoot  
     # in case b-spline has no undershoot (point p is not below bspline(x=0))
-    elif p[1] < 0.5 + x1/2.0:  
+    elif height > 0.5 + x1/2.0:  
       self.type = "bSpline"
       
     # in case we have undershooting for biqua AND for spline
     else:
       self.type = "linear"
-  
+      
   def eval_spline(self,x):
 #     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
@@ -307,6 +309,7 @@ class BisecSpline:
     # make x iterable in case it's one float element and not a list
     x = np.reshape(x, np.size(x), )
     for i in x:
+      assert(i >= 0 and i <=1)
       if i <= 0.5:
         val = self.spline.eval_x(i)
       else:
@@ -319,24 +322,23 @@ class BisecSpline:
     return res
   
   def eval_bicubic(self,x):
-    assert( x.all() >= 0 and x.all() <= 1)
     # coordinate at which slope is 1
     left = self.bicubic[0]
     cubic = self.bicubic[1]
-    coords1 = left.calc_coords_grad_1()
     res = []
     
     # make x iterable in case it's one float element and not a list
     x = np.reshape(x, np.size(x), )
     
     for i in x:
+      assert(i >= 0 and i <=1)
       if i <= 0.5:
-        if i <= coords1[0]:
+        if i <= left.coords_cut[0]:
           val = left.eval(i)
         else:
           val = cubic(i)
       else:
-        if i <= 1.0-coords1[0]: # mirror of cubic 
+        if i <= 1.0-left.coords_cut[0]: # mirror of cubic 
          val = cubic(1-i)
         else:
          val = left.eval(1-i)
@@ -345,7 +347,6 @@ class BisecSpline:
     return res
   
   def eval_linear(self,x):
-    assert( x.all() >= 0 and x.all() <= 1)
     return self.linear.eval(x)
   
   def eval(self,x):
@@ -682,12 +683,12 @@ def create_profiles_array(args,infoXml):
     for i in range(0,3):
       if profiles[i] == None:
         continue
+      if args.verbose == 'profile_map':
+        create_profile_map(profiles[i], res, args.verbose, ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i+1, ha)
-      if args.verbose == 'profile_map':
-        create_profile_map(profiles[i], res, args.verbose, ha)
   
   if args.target == '3dlines':
     plt.show()
@@ -699,29 +700,27 @@ def create_profiles_array(args,infoXml):
 def create_profile_map(profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
   h = 1.0 / res
-  for i in range(0,res/4):
+  for i in range(0,res):
     x = i * h + h / 2.0
-    print x
-    for alpha in range(0,90):
+    for alpha in range(0,360):
       rad = np.pi/180. * alpha
-      map[alpha,i] = get_radius(profile, x, dir, rad)
-    for alpha in range(90,180):
-      rad = np.pi/180. * alpha
-      map[alpha,i] = get_radius(profile, x, dir, np.pi-rad)
-    for alpha in range(180,270):
-      rad = np.pi/180. * alpha
-      map[alpha,i] = get_radius(profile, x, dir, rad-np.pi)
-    for alpha in range(270,360):
-      rad = np.pi/180. * alpha
-      map[alpha,i] = get_radius(profile, x, dir, 2*np.pi-rad)
-  
+      if alpha <= 90:
+        map[alpha,i] = calc_radius_for_quadrant(profile, x, rad)
+      elif alpha <= 180:
+        map[alpha,i] = calc_radius_for_quadrant(profile, x, np.pi-rad)
+      elif alpha <= 270: 
+        map[alpha,i] = calc_radius_for_quadrant(profile, x, rad-np.pi)
+      else: # 270 <= alpha <= 360
+        map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
+    
   if verbose == 'profile_map':
+    ha.set_xlabel('X')
+    ha.set_ylabel('Y')
+    ha.set_zlabel('Z')
     X,Y = np.meshgrid(range(res),range(360))
     ha.plot_surface(X, Y, map)
     plt.show()
     
-  print map
-  
   return map
 
 def plot_3dlines(profile,res,numLines,dir,ha):
@@ -746,34 +745,27 @@ def plot_3dlines(profile,res,numLines,dir,ha):
   for i in range(numLines):
     ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
     
-# returns radius in direction 'dir' and radiant 'rad'
-#
-def get_radius(profile,x,dir,rad):
-  # determine in which quadrant we are
-  assert (rad >= 0)
-  
-  phi = profile.functions[1].angle
-  
-#   if rad <= np.pi/2:
-  return calc_radius_for_quadrant(profile, phi, x, rad)
 #   elif rad <= np.pi:
 #     return calc_radius_for_quadrant(profile, phi, x, np.pi-rad)
 #   elif rad <= 3*np.pi/2:
 #     return calc_radius_for_quadrant(profile, phi, x, rad-np.pi)
 #   else: #rad between 3pi/2 and 2*pi
 #     return calc_radius_for_quadrant(profile, phi, x, 2*np.pi-rad)
-# called by get_radius
+
 # calculates interpolated radius for one quadrant (0 to pi/2)
 # @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
 # @param x: parameter for function evaluation
 # @param rad: radiant for evaluation
-def calc_radius_for_quadrant(profile,phi,x,rad):
-  funcs = profile.functions
+def calc_radius_for_quadrant(profile,x,rad):
   assert(rad >= 0 and rad <= np.pi/2.0)
+  
+  funcs = profile.functions
+  phi = funcs[1].angle
+  
   if rad <= phi:
-    return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x)
+    return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
   else : # rad <= np.pi/2.0 
-    return  1.0/phi * rad * funcs[1].eval(x) + (1.0/phi*rad - 1.0) * funcs[2]
+    return  1.0/phi * rad * funcs[1].eval(x) + (1.0/phi*rad - 1.0) * funcs[2] - 0.5
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx):
   if type(vec) == tuple:
@@ -823,6 +815,10 @@ def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
   h = 1.0/res
   assert(dir >=1 and dir <=3)
+  
+  print profile.functions[0].type
+  print profile.functions[1].type
+  print profile.functions[2].type
   
   map = create_profile_map(profile, res)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
