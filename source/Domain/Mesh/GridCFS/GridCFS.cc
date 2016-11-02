@@ -2944,8 +2944,15 @@ namespace CoupledField {
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
-    in->Get("hull_volume")->SetValue(CalcGridVolume());
-    in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
+    // we only have this info when doing homogenization
+    if (param_->Has("optimization")) {
+      std::string type;
+      param_->Get("optimization")->Get("costFunction")->GetValue("type",type);
+      if (type == "homTensor") {
+        in->Get("hull_volume")->SetValue(CalcGridVolume());
+        in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
+      }
+    }
 
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {

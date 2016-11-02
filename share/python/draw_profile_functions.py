@@ -446,12 +446,16 @@ def create_profiles(args,infoXml=None):
     plt.gcf().subplots_adjust(bottom=0.15)
     x = np.linspace(0, 1.0, args.res)
     
-    for profile in profiles:
-      plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle))
+    for dir,profile in enumerate(profiles):
+#       plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle),linewidth=5.0,label="dir_"+str(i+1)+"_0")
+      plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
+      plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
 #       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
 #       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
-      plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
+      plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
+#       plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
     
+    plt.legend(loc='upper left', shadow=True)
     plt.rcParams.update({'font.size': 18})
     #plt.ylim([0,0.5])
     plt.xlabel("x",labelpad=5)
@@ -712,6 +716,9 @@ def create_profile_map(profile,res,verbose=None,ha=None):
         map[alpha,i] = calc_radius_for_quadrant(profile, x, rad-np.pi)
       else: # 270 <= alpha <= 360
         map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
+    
+      if i == 50:
+        print alpha," \t",map[alpha,i]
     
   if verbose == 'profile_map':
     ha.set_xlabel('X')
