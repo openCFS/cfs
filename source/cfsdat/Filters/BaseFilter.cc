@@ -16,9 +16,11 @@
 
 #include "BaseFilter.hh"
 #include "Filters/Arithmetic/BinOpFilter.hh"
+#include "Filters/Arithmetic/VecOpFilter.hh"
 #include "Filters/Input/InputFilter.hh"
 #include "Filters/Output/OutputFilter.hh"
 #include "Filters/Interpolators/BaseInterpolationFilter.hh"
+#include "Filters/Derivatives/BaseDerivativeFilter.hh"
 #include "Filters/Derivatives/RotatingSubstDt.hh"
 #include "Filters/Derivatives/TimeDerivFilter.hh"
 #include <boost/tokenizer.hpp>
@@ -40,9 +42,14 @@ if(filtNode->GetName() == "meshInput"){
   newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
 }else if(filtNode->GetName() == "binaryOperation"){
   newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
+}else if(filtNode->GetName() == "differentiation"){
+  newPtr = BaseDerivativeFilter::GenerateSpatialDerivative(filtNode,resMana);
+}else if (filtNode->GetName() == "vectorOperation"){
+  newPtr = VecOpFilter::GenerateVectorOperator(filtNode,resMana);
 }
 return newPtr;
 }
+
 
 BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
             : numWorkers_(numWorkers),

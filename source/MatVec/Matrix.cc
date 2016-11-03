@@ -1636,7 +1636,7 @@ namespace CoupledField
 #endif
 
 #ifndef USE_LAPACK
-    EXCEPTIO("Compile with LAPACK support for matrix inversion");
+    EXCEPTION("Compile with LAPACK support for matrix inversion");
 #else
     
     

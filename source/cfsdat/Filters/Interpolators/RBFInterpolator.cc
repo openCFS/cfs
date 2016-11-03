@@ -4,25 +4,27 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     NearesNeighbourInterpolator.hh
+ *       \file     RBFInterpolator.hh
  *       \brief    <Description>
  *
- *       \date     Aug 8, 2016
+ *       \date     Sep 8, 2016
  *       \author   kroppert
  */
 //================================================================================================
 
 
-#include "NearestNeighbourInterpolator.hh"
+#include "RBFInterpolator.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 #include <algorithm>
 #include <vector>
+#include <math.h>
+
 
 namespace CFSDat{
 
-NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshBasedInterpolator(numWorkers,config,resMan){
 
   this->filtSteamType_ = FIFO_FILTER;
@@ -44,15 +46,13 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
     EXCEPTION("no search algorithm selected!");
   }
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
-  searchRadius_ = config->Get("scheme")->Get("searchRadius")->As<Double>();
-  numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
 }
 
-NearestNeighbourInterpolator::~NearestNeighbourInterpolator(){
+RBFInterpolator::~RBFInterpolator(){
 
 }
 
-bool NearestNeighbourInterpolator::Run(){
+bool RBFInterpolator::Run(){
   // we deactivate every result, except for our own
   std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
   std::set<uuids::uuid>::iterator aIter = activeResults.begin();
@@ -75,7 +75,10 @@ bool NearestNeighbourInterpolator::Run(){
     (*srcIter)->Run();
   }
 
+
+
   CF::StdVector<UInt> eqnNums;
+
   /// this is the vector, which will be filled with the interpolation result
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   returnVec.Init();
@@ -89,10 +92,16 @@ bool NearestNeighbourInterpolator::Run(){
   CF::StdVector< CF::Vector<Double> >  scatteredData;
   scatteredData.Resize(sourceCoords_.GetSize());
 
+  // find out the dimension of the mesh (2D, 3D) and assign the appropriate number of nearest neighbours
+  // nr. of nearest neighbours for the nodal RBF basis functions
+  UInt numNN = (trgGrid_->GetDim() == 2) ? 13 : 18 ;
+  //nr. of nearest neighbours needed for the weight-calculation (must be smaller than numNN !!)
+  UInt numNW = (trgGrid_->GetDim() == 3) ? 10 : 7 ;
 
   // vector containing the interpolated result for every trg node
   // can be 1D for scalar values or 2D/3D for vector values
   CF::Vector<Double> vec;
+  CF::Vector<Double> R_k;
 
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
 
@@ -104,6 +113,7 @@ bool NearestNeighbourInterpolator::Run(){
     //this is the case of scalar scattered values
     inDim_=0;
     vec.Resize(1);
+    R_k.Resize(1);
     for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
       scatteredData[i].Resize(1);
       scatteredData[i][0] = inVec[i];
@@ -113,6 +123,7 @@ bool NearestNeighbourInterpolator::Run(){
             //case of two dimensional vector
             inDim_=1;
             vec.Resize(2);
+            R_k.Resize(2);
             for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
             scatteredData[i].Resize(2);
             scatteredData[i][0] = inVec[2 * i]; // x-component
@@ -123,6 +134,7 @@ bool NearestNeighbourInterpolator::Run(){
                 // case of three dimensional vector
                 inDim_=2;
                 vec.Resize(3);
+                R_k.Resize(3);
                 for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
                 scatteredData[i].Resize(3);
                 scatteredData[i][0] = inVec[3 * i]; // x-component
@@ -136,24 +148,28 @@ bool NearestNeighbourInterpolator::Run(){
     }
 
 
+
+
   //now we can bring the scattered coordinates and data values into
   //the correct form for the nearest neighbour-search witch CGAL or FLANN
-  ReadScatteredData(sourceCoords_, scatteredData);
+ReadScatteredData(sourceCoords_, scatteredData);
+
+
 
   CF::StdVector<UInt> nodeCheck;
   nodeCheck.Resize(trgGrid_->GetNumNodes(ALL_REGIONS));
   nodeCheck.Init();
   bool nodeMatch;
 
+
   // loop over all elements and over every node of each element
-  for(UInt i=0;i < interpolData_.size();++i){
+ for(UInt i=0;i < interpolData_.size();++i){
     UInt nodeIter = 0;
     InpolationStruct& aStru = interpolData_[i];
     const Elem* curE = trgGrid_->GetElem(aStru.tENum);
     CF::shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(curE,true);
     //eConn gives us the node numbers of current element curE
     const CF::StdVector<UInt>& eConn = curE->connect;
-
 
     //get the global coordinates of the nodes of element curE
     CF::Matrix<Double> globalCoords;
@@ -169,7 +185,8 @@ bool NearestNeighbourInterpolator::Run(){
     //BUT only if the interpolation for this certain node has not been
     //carried out before. Therefore we use a std::search in which we
     //search, if the current node has been used before
-    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
+
+    for(UInt aNode = 0;aNode < eConn.GetSize(); ++aNode){
       //extract the global point of node aNode
       CF::Vector<Double> globPoint;
       globalCoords.GetCol(globPoint, aNode);
@@ -196,7 +213,7 @@ bool NearestNeighbourInterpolator::Run(){
           {
           case 0: //CGAL
         #ifdef USE_CGAL
-            KNNSearch_CGAL(globPoint, neighbors, l2dists, vectors);
+            KNNSearch_CGAL(globPoint, neighbors, l2dists, vectors, numNN);
         #else
             EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
         #endif
@@ -204,7 +221,7 @@ bool NearestNeighbourInterpolator::Run(){
 
           case 1: //FLANN
         #ifdef USE_FLANN
-            KNNSearch_FLANN(globPoint, neighbors, l2dists, vectors, scatteredData);
+            KNNSearch_FLANN(globPoint, neighbors, l2dists, vectors, scatteredData, numNN);
 
         #else
             EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_FLANN=ON!");
@@ -213,58 +230,77 @@ bool NearestNeighbourInterpolator::Run(){
           default:
             break;
           }
-          Double dmin = l2dists[0];
-          Double dmax = dmin;
-          StdVector< Double >::iterator it, end;
-          it = l2dists.Begin();
-          end = l2dists.End();
-          for( ; it != end; ++it) {
-            Double dist = (*it);
-            dmin = dmin < dist ? dmin : dist;
-            dmax = dmax > dist ? dmax : dist;
+
+          // concerning radius factor alpha: we want to scale min(l2dists)/alpha~=1.5e-03
+          // this means alpha = min(l2dists) * 1.5e+03
+          // the first entry of l2dists is zero, if target and source node coincide, then we
+          // simply take the next entry, which must be != 0
+          Double alpha;
+          if( l2dists[0] == 0.0 ){
+            alpha = l2dists[1] * 1.5e+03;
+          }else{
+            alpha = l2dists[0] * 1.5e+03;
           }
 
-            // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-            // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-            // /Inverse_Distance_Weighted/Shepards_Method.htm
-            Vector<Double> sum(inDim_+1);
-            Double weights = 0.0;
-            // The point which is farthest away, should at least have a non-zero
-            // weight of 0.01. If we would choose R = dmax, it would not contribute
-            // at all.
-            Double R = 1.01 * dmax;
 
-            // report the N nearest neighbors and their distance
-            // This should sort all N points by increasing distance from origin
-            it = l2dists.Begin();
-            for(UInt j=0; it != end; ++it, j++) {
-              Double d = *it;
-              Double w;
-              if(d == 0){
-               w = 1.0;
+          // local RBF interpolation coefficients vector (matrix only because
+          // of the following ALoc*coefVec multiplication)
+          CF::Matrix<Double> coefVec;
+          CalcLocRBFCoefs(coefVec, globPoint, neighbors, l2dists, vectors, numNN, alpha);
+
+          Double r_k;
+          Double W_k_bar;
+          Double temp;
+          Double r_Wk = l2dists[numNW]; //influence radius of the weight function
+          Double W_denom = 0.0;
+      //now we can perform the computation of the weight function
+      for (UInt srcIter = 0; srcIter < numNN; ++srcIter){
+            r_Wk = l2dists[numNW]; //influence radius of the weight function
+            W_denom = 0.0;
+            for (UInt k = 0; k < numNN; ++k){
+              r_k = l2dists[k];
+              temp = (r_Wk - r_k);
+              if (temp < 0.0){temp = 0.0;}
+              if (r_k == 0.0){
+                W_denom += 0.0;
               }else{
-               w = std::pow((R-d)/(R*d), p_);
+                W_denom += pow(temp / (r_Wk * r_k), Double(p_));
+               }
               }
-              weights += w;
+          r_k = l2dists[srcIter];
+          temp = (r_Wk - r_k);
+          if (temp < 0.0){temp = 0.0;}
+          if (r_k == 0.0){
+            W_k_bar = 1.0 / W_denom;
+          }else{
+            W_k_bar = pow(temp / (r_Wk * r_k), Double(p_)) / W_denom;
+          }
 
-              for(UInt dof=0; dof < inDim_ + 1; dof++)
-              {
-                sum[dof] += vectors[j][dof] * w;
-              }
-            }
+          //RBF evaluation
+          //just a clear-up of of R_k
+          for (UInt dof = 0; dof < inDim_ + 1; dof++){
+          R_k[dof] = 0.0;
+          }
 
-            for(UInt dof=0; dof < inDim_ + 1; dof++)
-            {
-              vec[dof] = sum[dof] / weights;
+          for(UInt dof=0; dof < inDim_ + 1; dof++){
+            for (UInt m = 0; m < numNN; ++m){
+              R_k[dof] += coefVec[m][dof] * pow(1.0 - l2dists[m]/alpha, 2.0);
             }
-            CF::StdVector<UInt> eqns;
+          }
+
+          for(UInt dof=0; dof < inDim_ + 1; dof++){
+            vec[dof] += R_k[dof] * W_k_bar;
+          }
+
+      }
+      CF::StdVector<UInt> eqns;
             //get the equation map for the nodes in eConn, in order to insert the
             //interpolation in the correct position in the result vector
             downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
 
             //if scalar input values of scattered data->inDim_=0
             //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-            for(UInt aDof = 0; aDof < inDim_+1; aDof++){
+            for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
               returnVec[eqns[aDof]] = vec[aDof];
             }
             //iterator for the already computed nodes
@@ -273,18 +309,73 @@ bool NearestNeighbourInterpolator::Run(){
         }// if nodeMatch == false
     }// for aNode
   }// for element
+
   resultManager_->ActivateResult(filterResIds[0]);
 
   //now deactivate own upstream results
   for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
     resultManager_->DeactivateResult(upResIds[aRes]);
   }
-std::cout<<returnVec.GetSize()<<std::endl;
+
   return true;
 }
 
 
-void NearestNeighbourInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<Double> > sourceCoords, CF::StdVector< CF::Vector<Double> > scatteredData)
+
+void RBFInterpolator::CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
+                                      CF::Vector<Double>& globPoint,
+                                      CF::StdVector< Vector<Double> >& neighbors,
+                                      CF::StdVector< Double >& l2Distances,
+                                      CF::StdVector< Vector<Double> >& vectors,
+                                      UInt numNN,
+                                      Double alpha){
+  coefVec.Resize(numNN,1);
+  CF::Matrix<Double> ALoc;
+  ALoc.Resize(numNN,numNN);
+  CF::Matrix<Double> vals;
+
+
+
+  Double rNN; //distance between two src points
+  for (UInt i = 0; i < numNN; ++i){
+    for (UInt j = 0; j < numNN; ++j){
+      if (trgGrid_->GetDim() == 3){
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
+      }else{
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
+      }
+      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
+    }
+    switch( inDim_ ){
+    case 0:
+      vals.Resize(numNN,1);
+      vals[i][0] = vectors[i][0];
+      break;
+    case 1:
+      vals.Resize(numNN,2);
+      vals[i][0] = vectors[i][0];
+      vals[i][1] = vectors[i][1];
+      break;
+    case 2:
+      vals.Resize(numNN,3);
+      vals[i][0] = vectors[i][0];
+      vals[i][1] = vectors[i][1];
+      vals[i][2] = vectors[i][2];
+      break;
+    }
+ }
+
+  // now we have to invert Aloc and multiply it with the according value-coloumn
+  ALoc.Invert_Lapack();
+
+  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
+  coefVec = ALoc * vals;
+}
+
+
+
+void RBFInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<Double> > sourceCoords,
+                                        CF::StdVector< CF::Vector<Double> > scatteredData)
 {
 
   UInt n = sourceCoords_.GetSize();
@@ -293,10 +384,14 @@ void NearestNeighbourInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<D
   case 0: //CGAL
 #ifdef USE_CGAL
     {
+UInt i=0;
+
     std::vector<CGAL::Point> points;
     points.resize(n);
-    for(UInt i=0; i<n; i++)
+
+    for( i=0; i<n; i++)
     {
+
       if(trgGrid_->GetDim() == 2){
         if(inDim_ == 0){
           points[i] = (CGAL::Point(sourceCoords_[i][0],
@@ -331,8 +426,9 @@ void NearestNeighbourInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<D
                                    scatteredData[i][2]));
       }
     }
-    searchTree_.reset(new Tree(points.begin(), points.end()));
+   searchTree_.reset(new Tree(points.begin(), points.end()));
     }
+
   }
 #else
     EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
@@ -378,23 +474,16 @@ void NearestNeighbourInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<D
     break;
   }
 
-  if(n < numNeighbors_)
-  {
-    numNeighbors_ = n;
-  }
 }
 
-
-
-
-void NearestNeighbourInterpolator::PrepareInterpolation(){
+void RBFInterpolator::PrepareInterpolation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...
   //4. Small clean-up
 
 
-  std::cout << "\t ---> NearesNeighbourInterpolator preparing for interpolation" << std::endl;
+  std::cout << "\t ---> RBFInterpolator preparing for interpolation" << std::endl;
 
   //in this filter we only have one upstream result
   uuids::uuid upRes = upResIds[0];
@@ -460,9 +549,6 @@ void NearestNeighbourInterpolator::PrepareInterpolation(){
                " source elements and "<< allTrgElems.GetSize() << " target elements" << std::endl;
 
 
-
-
-
   std::cout << "\t\t 1/5 Obtaining source coordinates " << std::endl;
   //here we also find out, if the input is defined on elements (-centroids) or nodes
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
@@ -502,6 +588,7 @@ void NearestNeighbourInterpolator::PrepareInterpolation(){
         }
       }
   }
+
 
 
   std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
@@ -555,7 +642,7 @@ void NearestNeighbourInterpolator::PrepareInterpolation(){
   std::cout << "\t\t Interpolation prepared!" << std::endl;
 }
 
-ResultIdList NearestNeighbourInterpolator::SetUpstreamResults(){
+ResultIdList RBFInterpolator::SetUpstreamResults(){
   ResultIdList generated;
   //we should only have one filter Result
   CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
@@ -573,7 +660,7 @@ ResultIdList NearestNeighbourInterpolator::SetUpstreamResults(){
 
 }
 
-void NearestNeighbourInterpolator::AdaptFilterResults(){
+void RBFInterpolator::AdaptFilterResults(){
   //some checks
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
   if(!inInfo->isValid){
@@ -581,7 +668,7 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
   }
   //we require mesh result input
   if(!inInfo->isMeshResult){
-    EXCEPTION("NearesNeighbour interpolation required input to be defined on mesh");
+    EXCEPTION("RBF interpolation requires input to be defined on mesh");
   }
 
   //got the upstream result validated?
@@ -592,6 +679,7 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
   resultManager_->CopyResultData(upResIds[0],filterResIds[0]);
   //but now, we need to overwrite some things
   resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
+
   //after this filter we have nodal values on different regions
   //on a different grid
   resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
@@ -604,10 +692,11 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
 
 
 #ifdef USE_CGAL
-void NearestNeighbourInterpolator::KNNSearch_CGAL(const Vector<Double> globPoint,
+void RBFInterpolator::KNNSearch_CGAL(const Vector<Double> globPoint,
   StdVector< Vector<Double> >& neighbors,
   StdVector< Double >& l2Distances,
-  StdVector< Vector<Double> >& vectors)
+  StdVector< Vector<Double> >& vectors,
+  UInt numNN)
 {
 CGAL::Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 if(globPoint.GetSize() == 2)
@@ -621,7 +710,7 @@ else
   query = query3;
 }
 
-K_neighbor_search search(*searchTree_.get(), query, numNeighbors_);
+K_neighbor_search search(*searchTree_.get(), query, numNN);
 
 K_neighbor_search::iterator it = search.begin();
 
@@ -640,7 +729,6 @@ for(UInt i=0 ; it != search.end(); ++it, i++) {
   neighbors[i].Resize(globPoint.GetSize());
   vectors[i].Resize(globPoint.GetSize());
 
-    if(l2Distances[i]<searchRadius_){
       if(globPoint.GetSize() == 2)
       {
         it->first.vx(vectors[i][0]);
@@ -658,37 +746,18 @@ for(UInt i=0 ; it != search.end(); ++it, i++) {
         neighbors[i][1] = it->first.y();
         neighbors[i][2] = it->first.z();
       }
-    }else{
-      if(globPoint.GetSize() == 2)
-      {
-        vectors[i][0] = 0.0;
-        vectors[i][1] = 0.0;
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-      }
-      else
-      {
-        vectors[i][0] = 0.0;
-        vectors[i][1] = 0.0;
-        vectors[i][2] = 0.0;
-
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-        neighbors[i][2] = it->first.z();
-      }
-    }
-
 
 }
 }
 #endif
 
 #ifdef USE_FLANN
-void NearestNeighbourInterpolator::KNNSearch_FLANN(const Vector<Double> globPoint,
+void RBFInterpolator::KNNSearch_FLANN(const Vector<Double> globPoint,
       StdVector< Vector<Double> >& neighbors,
       StdVector< Double >& l2Distances,
       StdVector< Vector<Double> >& vectors,
-      StdVector< Vector<Double> > scatteredData)
+      StdVector< Vector<Double> > scatteredData,
+      UInt numNN)
   {
   Double q[3];
 
@@ -707,44 +776,32 @@ void NearestNeighbourInterpolator::KNNSearch_FLANN(const Vector<Double> globPoin
 
   flann::Matrix<Double> query(q, 1,3);
 
-  flann::Matrix<int> indices(new int[query.rows*numNeighbors_], query.rows, numNeighbors_);
-  flann::Matrix<Double> dists(new Double[query.rows*numNeighbors_], query.rows, numNeighbors_);
+  flann::Matrix<int> indices(new int[query.rows*numNN], query.rows, numNN);
+  flann::Matrix<Double> dists(new Double[query.rows*numNN], query.rows, numNN);
   // do a knn search, using 3 checks
-  index_->knnSearch(query, indices, dists, numNeighbors_, flann::SearchParams(flann::FLANN_CHECKS_UNLIMITED));
+  index_->knnSearch(query, indices, dists, numNN, flann::SearchParams(flann::FLANN_CHECKS_UNLIMITED));
 
-  neighbors.Resize(numNeighbors_);
-  l2Distances.Resize(numNeighbors_);
-  vectors.Resize(numNeighbors_);
+  neighbors.Resize(numNN);
+  l2Distances.Resize(numNN);
+  vectors.Resize(numNN);
   for(UInt i=0; i<indices.rows; i++)
   {
-    for(UInt j=0; j<numNeighbors_; j++)
+    for(UInt j=0; j<numNN; j++)
     {
       l2Distances[j] = std::sqrt(dists[i][j]);
 
-
-        if(l2Distances[j]<searchRadius_){
           UInt idx = indices[i][j];
-
-          neighbors[j].Resize(inDim_+1);
+          neighbors[j].Resize(globPoint.GetSize());
           vectors[j].Resize(inDim_+1);
 
+          for(UInt d=0; d<globPoint.GetSize(); d++)
+          {
+            neighbors[j][d] = sourceCoords_[idx][d];
+          }
           for(UInt d=0; d<inDim_+1; d++)
           {
             vectors[j][d] = scatteredData[idx][d];
-            neighbors[j][d] = sourceCoords_[idx][d];
           }
-        }else{
-          UInt idx = indices[i][j];
-
-          neighbors[j].Resize(inDim_+1);
-          vectors[j].Resize(inDim_+1);
-
-          for(UInt d=0; d<inDim_+1; d++)
-          {
-            vectors[j][d] = scatteredData[idx][d] * 0.0;
-            neighbors[j][d] = sourceCoords_[idx][d];
-          }
-        }
 
 
     }
@@ -757,4 +814,3 @@ void NearestNeighbourInterpolator::KNNSearch_FLANN(const Vector<Double> globPoin
 
 
 }
-

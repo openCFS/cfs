@@ -4,15 +4,15 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     NearesNeighbourInterpolator.hh
+ *       \file     RBFInterpolator.hh
  *       \brief    <Description>
  *
- *       \date     Aug 8, 2016
+ *       \date     Sep 8, 2016
  *       \author   kroppert
  */
 //================================================================================================
 
-#pragma once //instead of the #ifndef #def ...
+#pragma once
 
 
 #include "MeshBasedInterpolator.hh"
@@ -23,49 +23,35 @@
 #include <cfsdat/Utils/Point.hh>
 
 
-
 namespace CFSDat{
 
-//! Class for calculating a nearest neighbour interpolation using CGAL or FLANN
-//! for neighbour search
+//! Class for calculating interpolation using radial basis functions (RBF)
 
 
-class NearestNeighbourInterpolator : public MeshBasedInterpolator{
+class RBFInterpolator : public MeshBasedInterpolator{
 
   struct InpolationStruct{
-    CF::Vector<Double> localCoords;
-    UInt tENum;
-    UInt srcEqn;
-    Double volume;
+    CF::Vector<Double> localCoords; //target local coordinates
+    UInt tENum; //target element number
 
-    InpolationStruct() : tENum(0),srcEqn(0),volume(.0){
+
+    InpolationStruct() : tENum(0){
       localCoords.Resize(3);
     }
 
-    bool operator < (const InpolationStruct& str) const
-    {
-        return (srcEqn < str.srcEqn);
-    }
+
   };
 
 public:
 
-  NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~NearestNeighbourInterpolator();
+  virtual ~RBFInterpolator();
 
   virtual bool Run();
 
-  enum InterpolationAlgorithm
-  {
-    SHEPARD, NEAREST_NEIGHBOR
-  };
 
-/*  enum KNNLibary
-  {
-    CGAL, FLANN
-  };
-*/
+
 protected:
 
   virtual void PrepareInterpolation();
@@ -75,7 +61,19 @@ protected:
   virtual void AdaptFilterResults();
 
   // Read scattered data
-  void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids, CF::StdVector< CF::Vector<Double> > scatteredData);
+  void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids,
+                         CF::StdVector< CF::Vector<Double> > scatteredData);
+
+  // build the local RBF interpolation matrix, based on the nearest neighbour source points
+  // build the local interpolation-value vector and solve the system ALoc*c=vector for
+  // the local RBF coefficients c
+  void CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
+                                        CF::Vector<Double>& globPoint,
+                                        CF::StdVector< Vector<Double> >& neighbors,
+                                        CF::StdVector< Double >& l2Distances,
+                                        CF::StdVector< Vector<Double> >& vectors,
+                                        UInt numNN,
+                                        Double alpha);
 
   // Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
@@ -85,13 +83,6 @@ protected:
 
   //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
   UInt inDim_;
-
-  // Search radius for values.
-  Double searchRadius_;
-
-
-  //! Number of neighbor points to include in interpolation.
-  UInt numNeighbors_;
 
   //! Exponent for calculation of interpolation weight function.
   Double p_;
@@ -107,7 +98,8 @@ protected:
     void KNNSearch_CGAL(const Vector<Double> globPoint,
                         StdVector< Vector<Double> >& neighbors,
                         StdVector< Double >& l2Distances,
-                        StdVector< Vector<Double> >& vectors);
+                        StdVector< Vector<Double> >& vectors,
+                        UInt numNeighbors);
 #endif
 
 #ifdef USE_FLANN
@@ -118,7 +110,8 @@ protected:
                          StdVector< Vector<Double> >& neighbors,
                          StdVector< Double >& l2Distances,
                          StdVector< Vector<Double> >& vectors,
-                         StdVector< Vector<Double> > scatteredData);
+                         StdVector< Vector<Double> > scatteredData,
+                         UInt numNeighbors);
 #endif
 
 
