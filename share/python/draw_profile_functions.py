@@ -304,6 +304,8 @@ class BisecSpline:
     else:
       self.type = "linear"
       
+    print self.type
+      
   def eval_spline(self,x):
 #     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
@@ -368,16 +370,34 @@ class BisecSpline:
     
     x = np.linspace(0, 1, 100)
     
+    if self.type == "bicubic":
+      bicubic = self.eval_bicubic(x)
+      plt.plot(x,bicubic,label='bicubic',linewidth=5.0)
+    if self.type == "bSpline":
+      spline = self.eval_spline(x)
+      plt.plot(x,spline,label='spline',linewidth=5.0)
+    else:  
+      linear = self.eval_linear(x)
+      plt.plot(x,linear,label='linear',linewidth=5.0) 
+      
+    plt.legend(loc='upper left', shadow=True,prop={'size':20})
+    plt.show()
+    
+  def plot_all(self):
+    plt.gcf().clear()
+    
+    x = np.linspace(0, 1, 100)
+    
     bicubic = self.eval_bicubic(x)
     spline = self.eval_spline(x)
     linear = self.eval_linear(x)
-    
+
     plt.plot(x,bicubic,label='bicubic',linewidth=5.0)
     plt.plot(x,spline,label='spline',linewidth=5.0)
     plt.plot(x,linear,label='linear',linewidth=5.0) 
       
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
-    plt.show()
+    plt.show()  
     
   def angle(self):
     return self.angle
@@ -394,7 +414,7 @@ class Profile:
   def __init__(self, args, dir):
     assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 1 or dir == 2 or dir == 3)
-    self.dir = dir
+    self.direction = dir
     self.type = args.type
     self.functions = [None] * 3
     if self.type == "linear":
@@ -418,7 +438,7 @@ class Profile:
       self.bisec_angle = self.functions[1].angle
       
     if args.verbose == "bisec":
-      self.functions[1].plot()
+      self.functions[1].plot_all()
       
 #       t = np.linspace(0, 1.0, args.res)
 #       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
@@ -428,6 +448,8 @@ class Profile:
 #       plt.rcParams.update({'font.size': 18})
 #       plt.savefig("3splines.png")
 #       plt.show()
+
+    print "dir:", self.direction, " bisec type:", self.functions[1].type
     
       
 # return information on profiles 
@@ -724,6 +746,7 @@ def create_profile_map(profile,res,verbose=None,ha=None):
     
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
+      
       if alpha <= 90:
         map[alpha,i] = calc_radius_for_quadrant(profile, x, rad)
       elif alpha <= 180:
@@ -732,15 +755,12 @@ def create_profile_map(profile,res,verbose=None,ha=None):
         map[alpha,i] = calc_radius_for_quadrant(profile, x, rad-np.pi)
       else: # 270 <= alpha <= 360
         map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
-
-#       if i == 1:
-#         print i,alpha,map[alpha,i]
-#         print x+h/2.0,rad,calc_radius_for_quadrant(profile, x+h/2.0, rad)
-#         sys.exit()
-#         print i," \t",alpha," \t",map[alpha,i]
-#         
-#     if i == 1:
-#       sys.exit()
+        
+#       if i == 49:
+#         print i,alpha,map[alpha,i]  
+#     
+#     if i == 49:
+#       sys.exit()  
   if verbose == 'profile_map':
     ha.set_xlabel('X')
     ha.set_ylabel('Y')
@@ -788,59 +808,15 @@ def calc_radius_for_quadrant(profile,x,rad):
   assert(rad >= 0 and rad <= np.pi/2.0)
   
   funcs = profile.functions
+  
   phi = funcs[1].angle
-  if x == 0.3:
-    1.0/phi * rad * funcs[1].eval(x)
   if rad <= phi:
     return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
   else : # rad <= np.pi/2.0
     fact = (rad-phi) / (np.pi/2.0-phi)
     return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
-## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
-def give_interpolate_radius(vec, idx):
-  if type(vec) == tuple:
-    assert(len(vec) == 3)
-    val = []
-    rad = []
-    
-    val.append(vec[0][0][idx]) # 0 deg
-    assert(vec[0][1] == 0.0)
-    rad.append(0.0) 
-    
-    val.append(vec[1][0][idx]) # 45 de
-    rad.append(vec[1][1])
-    
-    val.append(vec[2][0][idx]) # 90
-    assert(vec[2][1] == np.pi/2)
-    rad.append(np.pi/2)
-    
-    val.append(vec[1][0][idx]) # 90+45
-    rad.append(np.pi-vec[1][1]) #np.pi/2+phi)
-    
-    val.append(vec[0][0][idx]) # 90+90=180
-    rad.append(np.pi)
-    
-    val.append(vec[1][0][idx]) # 180+45
-    rad.append(np.pi+vec[1][1])
-    
-    val.append(vec[2][0][idx]) # 180+90=270
-    rad.append(6.0/4.0*np.pi)
-    
-    val.append(vec[1][0][idx]) # 270+45
-    rad.append(2*np.pi-vec[1][1])
-    
-    val.append(vec[0][0][idx]) # 270+90=360=0 (full circle) 
-    rad.append(2*np.pi)
-      
-    f = interpolate.interp1d(rad, val)
-    return f
-  else:
-    assert(type(vec) <> tuple) # but a single vector
-    f = interpolate.interp1d((0, 7),(vec[idx], vec[idx])) # 7 is close to 2*pi
-    return f                            
-                                       
 
-# @param vec can be one vector or list of vector
+# rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
   h = 1.0 / res
@@ -856,7 +832,10 @@ def write_profile_to_array(array,profile,dir):
         z = k * h + h / 2.0
         valx = (y-0.5)**2 + (z-0.5)**2
         
-        phi = angle_to_center((y,z))
+#         phi = angle_to_center((y,z))
+        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
+        if y < 0.5:
+          phi = 2*np.pi - phi
         
         p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):

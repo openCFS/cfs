@@ -2945,7 +2945,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     unsigned int ex_size = me->GetNumberHomogenization(); // also ok when we do transform or robust
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
@@ -3014,7 +3014,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     Context* ctxt = f->ctxt;
 
     Matrix<double> diff_tensor;
@@ -3141,7 +3141,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
