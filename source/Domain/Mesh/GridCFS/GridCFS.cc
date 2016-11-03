@@ -2945,13 +2945,9 @@ namespace CoupledField {
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
     // we only have this info when doing homogenization
-    if (param_->Has("optimization")) {
-      std::string type;
-      param_->Get("optimization")->Get("costFunction")->GetValue("type",type);
-      if (type == "homTensor") {
-        in->Get("hull_volume")->SetValue(CalcGridVolume());
-        in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
-      }
+    if (progOpts->DoDetailedInfo()) {
+      in->Get("hull_volume")->SetValue(CalcHullVolume());
+      in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
     }
 
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
@@ -3068,7 +3064,7 @@ namespace CoupledField {
     }
   }
 
-  Double GridCFS::CalcGridVolume(bool updated)
+  Double GridCFS::CalcHullVolume(bool updated)
   {
     double s = CalcVolumeOfAllRegions(updated);
 
@@ -3124,7 +3120,7 @@ namespace CoupledField {
 
     // Make sure we have enough points
     if( (dim_ == 2 && points.GetSize() < 4) || (dim_ == 3 && points.GetSize() < 9) ) {
-      EXCEPTION("Not enough named nodes to calculate the volume.");
+      return -1; // in case we are not doing homogenization
     }
 
     // Calculate vertices
