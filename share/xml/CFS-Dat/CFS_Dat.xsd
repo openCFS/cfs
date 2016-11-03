@@ -273,6 +273,7 @@
       <xsd:enumeration value="Conservative_CutCell"/>
       <xsd:enumeration value="Cell2Node"/>
       <xsd:enumeration value="NearestNeighbour"/>
+      <xsd:enumeration value="RBF"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -354,6 +355,78 @@
   </xsd:complexType>
 
 
+ <xsd:simpleType name="DT_DerivativeType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="GradientDifferentiator"/>
+      <xsd:enumeration value="DivergenceDifferentiator"/>
+      <xsd:enumeration value="RotorDifferentiator"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_Differentiation">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0">
+          </xsd:element>
+          <xsd:element name="targetMesh">
+            <xsd:complexType>
+              <xsd:choice>
+                <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="1"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="singleResult">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="inputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="regions" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="sourceRegions">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="name"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="targetRegions">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="name"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="type" use="required" type="DT_DerivativeType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
   <xsd:group name="FilterGroup">
     <xsd:choice>
       <xsd:element name="meshInput" type="DT_DatMeshInput"/>
@@ -361,6 +434,7 @@
       <xsd:element name="timeDeriv1" type="DT_TDeriv1"/>
       <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
       <xsd:element name="interpolation" type="DT_Interpolation"/>
+      <xsd:element name="differentiation" type="DT_Differentiation"/>
       <xsd:element name="binaryOperation"         type="DT_BinOpFilt">
         <xsd:annotation>
           <xsd:documentation>

@@ -106,7 +106,7 @@ void Cell2NodeInterpolator::PrepareInterpolation(){
   //3. Search for containing elements in trg
   //4. Store for each src cell local Coordinates, src cell Idx, trg cell idx
 
-  std::cout << "\t ---> NearesNeighbourInterpolator preparing for interpolation" << std::endl;
+  std::cout << "\t ---> Cell2NodeInterpolator preparing for interpolation" << std::endl;
 
   //in this filter we only have one upstream result
   uuids::uuid upRes = upResIds[0];
@@ -179,6 +179,7 @@ void Cell2NodeInterpolator::PrepareInterpolation(){
       ++foundCounter;
     }
   }
+
   std::cout << "\t\t\t Number of interpolation pairs computed: " << foundCounter << std::endl;
   std::cout << "\t\t 4/6 Clear generated temporary data storage ..." << std::endl;
   trgElements.Clear(false);
@@ -189,8 +190,8 @@ void Cell2NodeInterpolator::PrepareInterpolation(){
   //for an export import step, here would be the right place
 
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
-  CF::StdVector<UInt> sEqn;
+    str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+    CF::StdVector<UInt> sEqn;
   for(UInt i=0;i<interpolData_.size();++i){
     upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
