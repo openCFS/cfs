@@ -16,6 +16,8 @@ from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 import timeit
 
+
+
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -116,9 +118,9 @@ def distance_to_center(p):
 
 # calculates angle between (0.5,0.5) and point p
 def angle_to_center(p):
-  phi = np.arccos(0.5*(p[0]-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (p[1]-0.5)**2)))
+  phi = np.arccos(0.5*(p[1]-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (p[1]-0.5)**2)))
   if p[0] < 0.5:
-    phi = 2.0 * np.pi - phi
+    phi = 2.0*np.pi - phi
     
   return phi
  
@@ -255,7 +257,8 @@ class BisecSpline:
     assert(p[0] <= 0.5 and p[1] >= 0.5)
     height = distance_to_center(p) + 0.5
   
-    self.angle = angle_to_center(p)
+    self.angle = 2*np.pi-angle_to_center(p)
+#     self.angle = angle_to_center(p)
     
     # polynomial interpolation for right part from b to p
     lx = b[0]
@@ -400,7 +403,6 @@ class Profile:
       self.functions[2] = self.splines[0]
     else: # 'spline' case
       if dir == 1:
-        PrincipleSpline(args.x1, args.y1, args.bend, 0)
         self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
@@ -437,16 +439,29 @@ def create_profiles(args,infoXml=None):
     
   if not args.skip_y:
     profiles[1] = Profile(args,2)
+    
+#     plt.gcf().clear()
+#     plt.gcf().subplots_adjust(bottom=0.15)
+#     x = np.linspace(0, 1.0, args.res)
+#     plt.plot(x,profiles[1].functions[0].eval(x),label="y_0")
+#     plt.plot(x,profiles[1].functions[2].eval(x),label="y_90")
 
   if not args.skip_z:
     profiles[2] = Profile(args,3)
+    x = np.linspace(0, 1.0, args.res)
+#     plt.plot(x,profiles[2].functions[0].eval(x),label="z_0")
+#     plt.plot(x,profiles[2].functions[2].eval(x),label="z_90")
+#     plt.legend(loc='upper left', shadow=True)
+#     plt.show()
     
   if args.verbose == "all_profiles":
     plt.gcf().clear()
     plt.gcf().subplots_adjust(bottom=0.15)
-    x = np.linspace(0, 1.0, args.res)
+    x = np.linspace(0, 1.0, 1000)
     
     for dir,profile in enumerate(profiles):
+      if profile == None:
+        continue
 #       plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle),linewidth=5.0,label="dir_"+str(i+1)+"_0")
       plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
       plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
@@ -589,6 +604,7 @@ def create_profiles_array(args,infoXml):
   ha.set_zlabel('Z')
   
   profiles = create_profiles(args,infoXml)
+  
   assert(len(profiles) == 3)
   
   surfNodesXLeft = []
@@ -704,8 +720,8 @@ def create_profiles_array(args,infoXml):
 def create_profile_map(profile,res,verbose=None,ha=None):
   map = np.zeros((360, res))
   h = 1.0 / res
-  for i in range(0,res):
-    x = i * h + h / 2.0
+  for i,x in enumerate(np.arange(0,1.0,h)):
+    
     for alpha in range(0,360):
       rad = np.pi/180. * alpha
       if alpha <= 90:
@@ -716,10 +732,15 @@ def create_profile_map(profile,res,verbose=None,ha=None):
         map[alpha,i] = calc_radius_for_quadrant(profile, x, rad-np.pi)
       else: # 270 <= alpha <= 360
         map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
-    
-      if i == 50:
-        print alpha," \t",map[alpha,i]
-    
+
+#       if i == 1:
+#         print i,alpha,map[alpha,i]
+#         print x+h/2.0,rad,calc_radius_for_quadrant(profile, x+h/2.0, rad)
+#         sys.exit()
+#         print i," \t",alpha," \t",map[alpha,i]
+#         
+#     if i == 1:
+#       sys.exit()
   if verbose == 'profile_map':
     ha.set_xlabel('X')
     ha.set_ylabel('Y')
@@ -768,11 +789,13 @@ def calc_radius_for_quadrant(profile,x,rad):
   
   funcs = profile.functions
   phi = funcs[1].angle
-  
+  if x == 0.3:
+    1.0/phi * rad * funcs[1].eval(x)
   if rad <= phi:
     return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
-  else : # rad <= np.pi/2.0 
-    return  1.0/phi * rad * funcs[1].eval(x) + (1.0/phi*rad - 1.0) * funcs[2] - 0.5
+  else : # rad <= np.pi/2.0
+    fact = (rad-phi) / (np.pi/2.0-phi)
+    return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
 ## give an interpolation for the radius within 0..2pi angle for the radius vectors at index idx
 def give_interpolate_radius(vec, idx):
   if type(vec) == tuple:
@@ -820,12 +843,8 @@ def give_interpolate_radius(vec, idx):
 # @param vec can be one vector or list of vector
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
-  h = 1.0/res
+  h = 1.0 / res
   assert(dir >=1 and dir <=3)
-  
-  print profile.functions[0].type
-  print profile.functions[1].type
-  print profile.functions[2].type
   
   map = create_profile_map(profile, res)
 #   plt.savefig("spline_bend_" + str(bend) + ".png")
@@ -838,8 +857,7 @@ def write_profile_to_array(array,profile,dir):
         valx = (y-0.5)**2 + (z-0.5)**2
         
         phi = angle_to_center((y,z))
-          
-#         p = f(phi)
+        
         p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):
           if dir == 1:
