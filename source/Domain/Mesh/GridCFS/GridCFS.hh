@@ -61,6 +61,9 @@ namespace CoupledField
 
     //@}
 
+    /**  @see Grid::ExportGrid() */
+    void ExportGrid(PtrParamNode out);
+
 
     // =======================================================================
     // GENERAL GRID INFORMATION
@@ -365,7 +368,7 @@ namespace CoupledField
                                    bool updated = false );
 
     /** Total volume of a sparse grid. Works only for parallelograms. */
-    Double CalcGridVolume(bool updated = false);
+    Double CalcHullVolume(bool updated = false);
 
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
@@ -470,6 +473,14 @@ namespace CoupledField
      * Stores information on which elements belong to which nodes in a vector
      */
     void SetNodesToElemsMap();
+
+    inline double CalcVolumeOfAllRegions(bool updated=false) {
+      // Volume of all regions
+      Double s = 0.0;
+      for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+      return s;
+    }
 
 
     //! helper struct for passing information about nodes

@@ -54,6 +54,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
 
+
   method_ = method;
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
@@ -126,6 +127,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
     // tolerate non unique designs - e.g. for different regions
   }
+
+  is_cubic_ = all_regions_regular_ && design.GetSize() == Product(domain->GetGrid()->CalcRegulardGridDiscretization());
 
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");

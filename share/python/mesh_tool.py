@@ -5,6 +5,8 @@ import sys, os, numpy, math
 from copy import deepcopy
 from hdf5_tools import *
 import scipy.interpolate as ip
+from numpy import ceil
+import scipy.spatial
 #from matviz_vtk import *
 
 
@@ -20,6 +22,81 @@ HEXA8 = 10
 WEDGE6 = 14
 LINE = 100
 
+def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
+  i = int((point[0] - minx)/hx)
+  j = int((point[1] - miny)/hy)
+  k = int((point[2] - minz)/hz)
+  array[i,j,k] = val
+
+# checks whether point p is inside cube
+# @param tetra: list with 4 vertices of tetrahedron
+def inside_cube(p,tetra):
+  d0 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d1 = numpy.linalg.det(numpy.array([[p[0],p[1],p[2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d2 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [p[0],p[1],p[2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d3 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [p[0],p[1],p[2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d4 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [p[0],p[1],p[2],1]]))
+  
+  det = [d0,d1,d2,d3,d4]
+  # point is inside cube if all determinats have same sign
+  return all(item >= 0 for item in det) or all(item < 0 for item in det)
+# calculates barycenter of element e
+def calc_barycenter(mesh,e):
+  center = numpy.array([0.0, 0.0, 0.0])
+  len_nod = len(e.nodes)
+  for n in range(len_nod):
+    center += mesh.nodes[e.nodes[n]]
+  center *= 1.0 / len_nod
+  
+  return center
+
+# node1/2: coordinates of respective node
+def calc_edge_length(mesh,node1,node2):
+  return numpy.linalg.norm(numpy.array(node1)-numpy.array(node2))
+
+# calculates longest edge of element e
+def calc_longest_edge(mesh,e):
+  # so far only tested for 3D elements
+  assert(elem_dim(e.type) == 3) 
+  result = 0
+  
+  nodes = e.nodes
+  
+  for i,node in enumerate(nodes):
+    for j,other in enumerate(nodes):
+      if i == j:
+        continue
+      # euklidian distance
+      distance = calc_edge_length(mesh, mesh.nodes[node], mesh.nodes[other])
+    
+      if distance > result:
+        result = distance  
+    
+  return result  
+
+def calc_min_max_coords(mesh):
+  ma_x = -100000.
+  mi_x = 100000.
+  ma_y = -100000.
+  mi_y = 100000.
+  ma_z = -100000.
+  mi_z = 100000.
+  
+  for i in range(len(mesh.nodes)):
+    coord = mesh.nodes[i]
+    ma_x = ma_x if ma_x > coord[0] else coord[0]
+    mi_x = mi_x if mi_x < coord[0] else coord[0]
+    ma_y = ma_y if ma_y > coord[1] else coord[1]
+    mi_y = mi_y if mi_y < coord[1] else coord[1]
+    ma_z = ma_z if ma_z > coord[2] else coord[2]   
+    mi_z = mi_z if mi_z < coord[2] else coord[2]
+    
+
+  return mi_x, mi_y, mi_z, ma_x, ma_y, ma_z
+
+# for given node ide (e.g. from optistruct), return id in gid mesh
+#def node_id_to_mesh_id(nodeId):
+  
 
 def nodes_by_type(type):
   if type == QUAD4:
@@ -58,7 +135,6 @@ def elem_dim(type):
     return 2 
   
 
-
 # gid element
 class Element: 
   def __init__(self):
@@ -93,10 +169,86 @@ class Mesh:
    self.nx = nx
    self.ny = ny
    self.nz = nz
-  
+   
   def element(self, i, j):
     assert(self.nx > 0 and self.ny > 0)
     return self.elements[i * self.nx + j]
+  
+# adds same number of boundary nodes on adjacent sides to assure periodic b.c
+# @ min_diam
+def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-4):
+  left_c = 0
+  right_c = 0
+  top_c = 0
+  bottom_c = 0
+  back_c = 0
+  front_c = 0
+  
+  top = []
+  bottom = []
+  left = []
+  right = []
+  front = []
+  back = []
+  
+  mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
+  
+  # count number of boundary nodes per region
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta:
+      left_c += 1
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta:
+      right_c += 1
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta:
+      bottom_c += 1 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta:
+      top_c += 1
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta:
+      back_c += 1
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta:
+      front_c += 1
+  
+  lr_counter = min(left_c,right_c)
+  bt_counter = min(bottom_c,top_c)
+  bf_counter = min(back_c,front_c)
+  
+  left_c = 0
+  right_c = 0
+  top_c = 0
+  bottom_c = 0
+  back_c = 0
+  front_c = 0
+  
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta and left_c < lr_counter:
+      left.append(i)
+      left_c +=1
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta and right_c < lr_counter:
+      right.append(i)
+      right_c +=1
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta and bottom_c < bt_counter:
+      bottom.append(i)
+      bottom_c +=1 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta and top_c < bt_counter:
+      top.append(i)
+      top_c +=1 
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta and back_c < bf_counter:
+      back.append(i)
+      back_c +=1
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
+      front.append(i)
+      front_c +=1 
+  
+  mesh.bc = []
+  #add boundary nodes    
+  mesh.bc.append(('top', top))
+  mesh.bc.append(('bottom', bottom))
+  mesh.bc.append(('left', left))
+  mesh.bc.append(('right', right))
+  mesh.bc.append(('front', front))
+  mesh.bc.append(('back', back))
+  
+  return mesh     
   
 def show_dense_mesh_image(mesh, shape, binary, size):
   from PIL import Image  
@@ -362,7 +514,6 @@ def write_gid_elements(out, elements, dim):
 
 def write_gid_mesh(mesh, filename,scale = 1):
   # Warning: mesh dimensions should be in [m]
-  print "Notification: Make sure that mesh dimensions are in meter [m]!! Otherwise use scale Parameter."
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
@@ -440,8 +591,8 @@ def write_gid_mesh(mesh, filename,scale = 1):
   for b in range(len(mesh.bc)):
     bc = mesh.bc[b]
     for n in range(len(bc[1])):
-      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n")
-      
+      out.write(str(bc[1][n] + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
+  
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
@@ -453,7 +604,86 @@ def write_gid_mesh(mesh, filename,scale = 1):
   
   out.write("\n \n")
   out.close()
+
+# names all nodes on edges, faces and corners of cubic domain
+def name_bc_nodes(mesh):
+  assert(mesh <> None)
+  assert(mesh.nz > 1)
+  nx = mesh.nx
+  ny = mesh.ny
+  nz = mesh.nz
   
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+  
+  # naming faces of cube
+  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny) * nnx + x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z * nny + ny) * nnx + x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+
+  # naming cube corners
+  mesh.bc.append(("left_bottom_back", [0]))
+  mesh.bc.append(("right_bottom_back", [nx]))
+  mesh.bc.append(("left_top_back", [nnx * ny]))
+  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  
+  # naming cube edges
+  mesh.bc.append(("bottom_back",range(nnx)))
+  mesh.bc.append(("bottom_front",range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx)))
+  mesh.bc.append(("bottom_left",range(0,nnx*nny*nnz-nnx-1,nnx*nny)))
+  mesh.bc.append(("bottom_right",range(nnx-1,nnx*nny*nnz-1-1,nnx*nny)))
+  mesh.bc.append(("top_back",range(nnx*nny-nnx,nnx*nny)))
+  mesh.bc.append(("top_front",range(nnx*nny*nny-nnx,nnx*nny*nny)))
+  mesh.bc.append(("top_left",range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("top_right",range(nnx*nny-1,nnx*nny*nnz,nnx*nny)))
+  mesh.bc.append(("back_left",range(0,nnx*nny-nnx+1,nnx)))
+  mesh.bc.append(("back_right",range(nnx-1,nnx*nny,nnx)))
+  mesh.bc.append(("front_left",range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx)))
+  mesh.bc.append(("front_right",range(nnx * nny * nz + nx,nnx * nny * nnz,nnx)))
+  
+  
+  return mesh  
+ 
+def validate_periodicity(mesh):
+#   assert(mesh.nz > 1)
+  countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
+  countRight = len([x for x in mesh.bc if x[0] == 'right'][0][1]);
+  countFront = len([x for x in mesh.bc if x[0] == 'front'][0][1]);
+  countBack = len([x for x in mesh.bc if x[0] == 'back'][0][1]);
+  countTop = len([x for x in mesh.bc if x[0] == 'top'][0][1]);
+  countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
+  
+  if countLeft <> countRight:
+    print "left: ", countLeft, " right: ", countRight
+   
+  if countFront <> countBack:
+    print "front: ", countFront, " back: ", countBack
+   
+  if countTop <> countBottom:
+    print "top: ", countTop, " bottom: ", countBottom
+  
+  return countLeft, countRight, countFront, countBack, countTop, countBottom
   
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
@@ -757,7 +987,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test")
+  assert(type == "bulk3d" or type == "validation_test")
 
   nx = x_res  
    
@@ -858,35 +1088,36 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
 
-  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
-  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
-
-  side = (("bottom", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny) * nnx + x)
-
-  side = (("top", []))
-  mesh.bc.append(side)
-  for z in range(0, nnz):
-    for x in range(0, nnx):
-      side[1].append((z * nny + ny) * nnx + x)
-
-  
-  # back and front as it appears with paraview
-  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
-
-
-  mesh.bc.append(("left_bottom_back", [0]))
-  mesh.bc.append(("right_bottom_back", [nx]))
-  mesh.bc.append(("left_top_back", [nnx * ny]))
-  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+#   mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
+#   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+# 
+#   side = (("bottom", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny) * nnx + x)
+# 
+#   side = (("top", []))
+#   mesh.bc.append(side)
+#   for z in range(0, nnz):
+#     for x in range(0, nnx):
+#       side[1].append((z * nny + ny) * nnx + x)
+# 
+#   
+#   # back and front as it appears with paraview
+#   mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
+#   mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+# 
+# 
+#   mesh.bc.append(("left_bottom_back", [0]))
+#   mesh.bc.append(("right_bottom_back", [nx]))
+#   mesh.bc.append(("left_top_back", [nnx * ny]))
+#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
+#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
+#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
+#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
+#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  mesh = name_bc_nodes(mesh)
   
   if type == "validation_test":
     # create four support pins on bottom face
@@ -1716,12 +1947,12 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   
   out.close()    
   
-def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
+def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   # currently only used for apod6
   # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
   
-  inp = open(meshfile).readlines()
-  nodes = []
+  file = open(meshfile)
+  inp = file.readlines()
   elem = []
   force1 = []
   force2 = []
@@ -1736,14 +1967,36 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
   num_elem = 0
   des = False
   nondes = False
+  offsetSet = False
+  
+  last_node_id = 0
+  
+  for i in range(len(inp)):
+    if inp[i][0:8].strip() == 'GRID':
+      last_node_id = int(inp[i][8:16].strip())
+      
+  nodes = [None] * (last_node_id)
+  
+  #rewind file
+  file.seek(0)
+  
+  nodes_last_idx = 0 # count current last index of list 'nodes'
+  
   for i in range(len(inp)):
     #item = str.split(inp[i])
     #if i < len(inp)-1:
     #  item_n = str.split(inp[i+1])
+        
     if len(inp[i]) == 0:
       continue
     # read and check header
     if inp[i][0:8].strip() == 'GRID':
+      
+      if not offsetSet: # set offset automatically
+        offset = int(inp[i][8:16].strip())
+        offsetSet = True
+        
+      assert(offset >= 1)  
       #add nodes
       #x_str = 0
       #y_str = 0
@@ -1772,7 +2025,11 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
       x = float(convert_optistruct_notation(inp[i][24:32],[0,8]))
       y = float(convert_optistruct_notation(inp[i][32:40],[0,8]))
       z = float(convert_optistruct_notation(inp[i][40:48],[0,8]))
-      nodes.append([int(inp[i][8:16].strip()),x,y,z])
+      
+#      map_mesh_nodeId[]
+      nodes[int(inp[i][8:16].strip())-offset] = [x,y,z]
+#       nodes.append([int(inp[i][8:16].strip()),x,y,z])
+      
     elif inp[i][0:8].strip() == 'CTETRA':
       # read 3D tetra elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
@@ -1812,7 +2069,81 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
   else:
     print "Error: No correct type was selected! options: apod6, cell_opt"
-  write_gid_mesh(mesh, meshfile+".mesh",scale)
+#   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
+  
+  return mesh
+
+# @profile
+def voxelize_mesh_from_optistruct(filename,res):
+  eps = 1e-3
+  mesh = create_mesh_from_optistruct(filename, 1.0, 'cell_opt')
+  
+  array = numpy.zeros((res,res,res))
+  minx, miny, minz, maxx, maxy, maxz = calc_min_max_coords(mesh)
+  widthx = maxx-minx
+  widthy = maxy-miny
+  widthz = maxz-minz
+  
+  hx = widthx / res
+  hy = widthy / res
+  hz = widthz / res
+  
+  elems = mesh.elements
+  
+#   for e in elems:
+#     coords = calc_barycenter(mesh,e)
+#     i = int((coords[0] - minx)/hx - eps)
+#     j = int((coords[1] - miny)/hy - eps)
+#     k = int((coords[2] - minz)/hz - eps)
+#     array[i,j,k] = 1
+    
+  for e in elems:
+    barycenter = calc_barycenter(mesh,e)
+    set_array_point(array,barycenter, hx, hy, hz, minx, miny, minz, 1)
+    
+    # calc longest side of triangle
+    long_edge = calc_longest_edge(mesh,e)
+#     print "longest edge: ",long_edge
+#     print "barycenter: ", barycenter
+#     print "hx: ", hx
+
+    # if original mesh is too coarse for new resolution res**3, sample more points inside TETRA elem
+    if long_edge > 0.9*hx: # assume hx = hy = hz
+      points = []
+      for idx,node in enumerate(e.nodes):
+        points.append(mesh.nodes[node])
+      
+      tri = scipy.spatial.Delaunay(points)
+      
+      # create virtual cube around barycenter
+      for x in numpy.arange(barycenter[0]-0.5*long_edge,barycenter[0]+0.51*long_edge,0.5*hx):
+        for y in numpy.arange(barycenter[1]-0.5*long_edge,barycenter[1]+0.51*long_edge,0.5*hy):
+          for z in numpy.arange(barycenter[2]-0.5*long_edge,barycenter[2]+0.51*long_edge,0.5*hz):
+            if tri.find_simplex((x,y,z)) >= 0:
+#               if inside_cube((x,y,z), points):
+              set_array_point(array,(x,y,z), hx, hy, hz, minx, miny, minz, 2)
+#     else:
+#       print "long_edge:",long_edge
+      
+  minDim = [minx,miny,minz]
+  maxDim = [maxx,maxy,maxz]
+  meshNew = create_3d_mesh_from_array(array, True, widthx, widthy, widthz, minDim, maxDim)
+  
+  meshNew.nx = res
+  meshNew.ny = res
+  meshNew.nz = res
+  
+  meshNew = convert_to_sparse_mesh(meshNew)
+  
+  add_nodes_for_periodic_bc(meshNew)
+  
+  validate_periodicity(meshNew)
+  
+  # moved to create_mesh.py
+  # write_gid_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
+  
+  return meshNew
+  
 
 def convert_optistruct_notation(s,indexes):
   #remove weird optistruct exponential function writing  
@@ -2134,14 +2465,17 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
   if not mesh_in == []:
     offset = 0.;
     elements = zeros((len(mesh.elements[:][0]),4))
-    all_nodes = zeros((len(mesh.nodes[:][0],3)))
+#     all_nodes = zeros((len(mesh.nodes[:][0],3)))
     for i in range(len(mesh.elements[:][0])):
       elements[i][1:] = mesh.elements[i].nodes
-    for i in range(len(mesh.nodes[:][0])):
-      all_nodes[i][:] = mesh.nodes[i][:]
+#     for i in range(len(mesh.nodes[:][0])):
+#       all_nodes[i][:] = mesh.nodes[i][:]
   # insert nodes  
-  for i in range(len(all_nodes)):
-    mesh.nodes.append([all_nodes[i, 1], all_nodes[i, 2], all_nodes[i, 3]])
+#   for i in range(1,len(all_nodes)):
+#     mesh.nodes.append([all_nodes[i][1], all_nodes[i][2], all_nodes[i][3]])
+  mesh.nodes = all_nodes
+
+  
   min_diam_x = 1000000. 
   min_diam_y = 1000000. 
   min_diam_z = 1000000. 
@@ -2172,98 +2506,96 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-       
-  # calculate extrem values along each coordinate
-  ma_x = -100000.
-  mi_x = 100000.
-  ma_y = -100000.
-  mi_y = 100000.
-  ma_z = -100000.
-  mi_z = 100000.
-  for i in range(len(mesh.nodes)):
-    coord = mesh.nodes[i]
-    ma_x = ma_x if ma_x > coord[0] else coord[0]
-    mi_x = mi_x if mi_x < coord[0] else coord[0]
-    ma_y = ma_y if ma_y > coord[1] else coord[1]
-    mi_y = mi_y if mi_y < coord[1] else coord[1]
-    ma_z = ma_z if ma_z > coord[2] else coord[2]   
-    mi_z = mi_z if mi_z < coord[2] else coord[2]
   
-  print "min = [" + str(mi_x) + ", " +  str(mi_y) + ", " +  str(mi_z) + "]"
-  print "max = [" + str(ma_x) + ", " +  str(ma_y) + ", " +  str(ma_z) + "]"
-  delta = 1e-4
-  top = []
-  bottom = []
-  left = []
-  right = []
-  front = []
-  back = []
-  # counter necessary to have the same number of left and right nodes, ...
-  left_c = 0
-  right_c = 0
-  bottom_c = 0
-  top_c = 0
-  back_c = 0
-  front_c = 0
-  min_diam_x = 1e-3
-  min_diam_y = 1e-3
-  min_diam_z = 1e-3
-  # count number of boundary nodes per region
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta:
-      left_c += 1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta:
-      right_c += 1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta:
-      bottom_c += 1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta:
-      top_c += 1
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta:
-      back_c += 1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta:
-      front_c += 1
-      
-  lr_counter = min(left_c,right_c)
-  bt_counter = min(bottom_c,top_c)
-  bf_counter = min(back_c,front_c)
-  left_c = 0
-  right_c = 0
-  top_c = 0
-  bottom_c = 0
-  back_c = 0
-  front_c = 0
-  print 'lr_counter = ' + str(lr_counter) + ', bt_counter = ' + str(bt_counter) + ', bf_counter = ' + str(bf_counter)
-  # insert the same number of nodes to each region pair
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta and left_c < lr_counter:
-      left.append(i)
-      left_c +=1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta and right_c < lr_counter:
-      right.append(i)
-      right_c +=1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta and bottom_c < bt_counter:
-      bottom.append(i)
-      bottom_c +=1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta and top_c < bt_counter:
-      top.append(i)
-      top_c +=1 
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta and back_c < bf_counter:
-      back.append(i)
-      back_c +=1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta and front_c < bf_counter:
-      front.append(i)
-      front_c +=1  
-      
-  #add boundary nodes    
-  mesh.bc.append(('top', top))
-  mesh.bc.append(('bottom', bottom))
-  mesh.bc.append(('left', left))
-  mesh.bc.append(('right', right))
-  mesh.bc.append(('front', front))
-  mesh.bc.append(('back', back))
+  mesh = convert_to_sparse_mesh(mesh)
+  
+  mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
+  
+  delta = 1e-4  
+  
+  mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z,delta)
   
   return mesh
+
+# @param array to be written out
+# @param singRegion do we want a mesh with only one region?
+# @param minDim and maxDim contain for x,y,z direction the minimum/maximum coordinate
+def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
+  nx, ny, nz = array.shape
+  mesh = Mesh(nx,ny,nz)
   
+  count = 0
+  
+  dx = widthx / nx
+  dy = widthy / ny
+  dz = widthz / nz
+  
+  nnx = nx + 1
+  nny = ny + 1
+  nnz = nz + 1
+
+  for k in range(nnz):
+    for j in range(nny):
+      for i in range(nnx):
+        mesh.nodes.append((minDim[0] + i * dx, minDim[1] + j * dy, minDim[2] + k * dz))
+    
+  for z in range(nz):    
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.type = HEXA8
+        if (array[x][y][z] > 0.0 and not singRegion):
+          e.region = "mech" + str(int(array[x][y][z]))
+          count += 1
+        elif (array[x][y][z] > 0.0 and singRegion):
+          e.region = "mech"
+          count += 1
+        else:
+          e.region = "void"
+          
+        ll = nnx*nny*z + nnx*y + x
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        mesh.elements.append(e)
+    
+  mesh = name_bc_nodes(mesh)
+  
+  return mesh
+
+def create_2d_mesh_from_array(array):
+  nx, ny, dummy = array.shape
+  
+  mesh = Mesh(nx,ny)
+  
+  dx = 1.0 / nx
+  dy = 1.0 / ny
+  
+  for y in range(ny + 1):
+    for x in range(nx + 1):
+      mesh.nodes.append((x * dx, y * dy))
+     
+  for y in range(ny):
+    for x in range(nx):
+      e = Element()
+      e.type = QUAD4
+      if (array[x][y] > 0.0):
+        e.region = "mech" + str(int(array[x][y]))
+      else:
+        e.region = "void"
+       
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
+      mesh.elements.append(e)
+  
+  mesh.bc.append(("south", range(0, nx + 1)))
+  mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+  mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+  mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  return mesh
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position, valid_ring_position, type = "apod6",thres=0.0,csize = None,simp = None):
   centers, mi, ma = coords[0:3]  # design elements
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
@@ -2390,11 +2722,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
             count +=1
         # calculate center of element
-        center = numpy.array([0.0, 0.0, 0.0])
-        len_nod = len(e.nodes)
-        for n in range(len_nod):
-          center += mesh.nodes[e.nodes[n]]
-        center *= 1.0 / len_nod
+        center = calc_barycenter(mesh, e)
+        
         if count >= 5:
           # test if is in convex hull of non-design nodes
           if in_hull(center, hull):
@@ -2438,5 +2767,3 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print 'mesh has ' + str(number) + "design and non-design elements"
   print 'volume = ' +str(float(number)/float(number + void3_count))
   return mesh
-
-

@@ -95,7 +95,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "16")
-SET(CFS_VERSION_MONTH "04")
+SET(CFS_VERSION_MONTH "10")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -200,6 +200,18 @@ IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 ENDIF()
 
 #-----------------------------------------------------------------------------
+# There are two options for an xml reader: xerces or libxml2. Depending on
+# the switch XmlReader::Parse*() use one of them. When a schema is given
+# validation and default values are applied based on DOM, otherwise a faster
+# interface is used. Xerces is the established but tends to make compile time
+# problems on some systems. XML_READER must be either xerces or libxml2. This
+# toggles the hidden USE_XERCES and USE_LIBXML
+#-----------------------------------------------------------------------------
+SET(XML_READER ${XML_READER_DEFAULT}
+  CACHE STRING
+  "Choose either 'xerces' or 'libxml2' as xml reader.")
+
+#-----------------------------------------------------------------------------
 # Options concerning linear algebra and  direct solver libraries The following
 # combinations are implemented
 #
@@ -213,7 +225,7 @@ ENDIF()
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
-  "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
+  "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
 
 SET(CFS_PARDISO "MKL"
   CACHE STRING
@@ -232,28 +244,13 @@ OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
   ${USE_SUPERLU_DEFAULT})
 
-IF(USE_PARDISO OR
-   USE_ARPACK OR
-   USE_ILUPACK OR
-   USE_SUITESPARSE)
-  SET(USE_BLAS ON CACHE BOOL
-    "Use the Basic Linear Algebra Subroutines library." FORCE)
-  SET(USE_LAPACK ON CACHE BOOL
-    "Use the LAPACK linear algebra library." FORCE)
-ELSE(USE_PARDISO OR
-     USE_ARPACK OR
-     USE_ILUPACK OR
-     USE_SUITESPARSE)
-  OPTION(USE_LAPACK
-    "Use the LAPACK linear algebra library."
-    ${USE_LAPACK_DEFAULT})
-  OPTION(USE_BLAS
-    "Use the Basic Linear Algebra Subroutines library."
-    ${USE_BLAS_DEFAULT})
-ENDIF(USE_PARDISO OR
-      USE_ARPACK OR
-      USE_ILUPACK OR
-      USE_SUITESPARSE)
+IF(USE_PARDISO OR USE_ARPACK OR USE_ILUPACK OR USE_SUITESPARSE)
+  SET(USE_BLAS ON CACHE BOOL "Use the Basic Linear Algebra Subroutines library." FORCE)
+  SET(USE_LAPACK ON CACHE BOOL "Use the LAPACK linear algebra library." FORCE)
+ELSE()
+  OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ${USE_LAPACK_DEFAULT})
+  OPTION(USE_BLAS "Use the Basic Linear Algebra Subroutines library." ${USE_BLAS_DEFAULT})
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -264,6 +261,21 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+
+#-----------------------------------------------------------------------------
+# set USE_XERCES and USE_LIBXML2 (disjunct!) according to XML_READER choice
+IF(NOT XML_READER STREQUAL "xerces" AND NOT XML_READER STREQUAL "libxml2")
+  MESSAGE(FATAL_ERROR "Set XML_READER to either 'xerces' or 'libxml2'!")
+ENDIF()
+
+IF(XML_READER STREQUAL "xerces")
+  SET(USE_XERCES ON CACHE BOOL "toggled by XML_READER" FORCE)
+  SET(USE_LIBXML2 OFF CACHE BOOL "toggled by XML_READER" FORCE)
+ELSE()
+  SET(USE_XERCES OFF CACHE BOOL "toggled by XML_READER" FORCE)
+  SET(USE_LIBXML2 ON CACHE BOOL "toggled by XML_READER" FORCE)
+ENDIF()  
+
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore.
@@ -443,6 +455,9 @@ MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
+MARK_AS_ADVANCED(USE_XERCES)
+MARK_AS_ADVANCED(USE_LIBXML2)
+  
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
@@ -523,9 +538,9 @@ IF(BUILD_TESTING)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables testsuite for matviz.py used be the optimization group
+# Enables python testsuite (contains matviz.py tests) used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+OPTION(PYTHON_TESTS "Add testing of python modules (currently stuff from the optimization group)")
   
 #-----------------------------------------------------------------------------
 # Switch on/off usage of intel optimization report

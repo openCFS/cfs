@@ -7,7 +7,6 @@
 #include <set>
 
 #include "GridCFS.hh"
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -16,7 +15,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 namespace CoupledField {
 
@@ -662,9 +661,7 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces xerces;
-    xerces.SetFile(file);
-    PtrParamNode xml = xerces.CreateParamNodeInstance();
+    PtrParamNode xml = XmlReader::ParseFile(file);
 
     // check this file
     if (xml->Count("set") == 0)
@@ -872,8 +869,10 @@ namespace CoupledField {
 
     // in case of internalMesh the region is already marked as regular
     // so we can skip the test here
-    for(unsigned int i = 0; i < regionData.GetSize(); i++)
+    for(unsigned int i = 0; i < regionData.GetSize(); i++) {
       regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
+      LOG_DBG(gridcfs) << "FI: region " << regionData[i].name << " regular? " << regionData[i].regular;
+    }
 
     isInitialized_ = true;
 
@@ -2945,6 +2944,12 @@ namespace CoupledField {
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
+    // we only have this info when doing homogenization
+    if (progOpts->DoDetailedInfo()) {
+      in->Get("hull_volume")->SetValue(CalcHullVolume());
+      in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
+    }
+
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {
       in->Get("nx")->SetValue(reg[0]);
@@ -2953,6 +2958,7 @@ namespace CoupledField {
     }
 
     PtrParamNode list = in->Get("regions"); 
+
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )
     { 
       PtrParamNode in_ = list->Get("region", ParamNode::APPEND);
@@ -3058,12 +3064,9 @@ namespace CoupledField {
     }
   }
 
-  Double GridCFS::CalcGridVolume(bool updated)
+  Double GridCFS::CalcHullVolume(bool updated)
   {
-    // Volume of all regions
-    Double s = 0.0;
-    for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
-      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+    double s = CalcVolumeOfAllRegions(updated);
 
     // Volume of the bounding box of the grid
     Double cube_vol = 1.0;
@@ -3073,8 +3076,9 @@ namespace CoupledField {
       cube_vol *= m[d][1] - m[d][0];
     }
 
-    if( (s - cube_vol) / s < 1e-5 ) {
-      LOG_DBG2(gridcfs) << "Volume of rectangular dense mesh: " << s;
+    LOG_DBG(gridcfs) << "Volume of rectangular dense mesh: " << s;
+
+    if( std::abs(s - cube_vol) / s < 1e-5 ) {
       return s;
     }
 
@@ -3083,6 +3087,8 @@ namespace CoupledField {
     // vertices.
     Vector<Double> p(dim_), q(dim_), r(dim_);
     StdVector<Vector<Double> > points, verts;
+    points.Reserve(namedNodeNames_.GetSize() * dim_);
+    verts.Reserve(pow(2,dim_) * dim_);
     for( UInt i=0; i < namedNodeNames_.GetSize(); i++ )
     {
       if( namedNodeNames_[i] == "center" ) continue;
@@ -3114,7 +3120,7 @@ namespace CoupledField {
 
     // Make sure we have enough points
     if( (dim_ == 2 && points.GetSize() < 4) || (dim_ == 3 && points.GetSize() < 9) ) {
-      EXCEPTION("Not enough named nodes to calculate the volume.");
+      return -1; // in case we are not doing homogenization
     }
 
     // Calculate vertices
@@ -3145,20 +3151,37 @@ namespace CoupledField {
       q = verts[2] - verts[0];
       det = p[0] * q[1] - p[1] * q[0];
 
-      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      LOG_DBG(gridcfs) << "CGV: 2D Volume of sparse and/or non rectangular mesh: " << det;
       return std::abs(det);
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
       StdVector<Vector<Double> > normals;
+      Double radicand;
       for( UInt i=0; i < points.GetSize()/3.0; i++ )
       {
-        p = points[3*i+1] - points[3*i];
-        q = points[3*i+2] - points[3*i];
-        // normal vector
-        n[0] = p[1]*q[2] - p[2]*q[1];
-        n[1] = p[2]*q[0] - p[0]*q[2];
-        n[2] = p[0]*q[1] - p[1]*q[0];
-        n = n / sqrt( pow(n[0],2) + pow(n[1],2) + pow(n[2],2) );
+        int j = 1;
+        // Calculate the normal of each plane. If the normal is zero the
+        // three points lie on a straight line. We then replace the
+        // second point.
+        while (true) {
+          p = points[3*i+1] - points[3*i];
+          q = points[3*i+2] - points[3*i];
+          // normal vector
+          n[0] = p[1]*q[2] - p[2]*q[1];
+          n[1] = p[2]*q[0] - p[0]*q[2];
+          n[2] = p[0]*q[1] - p[1]*q[0];
+	  
+          LOG_DBG3(gridcfs) << "CGV: p=" << p.ToString() << " q=" << q.ToString();
+	  
+          radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
+          if (std::abs(radicand) > 1e-8) {
+            break;
+          }
+          GetNodeCoordinate(points[3*i+1], namedNodes_[i][j], false);
+          j++;
+        }
+        assert(radicand > 0);
+        n = n / sqrt( radicand );
         normals.Push_back(n);
       }
 
@@ -3203,20 +3226,23 @@ namespace CoupledField {
           }
         }
       }
+      assert(!verts.IsEmpty());
       // We have to find three linearly independent vectors
       det = 0.0;
-      for( UInt i=verts.GetSize()-1; i > 2; i-- )
+      for( UInt i=verts.GetSize()-1; i > 2 && abs(det) < 1e-10 ; i-- )
       {
         p = verts[1] - verts[0];
         q = verts[2] - verts[0];
         r = verts[i] - verts[0];
         det = p[0]*q[1]*r[2] + q[0]*r[1]*p[2] + r[0]*p[1]*q[2] - p[0]*r[1]*q[2] - q[0]*p[1]*r[2] - r[0]*q[1]*p[2];
-        if( abs(det) > 1e-10 ) break;
+        LOG_DBG2(gridcfs) << "CGV: " << i << " det=" << det << " p=" << p << " q=" << q << " r=" << r;
       }
 
-      LOG_DBG2(gridcfs) << "2D Volume of sparse and/or non rectangular mesh: " << det;
+      LOG_DBG(gridcfs) << "3D Volume of sparse and/or non rectangular mesh: " << det;
+      assert(det != 0);
       return std::abs(det);
     }
+    assert(false);
     return -1;
   }
 
@@ -3695,5 +3721,82 @@ namespace CoupledField {
     }
   }
 
+  void GridCFS::ExportGrid(PtrParamNode out)
+  {
+    PtrParamNode nl = out->Get("nodeList");
+    // Setup large array to resolve zero to many node names
+    StdVector<StdVector<unsigned int> > node_names(coords_.GetSize() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedNodeNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedNodes_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
+    }
+
+    StdVector<std::string>& block = nl->GetFastBulkBlock();
+    block.Resize(coords_.GetSize());
+    for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
+    {
+      std::stringstream ss;
+
+      ss << "<node id=\"" << (n + 1)
+         << "\" x=\"" << coords_[n][0]
+         << "\" y=\"" << coords_[n][1]
+         << "\" z=\"" << (dim_ > 2 ? coords_[n][2] : 0.0) << "\"";
+
+      const StdVector<unsigned int>& ni = node_names[n];
+      ss << " names=\"" << ni.GetSize() << "\"";
+      for(unsigned int c = 0; c < ni.GetSize(); c++)
+        ss << " name_" << c << "=\"" << namedNodeNames_[ni[c]] << "\"";
+      ss << "/>";
+      block[n] = ss.str();
+    }
+    node_names.Clear();
+    // same game for the element names as for the nodes
+    StdVector<StdVector<unsigned int> > elem_names(GetNumElems() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedElemNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedElems_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        elem_names[nn[n]-1].Push_back(s);
+    }
+
+    PtrParamNode rl = out->Get("regionList");
+    for(unsigned int r = 0; r < regionData.GetSize(); r++)
+    {
+      RegionData& rd = regionData[r];
+      SetElementBarycenters(rd.id, false);
+      PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
+      reg->Get("name")->SetValue(rd.name);
+      const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+
+      StdVector<std::string>& block = reg->GetFastBulkBlock();
+      block.Resize(elems.GetSize());
+      for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
+      {
+        const Elem* elem = elems[e];
+        const Point& bc = elem->barycenter;
+        const StdVector<unsigned int>& con = elem->connect;
+        const StdVector<unsigned int>& ni = elem_names[n];
+
+        std::stringstream ss;
+        ss << "<element id=\"" << (e + 1)
+           << "\" type=\"" << Elem::feType.ToString(elem->type)
+           << "\" x=\"" << bc.data[0]
+           << "\" y=\"" << bc.data[1]
+           << "\" z=\"" << bc.data[2]
+           << "\" nodes=\"" << con.GetSize() << "\"";
+
+        for(unsigned int c = 0; c < con.GetSize(); c++)
+          ss << " node_" << c << "=\"" << con[c] << "\"";
+
+        ss << " name=\"" << ni.GetSize() << "\"";
+        for(unsigned int c = 0; c < ni.GetSize(); c++)
+          ss << " name_" << c << "=\"" << namedElemNames_[ni[c]] << "\"";
+        ss << "/>";
+        block[e] = ss.str();
+      }
+    }
+  }
 
 } // end namespace

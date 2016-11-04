@@ -111,7 +111,7 @@ namespace CoupledField
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
-    std::string offset(n_offset, ' ');
+    std::string offset(std::max(n_offset,0), ' ');
 
     std::ostringstream os;
 

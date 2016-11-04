@@ -162,6 +162,7 @@ cfsdeps/hdf5/H5lib_settings_MINGW_X86_64.c -text
 cfsdeps/hdf5/TryRunResults_MACOSX_I386_CENTOS6.cmake -text
 cfsdeps/hdf5/TryRunResults_MACOSX_X86_64_CENTOS6.cmake -text
 cfsdeps/hdf5/TryRunResults_MINGW_X86_64_CENTOS6.cmake -text
+cfsdeps/hdf5/hdf5-cross-compile.hdf5-1.8.17.patch -text
 cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-mingw.patch -text
 cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
@@ -190,6 +191,8 @@ cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
 cfsdeps/lapack/lapack-for-cfs.patch -text
 cfsdeps/lapack/lapack-patch.cmake.in -text
+cfsdeps/libxml2/External_LibXml2.cmake -text
+cfsdeps/libxml2/libxml2-post_install.cmake.in -text
 cfsdeps/lis/CMakeLists.txt -text
 cfsdeps/lis/External_LIS.cmake -text
 cfsdeps/lis/cmake/CheckTypeSizes.cmake -text
@@ -524,6 +527,7 @@ include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_libfbi.hh.in -text
+include/def_use_libxml2.hh.in -text
 include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
@@ -1209,6 +1213,7 @@ share/python/abaqus_reader.py -text
 share/python/adjustDesign.py -text
 share/python/angles-twoload.py -text
 share/python/base_structures_images.py -text
+share/python/basecell.py -text
 share/python/calcCond.py -text
 share/python/calcCondSBM.py -text
 share/python/cfs-testsuite-extractor.py -text
@@ -1222,6 +1227,7 @@ share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
+share/python/draw_profile_functions.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
@@ -1307,6 +1313,7 @@ share/python/shape_map.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
 share/python/spy.py -text
+share/python/streamviz/streamviz.py -text
 share/python/test.py -text
 share/python/two_scale_tools.py -text
 share/python/wedge15.py -text
@@ -1342,6 +1349,7 @@ share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/toolchain_cross_linux_macosx_x86_64.cmake -text
+share/scripts/toolchain_cross_linux_mingw_w64_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
@@ -1460,6 +1468,8 @@ source/DataInOut/Logging/log.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_impl.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_manager.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/ParamHandling/LibXml2.cc -text
+source/DataInOut/ParamHandling/LibXml2.hh -text
 source/DataInOut/ParamHandling/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -1470,6 +1480,8 @@ source/DataInOut/ParamHandling/XMLMaterialHandler.hh -text
 source/DataInOut/ParamHandling/XMLSkeletonConf.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/XmlReader.cc -text
+source/DataInOut/ParamHandling/XmlReader.hh -text
 source/DataInOut/PostProc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/PostProc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ProgramOptions.cc svneol=native#text/plain

@@ -315,6 +315,9 @@ public:
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
 
+  /** overwrite to add opt_idx */
+  virtual std::string ToString() const;
+
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
   int dof;
 
