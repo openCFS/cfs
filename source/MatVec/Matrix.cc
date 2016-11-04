@@ -924,46 +924,6 @@ namespace CoupledField
         rvec1[k] += data_[k][kk]*mvec1[kk];
   }
 
-  // Perform a matrix-matrix multiplication rmat = this*mat
-  /*  template<class TYPE>
-    void Matrix<TYPE>::Mult(const Matrix<TYPE> & mat, Matrix<TYPE> & rmat) const
-    {
-
-  #if defined CHECK_INITIALIZED || defined CHECK_INDEX
-      UInt nr_mat = mat.GetNumRows();
-      UInt nc_mat = mat.GetNumCols();
-      UInt nr_rmat = rmat.GetNumRows();
-      UInt nc_rmat = rmat.GetNumCols();
-
-  #ifdef CHECK_INITIALIZED
-      if (size_row_ == 0 || size_col_ == 0)
-        EXCEPTION("undefined Matrix");
-      if (nc_mat == 0 || nr_mat == 0)
-        EXCEPTION("undefined Matrix");
-      if (nc_rmat == 0 || nr_rmat == 0)
-        EXCEPTION("undefined Matrix");
-  #endif
-
-  #ifdef CHECK_INDEX
-      if (size_col_ != nr_mat)
-        EXCEPTION("incompatible dimension");
-      if (size_row_ != nr_rmat)
-        EXCEPTION("incompatible dimension");
-  #endif
-
-  #endif
-
-      UInt i,j,k;
-      rmat.Init();
-      for (i = 0; i < size_row_;i++) {
-        for ( j = 0; j < nc_mat; j++) {
-          for ( k = 0; k < size_col_; k++) {
-            rmat[i][j] += data_[i][k]*mat[k][j];
-          }
-        }
-      }
-} */
-
   template<class TYPE>
   TYPE Matrix<TYPE>::ScalarProduct(const Matrix<TYPE>& other_mat) const
   {
