@@ -93,18 +93,24 @@ void SGP::PostInit()
   coef->orgMat->GetTensor(E_0,lpm);
 
   /** Setup inner variable material Tensor E_inner */
-  for (UInt i =0; i < n_elem;i++) {
+  DesignSpace* space = optimization->GetDesign();
+  unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+  unsigned int mech12 = space->FindDesign(DesignElement::MECH_12);
+  unsigned int mech13 = space->FindDesign(DesignElement::MECH_13);
+  unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+  unsigned int mech23 = space->FindDesign(DesignElement::MECH_23);
+  unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+  for (unsigned int i = 0; i < n_elem; i++) {
     E_inner[i].Resize(3,3);
-    E_inner[i] = E_0;
-    E_inner[i][0][0] = 0.333;
-    E_inner[i][1][1] = 0.333;
-    E_inner[i][0][1] = 0.;
-    E_inner[i][0][2] = 0.;
-    E_inner[i][1][0] = 0.;
-    E_inner[i][2][0] = 0.;
-    E_inner[i][1][2] = 0.;
-    E_inner[i][2][1] = 0.;
-    E_inner[i][2][2] = (1-0.333-0.333);
+    E_inner[i][0][0] = space->GetDesignElement(mech11*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][0][1] = space->GetDesignElement(mech12*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][0][2] = space->GetDesignElement(mech13*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][1][1] = space->GetDesignElement(mech22*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][1][2] = space->GetDesignElement(mech23*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][2][2] = space->GetDesignElement(mech33*n_elem+i)->GetDesign(DesignElement::PLAIN);
+    E_inner[i][1][0] = E_inner[i][0][1];
+    E_inner[i][2][0] = E_inner[i][0][2];
+    E_inner[i][2][1] = E_inner[i][1][2];
   }
 
   // setup lower and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLower/UpperBound() !!
