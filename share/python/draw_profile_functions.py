@@ -725,8 +725,8 @@ def create_profiles_array(args,infoXml):
     for i in range(0,3):
       if profiles[i] == None:
         continue
-      if args.verbose == 'profile_map':
-        create_profile_map(profiles[i], res, args.verbose, ha)
+      if args.verbose == 'profile_map' or args.save_map:
+        create_profile_map(profiles[i], res, args.verbose,save_map, ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
@@ -739,7 +739,7 @@ def create_profiles_array(args,infoXml):
 
 # creates map with info on Profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
-def create_profile_map(profile,res,verbose=None,ha=None):
+def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   map = np.zeros((360, res))
   h = 1.0 / res
   for i,x in enumerate(np.arange(0,1.0,h)):
@@ -768,6 +768,11 @@ def create_profile_map(profile,res,verbose=None,ha=None):
     X,Y = np.meshgrid(range(res),range(360))
     ha.plot_surface(X, Y, map)
     plt.show()
+  
+  if save:
+    out = open()
+    
+    
     
   return map
 
