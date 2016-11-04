@@ -967,9 +967,11 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
   //total volume in the non-regular case is needed for the volume calculations
-  bool regular = space->IsRegular();
   this->total_vol_ = 0.0;
-  if(!regular)
+
+  std::cout << "L:Is space cubic?" << space->IsCubic() << std::endl;
+
+  if(!space->IsCubic())
     for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++)
      this->total_vol_ += this->func_->elements[i]->CalcVolume();
   else
@@ -2896,6 +2898,7 @@ double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
     vol = EvaluateC1Interpolation_Deriv_3D(p, vol_a,vol_b,vol_c,vol_coeff, da,db,dc,j,k,l,m,n,o,direction);
     LOG_DBG(func)<<"Derivative "<<((direction == 1)?"1":((direction == 2) ? "2":"3"))<<" vol= "<<vol;
   }
+
   return vol;
 }
 
@@ -3096,13 +3099,13 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
   double vol;
   int dim = domain->GetGrid()->GetDim();
-  bool regular = local->space->IsRegular();
+  bool cubical = local->space->IsCubic();
   /** if grid is nonregular, the volume has to be scaled by element size */
-  if (!regular) {
+  if (!cubical) {
     assert(local->total_vol_ != 0);
   }
   /**svol is a scaling factor for unstructured, nonregular grids. */
-  double svol = regular ? 1.0 : de->CalcVolume();
+  double svol = cubical ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
 
   if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {

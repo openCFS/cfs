@@ -20,7 +20,6 @@ def calc_volume(array,infoXml):
   print "volume:", vol
 
 def visualize_structure(array,singRegion,show,save):
-  print "starting visualization..."
   # create vtk cells and points
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
@@ -37,7 +36,7 @@ def visualize_structure(array,singRegion,show,save):
     for j in range(0,res):
       for k in range(0,res):
         x = i * h + h / 2.0
-        y = j * h + h / 2.0
+        y = j * h + h / 2.0 
         z = k * h + h / 2.0
         
         if array[i,j,k] > 0:
@@ -58,6 +57,7 @@ def visualize_structure(array,singRegion,show,save):
   if save:
     show_write_vtk(polydata,1000,save)
   if show: 
+    print "starting visualization..."
     show_vtk(polydata, 1000, [], True)
   
 def give_radiusFunction():
@@ -91,6 +91,8 @@ def calc_radius(stiff):
 def create_mesh_with_profiles(args,infoXml):
   print "stiffnesses: ",args.x1,args.x2,args.y1,args.y2,args.z1,args.z2
   
+  mesh = None
+  
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
   args.x1 = calc_radius(args.x1)
   infoStr = '  <radii rx1="' + str(args.x1) + '" '
@@ -116,16 +118,16 @@ def create_mesh_with_profiles(args,infoXml):
   if args.target.startswith("volume"):
     calc_volume(array,infoXml)
   
-  if args.z1 == 0.0 and args.z2 == 0.0:
-    mesh = create_2d_mesh_from_array(array)
-  else:
-    mesh = create_3d_mesh_from_array(array,args.single_region)
+    if args.z1 == 0.0 and args.z2 == 0.0:
+      mesh = create_2d_mesh_from_array(array)
+    else:
+      mesh = create_3d_mesh_from_array(array,args.single_region)
+      
+    mesh = convert_to_sparse_mesh(mesh)
     
-  mesh = convert_to_sparse_mesh(mesh)
+    validate_periodicity(mesh)
   
-  validate_periodicity(mesh)
-  
-  if args.show and args.target.startswith("volume"):
+  if args.show or args.target.startswith("volume"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)
@@ -136,7 +138,8 @@ def create_mesh_with_profiles(args,infoXml):
   return mesh
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
+parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
+parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
 parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required=True)
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
@@ -152,7 +155,7 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
-parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
+parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=False)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
@@ -188,6 +191,11 @@ else:
   mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
 
 mesh_name = mesh_name if args.save == None else args.save
+
+if args.target == "surface_mesh" or args.target == "3dlines":
+  if not args.res_surf_lines:
+    print "Error: resolution of lines on surface required!"
+    sys.exit(1)
 
 infoXml = None
 
