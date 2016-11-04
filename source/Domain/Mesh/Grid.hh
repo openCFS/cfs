@@ -112,7 +112,10 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() const = 0;
 
-        
+    /** exports the grid to a param node. For command line option --export-grid or for streaming with mesh. */
+    virtual void ExportGrid(PtrParamNode out)
+    { EXCEPTION( "Not implemented" ); }
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -498,7 +501,7 @@ namespace CoupledField
     virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
     /** total volume of a sparse or dense grid */
-    virtual Double CalcGridVolume( bool updated = false ) = 0;
+    virtual Double CalcHullVolume( bool updated = false ) = 0;
 
     //! Returns the volume of a given region
 

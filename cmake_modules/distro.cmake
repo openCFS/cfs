@@ -230,6 +230,14 @@ IF(NOT MINGW)
     SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
 
+    # MESSAGE("APPLE = ${APPLE}")
+    # MESSAGE("CMAKE_CROSSCOMPILING = ${CMAKE_CROSSCOMPILING}")
+    # MESSAGE("CFS_ARCH = ${CFS_ARCH}")
+    # MESSAGE("CFS_DISTRO = ${CFS_DISTRO}")
+    # MESSAGE("CFS_DISTRO_VER = ${CFS_DISTRO_VER}")
+    # MESSAGE("MAJOR_REV = ${MAJOR_REV}")
+    
+        
     IF(APPLE AND CMAKE_CROSSCOMPILING)
       SET(CFS_OS "MAC OS X")
       SET(CFS_TARGET_OS "${CFS_OS}")
@@ -245,7 +253,7 @@ IF(NOT MINGW)
       SET(CFS_FULL_DISTRO_VER "${MACOSX_DISTRO_VER}")
     ENDIF()
 
-  ELSE(NOT WIN32)
+  ELSE()
     #---------------------------------------------------------------------------
     # We are on Windows. Since Windows is very compatible across versions we
     # use the C++ compiler toolchain version as CFS_DISTRO.
@@ -267,9 +275,8 @@ IF(NOT MINGW)
     SET(CFS_BUILD_OS "${OS}")
     SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
-
-  ENDIF(NOT WIN32)
-ELSE(NOT MINGW)
+  ENDIF()
+ELSE()
   #---------------------------------------------------------------------------
   # We are using the MinGW toolchain on Linux or Windows. We just use MINGW
   # as CFS_DISTRO since the toolchain version is already given by the compiler
@@ -291,7 +298,7 @@ ELSE(NOT MINGW)
   SET(CFS_TARGET_OS "WINDOWS")
   SET(CFS_TARGET_ARCH "${MINGW_TARGET_ARCH}")
 
-ENDIF(NOT MINGW)
+ENDIF()
 
 # MESSAGE("CFS_DISTRO: ${CFS_DISTRO}")
 # MESSAGE("CFS_DISTRO_VER: ${CFS_DISTRO_VER}")
@@ -299,6 +306,7 @@ ENDIF(NOT MINGW)
 # MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
 # MESSAGE("CFS_SUBARCH: ${CFS_SUBARCH}")
 # MESSAGE("CFS_BUILD_DISTRO ${CFS_BUILD_DISTRO}")
+
 
 #-----------------------------------------------------------------------------
 # Set a few distribution specific variables (FORTRAN libs, ...)

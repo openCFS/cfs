@@ -9,7 +9,6 @@
 #include <string>
 #include <cmath>
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
@@ -240,10 +239,11 @@ namespace CoupledField {
       double u_mean_x = u_max_x_;
       double u_mean_y = u_max_y_;
       double u_mean_z = u_max_z_;
-      if (parabolicInflow_)
+      if (parabolicInflow_) {
         u_mean_x = 2.0/3.0 * u_max_x_;
         u_mean_y = 2.0/3.0 * u_max_y_;
         u_mean_z = 2.0/3.0 * u_max_z_;
+      }
 
       Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }
@@ -261,10 +261,11 @@ namespace CoupledField {
       double u_mean_x = u_max_x_;
       double u_mean_y = u_max_y_;
       double u_mean_z = u_max_z_;
-      if (parabolicInflow_)
+      if (parabolicInflow_) {
         u_mean_x = 2.0/3.0 * u_max_x_;
         u_mean_y = 2.0/3.0 * u_max_y_;
         u_mean_z = 2.0/3.0 * u_max_z_;
+      }
 
       Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }

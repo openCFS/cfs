@@ -440,9 +440,8 @@ void ErsatzMaterial::StoreResults(double step_val)
 
 PtrParamNode ErsatzMaterial::CommitIteration()
 {
-  // will write the cfs results and the log file
-  PtrParamNode iter = Optimization::CommitIteration();
 
+  // to this before CommitIteration such that we can store the info in log.bloch_info. Later we use it to add it to the ParamNode
   // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
   StdVector<Condition*> ev = constraints.GetList(Condition::EIGENFREQUENCY);
   for(int c = 0; c < (int) ev.GetSize()-1; c++) // allow always a next
@@ -454,13 +453,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(g->GetExcitation()->DoBloch() && g->DoFullBloch() && g->GetBound() == Condition::UPPER_BOUND && n->GetBound() == Condition::LOWER_BOUND)
     {
       assert(n->GetExcitation()->DoBloch() && n->DoFullBloch());
+      assert(ev.GetSize() == log.bloch_info.GetSize() + 1); // first value is bloch
       //assert(n->GetEigenValueID() == g->GetEigenValueID() + 1); // who knows what happens else?!
       const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
       double lower, upper; // see ErsatzMaterial::CalcEigenFrequency()
       SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, false, &lower);
       SearchMinMax(mat, (unsigned int) n->GetEigenValueID()-1, true, &upper);
 
-      iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
+      // replace the key, we have only "bandgap" in log
+      //iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
+      boost::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
+      boost::get<1>(log.bloch_info.First()) = upper - lower;
 
       LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
       break; // assume only one lower/upper constraint gap
@@ -482,13 +485,20 @@ PtrParamNode ErsatzMaterial::CommitIteration()
          double freq; // see ErsatzMaterial::CalcEigenFrequency()
          SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
 
-         iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())
-                   + (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         //iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())+ (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         boost::get<1>(log.bloch_info[c+1]) = freq; // first entry is gap
          ev_done[g->GetEigenValueID()] = true;
          LOG_DBG(em) << "CI g=" << g->ToString() << " evid=" << g->GetEigenValueID() << " b=" << g->GetBound() << " mm=" << freq;
       }
     }
   }
+
+  // will write the cfs results and the log file using possibly set log.bloch_info
+  PtrParamNode iter = Optimization::CommitIteration();
+
+  // in case of bloch_info
+  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
+    iter->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
 
   // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
   if(me->IsEnabled())
@@ -559,8 +569,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   if(densityFile != NULL)
     densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()
 
-    return iter;
-  }
+  return iter;
+}
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
   {
@@ -2935,7 +2945,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     unsigned int ex_size = me->GetNumberHomogenization(); // also ok when we do transform or robust
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
@@ -3004,7 +3014,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     Context* ctxt = f->ctxt;
 
     Matrix<double> diff_tensor;
@@ -3131,7 +3141,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -3365,7 +3375,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // evaluate the function values, which is
       // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
       double res = 0.0;
-      local->infeasible = 0;
 
       assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
       for(unsigned int i = 0; i < vem.GetSize(); i++)
@@ -3373,9 +3382,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
         res += fv;
-        if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign
+                     << " fv=" << fv << " -> " << res;
       }
 
       return res;

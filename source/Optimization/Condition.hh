@@ -321,6 +321,9 @@ namespace CoupledField
      /** Calculates the max |value| */
      double CalcMaxValue() const;
 
+     /** count the infeasible elements where the value is out of bound. This can be problematic for linear functions! */
+     int CountInfeasibles() const;
+
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
      double GetValue() const;
@@ -424,7 +427,7 @@ namespace CoupledField
      }
      Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
-     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
+     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true, Function::Access access = Function::NO_ACCESS);
 
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
