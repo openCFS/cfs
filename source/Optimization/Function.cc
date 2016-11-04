@@ -3099,13 +3099,13 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
   double vol;
   int dim = domain->GetGrid()->GetDim();
-  bool cubical = local->space->IsCubic();
+  bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
-  if (!cubical) {
+  if (!regular) {
     assert(local->total_vol_ != 0);
   }
   /**svol is a scaling factor for unstructured, nonregular grids. */
-  double svol = cubical ? 1.0 : de->CalcVolume();
+  double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
 
   if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
