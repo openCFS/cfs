@@ -116,13 +116,14 @@ def dirToString(dir):
 def distance_to_center(p):
   return np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2)
 
-# calculates angle between (0.5,0.5) and point p
+# calculates angle between (0.5,1.0) and point p
 def angle_to_center(p):
-  phi = np.arccos(0.5*(p[1]-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (p[1]-0.5)**2)))
-  if p[0] < 0.5:
-    phi = 2.0*np.pi - phi
+  if p[1] < 0.5:
+    z = 1.0 - p[1]
+  else:
+    z = p[1]
     
-  return phi
+  return np.arccos(0.5*(z-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (z-0.5)**2)))
  
 # defines a 1D linear function
 class Linear_1D():
@@ -257,7 +258,7 @@ class BisecSpline:
     assert(p[0] <= 0.5 and p[1] >= 0.5)
     height = distance_to_center(p) + 0.5
   
-    self.angle = 2*np.pi-angle_to_center(p)
+    self.angle = angle_to_center(p)
 #     self.angle = angle_to_center(p)
     
     # polynomial interpolation for right part from b to p
@@ -428,11 +429,11 @@ class Profile:
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
       elif dir == 2:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.y1, args.z1, args.x1, args.bend)  
+        self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
       else:
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.z1, args.x1, args.y1, args.bend)  
+        self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
         
       self.bisec_angle = self.functions[1].angle
@@ -462,19 +463,9 @@ def create_profiles(args,infoXml=None):
   if not args.skip_y:
     profiles[1] = Profile(args,2)
     
-#     plt.gcf().clear()
-#     plt.gcf().subplots_adjust(bottom=0.15)
-#     x = np.linspace(0, 1.0, args.res)
-#     plt.plot(x,profiles[1].functions[0].eval(x),label="y_0")
-#     plt.plot(x,profiles[1].functions[2].eval(x),label="y_90")
-
   if not args.skip_z:
     profiles[2] = Profile(args,3)
     x = np.linspace(0, 1.0, args.res)
-#     plt.plot(x,profiles[2].functions[0].eval(x),label="z_0")
-#     plt.plot(x,profiles[2].functions[2].eval(x),label="z_90")
-#     plt.legend(loc='upper left', shadow=True)
-#     plt.show()
     
   if args.verbose == "all_profiles":
     plt.gcf().clear()
@@ -726,7 +717,7 @@ def create_profiles_array(args,infoXml):
       if profiles[i] == None:
         continue
       if args.verbose == 'profile_map' or args.save_map:
-        create_profile_map(profiles[i], res, args.verbose,save_map, ha)
+        create_profile_map(profiles[i], res, args.verbose,args.save_map, ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
@@ -742,6 +733,10 @@ def create_profiles_array(args,infoXml):
 def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   map = np.zeros((360, res))
   h = 1.0 / res
+  if save:
+    out = open("profile_map_dir_"+str(profile.direction)+".txt","w")
+    out.write("#i \t alpha \t radius\n")
+    
   for i,x in enumerate(np.arange(0,1.0,h)):
     
     for alpha in range(0,360):
@@ -756,6 +751,9 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
       else: # 270 <= alpha <= 360
         map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
         
+      if save:
+        out.write(str(i) + " \t" + str(alpha) + " \t" + str(map[alpha,i]) + "\n")
+        
 #       if i == 49:
 #         print i,alpha,map[alpha,i]  
 #     
@@ -768,11 +766,9 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     X,Y = np.meshgrid(range(res),range(360))
     ha.plot_surface(X, Y, map)
     plt.show()
-  
+    
   if save:
-    out = open()
-    
-    
+    out.close()
     
   return map
 
@@ -815,6 +811,7 @@ def calc_radius_for_quadrant(profile,x,rad):
   funcs = profile.functions
   
   phi = funcs[1].angle
+  assert(phi >= 0 and phi <= np.pi/2.0)
   if rad <= phi:
     return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
   else : # rad <= np.pi/2.0
@@ -838,9 +835,10 @@ def write_profile_to_array(array,profile,dir):
         valx = (y-0.5)**2 + (z-0.5)**2
         
 #         phi = angle_to_center((y,z))
-        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
-        if y < 0.5:
-          phi = 2*np.pi - phi
+#         phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
+#         if y < 0.5:
+#           phi = 2*np.pi - phi
+        phi = angle_to_center((z,y))
         
         p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):
