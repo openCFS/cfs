@@ -382,11 +382,10 @@ UInt i=0;
                                    scatteredData[i][2]));
       }
     }
-//#pragma omp critical (shared_ptr)
-//#pragma omp barrier
-    searchTree_.reset(new Tree(points.begin(), points.end()));
+
     }
-    //}
+    searchTree_.reset(new Tree(points.begin(), points.end()));
+
   }
 #else
     EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
@@ -568,9 +567,11 @@ void GradientDifferentiator::PrepareDifferentiation(){
     }
 
   CF::StdVector< LocPoint > locPoints;
+  //tempElems are just dummy vectors, get deleted right after we get the local coordinates
+  StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
-  trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, allTrgElems, lists, 1e-6, 1e-3);
-
+  trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
+  tempElems.Clear();
 
   std::cout << "\t\t 3/5 Generating differentiation info ..." << std::endl;
   derivData_.reserve(allTrgElems.GetSize());
