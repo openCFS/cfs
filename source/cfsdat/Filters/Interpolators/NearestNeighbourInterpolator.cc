@@ -141,7 +141,7 @@ bool NearestNeighbourInterpolator::Run(){
   ReadScatteredData(sourceCoords_, scatteredData);
 
   CF::StdVector<UInt> nodeCheck;
-  nodeCheck.Resize(trgGrid_->GetNumNodes(ALL_REGIONS));
+  nodeCheck.Resize(0);
   nodeCheck.Init();
   bool nodeMatch;
 
@@ -178,7 +178,8 @@ bool NearestNeighbourInterpolator::Run(){
       nodeMatch = nodeCheck.Contains(eConn[aNode]);
       if(nodeMatch == false){
         //add aNode to the "already-computed-list"
-        nodeCheck[nodeIter]=eConn[aNode];
+        nodeCheck.Push_back(eConn[aNode]);
+        //nodeCheck[nodeIter]=eConn[aNode];
 
         // coordinate list of nearest neighbour points
         CF::StdVector< Vector<Double> > neighbors;
@@ -331,8 +332,9 @@ void NearestNeighbourInterpolator::ReadScatteredData(CF::StdVector< CF::Vector<D
                                    scatteredData[i][2]));
       }
     }
-    searchTree_.reset(new Tree(points.begin(), points.end()));
     }
+    searchTree_.reset(new Tree(points.begin(), points.end()));
+
   }
 #else
     EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
@@ -524,9 +526,11 @@ void NearestNeighbourInterpolator::PrepareInterpolation(){
     }
 
   CF::StdVector< LocPoint > locPoints;
+  //tempElems are just dummy vectors, get deleted right after we get the local coordinates
+  StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
-  trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, allTrgElems, lists, 1e-6, 1e-3);
-
+  trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
+  tempElems.Clear();
 
   std::cout << "\t\t 3/5 Generating interpolation info ..." << std::endl;
 
