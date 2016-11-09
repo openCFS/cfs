@@ -688,7 +688,7 @@ def validate_periodicity(mesh):
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -724,7 +724,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     offy = -1.
     width = 2. 
     height = 2.
-  if type == 'msfem_two_load':
+  if type == 'msfem_two_load' or 'two_load':
     width= 2.
     height = 1.
   if type == 'gripper_half' or type == 'force_inverter_half':
@@ -884,6 +884,16 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("left_upper", [(nx + 1) * ny]))
     mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
     return mesh
+  elif type == 'two_load':
+    mid = int((nx+1.)/2.)
+    mesh.bc.append(("load1", range(mid,mid+1)))
+    mesh.bc.append(("load2", range((nx+1)*ny + mid, (nx+1)*ny + mid+1))) 
+    mesh.bc.append(("support", range(0,1)))
+    mesh.bc.append(("support", range(nx,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*ny,(nx+1)*ny+1,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*(ny+1)-1,(nx+1)*(ny+1))))
+
+ 
   elif type == 'msfem_two_load':
     # lower/upper loads
     mid = int((nx+1.)/2.)
@@ -2067,8 +2077,10 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   elif type == "cell_opt":
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
+  elif type == "lufo_bracket":
+    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem)
   else:
-    print "Error: No correct type was selected! options: apod6, cell_opt"
+    print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
 #   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
   
   return mesh
@@ -2293,6 +2305,29 @@ def add_apod6_boundary_conditions(mesh):
   mesh.bc.append(('support3', support3))
   return mesh
   
+def create_mesh_for_lufo_bracket(meshfile,all_nodes = [], tetra_elements = [], force1 = [], force2 = [],support = []):
+  mesh = Mesh()  
+  for i in range(len(all_nodes)):
+    coord = numpy.matrix(((all_nodes[i, 1]), (all_nodes[i, 2]), all_nodes[i, 3])).T
+    new_coord = coord
+    mesh.nodes.append([new_coord[0, 0], new_coord[1, 0], new_coord[2, 0]])
+  if len(elements) == 0:  
+    # hexaeder     
+    for i in range(len(hexa_elements[:, 0])):
+      e = Element()
+      e.nodes = (hexa_elements[i, 1:] - 1)
+      e.density = 1.
+      e.region = 'design'
+      e.type = TET4
+      mesh.elements.append(e)
+      
+  #evtl -1 bei allen, Lufobracket_Model2     
+  force1 = [69693]
+  force2 = [69694]
+  support = [69660,69670,69671,69672,69673,69674,69675,69676,69678,69690]
+  mesh.bc.append(('force1', force1))
+  mesh.bc.append(('force2', force2))
+  mesh.bc.append(('support', support))
 
 def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [],force3 = [], support = [], support2 = [], support3 =[]):
   # create element and nodes files by hand from optistruct

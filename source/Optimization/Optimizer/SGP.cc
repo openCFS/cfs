@@ -273,10 +273,10 @@ void SGP::SolveProblem()
         obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppen,rho_outer,theta_outer);
       }
     } else {
-      if (iter < 10) {
+      if (iter < 1000) {
         pmaxi = pmax;
         pmini = pmin;
-      } else if (iter < 20) {
+      } else if (iter < 2000) {
         pmaxi = min(pmax,1.1*ppen);
         pmini = max(pmin,0.9*ppen);
       } else {
