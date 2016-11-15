@@ -202,7 +202,7 @@ public:
   double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
 
   /** evaluate function according to the SGP approximation */
-  double SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & s1, StdVector<double> & s2);
+  double SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & s1, StdVector<double> & s2, StdVector<double> & theta_outer);
 
   /** evaluate function according to the SGP approximation for density_rotangle configuration*/
   double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
@@ -249,7 +249,7 @@ private:
   double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
-  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2);
+  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta);
 
   void CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner);
 
