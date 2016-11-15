@@ -94,6 +94,39 @@ def toGnuPlot(complex_string):
   ret = string.rstrip(ret, ")")
   return string.replace(ret, ",", "\t")
 
+
+## helps generate a shell script for submission via qsub on RRZE HPC systems
+# It takes a template script, adds optinally a cd to current and the cmd line
+#@param template use qsub_templtate.sh as base for your own template, it might be sufficient
+#@param cmd the cfs call from run.py
+#@param filename shall end with .sh
+#@param silent if so suppress output 
+def generate_qsub_script(template, cmd, filename, silent = False):
+  if not os.path.exists(template):
+    raise RuntimeError("qsub template not found '" + templtate + "'")
+   
+  with open(template) as f:
+    lines = f.readlines()
+
+  # do we have a cd?
+  cd = [l for l in lines if l.startswith('cd')]
+  if not cd:
+    pwd = os.getcwd()
+    if not silent:
+      print(" add 'cd " + pwd + "'")
+    lines.append('# cd ' + pwd + ' added by generate_qsub_script()\n')
+    lines.append('cd ' + pwd + '\n')
+  
+  # the job to be executed
+  lines.append(cmd + '\n')
+  
+  # write the new qsub file
+  if not silent:
+    print("generate script '" + filename + "'")
+  out = open(filename, "w")
+  out.writelines(lines)
+  out.close()
+
 # execute cmd and rais error when not 0 and not silen
 # return error code, 0 for no problem
 def execute(cmd, output = False, silent = False):

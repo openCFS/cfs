@@ -7,7 +7,7 @@ from cfs_utils import *
 
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on 
-def continuation(initial, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1):
+def continuation(initial, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None):
 
   assert(range_idx < 26) # is 25 is z
   # to make use of range_idx. In the -1 case we don't use this below anyway
@@ -21,6 +21,7 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
     var_name = '-rpb_'
   if type == 'rel_node_bound':
     var_name = '-rnb_'      
+  old_problem = short_problem + var_name + old_var_str  
   var_problem = short_problem + var_name + new_var_str  
     
   # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
@@ -28,7 +29,7 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
   if old_var == -1 and initial <> None:
     start = "-x " + initial
   if old_var > -1:   
-    start = "-x " + short_problem + var_name + old_var_str + ".density.xml"
+    start = "-x " + old_problem + ".density.xml"
 
   if not os.path.exists(short_problem + ".xml"):
     print "error: file '" + short_problem + ".xml' not found"
@@ -66,7 +67,15 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
   doc.saveFile(var_problem + ".xml")
   
   cmd = executable + " " + start + " -m " + mesh + " " + var_problem
-  execute(cmd, output=True, silent = failsafe)
+  if qsub:
+    # see http://beige.ucs.indiana.edu/I590/node45.html
+    generate_qsub_script(qsub, cmd, var_problem + '.sh', silent = True)
+    if old_var == -1:
+      print('qsub ' + var_problem + '.sh')
+    else:  
+      print('qsub -W depend=afterok:' + old_problem + '.sh ' + var_problem + '.sh')
+  else:
+    execute(cmd, output=True, silent = failsafe)
       
   if show:
     execute("show_density.py " + var_problem + ".density.xml --save " + var_problem + ".png")
@@ -84,10 +93,17 @@ parser.add_argument('--max', help="maxmum variable which will be calculated", ty
 parser.add_argument('--inc', help="variable increment b += inc*b. inc=1 doubles", type=float, default=1.0)
 parser.add_argument('--range', help='alternative to start, max, inc i like --range "0.01, 0.05, 0.1" or even "0.1, 0.1, 0.1"!')
 parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
-parser.add_argument('--noshow', help="suppress calling show_density.py, e.g. for 3d!", action='store_true')
+parser.add_argument('--noshow', help="suppress calling show_density.py, e.g. for 3d! (standard for qsub)", action='store_true')
 parser.add_argument('--failsafe', help="ignore cfs exiting with error", action='store_true')
+parser.add_argument('--qsub', help="template file to generate depenend job scripts for RRZE HPC (e.g. 'qsub_template.sh'")
 
 args = parser.parse_args()
+
+if args.qsub:
+  if not os.path.exists(args.qsub):
+    print('qsub template file not found ' + args.qsub)
+    os.sys.exit(1)
+  args.noshow = True
 
 if args.range:
   vals = eval(args.range)   
@@ -96,7 +112,7 @@ if args.range:
     sys.exit(-1)  
   for i in range(len(vals)):
     ri = i if len(vals) <> len(set(vals)) else -1  
-    continuation(args.initial, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri)  
+    continuation(args.initial, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
   
 else:
   old = -1  
@@ -104,6 +120,6 @@ else:
 
   dig = 1 if args.var == 'beta' else 2
   while var <= args.max:
-   continuation(args.initial, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe)
+   continuation(args.initial, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
    old = digits(var, dig)
    var += var * args.inc
