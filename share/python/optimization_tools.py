@@ -14,9 +14,9 @@ from cfs_utils import *
 def print_design_info(filename, attribute, set = None, fill = None):
   try: 
     dens = read_density(filename, attribute, set=set, fill=fill)
-    print "for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens))
+    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
   except:  
-    print "failed to read '" + attribute + "'"
+    print("failed to read '" + attribute + "'")
     #print  sys.exc_info()
 
 
@@ -68,15 +68,15 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
   if len(vals) < x * y * z:
     if fill == None:
       # we need to be 1D
-      print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
+      print("read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute)
       x = len(vals)
       ret = numpy.zeros((x)) # overwrite full array
       for i in range(x):
         ret[i] = vals[i]    
     else:
-      print "fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
-           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z)
+      print("fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
+           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z))
 
       ret += fill # was zeros, fill with default value
       num = read_density_as_vector(filename, 'nr', set)
@@ -104,7 +104,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   
     assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
-  print len(sett)
+  #print(len(sett))
   
   designs = 1
   if design2:
@@ -137,10 +137,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 4
     if design6 and type == design6:
       idx = 5
-    if idx <> -1:
+    if not idx == -1:
       tmp = element.get(attribute)
       if tmp is None:
-        print "Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'."
+        print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
       des = float(tmp)
       out[nr - 1, idx] = des
@@ -194,11 +194,6 @@ def read_mesh_info(filename, silent):
     nx = int(mesh[0].get("x"))
     ny = int(mesh[0].get("y"))
     nz = int(mesh[0].get("z"))
-    # temporary fix to process corrupt data
-    if nx == 59 and ny == 59:
-      print "FIXME: switch mesh 59 to 60"
-      nx = 60
-      ny = 60
     # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
     return nx, ny, nz    
        

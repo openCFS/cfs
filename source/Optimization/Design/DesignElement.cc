@@ -310,6 +310,7 @@ ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement()
 ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesignElement(type)
 {
   index_ = index;
+  opt_index_ = std::numeric_limits<unsigned int>::max();
   dof = -1;
   coord.Resize(domain->GetGrid()->GetDim(), -1.0);
   idx.Resize(domain->GetGrid()->GetDim(), -1);

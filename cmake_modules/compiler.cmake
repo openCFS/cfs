@@ -269,13 +269,15 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
+    # remove -ansi which strangely enough works. But -std=c++11 fails on tumbleweed
+    SET(CFS_CXX_FLAGS "-g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
-    SET(CFS_C_FLAGS "-ansi -w0 -Werror ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-ansi -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
+    # see above
+    SET(CFS_CXX_FLAGS "-w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
   
