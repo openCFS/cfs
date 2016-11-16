@@ -127,7 +127,7 @@ def create_mesh_with_profiles(args,infoXml):
     
     validate_periodicity(mesh)
   
-  if args.show or args.target.startswith("volume") and not args.target.startswith("surface"):
+  if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)

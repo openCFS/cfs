@@ -121,7 +121,14 @@ def degree_to_rad_quadrant(degree):
     return rad-np.pi
   else:
     return 2*np.pi-rad
+  
+def cartesian_to_grid_coords(x,y,z,res):
+  h = 1.0 / res # assume domain is 1m x 1m x 1m
+  return (x - h/2.0) / h, (y - h/2.0) / h, (z - h/2.0) / h 
 
+def grid_to_cartesian_coords(i,j,k,res):
+  h = 1.0 / res # assume domain is 1m x 1m x 1m
+  return i * h + h / 2.0, j * h + h / 2.0, k * h + h / 2.0
 # calculates euklidian distance to origin (0,0)
 # @param p: tuple with x-,y-component of point
 def distance_to_center(p):
@@ -171,19 +178,31 @@ def profileCirc(x1,res):
 # @param y: at which level of other profile do we expect the point
 # e.g. for x-profile it is the y-coordinate
 # @param probe: 2D coordinate of point for testing
-def contains_point(x,y,z,profile):
-  assert(x >= 0 and x <= 1)
-  assert(y >= 0 and y <= 1)
-  assert(z >= 0 and z <= 1)
+# def contains_point(x,y,z,profile):
+#   assert(x >= 0 and x <= 1)
+#   assert(y >= 0 and y <= 1)
+#   assert(z >= 0 and z <= 1)
+#   
+#   phi = angle_to_center((x,z))
+# #   print "(x,z): ",x,z, " angle:", degrees(phi)
+#   r = calc_radius_for_quadrant(profile, y, phi)
+#   val = (x-0.5)**2 + (z-0.5)**2
+#   
+# #   print "radius: ",r," val:",val
+#   
+#   if (val - r*r < 0):
+#     return True
+#   
+#   return False
+
+def contains_point(id_x,y,z,map):
   
-  phi = angle_to_center((x,z))
-#   print "(x,z): ",x,z, " angle:", degrees(phi)
-  r = calc_radius_for_quadrant(profile, y, phi)
-  val = (x-0.5)**2 + (z-0.5)**2
+  valx = (y-0.5)**2 + (z-0.5)**2
+  phi = angle_to_center((y,z))
   
-#   print "radius: ",r," val:",val
+  r = map[int(phi/np.pi*180),id_x]
   
-  if (val - r*r < 0):
+  if (valx <= r*r):
     return True
   
   return False
@@ -541,52 +560,43 @@ def get_surface_lines(map,numLines,dir):
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
 # each surface point is also given a unique id
 # @param pointId indicates the point id that already exists
-def find_points_on_surface(nodes, dir, profile_y,profile_z,pointId):
-  assert(dir == 1 or dir == 2 or dir == 3)
+def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
   nodesLeft = []
   nodesRight = []
   pointId += 1
   
-  # needed for contains_point
   if dir == 1:
     id0 = 0
-    id1 = 1
-    id2 = 2
+    id1 = 2
+    id2 = 0
     id3 = 1
   elif dir == 2:
     id0 = 1
-    id1 = 0
-    id2 = 2
-    id3 = 0
+    id1 = 2
+    id2 = 0
+    id3 = 1
   else: #dir == 3
-    id0 = 2
-    id1 = 0
-    id2 = 1
-    id3 = 0
-  
-  # for each node on each surface line, check if node is contained in one of other profiles
-  for line in nodes:
+    id0 = 1
+    id1 = 2
+    id2 = 0
+    id3 = 2
+        
+  assert(dir == 1 or dir == 2 or dir == 3)
+  res = nodes.shape[1]
+  for numLine,prof in enumerate(nodes):
     lineLeft = [] # store points on one surface line temporally
     lineRight = []
-    for node in line:
-#       print node
-#       print "in x?", contains_point(node[id0],node[id1],node[id2],profile_y)
-#       print "in z?", contains_point(node[id0],node[id2],node[id3],profile_y)
-      
-      # second value always corresponds to coordinate in profile direction
-      if not contains_point(node[id0],node[id1],node[id2],profile_y) and not contains_point(node[id0],node[id2],node[id3], profile_z):
-#       if not contains_point(node[1],node[0],node[2],profile_x) and not contains_point(node[1],node[2],node[0], profile_z):
-#       if not contains_point(node[2],node[0],node[1],profile_x) and not contains_point(node[2],node[1],node[0], profile_y):
-#         print "on surface"
-        if node[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-          lineLeft.append((node,pointId))
+    for i,p in enumerate(prof):
+      if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
+        if p[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
+          lineLeft.append((p,pointId))
         else:
-          lineRight.append((node,pointId))
-        pointId +=1
-      
+          lineRight.append((p,pointId))
+        pointId += 1
+        
     nodesLeft.append(lineLeft)
-    nodesRight.append(lineRight[::-1]) 
-          
+    nodesRight.append(lineRight[::-1])   
+    
   return nodesLeft, nodesRight, pointId
   
 # list is list of lists contains surface lines and all respective points
@@ -656,12 +666,6 @@ def create_profiles_array(args,infoXml):
   if args.target == "surface_mesh":
     assert(not args.skip_x and not args.skip_y and not args.skip_z)
     
-    nodes = []
-    for alpha in range(0,360):
-      calc_radius
-    
-    sys.exit()
-    
     map_x = create_profile_map(profiles[0], res)
     map_y = create_profile_map(profiles[1], res)
     map_z = create_profile_map(profiles[2], res)
@@ -673,12 +677,8 @@ def create_profiles_array(args,infoXml):
     
 #     for i in range(np.size(nodes, 0)):
 #       ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
-
-#     print contains_point(0.32653061,  0.74805373,  0.41940246, profiles[1])
-#     
-#     sys.exit()
       
-    surfNodesXLeft, surfNodesXRight, id = find_points_on_surface(nodes, 1, profiles[1], profiles[2],id)
+    surfNodesXLeft, surfNodesXRight, id = find_points_on_surface(nodes, 1, map_y, map_z,id)
     
 #       out = open("surfNodesXLeft.coords","w")
 #       for i,line in enumerate(surfNodesXLeft):
@@ -686,7 +686,7 @@ def create_profiles_array(args,infoXml):
 #           out.write("id=" + str(tuple[1]) + ": x=" + str(tuple[0][0]) + " y=" + str(tuple[0][1]) + " z=" + str(tuple[0][2]) + "\n")
 #       out.close()
     nodes = get_surface_lines(map_y, args.res_surf_lines, 2)
-    surfNodesYLeft, surfNodesYRight, id = find_points_on_surface(nodes, 2, profiles[0], profiles[2], id)
+    surfNodesYLeft, surfNodesYRight, id = find_points_on_surface(nodes, 2, map_x, map_z, id)
     
 #     for i,line in enumerate(surfNodesXLeft):
 #       for j,tuple in enumerate(line):
@@ -706,7 +706,7 @@ def create_profiles_array(args,infoXml):
 #     sys.exit()  
           
     nodes = get_surface_lines(map_z, args.res_surf_lines, 3)
-    surfNodesZLeft, surfNodesZRight, id = find_points_on_surface(nodes, 3, profiles[0], profiles[1], id)
+    surfNodesZLeft, surfNodesZRight, id = find_points_on_surface(nodes, 3, map_x, map_y, id)
     surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
 
 #     for i,line in enumerate(surfNodesXLeft):
@@ -744,12 +744,6 @@ def create_profiles_array(args,infoXml):
           p = tuple[0]
           # set point with respectived ids as set in find_points_on_surface()
           points.SetPoint(tuple[1], (tuple[0][0], tuple[0][1], tuple[0][2]))
-#     out = open("vtk_point_ids.txt","w")
-#     for i in range(points.GetNumberOfPoints()):
-#       p = points.GetPoint(i)
-#       out.write("id=" + str(i) + ": x=" + str(p[0]) + " y=" + str(p[1]) + " z=" + str(p[2]) + "\n")
-#     
-#     out.close()  
           
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
