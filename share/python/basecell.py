@@ -140,7 +140,6 @@ def create_mesh_with_profiles(args,infoXml):
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
 parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
-parser.add_argument('--type', help="predefined mesh type", choices=['profiles2d', 'profiles3d'], required=True)
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
 parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float)
@@ -187,9 +186,9 @@ else:
     
 val = args.x1
 if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val:
-  mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_bend_" + str(args.bend) + "_" + str(args.res)
+  mesh_name = "basecell_" + args.profile + "_stiff_" + str(args.x1) + "_bend_" + str(args.bend) + "_" + str(args.res)
 else: 
-  mesh_name = args.type + "_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
+  mesh_name = "basecell_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
 
 mesh_name = mesh_name if args.save == None else args.save
 
@@ -214,19 +213,11 @@ if args.to_info_xml:
   infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
   
 # sanity checks
-if args.type == "profiles2d" and not (args.x1 and args.x2 and args.y1 and args.y2) and (args.z1 or args.z2):
-  print("error: profiles2d needs values for x1,x2 and y1,y2")
-  sys.exit()
+if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
+  print("error: need values for x1,x2 and y1,y2 and z1,z2!")
+  sys.exit(1)
 
-if args.type == "profiles3d" and not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
-  print("error: profiles3d needs values for x1,x2 and y1,y2 and z1,z2")
-  sys.exit()
-
-if args.type == 'profiles2d':
-  assert(False)
-  #mesh = create_mesh_with_profiles(args)
-elif args.type == 'profiles3d':
-  mesh = create_mesh_with_profiles(args,infoXml)
+mesh = create_mesh_with_profiles(args,infoXml)
 
 if args.target == 'volume_mesh':   
   file = mesh_name + '.mesh'

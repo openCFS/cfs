@@ -451,7 +451,7 @@ class Profile:
     assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 1 or dir == 2 or dir == 3)
     self.direction = dir
-    self.type = args.type
+    self.type = args.profile
     self.functions = [None] * 3
     if self.type == "linear":
       self.functions[0] = Linear_1D(args.x1, args.x2)
@@ -718,14 +718,14 @@ def create_profiles_array(args,infoXml):
 #         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2], c='b', marker='o')    
 #     plt.show()      
 #       if args.show:
-#         for list in surfNodes:
-#           for line in list:
-#             for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
-# #               ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
+    for list in surfNodes:
+      for line in list:
+        for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
+          ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
 #             break
 # 
-#         hf.show()
-
+    plt.show()
+    
       # create vtk cells and points
     cells = vtk.vtkCellArray()
     points = vtk.vtkPoints()
@@ -840,7 +840,6 @@ def calc_radius_for_quadrant(profile,x,rad):
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
-  h = 1.0 / res
   assert(dir >=1 and dir <=3)
   
   map = create_profile_map(profile, res)
@@ -849,14 +848,9 @@ def write_profile_to_array(array,profile,dir):
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):
-        y = j * h + h / 2.0
-        z = k * h + h / 2.0
+        x, y, z = grid_to_cartesian_coords(i, j, k, res)
         valx = (y-0.5)**2 + (z-0.5)**2
         
-#         phi = angle_to_center((y,z))
-#         phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
-#         if y < 0.5:
-#           phi = 2*np.pi - phi
         phi = angle_to_center((z,y))
         
         p = map[int(phi/np.pi*180),i]
