@@ -1,57 +1,87 @@
 # -*- coding: utf-8 -*-
-import libxml2
+
+# libxml2 is not available for python3. lxml is available on python2 and python3 and is a successor of libxml2
+# lxml is technically based on the libxml2 C-code bat hat the nicer python interface
+import lxml
+import lxml.etree
+import six
 import math
 import os
 import string
 import numpy
 
-# replace a single xpath value -> must exsit once!
-# xml is a xpathContext: doc = libxml2.parseFile("params.xml") -> xml = doc.xpathNewContext()
-# save your doc later via doc.saveFile("param_tmp.xml")
+
+## trivial helper which only helps to avoid lxml.etree stuff
+def open_xml(file):
+  if not os.path.exists(file):
+    raise RuntimeError("xml file '" + file + "' not found")
+  
+  xml = lxml.etree.parse(file)
+  return xml
+
+# replace a single xpath value -> must exist once!
+# the xpath shall contain a single result. e.g. '//cfs:materialData/@file
+# internally we get via lxml the element by removing /@file from the expression
 def replace(xml, path, value):
-  res = xml.xpathEval(path)
-  if  len(res) == 0:
+  res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'})  
+  if len(res) == 0:
     raise RuntimeError(path + " not found")
   if len(res) > 1:
     raise RuntimeError(path + " has " + str(len(res)) + " hits")
-  data = res[0]
-  data.setContent(value)
+  
+  # now we have to fake
+  idx = path.rfind('/@')
+  assert(idx > 0)
+  # query element
+  elem = xml.xpath(path[0:idx]) if path.find('cfs:') == -1 else xml.xpath(path[0:idx], namespaces={'cfs':'http://www.cfs++.org'})
+  elem[0].attrib[path[idx+2:]] = value  
   return    
 
 ## removes the defined xml entity.
-# extend to attribute first by .hasProp('name2') == None stuff
-def remove(xml, path):
-  res = xml.xpathEval(path)
-  if  len(res) == 0:
-    raise RuntimeError(path + " not found")
-  if len(res) > 1:
-    str(res)
-    raise RuntimeError(path + " has " + str(len(res)) + " hits")
-  data = res[0]
-  # TODO the node/attribute = prop stuff
-  data.unlinkNode() 
+def remove(xml, path, unique = True):
+  res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'})
+  if unique: 
+    if len(res) == 0:
+      raise RuntimeError(path + " not found")
+    if len(res) > 1:
+      raise RuntimeError(path + " has " + str(len(res)) + " hits")
+  for data in res:
+    data.getparent().remove(data)
 
-
-# returns an xpath value
+# returns an xpath value. Assumes we have lxml as xml tree, change your old libxml2 code.
+# if 'cfs:' is in path we add a namespace mapping automatically
+# example '//cfs:materialData/@file' for any materialData element
 def xpath(xml, path):
-  res = xml.xpathEval(path)
-  if  len(res) == 0:
-    raise RuntimeError(path + " not found")
-  if len(res) > 1:
-    str(res)
-    raise RuntimeError(path + " has " + str(len(res)) + " hits")
-  data = res[0]
-  return data.getContent()    
+  # assume lxml first
+  try:
+    res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'}) 
+    if  len(res) == 0:
+      raise RuntimeError(path + " not found")
+    if len(res) > 1:
+      str(res)
+      raise RuntimeError(path + " has " + str(len(res)) + " hits")
+    data = res[0]
+    return str(data)
+  except AttributeError: # this happens when xml is from libxml2 and not lxml
+    if six.PY2:
+      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
+    else: 
+      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
+
 
 # does at leas one element exist
 def has(xml, path):
-  res = xml.xpathEval(path)
-  if  len(res) == 0:
-   return False
-  else:
-   return True
-
-
+  try:
+    res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'}) 
+    if  len(res) == 0:
+      return False
+    else:
+      return True
+  except AttributeError: # this happens when xml is from libxml2 and not lxml
+    if six.PY2:
+      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
+    else: 
+      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
   
 # dump a xml node
 def dump(xml, path):
@@ -59,7 +89,7 @@ def dump(xml, path):
   if  len(res) == 0:
     raise RuntimeError(path + " empty")
   for i in res:
-    print str(i) + ": " + i.getContent()
+    lxml.etree.dump(i)
   
 # mimic conditional operator
 def cond(test, trueval, falseval):
