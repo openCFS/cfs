@@ -113,7 +113,7 @@ def create_mesh_with_profiles(args,infoXml):
   
   print "radii: ",args.x1/2.0,args.x2/2.0,args.y1/2.0,args.y2/2.0,args.z1/2.0,args.z2/2.0    
   
-  array = create_profiles_array(args,infoXml)
+  array = create_profiles_array(args, infoXml)
   
   if args.target.startswith("volume"):
     calc_volume(array,infoXml)
@@ -127,7 +127,7 @@ def create_mesh_with_profiles(args,infoXml):
     
     validate_periodicity(mesh)
   
-  if args.show or args.target.startswith("volume"):
+  if args.show or args.target.startswith("volume") and not args.target.startswith("surface"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)
