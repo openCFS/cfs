@@ -231,7 +231,8 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 
   // TODO make it smarter to evaluate the functions as piezo functions and not mech functions!
-  case Objective::OUTPUT:
+  case Function::OUTPUT:
+  case Function::SQUARED_OUTPUT:
   case Objective::DYNAMIC_OUTPUT:
   case Objective::ENERGY_FLUX:
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -286,6 +287,13 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
         CalcU1KU2(tf, sol->elem[App::ELEC], App::ELEC, sol->elem[App::ELEC], elec_rhs, factor, CONJ_QUAD, f, res_idx);
       }
 
+      // squared output gradient 2 * <u,l> * <u,l>'
+      if(f->GetType() == Function::SQUARED_OUTPUT)
+      {
+         f->SetType(Function::OUTPUT);
+         factor *= 2. * SIMP::CalcFunction(excite, f, false);
+         f->SetType(Function::SQUARED_OUTPUT);
+      }
       // lambda_u * K_uu' * u
       tf = design->GetTransferFunction(dt, App::MECH, false); // we allow NULL
       res_idx = GetSpecialResultIndex(App::MECH, App::MECH);

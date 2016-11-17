@@ -63,10 +63,12 @@ class Function
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+      ALPHA_SLACK_QUOTIENT,      /*!< quotient of the two slack variables alpha and slack */
       BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
 
       // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
+      SQUARED_OUTPUT,            /*!< Re(u,l)^2 maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
@@ -151,6 +153,8 @@ class Function
 
     /** See ToString() for string conversion! */
     Type GetType() const { return type_; }
+
+    void SetType(Type type) {type_ = type;}
 
 
     /** The real label might be an extended type string. E.g. by "access_".
