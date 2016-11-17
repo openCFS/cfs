@@ -127,7 +127,7 @@ def create_mesh_with_profiles(args,infoXml):
     
     validate_periodicity(mesh)
   
-  if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface"):
+  if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     save = "volume.vtp" if not args.save else args.save
     assert(save.endswith('.vtp'))
     visualize_structure(array,args.single_region,args.show,save)
@@ -159,7 +159,7 @@ parser.add_argument('--verbose', help="show spline plots",choices=["off","all_pr
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
-parser.add_argument('--save_map', help="writes information on profile map to .txt file", action='store_true', default=False)
+parser.add_argument('--export', help="export different stuff", choices=["radius_maps","surface_points"], required=False)
 
 args = parser.parse_args()
 

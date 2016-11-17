@@ -122,13 +122,13 @@ def degree_to_rad_quadrant(degree):
   else:
     return 2*np.pi-rad
   
-def cartesian_to_grid_coords(x,y,z,res):
+def cartesian_to_grid_coords(x,res):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return (x - h/2.0) / h, (y - h/2.0) / h, (z - h/2.0) / h 
+  return int((x - h/2.0) / h) 
 
-def grid_to_cartesian_coords(i,j,k,res):
+def grid_to_cartesian_coords(i,res):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return i * h + h / 2.0, j * h + h / 2.0, k * h + h / 2.0
+  return i * h + h / 2.0
 # calculates euklidian distance to origin (0,0)
 # @param p: tuple with x-,y-component of point
 def distance_to_center(p):
@@ -140,6 +140,10 @@ def angle_to_center(p):
     z = 1.0 - p[1]
   else:
     z = p[1]
+
+  # in case p is exactly (0.5,0.5), angle is 0 and thus denominator is 0!
+  if abs(p[0]- 0.5) <= 1e-3 and abs(p[1]- 0.5) <= 1e-3:
+    return 0  
     
   return np.arccos(0.5*(z-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (z-0.5)**2)))
  
@@ -199,7 +203,7 @@ def contains_point(id_x,y,z,map):
   
   valx = (y-0.5)**2 + (z-0.5)**2
   phi = angle_to_center((y,z))
-  
+
   r = map[int(phi/np.pi*180),id_x]
   
   if (valx <= r*r):
@@ -563,31 +567,44 @@ def get_surface_lines(map,numLines,dir):
 def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
   nodesLeft = []
   nodesRight = []
-  pointId += 1
   
   if dir == 1:
-    id0 = 0
-    id1 = 2
-    id2 = 0
-    id3 = 1
-  elif dir == 2:
     id0 = 1
-    id1 = 2
-    id2 = 0
-    id3 = 1
-  else: #dir == 3
-    id0 = 1
-    id1 = 2
-    id2 = 0
+    id1 = 0
+    id2 = 2
     id3 = 2
+    id4 = 0
+    id5 = 1
+  elif dir == 2:
+    id0 = 0
+    id1 = 1
+    id2 = 2
+    id3 = 2
+    id4 = 0
+    id5 = 1
+  else: #dir == 3
+    id0 = 0
+    id1 = 1
+    id2 = 2
+    id3 = 1
+    id4 = 0
+    id5 = 2
         
   assert(dir == 1 or dir == 2 or dir == 3)
   res = nodes.shape[1]
   for numLine,prof in enumerate(nodes):
-    lineLeft = [] # store points on one surface line temporally
+    lineLeft = [] # store points on one surface line temporarily
     lineRight = []
     for i,p in enumerate(prof):
-      if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
+      # check if point is contained in other profiles
+      
+#       # for x
+#       if not contains_point(cartesian_to_grid_coords(p[1], res),p[0],p[2],map_y) and not contains_point(cartesian_to_grid_coords(p[2], res), p[0], p[1], map_z):
+#       # for y
+#       if not contains_point(cartesian_to_grid_coords(p[0], res),p[1],p[2],map_x) and not contains_point(cartesian_to_grid_coords(p[2], res), p[0], p[1], map_z):
+#       # for z
+#       if not contains_point(cartesian_to_grid_coords(p[0], res),p[1],p[2],map_x) and not contains_point(cartesian_to_grid_coords(p[1], res), p[0], p[2], map_y):
+      if not contains_point(cartesian_to_grid_coords(p[id0], res),p[id1],p[id2],otherMap1) and not contains_point(cartesian_to_grid_coords(p[id3], res), p[id4], p[id5], otherMap2):   
         if p[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
           lineLeft.append((p,pointId))
         else:
@@ -634,8 +651,6 @@ def define_triangles(list,cells):
 #         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
 #         print "point",prevLine[j+1][1], ": ",prevLine[j+1][0][0],prevLine[j+1][0][1],prevLine[j+1][0][2]
 
-#     if i == 9:
-#       break  
   return cells
   
 def create_profiles_array(args,infoXml):
@@ -679,7 +694,6 @@ def create_profiles_array(args,infoXml):
 #       ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
       
     surfNodesXLeft, surfNodesXRight, id = find_points_on_surface(nodes, 1, map_y, map_z,id)
-    
 #       out = open("surfNodesXLeft.coords","w")
 #       for i,line in enumerate(surfNodesXLeft):
 #         for tuple in line:
@@ -687,7 +701,6 @@ def create_profiles_array(args,infoXml):
 #       out.close()
     nodes = get_surface_lines(map_y, args.res_surf_lines, 2)
     surfNodesYLeft, surfNodesYRight, id = find_points_on_surface(nodes, 2, map_x, map_z, id)
-    
 #     for i,line in enumerate(surfNodesXLeft):
 #       for j,tuple in enumerate(line):
 #         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
@@ -708,7 +721,6 @@ def create_profiles_array(args,infoXml):
     nodes = get_surface_lines(map_z, args.res_surf_lines, 3)
     surfNodesZLeft, surfNodesZRight, id = find_points_on_surface(nodes, 3, map_x, map_y, id)
     surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
-
 #     for i,line in enumerate(surfNodesXLeft):
 #       for tuple in line:
 #         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2], c='r', marker='o')
@@ -718,19 +730,30 @@ def create_profiles_array(args,infoXml):
 #         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2], c='b', marker='o')    
 #     plt.show()      
 #       if args.show:
-    for list in surfNodes:
-      for line in list:
-        for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
-          ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
+#     for list in surfNodes:
+#       for line in list:
+#         for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
+#           ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
 #             break
 # 
-    plt.show()
+#     plt.show()
     
       # create vtk cells and points
     cells = vtk.vtkCellArray()
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
     
+    # set scalar info of intersection points to 1.0 to make them visible
+    vtkData = vtk.vtkFloatArray()
+    vtkData.SetName("intersection")
+    vtkData.SetNumberOfValues(id)
+    for i in range(id): # initialize scalar of all points with 0.0 (default)
+      vtkData.SetValue(i,0.0)
+    for i,line in enumerate(surfNodesXLeft):
+      last = line[-1]
+      vtkData.SetValue(last[1],1.0)
+    
+      
     cells = define_triangles(surfNodesXLeft,cells)
     cells = define_triangles(surfNodesXRight,cells)
     cells = define_triangles(surfNodesYLeft,cells)
@@ -738,15 +761,44 @@ def create_profiles_array(args,infoXml):
     cells = define_triangles(surfNodesZLeft,cells)
     cells = define_triangles(surfNodesZRight,cells)
     
+    min_x = -999
+    min_y = -999
+    min_z = -999
+    max_x = 999
+    max_y = 999
+    max_z = 999
+    
     for part in surfNodes:
       for line in part:
         for tuple in line:
           p = tuple[0]
           # set point with respectived ids as set in find_points_on_surface()
-          points.SetPoint(tuple[1], (tuple[0][0], tuple[0][1], tuple[0][2]))
+          if min_x < tuple[0][0]:
+            min_x = tuple[0][0]
+          if max_x > tuple[0][0]:
+            max_x = tuple[0][0]
+          if min_y < tuple[0][1]:
+            min_y = tuple[0][1]
+          if max_y > tuple[0][1]:
+            max_y = tuple[0][1]
+          if min_z < tuple[0][2]:
+            min_z = tuple[0][2]
+          if max_z > tuple[0][2]:
+            max_z = tuple[0][2]  
           
+          assert(tuple[0][0] >= 0 and tuple[0][0] <= 1)
+          assert(tuple[0][1] >= 0 and tuple[0][1] <= 1)
+          assert(tuple[0][2] >= 0 and tuple[0][2] <= 1)
+          points.SetPoint(tuple[1], tuple[0][0], tuple[0][1], tuple[0][2])
+          
+    
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
+    polydata.GetPointData().SetScalars(vtkData)
+    
+    if args.export == "surface_points":
+      show_write_vtk(polydata, 1000, "surface_points.vtp")
+      
     polydata.SetPolys(cells)
     
     if args.show:
@@ -757,8 +809,8 @@ def create_profiles_array(args,infoXml):
     for i in range(0,3):
       if profiles[i] == None:
         continue
-      if args.verbose == 'profile_map' or args.save_map:
-        create_profile_map(profiles[i], res, args.verbose,args.save_map, ha)
+      if args.verbose == 'profile_map' or args.export == 'radius_maps':
+        create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
@@ -817,8 +869,16 @@ def plot_3dlines(profile,res,numLines,dir,ha):
 #       ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
       
   nodes = get_surface_lines(map, numLines, dir)
+  color = None
+  if dir == 1:
+    color = "red"
+  elif dir == 2:
+    color = "blue"
+  else:
+    assert(dir == 3)
+    color = "green"  
   for i in range(numLines):
-    ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
+    ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],color=color)
     
 # calculates interpolated radius for one quadrant (0 to pi/2)
 # @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
@@ -848,7 +908,8 @@ def write_profile_to_array(array,profile,dir):
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):
-        x, y, z = grid_to_cartesian_coords(i, j, k, res)
+        y = grid_to_cartesian_coords(j, res)
+        z = grid_to_cartesian_coords(k, res)
         valx = (y-0.5)**2 + (z-0.5)**2
         
         phi = angle_to_center((z,y))
