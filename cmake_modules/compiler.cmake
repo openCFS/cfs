@@ -270,13 +270,16 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   IF(DEBUG)
     SET(CFS_C_FLAGS "-g -c99 -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-    # remove -ansi which strangely enough works. But -std=c++11 fails on tumbleweed
+    # -std=c++11 fails on tumbleweed because the stdlib of gcc 6.2 has a bug.
+    # however it works without a flag, mabye the intel compiler checks the stdlib.
+    # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
+    # It's anoying that intel depends on the system stdlib :(
     SET(CFS_CXX_FLAGS "-g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
-    # see above
+    # see above with -std=c++11
     SET(CFS_CXX_FLAGS "-w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
