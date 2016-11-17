@@ -19,27 +19,43 @@ def open_xml(file):
   xml = lxml.etree.parse(file)
   return xml
 
+
+#ä helper to get namespace for a lxml query. if 'cfs:' is in the query a mapping is returned, else None
+def namespace(query):
+  if query.find('cfs:') == -1:
+    return None
+  else:
+    return {'cfs':'http://www.cfs++.org'}
+
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file
 # internally we get via lxml the element by removing /@file from the expression
-def replace(xml, path, value):
-  res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'})  
-  if len(res) == 0:
-    raise RuntimeError(path + " not found")
-  if len(res) > 1:
-    raise RuntimeError(path + " has " + str(len(res)) + " hits")
+# if the original attribute value has '/nx' this will stay, even when value has not '/nx' set.
+#@param unique if True there must be one match, if false there may be more than one - none is also an option
+#@return the number of replaces attributes
+def replace(xml, path, value, unique = True):
+  res = xml.xpath(path, namespaces = namespace(path))
+  if unique:  
+    if len(res) == 0:
+      raise RuntimeError(path + " not found")
+    if len(res) > 1:
+      raise RuntimeError(path + " has " + str(len(res)) + " hits")
   
   # now we have to fake
   idx = path.rfind('/@')
   assert(idx > 0)
   # query element
-  elem = xml.xpath(path[0:idx]) if path.find('cfs:') == -1 else xml.xpath(path[0:idx], namespaces={'cfs':'http://www.cfs++.org'})
-  elem[0].attrib[path[idx+2:]] = value  
-  return    
+  elem = xml.xpath(path[0:idx], namespaces = namespace(path))
+  for e in elem:
+    data = e.attrib[path[idx+2:]]
+    by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
+    e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')  
+
+  return len(elem)   
 
 ## removes the defined xml entity.
 def remove(xml, path, unique = True):
-  res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'})
+  res = xml.xpath(path, namespaces = namespace(path)) 
   if unique: 
     if len(res) == 0:
       raise RuntimeError(path + " not found")
@@ -54,7 +70,7 @@ def remove(xml, path, unique = True):
 def xpath(xml, path):
   # assume lxml first
   try:
-    res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'}) 
+    res = xml.xpath(path, namespaces = namespace(path))  
     if  len(res) == 0:
       raise RuntimeError(path + " not found")
     if len(res) > 1:
@@ -68,11 +84,11 @@ def xpath(xml, path):
     else: 
       raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
 
-
+  
 # does at leas one element exist
 def has(xml, path):
   try:
-    res = xml.xpath(path) if path.find('cfs:') == -1 else xml.xpath(path, namespaces={'cfs':'http://www.cfs++.org'}) 
+    res = xml.xpath(path, namespaces = namespace(path)) 
     if  len(res) == 0:
       return False
     else:
@@ -85,13 +101,13 @@ def has(xml, path):
   
 # dump a xml node
 def dump(xml, path):
-  res = xml.xpathEval(path)
+  res = xml.xpath(path, namespaces = namespace(path))
   if  len(res) == 0:
     raise RuntimeError(path + " empty")
   for i in res:
     lxml.etree.dump(i)
   
-# mimic conditional operator
+# mimic conditional operator. depreciated, use python a = b if i > 2 else c
 def cond(test, trueval, falseval):
   if test:
     return trueval
@@ -164,7 +180,7 @@ def execute(cmd, output = False, silent = False):
    print cmd
  ret = os.system(cmd)
  if ret <> 0 and not silent:
-   raise RuntimeError("execution of '" + cmd + "' -> " + str(ret))
+   raise RuntimeError("execution returns " + str(ret) + ": '" + cmd + "'") 
  return ret    
 
 # return the first line of a file

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import sys
-import libxml2
 import argparse
-
 from cfs_utils import *
 
 ## performs continuation by doubling filter/density/beta, starting from 1
@@ -33,20 +31,18 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
 
   if not os.path.exists(short_problem + ".xml"):
     print "error: file '" + short_problem + ".xml' not found"
-    os.sys.exit()   
-  doc = libxml2.parseFile(short_problem + ".xml")
-  xml = doc.xpathNewContext()
-  xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+    os.sys.exit()
+  
+  xml = open_xml(short_problem + ".xml")     
 
   # we assume one hit or three for robust
   if type == 'beta':
-    res = xml.xpathEval("//cfs:filter/cfs:density/@beta")
-    if len(res) == 0:
-      res = xml.xpathEval("//cfs:shapeMap/@beta")
-      if len(res) == 0:  
+    # check shape map first
+    rsm = replace(xml, "//cfs:shapeMap/@beta", str(var), unique = False)
+    if rsm == 0:
+      rdf = replace(xml, "//cfs:filter/cfs:density/@beta", str(var), unique = False)
+      if rdf == 0:
         raise RuntimeError("beta not found for filter/density/@beta and shapeMap/@beta")
-    for data in res:
-      data.setContent(str(var))
   else:
     query = None
     if type == 'curvature':     
@@ -56,15 +52,12 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
     if type == 'rel_node_bound': 
       query = '//cfs:shapeMap/@relative_node_bound'
     assert(query <> None)
-               
-    res = xml.xpathEval(query)
-    if len(res) == 0:
-      raise RuntimeError(" no '" + type + "' found")
-    for data in res:
-      by_nx = str(data).find('/nx') > 0 and str(var).find('/nx') == -1
-      data.setContent(str(var) + ('/nx' if by_nx else ''))
+
+    r = replace(xml, query, str(var), unique = False)
+    if r == 0:
+      raise RuntimeError(" no '" + type + "' found")               
   
-  doc.saveFile(var_problem + ".xml")
+  xml.write(var_problem + ".xml")
   
   cmd = executable + " " + start + " -m " + mesh + " " + var_problem
   if qsub:
