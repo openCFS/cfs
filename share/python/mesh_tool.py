@@ -724,7 +724,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     offy = -1.
     width = 2. 
     height = 2.
-  if type == 'msfem_two_load' or 'two_load':
+  if type == 'msfem_two_load' or type == 'two_load':
     width= 2.
     height = 1.
   if type == 'gripper_half' or type == 'force_inverter_half':
@@ -2373,6 +2373,11 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
   #  force2 = [69693]
   #if support == []:
   #  support = [69659,69669,69670,69671,69672,69673,69674,69675,69677,69689]
+  for k in range(len(force1)):
+      force1[k] -= offset
+  for k in range(len(support)):
+      support[k] -= offset
+
   mesh.bc = []
   mesh.bc.append(('force1', force1))
   #mesh.bc.append(('force2', force2))

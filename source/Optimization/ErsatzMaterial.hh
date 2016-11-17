@@ -306,6 +306,9 @@ protected:
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
 
+  /** Calculates alpha/slack quotient in order to e.g. distribute load on all supports equally*/
+  double CalcAlphaSlackQuotient(Function* f, bool derivative);
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode

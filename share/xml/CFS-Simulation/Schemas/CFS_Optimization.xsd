@@ -242,6 +242,8 @@
             </xsd:element>
             
             <xsd:element name="output" minOccurs="0" maxOccurs="1" type="DT_output"/>
+            <xsd:element name="squaredOutput" minOccurs="0" maxOccurs="1" type="DT_output"/>
+            
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
@@ -332,6 +334,7 @@
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
             <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="squaredOutput" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
           <xsd:attribute name="type" use="required">
@@ -344,6 +347,7 @@
                 <xsd:enumeration value="conjugateCompliance"/>
                 <xsd:enumeration value="globalDynamicCompliance"/>
                 <xsd:enumeration value="output"/>
+                <xsd:enumeration value="squaredOutput"/>
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
@@ -425,6 +429,8 @@
                 <xsd:enumeration value="heatEnergy"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
+                <!-- allows constraints to be bounded by alpha/slack quotient -->
+                <xsd:enumeration value="alphaSlackQuotient"/>
                 <!-- tracking heat temperature at interfaces -->
                 <xsd:enumeration value="tempTrackingAtInterface"/>
               </xsd:restriction>
@@ -783,7 +789,7 @@
                 </xsd:sequence>
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
                 <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
-                <xsd:attribute name="output" use="optional" type="xsd:string"/>
+                <xsd:attribute name="output" use="optional" type="xsd:string"/> 
               </xsd:complexType>
             </xsd:element>
 
@@ -1607,7 +1613,8 @@
   <xsd:simpleType name="DT_Objective">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="compliance"/>
-      <xsd:enumeration value="output"/>                
+      <xsd:enumeration value="output"/>
+      <xsd:enumeration value="squaredOutput"/>                       
       <xsd:enumeration value="conjugateCompliance"/>
       <xsd:enumeration value="globalDynamicCompliance"/>
       <xsd:enumeration value="dynamicOutput"/>
@@ -1646,6 +1653,8 @@
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
+      <!-- allows constraints to be bounded by alpha/slack quotient -->
+      <xsd:enumeration value="alphaSlackQuotient"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
       <!--  temperature tracking at interface -->
