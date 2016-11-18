@@ -875,7 +875,7 @@ bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm,
   retMat.eigenvaluesWithLapack(lp_w);
   if (direction == BaseDesignElement::NO_DERIVATIVE) {
     for (unsigned int i = 0; i < lp_w.GetSize();i++) {
-      if (lp_w[i] < 0) {
+      if (lp_w[i] < -1e-6) {
         throw Exception("The material tensor of element '" + std::to_string(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
         return false;
       }
