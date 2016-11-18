@@ -215,8 +215,6 @@ def contains_point(id_x,y,z,map):
    
   r = map[int(degrees(phi)),id_x]
      
-  print "phi:", degrees(phi), y, z
-  print "valx: ", valx, " r**2: ", r**2
   if (valx - r*r < 1e-3 ):
     return True
      
@@ -584,8 +582,6 @@ def get_surface_lines(map,numLines,dir):
 # each surface point is also given a unique id
 # @param pointId indicates the point id that already exists
 def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
-  nodesLeft = []
-  nodesRight = []
   
   if dir == 1:
     id0 = 1
@@ -611,59 +607,116 @@ def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
   
   assert(dir == 1 or dir == 2 or dir == 3)
   res = nodes.shape[1]
+  
+  nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
+  
   for numLine,line in enumerate(nodes):
     lineLeft = [] # store points on one surface line temporarily
     lineRight = []
     for i,p in enumerate(line):
       # check if point is contained in other profiles
-      if not contains_point(cartesian_to_grid_coords(p[id0], res),p[id1],p[id2],otherMap1) and not contains_point(cartesian_to_grid_coords(p[id3], res), p[id4], p[id5], otherMap2):   
-        if p[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-          lineLeft.append((p,pointId))
-        else:
-          lineRight.append((p,pointId))
+      if not contains_point(cartesian_to_grid_coords(p[id0], res),p[id1],p[id2],otherMap1) and not contains_point(cartesian_to_grid_coords(p[id3], res), p[id4], p[id5], otherMap2):
+        nodes_ids[numLine,i] = pointId
         pointId += 1
         
-    nodesLeft.append(lineLeft)
-    nodesRight.append(lineRight[::-1])   
-    
-  return nodesLeft, nodesRight, pointId
+  return nodes_ids, pointId
   
+# # list is list of lists contains surface lines and all respective points
+# # base used for setting right ids
+# def define_triangles(list,cells):
+#   prevLine = None
+#   for i,line in enumerate(list):
+#     if i < len(list) - 1:
+#       prevLine = list[i+1]
+#     else:
+#       prevLine = list[0] # last line in list
+#       
+#     for j in range(0,len(line),1): # get coordinates of each point
+#       if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
+#         tri = vtk.vtkTriangle()
+#         tri.GetPointIds().SetId(0, line[j][1]) 
+#         tri.GetPointIds().SetId(1, prevLine[j][1])
+#         tri.GetPointIds().SetId(2, line[j+1][1])
+#         cells.InsertNextCell(tri)
+#          
+# #         print "triangle:",line[j][1],prevLine[j][1],line[j+1][1]
+# #         print "point",line[j][1], ": ",line[j][0][0],line[j][0][1],line[j][0][2]
+# #         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
+# #         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
+#       if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
+#         tri = vtk.vtkTriangle()
+#         tri.GetPointIds().SetId(0, line[j+1][1])
+#         tri.GetPointIds().SetId(1, prevLine[j][1])
+#         tri.GetPointIds().SetId(2, prevLine[j+1][1])
+#         cells.InsertNextCell(tri)
+# 
+#   return cells
+
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
-def define_triangles(list,cells):
-  prevLine = None
-  for i,line in enumerate(list):
-    if i < len(list) - 1:
-      prevLine = list[i+1]
-    else:
-      prevLine = list[0] # last line in list
+# returns array of size 2 x n with ids of end nodes in first row, second row reserved for fix_gaps()
+def define_triangles(nodes_ids,cells,dir,vtkArray=None):
+  end_nodes_ids = []
+  
+  for i in range(0,nodes_ids.shape[0]):
+    this_line = nodes_ids[i]
+    right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
+    left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
+    for j in range(0,len(this_line)-1):
+      this_id = this_line[j]
+      prev_id = -1 if j == 0 else this_line[j-1]
+      next_id = this_line[j+1]
+      right_id = right_line[j]
+      left_id = left_line[j]
+      right_next_id = right_line[j+1]
+      if this_id >= 0 and next_id >= 0 and right_id >= 0:
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, this_id)
+        tri.GetPointIds().SetId(1, right_id)
+        tri.GetPointIds().SetId(2, next_id)
+        cells.InsertNextCell(tri)
+        
+        vtkArray.SetValue(this_id,dir)
+        vtkArray.SetValue(next_id,dir)
+        vtkArray.SetValue(right_id,dir)
+        
+        if j > 0 and (left_id < 0 or prev_id < 0):
+          end_nodes_ids.append(this_id)
+          vtkArray.SetValue(this_id,dir+0.5)
+      else:
+        if this_id >= 0 and j > 0: # first point in line is not end point
+          end_nodes_ids.append(this_id)
+          vtkArray.SetValue(this_id,dir+0.5)
+          
+          if right_id >= 0 and right_next_id >= 0:
+            tri = vtk.vtkTriangle()
+            tri.GetPointIds().SetId(0, this_id)
+            tri.GetPointIds().SetId(1, right_id)
+            tri.GetPointIds().SetId(2, right_next_id)
+            cells.InsertNextCell(tri)
       
-    for j in range(0,len(line),1): # get coordinates of each point
-      if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
+      if right_id >= 0 and next_id >= 0 and right_next_id >=0:
         tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, line[j][1]) 
-        tri.GetPointIds().SetId(1, prevLine[j][1])
-        tri.GetPointIds().SetId(2, line[j+1][1])
+        tri.GetPointIds().SetId(0, right_id)
+        tri.GetPointIds().SetId(1, right_next_id)
+        tri.GetPointIds().SetId(2, next_id)
         cells.InsertNextCell(tri)
-         
-#         print "triangle:",line[j][1],prevLine[j][1],line[j+1][1]
-#         print "point",line[j][1], ": ",line[j][0][0],line[j][0][1],line[j][0][2]
-#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
-#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
-      if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
+        
+      if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0 :
         tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, line[j+1][1])
-        tri.GetPointIds().SetId(1, prevLine[j][1])
-        tri.GetPointIds().SetId(2, prevLine[j+1][1])
+        tri.GetPointIds().SetId(0, this_id)
+        tri.GetPointIds().SetId(1, right_next_id)
+        tri.GetPointIds().SetId(2, next_id)
         cells.InsertNextCell(tri)
-    
-#         print "triangle:",line[j+1][1],prevLine[j][1],prevLine[j+1][1]
-       
-#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
-#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
-#         print "point",prevLine[j+1][1], ": ",prevLine[j+1][0][0],prevLine[j+1][0][1],prevLine[j+1][0][2]
+           
+  data = np.zeros((2,len(end_nodes_ids)), dtype=int)
+  data[0] = end_nodes_ids
+  data[1] = 0
+           
+  return data
 
-  return cells
+# def fix_gaps():
+  
   
 def create_profiles_array(args,infoXml):
   res = args.res
@@ -697,89 +750,17 @@ def create_profiles_array(args,infoXml):
     map_y = create_profile_map(profiles[1], res)
     map_z = create_profile_map(profiles[2], res)
     
-#     node = (0.135630,0.268764,0.507538)
-    
-#     print "node: ", node
-# #     print "id_y: ", cartesian_to_grid_coords(node[1], res)
-#     print "id_x: ", cartesian_to_grid_coords(node[0], res)
-#     print "in x?", contains_point(cartesian_to_grid_coords(node[0], res), node[1], node[2], map_x)
-#     print "in x? ",contains_point(node[1], node[0], node[2], profiles[0])
-# #     print "in y? ",contains_point(node[0], node[1], node[2], profiles[1])
-# #     print "in z? ",contains_point(node[1], node[2], node[0], profiles[2])
-# #     print "in y? ",contains_point(cartesian_to_grid_coords(node[1], res), node[0], node[2], map_y)
-#     print "in z? ",contains_point(cartesian_to_grid_coords(node[2], res), node[0], node[1], map_z)
-# #     
       # first dimension of nodes : surface lines
       # second dimension of nodes: resolution of unit cube
       # third dimension: tuple with x,y,z coordinate
-    nodes = get_surface_lines(map_x, args.res_surf_lines, 1)
-    
-#     for i in range(np.size(nodes, 0)):
-#       ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
-    surfNodesXLeft, surfNodesXRight, id = find_points_on_surface(nodes, 1, map_y, map_z,id)
-    id_x_end = id
-#       out = open("surfNodesXLeft.coords","w")
-#       for i,line in enumerate(surfNodesXLeft):
-#         for tuple in line:
-#           out.write("id=" + str(tuple[1]) + ": x=" + str(tuple[0][0]) + " y=" + str(tuple[0][1]) + " z=" + str(tuple[0][2]) + "\n")
-#       out.close()
-    nodes = get_surface_lines(map_y, args.res_surf_lines, 2)
-    surfNodesYLeft, surfNodesYRight, id = find_points_on_surface(nodes, 2, map_x, map_z, id)
-    id_y_end = id
-    
-#     for i,line in enumerate(surfNodesXLeft):
-#       for j,tuple in enumerate(line):
-#         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
-#     cut = profiles[0].functions[0].calc_coords_grad_1()
-#     save_nodes = []
-#     for angle in range(45):
-#       rad = radians(angle)
-#       y,z = polar_to_cartesian(cut[1]-0.5, rad, 0.5)
-#       save_nodes.append((cut[0],y,z))
-#         
-#     for node in save_nodes:
-#       ha.scatter(node[0],node[1],node[2],color="red")
-#       
-#     plt.show()      
-#     for i,line in enumerate(surfNodesYLeft):
-#       for tuple in line:
-#         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2],color="black")
-        
-#     for i,line in enumerate(surfNodesYRight):
-#       for tuple in line:
-#         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2],color="black")       
-    
-#     plt.show()
-          
-    nodes = get_surface_lines(map_z, args.res_surf_lines, 3)
-    surfNodesZLeft, surfNodesZRight, id = find_points_on_surface(nodes, 3, map_x, map_y, id)
-    surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
-#     for i,line in enumerate(surfNodesXLeft):
-#       for tuple in line:
-#         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2], c='r', marker='o')
-# #         ha.text(tuple[0][0],tuple[0][1],tuple[0][2],tuple[1])
-#     for i,line in enumerate(surfNodesZLeft):
-#       for tuple in line:
-#         ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2], c='b', marker='o')    
-#     plt.show()      
-#       if args.show:
-#     for list in surfNodes:
-#       for line in list:
-#         for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
-#           ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
-#             break
-# 
-#     plt.show()
+    nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 1)
+    nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
 
-    # add points at intersection with other profiles
-#     cut = profiles[0].functions[0].calc_coords_grad_1()
-#     save_nodes = []
-#     for angle in range(360):
-#       radius = calc_radius_for_quadrant(profiles[0], cut[0], degree_to_rad_quadrant(angle))
-#       y,z = polar_to_cartesian(radius, radians(angle), 0.5)
-#       save_nodes.append((cut[0],y,z))
-#     for node in save_nodes:
-#       ha.scatter(node[0],node[1],node[2],color="red")
+    nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 2)
+    nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
+    
+    nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
+    nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
 
     # create vtk cells and points
     cells = vtk.vtkCellArray()
@@ -790,59 +771,22 @@ def create_profiles_array(args,infoXml):
     vtkData = vtk.vtkFloatArray()
     vtkData.SetName("intersection")
     vtkData.SetNumberOfValues(id)
-    for i in range(id): # initialize scalar of all points with 0.0 (default)
-      if i < id_x_end:
-        vtkData.SetValue(i,0.0)
-      elif i < id_y_end:
-        vtkData.SetValue(i,1.0)
-      else:
-        vtkData.SetValue(i,2.0) 
-#     for i,line in enumerate(surfNodesXLeft):
-#       last = line[-1]
-#       vtkData.SetValue(last[1],1.0)
-      
-    cells = define_triangles(surfNodesXLeft,cells)
-    cells = define_triangles(surfNodesXRight,cells)
-    cells = define_triangles(surfNodesYLeft,cells)
-    cells = define_triangles(surfNodesYRight,cells)
-    cells = define_triangles(surfNodesZLeft,cells)
-    cells = define_triangles(surfNodesZRight,cells)
+
+    end_nodes_ids_1 = define_triangles(nodes_ids_1,cells,1,vtkData)
+    end_nodes_ids_2 = define_triangles(nodes_ids_2,cells,2,vtkData)
+    end_nodes_ids_3 = define_triangles(nodes_ids_3,cells,3,vtkData)
     
-    min_x = -999
-    min_y = -999
-    min_z = -999
-    max_x = 999
-    max_y = 999
-    max_z = 999
     
-    for part in surfNodes:
-      for line in part:
-        for tuple in line:
-          p = tuple[0]
-          # set point with respectived ids as set in find_points_on_surface()
-          if min_x < tuple[0][0]:
-            min_x = tuple[0][0]
-          if max_x > tuple[0][0]:
-            max_x = tuple[0][0]
-          if min_y < tuple[0][1]:
-            min_y = tuple[0][1]
-          if max_y > tuple[0][1]:
-            max_y = tuple[0][1]
-          if min_z < tuple[0][2]:
-            min_z = tuple[0][2]
-          if max_z > tuple[0][2]:
-            max_z = tuple[0][2]  
+
+    for i,line in enumerate(nodes_1):
+      for j in range(len(line)):
+        if nodes_ids_1[i,j] >= 0:          
+          points.SetPoint(nodes_ids_1[i,j], nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2])
+        if nodes_ids_2[i,j] >= 0:          
+          points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
+        if nodes_ids_3[i,j] >= 0:          
+          points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])    
           
-          assert(tuple[0][0] >= 0 and tuple[0][0] <= 1)
-          assert(tuple[0][1] >= 0 and tuple[0][1] <= 1)
-          assert(tuple[0][2] >= 0 and tuple[0][2] <= 1)
-          points.SetPoint(tuple[1], tuple[0][0], tuple[0][1], tuple[0][2])
-          
-#     count = id
-#     for node in save_nodes:
-#       points.SetPoint(count,node[0],node[1],node[2])
-#       count +=1
-    
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
     polydata.GetPointData().SetScalars(vtkData)
