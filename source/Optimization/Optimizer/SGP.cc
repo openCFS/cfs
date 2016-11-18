@@ -694,6 +694,7 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
     BB = -dL * df[i] * dL;
+    Matrix<double> tmp(BB);
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
     obj_min = std::numeric_limits<double>::infinity();
@@ -701,7 +702,8 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
     for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
       for (double s1 = s1_iv.lower_bound; s1 <= s1_iv.upper_bound; s1 += s1_iv.inc) {
         for (double s2 = s2_iv.lower_bound; s2 <= s2_iv.upper_bound; s2 += s2_iv.inc) {
-          CalcE_inner(E_tmptmp,s1,s2,theta);
+          CalcE_inner(E_tmptmp,s1,s2,theta,tmp);
+          LOG_DBG3(sgp) << "Subsolve BBphi = ["<<tmp.ToString()<<"]";
           E_tmp = E_tmptmp;
           obj = EvalApproximation(s1+s2-s1*s2,eval, BB, E_tmp, ppen,i);
           LOG_DBG3(sgp) << "Subsolve: s1 =" << s1 << " s2 = " << s2 << " theta= " << theta <<" E_tmp = [" << E_tmp.ToString() << "]";
@@ -911,7 +913,7 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double
   return result;
 }
 
-void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s2, double theta_inner) {
+void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s2, double theta_inner, Matrix<double> & tmp) {
   E_inner.Resize(3,3);
   Vector<double> p(2);
   p[0] = s1;
@@ -919,6 +921,9 @@ void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s
   common->helper_dm->ApplyHomRectC1Tensor(E_inner,p,DesignElement::NO_DERIVATIVE,PLANE);
   // Rotate 2-scale tensor
   common->optimization->GetDesign()->designMaterial->RotateTensor(E_inner,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+  // only for debuggin purpose, delete afterwards
+  common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+
 }
 
 void SGPApproximation::CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner) {

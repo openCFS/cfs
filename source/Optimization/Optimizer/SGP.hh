@@ -249,7 +249,7 @@ private:
   double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
-  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta);
+  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta,Matrix<double> & tmp);
 
   void CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner);
 
