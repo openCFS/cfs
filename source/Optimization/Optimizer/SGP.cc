@@ -833,7 +833,6 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
     LOG_DBG3(sgp) << "Subsolve: rho1_min =" <<rho1_min <<" rho2_min = "<<rho2_min;
     LOG_DBG3(sgp) << "Subsolve: atmp =" << atmp.ToString();
 
-    int dummy = 1;
   }
 
   return obj;
