@@ -65,14 +65,14 @@ namespace CoupledField
        /** The bound value for inhomogeneous constraints.
         * In slack bound case it returns 0 as the constraints g <= slack is transformed to g - slack <= 0
         * @see IsSlackBound() */
-       double GetBoundValue() const { return HasSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
+       double GetBoundValue() const { return HasGeneralSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
 
        /** allows to compare with a special bound value as GetBoundValue() woul return 0
-        * @param compare SLACK_VALUE, ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
-       double IsSlackBound(double compare) const { return boundValue_ == compare; }
+        * @param compare SLACK_VALUE, ALPHA_VALUE ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
+       double IsGeneralSlackBound(double compare) const { return boundValue_ == compare; }
 
-       /** is the bound value one of the three special slack cases? */
-       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
+       /** is the bound value one of the four special slack cases? includes alpha only */
+       bool HasGeneralSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
 
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
@@ -156,6 +156,7 @@ namespace CoupledField
        EigenInfo bloch;
 
        static double SLACK_VALUE;
+       static double ALPHA_VALUE;
        static double ALPHA_MINUS_SLACK_VALUE;
        static double ALPHA_PLUS_SLACK_VALUE;
 

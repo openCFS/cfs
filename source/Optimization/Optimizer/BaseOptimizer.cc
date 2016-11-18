@@ -451,13 +451,15 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
   }
   double org = optimization->CalcConstraint(g);
   double base = org;
-  if(g->HasSlackBound())
+  if(g->HasGeneralSlackBound())
   {
-    if(g->IsSlackBound(Condition::SLACK_VALUE))
+    if(g->IsGeneralSlackBound(Condition::SLACK_VALUE))
       base -= optimization->GetDesign()->GetSlackVariable();
-    else if(g->IsSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
+    if(g->IsGeneralSlackBound(Condition::ALPHA_VALUE))
+      base -= optimization->GetDesign()->GetAlphaVariable();
+    else if(g->IsGeneralSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
       base -= optimization->GetDesign()->GetAlphaVariable() + optimization->GetDesign()->GetSlackVariable();
-    else if(g->IsSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
+    else if(g->IsGeneralSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
       base -= optimization->GetDesign()->GetAlphaVariable() - optimization->GetDesign()->GetSlackVariable();
   }
 

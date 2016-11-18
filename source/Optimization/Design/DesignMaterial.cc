@@ -1837,7 +1837,7 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   double e23 = set ? params_[DesignElement::MECH_23] : 0;
   double e13 = set ? params_[DesignElement::MECH_13] : 0;
   double e12 = set ? params_[DesignElement::MECH_12] : 0;
-  // We don't use rotAngle for FMO anymore due to GSP Optimizer
+  // We don't use rotAngle for FMO anymore due to SGP Optimizer
   //double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
@@ -3294,6 +3294,10 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
         E[2-1][1-1] = E[1-1][2-1];
         E[2-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
         E[3-1][3-1] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
+        E[3-1][1-1] = 0.;
+        E[1-1][3-1] = 0.;
+        E[2-1][3-1] = 0.;
+        E[3-1][2-1] = 0.;
       } else { // shearing
         E[1-1][1-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_,da,db,dc,j,k,l,m,n,o);
         E[1-1][2-1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_,da,db,dc,j,k,l,m,n,o);
@@ -3314,6 +3318,10 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
         E[2-1][1-1] = E[1-1][2-1];
         E[2-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
         E[3-1][3-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
+        E[3-1][1-1] = 0.;
+        E[1-1][3-1] = 0.;
+        E[2-1][3-1] = 0.;
+        E[3-1][2-1] = 0.;
       } else { // shearing
         E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
         E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
@@ -4535,6 +4543,20 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22,
   t[2][2] = t33;
 }
 
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33) {
+  t.Resize(3, 3);
+  t.Init();
+  t[0][0] = t11;
+  t[0][1] = t12;
+  t[0][2] = t13;
+  t[1][0] = t21;
+  t[1][1] = t22;
+  t[1][2] = t23;
+  t[2][0] = t31;
+  t[2][1] = t32;
+  t[2][2] = t33;
+}
+
 void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
     SubTensorType subTensor, double e11, double e12, double e13, double e22,
     double e23, double e33, double e44, double e55, double e66) {
@@ -5139,13 +5161,12 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
 bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12 && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE && type_ != GREEDY_MAPPING));
-
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     return false;
 
   switch (type_) {
   case FMO:
-    GetElasticFMOTensor(t, direction, notation);
+      GetElasticFMOTensor(t, direction, notation);
     break;
   case ORTHOTROPIC:
   case DENSITY_TIMES_ORTHOTROPIC:
