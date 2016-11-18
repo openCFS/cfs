@@ -114,7 +114,11 @@ class TransferFunction;
 
     void static SetEnums();
 
-    Type GetType() const { return type_; }
+    Type GetType() const { return type_; };
+
+    void SetType(Type type) {type_ = type;};
+
+    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -139,6 +143,10 @@ class TransferFunction;
 
     /** Calculate the Isotropic tensor */
     inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
   protected:
 
@@ -212,10 +220,6 @@ class TransferFunction;
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
 
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
-
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
 
@@ -246,6 +250,9 @@ class TransferFunction;
     /** put values from Voigt vector to correct positions in tensor */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
     
+    /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
+    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
+
     /** put the entries of the orthotropic tensor at the right places */
     inline void SetOrthotropicTensor(Matrix<double>& t, SubTensorType subTensor, double e11, double e12, double e13, double e22,
         double e23, double e33, double e44, double e55, double e66);

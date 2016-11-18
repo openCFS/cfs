@@ -468,7 +468,6 @@ def convert_to_sparse_mesh(dense):
   # next we need to correct the element node indices
   # the map is indexed by the dense numbering and contains the sparse indices or -1
   map = len(dense.nodes) * [-1]        
-  
   for i in range(len(nnl)):
     map[nnl[i]] = i
       
@@ -488,6 +487,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
+      print 'old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]])
       if map[dnn[n]] <> -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
@@ -688,7 +688,7 @@ def validate_periodicity(mesh):
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -724,7 +724,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     offy = -1.
     width = 2. 
     height = 2.
-  if type == 'msfem_two_load':
+  if type == 'msfem_two_load' or type == 'two_load':
     width= 2.
     height = 1.
   if type == 'gripper_half' or type == 'force_inverter_half':
@@ -884,6 +884,16 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("left_upper", [(nx + 1) * ny]))
     mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
     return mesh
+  elif type == 'two_load':
+    mid = int((nx+1.)/2.)
+    mesh.bc.append(("load1", range(mid,mid+1)))
+    mesh.bc.append(("load2", range((nx+1)*ny + mid, (nx+1)*ny + mid+1))) 
+    mesh.bc.append(("support", range(0,1)))
+    mesh.bc.append(("support", range(nx,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*ny,(nx+1)*ny+1,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*(ny+1)-1,(nx+1)*(ny+1))))
+
+ 
   elif type == 'msfem_two_load':
     # lower/upper loads
     mid = int((nx+1.)/2.)
@@ -2039,7 +2049,46 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
     elif inp[i][0:8].strip() == 'CHEXA':
       # read 3D hexahedron elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip()),int(inp[i][8:16].strip()),int(inp[i][16:24].strip())])
-      i += 1
+      i += 1     
+    elif inp[i][0:8].strip() == 'CTRIA3':
+      # read 2D triangle elements
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip())])
+    elif inp[i][0:8].strip() == 'RBE2':
+      n = 0
+      for k in range(5):
+        support.append(int(inp[i][32+n:40+n].strip()))
+        n += 8
+      n = 0
+      while inp[i+1][0] == '+':
+        i += 1
+        end = True
+        k = 0
+        n = 0
+        while k < 8 and end:
+          if inp[i][8+n:16+n].strip() == '':
+            end = False
+          else:
+            support.append(int(inp[i][8+n:16+n].strip()))
+          n += 8
+          k +=1
+    elif inp[i][0:8].strip() == 'RBE3':
+      n = 0
+      for k in range(2):
+        force1.append(int(inp[i][56+n:64+n].strip()))
+        n += 8
+      n = 0
+      while inp[i+1][0] == '+':
+        i += 1
+        end = True
+        k = 0
+        n = 0
+        while k < 8 and end:
+          if inp[i][8+n:16+n].strip() == '':
+            end = False
+          else:
+            force1.append(int(inp[i][8+n:16+n].strip()))
+          n += 8
+          k += 1
     #elif inp[i][0:8].strip() == '$HMMOVE' and inp[i][8:16].strip() == '6':
       # set flag for design material
     #  des = True
@@ -2067,8 +2116,12 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   elif type == "cell_opt":
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
+  elif type == "lufo_bracket":
+    print 'len support '+str(len(support))
+    print ' len force1 '+str(len(force1))
+    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], support)
   else:
-    print "Error: No correct type was selected! options: apod6, cell_opt"
+    print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
 #   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
   
   return mesh
@@ -2293,6 +2346,46 @@ def add_apod6_boundary_conditions(mesh):
   mesh.bc.append(('support3', support3))
   return mesh
   
+def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., force1 = [], force2 = [],support = []):
+  mesh = Mesh()
+  mesh.nodes = all_nodes
+  # insert elements
+  for i in range(len(elements)):
+    e = Element()
+    e.nodes = (elements[i][1:]) 
+    for k in range(len(e.nodes)):
+      e.nodes[k] -= offset
+    e.density = 1.
+    e.region = 'design'
+    if len(e.nodes) == 4:
+      e.type = TET4
+    elif len(e.nodes) == 6:
+      e.type = WEDGE6
+    elif len(e.nodes) == 8:
+      e.type = HEXA8
+    elif len(e.nodes) == 3:
+      e.type = TRIA3
+      e.region = 'surface'
+    mesh.elements.append(e)
+  #if force1 == []:
+  #  force1 = [69692]
+  #if force2 == []:
+  #  force2 = [69693]
+  #if support == []:
+  #  support = [69659,69669,69670,69671,69672,69673,69674,69675,69677,69689]
+  for k in range(len(force1)):
+      force1[k] -= offset
+  for k in range(len(support)):
+      support[k] -= offset
+
+  mesh.bc = []
+  mesh.bc.append(('force1', force1))
+  #mesh.bc.append(('force2', force2))
+  mesh.bc.append(('support', support))
+  mesh = convert_to_sparse_mesh(mesh)
+  #evtl -1 bei allen, Lufobracket_Model2     
+
+  return mesh
 
 def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [],force3 = [], support = [], support2 = [], support3 =[]):
   # create element and nodes files by hand from optistruct
@@ -2460,19 +2553,9 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
   return mesh
  
   
-def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1, mesh_in=[]):
+def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0.):
+  # create_mesh
   mesh = Mesh()
-  if not mesh_in == []:
-    offset = 0.;
-    elements = zeros((len(mesh.elements[:][0]),4))
-#     all_nodes = zeros((len(mesh.nodes[:][0],3)))
-    for i in range(len(mesh.elements[:][0])):
-      elements[i][1:] = mesh.elements[i].nodes
-#     for i in range(len(mesh.nodes[:][0])):
-#       all_nodes[i][:] = mesh.nodes[i][:]
-  # insert nodes  
-#   for i in range(1,len(all_nodes)):
-#     mesh.nodes.append([all_nodes[i][1], all_nodes[i][2], all_nodes[i][3]])
   mesh.nodes = all_nodes
 
   
