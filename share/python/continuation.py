@@ -5,7 +5,7 @@ from cfs_utils import *
 
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on 
-def continuation(initial, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None):
+def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None):
 
   assert(range_idx < 26) # is 25 is z
   # to make use of range_idx. In the -1 case we don't use this below anyway
@@ -64,9 +64,11 @@ def continuation(initial, type, old_var, var, mesh, short_problem, executable, s
     # see http://beige.ucs.indiana.edu/I590/node45.html
     generate_qsub_script(qsub, cmd, var_problem + '.sh', silent = True)
     if old_var == -1:
-      print('qsub ' + var_problem + '.sh')
+      print('CONT' + str(cnt) + '=$(qsub ' + var_problem + '.sh)')
+      print('echo $CONT' + str(cnt))
     else:  
-      print('qsub -W depend=afterok:' + old_problem + '.sh ' + var_problem + '.sh')
+      print('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)')
+      print('echo $CONT' + str(cnt))
   else:
     execute(cmd, output=True, silent = failsafe)
       
@@ -97,7 +99,7 @@ if args.qsub:
     print('qsub template file not found ' + args.qsub)
     os.sys.exit(1)
   args.noshow = True
-
+  
 if args.range:
   vals = eval(args.range)   
   if len(vals) == 0 or len(vals) == 1:
@@ -105,14 +107,15 @@ if args.range:
     sys.exit(-1)  
   for i in range(len(vals)):
     ri = i if len(vals) <> len(set(vals)) else -1  
-    continuation(args.initial, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
+    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
   
 else:
   old = -1  
   var = args.start
-
+  i = 0
   dig = 1 if args.var == 'beta' else 2
   while var <= args.max:
-   continuation(args.initial, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
+   continuation(args.initial, cmt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
    old = digits(var, dig)
    var += var * args.inc
+   i += 1
