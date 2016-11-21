@@ -16,6 +16,10 @@ from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 # from basecell import calc_radius
 
+class End_Point():
+  def __init__(self):
+    self.coords
+
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -496,15 +500,6 @@ class Profile:
     if args.verbose == "bisec":
       self.functions[1].plot_all()
       
-#       t = np.linspace(0, 1.0, args.res)
-#       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
-#       plt.plot(t,vec2,label='bisec', linewidth=5.0)
-#       plt.plot(t,vec3,label='x1z1', linewidth=5.0)
-#       plt.legend(loc='upper left', shadow=True)
-#       plt.rcParams.update({'font.size': 18})
-#       plt.savefig("3splines.png")
-#       plt.show()
-
 # return information on profiles 
 def create_profiles(args,infoXml=None):
   profiles = [None]*3 # x-,y-,z-part
@@ -527,13 +522,9 @@ def create_profiles(args,infoXml=None):
     for dir,profile in enumerate(profiles):
       if profile == None:
         continue
-#       plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle),linewidth=5.0,label="dir_"+str(i+1)+"_0")
       plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
       plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
-#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
-#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
       plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
-#       plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
     
     plt.legend(loc='upper left', shadow=True)
     plt.rcParams.update({'font.size': 18})
@@ -621,37 +612,6 @@ def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
         
   return nodes_ids, pointId
   
-# # list is list of lists contains surface lines and all respective points
-# # base used for setting right ids
-# def define_triangles(list,cells):
-#   prevLine = None
-#   for i,line in enumerate(list):
-#     if i < len(list) - 1:
-#       prevLine = list[i+1]
-#     else:
-#       prevLine = list[0] # last line in list
-#       
-#     for j in range(0,len(line),1): # get coordinates of each point
-#       if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
-#         tri = vtk.vtkTriangle()
-#         tri.GetPointIds().SetId(0, line[j][1]) 
-#         tri.GetPointIds().SetId(1, prevLine[j][1])
-#         tri.GetPointIds().SetId(2, line[j+1][1])
-#         cells.InsertNextCell(tri)
-#          
-# #         print "triangle:",line[j][1],prevLine[j][1],line[j+1][1]
-# #         print "point",line[j][1], ": ",line[j][0][0],line[j][0][1],line[j][0][2]
-# #         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
-# #         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
-#       if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
-#         tri = vtk.vtkTriangle()
-#         tri.GetPointIds().SetId(0, line[j+1][1])
-#         tri.GetPointIds().SetId(1, prevLine[j][1])
-#         tri.GetPointIds().SetId(2, prevLine[j+1][1])
-#         cells.InsertNextCell(tri)
-# 
-#   return cells
-
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
 # returns array of size 2 x n with ids of end nodes in first row, second row reserved for fix_gaps()
@@ -715,7 +675,13 @@ def define_triangles(nodes_ids,cells,dir,vtkArray=None):
            
   return data
 
-# def fix_gaps():
+# search for 'num' points closest points to ref; ref is an end point
+def find_closest_points(end_point_list,ref,num):
+  
+# for each end point, check if nearest point is on same line
+# if true, then search for third point in other profiles' end points
+# if false, then search for second and third point in other profiles' end points
+def fix_end_node_gaps(this_ids,this_nodes,other_1_ids,other_1_nodes,other_2_ids,other_2_nodes):
   
   
 def create_profiles_array(args,infoXml):
@@ -750,9 +716,9 @@ def create_profiles_array(args,infoXml):
     map_y = create_profile_map(profiles[1], res)
     map_z = create_profile_map(profiles[2], res)
     
-      # first dimension of nodes : surface lines
-      # second dimension of nodes: resolution of unit cube
-      # third dimension: tuple with x,y,z coordinate
+    # first dimension of nodes : surface lines
+    # second dimension of nodes: resolution of unit cube
+    # third dimension: tuple with x,y,z coordinate
     nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 1)
     nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
 
@@ -761,6 +727,8 @@ def create_profiles_array(args,infoXml):
     
     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
     nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
+    
+    # nodes_ids 
 
     # create vtk cells and points
     cells = vtk.vtkCellArray()
@@ -775,8 +743,6 @@ def create_profiles_array(args,infoXml):
     end_nodes_ids_1 = define_triangles(nodes_ids_1,cells,1,vtkData)
     end_nodes_ids_2 = define_triangles(nodes_ids_2,cells,2,vtkData)
     end_nodes_ids_3 = define_triangles(nodes_ids_3,cells,3,vtkData)
-    
-    
 
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
