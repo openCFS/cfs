@@ -11,6 +11,51 @@
 # On Unix  we determine the  required linker flags by  compiling one of  the MKL
 # examples and reading the flags from the Makefile output (cf. below).
 #-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Function to read MKL version from header file mkl.h or mkl_version.h
+#-----------------------------------------------------------------------------
+function(MKL_VERSION_FROM_HEADER)
+
+  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
+  ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
+    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+  ELSE(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+    SET(MSG "Please download the file ")
+    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
+    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
+
+    colormsg(HIRED "${MSG}")
+    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
+  ENDIF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+
+  foreach(line IN LISTS MKL_HEADER)
+    IF(line MATCHES "#define __INTEL_MKL")
+      STRING(REPLACE "_" ";" MKL_LIST "${line}")
+      LIST(GET MKL_LIST 4 ITEM_FOUR)
+
+      IF(ITEM_FOUR STREQUAL "")
+        LIST(GET MKL_LIST 5 MKL_MAJOR_VERSION)
+        STRING(STRIP "${MKL_MAJOR_VERSION}" MKL_MAJOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "MINOR")
+        LIST(GET MKL_LIST 6 MKL_MINOR_VERSION)
+        STRING(STRIP "${MKL_MINOR_VERSION}" MKL_MINOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "UPDATE")
+        LIST(GET MKL_LIST 6 MKL_UPDATE)
+        STRING(STRIP "${MKL_UPDATE}" MKL_UPDATE)
+      ENDIF()
+    ENDIF()
+  endforeach()
+
+  SET(MKL_MAJOR_VERSION ${MKL_MAJOR_VERSION} PARENT_SCOPE)
+  SET(MKL_MINOR_VERSION ${MKL_MINOR_VERSION} PARENT_SCOPE)
+  SET(MKL_UPDATE ${MKL_UPDATE} PARENT_SCOPE)
+  # MESSAGE("MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
+
+endfunction(MKL_VERSION_FROM_HEADER)
+
+
 IF(MINGW OR MSVC)
 
   #-----------------------------------------------------------------------------
@@ -46,41 +91,11 @@ IF(MINGW OR MSVC)
   ENDIF()
 
 
-  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
-    #---------------------------------------------------------------------------
-    # Read mkl.h and try to determine MKL version.
-    #---------------------------------------------------------------------------
-    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
-  ELSE()
-    SET(MSG "Please download the file ")
-    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
-    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
-    
-    colormsg(HIRED "${MSG}")
-    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
-  ENDIF()
-
-  foreach(line IN LISTS MKL_HEADER)
-    IF(line MATCHES "#define __INTEL_MKL")
-      STRING(REPLACE "_" ";" MKL_LIST "${line}")
-      LIST(GET MKL_LIST 4 ITEM_FOUR)
-
-      IF(ITEM_FOUR STREQUAL "")
-	LIST(GET MKL_LIST 5 MKL_MAJOR_VERSION)
-        STRING(STRIP "${MKL_MAJOR_VERSION}" MKL_MAJOR_VERSION)
-      ELSEIF(ITEM_FOUR STREQUAL "MINOR")
-	LIST(GET MKL_LIST 6 MKL_MINOR_VERSION)
-        STRING(STRIP "${MKL_MINOR_VERSION}" MKL_MINOR_VERSION)
-      ELSEIF(ITEM_FOUR STREQUAL "UPDATE")
-	LIST(GET MKL_LIST 6 MKL_UPDATE)
-        STRING(STRIP "${MKL_UPDATE}" MKL_UPDATE)
-      ENDIF()
-    ENDIF()
-  endforeach()
-
+  #---------------------------------------------------------------------------
+  # Read mkl version from header files
+  #---------------------------------------------------------------------------
+  MKL_VERSION_FROM_HEADER()
   SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
-
-  # MESSAGE("MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
 
   #-----------------------------------------------------------------------------
   # If MKL version is 11 bundle together linker libraries.
@@ -222,6 +237,8 @@ SET (MKL_POSSIBLE_PATHS
   # Path which may have been given in a platform_defaults_*.cmake file 
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
+  # This happens automatically when loading mkl 
+  # modules at Erlangens RRZE HPC cluster
   $ENV{MKLROOT}
   # Local paths
   /opt/intel/composerxe-2011.4.191
@@ -233,12 +250,6 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
   /opt/intel/composer_xe_2015.2.164/mkl
-  # Paths on Woody
-  /apps/intel/ComposerXE/mkl
-  /apps/intel/ComposerXE/composerxe-2011.4.191/mkl
-  /apps/intel/Compiler/11.0/069/mkl
-  /apps/intel/mkl/10.0.011
-  /apps/intel/ict/3.0/cmkl/9.0
   # path for mdmt
   /share/programs/intel/composer_xe_2015.2.164/mkl
  )
@@ -298,6 +309,12 @@ If(WIN32)
     "" MKL_VERSION
     ${MKL_ROOT_DIR})
 ELSE(WIN32)
+
+  #---------------------------------------------------------------------------
+  # Read mkl version from header files
+  #---------------------------------------------------------------------------
+  MKL_VERSION_FROM_HEADER()
+
   #-----------------------------------------------------------------------------
   # Specify desired architecture and output type for make file.
   #-----------------------------------------------------------------------------
@@ -326,7 +343,11 @@ ELSE(WIN32)
   # We always want to link against the parallel version of MKL.
   #-----------------------------------------------------------------------------
 #  IF(USE_OPENMP)
-    SET(MKL_THREADING_ID "parallel")
+     IF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
+       SET(MKL_THREADING_ID "parallel")
+     ELSE(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
+       SET(MKL_THREADING_ID "omp")
+     ENDIF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
 #  ELSE(USE_OPENMP)
 #    SET(MKL_THREADING_ID "sequential")
 #  ENDIF(USE_OPENMP)  
@@ -421,4 +442,15 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
+
+#-------------------------------------------------------------------------------
+# Status message of found MKL
+#-------------------------------------------------------------------------------
+IF(DEFINED MKL_UPDATE)
+  MESSAGE(STATUS "Found Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}.")
+ELSE()
+  MESSAGE(STATUS "Found Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.")
+ENDIF()
+
+
 

@@ -62,7 +62,8 @@ for MKLROOT in $MKL_ROOT_DIRS; do
         MKLVersion ver;
         MKL_Get_Version(&ver);
         printf(\"\nSET(MKL_MAJOR_VERSION %d)\n\", ver.MajorVersion);
-        printf(\"\nSET(MKL_MINOR_VERSION %d)\n\n\", ver.MinorVersion);
+        printf(\"\nSET(MKL_MINOR_VERSION %d)\n\", ver.MinorVersion);
+        printf(\"\nSET(MKL_UPDATE %d)\n\n\", ver.UpdateVersion);
         MKL_Free_Buffers();
 
         exit(0);
