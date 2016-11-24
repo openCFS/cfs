@@ -1315,8 +1315,8 @@ namespace CoupledField
 
 #ifdef USE_LAPACK
   // Compile OLAS and CFS++ with USE_LAPACK
-  template<>
-  void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
+  template <class T>
+  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
     // computes all eigenvalues of a complex hermitian matrix
 
@@ -1329,6 +1329,9 @@ namespace CoupledField
     //    Vector<Double> lp_w;
     lp_w.Resize(size_row_);
     lp_w.Init();
+    if (ev_vec != NULL) {
+      (*ev_vec).Resize(size_row_,size_row_);
+    }
     Integer lp_lworkf77=99;
       
     // workspace array - complex 16 array
@@ -1336,7 +1339,7 @@ namespace CoupledField
     lp_work.Resize(lp_lworkf77);
     lp_work.Init();
       
-    // workspace array - double precission
+    // workspace array - double precision
     Vector<Double> lp_rwork;
     lp_rwork.Resize(3*size_row_-2);
     lp_rwork.Init();
@@ -1373,6 +1376,19 @@ namespace CoupledField
     for ( UInt count = 0; count < size_row_; count++ ) 
       lp_w[count] = lp_wf77[count];
     
+    UInt c=0;
+    if (ev_vec != NULL) {
+      for ( UInt count = 0; count < size_row_; count++ ) {
+        for (UInt count2 = 0; count2 < size_row_;count2++) {
+          (*ev_vec)[count][count2] = lp_af77[c].real();
+          if (std::abs(lp_af77[c].imag()) > std::numeric_limits<float>::epsilon() ) {
+            EXCEPTION("Eigenvector is non real! ")
+          }
+          c++;
+        }
+      }
+    }
+
     delete[] lp_workf77;
     delete[] lp_rworkf77;
     delete[] lp_af77;

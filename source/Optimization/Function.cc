@@ -433,6 +433,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
+  case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
@@ -464,6 +465,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   // this stuff is to be avaluated always
   case COMPLIANCE:
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
   case ENERGY_FLUX:
   case TRACKING:
@@ -527,6 +529,7 @@ bool Function::IsAdjointBased() const {
   switch (type_) {
   case TRACKING:
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -549,6 +552,7 @@ bool Function::IsAdjointBased() const {
 bool Function::NeedsSelectionVector() const {
   switch (type_) {
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -628,6 +632,7 @@ bool Function::ForDensityFiltering() const {
     switch (type_)
     {
     case SLACK:
+    case ALPHA_SLACK_QUOTIENT:
     case SHAPE_INF:
     case MULTIMATERIAL_SUM:
     case SUM_MODULI:
@@ -659,6 +664,7 @@ bool Function::ForSensitivityFiltering() const {
   switch (type_) {
   // pure objective
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -730,6 +736,7 @@ bool Function::ForSensitivityFiltering() const {
   case MULTIMATERIAL_SUM:
   case SLACK:
   case TEMP_TRACKING_AT_INTERFACE:
+  case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
   case SHAPE_INF:
     return false;
@@ -907,11 +914,16 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
       if (space->transfer[i].IsPenalized())
         preInfo_->SetWarning("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
-
   case SLACK:
     if (!space->HasSlackVariable())
       throw Exception("'slack' as objective function requires 'slack' design");
     break;
+
+  case ALPHA_SLACK_QUOTIENT:
+    if (!space->HasSlackVariable() || !space->HasAlphaVariable())
+      throw Exception("'alphaSlackQuotient' as function requires 'slack' and 'alpha' design");
+    break;
+
 
   default: // do nothing
     break;
