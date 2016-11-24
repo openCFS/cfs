@@ -6,7 +6,6 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-
 //new integrator concept
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
@@ -265,8 +264,9 @@ namespace CoupledField{
         // standard stiffness integrator Vector
         // ====================================================================
 
+
           if( dim_ == 2 ) {
-              stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), val1 , 1.0, updatedGeo_ );
+              stiffInt = new BBInt<Double>(new CurlOperator<FeH1,2,Double>(), val1 , 1.0, updatedGeo_ );
           }
           else{
             // TODO edge elements
@@ -485,12 +485,11 @@ namespace CoupledField{
       potent->definedOn = ResultInfo::NODE;
       potent->entryType = ResultInfo::SCALAR;
     } else {
-      // TODO if 2D
       potent->resultType = SPLIT_VECTOR;
-      potent->dofNames = "";
+      potent->dofNames = vecComponents;
       potent->unit = "m^2/s";
       potent->definedOn = ResultInfo::NODE;
-      potent->entryType = ResultInfo::SCALAR;
+      potent->entryType = ResultInfo::VECTOR;
     }
 
     feFunctions_[formulation_]->SetResultInfo(potent);
@@ -565,6 +564,45 @@ namespace CoupledField{
       vecComponents = "z";
     }
 
+
+    // === FLOW FIELD ===
+    // vorticity
+    shared_ptr<ResultInfo> vorticity( new ResultInfo);
+    vorticity->resultType = FLUIDMECH_VORTICITY;
+    vorticity->dofNames = vecComponents;
+    vorticity->unit = "1/s";
+
+    vorticity->definedOn = ResultInfo::NODE;
+    vorticity->entryType = ResultInfo::VECTOR;
+
+    vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
+    DefineFieldResult( vorticityCoef_, vorticity );
+
+    //density
+    shared_ptr<ResultInfo> density( new ResultInfo);
+    density->resultType = FLUIDMECH_DENSITY;
+    density->dofNames = "";
+    density->unit = "kg/m^3";
+
+    density->definedOn = ResultInfo::NODE;
+    density->entryType = ResultInfo::SCALAR;
+
+    densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( densityCoef_, density );
+
+    //velocity
+    shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
+    flowvelocity->resultType = FLUIDMECH_VELOCITY;
+    flowvelocity->dofNames = vecDofNames;
+    flowvelocity->unit = "m/s";
+
+    flowvelocity->definedOn = ResultInfo::NODE;
+    flowvelocity->entryType = ResultInfo::VECTOR;
+
+    velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    DefineFieldResult( velocityCoef_, flowvelocity );
+
+
     shared_ptr<ResultInfo> vel;
     PtrCoefFct velFct;
     shared_ptr<CoefFunctionFormBased>  velFctPot;
@@ -605,46 +643,6 @@ namespace CoupledField{
       stiffFormFunctors_.insert(keFuncPot);
 
 
-      // TODO adapt for 3D
-      // === FLOW FIELD ===
-      // vorticity
-      shared_ptr<ResultInfo> vorticity( new ResultInfo);
-      vorticity->resultType = FLUIDMECH_VORTICITY;
-      vorticity->dofNames = vecComponents;
-      vorticity->unit = "1/s";
-
-      vorticity->definedOn = ResultInfo::NODE;
-      vorticity->entryType = ResultInfo::VECTOR;
-
-      vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
-      DefineFieldResult( vorticityCoef_, vorticity );
-
-      //density
-      shared_ptr<ResultInfo> density( new ResultInfo);
-      density->resultType = FLUIDMECH_DENSITY;
-      density->dofNames = "";
-      density->unit = "kg/m^3";
-
-      density->definedOn = ResultInfo::NODE;
-      density->entryType = ResultInfo::SCALAR;
-
-      densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
-      DefineFieldResult( densityCoef_, density );
-
-      //velocity
-      shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
-      flowvelocity->resultType = FLUIDMECH_VELOCITY;
-      flowvelocity->dofNames = vecDofNames;
-      flowvelocity->unit = "m/s";
-
-      flowvelocity->definedOn = ResultInfo::NODE;
-      flowvelocity->entryType = ResultInfo::VECTOR;
-
-      velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-      DefineFieldResult( velocityCoef_, flowvelocity );
-  //    results_.Push_back( flowvelocity );
-  //    availResults_.insert( flowvelocity );
-
       Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
       // === ACOUSTIC Source FIELD LAMB===
       // LAMB
@@ -667,9 +665,9 @@ namespace CoupledField{
       CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
                                                  CoefXpr::OP_MULT);
       PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
-  //    DefineFieldResult( lambVec, lamb );
+      DefineFieldResult( lambVec, lamb );
 
-  // COPY constructor problem
+/*  // COPY constructor problem
       // #1 möchte gerne Lamb vector als ergebnis
       // #2 muss ich nach set derivative noch was amchen?
       //divLamb
@@ -686,7 +684,7 @@ namespace CoupledField{
       UInt gDim = this->domain_->GetGrid()->GetDim();
       UInt dDim = lamb->dofNames.GetSize();
       lambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE,gDim,dDim);
-      DefineFieldResult( lambVec, divLamb );
+      DefineFieldResult( lambVec, divLamb );*/
 
     }else{
       // === incompressible flow_VELOCITY pertubation===
@@ -707,8 +705,25 @@ namespace CoupledField{
       stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
 
+      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+      // === ACOUSTIC Source FIELD LAMB===
+      // LAMB
+      shared_ptr<ResultInfo> lamb( new ResultInfo);
+      lamb->resultType = SPLIT_LAMB;
+      lamb->dofNames = vecDofNames;
+      lamb->unit = "kg/(ms)^2";
 
-      // TODO formulation_ onlz if this ... (Results and post processing)
+      lamb->definedOn = ResultInfo::NODE;
+      lamb->entryType = ResultInfo::VECTOR;
+
+      CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, velFct,
+                                                 CoefXpr::OP_CROSS);
+      PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
+
+      CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
+                                                 CoefXpr::OP_MULT);
+      PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
+      DefineFieldResult( lambVec, lamb );
 
     }
 

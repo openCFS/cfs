@@ -8,7 +8,7 @@
  *       \brief    <Description>
  *
  *       \date     Nov 4, 2015
- *       \author   ahueppe
+ *       \author   ahueppe, sschoder
  */
 //================================================================================================
 
@@ -24,6 +24,8 @@ TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode
  //ok, so either the user specifies
  //results to be differentiated or we choose default possibilities from our map
  // for now this is the way to go
+
+  // This filter is a filter of the type First In First Out (FIFO)
   this->filtSteamType_ = FIFO_FILTER;
   //first case we have explicitly given the single result tag
   if( params_->Has("singleResult") ){
@@ -34,13 +36,12 @@ TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode
     upResNames.insert(iRes);
     InOutBiMap::value_type pair(oRes,iRes);
     inOutNames_.insert(pair);
-
-  }else if (params_->Has("allResults") ){
+  } //take standard derivatives input and output defined in TimeDerivMap (header file)
+  else if (params_->Has("allResults") ){
     TimeDerivFilter::TimeDerivMap::iterator resIt = TimeDerivFilter::tDerivMap_.begin();
     for(;resIt != TimeDerivFilter::tDerivMap_.end();resIt++){
       std::string myName = CF::SolutionTypeEnum.ToString(resIt->second.d1Type);
       std::string upName = CF::SolutionTypeEnum.ToString(resIt->first);
-
       filtResNames.insert(myName);
       upResNames.insert(upName);
       //in this filter we have a 1-1 connection so we can use bimap
@@ -97,7 +98,8 @@ bool TimeDerivFilterD1::Run(){
     Vector<Double>& r4 = resultManager_->GetResultVector<Double>(upRes,eqnNums,2);
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
 
-
+    // computation of the actual derivative 5th order stencil
+    // TODO this implementation is not correct
     for(UInt i=0;i<last;++i){
       returnVec[i] = 2*(((r3[i]-r2[i])+r4[i]-r1[i])/(8*timeSteps_[*aIter]));
     }

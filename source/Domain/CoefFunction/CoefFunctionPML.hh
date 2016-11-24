@@ -28,7 +28,7 @@ namespace CoupledField{
 class DampFunction{
 
 public:
-  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS, POLY_DIRECT, POLY_INVERSE } DampingType;
+  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS, RATIONAL, EXPONENTIAL, POLY_DIRECT, POLY_INVERSE } DampingType;
   static Enum<DampingType> DampingTypeEnum;
 
   DampFunction(){
@@ -122,11 +122,43 @@ public:
     constFactor = 2.0/M_PI;
     functionType = TANGENS;
   }
-
+  // The factor is the derivative of the mapping function
   Double ComputeFactor(Double pos, Double thickness){
     Double value = constFactor*thickness;
     Double post = tan(pos/value);
     value *= (1.0/(post*post+1.0) );
+    return value;
+  }
+
+};
+
+class DampFunctionRational : public DampFunction{
+public:
+  DampFunctionRational( ) : DampFunction(){
+    constFactor = 1.0;
+    functionType = RATIONAL;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness){
+    Double value = constFactor*thickness;
+    Double post = ((pos/thickness)/(1.0-(pos/thickness)) );
+    value *= 1.0/((1.0+post)*(1.0+post));
+    return value;
+  }
+
+};
+
+class DampFunctionExponential : public DampFunction{
+public:
+  DampFunctionExponential( ) : DampFunction(){
+    constFactor = 1.0;
+    functionType = EXPONENTIAL;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness){
+    Double value = constFactor*thickness;
+    Double post = 1.0 - exp(-(pos/thickness));
+    value *= exp(-post);
     return value;
   }
 

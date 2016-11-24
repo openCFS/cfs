@@ -29,6 +29,7 @@ public:
   typedef std::map<CoupledField::SolutionType, tDerivInfo> TimeDerivMap;
   static TimeDerivMap tDerivMap_;
 
+  //!  Constructor.
   TimeDerivFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
     : BaseFilter(numWorkers,config, resMan){
     baseQuantity_ = CoupledField::NO_SOLUTION_TYPE;
@@ -45,6 +46,7 @@ public:
 
 protected:
 
+  //! Setup of Results of the filter
   virtual ResultIdList SetUpstreamResults()=0;
 
   virtual void AdaptFilterResults()=0;
@@ -57,6 +59,7 @@ protected:
 
 
 private:
+  //! standard map for results all tag in xml
   static TimeDerivMap init_deriv_map() {
     TimeDerivMap myMap;
     myMap[CoupledField::FLUIDMECH_PRESSURE].d1Type = CoupledField::FLUIDMECH_PRESSURE_DERIV_1;

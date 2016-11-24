@@ -257,8 +257,8 @@ namespace CoupledField{
           EXCEPTION("Harmonic analysis not allowed!");
         }else{
           PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
-          coeffPMLVec.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,true));
-          coeffPMLScal.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,false));
+          coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,true));
+          coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,false));
           isMapping = true;
         }
       }

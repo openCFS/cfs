@@ -73,7 +73,7 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="flow" type="DT_BcInhomVector"/>
-                <xsd:element name="vorticity" type="DT_BcInhomScalar"/>
+                <xsd:element name="vorticity" type="DT_BcInhomVector"/>
                 <xsd:element name="density" type="DT_BcInhomScalar"/>
               </xsd:choice>
             </xsd:complexType>
