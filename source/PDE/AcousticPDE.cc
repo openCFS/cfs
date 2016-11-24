@@ -1243,7 +1243,7 @@ namespace CoupledField{
     shared_ptr<CoefFunctionSurf> surfDens(new CoefFunctionSurf(false));
     surfDens->SetVolumeCoefs( densFct->GetRegionCoefs() );
     
-           
+
     // In the case of acou-mech coupling we have to multiply the
     // integrators by -density
     Double scalFactor = 1.0;

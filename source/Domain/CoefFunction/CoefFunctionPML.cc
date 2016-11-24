@@ -297,6 +297,12 @@ void CoefFunctionPML<T>::CreateDampFunction(){
     case DampFunction::TANGENS:
       dampFunction_.reset(new DampFunctionTangens());
       break;
+    case DampFunction::RATIONAL:
+      dampFunction_.reset(new DampFunctionRational());
+      break;
+    case DampFunction::EXPONENTIAL:
+          dampFunction_.reset(new DampFunctionExponential());
+          break;
     default:
       EXCEPTION("PML type "<< DampFunction::DampingTypeEnum.ToString(pmlType_) << " not supported");
       break;
@@ -378,7 +384,9 @@ static EnumTuple dampTypeTubles[] = {
   EnumTuple(DampFunction::INVERSE_DIST,  "inverseDist"),
   EnumTuple(DampFunction::QUADRATIC,     "quadDist"),
   EnumTuple(DampFunction::SMOOTH,        "smoothDamp"),
-  EnumTuple(DampFunction::TANGENS,        "tangens")
+  EnumTuple(DampFunction::TANGENS,        "tangens"),
+  EnumTuple(DampFunction::RATIONAL,        "rational"),
+  EnumTuple(DampFunction::EXPONENTIAL,        "exponential")
 };
 
 

@@ -44,6 +44,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
@@ -412,11 +413,34 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           harmonicPML = false;
         }
 
+        // ====================================================================
+        // Take account for mapping
+        // ====================================================================
+        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
+        bool isMapping = false;
+        if( dampingList_[actRegion] == MAPPING ) {
+          std::string dampId;
+          curRegNode->GetValue("dampingId",dampId);
+          if(analysistype_ == HARMONIC){
+            EXCEPTION("Harmonic analysis not allowed!");
+          }else{
+            PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+            coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,true));
+            coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,factor,actSDList,regions_,false));
+            isMapping = true;
+          }
+        }
+
         BaseBDBInt* stiffInt;
 
-        // We use a stiffness integrator that implements the scaled strain operator if a PML domain is considered.
+        // We use a stiffness integrator that implements the scaled strain operator if a PML or MApping domain is considered.
         // Otherwise, we proceed with the normal stiffness integrator.
-        if (harmonicPML)
+        if(isMapping){
+          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, false, coeffMAPScal);
+          stiffInt->SetBCoefFunctionOpA(coeffMAPVec);
+        }
+        else if (harmonicPML)
         {
           stiffInt =  GetStiffIntegrator(actSDMat, actRegion, harmonicPML, coefPMLScal);
           stiffInt->SetBCoefFunctionOpA(coefPMLVec);
@@ -1679,31 +1703,60 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  Obtain linear material
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
-    curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
-
-    // store coefficient function for later use (e.g. in boundary integrators)
-    regionStiffness_[regionId] = curCoef;
-    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
 
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
-    if ((subType_ == "planeStrain") || (subType_ == "planeStress"))
-      bOp = new ScaledStrainOperator2D<FeH1, Complex>();
-    else if (subType_ == "2.5d")
-      bOp = new ScaledStrainOperator2p5D<FeH1, Complex>();
-    else if (subType_ == "3d")
-      bOp = new ScaledStrainOperator3D<FeH1, Complex>();
-    else
-      EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
-    
-    if (regionSoftening_[regionId] == "icModesTW")
-    {
-      BaseBOperator* gOp = bOp->Clone();
-      integ = new ICModesInt<Complex>(bOp, gOp, curCoefScl, 1.0);
+    if (isComplex){
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+
+      // store coefficient function for later use (e.g. in boundary integrators)
+      regionStiffness_[regionId] = curCoef;
+      PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+
+      if ((subType_ == "planeStrain") || (subType_ == "planeStress"))
+        bOp = new ScaledStrainOperator2D<FeH1, Complex>();
+      else if (subType_ == "2.5d")
+        bOp = new ScaledStrainOperator2p5D<FeH1, Complex>();
+      else if (subType_ == "3d")
+        bOp = new ScaledStrainOperator3D<FeH1, Complex>();
+      else
+        EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
+
+      if (regionSoftening_[regionId] == "icModesTW")
+      {
+        BaseBOperator* gOp = bOp->Clone();
+        integ = new ICModesInt<Complex>(bOp, gOp, curCoefScl, 1.0);
+      }
+      else
+        integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
+
+    } else{
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
+
+      // store coefficient function for later use (e.g. in boundary integrators)
+      regionStiffness_[regionId] = curCoef;
+      PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+
+      std::cout << "REAL" << std::endl;
+      if ((subType_ == "planeStrain") || (subType_ == "planeStress"))
+        bOp = new ScaledStrainOperator2D<FeH1, Double>();
+      else if (subType_ == "2.5d")
+        bOp = new ScaledStrainOperator2p5D<FeH1, Double>();
+      else if (subType_ == "3d")
+        bOp = new ScaledStrainOperator3D<FeH1, Double>();
+      else
+        EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
+
+      if (regionSoftening_[regionId] == "icModesTW")
+      {
+        BaseBOperator* gOp = bOp->Clone();
+        integ = new ICModesInt<Double>(bOp, gOp, curCoefScl, 1.0);
+      }
+      else
+        integ = new BDBInt<Double, Double>(bOp, curCoefScl, 1.0, updatedGeo_);
     }
-    else
-      integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
+    
 
     return integ;
   }

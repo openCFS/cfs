@@ -157,6 +157,11 @@
       <xsd:extension base="DT_BaseFilter">
         <xsd:choice>
           <xsd:element name="singleResult">
+            <xsd:annotation>
+              <xsd:documentation> Computes time derivatives a single defined result.
+                Must not be a CFS type variable.
+              </xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="inputQuantity">

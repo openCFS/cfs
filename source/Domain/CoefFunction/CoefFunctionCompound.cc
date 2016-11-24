@@ -46,21 +46,41 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
 
   // Rotate material, if coordinate system is not the global one
   if( this->coordSys_ ) {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
+    if( coordSys_->GetName() != "default" ) {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
 
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewhere in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewhere in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      coefMat = locMatrix;
+    }
+  }else{
+    if( this->coordSys_ ) {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
+
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewhere in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      coefMat = locMatrix;
+    }
   }
+
 //#pragma omp critical
 //  {
 //#ifdef USE_OPENMP

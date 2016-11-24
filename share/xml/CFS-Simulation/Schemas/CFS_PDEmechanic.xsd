@@ -92,6 +92,11 @@
                     <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain!</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
