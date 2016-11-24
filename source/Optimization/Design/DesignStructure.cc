@@ -29,6 +29,10 @@
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using std::string;
 using std::map;
 using namespace CoupledField;
@@ -197,7 +201,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
-  StdVector<Filter::NeighbourElement> neighbors; // will become element neighborhood
 
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
@@ -216,6 +219,24 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
+  UInt numOMPThreads = 1;
+
+#ifdef _OPENMP
+  numOMPThreads = omp_get_max_threads();
+//  std::cout << "total number of threads: " << numOMPThreads << std::endl;
+//  std::cout.flush();
+#endif
+  // make temporal storage thread local
+  // each entry is assigned to one thread
+  // each thread gets a vector to store the element neighborhood
+  StdVector<StdVector<Filter::NeighbourElement> > neighborhood;
+  neighborhood.Resize(numOMPThreads);
+  // thread local storage
+  // each thread stores element numbers too far away
+  StdVector<StdVector<unsigned int> > too_fars;
+  too_fars.Resize(numOMPThreads);
+
+#pragma omp parallel for
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
@@ -236,9 +257,18 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     if(!regular || e == start)  // save calling if possible
       radius = FindFilterRadius(filter_space_, de, value);
 
+    unsigned int aThread = 0;
+#ifdef _OPENMP
+    aThread = omp_get_thread_num();
+//    std::cout << "trhead num: " << aThread << std::endl;
+//    std::cout.flush();
+#endif
+
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
+    StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
     neighbors.Resize(0);
+    StdVector<unsigned int>& too_far = too_fars[aThread];
     too_far.Resize(0);
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
