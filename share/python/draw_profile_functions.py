@@ -16,10 +16,19 @@ from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 # from basecell import calc_radius
 
-class End_Point():
+class End_Node():
   def __init__(self):
-    self.coords
-
+    self.coords = (0.0,0.0,0.0)
+    self.connections = 0
+    self.id = -1
+    
+  def __init__(self,coords,id):
+    self.coords = coords
+    self.id = id
+  
+  def add_connection(self):
+    self.connection += 1
+    
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -676,12 +685,12 @@ def define_triangles(nodes_ids,cells,dir,vtkArray=None):
   return data
 
 # search for 'num' points closest points to ref; ref is an end point
-def find_closest_points(end_point_list,ref,num):
+#def find_closest_points(end_point_list,ref,num):
   
 # for each end point, check if nearest point is on same line
 # if true, then search for third point in other profiles' end points
 # if false, then search for second and third point in other profiles' end points
-def fix_end_node_gaps(this_ids,this_nodes,other_1_ids,other_1_nodes,other_2_ids,other_2_nodes):
+#def fix_end_node_gaps(this_ids,this_nodes,other_1_ids,other_1_nodes,other_2_ids,other_2_nodes):
   
   
 def create_profiles_array(args,infoXml):
@@ -728,8 +737,6 @@ def create_profiles_array(args,infoXml):
     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
     nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
     
-    # nodes_ids 
-
     # create vtk cells and points
     cells = vtk.vtkCellArray()
     points = vtk.vtkPoints()
