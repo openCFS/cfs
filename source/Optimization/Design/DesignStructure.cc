@@ -30,7 +30,7 @@
 #include "Utils/tools.hh"
 
 #ifdef _OPENMP
-#include <omp.h>
+  #include <omp.h>
 #endif
 
 using std::string;
@@ -223,8 +223,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
 #ifdef _OPENMP
   numOMPThreads = omp_get_max_threads();
-//  std::cout << "total number of threads: " << numOMPThreads << std::endl;
-//  std::cout.flush();
 #endif
   // make temporal storage thread local
   // each entry is assigned to one thread
@@ -260,8 +258,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     unsigned int aThread = 0;
 #ifdef _OPENMP
     aThread = omp_get_thread_num();
-//    std::cout << "trhead num: " << aThread << std::endl;
-//    std::cout.flush();
 #endif
 
     // set the filter neighborhood which is determined by radius
