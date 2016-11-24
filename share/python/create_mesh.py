@@ -39,7 +39,7 @@ parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for q
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
-parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct'], required = True)
+parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','two_load', 'validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
@@ -47,6 +47,10 @@ parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclu
 parser.add_argument('--inclusion_overlap', help="alternative to inclusion_size for ball. Give fraction of overlapping to boundary", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
 parser.add_argument('--optistruct', help="optistruct file name")
+parser.add_argument('--optistruct_type', help="optistruct mesh type",choices=['cell_opt','apod6','lufo_bracket'],default='cell_opt')
+parser.add_argument('--optistruct_scaling', help="optistruct scaling factor for unit conversion.", type=float,default=1.)
+
+
 
 args = parser.parse_args()
 
@@ -104,7 +108,7 @@ elif args.type == 'voxels_from_optistruct':
   mesh = voxelize_mesh_from_optistruct(args.optistruct, args.res)
   mesh_name = args.optistruct[:-4] + "_voxelized"
 elif args.type == 'convert_optistruct':
-  mesh = create_mesh_from_optistruct(args.optistruct, 1.0, 'cell_opt')
+  mesh = create_mesh_from_optistruct(args.optistruct, args.optistruct_scaling, args.optistruct_type)
   mesh_name = args.optistruct
 else: # default case 2d_mesh
   if not args.inclusion_overlap:  

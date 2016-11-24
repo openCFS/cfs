@@ -233,25 +233,36 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bo
   double s = scale ? scaling_ : 1.0;
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
-    if(HasSlackVariable() && g != NULL && g->HasSlackBound())
+    if(HasSlackVariable() && g != NULL && g->HasGeneralSlackBound())
     {
       assert(i == 0 || alpha_ != NULL);
       assert(aux_design_.GetSize() <= 2);
       // g = slack         -> g - slack = 0
       // g = alpha + slack -> g - alpha - slack = 0
       // g = alpha - slack -> g - alpha + slack = 0
-      if(g->IsSlackBound(Condition::SLACK_VALUE))
+      if(g->IsGeneralSlackBound(Condition::SLACK_VALUE))
       {
         if(i == 0)
           out[base + i] = -1.0;             // derivative w.r.t. slack
         if(i == 1)
           out[base + i] = 0.0;              // derivative w.r.t. alpha
       }
-      else if(g->IsSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
+      else if(g->IsGeneralSlackBound(Condition::ALPHA_VALUE))
+      {
+        assert(HasSlackVariable());
+        assert(aux_design_.GetSize() == 2);
+        assert(alpha_ != NULL);
+
+        if(i == 0)
+          out[base + i] = 0.0;             // derivative w.r.t. slack
+        if(i == 1)
+          out[base + i] = -1.0;              // derivative w.r.t. alpha
+      }
+      else if(g->IsGeneralSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
       {
         out[base + i] = -1.0;               // derivative w.r.t. slack and alpha is the same
       }
-      else if(g->IsSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
+      else if(g->IsGeneralSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
       {
         if(i == 0)
           out[base + i] = +1.0;             // derivative w.r.t. slack
@@ -268,7 +279,7 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bo
     }
 
     LOG_DBG3(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " out[" << base+i << "]=" << out[base+i]
-                      << " slack case=" << (HasSlackVariable() && g != NULL && g->HasSlackBound());
+                      << " slack case=" << (HasSlackVariable() && g != NULL && g->HasGeneralSlackBound());
   }
 }
 
@@ -277,7 +288,7 @@ void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<double>& out, Function*
   assert(!f->IsObjective()); // only constraints can have sparse Jacobians
 
   Condition* g = dynamic_cast<Condition*>(f);
-  assert(!HasSlackVariable() && !g->HasSlackBound());
+  assert(!HasSlackVariable() && !g->HasGeneralSlackBound());
 
   StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
 
