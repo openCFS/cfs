@@ -240,6 +240,7 @@ void ErsatzMaterial::PostInit()
     {
     case Function::COMPLIANCE:
     case Function::OUTPUT: // it would work but is saver not to allow
+    case Function::SQUARED_OUTPUT:
     case Function::TRACKING:
     case Function::HOM_TENSOR:
     case Function::HOM_TRACKING:
@@ -272,6 +273,7 @@ void ErsatzMaterial::PostInit()
     switch(f->GetType())
     {
     case Function::OUTPUT:
+    case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
     case Function::ABS_OUTPUT:
     {
@@ -1638,10 +1640,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       break;
 
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       case Function::DYNAMIC_OUTPUT:
       case Function::CONJUGATE_COMPLIANCE:
       case Function::ABS_OUTPUT:
       if(f->ctxt->IsComplex())
+      {
         if (derivative)
         {
           App::Type app = Context::ToApp(f->ctxt->pde);
@@ -1653,9 +1657,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
           return 0.0;
         }
-        else {
-        result = CalcOutput<complex<double> >(excite, f);
-        }
+        else
+          result = CalcOutput<complex<double> >(excite, f);
+      }
       else
         result = CalcOutput<double>(excite, f);
       break;
@@ -1689,7 +1693,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         else
           dynamic_cast<AuxDesign*>(design)->GetSlackDesign()->AddGradient(f, 1.0);
         break;
-
       case Function::EIGENFREQUENCY:
         result = CalcEigenfrequency(excite, f, derivative);
         break;
@@ -1697,7 +1700,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::BANDGAP:
         result = CalcBandGap(excite, f, derivative);
         break;
-
+      case Function::ALPHA_SLACK_QUOTIENT:
+        result = CalcAlphaSlackQuotient(f, derivative);
+        break;
       case Function::REL_SLACK_BANDGAP:
         result = CalcRelSlackBandGap(f, derivative);
         break;
@@ -2206,11 +2211,14 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     double result = 0.0;
     switch(f->GetType())
     {
-      case Objective::OUTPUT:
+      case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       {
         // this is <l, u> which is for complex not really defined as it might be non-real
         T inner = u.Inner(l);
         result = ((complex<double>) inner).real();
+        if (f->GetType() == Objective::SQUARED_OUTPUT)
+          result *= result;
         result *= excite.GetFactor(f);
         LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
@@ -2706,6 +2714,37 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return res;
   }
 
+  double ErsatzMaterial::CalcAlphaSlackQuotient(Function* f, bool derivative) {
+        assert(f->GetType() == Function::ALPHA_SLACK_QUOTIENT);
+        if(!design->HasAlphaVariable() || !design->HasSlackVariable())
+          throw Exception("Function " + f->ToString() + " is based on the slack variables 'slack' and 'alpha' which were not contained in the design.");
+
+        double a = design->GetAlphaVariable();
+        double s = design->GetSlackVariable();
+
+        if(IsNoise(a) && IsNoise(s))
+          optInfoNode->SetWarning("'alpha' and 'slack' are both close to zero. Best adjust your bounds to avoid division by zero.");
+
+        double result = 0.0;
+
+        if(!derivative)
+          result = a / s;
+        else
+        {
+          AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
+          assert(ad != NULL);
+
+          double da = 1/s ;
+          double ds = -a/(s*s);
+
+          ad->GetAlphaDesign()->AddGradient(f, da);
+          ad->GetSlackDesign()->AddGradient(f, ds);
+        }
+
+        return result;
+      }
+
+
   double ErsatzMaterial::CalcStateTrackingAtNode(int node)
   {
     assert(node > 0);
@@ -2983,7 +3022,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     unsigned int ex_size = me->GetNumberHomogenization(); // also ok when we do transform or robust
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
@@ -3052,7 +3091,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     Context* ctxt = f->ctxt;
 
     Matrix<double> diff_tensor;
@@ -3179,7 +3218,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -3714,6 +3753,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       break;
 
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       case Function::CONJUGATE_COMPLIANCE:
       case Function::ABS_OUTPUT:
       case Function::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -3834,6 +3874,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     switch(f->GetType())
     {
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       {
         Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(StateSolution::SEL_VECTOR);
         rhs.Resize(l.GetSize());

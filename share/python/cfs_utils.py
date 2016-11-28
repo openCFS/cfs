@@ -16,7 +16,7 @@ def open_xml(file):
   if not os.path.exists(file):
     raise RuntimeError("xml file '" + file + "' not found")
   
-  xml = lxml.etree.parse(file)
+  xml = lxml.etree.parse(file, lxml.etree.XMLParser(remove_comments=True))
   return xml
 
 
@@ -350,8 +350,7 @@ def findInNDArray(data, value, silent=False):
 def check_cfs_status(problem):
   if os.path.exists(problem + ".info.xml"):
     try:
-      doc = libxml2.parseFile(problem + ".info.xml")
-      xml = doc.xpathNewContext()
+      xml = open_xml(problem + ".info.xml")
       status = xpath(xml, "//cfsInfo/@status")
       return status
     except:

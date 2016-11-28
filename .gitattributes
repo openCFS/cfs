@@ -162,6 +162,7 @@ cfsdeps/hdf5/H5lib_settings_MINGW_X86_64.c -text
 cfsdeps/hdf5/TryRunResults_MACOSX_I386_CENTOS6.cmake -text
 cfsdeps/hdf5/TryRunResults_MACOSX_X86_64_CENTOS6.cmake -text
 cfsdeps/hdf5/TryRunResults_MINGW_X86_64_CENTOS6.cmake -text
+cfsdeps/hdf5/hdf5-cross-compile.hdf5-1.8.17.patch -text
 cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-mingw.patch -text
 cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
@@ -1318,7 +1319,6 @@ share/python/test.py -text
 share/python/two_scale_tools.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
-share/python/xmlreplace.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain

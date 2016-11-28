@@ -309,6 +309,15 @@ namespace CoupledField {
    * @see CalcAbsApproximation() */
   double DerivSmoothAbs(double x, double eps);
 
+  inline unsigned int Product(const StdVector<unsigned int>& vec)
+  {
+    unsigned int prod = 1;
+    for (unsigned int i = 0; i < vec.GetSize(); i++)
+      prod *= vec[i];
+
+    return prod;
+  }
+
 } // end of CoupledField
 
 #endif

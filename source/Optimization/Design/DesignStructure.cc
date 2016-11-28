@@ -430,7 +430,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
     // the idea is as follows:
   // * We assume non regular grid.
-  // * For an element t we check for all neighbors the distance to center
+  // * For an element we check for all neighbors the distance to center
   // * If a neighbor is close enough we check also the neighbors recursively
   // * check means only, that the neighbors of check are checked!
   // * Hence buddies might grow (appending only) while traversing
@@ -440,16 +440,20 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     const Elem* test_elem = initial[e].first;
     unsigned int test = test_elem->elemNum;
 
-    if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
+    if(test == base->elem->elemNum)
+      continue; // we're not a neighbor of ourself
 
     // are we already a neighbor
     bool already = false;
     for(unsigned int n = 0; !already && n < neighbors.GetSize(); n++)
-      if(neighbors[n].neighbour->elem->elemNum == test) already = true; // continue e loop!
-    if(already) continue;
+      if(neighbors[n].neighbour->elem->elemNum == test)
+        already = true; // continue e loop!
+    if(already)
+      continue;
 
     // has it already been found that we are too far?
-    if(too_far.Contains(test)) continue;
+    if(too_far.Contains(test))
+      continue;
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
     DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent

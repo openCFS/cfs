@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import libxml2
 import sys
 import os.path
 from cfs_utils import *
@@ -23,19 +22,21 @@ class Timer:
 # helper to get extract a timer from an xml node
 # extracts the data from a node. If no id attribute is given tries to be smart
 def set_timer(node):  
-  w = float(node.prop('wall'))
-  c = float(node.prop('cpu'))
+  w = float(node.attrib['wall'])
+  c = float(node.attrib['cpu'])
   # the label is more complicated. Older info.xml might not have label yet
-  l = node.prop('label')
-  if l == None: # do our best
-    # is this the root node?
-    if node.parent.parent.name == "cfsInfo":
-      l = 'total'
-    else:
-      l = node.parent.name if node.parent.name <> "summary" else node.parent.parent.name
+  l = node.tag
+  if l == 'timer':
+    l = node.attrib['label'] if node.attrib.has_key('label') else None
+    if l == None: # do our best
+      # is this the root node?
+      if node.getparent().getparent().tag == "cfsInfo":
+        l = 'total'
+      else:
+        l = node.getparent().tag if node.getparent().tag <> "summary" else node.getparent().getparent().tag
   # the optional attribute sub="true" indicates that this is sub-element 
   # and shall to be considered for missing_time
-  s = node.prop('sub')
+  s = node.attrib['sub'] if node.attrib.has_key('sub') else None
   return Timer(l, w, c, s == 'true')      
           
 ## extracts all timers from info.xml and give back as array of Timer objects
@@ -43,7 +44,7 @@ def set_timer(node):
 #           minus the sum of the rest
 def read_info(xml, gap = False):
   res = []
-  all = xml.xpathEval('//timer')
+  all = xml.xpath("//*[contains(local-name(),'timer')]") # sum stuff is renamed like snopt_timer
   for node in all:
     res.append(set_timer(node))  
 
@@ -142,8 +143,8 @@ if args.analyse:
     print '--analyse has no other parameters than <input.info.xml'
     sys.exit(1)  
   
-  info = libxml2.parseFile(args.input).xpathNewContext()
-  timer = read_info(info, gap=True)
+  xml = open_xml(args.input)
+  timer = read_info(xml, gap=True)
   print_timer(timer, args.brief)
 
 else: # the whole run stuff
