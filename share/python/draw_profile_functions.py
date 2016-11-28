@@ -686,25 +686,23 @@ def calc_distance(coords1,coords2):
 # search for 'num' points closest points to ref; ref is an end point
 def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
   
-  assert(num == 1 or num==2)
+  assert(num == 1 or num==3)
   if num == 1:
     n1, d1 = find_closest_point(ref_node,next_node,end_nodes_1)
     n2, d2 = find_closest_point(ref_node,next_node,end_nodes_2)
     
-#     print "n1:",n1,"d1:",d1
-#     print "n2:",n2," d2:",d2
     if d1 < d2:
       return n1
     else:
       return n2
-  else:
-    x11, x12 = find_two_closest_points(ref_node, end_nodes_1)
-    x21, x22 = find_two_closest_points(ref_node, end_nodes_2)
+  elif num == 3:
+    x11, x12, x13 = find_three_closest_points(ref_node,next_node,end_nodes_1)
+    x21, x22, x23 = find_three_closest_points(ref_node,next_node,end_nodes_2)
     
-    l = [x11,x12,x22,x21]
-    res = sorted(l,key=lambda x: x[1])[0:2]
+    l = [x11,x12,x13,x21,x22,x23]
+    res = sorted(l,key=lambda x: x[1])[0:3]
     
-    return res[0][0],res[1][0]
+    return res[0][0],res[1][0],res[2][0]
   
 def find_closest_point(ref_node,next_node,end_nodes):
   # iterate over all end nodes in list and compare distances to 'ref' node
@@ -721,29 +719,39 @@ def find_closest_point(ref_node,next_node,end_nodes):
   
   return min_node,min_distance     
 
-def find_two_closest_points(ref_node, end_nodes):
+def find_three_closest_points(ref_node,next_node, end_nodes):
   # iterate over all end nodes in list and compare distances to 'ref' node
   min_distance_1 = 1e6
   min_node_1 = None
   min_distance_2 = 1e6
   min_node_2 = None
+  min_distance_3 = 1e6
+  min_node_3 = None
   for node in end_nodes:
     assert(node.dir != ref_node.dir)
     
-    dist = calc_distance(ref_node.coords, node.coords)
+    ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
+    
+    dist = calc_distance(ref_coords, node.coords)
     if dist < min_distance_1:
       min_distance_2 = min_distance_1
       min_node_2 = min_node_1
       
       min_distance_1 = dist
       min_node_1 = node
+    elif dist < min_distance_2:
+      min_distance_3 = min_distance_2
+      min_node_3 = min_node_2
       
-  return (min_node_1,min_distance_1),(min_node_2,min_distance_2)
+      min_distance_2 = dist
+      min_node_2 = node
+    elif dist < min_distance_3:
+      min_distance_3 = dist
+      min_node_3 = node
+      
+  return (min_node_1,min_distance_1),(min_node_2,min_distance_2),(min_node_3,min_distance_3)
 
-# @param: vertices defining triangle
-# assume a triangle is perfect if all edges have the same length
-# to measure feasibility, we take the ratio of shortest to longest edge
-def triangle_feasible(v1,v2,v3,threshold=0.5):
+def calc_triangle_ratio(v1,v2,v3):
   d1 = calc_distance(v1, v2)
   d2 = calc_distance(v1, v3)
   d3 = calc_distance(v2, v3)
@@ -751,7 +759,13 @@ def triangle_feasible(v1,v2,v3,threshold=0.5):
   min_d = min(d1,d2,d3)
   max_d = max(d1,d2,d3)
   
-  rat = min_d / max_d
+  return min_d / max_d
+
+# @param: vertices defining triangle
+# assume a triangle is perfect if all edges have the same length
+# to measure feasibility, we take the ratio of shortest to longest edge
+def triangle_feasible(v1,v2,v3,threshold=0.9):
+  rat = calc_triangle_ratio(v1, v2, v3)
   
   if rat > threshold:
     return True
@@ -778,23 +792,37 @@ def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
           if not next in node.connections:
   #       if next_node is not None and node not in next_node.connections: # consecutive neighbor on same surface line
           # search for closest points to middle point between this node and next node
-            other = find_closest_points(node, next, other_1_end_node, other_2_end_node, 1)
-            if triangle_feasible(node.coords, next.coords, other.coords):
-              add_triangle(node.id,next.id,other.id,cells)
-            # FIXME: fix orientation of triangle
+            # find 3 nearet neighbors
+            others = [None] * 3
+            others[0], others[1], others[2] = find_closest_points(node, next, other_1_end_node, other_2_end_node, 3)
             
+            # calc evaluation criterion for 3 nearest neighbors
+            rat = np.zeros(3)
+            rat[0] = calc_triangle_ratio(node.coords, next.coords,others[0].coords)
+            rat[1] = calc_triangle_ratio(node.coords, next.coords,others[1].coords)
+            rat[2] = calc_triangle_ratio(node.coords, next.coords,others[2].coords)
             
+            # check for most regular triangle
+            max_rat = np.max(rat)
+            # select neighbor node to create best triangle
+            best_neighbor = others[np.argmax(rat)]
+            
+            if node.id == 10801:
+              print next.id,others[0].id,others[1].id,others[2].id
+              print rat
+              print max_rat
+              print np.argmax(rat)
+            # check is best triangle is good enough
+            if  not best_neighbor in node.connections:
+              # FIXME: fix orientation of triangle
+              add_triangle(node.id,next.id,best_neighbor.id,cells)
           
-    #       print "node: ", node
-    #       print "next_node: ", next_node
-    #       print "other_node: ", other_node
-          
-            node.connections.append(next)
-            node.connections.append(other)
-            next.connections.append(node)
-            next.connections.append(other)
-            other.connections.append(node)
-            other.connections.append(next)
+              node.connections.append(next)
+              node.connections.append(best_neighbor)
+              next.connections.append(node)
+              next.connections.append(best_neighbor)
+              best_neighbor.connections.append(node)
+              best_neighbor.connections.append(next)
             added = True
   
 def create_profiles_array(args,infoXml):
@@ -855,9 +883,9 @@ def create_profiles_array(args,infoXml):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
     
-    fix_end_node_gaps(end_nodes_1, end_nodes_2, end_nodes_3, cells)
-    fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
-    fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
+#     fix_end_node_gaps(end_nodes_1, end_nodes_2, end_nodes_3, cells)
+#     fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
+#     fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
