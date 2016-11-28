@@ -19,16 +19,24 @@ from sympy import Symbol, symbols
 class End_Node():
   def __init__(self):
     self.coords = (0.0,0.0,0.0)
-    self.connections = 0
-    self.id = -1
+    self.connections = []
+    self.id = -1 # vtk id of point
+    self.i = -1 # first index in surface map, corresponds to surface line
+    self.j = -1 # second index in surface map, where on surface line 
+    self.dir = -1
     
-  def __init__(self,coords,id):
+  def __init__(self,coords,id,dir,i,j):
+    assert(len(coords) == 3)
     self.coords = coords
     self.id = id
-  
-  def add_connection(self):
-    self.connection += 1
+    self.i = i
+    self.j = j
+    self.connections = [] # array of end_nodes that form a triangle together with this end node
+    self.dir = dir
     
+  def __str__(self):
+    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)  
+  
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -570,7 +578,6 @@ def get_surface_lines(map,numLines,dir):
       nodes[i,:,0] = Y
       nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,2] = X
-       
     if dir == 3:
       nodes[i,:,0] = X
       nodes[i,:,1] = Y
@@ -623,9 +630,10 @@ def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
   
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
+# nodes is a 3d array with (x,y,z) coords for one profile
 # returns array of size 2 x n with ids of end nodes in first row, second row reserved for fix_gaps()
-def define_triangles(nodes_ids,cells,dir,vtkArray=None):
-  end_nodes_ids = []
+def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
+  end_nodes = []
   
   for i in range(0,nodes_ids.shape[0]):
     this_line = nodes_ids[i]
@@ -650,11 +658,11 @@ def define_triangles(nodes_ids,cells,dir,vtkArray=None):
         vtkArray.SetValue(right_id,dir)
         
         if j > 0 and (left_id < 0 or prev_id < 0):
-          end_nodes_ids.append(this_id)
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
           vtkArray.SetValue(this_id,dir+0.5)
       else:
         if this_id >= 0 and j > 0: # first point in line is not end point
-          end_nodes_ids.append(this_id)
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
           vtkArray.SetValue(this_id,dir+0.5)
           
           if right_id >= 0 and right_next_id >= 0:
@@ -678,20 +686,122 @@ def define_triangles(nodes_ids,cells,dir,vtkArray=None):
         tri.GetPointIds().SetId(2, next_id)
         cells.InsertNextCell(tri)
            
-  data = np.zeros((2,len(end_nodes_ids)), dtype=int)
-  data[0] = end_nodes_ids
-  data[1] = 0
-           
-  return data
+  return end_nodes
+
+# calc distance between two points
+def calc_distance(coords1,coords2):
+  return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1]-coords2[1])**2 + (coords1[2]-coords2[2])**2)
 
 # search for 'num' points closest points to ref; ref is an end point
-#def find_closest_points(end_point_list,ref,num):
+def find_closest_points(ref_node,end_nodes_1,end_nodes_2,num):
+  assert(num == 1 or num==2)
+  if num == 1:
+    n1, d1 = find_closest_point(ref_node,end_nodes_1)
+    n2, d2 = find_closest_point(ref_node,end_nodes_2)
+    
+#     print "n1:",n1,"d1:",d1
+#     print "n2:",n2," d2:",d2
+    if d1 < d2:
+      return n1
+    else:
+      return n2
+  else:
+    x11, x12 = find_two_closest_points(ref_node, end_nodes_1)
+    x21, x22 = find_two_closest_points(ref_node, end_nodes_2)
+    
+    l = [x11,x12,x22,x21]
+    res = sorted(l,key=lambda x: x[1])[0:2]
+    
+    return res[0][0],res[1][0]
   
-# for each end point, check if nearest point is on same line
+def find_closest_point(ref_node, end_nodes):
+  # iterate over all end nodes in list and compare distances to 'ref' node
+  min_distance = 1e6
+  min_node = None
+  for node in end_nodes:
+    assert(node.dir != ref_node.dir)
+    
+    dist = calc_distance(ref_node.coords, node.coords)
+    if dist < min_distance:
+      min_distance = dist
+      min_node = node
+  
+  return min_node,min_distance     
+
+def find_two_closest_points(ref_node, end_nodes):
+  # iterate over all end nodes in list and compare distances to 'ref' node
+  min_distance_1 = 1e6
+  min_node_1 = None
+  min_distance_2 = 1e6
+  min_node_2 = None
+  for node in end_nodes:
+    assert(node.dir != ref_node.dir)
+    
+    dist = calc_distance(ref_node.coords, node.coords)
+    if dist < min_distance_1:
+      min_distance_2 = min_distance_1
+      min_node_2 = min_node_1
+      
+      min_distance_1 = dist
+      min_node_1 = node
+      
+  
+  return (min_node_1,min_distance_1),(min_node_2,min_distance_2)     
+  
+# for each end point, check if closest point is on same line
 # if true, then search for third point in other profiles' end points
 # if false, then search for second and third point in other profiles' end points
-#def fix_end_node_gaps(this_ids,this_nodes,other_1_ids,other_1_nodes,other_2_ids,other_2_nodes):
-  
+def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
+  for n,node in enumerate(this_end_nodes):
+      next_node = None
+      if n < len(this_end_nodes)-1:
+        next_node = this_end_nodes[n+1]
+        if not(node.i == next_node.i and node.j+1 == next_node.j):
+          next_node = None
+      if next_node is None:    
+        right_node = [v for v in this_end_nodes if v.i == node.i+1 and v.j == node.j]
+        if right_node:
+          next_node = right_node[0]
+      if next_node is None and n < len(this_end_nodes)-1:
+        right_next_node = [v for v in this_end_nodes if v.i == node.i+1 and v.j == node.j+1]
+        if right_next_node:
+          next_node = right_next_node[0]
+      
+      if next_node is not None and node not in next_node.connections: # consecutive neighbor on same surface line
+        other_node = find_closest_points(node, other_1_end_node, other_2_end_node, 1)
+        # FIXME: fix orientation of triangle
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, node.id)
+        tri.GetPointIds().SetId(1, next_node.id)
+        tri.GetPointIds().SetId(2, other_node.id)
+        cells.InsertNextCell(tri)
+        
+#         print "node: ", node
+#         print "next_node: ", next_node
+#         print "other_node: ", other_node
+        
+        node.connections.append(next_node)
+        node.connections.append(other_node)
+        next_node.connections.append(node)
+        next_node.connections.append(other_node)
+        other_node.connections.append(node)
+        other_node.connections.append(next_node)
+      else:
+        other_node_1, other_node_2 = find_closest_points(node, other_1_end_node, other_2_end_node, 2)
+        # FIXME: fix orientation of triangle
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, node.id)
+        tri.GetPointIds().SetId(1, other_node_1.id)
+        tri.GetPointIds().SetId(2, other_node_2.id)
+        cells.InsertNextCell(tri)
+        
+        node.connections.append(other_node_1)
+        node.connections.append(other_node_2)
+        other_node_1.connections.append(node)
+        other_node_1.connections.append(other_node_2)
+        other_node_2.connections.append(node)
+        other_node_2.connections.append(other_node_1)
+    
   
 def create_profiles_array(args,infoXml):
   res = args.res
@@ -747,9 +857,13 @@ def create_profiles_array(args,infoXml):
     vtkData.SetName("intersection")
     vtkData.SetNumberOfValues(id)
 
-    end_nodes_ids_1 = define_triangles(nodes_ids_1,cells,1,vtkData)
-    end_nodes_ids_2 = define_triangles(nodes_ids_2,cells,2,vtkData)
-    end_nodes_ids_3 = define_triangles(nodes_ids_3,cells,3,vtkData)
+    end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,1,vtkData)
+    end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
+    end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
+    
+    fix_end_node_gaps(end_nodes_1, end_nodes_2, end_nodes_3, cells)
+    fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
+    fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):

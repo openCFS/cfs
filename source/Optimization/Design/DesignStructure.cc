@@ -266,6 +266,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
     StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
+    neighbors.Clear()
     neighbors.Resize(0);
     StdVector<unsigned int>& too_far = too_fars[aThread];
     too_far.Resize(0);
@@ -470,13 +471,17 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     const Elem* test_elem = initial[e].first;
     unsigned int test = test_elem->elemNum;
 
-    if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
+    if(test == base->elem->elemNum)
+      continue; // we're not a neighbor of ourself
 
     // are we already a neighbor
     bool already = false;
     for(unsigned int n = 0; !already && n < neighbors.GetSize(); n++)
-      if(neighbors[n].neighbour->elem->elemNum == test) already = true; // continue e loop!
-    if(already) continue;
+      if(neighbors[n].neighbour->elem->elemNum == test)
+        already = true; // continue e loop!
+
+    if(already)
+      continue;
 
     // has it already been found that we are too far?
     if(too_far.Contains(test)) continue;

@@ -719,7 +719,6 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
     }
     LOG_DBG3(sgp) << "Subsolve: s1_min =" << s1_outer[i] << " s2_min = " << s2_outer[i] << " theta_min= " << theta_outer[i] << "]";
     LOG_DBG3(sgp) << "Subsolve: obj_min =" << obj_min;
-    int dummy = 1;
   }
   return obj;
 }
