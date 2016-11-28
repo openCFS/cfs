@@ -396,6 +396,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
 
             // map from element number to design
             ne.neighbour = other;
+            ne.elemNum = other->elem->elemNum;
 
             // linear or constant weighting. will be normalized in the calling method!
             assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -464,22 +465,31 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // * If a neighbor is close enough we check also the neighbors recursively
   // * check means only, that the neighbors of check are checked!
   // * Hence buddies might grow (appending only) while traversing
+  assert(initial.GetSize() < 20);
+
   for(unsigned int e = 0, en = initial.GetSize(); e < en; e++)
   {
     // we ignore the grade of neighborhood (the int in the pair)
     const Elem* test_elem = initial[e].first;
     unsigned int test = test_elem->elemNum;
 
-    if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
+    if(test == base->elem->elemNum)
+      continue; // we're not a neighbor of ourself
+
+    // has it already been found that we are too far?
+    if(too_far.Contains(test))
+      continue;
 
     // are we already a neighbor
     bool already = false;
-    for(unsigned int n = 0; !already && n < neighbors.GetSize(); n++)
-      if(neighbors[n].neighbour->elem->elemNum == test) already = true; // continue e loop!
-    if(already) continue;
-
-    // has it already been found that we are too far?
-    if(too_far.Contains(test)) continue;
+    for(unsigned int n = 0, nn = neighbors.GetSize(); !already && n < nn; n++)
+    {
+      assert(neighbors[n].elemNum == neighbors[n].neighbour->elem->elemNum);
+      if(neighbors[n].elemNum == test)
+        already = true; // continue e loop!
+    }
+    if(already)
+      continue;
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
     DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent
@@ -499,6 +509,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // map from element number to design
       ne.neighbour = test_de;
+      ne.elemNum = test;
       assert(ne.neighbour->elem->elemNum == test);
 
       // linear or constant weighting. will be normalized in the calling method!
@@ -514,7 +525,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   }
 }
 
-double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
+inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
   const Point& bb = base->barycenter;
