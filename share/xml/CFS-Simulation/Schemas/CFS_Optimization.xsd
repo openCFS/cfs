@@ -242,6 +242,8 @@
             </xsd:element>
             
             <xsd:element name="output" minOccurs="0" maxOccurs="1" type="DT_output"/>
+            <xsd:element name="squaredOutput" minOccurs="0" maxOccurs="1" type="DT_output"/>
+            
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
@@ -332,6 +334,7 @@
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
             <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="squaredOutput" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
           <xsd:attribute name="type" use="required">
@@ -344,6 +347,7 @@
                 <xsd:enumeration value="conjugateCompliance"/>
                 <xsd:enumeration value="globalDynamicCompliance"/>
                 <xsd:enumeration value="output"/>
+                <xsd:enumeration value="squaredOutput"/>
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
@@ -425,6 +429,8 @@
                 <xsd:enumeration value="heatEnergy"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
+                <!-- allows constraints to be bounded by alpha/slack quotient -->
+                <xsd:enumeration value="alphaSlackQuotient"/>
                 <!-- tracking heat temperature at interfaces -->
                 <xsd:enumeration value="tempTrackingAtInterface"/>
               </xsd:restriction>
@@ -673,6 +679,46 @@
             
             <xsd:element name="sgp" minOccurs="0" >
               <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="subsolver" minOccurs="1" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                       <xsd:element name="var" minOccurs="0" maxOccurs="11">
+                       <xsd:complexType>
+                           <xsd:attribute name="design" use="required">
+                             <xsd:simpleType>  
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="rotAngle"/>
+                                  <xsd:enumeration value="density"/>
+                                  <xsd:enumeration value="stiff1"/>
+                                  <xsd:enumeration value="stiff2"/>
+                                  <xsd:enumeration value="stiff3"/>
+                                  <xsd:enumeration value="mech_11"/>
+                                  <xsd:enumeration value="mech_12"/>
+                                  <xsd:enumeration value="mech_22"/>
+                                  <xsd:enumeration value="mech_23"/>
+                                  <xsd:enumeration value="mech_13"/>
+                                  <xsd:enumeration value="mech_33"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <xsd:attribute name="steps" type="xsd:float" use="required"/>
+                         </xsd:complexType>
+                        </xsd:element>
+                        <xsd:element name="designMaterial"  type="DT_DesignMat" minOccurs="0" maxOccurs="1"/>
+                    </xsd:sequence>
+                    <xsd:attribute name="mode" use="required">
+                        <xsd:simpleType>  
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="brute_force"/>
+<!--                             <xsd:enumeration value="integer"/> -->
+<!--                             <xsd:enumeration value="real"/> -->
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                    </xsd:attribute>
+                  </xsd:complexType>               
+                </xsd:element> 
+               </xsd:sequence>
                 <!-- penalty parameter bounds -->  
                 <xsd:attribute name="pmin" type="xsd:float" default="0.05" use="optional"/>
                 <xsd:attribute name="pmax" type="xsd:float" default="0.05" use="optional"/>
@@ -680,7 +726,10 @@
                 <!-- convergence tolerance for sgp algorithm -->
                 <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional"/>
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
-                <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>                 
+                <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>    
+                <xsd:attribute name="tau" default="0." type="xsd:float" use="optional"/>    
+                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>           
+                           
               </xsd:complexType>
             </xsd:element>
             
@@ -740,7 +789,7 @@
                 </xsd:sequence>
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
                 <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
-                <xsd:attribute name="output" use="optional" type="xsd:string"/>
+                <xsd:attribute name="output" use="optional" type="xsd:string"/> 
               </xsd:complexType>
             </xsd:element>
 
@@ -1033,158 +1082,13 @@
               </xsd:complexType>
             </xsd:element>
 
-            <xsd:element name="paramMat" minOccurs="0" maxOccurs="1">
+            <xsd:element name="paramMat"  minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="designMaterial" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="param" minOccurs="0" maxOccurs="unbounded">
-                          <xsd:complexType>
-                            <xsd:attribute name="name" use="required" type="DT_Design"/>                      
-                            <xsd:attribute name="value" use="required" type="xsd:float"/>
-                          </xsd:complexType>
-                        </xsd:element>
-                        <!-- data for hom_rect -->
-                        <xsd:element name="homRect" minOccurs="0" maxOccurs="1">
-                          <xsd:complexType>
-                            <xsd:sequence>
-                              <xsd:element name="data" minOccurs="9" maxOccurs="9">
-                                <xsd:complexType>
-                                  <xsd:attribute name="a" type="xsd:float" use="required"/>
-                                  <xsd:attribute name="b" type="xsd:float" use="required"/>
-                                  <xsd:attribute name="e11" type="xsd:float" use="required"/>
-                                  <xsd:attribute name="e12" type="xsd:float" use="required"/>
-                                  <xsd:attribute name="e22" type="xsd:float" use="required"/>
-                                  <xsd:attribute name="e33" type="xsd:float" use="required"/>
-                                </xsd:complexType>
-                              </xsd:element>
-                            </xsd:sequence>
-                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
-                            <xsd:attribute name="notation" use="required">
-                              <xsd:simpleType>
-                                <xsd:restriction base="xsd:token">
-                                  <xsd:enumeration value="voigt"/>
-                                  <xsd:enumeration value="hill_mandel"/>
-                                </xsd:restriction>
-                              </xsd:simpleType>
-                            </xsd:attribute>
-                          </xsd:complexType>
-                        </xsd:element>
-												<!-- End of data for HomRect -->
-												<!-- Data for modRed -->
-												<xsd:element name="modRed" minOccurs="0" maxOccurs="1">
-													<xsd:complexType>
-														<!-- filename with external modRed structrue -->
-														<xsd:attribute name="file" type="xsd:token" use="required" />
-													</xsd:complexType>
-												</xsd:element>  
-                        <xsd:element name="homRectC1" minOccurs="0" maxOccurs="1">
-                          <xsd:complexType>
-                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
-                            <xsd:attribute name="file" default="coeff.xml" type="xsd:token" use="optional"/>
-                            <!-- sparse grid interpolation method --> 
-                            <xsd:attribute name="interpolation" use="optional" default="c1"> 
-                              <xsd:simpleType> 
-                                <xsd:restriction base="xsd:token"> 
-                                  <xsd:enumeration value="c1"/> 
-                                  <xsd:enumeration value="c1_text_2d"/> 
-                                  <xsd:enumeration value="c1_text_3d"/> 
-                                  <xsd:enumeration value="sgpp"/> 
-                                  <xsd:enumeration value="full_bspline"/> 
-                                  <xsd:enumeration value="full_bspline_text_2d"/> 
-                                  <xsd:enumeration value="full_bspline_text_3d"/> 
-                                </xsd:restriction> 
-                              </xsd:simpleType> 
-                            </xsd:attribute> 
-                            <xsd:attribute name="sgppBasis" use="optional" default="modbspline"> 
-                              <xsd:simpleType> 
-                                <xsd:restriction base="xsd:token"> 
-                                  <xsd:enumeration value="bspline"/> 
-                                  <xsd:enumeration value="modbspline"/> 
-                                  <xsd:enumeration value="modlinear"/> 
-                                  <xsd:enumeration value="linear"/> 
-                                </xsd:restriction> 
-                              </xsd:simpleType> 
-                            </xsd:attribute> 
-                            <xsd:attribute name="bsplineDegree" type="xsd:token" default="3" use="optional" />
-                          </xsd:complexType>
-                        </xsd:element>
-                        
-                        <xsd:element name="MSFEMC1" minOccurs="0" maxOccurs="1">
-                          <xsd:complexType>
-                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
-                            <xsd:attribute name="file" default="coeffi_msfem.xml" type="xsd:token" use="optional"/>
-                            <!-- sparse grid interpolation method --> 
-                            <xsd:attribute name="interpolation" use="optional" default="c1"> 
-                              <xsd:simpleType> 
-                                <xsd:restriction base="xsd:token"> 
-                                  <xsd:enumeration value="c1"/>  
-                                </xsd:restriction> 
-                              </xsd:simpleType> 
-                            </xsd:attribute> 
-                          </xsd:complexType>
-                        </xsd:element>
-                        
-                        
-                      </xsd:sequence>                
-                      <xsd:attribute name="type" use="required">
-                        <xsd:simpleType>
-                          <xsd:restriction base="xsd:token">
-                            <xsd:enumeration value="fmo"/>
-                            <xsd:enumeration value="orthotropic"/>
-                            <xsd:enumeration value="density-times-orthotropic"/>
-                            <xsd:enumeration value="isotropic"/>
-                            <xsd:enumeration value="lame-isotropic"/>
-                            <xsd:enumeration value="transversal-isotropic"/>
-                            <xsd:enumeration value="transversal-isotropic-boxed"/>
-                            <xsd:enumeration value="density-times-2dtensor"/>
-                            <xsd:enumeration value="density-times-2dtensor-constant-trace"/>
-                            <xsd:enumeration value="density-times-rotated-2dtensor"/>
-                            <xsd:enumeration value="density-times-transversal-isotropic"/>
-                            <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
-                            <xsd:enumeration value="density-times-rotated-transversal-isotropic"/>
-                            <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
-                            <xsd:enumeration value="density-times-rotated-pa12"/> 
-                            <xsd:enumeration value="density-times-interpolated-tensor"/> 
-                            <xsd:enumeration value="density-times-rotated-interpolated-tensor"/> 
-                            <xsd:enumeration value="laminates"/>
-                            <xsd:enumeration value="density-times-laminates"/>
-                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requires homRect element -->
-                            <xsd:enumeration value="hom-rect"/>
-                            <xsd:enumeration value="density-times-hom-rect"/>
-                            <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
-                            <xsd:enumeration value="hom-rect-C1"/>
-                            <!--  msfem material catalog for C1-interpolation. -->
-                            <xsd:enumeration value="msfem-C1"/>
-                            <!--  model reduction  --> 
-                            <xsd:enumeration value="reducedBasis-param"/> 
-                            <xsd:enumeration value="reducedBasis-free"/> 
-                            <xsd:enumeration value="reducedBasis-mapping"/> 
-                            <xsd:enumeration value="greedy-param"/> 
-                            <xsd:enumeration value="greedy-free"/> 
-                            <xsd:enumeration value="greedy-mapping"/> 
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                      <xsd:attribute name="isoplane" use="optional" default="xy">
-                        <xsd:simpleType>
-                          <xsd:restriction base="xsd:token">
-                            <xsd:enumeration value="xy"/>
-                            <xsd:enumeration value="xz"/>
-                            <xsd:enumeration value="yz"/>
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                      <xsd:attribute name="massFactor" type="xsd:float" default="1.0"/>
-                      <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false"/>
-                      <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false"/>
-                      <xsd:attribute name="trace" type="xsd:float" default="3.0"/>
-                    </xsd:complexType>              
-                  </xsd:element>
+                  <xsd:element name="designMaterial" type="DT_DesignMat" minOccurs="0" maxOccurs="1"/>
                 </xsd:sequence>
-              </xsd:complexType>              
-            </xsd:element> <!-- end of paramMat -->
+              </xsd:complexType>
+            </xsd:element>
             
             <xsd:element name="shapeOpt" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1656,6 +1560,9 @@
       <xsd:enumeration value="mech_23"/>
       <xsd:enumeration value="mech_13"/>
       <xsd:enumeration value="mech_12"/>
+      <xsd:enumeration value="I_1"/>
+      <xsd:enumeration value="I_2"/>
+      <xsd:enumeration value="I_3"/>
       <xsd:enumeration value="dielec_11"/>
       <xsd:enumeration value="dielec_12"/>
       <xsd:enumeration value="dielec_22"/>
@@ -1706,7 +1613,8 @@
   <xsd:simpleType name="DT_Objective">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="compliance"/>
-      <xsd:enumeration value="output"/>                
+      <xsd:enumeration value="output"/>
+      <xsd:enumeration value="squaredOutput"/>                       
       <xsd:enumeration value="conjugateCompliance"/>
       <xsd:enumeration value="globalDynamicCompliance"/>
       <xsd:enumeration value="dynamicOutput"/>
@@ -1745,6 +1653,8 @@
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
+      <!-- allows constraints to be bounded by alpha/slack quotient -->
+      <xsd:enumeration value="alphaSlackQuotient"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
       <!--  relative band gap based on slack and alpha -->
@@ -2343,6 +2253,185 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+          <xsd:complexType name="DT_DesignMat">
+            <xsd:sequence>
+              <xsd:element name="param" minOccurs="0"
+                maxOccurs="unbounded">
+                <xsd:complexType>
+                  <xsd:attribute name="name" use="required"
+                    type="DT_Design" />
+                  <xsd:attribute name="value" use="required"
+                    type="xsd:float" />
+                </xsd:complexType>
+              </xsd:element>
+              <!-- data for hom_rect -->
+              <xsd:element name="homRect" minOccurs="0"
+                maxOccurs="1">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="data" minOccurs="9"
+                      maxOccurs="9">
+                      <xsd:complexType>
+                        <xsd:attribute name="a" type="xsd:float"
+                          use="required" />
+                        <xsd:attribute name="b" type="xsd:float"
+                          use="required" />
+                        <xsd:attribute name="e11" type="xsd:float"
+                          use="required" />
+                        <xsd:attribute name="e12" type="xsd:float"
+                          use="required" />
+                        <xsd:attribute name="e22" type="xsd:float"
+                          use="required" />
+                        <xsd:attribute name="e33" type="xsd:float"
+                          use="required" />
+                      </xsd:complexType>
+                    </xsd:element>
+                  </xsd:sequence>
+                  <!-- documents in with notation the tensor data is given. 
+                    Internal storrage is Hill-Mandel -->
+                  <xsd:attribute name="notation" use="required">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="voigt" />
+                        <xsd:enumeration value="hill_mandel" />
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
+                </xsd:complexType>
+              </xsd:element>
+              <!-- End of data for HomRect -->
+              <!-- Data for modRed -->
+              <xsd:element name="modRed" minOccurs="0"
+                maxOccurs="1">
+                <xsd:complexType>
+                  <!-- filename with external modRed structrue -->
+                  <xsd:attribute name="file" type="xsd:token"
+                    use="required" />
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="homRectC1" minOccurs="0"
+                maxOccurs="1">
+                <xsd:complexType>
+                  <!-- documents in with notation the tensor data is given. 
+                    Internal storrage is Hill-Mandel -->
+                  <xsd:attribute name="file" default="coeff.xml"
+                    type="xsd:token" use="optional" />
+                  <!-- sparse grid interpolation method -->
+                  <xsd:attribute name="interpolation" use="optional"
+                    default="c1">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="c1" />
+                        <xsd:enumeration value="c1_text_2d" />
+                        <xsd:enumeration value="c1_text_3d" />
+                        <xsd:enumeration value="sgpp" />
+                        <xsd:enumeration value="full_bspline" />
+                        <xsd:enumeration value="full_bspline_text_2d" />
+                        <xsd:enumeration value="full_bspline_text_3d" />
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
+                  <xsd:attribute name="sgppBasis" use="optional"
+                    default="modbspline">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="bspline" />
+                        <xsd:enumeration value="modbspline" />
+                        <xsd:enumeration value="modlinear" />
+                        <xsd:enumeration value="linear" />
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
+                  <xsd:attribute name="bsplineDegree"
+                    type="xsd:token" default="3" use="optional" />
+                </xsd:complexType>
+              </xsd:element>
+
+              <xsd:element name="MSFEMC1" minOccurs="0"
+                maxOccurs="1">
+                <xsd:complexType>
+                  <!-- documents in with notation the tensor data is given. 
+                    Internal storrage is Hill-Mandel -->
+                  <xsd:attribute name="file" default="coeffi_msfem.xml"
+                    type="xsd:token" use="optional" />
+                  <!-- sparse grid interpolation method -->
+                  <xsd:attribute name="interpolation" use="optional"
+                    default="c1">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="c1" />
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
+                </xsd:complexType>
+              </xsd:element>
+
+
+            </xsd:sequence>
+            <xsd:attribute name="type" use="required">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="fmo" />
+                  <xsd:enumeration value="orthotropic" />
+                  <xsd:enumeration value="density-times-orthotropic" />
+                  <xsd:enumeration value="isotropic" />
+                  <xsd:enumeration value="lame-isotropic" />
+                  <xsd:enumeration value="transversal-isotropic" />
+                  <xsd:enumeration value="transversal-isotropic-boxed" />
+                  <xsd:enumeration value="density-times-2dtensor" />
+                  <xsd:enumeration
+                    value="density-times-2dtensor-constant-trace" />
+                  <xsd:enumeration value="density-times-rotated-2dtensor" />
+                  <xsd:enumeration value="density-times-transversal-isotropic" />
+                  <xsd:enumeration
+                    value="density-times-transversal-isotropic-boxed" />
+                  <xsd:enumeration
+                    value="density-times-rotated-transversal-isotropic" />
+                  <xsd:enumeration
+                    value="density-times-rotated-transversal-isotropic-boxed" />
+                  <xsd:enumeration value="density-times-rotated-pa12" />
+                  <xsd:enumeration value="density-times-interpolated-tensor" />
+                  <xsd:enumeration
+                    value="density-times-rotated-interpolated-tensor" />
+                  <xsd:enumeration value="laminates" />
+                  <xsd:enumeration value="density-times-laminates" />
+                  <!-- samples for homogenizes a-b rectangulars for interpolation. 
+                    Requires homRect element -->
+                  <xsd:enumeration value="hom-rect" />
+                  <xsd:enumeration value="density-times-hom-rect" />
+                  <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
+                  <xsd:enumeration value="hom-rect-C1" />
+                  <!-- msfem material catalog for C1-interpolation. -->
+                  <xsd:enumeration value="msfem-C1" />
+                  <!-- model reduction -->
+                  <xsd:enumeration value="reducedBasis-param" />
+                  <xsd:enumeration value="reducedBasis-free" />
+                  <xsd:enumeration value="reducedBasis-mapping" />
+                  <xsd:enumeration value="greedy-param" />
+                  <xsd:enumeration value="greedy-free" />
+                  <xsd:enumeration value="greedy-mapping" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+            <xsd:attribute name="isoplane" use="optional"
+              default="xy">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="xy" />
+                  <xsd:enumeration value="xz" />
+                  <xsd:enumeration value="yz" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+            <xsd:attribute name="massFactor" type="xsd:float"
+              default="1.0" />
+            <xsd:attribute name="optimizeMass" type="xsd:boolean"
+              use="optional" default="false" />
+            <xsd:attribute name="optimizeDamping" type="xsd:boolean"
+              use="optional" default="false" />
+            <xsd:attribute name="trace" type="xsd:float"
+              default="3.0" />
+          </xsd:complexType>
 
 </xsd:schema>
 

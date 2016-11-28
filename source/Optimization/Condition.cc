@@ -38,6 +38,7 @@ DECLARE_LOG(conditions)
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
 double Condition::SLACK_VALUE = -45217861;
+double Condition::ALPHA_VALUE = -45217858;
 double Condition::ALPHA_MINUS_SLACK_VALUE = -45217860;
 double Condition::ALPHA_PLUS_SLACK_VALUE = -45217859;
 
@@ -96,6 +97,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     string v = pn->Get("value")->As<string>();
     if(v == "slack")
       this->boundValue_ = SLACK_VALUE;
+    else if (v == "alpha")
+      this->boundValue_ = ALPHA_VALUE;
     else if (v == "alpha+slack")
       this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
     else if (v == "alpha-slack")
@@ -178,9 +181,12 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
 
-  if(boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE)
+  if(boundValue_ == ALPHA_VALUE|| boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE) {
     if(!space->HasAlphaVariable())
       throw Exception("design variable 'alpha' is missing.");
+    if(!space->HasSlackVariable())
+      throw Exception("design variable 'alpha' requires also design variable 'slack'.");
+  }
 
 
   // shall not be necessary when we register all pdes!
@@ -812,6 +818,8 @@ void Condition::ToInfo(PtrParamNode in)
     {
       if(boundValue_ == SLACK_VALUE)
         in->Get("bound_value")->SetValue("slack");
+      else if (boundValue_ == ALPHA_VALUE)
+        in->Get("bound_value")->SetValue("alpha");
       else if(boundValue_ == ALPHA_MINUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha-slack");
       else if(boundValue_ == ALPHA_PLUS_SLACK_VALUE)

@@ -5,6 +5,8 @@ import sys, os, numpy, math
 from copy import deepcopy
 from hdf5_tools import *
 import scipy.interpolate as ip
+from numpy import ceil
+import scipy.spatial
 #from matviz_vtk import *
 
 
@@ -20,6 +22,81 @@ HEXA8 = 10
 WEDGE6 = 14
 LINE = 100
 
+def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
+  i = int((point[0] - minx)/hx)
+  j = int((point[1] - miny)/hy)
+  k = int((point[2] - minz)/hz)
+  array[i,j,k] = val
+
+# checks whether point p is inside cube
+# @param tetra: list with 4 vertices of tetrahedron
+def inside_cube(p,tetra):
+  d0 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d1 = numpy.linalg.det(numpy.array([[p[0],p[1],p[2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d2 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [p[0],p[1],p[2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d3 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [p[0],p[1],p[2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
+  d4 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [p[0],p[1],p[2],1]]))
+  
+  det = [d0,d1,d2,d3,d4]
+  # point is inside cube if all determinats have same sign
+  return all(item >= 0 for item in det) or all(item < 0 for item in det)
+# calculates barycenter of element e
+def calc_barycenter(mesh,e):
+  center = numpy.array([0.0, 0.0, 0.0])
+  len_nod = len(e.nodes)
+  for n in range(len_nod):
+    center += mesh.nodes[e.nodes[n]]
+  center *= 1.0 / len_nod
+  
+  return center
+
+# node1/2: coordinates of respective node
+def calc_edge_length(mesh,node1,node2):
+  return numpy.linalg.norm(numpy.array(node1)-numpy.array(node2))
+
+# calculates longest edge of element e
+def calc_longest_edge(mesh,e):
+  # so far only tested for 3D elements
+  assert(elem_dim(e.type) == 3) 
+  result = 0
+  
+  nodes = e.nodes
+  
+  for i,node in enumerate(nodes):
+    for j,other in enumerate(nodes):
+      if i == j:
+        continue
+      # euklidian distance
+      distance = calc_edge_length(mesh, mesh.nodes[node], mesh.nodes[other])
+    
+      if distance > result:
+        result = distance  
+    
+  return result  
+
+def calc_min_max_coords(mesh):
+  ma_x = -100000.
+  mi_x = 100000.
+  ma_y = -100000.
+  mi_y = 100000.
+  ma_z = -100000.
+  mi_z = 100000.
+  
+  for i in range(len(mesh.nodes)):
+    coord = mesh.nodes[i]
+    ma_x = ma_x if ma_x > coord[0] else coord[0]
+    mi_x = mi_x if mi_x < coord[0] else coord[0]
+    ma_y = ma_y if ma_y > coord[1] else coord[1]
+    mi_y = mi_y if mi_y < coord[1] else coord[1]
+    ma_z = ma_z if ma_z > coord[2] else coord[2]   
+    mi_z = mi_z if mi_z < coord[2] else coord[2]
+    
+
+  return mi_x, mi_y, mi_z, ma_x, ma_y, ma_z
+
+# for given node ide (e.g. from optistruct), return id in gid mesh
+#def node_id_to_mesh_id(nodeId):
+  
 
 def nodes_by_type(type):
   if type == QUAD4:
@@ -58,7 +135,6 @@ def elem_dim(type):
     return 2 
   
 
-
 # gid element
 class Element: 
   def __init__(self):
@@ -93,10 +169,86 @@ class Mesh:
    self.nx = nx
    self.ny = ny
    self.nz = nz
-  
+   
   def element(self, i, j):
     assert(self.nx > 0 and self.ny > 0)
     return self.elements[i * self.nx + j]
+  
+# adds same number of boundary nodes on adjacent sides to assure periodic b.c
+# @ min_diam
+def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-4):
+  left_c = 0
+  right_c = 0
+  top_c = 0
+  bottom_c = 0
+  back_c = 0
+  front_c = 0
+  
+  top = []
+  bottom = []
+  left = []
+  right = []
+  front = []
+  back = []
+  
+  mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
+  
+  # count number of boundary nodes per region
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta:
+      left_c += 1
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta:
+      right_c += 1
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta:
+      bottom_c += 1 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta:
+      top_c += 1
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta:
+      back_c += 1
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta:
+      front_c += 1
+  
+  lr_counter = min(left_c,right_c)
+  bt_counter = min(bottom_c,top_c)
+  bf_counter = min(back_c,front_c)
+  
+  left_c = 0
+  right_c = 0
+  top_c = 0
+  bottom_c = 0
+  back_c = 0
+  front_c = 0
+  
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x + delta and left_c < lr_counter:
+      left.append(i)
+      left_c +=1
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x + delta and right_c < lr_counter:
+      right.append(i)
+      right_c +=1
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y + delta and bottom_c < bt_counter:
+      bottom.append(i)
+      bottom_c +=1 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y + delta and top_c < bt_counter:
+      top.append(i)
+      top_c +=1 
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z + delta and back_c < bf_counter:
+      back.append(i)
+      back_c +=1
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
+      front.append(i)
+      front_c +=1 
+  
+  mesh.bc = []
+  #add boundary nodes    
+  mesh.bc.append(('top', top))
+  mesh.bc.append(('bottom', bottom))
+  mesh.bc.append(('left', left))
+  mesh.bc.append(('right', right))
+  mesh.bc.append(('front', front))
+  mesh.bc.append(('back', back))
+  
+  return mesh     
   
 def show_dense_mesh_image(mesh, shape, binary, size):
   from PIL import Image  
@@ -316,7 +468,6 @@ def convert_to_sparse_mesh(dense):
   # next we need to correct the element node indices
   # the map is indexed by the dense numbering and contains the sparse indices or -1
   map = len(dense.nodes) * [-1]        
-  
   for i in range(len(nnl)):
     map[nnl[i]] = i
       
@@ -336,6 +487,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
+      print 'old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]])
       if map[dnn[n]] <> -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
@@ -511,11 +663,10 @@ def name_bc_nodes(mesh):
   mesh.bc.append(("front_right",range(nnx * nny * nz + nx,nnx * nny * nnz,nnx)))
   
   
-  
   return mesh  
  
 def validate_periodicity(mesh):
-  assert(mesh.nz > 1)
+#   assert(mesh.nz > 1)
   countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
   countRight = len([x for x in mesh.bc if x[0] == 'right'][0][1]);
   countFront = len([x for x in mesh.bc if x[0] == 'front'][0][1]);
@@ -525,18 +676,19 @@ def validate_periodicity(mesh):
   
   if countLeft <> countRight:
     print "left: ", countLeft, " right: ", countRight
-  
+   
   if countFront <> countBack:
     print "front: ", countFront, " back: ", countBack
-  
+   
   if countTop <> countBottom:
     print "top: ", countTop, " bottom: ", countBottom
   
+  return countLeft, countRight, countFront, countBack, countTop, countBottom
   
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -572,7 +724,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     offy = -1.
     width = 2. 
     height = 2.
-  if type == 'msfem_two_load':
+  if type == 'msfem_two_load' or type == 'two_load':
     width= 2.
     height = 1.
   if type == 'gripper_half' or type == 'force_inverter_half':
@@ -732,6 +884,16 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("left_upper", [(nx + 1) * ny]))
     mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
     return mesh
+  elif type == 'two_load':
+    mid = int((nx+1.)/2.)
+    mesh.bc.append(("load1", range(mid,mid+1)))
+    mesh.bc.append(("load2", range((nx+1)*ny + mid, (nx+1)*ny + mid+1))) 
+    mesh.bc.append(("support", range(0,1)))
+    mesh.bc.append(("support", range(nx,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*ny,(nx+1)*ny+1,nx+1)))
+    mesh.bc.append(("support", range((nx+1)*(ny+1)-1,(nx+1)*(ny+1))))
+
+ 
   elif type == 'msfem_two_load':
     # lower/upper loads
     mid = int((nx+1.)/2.)
@@ -1795,12 +1957,12 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   
   out.close()    
   
-def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
+def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   # currently only used for apod6
   # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
   
-  inp = open(meshfile).readlines()
-  nodes = []
+  file = open(meshfile)
+  inp = file.readlines()
   elem = []
   force1 = []
   force2 = []
@@ -1815,14 +1977,36 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
   num_elem = 0
   des = False
   nondes = False
+  offsetSet = False
+  
+  last_node_id = 0
+  
+  for i in range(len(inp)):
+    if inp[i][0:8].strip() == 'GRID':
+      last_node_id = int(inp[i][8:16].strip())
+      
+  nodes = [None] * (last_node_id)
+  
+  #rewind file
+  file.seek(0)
+  
+  nodes_last_idx = 0 # count current last index of list 'nodes'
+  
   for i in range(len(inp)):
     #item = str.split(inp[i])
     #if i < len(inp)-1:
     #  item_n = str.split(inp[i+1])
+        
     if len(inp[i]) == 0:
       continue
     # read and check header
     if inp[i][0:8].strip() == 'GRID':
+      
+      if not offsetSet: # set offset automatically
+        offset = int(inp[i][8:16].strip())
+        offsetSet = True
+        
+      assert(offset >= 1)  
       #add nodes
       #x_str = 0
       #y_str = 0
@@ -1851,7 +2035,11 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
       x = float(convert_optistruct_notation(inp[i][24:32],[0,8]))
       y = float(convert_optistruct_notation(inp[i][32:40],[0,8]))
       z = float(convert_optistruct_notation(inp[i][40:48],[0,8]))
-      nodes.append([int(inp[i][8:16].strip()),x,y,z])
+      
+#      map_mesh_nodeId[]
+      nodes[int(inp[i][8:16].strip())-offset] = [x,y,z]
+#       nodes.append([int(inp[i][8:16].strip()),x,y,z])
+      
     elif inp[i][0:8].strip() == 'CTETRA':
       # read 3D tetra elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
@@ -1861,7 +2049,46 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
     elif inp[i][0:8].strip() == 'CHEXA':
       # read 3D hexahedron elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip()),int(inp[i][8:16].strip()),int(inp[i][16:24].strip())])
-      i += 1
+      i += 1     
+    elif inp[i][0:8].strip() == 'CTRIA3':
+      # read 2D triangle elements
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip())])
+    elif inp[i][0:8].strip() == 'RBE2':
+      n = 0
+      for k in range(5):
+        support.append(int(inp[i][32+n:40+n].strip()))
+        n += 8
+      n = 0
+      while inp[i+1][0] == '+':
+        i += 1
+        end = True
+        k = 0
+        n = 0
+        while k < 8 and end:
+          if inp[i][8+n:16+n].strip() == '':
+            end = False
+          else:
+            support.append(int(inp[i][8+n:16+n].strip()))
+          n += 8
+          k +=1
+    elif inp[i][0:8].strip() == 'RBE3':
+      n = 0
+      for k in range(2):
+        force1.append(int(inp[i][56+n:64+n].strip()))
+        n += 8
+      n = 0
+      while inp[i+1][0] == '+':
+        i += 1
+        end = True
+        k = 0
+        n = 0
+        while k < 8 and end:
+          if inp[i][8+n:16+n].strip() == '':
+            end = False
+          else:
+            force1.append(int(inp[i][8+n:16+n].strip()))
+          n += 8
+          k += 1
     #elif inp[i][0:8].strip() == '$HMMOVE' and inp[i][8:16].strip() == '6':
       # set flag for design material
     #  des = True
@@ -1889,9 +2116,87 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 1):
   elif type == "cell_opt":
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
+  elif type == "lufo_bracket":
+    print 'len support '+str(len(support))
+    print ' len force1 '+str(len(force1))
+    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], support)
   else:
-    print "Error: No correct type was selected! options: apod6, cell_opt"
-  write_gid_mesh(mesh, meshfile+".mesh",scale)
+    print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
+#   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
+  
+  return mesh
+
+# @profile
+def voxelize_mesh_from_optistruct(filename,res):
+  eps = 1e-3
+  mesh = create_mesh_from_optistruct(filename, 1.0, 'cell_opt')
+  
+  array = numpy.zeros((res,res,res))
+  minx, miny, minz, maxx, maxy, maxz = calc_min_max_coords(mesh)
+  widthx = maxx-minx
+  widthy = maxy-miny
+  widthz = maxz-minz
+  
+  hx = widthx / res
+  hy = widthy / res
+  hz = widthz / res
+  
+  elems = mesh.elements
+  
+#   for e in elems:
+#     coords = calc_barycenter(mesh,e)
+#     i = int((coords[0] - minx)/hx - eps)
+#     j = int((coords[1] - miny)/hy - eps)
+#     k = int((coords[2] - minz)/hz - eps)
+#     array[i,j,k] = 1
+    
+  for e in elems:
+    barycenter = calc_barycenter(mesh,e)
+    set_array_point(array,barycenter, hx, hy, hz, minx, miny, minz, 1)
+    
+    # calc longest side of triangle
+    long_edge = calc_longest_edge(mesh,e)
+#     print "longest edge: ",long_edge
+#     print "barycenter: ", barycenter
+#     print "hx: ", hx
+
+    # if original mesh is too coarse for new resolution res**3, sample more points inside TETRA elem
+    if long_edge > 0.9*hx: # assume hx = hy = hz
+      points = []
+      for idx,node in enumerate(e.nodes):
+        points.append(mesh.nodes[node])
+      
+      tri = scipy.spatial.Delaunay(points)
+      
+      # create virtual cube around barycenter
+      for x in numpy.arange(barycenter[0]-0.5*long_edge,barycenter[0]+0.51*long_edge,0.5*hx):
+        for y in numpy.arange(barycenter[1]-0.5*long_edge,barycenter[1]+0.51*long_edge,0.5*hy):
+          for z in numpy.arange(barycenter[2]-0.5*long_edge,barycenter[2]+0.51*long_edge,0.5*hz):
+            if tri.find_simplex((x,y,z)) >= 0:
+#               if inside_cube((x,y,z), points):
+              set_array_point(array,(x,y,z), hx, hy, hz, minx, miny, minz, 2)
+#     else:
+#       print "long_edge:",long_edge
+      
+  minDim = [minx,miny,minz]
+  maxDim = [maxx,maxy,maxz]
+  meshNew = create_3d_mesh_from_array(array, True, widthx, widthy, widthz, minDim, maxDim)
+  
+  meshNew.nx = res
+  meshNew.ny = res
+  meshNew.nz = res
+  
+  meshNew = convert_to_sparse_mesh(meshNew)
+  
+  add_nodes_for_periodic_bc(meshNew)
+  
+  validate_periodicity(meshNew)
+  
+  # moved to create_mesh.py
+  # write_gid_mesh(meshNew, filename[:-4]+"_voxelized_res_" + str(res) + ".mesh")
+  
+  return meshNew
+  
 
 def convert_optistruct_notation(s,indexes):
   #remove weird optistruct exponential function writing  
@@ -2041,6 +2346,46 @@ def add_apod6_boundary_conditions(mesh):
   mesh.bc.append(('support3', support3))
   return mesh
   
+def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., force1 = [], force2 = [],support = []):
+  mesh = Mesh()
+  mesh.nodes = all_nodes
+  # insert elements
+  for i in range(len(elements)):
+    e = Element()
+    e.nodes = (elements[i][1:]) 
+    for k in range(len(e.nodes)):
+      e.nodes[k] -= offset
+    e.density = 1.
+    e.region = 'design'
+    if len(e.nodes) == 4:
+      e.type = TET4
+    elif len(e.nodes) == 6:
+      e.type = WEDGE6
+    elif len(e.nodes) == 8:
+      e.type = HEXA8
+    elif len(e.nodes) == 3:
+      e.type = TRIA3
+      e.region = 'surface'
+    mesh.elements.append(e)
+  #if force1 == []:
+  #  force1 = [69692]
+  #if force2 == []:
+  #  force2 = [69693]
+  #if support == []:
+  #  support = [69659,69669,69670,69671,69672,69673,69674,69675,69677,69689]
+  for k in range(len(force1)):
+      force1[k] -= offset
+  for k in range(len(support)):
+      support[k] -= offset
+
+  mesh.bc = []
+  mesh.bc.append(('force1', force1))
+  #mesh.bc.append(('force2', force2))
+  mesh.bc.append(('support', support))
+  mesh = convert_to_sparse_mesh(mesh)
+  #evtl -1 bei allen, Lufobracket_Model2     
+
+  return mesh
 
 def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [],force3 = [], support = [], support2 = [], support3 =[]):
   # create element and nodes files by hand from optistruct
@@ -2208,19 +2553,12 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
   return mesh
  
   
-def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1, mesh_in=[]):
+def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0.):
+  # create_mesh
   mesh = Mesh()
-  if not mesh_in == []:
-    offset = 0.;
-    elements = zeros((len(mesh.elements[:][0]),4))
-    all_nodes = zeros((len(mesh.nodes[:][0],3)))
-    for i in range(len(mesh.elements[:][0])):
-      elements[i][1:] = mesh.elements[i].nodes
-    for i in range(len(mesh.nodes[:][0])):
-      all_nodes[i][:] = mesh.nodes[i][:]
-  # insert nodes  
-  for i in range(len(all_nodes)):
-    mesh.nodes.append([all_nodes[i, 1], all_nodes[i, 2], all_nodes[i, 3]])
+  mesh.nodes = all_nodes
+
+  
   min_diam_x = 1000000. 
   min_diam_y = 1000000. 
   min_diam_z = 1000000. 
@@ -2251,116 +2589,38 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 1
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-       
-  # calculate extrem values along each coordinate
-  ma_x = -100000.
-  mi_x = 100000.
-  ma_y = -100000.
-  mi_y = 100000.
-  ma_z = -100000.
-  mi_z = 100000.
-  for i in range(len(mesh.nodes)):
-    coord = mesh.nodes[i]
-    ma_x = ma_x if ma_x > coord[0] else coord[0]
-    mi_x = mi_x if mi_x < coord[0] else coord[0]
-    ma_y = ma_y if ma_y > coord[1] else coord[1]
-    mi_y = mi_y if mi_y < coord[1] else coord[1]
-    ma_z = ma_z if ma_z > coord[2] else coord[2]   
-    mi_z = mi_z if mi_z < coord[2] else coord[2]
   
-  print "min = [" + str(mi_x) + ", " +  str(mi_y) + ", " +  str(mi_z) + "]"
-  print "max = [" + str(ma_x) + ", " +  str(ma_y) + ", " +  str(ma_z) + "]"
-  delta = 1e-4
-  top = []
-  bottom = []
-  left = []
-  right = []
-  front = []
-  back = []
-  # counter necessary to have the same number of left and right nodes, ...
-  left_c = 0
-  right_c = 0
-  bottom_c = 0
-  top_c = 0
-  back_c = 0
-  front_c = 0
-  min_diam_x = 1e-3
-  min_diam_y = 1e-3
-  min_diam_z = 1e-3
-  # count number of boundary nodes per region
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta:
-      left_c += 1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta:
-      right_c += 1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta:
-      bottom_c += 1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta:
-      top_c += 1
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta:
-      back_c += 1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta:
-      front_c += 1
-      
-  lr_counter = min(left_c,right_c)
-  bt_counter = min(bottom_c,top_c)
-  bf_counter = min(back_c,front_c)
-  left_c = 0
-  right_c = 0
-  top_c = 0
-  bottom_c = 0
-  back_c = 0
-  front_c = 0
-  print 'lr_counter = ' + str(lr_counter) + ', bt_counter = ' + str(bt_counter) + ', bf_counter = ' + str(bf_counter)
-  # insert the same number of nodes to each region pair
-  for i in range(len(mesh.nodes)):
-    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta and left_c < lr_counter:
-      left.append(i)
-      left_c +=1
-    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta and right_c < lr_counter:
-      right.append(i)
-      right_c +=1
-    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta and bottom_c < bt_counter:
-      bottom.append(i)
-      bottom_c +=1 
-    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta and top_c < bt_counter:
-      top.append(i)
-      top_c +=1 
-    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta and back_c < bf_counter:
-      back.append(i)
-      back_c +=1
-    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta and front_c < bf_counter:
-      front.append(i)
-      front_c +=1  
-      
-  #add boundary nodes    
-  mesh.bc.append(('top', top))
-  mesh.bc.append(('bottom', bottom))
-  mesh.bc.append(('left', left))
-  mesh.bc.append(('right', right))
-  mesh.bc.append(('front', front))
-  mesh.bc.append(('back', back))
+  mesh = convert_to_sparse_mesh(mesh)
+  
+  mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
+  
+  delta = 1e-4  
+  
+  mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z,delta)
   
   return mesh
 
 # @param array to be written out
-# @singRegion do we want a mesh with only one region?
-def create_3d_mesh_from_array(array,singRegion):
+# @param singRegion do we want a mesh with only one region?
+# @param minDim and maxDim contain for x,y,z direction the minimum/maximum coordinate
+def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
   
-  dx = 1.0 / nx
-  dy = 1.0 / ny
-  dz = 1.0 / nz
+  count = 0
+  
+  dx = widthx / nx
+  dy = widthy / ny
+  dz = widthz / nz
   
   nnx = nx + 1
   nny = ny + 1
   nnz = nz + 1
 
-  for z in range(nnz):
-    for y in range(nny):
-      for x in range(nnx):
-        mesh.nodes.append((x * dx, y * dy, z * dz))
+  for k in range(nnz):
+    for j in range(nny):
+      for i in range(nnx):
+        mesh.nodes.append((minDim[0] + i * dx, minDim[1] + j * dy, minDim[2] + k * dz))
     
   for z in range(nz):    
     for y in range(ny):
@@ -2369,8 +2629,10 @@ def create_3d_mesh_from_array(array,singRegion):
         e.type = HEXA8
         if (array[x][y][z] > 0.0 and not singRegion):
           e.region = "mech" + str(int(array[x][y][z]))
+          count += 1
         elif (array[x][y][z] > 0.0 and singRegion):
           e.region = "mech"
+          count += 1
         else:
           e.region = "void"
           
@@ -2378,7 +2640,6 @@ def create_3d_mesh_from_array(array,singRegion):
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
         mesh.elements.append(e)
     
-  
   mesh = name_bc_nodes(mesh)
   
   return mesh
@@ -2544,11 +2805,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
             count +=1
         # calculate center of element
-        center = numpy.array([0.0, 0.0, 0.0])
-        len_nod = len(e.nodes)
-        for n in range(len_nod):
-          center += mesh.nodes[e.nodes[n]]
-        center *= 1.0 / len_nod
+        center = calc_barycenter(mesh, e)
+        
         if count >= 5:
           # test if is in convex hull of non-design nodes
           if in_hull(center, hull):

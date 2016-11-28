@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import libxml2
 import glob
 import argparse
 from cfs_utils import *
@@ -14,8 +13,7 @@ list = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
 
 for f in list:
   problem = f[0:-len(".info.xml")]
-  doc = libxml2.parseFile(f)
-  xml = doc.xpathNewContext()
+  xml = open_xml(f)
    
   running = xpath(xml, "//cfsInfo/@status") == "running"
   label = problem if not running else problem + "_running"     

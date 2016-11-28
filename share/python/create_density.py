@@ -2,8 +2,6 @@
 
 # This script generates initial density distributions as pseudo density.xml files
 # This is used when doing inverse homogenization and bloch mode optimization.
-
-import libxml2
 from numpy import *
 import math
 from optimization_tools import *

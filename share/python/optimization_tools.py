@@ -1,6 +1,5 @@
 # This collects some tool routines for optimization
 
-import libxml2
 import numpy
 import numpy.linalg
 import math
@@ -662,8 +661,7 @@ def find_closes_info_xml(filename, key, start, end):
     if not os.path.exists(name):
       continue
     
-    doc = libxml2.parseFile(name)
-    xml = doc.xpathNewContext()
+    xml = open_xml(name)
     
     status = xpath(xml, "/cfsInfo/@status")
     print "file " + name + " has status " + status
@@ -769,31 +767,30 @@ class LumpedMechDisplacement:
 # @return an list of tuples. the first item is the frequency, the next is a list of  LumpedMechDisplacement elements.
 #        Multiple frequencies are not possible but the last one is used.
 def readLumpedMechDisplacement(info_xml, region):
-  doc = libxml2.parseFile(info_xml)
-  xml = doc.xpathNewContext()
+  xml = open_xml(info_xml)
   # detect multiple eigenfrequencies
   last_freq = "-1.0"
   result = []
   for step in range(0, 5000):
     xpath_base = "//result[@data='lumpedMechDisplacement'][@location='" + region + "']/item[@step='" + str(step) + "']"
-    res = xml.xpathEval(xpath_base + "/@step_val")
-    if len(res) == 0 or res[0].getContent() == last_freq:
+    res = xml.xpath(xpath_base)
+    if len(res) == 0 or not 'step_val' in res[0].attrib or res[0].attrib['step_val'] == last_freq:
       continue
-    last_freq = res[0].getContent()
+    last_freq = res[0].attrib['step_val']
     item = []
     item.append(float(last_freq))
     # read data
-    e = xml.xpathEval(xpath_base + "/@id")
-    x = xml.xpathEval(xpath_base + "/@x")
-    y = xml.xpathEval(xpath_base + "/@y")
-    z = xml.xpathEval(xpath_base + "/@z")
+    e = xml.xpath(xpath_base + "/@id")
+    x = xml.xpath(xpath_base + "/@x")
+    y = xml.xpath(xpath_base + "/@y")
+    z = xml.xpath(xpath_base + "/@z")
     # assume len(res) = len(x) = len(y), eventually also len(z)
     data = []
     for i in range(len(e)):
-      e_val = int(e[i].getContent())
-      x_val = float(x[i].getContent())
-      y_val = float(y[i].getContent())
-      z_val = cond(len(z) == 0, 0.0, float(z[i].getContent()))
+      e_val = int(e[i])
+      x_val = float(x[i])
+      y_val = float(y[i])
+      z_val = cond(len(z) == 0, 0.0, float(z[i]))
       data.append(LumpedMechDisplacement(e_val, x_val, y_val, z_val))
     item.append(data)
     result.append(item)

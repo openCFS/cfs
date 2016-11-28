@@ -192,6 +192,9 @@ void Optimization::PostInitSecond()
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
 
+  if(design->HasSlackVariable() &&  !objectives.Has(Function::SLACK))
+    log.AddToHeader("slack");
+
   log.Init(this, optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
 
   // add the bandgap stuff in front of the constraints
@@ -319,6 +322,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::MULTI_OBJECTIVE, "multiObjective");
   Function::type.Add(Function::COMPLIANCE, "compliance");
   Function::type.Add(Function::OUTPUT, "output");
+  Function::type.Add(Function::SQUARED_OUTPUT, "squaredOutput");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
   Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
@@ -386,6 +390,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
+  Function::type.Add(Function::ALPHA_SLACK_QUOTIENT, "alphaSlackQuotient");
   Function::type.Add(Function::BANDGAP, "bandgap");
   Function::type.Add(Function::REL_SLACK_BANDGAP, "relSlackBandGap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
@@ -1125,6 +1130,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     *out << " \t" << duration;
     if(design->HasAlphaVariable())
       *out << " \t" << design->GetAlphaVariable();
+    if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
+      *out << " \t" << design->GetSlackVariable();
   }
 
   iteration->Get("number")->SetValue(currentIteration);
@@ -1136,6 +1143,10 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
   if(design->HasAlphaVariable()) // needs to be written to the plot.dat file in ErsatzMaterial as Optimization::Optimization() knows no design yet
     iteration->Get("alpha")->SetValue(design->GetAlphaVariable());
+
+  if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
+    iteration->Get("slack")->SetValue(design->GetSlackVariable());
+
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
@@ -1172,7 +1183,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       continue; //TODO: MaxValue does not correctly set indexes in view
 
     // Calculate the max value of multiple displacement constraints
-    if(g->GetType() == Function::OUTPUT && g->output_multiple_nodes > 0) {
+    if((g->GetType() == Function::OUTPUT || g->GetType() == Function::SQUARED_OUTPUT) && g->output_multiple_nodes > 0) {
       max = std::max(max,std::abs(g->GetValue()));
       std::cout<<"max "<<max<<std::endl;
     }

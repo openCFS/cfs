@@ -601,9 +601,9 @@ namespace CoupledField
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
     void solveWithLapack( Matrix<Complex> & b1,
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
-    
-    //! Computes eigenvalues of an hermitian matrix
-    void eigenvaluesWithLapack(Vector<Double> & b1);
+
+    //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
+    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
     //@}
 #endif
   

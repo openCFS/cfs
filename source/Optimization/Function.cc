@@ -434,6 +434,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
   case REL_SLACK_BANDGAP:
+  case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
@@ -465,6 +466,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   // this stuff is to be avaluated always
   case COMPLIANCE:
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
   case ENERGY_FLUX:
   case TRACKING:
@@ -528,6 +530,7 @@ bool Function::IsAdjointBased() const {
   switch (type_) {
   case TRACKING:
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -550,6 +553,7 @@ bool Function::IsAdjointBased() const {
 bool Function::NeedsSelectionVector() const {
   switch (type_) {
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -629,6 +633,7 @@ bool Function::ForDensityFiltering() const {
     switch (type_)
     {
     case SLACK:
+    case ALPHA_SLACK_QUOTIENT:
     case SHAPE_INF:
     case MULTIMATERIAL_SUM:
     case SUM_MODULI:
@@ -660,6 +665,7 @@ bool Function::ForSensitivityFiltering() const {
   switch (type_) {
   // pure objective
   case OUTPUT:
+  case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -732,6 +738,7 @@ bool Function::ForSensitivityFiltering() const {
   case SLACK:
   case REL_SLACK_BANDGAP:
   case TEMP_TRACKING_AT_INTERFACE:
+  case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
   case SHAPE_INF:
     return false;
@@ -909,11 +916,16 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
       if (space->transfer[i].IsPenalized())
         preInfo_->SetWarning("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
-
   case SLACK:
     if (!space->HasSlackVariable())
       throw Exception("'slack' as objective function requires 'slack' design");
     break;
+
+  case ALPHA_SLACK_QUOTIENT:
+    if (!space->HasSlackVariable() || !space->HasAlphaVariable())
+      throw Exception("'alphaSlackQuotient' as function requires 'slack' and 'alpha' design");
+    break;
+
 
   default: // do nothing
     break;
@@ -969,9 +981,9 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
   //total volume in the non-regular case is needed for the volume calculations
-  bool regular = space->IsRegular();
   this->total_vol_ = 0.0;
-  if(!regular)
+
+  if(!space->IsCubic())
     for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++)
      this->total_vol_ += this->func_->elements[i]->CalcVolume();
   else
@@ -2898,6 +2910,7 @@ double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
     vol = EvaluateC1Interpolation_Deriv_3D(p, vol_a,vol_b,vol_c,vol_coeff, da,db,dc,j,k,l,m,n,o,direction);
     LOG_DBG(func)<<"Derivative "<<((direction == 1)?"1":((direction == 2) ? "2":"3"))<<" vol= "<<vol;
   }
+
   return vol;
 }
 
