@@ -18,7 +18,7 @@ from sympy import Symbol, symbols
 
 class End_Node():
   def __init__(self):
-    self.coords = (0.0,0.0,0.0)
+    self.coords = np.zeros(3)
     self.connections = []
     self.id = -1 # vtk id of point
     self.i = -1 # first index in surface map, corresponds to surface line
@@ -647,11 +647,7 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
       left_id = left_line[j]
       right_next_id = right_line[j+1]
       if this_id >= 0 and next_id >= 0 and right_id >= 0:
-        tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, this_id)
-        tri.GetPointIds().SetId(1, right_id)
-        tri.GetPointIds().SetId(2, next_id)
-        cells.InsertNextCell(tri)
+        add_triangle(this_id,right_id,next_id,cells)
         
         vtkArray.SetValue(this_id,dir)
         vtkArray.SetValue(next_id,dir)
@@ -666,38 +662,34 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           vtkArray.SetValue(this_id,dir+0.5)
           
           if right_id >= 0 and right_next_id >= 0:
-            tri = vtk.vtkTriangle()
-            tri.GetPointIds().SetId(0, this_id)
-            tri.GetPointIds().SetId(1, right_id)
-            tri.GetPointIds().SetId(2, right_next_id)
-            cells.InsertNextCell(tri)
+            add_triangle(this_id,right_id,right_next_id,cells)
       
       if right_id >= 0 and next_id >= 0 and right_next_id >=0:
-        tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, right_id)
-        tri.GetPointIds().SetId(1, right_next_id)
-        tri.GetPointIds().SetId(2, next_id)
-        cells.InsertNextCell(tri)
+        add_triangle(right_id,right_next_id,next_id,cells)
         
-      if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0 :
-        tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, this_id)
-        tri.GetPointIds().SetId(1, right_next_id)
-        tri.GetPointIds().SetId(2, next_id)
-        cells.InsertNextCell(tri)
+      if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0:
+        add_triangle(this_id,right_next_id,next_id,cells)
            
   return end_nodes
+
+def add_triangle(id1,id2,id3,cells):
+  tri = vtk.vtkTriangle()
+  tri.GetPointIds().SetId(0, id1)
+  tri.GetPointIds().SetId(1, id2)
+  tri.GetPointIds().SetId(2, id3)
+  cells.InsertNextCell(tri)
 
 # calc distance between two points
 def calc_distance(coords1,coords2):
   return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1]-coords2[1])**2 + (coords1[2]-coords2[2])**2)
 
 # search for 'num' points closest points to ref; ref is an end point
-def find_closest_points(ref_node,end_nodes_1,end_nodes_2,num):
+def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
+  
   assert(num == 1 or num==2)
   if num == 1:
-    n1, d1 = find_closest_point(ref_node,end_nodes_1)
-    n2, d2 = find_closest_point(ref_node,end_nodes_2)
+    n1, d1 = find_closest_point(ref_node,next_node,end_nodes_1)
+    n2, d2 = find_closest_point(ref_node,next_node,end_nodes_2)
     
 #     print "n1:",n1,"d1:",d1
 #     print "n2:",n2," d2:",d2
@@ -714,14 +706,15 @@ def find_closest_points(ref_node,end_nodes_1,end_nodes_2,num):
     
     return res[0][0],res[1][0]
   
-def find_closest_point(ref_node, end_nodes):
+def find_closest_point(ref_node,next_node,end_nodes):
   # iterate over all end nodes in list and compare distances to 'ref' node
   min_distance = 1e6
   min_node = None
+  ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
+   
   for node in end_nodes:
     assert(node.dir != ref_node.dir)
-    
-    dist = calc_distance(ref_node.coords, node.coords)
+    dist = calc_distance(ref_coords, node.coords)
     if dist < min_distance:
       min_distance = dist
       min_node = node
@@ -745,63 +738,64 @@ def find_two_closest_points(ref_node, end_nodes):
       min_distance_1 = dist
       min_node_1 = node
       
+  return (min_node_1,min_distance_1),(min_node_2,min_distance_2)
+
+# @param: vertices defining triangle
+# assume a triangle is perfect if all edges have the same length
+# to measure feasibility, we take the ratio of shortest to longest edge
+def triangle_feasible(v1,v2,v3,threshold=0.5):
+  d1 = calc_distance(v1, v2)
+  d2 = calc_distance(v1, v3)
+  d3 = calc_distance(v2, v3)
   
-  return (min_node_1,min_distance_1),(min_node_2,min_distance_2)     
+  min_d = min(d1,d2,d3)
+  max_d = max(d1,d2,d3)
+  
+  rat = min_d / max_d
+  
+  if rat > threshold:
+    return True
+  
+  return False
   
 # for each end point, check if closest point is on same line
 # if true, then search for third point in other profiles' end points
 # if false, then search for second and third point in other profiles' end points
 def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
   for n,node in enumerate(this_end_nodes):
-      next_node = None
-      if n < len(this_end_nodes)-1:
-        next_node = this_end_nodes[n+1]
-        if not(node.i == next_node.i and node.j+1 == next_node.j):
-          next_node = None
-      if next_node is None:    
-        right_node = [v for v in this_end_nodes if v.i == node.i+1 and v.j == node.j]
-        if right_node:
-          next_node = right_node[0]
-      if next_node is None and n < len(this_end_nodes)-1:
-        right_next_node = [v for v in this_end_nodes if v.i == node.i+1 and v.j == node.j+1]
-        if right_next_node:
-          next_node = right_next_node[0]
-      
-      if next_node is not None and node not in next_node.connections: # consecutive neighbor on same surface line
-        other_node = find_closest_points(node, other_1_end_node, other_2_end_node, 1)
-        # FIXME: fix orientation of triangle
-        tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, node.id)
-        tri.GetPointIds().SetId(1, next_node.id)
-        tri.GetPointIds().SetId(2, other_node.id)
-        cells.InsertNextCell(tri)
-        
-#         print "node: ", node
-#         print "next_node: ", next_node
-#         print "other_node: ", other_node
-        
-        node.connections.append(next_node)
-        node.connections.append(other_node)
-        next_node.connections.append(node)
-        next_node.connections.append(other_node)
-        other_node.connections.append(node)
-        other_node.connections.append(next_node)
-      else:
-        other_node_1, other_node_2 = find_closest_points(node, other_1_end_node, other_2_end_node, 2)
-        # FIXME: fix orientation of triangle
-        tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, node.id)
-        tri.GetPointIds().SetId(1, other_node_1.id)
-        tri.GetPointIds().SetId(2, other_node_2.id)
-        cells.InsertNextCell(tri)
-        
-        node.connections.append(other_node_1)
-        node.connections.append(other_node_2)
-        other_node_1.connections.append(node)
-        other_node_1.connections.append(other_node_2)
-        other_node_2.connections.append(node)
-        other_node_2.connections.append(other_node_1)
-    
+    candidates = []
+    candidates.append((node.i,node.j+1)) # next node on line
+    right_line = node.i+1 if node.i < len(this_end_nodes)-1 else 0 
+    candidates.append((right_line,node.j)) # same node on right line   
+    candidates.append((right_line,node.j-1)) # previous node on right line
+    candidates.append((right_line,node.j+1)) # next node on right line
+    added = False
+    for test in candidates:
+      if not added:
+        nexts = [v for v in this_end_nodes if v.i == test[0] and v.j == test[1]]
+        if nexts:
+          next = nexts[0]
+          if not next in node.connections:
+  #       if next_node is not None and node not in next_node.connections: # consecutive neighbor on same surface line
+          # search for closest points to middle point between this node and next node
+            other = find_closest_points(node, next, other_1_end_node, other_2_end_node, 1)
+            if triangle_feasible(node.coords, next.coords, other.coords):
+              add_triangle(node.id,next.id,other.id,cells)
+            # FIXME: fix orientation of triangle
+            
+            
+          
+    #       print "node: ", node
+    #       print "next_node: ", next_node
+    #       print "other_node: ", other_node
+          
+            node.connections.append(next)
+            node.connections.append(other)
+            next.connections.append(node)
+            next.connections.append(other)
+            other.connections.append(node)
+            other.connections.append(next)
+            added = True
   
 def create_profiles_array(args,infoXml):
   res = args.res
