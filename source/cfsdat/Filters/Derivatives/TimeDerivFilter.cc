@@ -98,10 +98,12 @@ bool TimeDerivFilterD1::Run(){
     Vector<Double>& r4 = resultManager_->GetResultVector<Double>(upRes,eqnNums,2);
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
 
-    // computation of the actual derivative 5th order stencil
-    // TODO this implementation is not correct
+    // computation of the actual derivative 5 point stencil
+    // Smoothed noise robust derivatives
+    // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+    // scheme error of O(h^3)
     for(UInt i=0;i<last;++i){
-      returnVec[i] = 2*(((r3[i]-r2[i])+r4[i]-r1[i])/(8*timeSteps_[*aIter]));
+      returnVec[i] = ((2*(r3[i]-r2[i])+r4[i]-r1[i])/(8*timeSteps_[*aIter]));
     }
     resultManager_->ActivateResult(*aIter);
   }

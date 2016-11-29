@@ -152,6 +152,7 @@ bool RotatingSubstDt::Run(){
 
     returnVec.Init();
 
+    // computation of the actual derivative 5 point stencil
     Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
     Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
     Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
@@ -159,8 +160,11 @@ bool RotatingSubstDt::Run(){
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
 
+    // Smoothed noise robust derivatives
+    // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+    // scheme error of O(h^3)
     for(UInt i=0;i<last;++i){
-      returnVec[i] = 2.0*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8.0*dt_));
+      returnVec[i] = ((2.0*(rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8.0*dt_));
     }
 
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
