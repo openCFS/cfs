@@ -35,7 +35,8 @@ class End_Node():
     self.dir = dir
     
   def __str__(self):
-    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)  
+    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
+  
   
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
@@ -204,31 +205,6 @@ def profileCirc(x1,res):
   
   return vec
 
-# tests if profile contains probe
-# @param y: at which level of other profile do we expect the point
-# e.g. for x-profile it is the y-coordinate
-# @param probe: 2D coordinate of point for testing
-# def contains_point(x,y,z,profile):
-#   assert(x >= 0 and x <= 1)
-#   assert(y >= 0 and y <= 1)
-#   assert(z >= 0 and z <= 1)
-#      
-#   phi = angle_to_center((x,z))
-#   print "(x,z): ",x,z, " angle:", degrees(phi)
-#   r = calc_radius_for_quadrant(profile, y, (phi))
-#   print "radius: ", r
-#   val = (x-0.5)**2 + (z-0.5)**2
-#     
-#   print "phi:", degrees(phi)
-#   print "val: ", val, " r**2: ", r**2
-#      
-# #   print "radius: ",r," val:",val
-#      
-#   if (val - r*r < 0):
-#     return True
-#      
-#   return False
-
 def contains_point(id_x,y,z,map):
      
   valx = (y-0.5)**2 + (z-0.5)**2
@@ -331,7 +307,6 @@ class BisecSpline:
     height = distance_to_center(p) + 0.5
   
     self.angle = angle_to_center(p)
-#     self.angle = angle_to_center(p)
     
     # polynomial interpolation for right part from b to p
     lx = b[0]
@@ -381,7 +356,6 @@ class BisecSpline:
     return self.cut
       
   def eval_spline(self,x):
-#     assert( x.all() >= 0 and x.all() <= 1)
     # need to interpolate to assure equidistant spacing for x \in [0,1]
     res = []
     
@@ -568,8 +542,6 @@ def get_surface_lines(map,numLines,dir):
      
     #transformation to cartesian coordinates
     X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
-#     X = radii*np.cos(rad) + 0.5*np.ones(lenx)
-#     Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
     if dir == 1:
       nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,1] = X
@@ -683,148 +655,6 @@ def add_triangle(id1,id2,id3,cells):
 def calc_distance(coords1,coords2):
   return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1]-coords2[1])**2 + (coords1[2]-coords2[2])**2)
 
-# search for 'num' points closest points to ref; ref is an end point
-def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
-  
-  assert(num == 1 or num==3)
-  if num == 1:
-    n1, d1 = find_closest_point(ref_node,next_node,end_nodes_1)
-    n2, d2 = find_closest_point(ref_node,next_node,end_nodes_2)
-    
-    if d1 < d2:
-      return n1
-    else:
-      return n2
-  elif num == 3:
-    x11, x12, x13 = find_three_closest_points(ref_node,next_node,end_nodes_1)
-    x21, x22, x23 = find_three_closest_points(ref_node,next_node,end_nodes_2)
-    
-    l = [x11,x12,x13,x21,x22,x23]
-    res = sorted(l,key=lambda x: x[1])[0:3]
-    
-    return res[0][0],res[1][0],res[2][0]
-  
-def find_closest_point(ref_node,next_node,end_nodes):
-  # iterate over all end nodes in list and compare distances to 'ref' node
-  min_distance = 1e6
-  min_node = None
-  ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
-   
-  for node in end_nodes:
-    assert(node.dir != ref_node.dir)
-    dist = calc_distance(ref_coords, node.coords)
-    if dist < min_distance:
-      min_distance = dist
-      min_node = node
-  
-  return min_node,min_distance     
-
-def find_three_closest_points(ref_node,next_node, end_nodes):
-  # iterate over all end nodes in list and compare distances to 'ref' node
-  min_distance_1 = 1e6
-  min_node_1 = None
-  min_distance_2 = 1e6
-  min_node_2 = None
-  min_distance_3 = 1e6
-  min_node_3 = None
-  for node in end_nodes:
-    assert(node.dir != ref_node.dir)
-    
-    ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
-    
-    dist = calc_distance(ref_coords, node.coords)
-    if dist < min_distance_1:
-      min_distance_2 = min_distance_1
-      min_node_2 = min_node_1
-      
-      min_distance_1 = dist
-      min_node_1 = node
-    elif dist < min_distance_2:
-      min_distance_3 = min_distance_2
-      min_node_3 = min_node_2
-      
-      min_distance_2 = dist
-      min_node_2 = node
-    elif dist < min_distance_3:
-      min_distance_3 = dist
-      min_node_3 = node
-      
-  return (min_node_1,min_distance_1),(min_node_2,min_distance_2),(min_node_3,min_distance_3)
-
-def calc_triangle_ratio(v1,v2,v3):
-  d1 = calc_distance(v1, v2)
-  d2 = calc_distance(v1, v3)
-  d3 = calc_distance(v2, v3)
-  
-  min_d = min(d1,d2,d3)
-  max_d = max(d1,d2,d3)
-  
-  return min_d / max_d
-
-# @param: vertices defining triangle
-# assume a triangle is perfect if all edges have the same length
-# to measure feasibility, we take the ratio of shortest to longest edge
-def triangle_feasible(v1,v2,v3,threshold=0.9):
-  rat = calc_triangle_ratio(v1, v2, v3)
-  
-  if rat > threshold:
-    return True
-  
-  return False
-  
-# for each end point, check if closest point is on same line
-# if true, then search for third point in other profiles' end points
-# if false, then search for second and third point in other profiles' end points
-def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
-  for n,node in enumerate(this_end_nodes):
-    candidates = []
-    candidates.append((node.i,node.j+1)) # next node on line
-    right_line = node.i+1 if node.i < len(this_end_nodes)-1 else 0 
-    candidates.append((right_line,node.j)) # same node on right line   
-    candidates.append((right_line,node.j-1)) # previous node on right line
-    candidates.append((right_line,node.j+1)) # next node on right line
-    added = False
-    for test in candidates:
-      if not added:
-        nexts = [v for v in this_end_nodes if v.i == test[0] and v.j == test[1]]
-        if nexts:
-          next = nexts[0]
-          if not next in node.connections:
-  #       if next_node is not None and node not in next_node.connections: # consecutive neighbor on same surface line
-          # search for closest points to middle point between this node and next node
-            # find 3 nearet neighbors
-            others = [None] * 3
-            others[0], others[1], others[2] = find_closest_points(node, next, other_1_end_node, other_2_end_node, 3)
-            
-            # calc evaluation criterion for 3 nearest neighbors
-            rat = np.zeros(3)
-            rat[0] = calc_triangle_ratio(node.coords, next.coords,others[0].coords)
-            rat[1] = calc_triangle_ratio(node.coords, next.coords,others[1].coords)
-            rat[2] = calc_triangle_ratio(node.coords, next.coords,others[2].coords)
-            
-            # check for most regular triangle
-            max_rat = np.max(rat)
-            # select neighbor node to create best triangle
-            best_neighbor = others[np.argmax(rat)]
-            
-            if node.id == 10801:
-              print next.id,others[0].id,others[1].id,others[2].id
-              print rat
-              print max_rat
-              print np.argmax(rat)
-            # check is best triangle is good enough
-            if  not best_neighbor in node.connections:
-              # FIXME: fix orientation of triangle
-              add_triangle(node.id,next.id,best_neighbor.id,cells)
-          
-              node.connections.append(next)
-              node.connections.append(best_neighbor)
-              next.connections.append(node)
-              next.connections.append(best_neighbor)
-              best_neighbor.connections.append(node)
-              best_neighbor.connections.append(next)
-            added = True
-  
 def create_profiles_array(args,infoXml):
   res = args.res
   array = np.ones((res,res,res)) * (-1)
@@ -961,17 +791,6 @@ def plot_3dlines(profile,res,numLines,dir,ha):
   
   map = create_profile_map(profile, res)
         
-#   for ii in range(0,res,10):
-#     radii = map[:,ii]
-#     X = radii*np.cos(Z)+.5*np.ones(np.size(radii))
-#     Y = radii*np.sin(Z)+.5*np.ones(np.size(radii))
-#     if dir == 1:
-#       ha.plot(ii*np.ones(np.size(X))/res,X,Y,'r')
-#     if dir == 2:
-#       ha.plot(Y,ii*np.ones(np.size(X))/res,X,'g')
-#     if dir == 3:
-#       ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
-      
   nodes = get_surface_lines(map, numLines, dir)
   color = None
   if dir == 1:
@@ -1007,7 +826,6 @@ def write_profile_to_array(array,profile,dir):
   assert(dir >=1 and dir <=3)
   
   map = create_profile_map(profile, res)
-#   plt.savefig("spline_bend_" + str(bend) + ".png")
       
   for i in range(0,res):
     for j in range(0,res):
