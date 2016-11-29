@@ -28,6 +28,11 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
+#include <def_use_openmp.hh>
+
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
 
 using std::string;
 using std::map;
@@ -195,10 +200,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   double avg_radius = 0;
   double avg_neighbours = 0;
 
-  // find simp neighbors for all our elements
-  double radius = -1.0; // for each element, set only once for regular.
-  StdVector<Filter::NeighbourElement> neighbors; // will become element neighborhood
-
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
 
@@ -216,6 +217,26 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
+  UInt numOMPThreads = 1;
+
+#ifdef USE_OPENMP
+  numOMPThreads = omp_get_max_threads();
+#endif
+  // make temporal storage thread local
+  // each entry is assigned to one thread
+  // each thread gets a vector to store the element neighborhood
+  StdVector<StdVector<Filter::NeighbourElement> > neighborhood;
+  neighborhood.Resize(numOMPThreads);
+  // thread local storage
+  // each thread stores element numbers too far away
+  StdVector<StdVector<unsigned int> > too_fars;
+  too_fars.Resize(numOMPThreads);
+
+  // calculate radius for for first element
+  // in case grid is regular, set only once and not in loop
+  double radius = FindFilterRadius(filter_space_, &data[start], value);
+
+#pragma omp parallel for reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
@@ -227,18 +248,26 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       ref.SetNonLinCorrection(de,rex);
       ref_design = de->GetType();
     }
-
+    #pragma omp critical
     de->simp->filter.Push_back(ref); // copy the reference data
+
     assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
-    if(!regular || e == start)  // save calling if possible
+    if(!regular)  // save calling if possible
       radius = FindFilterRadius(filter_space_, de, value);
+
+    unsigned int aThread = 0;
+#ifdef USE_OPENMP
+    aThread = omp_get_thread_num();
+#endif
 
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
+    StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
     neighbors.Resize(0);
+    StdVector<unsigned int>& too_far = too_fars[aThread];
     too_far.Resize(0);
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
@@ -246,8 +275,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       FindRegularNeighborhood(de, radius, edges, neighbors);
     else
       FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
-    // save neighborhood by copy constructor
-    de->simp->filter.Last().neighborhood = neighbors;
 
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -260,12 +287,15 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
       // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
       de->simp->filter.Last().weight = 1.0 / weight_sum;
-      for(unsigned int j = 0, n = de->simp->filter.Last().neighborhood.GetSize(); j < n; j++)
-        de->simp->filter.Last().neighborhood[j].weight /= weight_sum;
+      for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
+        neighbors[j].weight /= weight_sum;
     }
 
+    // save neighborhood by copy constructor
+    de->simp->filter.Last().neighborhood = neighbors;
+
     avg_radius += radius;
-    avg_neighbours += de->simp->filter.Last().neighborhood.GetSize();
+    avg_neighbours += neighbors.GetSize();
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
@@ -366,6 +396,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
 
             // map from element number to design
             ne.neighbour = other;
+            ne.elemNum = other->elem->elemNum;
 
             // linear or constant weighting. will be normalized in the calling method!
             assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -434,6 +465,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // * If a neighbor is close enough we check also the neighbors recursively
   // * check means only, that the neighbors of check are checked!
   // * Hence buddies might grow (appending only) while traversing
+  assert(initial.GetSize() < 20);
+
   for(unsigned int e = 0, en = initial.GetSize(); e < en; e++)
   {
     // we ignore the grade of neighborhood (the int in the pair)
@@ -443,16 +476,19 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     if(test == base->elem->elemNum)
       continue; // we're not a neighbor of ourself
 
-    // are we already a neighbor
-    bool already = false;
-    for(unsigned int n = 0; !already && n < neighbors.GetSize(); n++)
-      if(neighbors[n].neighbour->elem->elemNum == test)
-        already = true; // continue e loop!
-    if(already)
-      continue;
-
     // has it already been found that we are too far?
     if(too_far.Contains(test))
+      continue;
+
+    // are we already a neighbor
+    bool already = false;
+    for(unsigned int n = 0, nn = neighbors.GetSize(); !already && n < nn; n++)
+    {
+      assert(neighbors[n].elemNum == neighbors[n].neighbour->elem->elemNum);
+      if(neighbors[n].elemNum == test)
+        already = true; // continue e loop!
+    }
+    if(already)
       continue;
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
@@ -473,6 +509,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // map from element number to design
       ne.neighbour = test_de;
+      ne.elemNum = test;
       assert(ne.neighbour->elem->elemNum == test);
 
       // linear or constant weighting. will be normalized in the calling method!
@@ -488,7 +525,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   }
 }
 
-double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
+inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
   const Point& bb = base->barycenter;

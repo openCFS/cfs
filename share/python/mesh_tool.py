@@ -176,7 +176,7 @@ class Mesh:
   
 # adds same number of boundary nodes on adjacent sides to assure periodic b.c
 # @ min_diam
-def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-4):
+def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e-3,delta=1e-3):
   left_c = 0
   right_c = 0
   top_c = 0
@@ -212,6 +212,8 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   bt_counter = min(bottom_c,top_c)
   bf_counter = min(back_c,front_c)
   
+#   print "left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c 
+  
   left_c = 0
   right_c = 0
   top_c = 0
@@ -238,6 +240,8 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
     elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z + delta and front_c < bf_counter:
       front.append(i)
       front_c +=1 
+      
+#  print "left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c    
   
   mesh.bc = []
   #add boundary nodes    
@@ -2594,7 +2598,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
   
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
   
-  delta = 1e-4  
+  delta = 1e-3
   
   mesh = add_nodes_for_periodic_bc(mesh, min_diam_x, min_diam_y, min_diam_z,delta)
   

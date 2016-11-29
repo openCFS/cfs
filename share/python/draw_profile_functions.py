@@ -14,10 +14,21 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
-import timeit
+# from basecell import calc_radius
 
-
-
+class End_Node():
+  def __init__(self):
+    self.coords = (0.0,0.0,0.0)
+    self.connections = 0
+    self.id = -1
+    
+  def __init__(self,coords,id):
+    self.coords = coords
+    self.id = id
+  
+  def add_connection(self):
+    self.connection += 1
+    
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -111,18 +122,48 @@ def dirToString(dir):
    
   return res
 
+# converts angle (0 to 360) to radians and maps it to a value between 0 and pi/2.0 
+def degree_to_rad_quadrant(degree):
+  assert(degree >= 0.0 and degree <= 360.0)
+  rad = np.pi/180. * degree
+  if degree <= 90:
+    return rad
+  elif degree <= 180:
+    return np.pi-rad
+  elif degree <= 270: 
+    return rad-np.pi
+  else:
+    return 2*np.pi-rad
+  
+def cartesian_to_grid_coords(x,res):
+  h = 1.0 / res # assume domain is 1m x 1m x 1m
+  return int((x) / h) 
+
+def grid_to_cartesian_coords(i,res):
+  h = 1.0 / res # assume domain is 1m x 1m x 1m
+  return i * h + h / 2.0
+
+# @param offset: value added to converted cartesian
+def polar_to_cartesian(radius,radians,offset):
+  return radius * np.cos(radians) + offset, radius * np.sin(radians) + offset
+
 # calculates euklidian distance to origin (0,0)
 # @param p: tuple with x-,y-component of point
 def distance_to_center(p):
   return np.sqrt((p[0]-0.5)**2+(p[1]-0.5)**2)
 
-# calculates angle between (0.5,0.5) and point p
+# calculates angle between (0.5,1.0) and point p
 def angle_to_center(p):
-  phi = np.arccos(0.5*(p[1]-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (p[1]-0.5)**2)))
-  if p[0] < 0.5:
-    phi = 2.0*np.pi - phi
+  if p[1] < 0.5:
+    z = 1.0 - p[1]
+  else:
+    z = p[1]
+
+  # in case p is exactly (0.5,0.5), angle is 0 and thus denominator is 0!
+  if abs(p[0]- 0.5) <= 1e-3 and abs(p[1]- 0.5) <= 1e-3:
+    return 0  
     
-  return phi
+  return np.arccos(0.5*(z-0.5)/(0.5*np.sqrt((p[0]-0.5)**2 + (z-0.5)**2)))
  
 # defines a 1D linear function
 class Linear_1D():
@@ -155,20 +196,43 @@ def profileCirc(x1,res):
   
   return vec
 
+# tests if profile contains probe
+# @param y: at which level of other profile do we expect the point
+# e.g. for x-profile it is the y-coordinate
+# @param probe: 2D coordinate of point for testing
+# def contains_point(x,y,z,profile):
+#   assert(x >= 0 and x <= 1)
+#   assert(y >= 0 and y <= 1)
+#   assert(z >= 0 and z <= 1)
+#      
+#   phi = angle_to_center((x,z))
+#   print "(x,z): ",x,z, " angle:", degrees(phi)
+#   r = calc_radius_for_quadrant(profile, y, (phi))
+#   print "radius: ", r
+#   val = (x-0.5)**2 + (z-0.5)**2
+#     
+#   print "phi:", degrees(phi)
+#   print "val: ", val, " r**2: ", r**2
+#      
+# #   print "radius: ",r," val:",val
+#      
+#   if (val - r*r < 0):
+#     return True
+#      
+#   return False
+
 def contains_point(id_x,y,z,map):
-  
+     
   valx = (y-0.5)**2 + (z-0.5)**2
-  phi = angle_to_center((y,z)) # angle between (0.5,0.5) and (y,z)
-  
-  if y < 0.5:
-    phi = 2.0 * np.pi - phi
-          
-  r = map[int(phi/np.pi*180),id_x]
-  
-  if (valx <= r*r):
+  phi = angle_to_center((y,z))
+   
+  r = map[int(degrees(phi)),id_x]
+     
+  if (valx - r*r < 1e-3 ):
     return True
-  
+     
   return False
+    
 
 # obejct defines spline in a principle plane, e.g. spline for 0 or 90 degree
 class PrincipleSpline():
@@ -191,7 +255,7 @@ class PrincipleSpline():
     
   # eval function in case x is one element, not a list  
   def eval_elem(self,x):
-    if x < self.coords_cut[0]:
+    if x <= self.coords_cut[0]:
       val = self.spline.eval_x(x)
     elif x > self.coords_cut[0] and x < 1 - self.coords_cut[0]:
       val = self.coords_cut[1]
@@ -248,6 +312,7 @@ class BisecSpline:
     # left part is same spline as orhtogonal spline up to point
     left = PrincipleSpline(x1, 0.5*(y1+z1), bend)
     b = left.coords_cut 
+    self.cut = b 
     assert(b[0] <= 0.5 and b[1] >= 0.5)
 
     # search for point p
@@ -257,7 +322,7 @@ class BisecSpline:
     assert(p[0] <= 0.5 and p[1] >= 0.5)
     height = distance_to_center(p) + 0.5
   
-    self.angle = 2*np.pi-angle_to_center(p)
+    self.angle = angle_to_center(p)
 #     self.angle = angle_to_center(p)
     
     # polynomial interpolation for right part from b to p
@@ -303,8 +368,9 @@ class BisecSpline:
     # in case we have undershooting for biqua AND for spline
     else:
       self.type = "linear"
-      
-    print self.type
+  
+  def get_coords_cut(self):
+    return self.cut
       
   def eval_spline(self,x):
 #     assert( x.all() >= 0 and x.all() <= 1)
@@ -391,10 +457,13 @@ class BisecSpline:
     bicubic = self.eval_bicubic(x)
     spline = self.eval_spline(x)
     linear = self.eval_linear(x)
+    
+    cut = self.bicubic[0].coords_cut
 
     plt.plot(x,bicubic,label='bicubic',linewidth=5.0)
     plt.plot(x,spline,label='spline',linewidth=5.0)
-    plt.plot(x,linear,label='linear',linewidth=5.0) 
+    plt.plot(x,linear,label='linear',linewidth=5.0)
+    plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15) 
       
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
     plt.show()  
@@ -415,7 +484,7 @@ class Profile:
     assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 1 or dir == 2 or dir == 3)
     self.direction = dir
-    self.type = args.type
+    self.type = args.profile
     self.functions = [None] * 3
     if self.type == "linear":
       self.functions[0] = Linear_1D(args.x1, args.x2)
@@ -428,29 +497,17 @@ class Profile:
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
       elif dir == 2:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.y1, args.z1, args.x1, args.bend)  
+        self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
       else:
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.z1, args.x1, args.y1, args.bend)  
+        self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
         
       self.bisec_angle = self.functions[1].angle
       
     if args.verbose == "bisec":
       self.functions[1].plot_all()
-      
-#       t = np.linspace(0, 1.0, args.res)
-#       plt.plot(t,vec1,label='x1y1', linewidth=5.0)
-#       plt.plot(t,vec2,label='bisec', linewidth=5.0)
-#       plt.plot(t,vec3,label='x1z1', linewidth=5.0)
-#       plt.legend(loc='upper left', shadow=True)
-#       plt.rcParams.update({'font.size': 18})
-#       plt.savefig("3splines.png")
-#       plt.show()
-
-    print "dir:", self.direction, " bisec type:", self.functions[1].type
-    
       
 # return information on profiles 
 def create_profiles(args,infoXml=None):
@@ -462,19 +519,9 @@ def create_profiles(args,infoXml=None):
   if not args.skip_y:
     profiles[1] = Profile(args,2)
     
-#     plt.gcf().clear()
-#     plt.gcf().subplots_adjust(bottom=0.15)
-#     x = np.linspace(0, 1.0, args.res)
-#     plt.plot(x,profiles[1].functions[0].eval(x),label="y_0")
-#     plt.plot(x,profiles[1].functions[2].eval(x),label="y_90")
-
   if not args.skip_z:
     profiles[2] = Profile(args,3)
     x = np.linspace(0, 1.0, args.res)
-#     plt.plot(x,profiles[2].functions[0].eval(x),label="z_0")
-#     plt.plot(x,profiles[2].functions[2].eval(x),label="z_90")
-#     plt.legend(loc='upper left', shadow=True)
-#     plt.show()
     
   if args.verbose == "all_profiles":
     plt.gcf().clear()
@@ -484,13 +531,9 @@ def create_profiles(args,infoXml=None):
     for dir,profile in enumerate(profiles):
       if profile == None:
         continue
-#       plt.plot(x,profile.functions[0].eval(x),label=str(profile.functions[0].angle),linewidth=5.0,label="dir_"+str(i+1)+"_0")
       plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
       plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
-#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
-#       plt.plot(x,profile.functions[1].eval(x),label=str(profile.bisec_angle))
       plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
-#       plt.plot(x,profile.functions[2].eval(x),label=str(profile.functions[2].angle))
     
     plt.legend(loc='upper left', shadow=True)
     plt.rcParams.update({'font.size': 18})
@@ -509,14 +552,16 @@ def create_profiles(args,infoXml=None):
 def get_surface_lines(map,numLines,dir):
   assert(dir == 1  or dir == 2 or dir == 3)
   lenx = np.size(map,1)
+  
   nodes = np.zeros((numLines, lenx, 3))
   for i,grad in enumerate(np.arange(0,360,360.0/numLines)):
     radii = map[grad,:]
     rad = grad/180.0*np.pi
      
     #transformation to cartesian coordinates
-    X = radii*np.cos(rad) + 0.5*np.ones(lenx)
-    Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
+    X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
+#     X = radii*np.cos(rad) + 0.5*np.ones(lenx)
+#     Y = radii*np.sin(rad) + 0.5*np.ones(lenx)
     if dir == 1:
       nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,1] = X
@@ -536,82 +581,117 @@ def get_surface_lines(map,numLines,dir):
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
 # each surface point is also given a unique id
 # @param pointId indicates the point id that already exists
-def find_points_on_surface(nodes,dir,otherMap1,otherMap2, pointId):
-  nodesLeft = []
-  nodesRight = []
-  pointId += 1
+def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
   
   if dir == 1:
+    id0 = 1
+    id1 = 0
+    id2 = 2
+    id3 = 2
+    id4 = 1
+    id5 = 0
+  elif dir == 2:
     id0 = 0
     id1 = 2
-    id2 = 0
-    id3 = 1
-  elif dir == 2:
-    id0 = 1
-    id1 = 2
-    id2 = 0
-    id3 = 1
-  else: #dir == 3
-    id0 = 1
-    id1 = 2
-    id2 = 0
+    id2 = 1
     id3 = 2
-        
+    id4 = 1
+    id5 = 0
+  else: #dir == 3
+    id0 = 0
+    id1 = 2
+    id2 = 1
+    id3 = 1
+    id4 = 0
+    id5 = 2
+  
   assert(dir == 1 or dir == 2 or dir == 3)
   res = nodes.shape[1]
-  for numLine,prof in enumerate(nodes):
-    lineLeft = [] # store points on one surface line temporally
+  
+  nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
+  
+  for numLine,line in enumerate(nodes):
+    lineLeft = [] # store points on one surface line temporarily
     lineRight = []
-    for i,p in enumerate(prof):
-      if not contains_point(i,p[id0],p[id1],otherMap1) and not contains_point(i, p[id2], p[id3], otherMap2):
-        if p[dir-1] < 0.5: # using plane through origin (0.5,0.5) to decide if surface point is on left or right side of structure
-          lineLeft.append((p,pointId))
-        else:
-          lineRight.append((p,pointId))
+    for i,p in enumerate(line):
+      # check if point is contained in other profiles
+      if not contains_point(cartesian_to_grid_coords(p[id0], res),p[id1],p[id2],otherMap1) and not contains_point(cartesian_to_grid_coords(p[id3], res), p[id4], p[id5], otherMap2):
+        nodes_ids[numLine,i] = pointId
         pointId += 1
         
-    nodesLeft.append(lineLeft)
-    nodesRight.append(lineRight[::-1])   
-    
-  return nodesLeft, nodesRight, pointId
+  return nodes_ids, pointId
+  
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
-def define_triangles(list,cells):
-  prevLine = None
-  for i,line in enumerate(list):
-    if i < len(list) - 1:
-      prevLine = list[i+1]
-    else:
-      prevLine = list[0] # last line in list
+# returns array of size 2 x n with ids of end nodes in first row, second row reserved for fix_gaps()
+def define_triangles(nodes_ids,cells,dir,vtkArray=None):
+  end_nodes_ids = []
+  
+  for i in range(0,nodes_ids.shape[0]):
+    this_line = nodes_ids[i]
+    right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
+    left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
+    for j in range(0,len(this_line)-1):
+      this_id = this_line[j]
+      prev_id = -1 if j == 0 else this_line[j-1]
+      next_id = this_line[j+1]
+      right_id = right_line[j]
+      left_id = left_line[j]
+      right_next_id = right_line[j+1]
+      if this_id >= 0 and next_id >= 0 and right_id >= 0:
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0, this_id)
+        tri.GetPointIds().SetId(1, right_id)
+        tri.GetPointIds().SetId(2, next_id)
+        cells.InsertNextCell(tri)
+        
+        vtkArray.SetValue(this_id,dir)
+        vtkArray.SetValue(next_id,dir)
+        vtkArray.SetValue(right_id,dir)
+        
+        if j > 0 and (left_id < 0 or prev_id < 0):
+          end_nodes_ids.append(this_id)
+          vtkArray.SetValue(this_id,dir+0.5)
+      else:
+        if this_id >= 0 and j > 0: # first point in line is not end point
+          end_nodes_ids.append(this_id)
+          vtkArray.SetValue(this_id,dir+0.5)
+          
+          if right_id >= 0 and right_next_id >= 0:
+            tri = vtk.vtkTriangle()
+            tri.GetPointIds().SetId(0, this_id)
+            tri.GetPointIds().SetId(1, right_id)
+            tri.GetPointIds().SetId(2, right_next_id)
+            cells.InsertNextCell(tri)
       
-    for j in range(0,len(line),1): # get coordinates of each point
-      if (j+1 < np.size(line, 0)) and (j < np.size(prevLine, 0)):
+      if right_id >= 0 and next_id >= 0 and right_next_id >=0:
         tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, line[j][1]) 
-        tri.GetPointIds().SetId(1, prevLine[j][1])
-        tri.GetPointIds().SetId(2, line[j+1][1])
+        tri.GetPointIds().SetId(0, right_id)
+        tri.GetPointIds().SetId(1, right_next_id)
+        tri.GetPointIds().SetId(2, next_id)
         cells.InsertNextCell(tri)
-         
-#         print "triangle:",line[j][1],prevLine[j][1],line[j+1][1]
-#         print "point",line[j][1], ": ",line[j][0][0],line[j][0][1],line[j][0][2]
-#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
-#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
-      if (j+1 < np.size(line, 0)) and (j+1 < np.size(prevLine, 0)):
+        
+      if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0 :
         tri = vtk.vtkTriangle()
-        tri.GetPointIds().SetId(0, line[j+1][1])
-        tri.GetPointIds().SetId(1, prevLine[j][1])
-        tri.GetPointIds().SetId(2, prevLine[j+1][1])
+        tri.GetPointIds().SetId(0, this_id)
+        tri.GetPointIds().SetId(1, right_next_id)
+        tri.GetPointIds().SetId(2, next_id)
         cells.InsertNextCell(tri)
-    
-#         print "triangle:",line[j+1][1],prevLine[j][1],prevLine[j+1][1]
-       
-#         print "point",line[j+1][1], ": ",line[j+1][0][0],line[j+1][0][1],line[j+1][0][2]
-#         print "point",prevLine[j][1], ": ",prevLine[j][0][0],prevLine[j][0][1],prevLine[j][0][2]
-#         print "point",prevLine[j+1][1], ": ",prevLine[j+1][0][0],prevLine[j+1][0][1],prevLine[j+1][0][2]
+           
+  data = np.zeros((2,len(end_nodes_ids)), dtype=int)
+  data[0] = end_nodes_ids
+  data[1] = 0
+           
+  return data
 
-#     if i == 9:
-#       break  
-  return cells
+# search for 'num' points closest points to ref; ref is an end point
+#def find_closest_points(end_point_list,ref,num):
+  
+# for each end point, check if nearest point is on same line
+# if true, then search for third point in other profiles' end points
+# if false, then search for second and third point in other profiles' end points
+#def fix_end_node_gaps(this_ids,this_nodes,other_1_ids,other_1_nodes,other_2_ids,other_2_nodes):
+  
   
 def create_profiles_array(args,infoXml):
   res = args.res
@@ -639,94 +719,66 @@ def create_profiles_array(args,infoXml):
   id = 0 # assign an id to each surface point 
   
   if args.target == "surface_mesh":
-      assert(not args.skip_x and not args.skip_y and not args.skip_z)
-      map_x = create_profile_map(profiles[0], args.res) if profiles[0] <> None else None
-      map_y = create_profile_map(profiles[1], args.res) if profiles[1] <> None else None
-      map_z = create_profile_map(profiles[2], args.res) if profiles[2] <> None else None
-      
-      idx = -1 # enumerating all surface nodes in order to create triangles
-      
-      # first dimension of nodes : surface lines
-      # second dimension of nodes: resolution of unit cube
-      # third dimension: tuple with x,y,z coordinate
-      nodes = get_surface_lines(map_x, args.res_surf_lines, 1)
-      
-      #ha.scatter(nodes[:,:,0],nodes[:,:,1],nodes[:,:,2])
-      
-      #ha.scatter(nodes[0:4,:,0],nodes[0:4,:,1],nodes[0:4,:,2],color='red')
-      
-      surfNodesXLeft, surfNodesXRight, idx = find_points_on_surface(nodes, 1, map_y, map_z, idx)
-      
-#       for i,line in enumerate(surfNodesXRight):
-#         for tuple in line:
-#           ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
-#           ha.text(tuple[0][0],tuple[0][1],tuple[0][2],tuple[1])
-#         if i == 10:
-#           break
-#       plt.show()
-      
-      out = open("surfNodesXLeft.coords","w")
-      for i,line in enumerate(surfNodesXLeft):
-        for tuple in line:
-          out.write("id=" + str(tuple[1]) + ": x=" + str(tuple[0][0]) + " y=" + str(tuple[0][1]) + " z=" + str(tuple[0][2]) + "\n")
-      out.close()
-      nodes = get_surface_lines(map_y, args.res_surf_lines, 2)
-      surfNodesYLeft, surfNodesYRight, idx = find_points_on_surface(nodes, 2, map_x, map_z, idx)  
-            
-      nodes = get_surface_lines(map_z, args.res_surf_lines, 3)
-      surfNodesZLeft, surfNodesZRight, idx = find_points_on_surface(nodes, 3, map_x, map_y, idx)
-      
-      surfNodes = [surfNodesXLeft, surfNodesXRight, surfNodesYLeft, surfNodesYRight, surfNodesZLeft, surfNodesZRight]
-      
-      if args.show:
-        for list in surfNodes:
-          for line in list:
-            for tuple in line: # tuple consists of on array with 3 coordinate components and 1 point id
-              ha.scatter(tuple[0][0],tuple[0][1],tuple[0][2])
-            break
+    assert(not args.skip_x and not args.skip_y and not args.skip_z)
+    
+    map_x = create_profile_map(profiles[0], res)
+    map_y = create_profile_map(profiles[1], res)
+    map_z = create_profile_map(profiles[2], res)
+    
+    # first dimension of nodes : surface lines
+    # second dimension of nodes: resolution of unit cube
+    # third dimension: tuple with x,y,z coordinate
+    nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 1)
+    nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
 
-        plt.show()
-      
-      # create vtk cells and points
-      cells = vtk.vtkCellArray()
-      points = vtk.vtkPoints()
-      points.SetNumberOfPoints(idx)
-      
-      cells = define_triangles(surfNodesXLeft,cells)
-      cells = define_triangles(surfNodesXRight,cells)
-      cells = define_triangles(surfNodesYLeft,cells)
-      cells = define_triangles(surfNodesYRight,cells)
-      cells = define_triangles(surfNodesZLeft,cells)
-      cells = define_triangles(surfNodesZRight,cells)
-      
-      for part in surfNodes:
-        for line in part:
-          for tuple in line:
-            p = tuple[0]
-            # set point with respectived ids as set in find_points_on_surface()
-            points.SetPoint(tuple[1], (tuple[0][0], tuple[0][1], tuple[0][2]))
+    nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 2)
+    nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
+    
+    nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
+    nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
+    
+    # create vtk cells and points
+    cells = vtk.vtkCellArray()
+    points = vtk.vtkPoints()
+    points.SetNumberOfPoints(id)
+    
+    # set scalar info of intersection points to 1.0 to make them visible
+    vtkData = vtk.vtkFloatArray()
+    vtkData.SetName("intersection")
+    vtkData.SetNumberOfValues(id)
+
+    end_nodes_ids_1 = define_triangles(nodes_ids_1,cells,1,vtkData)
+    end_nodes_ids_2 = define_triangles(nodes_ids_2,cells,2,vtkData)
+    end_nodes_ids_3 = define_triangles(nodes_ids_3,cells,3,vtkData)
+
+    for i,line in enumerate(nodes_1):
+      for j in range(len(line)):
+        if nodes_ids_1[i,j] >= 0:          
+          points.SetPoint(nodes_ids_1[i,j], nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2])
+        if nodes_ids_2[i,j] >= 0:          
+          points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
+        if nodes_ids_3[i,j] >= 0:          
+          points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])    
           
-#       out = open("vtk_point_ids.txt","w")
-#       for i in range(points.GetNumberOfPoints()):
-#         p = points.GetPoint(i)
-#         out.write("id=" + str(i) + ": x=" + str(p[0]) + " y=" + str(p[1]) + " z=" + str(p[2]) + "\n")
-#       
-#       out.close()  
-            
-      polydata = vtk.vtkPolyData()
-      polydata.SetPoints(points)
-      polydata.SetPolys(cells)
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    polydata.GetPointData().SetScalars(vtkData)
+    
+    if args.export == "surface_points":
+      show_write_vtk(polydata, 1000, "surface_points.vtp")
       
-      if args.show:
-        show_vtk(polydata, 1000, [], True)
-        
-      show_write_vtk(polydata,1000,"surface.vtp")
+    polydata.SetPolys(cells)
+    
+    if args.show:
+      show_vtk(polydata, 1000, [], True)
+      
+    show_write_vtk(polydata,1000,"surface.vtp")
   else:
     for i in range(0,3):
       if profiles[i] == None:
         continue
-      if args.verbose == 'profile_map':
-        create_profile_map(profiles[i], res, args.verbose, ha)
+      if args.verbose == 'profile_map' or args.export == 'radius_maps':
+        create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i+1)
       if args.target == "3dlines":
@@ -739,28 +791,20 @@ def create_profiles_array(args,infoXml):
 
 # creates map with info on Profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
-def create_profile_map(profile,res,verbose=None,ha=None):
+def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   map = np.zeros((360, res))
   h = 1.0 / res
-  for i,x in enumerate(np.arange(0,1.0,h)):
+  if save:
+    out = open("profile_map_dir_"+str(profile.direction)+".txt","w")
+    out.write("#i \t alpha \t radius\n")
     
+  for i,x in enumerate(np.arange(0,1.0,h)):
     for alpha in range(0,360):
-      rad = np.pi/180. * alpha
-      
-      if alpha <= 90:
-        map[alpha,i] = calc_radius_for_quadrant(profile, x, rad)
-      elif alpha <= 180:
-        map[alpha,i] = calc_radius_for_quadrant(profile, x, np.pi-rad)
-      elif alpha <= 270: 
-        map[alpha,i] = calc_radius_for_quadrant(profile, x, rad-np.pi)
-      else: # 270 <= alpha <= 360
-        map[alpha,i] = calc_radius_for_quadrant(profile, x, 2*np.pi-rad)
+      map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
         
-#       if i == 49:
-#         print i,alpha,map[alpha,i]  
-#     
-#     if i == 49:
-#       sys.exit()  
+      if save:
+        out.write(str(i) + " \t" + str(alpha) + " \t" + str(map[alpha,i]) + "\n")
+        
   if verbose == 'profile_map':
     ha.set_xlabel('X')
     ha.set_ylabel('Y')
@@ -768,6 +812,9 @@ def create_profile_map(profile,res,verbose=None,ha=None):
     X,Y = np.meshgrid(range(res),range(360))
     ha.plot_surface(X, Y, map)
     plt.show()
+    
+  if save:
+    out.close()
     
   return map
 
@@ -790,26 +837,28 @@ def plot_3dlines(profile,res,numLines,dir,ha):
 #       ha.plot(X,Y,ii*np.ones(np.size(X))/res,'b')
       
   nodes = get_surface_lines(map, numLines, dir)
+  color = None
+  if dir == 1:
+    color = "red"
+  elif dir == 2:
+    color = "blue"
+  else:
+    assert(dir == 3)
+    color = "green"  
   for i in range(numLines):
-    ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],'r')
+    ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],color=color)
     
-#   elif rad <= np.pi:
-#     return calc_radius_for_quadrant(profile, phi, x, np.pi-rad)
-#   elif rad <= 3*np.pi/2:
-#     return calc_radius_for_quadrant(profile, phi, x, rad-np.pi)
-#   else: #rad between 3pi/2 and 2*pi
-#     return calc_radius_for_quadrant(profile, phi, x, 2*np.pi-rad)
-
 # calculates interpolated radius for one quadrant (0 to pi/2)
 # @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
 # @param x: parameter for function evaluation
-# @param rad: radiant for evaluation
+# @param rad: radians for evaluation
 def calc_radius_for_quadrant(profile,x,rad):
   assert(rad >= 0 and rad <= np.pi/2.0)
   
   funcs = profile.functions
   
   phi = funcs[1].angle
+  assert(phi >= 0 and phi <= np.pi/2.0)
   if rad <= phi:
     return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
   else : # rad <= np.pi/2.0
@@ -819,7 +868,6 @@ def calc_radius_for_quadrant(profile,x,rad):
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
-  h = 1.0 / res
   assert(dir >=1 and dir <=3)
   
   map = create_profile_map(profile, res)
@@ -828,14 +876,11 @@ def write_profile_to_array(array,profile,dir):
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):
-        y = j * h + h / 2.0
-        z = k * h + h / 2.0
+        y = grid_to_cartesian_coords(j, res)
+        z = grid_to_cartesian_coords(k, res)
         valx = (y-0.5)**2 + (z-0.5)**2
         
-#         phi = angle_to_center((y,z))
-        phi = np.arccos(0.5*(y-0.5)/(0.5*np.sqrt(valx))) # angle between (0.5,0.5) and (y,z)
-        if y < 0.5:
-          phi = 2*np.pi - phi
+        phi = angle_to_center((z,y))
         
         p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):
