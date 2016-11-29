@@ -100,12 +100,11 @@ private:
    * Is able to cross periodic boundaries */
   DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
-  /** This is a helper for InitFilter(). It is recursive!.
-   * See implementation for docu. */
+  /** A helper for InitFilter() with a recursive like implementation. See implementation.
+   * checked and to_check are resized within the method and given from above for performance issues */
   void FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                          StdVector<std::pair<Elem*, int> >& initial,
                           StdVector<Filter::NeighbourElement>& neighbors,
-                          StdVector<unsigned int>& too_far);
+                          StdVector<unsigned int>& checked, StdVector<Elem*>& to_check);
 
   /** calc the distance between two points for the periodic case,
    * where periodic boundaries are considered.

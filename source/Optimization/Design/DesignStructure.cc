@@ -217,26 +217,29 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
-  UInt numOMPThreads = 1;
+  unsigned int numOMPThreads = 1;
+  #ifdef USE_OPENMP
+    numOMPThreads = omp_get_max_threads();
+  #endif
 
-#ifdef USE_OPENMP
-  numOMPThreads = omp_get_max_threads();
-#endif
   // make temporal storage thread local
   // each entry is assigned to one thread
   // each thread gets a vector to store the element neighborhood
-  StdVector<StdVector<Filter::NeighbourElement> > neighborhood;
-  neighborhood.Resize(numOMPThreads);
-  // thread local storage
-  // each thread stores element numbers too far away
-  StdVector<StdVector<unsigned int> > too_fars;
-  too_fars.Resize(numOMPThreads);
+  // When this vector is reused and copied in the loop we have a sufficiently high capacity and Push_back() is cheap
+  StdVector<StdVector<Filter::NeighbourElement> > neighborhood(numOMPThreads);
+
+  // here we store for the non-regular case the elements to be checked
+  StdVector<StdVector<Elem*> > to_check(numOMPThreads);
+
+  // here we store for the non-regular case the elements already checked (either too far, already in neighborhood or in to_check)
+  // the question is, if a vector, a sorted list or a map is fastest?!
+  StdVector<StdVector<unsigned int> > checked(numOMPThreads);
 
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-#pragma omp parallel for reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
+  #pragma omp parallel for reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
@@ -248,7 +251,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       ref.SetNonLinCorrection(de,rex);
       ref_design = de->GetType();
     }
-    #pragma omp critical
     de->simp->filter.Push_back(ref); // copy the reference data
 
     assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
@@ -259,22 +261,20 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       radius = FindFilterRadius(filter_space_, de, value);
 
     unsigned int aThread = 0;
-#ifdef USE_OPENMP
-    aThread = omp_get_thread_num();
-#endif
+    #ifdef USE_OPENMP
+      aThread = omp_get_thread_num();
+    #endif
 
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
     StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
-    neighbors.Resize(0);
-    StdVector<unsigned int>& too_far = too_fars[aThread];
-    too_far.Resize(0);
+    neighbors.Resize(0); // keeps capacity
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
     if(regular)
       FindRegularNeighborhood(de, radius, edges, neighbors);
     else
-      FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
+      FindUnstructuredNeighborhood(de, radius, neighbors, checked[aThread], to_check[aThread]);
 
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -290,6 +290,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
         neighbors[j].weight /= weight_sum;
     }
+
 
     // save neighborhood by copy constructor
     de->simp->filter.Last().neighborhood = neighbors;
@@ -444,9 +445,8 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
 
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                                      StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<Filter::NeighbourElement>& neighbors,
-                                      StdVector<unsigned int>& too_far)
+                                                   StdVector<Filter::NeighbourElement>& neighbors,
+                                                   StdVector<unsigned int>& checked, StdVector<Elem*>& to_check)
 {
   // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
@@ -459,49 +459,44 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   assert(!periodic_); // only regular may be periodic!!
 
-    // the idea is as follows:
-  // * We assume non regular grid.
-  // * For an element t we check for all neighbors the distance to center
-  // * If a neighbor is close enough we check also the neighbors recursively
-  // * check means only, that the neighbors of check are checked!
-  // * Hence buddies might grow (appending only) while traversing
-  assert(initial.GetSize() < 20);
+  // base is not a neighbor of itself and does not need to be checked
+  checked.Resize(1);
+  checked[0] = base->elem->elemNum;
 
-  for(unsigned int e = 0, en = initial.GetSize(); e < en; e++)
+  // we start with the base neighborhood to be checked
+  assert(base->elem->neighborhood != NULL);
+  const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->neighborhood);
+  to_check.Resize(initial.GetSize());
+  for(unsigned int j = 0; j < initial.GetSize(); j++) {
+    to_check[j] = initial[j].first;
+    assert(to_check[j]->elemNum != base->elem->elemNum);
+  }
+
+  // The idea is as follows. We start with the Elem* neighbors of the base element. All these elements are candidate for the
+  // filter (will be stored in neighbors) if they are not too far away. Then in principle we recursively check for all candidates
+  // all Elem* neighbors up to all is either a neighbor or too_far. A direct recursive implementation of this is for large meshed
+  // prohibitive expensive (> 33h for 3e6 element!). Revision 15237 of shared_opt still has this implementation
+  // Therefore we have the life loop below which is more efficient than the recursive implementation
+  while(!to_check.IsEmpty())
   {
-    // we ignore the grade of neighborhood (the int in the pair)
-    const Elem* test_elem = initial[e].first;
-    unsigned int test = test_elem->elemNum;
+    // note that his loop run my add several new items to to_check
+    Elem* test = to_check.Last();  // remove at the end of the loop only!
+    // remove test, it will be added to checked in 1e-10 seconds
+    to_check.Erase(to_check.GetSize() - 1);
 
-    if(test == base->elem->elemNum)
-      continue; // we're not a neighbor of ourself
+    // we can assume, that we were not checked before we were put in to_check
+    assert(!checked.Contains(test->elemNum));
 
-    // has it already been found that we are too far?
-    if(too_far.Contains(test))
-      continue;
-
-    // are we already a neighbor
-    bool already = false;
-    for(unsigned int n = 0, nn = neighbors.GetSize(); !already && n < nn; n++)
-    {
-      assert(neighbors[n].elemNum == neighbors[n].neighbour->elem->elemNum);
-      if(neighbors[n].elemNum == test)
-        already = true; // continue e loop!
-    }
-    if(already)
-      continue;
+    // test can already be considered as checked
+    checked.Push_back(test->elemNum);
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
-    DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent
+    DesignElement* test_de = space->Find(test->elemNum, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
     // no need (and not possible!) to evaluate the distance for non-design elements
-    double distance = test_de != NULL ? RelaxedDistance(base->elem, test_elem) : std::numeric_limits<double>::max();
+    double distance = test_de != NULL ? RelaxedDistance(base->elem, test) : std::numeric_limits<double>::max();
 
-    if(distance > radius || test_de == NULL)
-    {
-      too_far.Push_back(test);
-    }
-    else
+    if(test_de != NULL && distance <= radius)
     {
       // value is here a double radius
       // this is the implementation from Bendsoe/ Sigmund
@@ -509,18 +504,30 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // map from element number to design
       ne.neighbour = test_de;
-      ne.elemNum = test;
-      assert(ne.neighbour->elem->elemNum == test);
+      ne.elemNum = test->elemNum;
+      assert(ne.neighbour->elem->elemNum == test->elemNum);
 
       // linear or constant weighting. will be normalized in the calling method!
       assert(contribution_ == LINEAR || contribution_ == CONSTANT);
       ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
       ne.distance  = distance;
+
+      #ifndef NDEBUG
+        for(unsigned int k=0; k < neighbors.GetSize(); k++)
+          assert(neighbors[k].elemNum != test->elemNum);
+      #endif
+
       neighbors.Push_back(ne); // cheap
 
-      // now do the recursive call!!
-      // test is in neighbors or too_far, hence the recursive call does't bounce back
-      FindUnstructuredNeighborhood(base, radius, *test_elem->neighborhood, neighbors, too_far);
+      // as test was a successful element we have to process the Elem* neighbors
+      const StdVector<std::pair<Elem*, int> >& test_ne = *(test->neighborhood);
+      for(unsigned e = 0; e < test_ne.GetSize(); e++)
+      {
+        Elem* cand = test_ne[e].first;
+        // only if the candidate is not already checked and also not already queued it will be processed
+        if(!checked.Contains(cand->elemNum) && !to_check.Contains(cand))
+          to_check.Push_back(cand);
+      }
     }
   }
 }
