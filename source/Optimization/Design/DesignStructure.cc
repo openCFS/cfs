@@ -393,7 +393,6 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
 
             // map from element number to design
             ne.neighbour = other;
-            ne.elemNum = other->elem->elemNum;
 
             // linear or constant weighting. will be normalized in the calling method!
             assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -443,6 +442,10 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
                                                    StdVector<Filter::NeighbourElement>& neighbors)
 {
+  // for 3D ist shall be significantly faster (O(N)) to make a discrete grid (e.g. of size radius) and sort
+  // the elements to this grid. Then we can linearly test all relevant grid cells for an element. It will help for
+  // large meshes where the filter setup is otherwise hours and magnitudes slower than solving the system!
+
   // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
@@ -502,7 +505,6 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // map from element number to design
       ne.neighbour = test_de;
-      ne.elemNum = test->elemNum;
       assert(ne.neighbour->elem->elemNum == test->elemNum);
 
       // linear or constant weighting. will be normalized in the calling method!
@@ -512,7 +514,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       #ifndef NDEBUG
         for(unsigned int k=0; k < neighbors.GetSize(); k++)
-          assert(neighbors[k].elemNum != test_num);
+          assert(neighbors[k].neighbour->elem->elemNum != test_num);
       #endif
 
       neighbors.Push_back(ne); // cheap
