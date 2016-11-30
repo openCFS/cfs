@@ -14,6 +14,7 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "FeBasis/BaseFE.hh"
 #include "General/defs.hh"
 #include "General/Exception.hh"
@@ -48,7 +49,6 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
   this->space = space;
   this->regions = regions;
   this->em = NULL;
-  this->grid = domain->GetGrid();
   Constructor();
 }
 
@@ -57,7 +57,6 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->space = em->GetDesign();
   this->regions = em->GetDesign()->GetRegionIds();
   this->em = em;
-  this->grid = domain->GetGrid();
 
   Constructor();
 }
@@ -66,6 +65,10 @@ void DesignStructure::Constructor()
 {
   initialized_ = false;
   num_robust_  = 0;
+
+  this->grid = domain->GetGrid();
+  this->gridcfs = dynamic_cast<GridCFS*>(domain->GetGrid());
+  assert(this->gridcfs != NULL);
 
   this->dim  = grid->GetDim();
 
@@ -228,13 +231,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   // When this vector is reused and copied in the loop we have a sufficiently high capacity and Push_back() is cheap
   StdVector<StdVector<Filter::NeighbourElement> > neighborhood(numOMPThreads);
 
-  // here we store for the non-regular case the elements to be checked
-  StdVector<StdVector<Elem*> > to_check(numOMPThreads);
-
-  // here we store for the non-regular case the elements already checked (either too far, already in neighborhood or in to_check)
-  // the question is, if a vector, a sorted list or a map is fastest?!
-  StdVector<StdVector<unsigned int> > checked(numOMPThreads);
-
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
@@ -274,7 +270,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     if(regular)
       FindRegularNeighborhood(de, radius, edges, neighbors);
     else
-      FindUnstructuredNeighborhood(de, radius, neighbors, checked[aThread], to_check[aThread]);
+      FindUnstructuredNeighborhood(de, radius, neighbors);
 
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -445,8 +441,7 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
 
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                                                   StdVector<Filter::NeighbourElement>& neighbors,
-                                                   StdVector<unsigned int>& checked, StdVector<Elem*>& to_check)
+                                                   StdVector<Filter::NeighbourElement>& neighbors)
 {
   // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
@@ -459,17 +454,19 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   assert(!periodic_); // only regular may be periodic!!
 
+  std::set<unsigned int> checked;
+
   // base is not a neighbor of itself and does not need to be checked
-  checked.Resize(1);
-  checked[0] = base->elem->elemNum;
+  checked.insert(base->elem->elemNum);
 
   // we start with the base neighborhood to be checked
   assert(base->elem->neighborhood != NULL);
+  std::set<unsigned int> to_check;
+
   const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->neighborhood);
-  to_check.Resize(initial.GetSize());
   for(unsigned int j = 0; j < initial.GetSize(); j++) {
-    to_check[j] = initial[j].first;
-    assert(to_check[j]->elemNum != base->elem->elemNum);
+    to_check.insert(initial[j].first->elemNum);
+    assert(initial[j].first->elemNum != base->elem->elemNum);
   }
 
   // The idea is as follows. We start with the Elem* neighbors of the base element. All these elements are candidate for the
@@ -477,21 +474,22 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // all Elem* neighbors up to all is either a neighbor or too_far. A direct recursive implementation of this is for large meshed
   // prohibitive expensive (> 33h for 3e6 element!). Revision 15237 of shared_opt still has this implementation
   // Therefore we have the life loop below which is more efficient than the recursive implementation
-  while(!to_check.IsEmpty())
+  while(to_check.size() > 0)
   {
     // note that his loop run my add several new items to to_check
-    Elem* test = to_check.Last();  // remove at the end of the loop only!
+    unsigned int test_num = *(to_check.begin());
+    const Elem*  test     = gridcfs->GetElem(test_num); // shall be sped up!!
     // remove test, it will be added to checked in 1e-10 seconds
-    to_check.Erase(to_check.GetSize() - 1);
+    to_check.erase(to_check.begin());
 
     // we can assume, that we were not checked before we were put in to_check
-    assert(!checked.Contains(test->elemNum));
+    assert(test_num != base->elem->elemNum);
 
     // test can already be considered as checked
-    checked.Push_back(test->elemNum);
+    checked.insert(test_num);
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
-    DesignElement* test_de = space->Find(test->elemNum, base->GetType(), false, space->DoNonDesignVicinity()); // silent
+    DesignElement* test_de = space->Find(test_num, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
     // no need (and not possible!) to evaluate the distance for non-design elements
     double distance = test_de != NULL ? RelaxedDistance(base->elem, test) : std::numeric_limits<double>::max();
@@ -514,7 +512,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       #ifndef NDEBUG
         for(unsigned int k=0; k < neighbors.GetSize(); k++)
-          assert(neighbors[k].elemNum != test->elemNum);
+          assert(neighbors[k].elemNum != test_num);
       #endif
 
       neighbors.Push_back(ne); // cheap
@@ -525,8 +523,13 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
       {
         Elem* cand = test_ne[e].first;
         // only if the candidate is not already checked and also not already queued it will be processed
-        if(!checked.Contains(cand->elemNum) && !to_check.Contains(cand))
-          to_check.Push_back(cand);
+        // the sets are sorted and unique. insert() returns if insertion was necessary due to uniqueness or not
+        assert(checked.find(base->elem->elemNum) != checked.end());
+        if(checked.find(cand->elemNum) == checked.end())
+        {
+          assert(cand->elemNum != base->elem->elemNum);
+          to_check.insert(cand->elemNum); // it it was already there it's no problem
+        }
       }
     }
   }
