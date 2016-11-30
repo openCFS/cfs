@@ -459,6 +459,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   std::set<unsigned int> checked;
 
+  int dim = (int) grid->GetDim();
+
   // base is not a neighbor of itself and does not need to be checked
   checked.insert(base->elem->elemNum);
 
@@ -468,7 +470,10 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->neighborhood);
   for(unsigned int j = 0; j < initial.GetSize(); j++) {
-    to_check.insert(initial[j].first->elemNum);
+    // we reduce to surface neighbors. second is the number of sharing nodes
+    // for 2d the surface is = 2 (edge) for 3D the surface is >= 3 (triangle)
+    if(initial[j].second >= dim)
+      to_check.insert(initial[j].first->elemNum);
     assert(initial[j].first->elemNum != base->elem->elemNum);
   }
 
@@ -523,14 +528,19 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
       const StdVector<std::pair<Elem*, int> >& test_ne = *(test->neighborhood);
       for(unsigned e = 0; e < test_ne.GetSize(); e++)
       {
-        Elem* cand = test_ne[e].first;
-        // only if the candidate is not already checked and also not already queued it will be processed
-        // the sets are sorted and unique. insert() returns if insertion was necessary due to uniqueness or not
-        assert(checked.find(base->elem->elemNum) != checked.end());
-        if(checked.find(cand->elemNum) == checked.end())
+        // see above!
+        if(test_ne[e].second >= dim)
         {
-          assert(cand->elemNum != base->elem->elemNum);
-          to_check.insert(cand->elemNum); // it it was already there it's no problem
+          Elem* cand = test_ne[e].first;
+
+          // only if the candidate is not already checked and also not already queued it will be processed
+          // the sets are sorted and unique. insert() returns if insertion was necessary due to uniqueness or not
+          assert(checked.find(base->elem->elemNum) != checked.end());
+          if(checked.find(cand->elemNum) == checked.end())
+          {
+            assert(cand->elemNum != base->elem->elemNum);
+            to_check.insert(cand->elemNum); // it it was already there it's no problem
+          }
         }
       }
     }
