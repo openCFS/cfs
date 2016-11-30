@@ -70,9 +70,6 @@ public:
     /** read the variable */
     DesignElement* neighbour;
 
-    /** short cut for neighbour->elem->elemNum*/
-    unsigned int elemNum;
-
     /** pre-calculated weight: radius - distanance and >= 0 */
     double        weight;
 
