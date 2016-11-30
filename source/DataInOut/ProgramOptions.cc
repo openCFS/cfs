@@ -536,6 +536,7 @@ namespace CoupledField {
     in->Get("logConfFile")->SetValue(GetLogConfFileStr());
     in->Get("detailed")->SetValue(DoDetailedInfo());
     in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
+    in->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
 
     // cfs information
     in = in->Get("cfs");
@@ -543,6 +544,10 @@ namespace CoupledField {
     in->Get("name")->SetValue(CFS_NAME);
     in->Get("build")->SetValue(CMAKE_BUILD_TYPE);
     in->Get("svn_revision")->SetValue(CFS_WC_REVISION);
+    std::string url(CFS_WC_URL);
+    if(url.size() > 0 && url.find_last_of("/") != string::npos)
+      in->Get("svn_branch")->SetValue(url.substr(url.find_last_of("/")+1));
+    in->Get("exe")->SetValue(exe_);
   }
 
   
@@ -693,6 +698,10 @@ namespace CoupledField {
 
     out << "MKL_NUM_THREADS:       "
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
+        << fg_reset << endl;
+
+    out << "OMP_NUM_THREADS:       "
+        << fg_blue << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-")
         << fg_reset << endl;
  #endif
  #ifdef USE_OPENBLAS
