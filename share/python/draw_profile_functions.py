@@ -1020,26 +1020,29 @@ def give_neighbor_end_nodes(node,end_nodes):
       res.append(nexts[0])
       
   return res
-
+      
 def give_next_end_node(node,end_nodes):
   # find first triangle
   candidates = []
   candidates.append((node.i,node.j+1)) # next node on line
+  candidates.append((node.i,node.j-1))
   left_line = node.i-1 if node.i > 0 else len(end_nodes)-1
   right_line = node.i+1 if node.i < len(end_nodes)-1 else 0 
   candidates.append((right_line,node.j)) # same node on right line   
   candidates.append((right_line,node.j-1)) # previous node on right line
   candidates.append((right_line,node.j+1)) # next node on right line
   candidates.append((left_line,node.j))
-#   candidates.append((left_line,node.j-1))
   candidates.append((left_line,node.j+1))
+  candidates.append((left_line,node.j-1))
   
   for test in candidates:
     nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
     if nexts:
-      return nexts[0]
+      for v in nexts:
+        if v.id not in node.connections:
+          return v
   
-  return None    
+  assert(False)    
 # search for 'num' points closest points to ref; ref is an end point
 def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
   assert(num == 1 or num==3)
@@ -1095,7 +1098,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   a = active_edge[0]
   b = active_edge[1]
   
-  if a.id == 564 and b.id == 8776:
+  if a.id == 1227 and b.id == 9167:
     return False
   
   
@@ -1130,8 +1133,6 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
     
   # if at least one candidate has good quality
   if min(ratio_1,ratio_2) < 25:
-#     assert(next.id != alt.id)
-#       triangles.append(Marching_Triangle([a,b,next_cand],a if a.dir != next_cand.dir else b,next_cand,None))
     #set connections
     a.connections.add(next.id)
     b.connections.add(next.id)
@@ -1184,6 +1185,13 @@ def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
   
   other = find_closest_points(node,next,other_1_end_node,other_2_end_node,1)
   other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
+  
+  next.connections.add(other.id)
+  next.connections.add(node.id)
+  node.connections.add(other.id)
+  node.connections.add(next.id)
+  other.connections.add(node.id)
+  other.connections.add(next.id)
   
   triangles.append(Marching_Triangle([node,next,other],next,other,node))
   
