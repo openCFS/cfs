@@ -8,7 +8,6 @@ SET(CFSDAT_SRCS
   cfsdat.cc
   Filters/BaseFilter.cc
   Filters/Arithmetic/BinOpFilter.cc
-  Filters/Arithmetic/VecOpFilter.cc 
   Filters/Input/InputFilter.cc
   Filters/Output/OutputFilter.cc
   Filters/Derivatives/TimeDerivFilter.cc
@@ -16,7 +15,7 @@ SET(CFSDAT_SRCS
   Filters/Derivatives/BaseDerivativeFilter.cc
   Filters/Derivatives/GradientDifferentiator.cc
   Filters/Derivatives/DivergenceDifferentiator.cc
-  Filters/Derivatives/RotorDifferentiator.cc
+  Filters/Derivatives/CurlDifferentiator.cc
   Filters/Derivatives/MeshBasedDerivative.cc
   Filters/Interpolators/BaseInterpolationFilter.cc
   Filters/Interpolators/MeshBasedInterpolator.cc
@@ -25,9 +24,11 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/Cell2NodeInterpolator.cc
   Filters/Interpolators/GridIntersectionFilter.cc
   Filters/Interpolators/RBFInterpolator.cc
+  Filters/Derivatives/Lighthill.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
+  Utils/KNNSearch.cc
 )
 
 # Main CFS++ Dat executable target.

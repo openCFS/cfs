@@ -16,7 +16,6 @@
 
 #include "BaseFilter.hh"
 #include "Filters/Arithmetic/BinOpFilter.hh"
-#include "Filters/Arithmetic/VecOpFilter.hh"
 #include "Filters/Input/InputFilter.hh"
 #include "Filters/Output/OutputFilter.hh"
 #include "Filters/Interpolators/BaseInterpolationFilter.hh"
@@ -44,8 +43,6 @@ if(filtNode->GetName() == "meshInput"){
   newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
 }else if(filtNode->GetName() == "differentiation"){
   newPtr = BaseDerivativeFilter::GenerateSpatialDerivative(filtNode,resMana);
-}else if (filtNode->GetName() == "vectorOperation"){
-  newPtr = VecOpFilter::GenerateVectorOperator(filtNode,resMana);
 }
 return newPtr;
 }

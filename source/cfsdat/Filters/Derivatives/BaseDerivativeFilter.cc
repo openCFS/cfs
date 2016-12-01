@@ -13,11 +13,11 @@
 //================================================================================================
 
 
+#include <Filters/Derivatives/CurlDifferentiator.hh>
 #include "BaseDerivativeFilter.hh"
 #include "Filters/Derivatives/GradientDifferentiator.hh"
 #include "Filters/Derivatives/DivergenceDifferentiator.hh"
-#include "Filters/Derivatives/RotorDifferentiator.hh"
-
+#include "Filters/Derivatives/Lighthill.hh"
 
 namespace CFSDat{
 
@@ -28,8 +28,10 @@ FilterPtr BaseDerivativeFilter::GenerateSpatialDerivative(PtrParamNode derivNode
    newFilter = FilterPtr(new CFSDat::GradientDifferentiator(0,derivNode,resMana));
  }else if(derivNode->Get("type")->As<std::string>() == "DivergenceDifferentiator"){
    newFilter = FilterPtr(new CFSDat::DivergenceDifferentiator(0,derivNode,resMana));
- }else if(derivNode->Get("type")->As<std::string>() == "RotorDifferentiator"){
-   newFilter = FilterPtr(new CFSDat::RotorDifferentiator(0,derivNode,resMana));
+ }else if(derivNode->Get("type")->As<std::string>() == "CurlDifferentiator"){
+   newFilter = FilterPtr(new CFSDat::CurlDifferentiator(0,derivNode,resMana));
+ }else if(derivNode->Get("type")->As<std::string>() == "Lighthill"){
+   newFilter = FilterPtr(new CFSDat::Lighthill(0,derivNode,resMana));
  }
  return newFilter;
 }

@@ -17,16 +17,13 @@
 
 #include "MeshBasedInterpolator.hh"
 #include "DataInOut/SimInput.hh"
-#include <boost/tr1/type_traits.hpp>
-#include <def_use_cgal.hh>
-#include <def_use_flann.hh>
 #include <cfsdat/Utils/Point.hh>
 
 
 
 namespace CFSDat{
 
-//! Class for calculating a nearest neighbour interpolation using CGAL or FLANN
+//! Class for calculating a nearest neighbour interpolation using CGAL
 //! for neighbour search
 
 
@@ -44,7 +41,7 @@ class NearestNeighbourInterpolator : public MeshBasedInterpolator{
 
     bool operator < (const InpolationStruct& str) const
     {
-        return (srcEqn < str.srcEqn);
+      return (srcEqn < str.srcEqn);
     }
   };
 
@@ -56,16 +53,6 @@ public:
 
   virtual bool Run();
 
-  enum InterpolationAlgorithm
-  {
-    SHEPARD, NEAREST_NEIGHBOR
-  };
-
-/*  enum KNNLibary
-  {
-    CGAL, FLANN
-  };
-*/
 protected:
 
   virtual void PrepareInterpolation();
@@ -77,6 +64,9 @@ protected:
   // Read scattered data
   void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids, CF::StdVector< CF::Vector<Double> > scatteredData);
 
+
+private:
+
   // Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
@@ -86,47 +76,13 @@ protected:
   //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
   UInt inDim_;
 
-  // Search radius for values.
-  Double searchRadius_;
-
-
   //! Number of neighbor points to include in interpolation.
   UInt numNeighbors_;
 
   //! Exponent for calculation of interpolation weight function.
   Double p_;
 
-  //! Library used to find the k nearest neighbors of a point.
-  //KNNLibary knnLib_;
-  //0 for CGAL, 1 for FLANN
-  UInt knnLib_;
-
-#ifdef USE_CGAL
-    boost::shared_ptr<Tree> searchTree_;
-
-    void KNNSearch_CGAL(const Vector<Double> globPoint,
-                        StdVector< Vector<Double> >& neighbors,
-                        StdVector< Double >& l2Distances,
-                        StdVector< Vector<Double> >& vectors);
-#endif
-
-#ifdef USE_FLANN
-    boost::shared_ptr< flann::Index<flann::L2<Double> > > index_;
-    boost::shared_ptr< flann::Matrix<Double> > dataset_;
-
-    void KNNSearch_FLANN(const Vector<Double> globPoint,
-                         StdVector< Vector<Double> >& neighbors,
-                         StdVector< Double >& l2Distances,
-                         StdVector< Vector<Double> >& vectors,
-                         StdVector< Vector<Double> > scatteredData);
-#endif
-
-
-private:
-
   std::vector<InpolationStruct> interpolData_;
-  StdVector<UInt> nodeNeighbours_;
-
 };
 
 }

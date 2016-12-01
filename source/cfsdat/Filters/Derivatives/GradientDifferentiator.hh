@@ -62,10 +62,6 @@ protected:
 
   virtual void AdaptFilterResults();
 
-  // Read scattered data
-  void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids,
-                         CF::StdVector< CF::Vector<Double> > scatteredData);
-
   // build the local RBF interpolation matrix, based on the nearest neighbour source points
   // build the local interpolation-value vector and solve the system ALoc*c=vector for
   // the local RBF coefficients c
@@ -78,6 +74,10 @@ protected:
                                  UInt numNN,
                                  Double alpha);
 
+private:
+
+  std::vector<DifferentiationStruct> derivData_;
+
   // Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
@@ -87,38 +87,6 @@ protected:
   //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
   UInt inDim_;
 
-  //! Library used to find the k nearest neighbors of a point.
-  //KNNLibary knnLib_;
-  //0 for CGAL, 1 for FLANN
-  UInt knnLib_;
-
-#ifdef USE_CGAL
-    boost::shared_ptr<Tree> searchTree_;
-
-    void KNNSearch_CGAL(const Vector<Double> globPoint,
-                        StdVector< Vector<Double> >& neighbors,
-                        StdVector< Double >& l2Distances,
-                        StdVector< Vector<Double> >& vectors,
-                        UInt numNeighbors);
-#endif
-
-#ifdef USE_FLANN
-    boost::shared_ptr< flann::Index<flann::L2<Double> > > index_;
-    boost::shared_ptr< flann::Matrix<Double> > dataset_;
-
-    void KNNSearch_FLANN(const Vector<Double> globPoint,
-                         StdVector< Vector<Double> >& neighbors,
-                         StdVector< Double >& l2Distances,
-                         StdVector< Vector<Double> >& vectors,
-                         StdVector< Vector<Double> > scatteredData,
-                         UInt numNeighbors);
-#endif
-
-
-private:
-
-  std::vector<DifferentiationStruct> derivData_;
-  StdVector<UInt> nodeNeighbours_;
 
 };
 

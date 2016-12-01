@@ -178,6 +178,9 @@ bool InputFilter::Run(){
         eqnVec.Clear(true);
         cRes->mapping->GetRegionEquations(eqnVec,regId);
         for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
+//TODO REGION_PROBLEM: if more than one target-region is specified in the xml-scheme, e.g. fluid and one boundary, then
+          //the result vector contains exactly ONE more entry than without the boundary, independent of the number of
+          //additional boundary regions
           fullVec[eqnVec[aEq]] = resVec[aEq];
         }
       }
