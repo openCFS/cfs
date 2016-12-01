@@ -30,6 +30,8 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   this->filtSteamType_ = FIFO_FILTER;
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
+
+  if(config->Has("noSlipWall")){noSlip_ = true;}
 }
 
 RBFInterpolator::~RBFInterpolator(){
@@ -64,7 +66,7 @@ bool RBFInterpolator::Run(){
 
   /// this is the vector, which will be filled with the interpolation result
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+  returnVec.Init(0.0);
 
   // vector, containing the source data values
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
@@ -140,6 +142,24 @@ bool RBFInterpolator::Run(){
   CF::StdVector<bool> nodeCheck;
   nodeCheck.Resize(trgGrid_->GetNumNodes(ALL_REGIONS));
   nodeCheck.Init(false);
+
+  /* We want to automatically set velocity at a certain region named "wall"
+   * to be zero (no-slip-condition). If tag <noSlipWall/> is set in xml-scheme,
+   * we  skip the computation of wall-nodes so the value is zero because
+   * returnVec was initialized with 0.0
+   */
+  if(noSlip_ == true){
+    CF::StdVector<UInt> wallNodes;
+    trgGrid_->GetNodesByName(wallNodes, "wall");
+
+    CoupledField::StdVector<unsigned int>::iterator nIter = wallNodes.Begin();
+    //std::set<uint>::iterator nIter = wallNodes.Begin();
+    for(;nIter != wallNodes.End(); ++nIter){
+      // -1 because nodeNumbers start with 1
+      nodeCheck[*nIter - 1] = true;
+    }
+  }
+
 
   // loop over all elements and over every node of each element
   for(UInt i=0;i < interpolData_.size();++i){
