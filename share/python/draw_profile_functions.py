@@ -1026,10 +1026,14 @@ def give_next_end_node(node,end_nodes):
   # find first triangle
   candidates = []
   candidates.append((node.i,node.j+1)) # next node on line
+  left_line = node.i-1 if node.i > 0 else len(end_nodes)-1
   right_line = node.i+1 if node.i < len(end_nodes)-1 else 0 
   candidates.append((right_line,node.j)) # same node on right line   
   candidates.append((right_line,node.j-1)) # previous node on right line
   candidates.append((right_line,node.j+1)) # next node on right line
+  candidates.append((left_line,node.j))
+#   candidates.append((left_line,node.j-1))
+  candidates.append((left_line,node.j+1))
   
   for test in candidates:
     nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
@@ -1076,10 +1080,15 @@ def find_best_next_end_node(edge,end_nodes_1,end_nodes_2):
   return best_neighbor
 
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
+  
   # take active edge from last triangle
   active_edge = triangles[-1].edge
   a = active_edge[0]
   b = active_edge[1]
+  
+  if a.id == 564 and b.id == 8776:
+    return False
+  
   
   print "\na: ", a
   print "b: ", b
@@ -1087,57 +1096,53 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
   b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
   
+  cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
+  next_cand_1 = give_next_end_node(a, cand_1_nodes)
+  ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
+  next_cand_2 = None
+  cand_2_nodes = None
+  ratio_2 = 1e6
+  
   if not next_cand:
-    cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
     cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
-    next_cand_1 = give_next_end_node(a, cand_1_nodes)
     next_cand_2 = give_next_end_node(b, cand_2_nodes)
-    
-    ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
     ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
     
-    next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
-    alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
+  next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
+  alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
+  
+  if next_cand and next_cand.id <> next.id:
+    print "next_cand.id: ", next_cand.id, " next.id: ", next.id
+    asssert(next_cand.id == next.id)
     
-    if next_cand_1 == None or next_cand_2 == None:
-      return False
-    
-    print next_cand_1, ratio_1, (" <- " if next_cand_1.id == next.id else " ")
+  print next_cand_1, ratio_1, (" <- " if next_cand_1.id == next.id else " ")
+  if next_cand_2:
     print next_cand_2, ratio_2, (" <- " if next_cand_2.id == next.id else " ")
     
-    # if at least one candidate has good quality
-    if min(ratio_1,ratio_2) < 30:
-      assert(next.id != alt.id)
-      
-      triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alt))
-      print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id, " alt: ", alt.id
-    else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
+  # if at least one candidate has good quality
+  if min(ratio_1,ratio_2) < 25:
+#     assert(next.id != alt.id)
+#       triangles.append(Marching_Triangle([a,b,next_cand],a if a.dir != next_cand.dir else b,next_cand,None))
+    triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alt))
+    print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id
+    if alt is not None:
+      print "alternative: ", alt.id 
+  else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
+    vertices = triangles[-1].vertices
+    print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
+    triangles.pop()
+    # remove all created triangles 
+    while triangles[-1].other_candidate is None:
       vertices = triangles[-1].vertices
-      print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
+      print "remove triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
       triangles.pop()
-      # remove all created triangles 
-      while triangles[-1].other_candidate is None:
-        triangles.pop()
-      
-      vertices = triangles[-1].vertices  
-      print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " cand: ", triangles[-1].other_candidate   
-      next_cand = triangles[-1].other_candidate
-      triangles[-1].other_candidate = None
-      check_next_triangle(triangles, end_nodes_1, end_nodes_2, next_cand)
+    
+    vertices = triangles[-1].vertices  
+    print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " cand: ", triangles[-1].other_candidate.id   
+    next_cand = triangles[-1].other_candidate
+    triangles[-1].other_candidate = None
+    check_next_triangle(triangles, end_nodes_1, end_nodes_2, next_cand)
         
-  else: # if candidate is given, check if feasible
-    cand_nodes = end_nodes_1 if end_nodes_1[0].dir == next_cand.dir else end_nodes_2
-    ratio = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand,cand_nodes)
-    if ratio < 30:
-      print "alternative candidate: ", next_cand, ratio
-      triangles.append(Marching_Triangle([a,b,next_cand],a if a.dir != next_cand.dir else b,next_cand,None))
-      print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next_cand.id
-      check_next_triangle(triangles, end_nodes_1, end_nodes_2)
-    else:
-      vertices = triangles[-1].vertices
-      print "one cand:  triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
-      triangles.pop()  
-  
   return True  
 # given 3 lists with end nodes of all 3 profiles
 # using a marching algorithm, we connect theses nodes step by step to triangles
@@ -1158,7 +1163,7 @@ def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
   other = find_closest_points(node,next,other_1_end_node,other_2_end_node,1)
   other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
   
-  triangles.append(Marching_Triangle([node,next,other],next,other,None))
+  triangles.append(Marching_Triangle([node,next,other],next,other,node))
   
   initial = triangles[0]
   run = True
