@@ -37,14 +37,44 @@ class End_Node():
   def __str__(self):
     return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
   
-  
+class Marching_Triangle():
+  # describes active edge (by two points) where we append next triangle
+  # the two points always consist of one point from one profile and and second point from another profile
+  edge = None
+  # stores upcoming decisions
+  # 0th entry is always the next node we decide to create next triangle with
+  # 1st entry is node after next node we decide to create next triangle with
+  # ...
+  next_node = None
+  # before deciding which one is the next node, we search in neighborhood for
+  # possible candidates and a eval the possibly resulting triangles with a defined metric
+  other_candidate = None
+  vertices = None
+    
+  # define active edge where edge_node_2 is assumed to be next_node in different profile than edge_node_1  
+  def __init__(self,vertices,edge_node_1,edge_node_2,alt_cand):
+    self.edge = []
+    self.next_node = []
+    self.other_candidate = alt_cand
+    # array of three nodes
+    self.vertices = vertices
+    self.edge.append(edge_node_1)
+    self.edge.append(edge_node_2)
+    if len(self.next_node) > 0:
+      print self.next_node[0]
+    assert(len(self.next_node) == 0)
+    self.next_node.append(edge_node_2)
+    
+  def __str__(self):
+    return "vertices: " + str(self.vertices[0].id) + " "  + str(self.vertices[1].id) + " " + str(self.vertices[2].id)
+        
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
   #f03 = (1-t)**3
   #f13 = 3*t*(1-t)**2
   #f23 = 3*t**2*(1-t)
-  #f33 = t**3"
+  #f33 = t**3
    
   bend = None
    
@@ -652,8 +682,8 @@ def add_triangle(id1,id2,id3,cells):
   cells.InsertNextCell(tri)
 
 # calc distance between two points
-def calc_distance(coords1,coords2):
-  return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1]-coords2[1])**2 + (coords1[2]-coords2[2])**2)
+def calc_distance(p1,p2):
+  return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
 def create_profiles_array(args,infoXml):
   res = args.res
@@ -713,7 +743,7 @@ def create_profiles_array(args,infoXml):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
     
-#     fix_end_node_gaps(end_nodes_1, end_nodes_2, end_nodes_3, cells)
+    fix_end_node_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells)
 #     fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -844,3 +874,314 @@ def write_profile_to_array(array,profile,dir):
             array[j,i,k] = dir
           if dir == 3:
             array[k,j,i] = dir
+
+# for a given list of of end_nodes
+# check if any of these nodes lie in triangle 
+# by calculating barycentric coordinates for each node
+# if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
+def triangle_contains_any_node(vertices,end_nodes):
+  for node in end_nodes:
+    
+    # if we are one of the vertices skip
+    if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
+      continue
+    
+    v1 = vertices[1].coords - vertices[0].coords
+    v2 = vertices[2].coords - vertices[0].coords
+    v3 = node.coords - vertices[0].coords
+    
+    dot11 = np.dot(v1,v1)
+    dot12 = np.dot(v1,v2)
+    dot13 = np.dot(v1,v3)
+    dot22 = np.dot(v2,v2)
+    dot23 = np.dot(v2,v3)
+    dot33 = np.dot(v3,v3)
+    
+    denom = dot11 * dot22 - dot12 * dot12
+    u = (dot22 * dot13 - dot12 * dot23) / denom
+    v = (dot11 * dot23 - dot12 * dot13) / denom
+    
+#     print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " probe:", node.id, "   u: ", u, " v: ", v
+    
+    if (u >= 0) and (v >= 0) and (u + v < 1):
+      return True 
+
+  return False
+# triangle quality is measured by the aspect ratio and whether triangle contains an end node
+# we penalize the quality if triangle contains a neighbor end node             
+def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3):
+  neighbors_1 = give_neighbor_end_nodes(node1, end_nodes_1)
+  neighbors_2 = give_neighbor_end_nodes(node2, end_nodes_2)
+  neighbors_3 = give_neighbor_end_nodes(node3, end_nodes_3)
+
+  ratio = 1
+  
+#   contained = None
+#   contained = triangle_contains_any_node([node1,node2,node3],neighbors_1+neighbors_2+neighbors_3)  
+#     print "[",node1.id,",",node2.id,",",node3.id, "] containes neighbors? ",contained
+        
+    
+  if triangle_contains_any_node([node1,node2,node3],neighbors_1+neighbors_2+neighbors_3):
+    ratio = 1000
+    
+  ratio *= calc_triangle_ratio(node1.coords, node2.coords, node3.coords)
+  
+  return ratio
+
+# @param: vertices defining triangle
+# for evaluating quality of triangle, we take the ration of the exradius to twice the inradius
+def calc_triangle_ratio(v1,v2,v3):
+  d1 = calc_distance(v1, v2)
+  d2 = calc_distance(v1, v3)
+  d3 = calc_distance(v2, v3)
+  
+  #aspect ratio: circumradius/2*inradius
+  aspect_ratio = d1*d2*d3 / ( (d2+d3-d1) * (d1-d2+d3) * (d1+d2-d3))
+  
+  assert(aspect_ratio >= 1)
+  
+  return aspect_ratio
+    
+#   if aspect_ratio < threshold:
+#     return True
+#  
+#   return False
+
+def find_closest_point(ref_node,next_node,end_nodes):
+  # iterate over all end nodes in list and compare distances to 'ref' node
+  min_distance = 1e6
+  min_node = None
+  ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
+   
+  for node in end_nodes:
+    assert(node.dir != ref_node.dir)
+    dist = calc_distance(ref_coords, node.coords)
+    if dist < min_distance:
+      min_distance = dist
+      min_node = node
+  
+  return min_node,min_distance 
+
+def find_three_closest_points(ref_node,next_node,end_nodes):
+  
+  # iterate over all end nodes in list and compare distances to 'ref' node
+  min_distance_1 = 1e6
+  min_node_1 = None
+  min_distance_2 = 1e6
+  min_node_2 = None
+  min_distance_3 = 1e6
+  min_node_3 = None
+  for node in end_nodes:
+    
+    if node.id == ref_node.id or node.id == next_node.id or node.coords[2] <= 0.5+1e-3:
+      continue
+    
+    dist = calc_distance(ref_coords, node.coords)
+    if dist < min_distance_1:
+      min_distance_2 = min_distance_1
+      min_node_2 = min_node_1
+     
+      min_distance_1 = dist
+      min_node_1 = node
+    elif dist < min_distance_2:
+      min_distance_3 = min_distance_2
+      min_node_3 = min_node_2
+     
+      min_distance_2 = dist
+      min_node_2 = node
+    elif dist < min_distance_3:
+      min_distance_3 = dist
+      min_node_3 = node
+     
+  return (min_node_1,min_distance_1),(min_node_2,min_distance_2),(min_node_3,min_distance_3)
+
+# calculates midpoint on line between p1 and p2
+def calc_midpoint(p1,p2):
+  return 0.5*np.asarray([p1[0]+p2[0],p1[1]+p2[1],p1[2]+p2[2]])
+
+def give_neighbor_end_nodes(node,end_nodes):
+  # find first triangle
+  candidates = []
+  left_line = node.i-1 if node.i > 0 else len(end_nodes)-1
+  right_line = node.i+1 if node.i < len(end_nodes)-1 else 0
+  
+  candidates.append((node.i,node.j-1)) # previous node on line
+  candidates.append((node.i,node.j+1))
+  candidates.append((left_line,node.j))
+  candidates.append((left_line,node.j-1))
+  candidates.append((left_line,node.j+1))
+  candidates.append((right_line,node.j))
+  candidates.append((right_line,node.j-1))
+  candidates.append((right_line,node.j+1))
+  
+  res = []
+  for test in candidates:
+    nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
+    if nexts:
+      res.append(nexts[0])
+      
+  return res
+
+def give_next_end_node(node,end_nodes):
+  # find first triangle
+  candidates = []
+  candidates.append((node.i,node.j+1)) # next node on line
+  right_line = node.i+1 if node.i < len(end_nodes)-1 else 0 
+  candidates.append((right_line,node.j)) # same node on right line   
+  candidates.append((right_line,node.j-1)) # previous node on right line
+  candidates.append((right_line,node.j+1)) # next node on right line
+  
+  for test in candidates:
+    nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
+    if nexts:
+      return nexts[0]
+  
+  return None    
+# search for 'num' points closest points to ref; ref is an end point
+def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
+  assert(num == 1 or num==3)
+  if num == 1:
+    n1, d1 = find_closest_point(ref_node,next_node,end_nodes_1)
+    n2, d2 = find_closest_point(ref_node,next_node,end_nodes_2)
+   
+    if d1 < d2:
+      return n1
+    else:
+      return n2
+  elif num == 3:
+    x11, x12, x13 = find_three_closest_points(ref_node,next_node,end_nodes_1)
+    x21, x22, x23 = find_three_closest_points(ref_node,next_node,end_nodes_2)
+    
+    l = [x11,x12,x13,x21,x22,x23]
+    res = sorted(l,key=lambda x: x[1])[0:3]
+  
+    return res[0][0],res[1][0],res[2][0]
+
+# for a given edge (list with 2 points), find a neighbor end node
+# such that the resulting triangle has the best quality
+def find_best_next_end_node(edge,end_nodes_1,end_nodes_2):
+  others = [None] * 3
+  others[0], others[1], others[2] = find_closest_points(edge[0],edge[1],end_nodes_1,end_nodes_2,3)
+  # calc 3 aspect ratios for triangles with 3 possible nodes in 'others'
+  ratios = np.zeros(3)
+  
+  for i,other in enumerate(others):
+    assert(edge[0].id != edge[1].id)
+    assert(edge[0].id != other.id)
+    ratios[i] = calc_triangle_ratio(edge[0].coords,edge[1].coords,other.coords)
+    # check for most regular triangle
+    
+  best_neighbor = others[np.argmin(ratios)]
+  
+  return best_neighbor
+
+def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
+  # take active edge from last triangle
+  active_edge = triangles[-1].edge
+  a = active_edge[0]
+  b = active_edge[1]
+  
+  print "\na: ", a
+  print "b: ", b
+  
+  a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
+  b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+  
+  if not next_cand:
+    cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
+    cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+    next_cand_1 = give_next_end_node(a, cand_1_nodes)
+    next_cand_2 = give_next_end_node(b, cand_2_nodes)
+    
+    ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
+    ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
+    
+    next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
+    alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
+    
+    if next_cand_1 == None or next_cand_2 == None:
+      return False
+    
+    print next_cand_1, ratio_1, (" <- " if next_cand_1.id == next.id else " ")
+    print next_cand_2, ratio_2, (" <- " if next_cand_2.id == next.id else " ")
+    
+    # if at least one candidate has good quality
+    if min(ratio_1,ratio_2) < 30:
+      assert(next.id != alt.id)
+      
+      triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alt))
+      print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id, " alt: ", alt.id
+    else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
+      vertices = triangles[-1].vertices
+      print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
+      triangles.pop()
+      # remove all created triangles 
+      while triangles[-1].other_candidate is None:
+        triangles.pop()
+      
+      vertices = triangles[-1].vertices  
+      print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " cand: ", triangles[-1].other_candidate   
+      next_cand = triangles[-1].other_candidate
+      triangles[-1].other_candidate = None
+      check_next_triangle(triangles, end_nodes_1, end_nodes_2, next_cand)
+        
+  else: # if candidate is given, check if feasible
+    cand_nodes = end_nodes_1 if end_nodes_1[0].dir == next_cand.dir else end_nodes_2
+    ratio = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand,cand_nodes)
+    if ratio < 30:
+      print "alternative candidate: ", next_cand, ratio
+      triangles.append(Marching_Triangle([a,b,next_cand],a if a.dir != next_cand.dir else b,next_cand,None))
+      print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next_cand.id
+      check_next_triangle(triangles, end_nodes_1, end_nodes_2)
+    else:
+      vertices = triangles[-1].vertices
+      print "one cand:  triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
+      triangles.pop()  
+  
+  return True  
+# given 3 lists with end nodes of all 3 profiles
+# using a marching algorithm, we connect theses nodes step by step to triangles
+# start with one given triangle defined by end nodes of two profiles (assume each profile has a different color'
+# we call the edge that connects two differently colored nodes an 'active' edge
+# when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
+# in the neighborhood of the two edge vertices              
+def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
+  triangles = [] # saves all triangles found by marching
+  
+  # start from x profile and 0 degree and take first end node you can find
+  node = [v for v in this_end_nodes if v.i == 0]
+  assert(node)
+  node = node[0]
+  
+  next = give_next_end_node(node,this_end_nodes)
+  
+  other = find_closest_points(node,next,other_1_end_node,other_2_end_node,1)
+  other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
+  
+  triangles.append(Marching_Triangle([node,next,other],next,other,None))
+  
+  initial = triangles[0]
+  run = True
+  while (len(triangles) == 1 or node not in triangles[-1].vertices) and len(triangles) > 0 and run:
+    
+    run = check_next_triangle(triangles, this_end_nodes, other_nodes)
+#     vertices = [active_edge[0],active_edge[1],next_node]    
+#     # find active edge
+#     if next_node.dir != active_edge[0].id:
+#       triangles.append(Marching_Triangle(vertices,active_edge[0],next_node))
+#     elif next_node.dir != active_edge[1].id:
+#       triangles.append(Marching_Triangle(vertices,active_edge[1],next_node))
+#     else:
+#       print "Ohoh...."
+#       
+#     print triangles[-1].vertices[0].id,triangles[-1].vertices[1].id,triangles[-1].vertices[2].id
+#     print triangles[-1].vertices[0].coords,triangles[-1].vertices[1].coords,triangles[-1].vertices[2].coords
+#       
+#     if len(triangles) > 3:
+#       if triangles[-1].is_identical(triangles[-3]):
+#         break  
+        
+  for triangle in triangles:
+    verts = triangle.vertices
+    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+      
