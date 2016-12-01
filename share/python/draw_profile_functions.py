@@ -17,13 +17,12 @@ from sympy import Symbol, symbols
 # from basecell import calc_radius
 
 class End_Node():
-  def __init__(self):
-    self.coords = np.zeros(3)
-    self.connections = []
-    self.id = -1 # vtk id of point
-    self.i = -1 # first index in surface map, corresponds to surface line
-    self.j = -1 # second index in surface map, where on surface line 
-    self.dir = -1
+  coords = None
+  connections = None
+  id = -1 # vtk id of point
+  i = -1 # first index in surface map, corresponds to surface line
+  j = -1 # second index in surface map, where on surface line 
+  dir = -1
     
   def __init__(self,coords,id,dir,i,j):
     assert(len(coords) == 3)
@@ -31,7 +30,7 @@ class End_Node():
     self.id = id
     self.i = i
     self.j = j
-    self.connections = [] # array of end_nodes that form a triangle together with this end node
+    self.connections = set() # array of end_nodes that form a triangle together with this end node
     self.dir = dir
     
   def __str__(self):
@@ -1079,6 +1078,16 @@ def find_best_next_end_node(edge,end_nodes_1,end_nodes_2):
   
   return best_neighbor
 
+def update_connections(triangles,vertices):
+  res = [None] * 3
+  res[0] = set([v for v in vertices[0].connections if not (v==vertices[1].id or v==vertices[2].id)])
+  res[1] = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
+  res[2] = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
+  
+  triangles[-1].connections = res
+  triangles[-1].edge[0].connections = set([v for v in triangles[-1].edge[0].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].edge[1].connections = set([v for v in triangles[-1].edge[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   
   # take active edge from last triangle
@@ -1090,8 +1099,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
     return False
   
   
-  print "\na: ", a
-  print "b: ", b
+  print "\na: ", a.id, " connections: ", a.connections
+  print "b: ", b.id, " connections: ", b.connections 
   
   a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
   b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
@@ -1123,19 +1132,32 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   if min(ratio_1,ratio_2) < 25:
 #     assert(next.id != alt.id)
 #       triangles.append(Marching_Triangle([a,b,next_cand],a if a.dir != next_cand.dir else b,next_cand,None))
+    #set connections
+    a.connections.add(next.id)
+    b.connections.add(next.id)
+    next.connections.add(a.id)
+    next.connections.add(b.id)
     triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alt))
+    
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id
     if alt is not None:
       print "alternative: ", alt.id 
   else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
     vertices = triangles[-1].vertices
     print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
+
     triangles.pop()
+    update_connections(triangles, vertices)
+    
     # remove all created triangles 
     while triangles[-1].other_candidate is None:
       vertices = triangles[-1].vertices
       print "remove triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
+      
       triangles.pop()
+      
+      # update connections 
+      update_connections(triangles, vertices)
     
     vertices = triangles[-1].vertices  
     print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " cand: ", triangles[-1].other_candidate.id   
