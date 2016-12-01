@@ -167,7 +167,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! shared pointer to coefFunction representing multiplicative factor
     shared_ptr<CoefFunction> factorFnc_;
 
-    //! stroes the stepnumber of the las read solution process
+    //! stores the stepnumber of the last read solution process
     UInt lastStepRead_;
 
     //! flag indicating if the timevalue map of input should be ignored
