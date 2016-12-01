@@ -323,8 +323,8 @@
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
-          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0">
-          </xsd:element>
+          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="noSlipWall" type="xsd:string" minOccurs="0"/>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>

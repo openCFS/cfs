@@ -17,6 +17,7 @@ SET(CFSDAT_SRCS
   Filters/Derivatives/DivergenceDifferentiator.cc
   Filters/Derivatives/CurlDifferentiator.cc
   Filters/Derivatives/MeshBasedDerivative.cc
+  Filters/Derivatives/Lighthill.cc
   Filters/Interpolators/BaseInterpolationFilter.cc
   Filters/Interpolators/MeshBasedInterpolator.cc
   Filters/Interpolators/CentroidInterpolator.cc

@@ -64,10 +64,10 @@ protected:
                        const Double alpha);
 
 private:
-    // Coordinates of input data
+    //! Coordinates of input data
     CF::StdVector< CF::Vector<double> > sourceCoords_;
 
-    // Coordinates of target data
+    //! Coordinates of target data
     CF::StdVector< CF::Vector<double> > targetCoords_;
 
     //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
@@ -79,6 +79,8 @@ private:
     //! Vector containing target-informations
     std::vector<InpolationStruct> interpolData_;
 
+    //! if true, then all nodes on region "wall" will have 0.0 as return-vector entry
+    bool noSlip_;
 };
 
 }

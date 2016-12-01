@@ -792,7 +792,11 @@ void Lighthill::PrepareDifferentiation(){
     shared_ptr<ElemList> newList(new ElemList(trgGrid_));
     newList->SetRegion(aReg);
     lists.Push_back(newList);
+
+
   }
+
+
   std::cout << "\t\t\t Differentiator is dealing with " << allSrcElems.GetSize() <<
       " source elements and "<< allTrgElems.GetSize() << " target elements" << std::endl;
 
@@ -874,7 +878,6 @@ void Lighthill::PrepareDifferentiation(){
       derivData_.push_back(newStruct);
     }
   }
-
 
   std::cout << "\t\t 4/5 Clear generated temporary data storage ..." << std::endl;
   allTrgElems.Clear(false);

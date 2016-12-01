@@ -32,9 +32,8 @@ class Lighthill : public MeshBasedDerivative{
     CF::Vector<Double> localCoords;
     UInt tENum;
     UInt srcEqn;
-    Double volume;
 
-    DifferentiationStruct() : tENum(0),srcEqn(0),volume(.0){
+    DifferentiationStruct() : tENum(0),srcEqn(0){
       localCoords.Resize(3);
     }
 
@@ -43,6 +42,7 @@ class Lighthill : public MeshBasedDerivative{
         return (srcEqn < str.srcEqn);
     }
   };
+
 
 public:
 
