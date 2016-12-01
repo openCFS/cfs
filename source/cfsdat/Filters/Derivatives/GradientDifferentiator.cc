@@ -16,7 +16,7 @@
 #include "GradientDifferentiator.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
-
+#include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
 #include <vector>
 #include <math.h>
@@ -27,24 +27,10 @@ namespace CFSDat{
 GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshBasedDerivative(numWorkers,config,resMan){
 
+
   this->filtSteamType_ = FIFO_FILTER;
   inDim_ = 0;
 
-  //check if the nearest neighbour search scheme has been defined in the xml-file
-  if(config->Has("scheme") == false){
-    EXCEPTION("============================================================ \n"
-              "No <sheme> for nearest neighbour search was set in xml-file! \n"
-              "============================================================");
-  }
-
-  std::string alg = config->Get("scheme")->Get("searchAlgorithm")->As<std::string>();
-  if(alg == "CGAL"){
-    knnLib_ = 0;
-  }else if(alg == "FLANN"){
-    knnLib_ = 1;
-  }else{
-    EXCEPTION("no search algorithm selected!");
-  }
 }
 
 GradientDifferentiator::~GradientDifferentiator(){
@@ -113,18 +99,13 @@ bool GradientDifferentiator::Run(){
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
 
   // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL and FLANN
+  // because of the input of CGAL
   // Maybe there is a more efficient way to deal with this issue?!
-
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL and FLANN
-  // Maybe there is a more efficient way to deal with this issue?!
-//std::cout<<"inVec.GetSize()"<<inVec.GetSize()<<std::endl;
-//std::cout<<"sourceCoords_.GetSize()"<<sourceCoords_.GetSize()<<std::endl;
   if(inVec.GetSize() == sourceCoords_.GetSize()){
     //this is the case of scalar scattered values
     inDim_=0;
     vec.Resize(1);
+#pragma omp parallel for
     for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
       scatteredData[i].Resize(1);
       scatteredData[i][0] = inVec[i];
@@ -134,6 +115,7 @@ bool GradientDifferentiator::Run(){
           //case of two dimensional vector
           inDim_=1;
           vec.Resize(2);
+#pragma omp parallel for shared(inVec)
           for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
           scatteredData[i].Resize(2);
           scatteredData[i][0] = inVec[2 * i]; // x-component
@@ -144,6 +126,7 @@ bool GradientDifferentiator::Run(){
               // case of three dimensional vector
               inDim_=2;
               vec.Resize(3);
+#pragma omp parallel for shared(inVec)
               for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
               scatteredData[i].Resize(3);
               scatteredData[i][0] = inVec[3 * i]; // x-component
@@ -159,7 +142,10 @@ bool GradientDifferentiator::Run(){
 
   //now we can bring the scattered coordinates and data values into
   //the correct form for the nearest neighbour-search witch CGAL or FLANN
-ReadScatteredData(sourceCoords_, scatteredData);
+
+  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
+  KNNSearch Tree;
+  Tree.ReadScatteredData_Grad(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
 
 
@@ -177,29 +163,10 @@ for (UInt i = 0; i < derivData_.size();++i){
         for (UInt dof = 0; dof < inDim_ + 1; dof++){
           vec[dof][0] = 0.0;
         }
-          // at that point we can start obtaining the nearest neighbours for every aNode
-          // using CGAL or FLANN
-          switch(knnLib_)
-          {
-          case 0: //CGAL
-        #ifdef USE_CGAL
-            KNNSearch_CGAL(globalCoord, neighbors, l2dists, vectors, numNN);
-        #else
-            EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
-        #endif
-            break;
 
-          case 1: //FLANN
-        #ifdef USE_FLANN
-            KNNSearch_FLANN(globalCoord, neighbors, l2dists, vectors, scatteredData, numNN);
+        // at that point we can start obtaining the nearest neighbours for every aNode
+        Tree.KNN_CGAL_Differentiation(globalCoord, neighbors, l2dists, vectors, numNN);
 
-        #else
-            EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_FLANN=ON!");
-        #endif
-            break;
-          default:
-            break;
-          }
           // now we have to calculate the local RBF interpolation matrix with the nn nodes
           // and also do the inversion
 
@@ -228,12 +195,6 @@ for (UInt i = 0; i < derivData_.size();++i){
               returnVec[eqns[aDof]] = vec[0][aDof];
             }
 
-
-
-        //}// if nodeMatch == false
-    //}// for aNode
-        //}
-  //}// section
   }// for element
    //} //omp parallel
   resultManager_->ActivateResult(filterResIds[0]);
@@ -308,131 +269,19 @@ void GradientDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
  }
 
 
-//std::cout<<"ALoc"<<ALoc<<std::endl;
 
   // now we have to invert Aloc and multiply it with the according value-coloumn
   ALoc.Invert_Lapack();
-//std::cout<<"ALoc"<<ALoc<<std::endl;
 
   CF::Matrix<Double> temp;
-  //ALoc.Invert(invAloc);
-
   // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
   derivCoefVec = ALoc * derivVec;
   vals.Transpose(temp);
-
 
   vec = temp * derivCoefVec;
 
 
 }
-
-
-
-void GradientDifferentiator::ReadScatteredData(CF::StdVector< CF::Vector<Double> > sourceCoords,
-                                        CF::StdVector< CF::Vector<Double> > scatteredData)
-{
-
-  UInt n = sourceCoords_.GetSize();
-  switch(knnLib_)
-  {
-  case 0: //CGAL
-#ifdef USE_CGAL
-    {
-UInt i=0;
-
-    std::vector<CGAL::Point> points;
-    points.resize(n);
-//#pragma omp parallel //shared(points)
-    //{
-    for( i=0; i<n; i++)
-    {
-
-      if(trgGrid_->GetDim() == 2){
-        if(inDim_ == 0){
-          points[i] = (CGAL::Point(sourceCoords_[i][0],
-                                   sourceCoords_[i][1],
-                                   0.0,
-                                   scatteredData[i][0],
-                                   0.0,
-                                   0.0));
-          }else{
-            points[i] = (CGAL::Point(sourceCoords_[i][0],
-                                     sourceCoords_[i][1],
-                                     0.0,
-                                     scatteredData[i][0],
-                                     scatteredData[i][1],
-                                     0.0));
-            }
-      }
-      if(trgGrid_->GetDim() == 3){
-        if(inDim_ == 0){
-          points[i] = (CGAL::Point(sourceCoords_[i][0],
-                                   sourceCoords_[i][1],
-                                   sourceCoords_[i][2],
-                                   scatteredData[i][0],
-                                   0.0,
-                                   0.0));
-        }else{
-          points[i] = (CGAL::Point(sourceCoords_[i][0],
-                                   sourceCoords_[i][1],
-                                   sourceCoords_[i][2],
-                                   scatteredData[i][0],
-                                   scatteredData[i][1],
-                                   scatteredData[i][2]));
-      }
-    }
-
-    }
-    searchTree_.reset(new Tree(points.begin(), points.end()));
-
-  }
-#else
-    EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
-#endif
-    break;
-
-  case 1: //FLANN
-#ifdef USE_FLANN
-    {
-        dataset_.reset(new flann::Matrix<Double>(new Double[n*3], n, 3));
-        Double *dPtr = dataset_->ptr();
-        if(trgGrid_->GetDim() == 3){
-        for(UInt i=0; i<n; i++)
-        {
-          UInt idx = i*3;
-          dPtr[idx+0] = sourceCoords_[i][0];
-          dPtr[idx+1] = sourceCoords_[i][1];
-          dPtr[idx+2] = sourceCoords_[i][2];
-        }
-      }else{
-        for(UInt i=0; i<n; i++)
-        {
-          UInt idx = i*3;
-          dPtr[idx+0] = sourceCoords_[i][0];
-          dPtr[idx+1] = sourceCoords_[i][1];
-          dPtr[idx+2] = 0.0;
-        }
-      }
-
-    // construct an randomized kd-tree index using a single kd-tree
-    index_.reset(new flann::Index<flann::L2<Double> >(*dataset_.get(),
-                                                      flann::KDTreeSingleIndexParams(12)));
-    index_->buildIndex();
-    }
-#else
-    EXCEPTION("FLANN not supported! Compile with USE_FLANN=ON.")
-#endif
-
-    break;
-
-  default:
-    EXCEPTION("Unknown k-nearest neighbors library '" << knnLib_)
-    break;
-  }
-
-}
-
 
 
 
@@ -657,129 +506,6 @@ void GradientDifferentiator::AdaptFilterResults(){
   //validate own result
   resultManager_->SetValid(filterResIds[0]);
 }
-
-
-#ifdef USE_CGAL
-void GradientDifferentiator::KNNSearch_CGAL(const Vector<Double> globPoint,
-  StdVector< Vector<Double> >& neighbors,
-  StdVector< Double >& l2Distances,
-  StdVector< Vector<Double> >& vectors,
-  UInt numNN)
-{
-CGAL::Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-if(globPoint.GetSize() == 2)
-{
-  CGAL::Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
-  query = query2;
-}
-else
-{
-  CGAL::Point query3(globPoint[0], globPoint[1], globPoint[2], 0.0, 0.0, 0.0);
-  query = query3;
-}
-
-K_neighbor_search search(*searchTree_.get(), query, numNN);
-
-K_neighbor_search::iterator it = search.begin();
-
-if(it == search.end())
-{
-  EXCEPTION("Could not find a nearest neighbor for " << globPoint << "!");
-}
-
-UInt nn = std::distance(search.begin(), search.end());
-neighbors.Resize(nn);
-l2Distances.Resize(nn);
-vectors.Resize(nn);
-
-for(UInt i=0 ; it != search.end(); ++it, i++) {
-  l2Distances[i] = std::sqrt(it->second);
-  neighbors[i].Resize(globPoint.GetSize());
-  vectors[i].Resize(globPoint.GetSize());
-
-      if(globPoint.GetSize() == 2)
-      {
-        it->first.vx(vectors[i][0]);
-        it->first.vy(vectors[i][1]);
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-      }
-      else
-      {
-        it->first.vx(vectors[i][0]);
-        it->first.vy(vectors[i][1]);
-        it->first.vz(vectors[i][2]);
-
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-        neighbors[i][2] = it->first.z();
-      }
-
-}
-}
-#endif
-
-#ifdef USE_FLANN
-void GradientDifferentiator::KNNSearch_FLANN(const Vector<Double> globPoint,
-      StdVector< Vector<Double> >& neighbors,
-      StdVector< Double >& l2Distances,
-      StdVector< Vector<Double> >& vectors,
-      StdVector< Vector<Double> > scatteredData,
-      UInt numNN)
-  {
-  Double q[3];
-
-  if(globPoint.GetSize()==2)
-  {
-    q[0] = globPoint[0];
-    q[1] = globPoint[1];
-    q[2] = 0.0;
-  }
-  else
-  {
-    q[0] = globPoint[0];
-    q[1] = globPoint[1];
-    q[2] = globPoint[2];
-  }
-
-  flann::Matrix<Double> query(q, 1,3);
-
-  flann::Matrix<int> indices(new int[query.rows*numNN], query.rows, numNN);
-  flann::Matrix<Double> dists(new Double[query.rows*numNN], query.rows, numNN);
-  // do a knn search, using 3 checks
-  index_->knnSearch(query, indices, dists, numNN, flann::SearchParams(flann::FLANN_CHECKS_UNLIMITED));
-
-  neighbors.Resize(numNN);
-  l2Distances.Resize(numNN);
-  vectors.Resize(numNN);
-  for(UInt i=0; i<indices.rows; i++)
-  {
-    for(UInt j=0; j<numNN; j++)
-    {
-      l2Distances[j] = std::sqrt(dists[i][j]);
-
-          UInt idx = indices[i][j];
-          neighbors[j].Resize(globPoint.GetSize());
-          vectors[j].Resize(inDim_+1);
-
-          for(UInt d=0; d<globPoint.GetSize()-1; d++)
-          {
-            neighbors[j][d] = sourceCoords_[idx][d];
-          }
-          for(UInt d=0; d<inDim_+1; d++)
-          {
-            vectors[j][d] = scatteredData[idx][d];
-          }
-
-
-    }
-  }
-
-  delete[] indices.ptr();
-  delete[] dists.ptr();
-  }
-#endif
-
 
 }
 

@@ -15,13 +15,10 @@
 
 //Definition of a point for kd-search-tree CGAL of FLANN
 
-
+#include "cfsdat/Utils/Defines.hh"
 #include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
-
-
-#ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Search_traits.h>
@@ -34,7 +31,7 @@ namespace CGAL
 struct Point {
   double vec[3];
   double vel[3];
-  Complex velZ[3];
+  CoupledField::Complex velZ[3];
 
   Point() {
     vec[0]= vec[1] = vec[2] = 0;
@@ -47,7 +44,7 @@ struct Point {
   }
 
   Point (double x, double y, double z,
-      Complex vx, Complex vy, Complex vz) {
+      CoupledField::Complex vx, CoupledField::Complex vy, CoupledField::Complex vz) {
     vec[0]=x; vec[1]=y; vec[2]=z;
     velZ[0]=vx; velZ[1]=vy; velZ[2]=vz;
   }
@@ -60,9 +57,9 @@ struct Point {
   void vy(double& ret) const { ret = vel[ 1 ]; }
   void vz(double& ret) const { ret = vel[ 2 ]; }
 
-  void vx(Complex& ret) const { ret = velZ[ 0 ]; }
-  void vy(Complex& ret) const { ret = velZ[ 1 ]; }
-  void vz(Complex& ret) const { ret = velZ[ 2 ]; }
+  void vx(CoupledField::Complex& ret) const { ret = velZ[ 0 ]; }
+  void vy(CoupledField::Complex& ret) const { ret = velZ[ 1 ]; }
+  void vz(CoupledField::Complex& ret) const { ret = velZ[ 2 ]; }
 
   double& x() { return vec[ 0 ]; }
   double& y() { return vec[ 1 ]; }
@@ -157,9 +154,4 @@ typedef CGAL::Search_traits<double, CGAL::Point, const double*, Construct_coord_
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
 typedef K_neighbor_search::Tree Tree;
 
-#endif // USE_CGAL
 
-
-#ifdef USE_FLANN
-#include <flann/flann.hpp>
-#endif // USE_FLANN

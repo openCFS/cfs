@@ -4,10 +4,10 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     DivergenceDifferentiator.hh
+ *       \file     Lighthill.hh
  *       \brief    <Description>
  *
- *       \date     Oct 11, 2016
+ *       \date     Oct 4, 2016
  *       \author   kroppert
  */
 //================================================================================================
@@ -26,7 +26,7 @@ namespace CFSDat{
 
 
 
-class DivergenceDifferentiator : public MeshBasedDerivative{
+class Lighthill : public MeshBasedDerivative{
 
   struct DifferentiationStruct{
     CF::Vector<Double> localCoords;
@@ -46,9 +46,9 @@ class DivergenceDifferentiator : public MeshBasedDerivative{
 
 public:
 
-  DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~DivergenceDifferentiator();
+  virtual ~Lighthill();
 
   virtual bool Run();
 
@@ -62,16 +62,39 @@ protected:
 
   virtual void AdaptFilterResults();
 
-  // build the local RBF interpolation matrix, based on the nearest neighbour source points
-  // build the local interpolation-value vector and solve the system ALoc*c=vector for
-  // the local RBF coefficients c
-  void CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
+
+  void CalcGradUScalarU(Vector<Double>& retVec,
+                const Vector<Double> inVec);
+
+
+  void CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
                                  CF::Vector<Double>& globPoint,
                                  CF::StdVector< Vector<Double> >& neighbors,
                                  CF::StdVector< Double >& l2Distances,
                                  CF::StdVector< Vector<Double> >& vectors,
                                  UInt numNN,
                                  Double alpha);
+
+  void CalcRotU(Vector<Double>& retVec,
+                const Vector<Double> inVec);
+
+
+  void CalcLocRotDerivativeCoefs(CF::Matrix<Double>& vec,
+                                 CF::Vector<Double>& globPoint,
+                                 CF::StdVector< Vector<Double> >& neighbors,
+                                 CF::StdVector< Double >& l2Distances,
+                                 CF::StdVector< Vector<Double> >& vectors,
+                                 UInt numNN,
+                                 Double alpha);
+
+  void InterpolNodeToCenter(Vector<Double>& retVec,
+                            const Vector<Double> inVec);
+
+
+  void OmegaCrossU(const Vector<Double> Omega,
+                              const Vector<Double> U,
+                              Vector<Double>& retVec);
+
 
 private:
 
@@ -83,10 +106,11 @@ private:
   // Coordinates of target data
   CF::StdVector< CF::Vector<double> > targetCoords_;
 
-  //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
+  // Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
   UInt inDim_;
 
-
+  // Density, if not specified in xml-scheme it is automatically set to one
+  Double density_;
 };
 
 }

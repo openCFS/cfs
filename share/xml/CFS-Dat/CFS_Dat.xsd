@@ -276,22 +276,45 @@
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Conservative_CellCentroid"/>
       <xsd:enumeration value="Conservative_CutCell"/>
-      <xsd:enumeration value="Cell2Node"/>
-      <xsd:enumeration value="NearestNeighbour"/>
-      <xsd:enumeration value="RBF"/>
+      <xsd:enumeration value="Cell2Node">
+      <xsd:annotation>
+        <xsd:documentation>
+          Interpolation from cell-centroid to nodes of element, no interpolation between meshes!
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="NearestNeighbour">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
+            and an inverse distance weighting for calculating the interpolation values
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="RBF">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
+            and locally supported radial basis functions for calculating the interpolation values
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
 
   <xsd:complexType name="DT_NNScheme">
-    <xsd:choice>
-      <!--xsd:element name="CGAL" default="1"/>
-      <xsd:element name="FLANN" default="2"/-->
-    </xsd:choice>
-    <xsd:attribute name="searchAlgorithm" type="xsd:string" use="optional"  default="CGAL"/>
-    <xsd:attribute name="interpolationExponent" type="xsd:integer" default="2" use="optional"/>
-    <xsd:attribute name="searchRadius" type="xsd:double" default="5" use="optional"/>
+    <xsd:attribute name="interpolationExponent" type="xsd:integer" default="2" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Controls the "locality" of the interpolation, the higher the exponent is, the more
+          local the interpolation becomes, this means, points further away are weighted less
+          than closer points
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
+    <xsd:attribute name="density" type="xsd:double" default="1.0" use="optional"/>
   </xsd:complexType>
 
 
@@ -364,7 +387,8 @@
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="GradientDifferentiator"/>
       <xsd:enumeration value="DivergenceDifferentiator"/>
-      <xsd:enumeration value="RotorDifferentiator"/>
+      <xsd:enumeration value="CurlDifferentiator"/>
+      <xsd:enumeration value="Lighthill"/>
     </xsd:restriction>
   </xsd:simpleType>
 
