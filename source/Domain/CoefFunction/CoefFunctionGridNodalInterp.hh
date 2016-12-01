@@ -208,6 +208,9 @@ private:
 
   // cache found elements in case of standard interpolation of transient data
   StdVector< const Elem* > foundElements_;
+  
+  // file name to store not interpoleted nodes
+  std::string notInterpolatedNodesFileName_;
 
 };
 

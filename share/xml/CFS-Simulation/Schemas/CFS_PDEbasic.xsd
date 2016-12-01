@@ -75,8 +75,7 @@
           <xsd:element name="defaultGrid">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1"
-                  type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
               </xsd:sequence>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
@@ -88,8 +87,8 @@
           <xsd:element name="externalGrid">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1"
-                  type="xsd:token"/>
+                <xsd:element name="notInterpolatedNodesFile" maxOccurs="1" minOccurs="0" default="" type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
                 <xsd:element name="globalTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="localTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">

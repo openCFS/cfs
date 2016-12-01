@@ -52,6 +52,12 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->destGrid_ = this->domain_->GetGrid();
   ReadXMLNode(configNode);
 
+  // For not interpolated points
+  if (configNode->Has("notInterpolatedNodesFile")) {
+    notInterpolatedNodesFileName_ = configNode->Get("notInterpolatedNodesFile")->As<std::string>();
+    std::cout << "Going to write not interpolated node numbers to file " << notInterpolatedNodesFileName_ << std::endl;
+  }
+  
   // Determine which steps are available
   this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
 
@@ -327,6 +333,24 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
 
+  if (notInterpolatedNodesFileName_ != "") {
+    std::ofstream outFile;
+    outFile.open(notInterpolatedNodesFileName_.c_str(), std::ofstream::out );
+    if (outFile.fail()) {
+      std::cout << "Writing not interpolated node numbers failed" << std::endl;
+    } else {
+      std::cout << "Writing not interpolated node numbers to file " << notInterpolatedNodesFileName_ << std::endl;
+      for (UInt i=0; i<numNodes; ++i) {
+        if (!foundElements[i]) {
+          UInt notInt = i + 1;
+          outFile << notInt << std::endl;
+        }
+      }
+      outFile.close();
+      std::cout << "Closed file " << notInterpolatedNodesFileName_ << std::endl;
+    }
+  }
+  
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("localTol")->SetValue(globalTol_);
