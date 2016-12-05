@@ -14,6 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import Delaunay
 from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
+from scipy.spatial.qhull import ConvexHull
 # from basecell import calc_radius
 
 class End_Node():
@@ -628,6 +629,73 @@ def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
         pointId += 1
         
   return nodes_ids, pointId
+
+# creates triangles between end nodes of same profile where
+# we have e.g. a valley with 1 or 2 nodes
+def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
+  delete_ids = []
+  # a valley with one end node in between:
+  # this node (i,j) the one after next node and (i,j+2)
+  # and the left(right) next one (i-1,j+1) exists, but not next node
+  for node in end_nodes:
+    # check if the one after the next one exist
+    # nn is node after next node
+    n = get_end_node_by_grid_coords(node.i, node.j+1, end_nodes)[0]
+    n_inner = True if all_nodes_ids[node.i,node.j+1] >= 0 else False
+    nn = get_end_node_by_grid_coords(node.i,node.j+2,end_nodes)[0]
+    nn_inner = True if all_nodes_ids[node.i,node.j+2] >= 0 else False
+    ln,ln_idx = get_end_node_by_grid_coords(node.i-1,node.j+1,end_nodes)
+    rn,rn_idx = get_end_node_by_grid_coords(node.i+1,node.j+1,end_nodes)
+    
+    if nn and not n and (ln or rn):
+      # both can be none but if both or not none, something went wrong
+      assert(bool(ln) is not bool(rn) or (ln == None and rn == None))
+      
+      # check which one is in the valley
+      next = ln if ln is not None else rn
+      next_idx = ln_idx if ln is not None else rn_idx
+      
+      add_triangle(node.id, next.id, nn.id, cells)
+      
+      delete_ids.append(next.id)
+      
+      continue
+    
+    # check valleys that contains 2 end nodes
+    # node after next next node (node after nn)
+    nnn                   = get_end_node_by_grid_coords(node.i, node.j+3, end_nodes)[0]
+    rn,rnn_idx   = get_end_node_by_grid_coords(node.i+1,node.j+1,end_nodes)
+    rnn,rnn_idx = get_end_node_by_grid_coords(node.i+1,node.j+2,end_nodes)
+    ln,ln_idx       = get_end_node_by_grid_coords(node.i-1,node.j+1,end_nodes)
+    lnn, lnn_idx  = get_end_node_by_grid_coords(node.i-1,node.j+2,end_nodes)
+    
+#     print "\nnode: ", node.id
+#     print "nnn: ", nnn
+#     print "rn: ", rn
+#     print "rnn: ", rnn
+#     print "ln: ", ln
+#     print "lnn: ", lnn
+    
+    # next node the node after next node should not be of type end node
+    if nnn and not (n or n_inner)  and not ( nn or nn_inner) and (ln and lnn or rn and rnn):
+      # check which one is first in the valley
+      next = ln if ln is not None else rn
+      next_idx = ln_idx if ln is not None else rn_idx
+      # check which one is first in the valley
+      next_2 = lnn if lnn else rnn
+      next_2_idx = lnn_idx if lnn else rnn_idx
+      
+#       print "next: ", next.id
+#       print "next_2: ", next_2.id
+      
+      add_triangle(node.id, next.id,next_2.id, cells)
+      add_triangle(node.id, next_2.id,nnn.id, cells)
+      
+      delete_ids.append(next.id)
+      delete_ids.append(next_2.id)
+      
+  # remove all end nodes that were in valleys
+  end_nodes[:] = [v for v in end_nodes if v.id not in delete_ids]
   
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
@@ -742,9 +810,15 @@ def create_profiles_array(args,infoXml):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
     
-#     fix_end_node_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells)
-#     fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
-#     fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
+    # creates triangles between end nodes of same profile where
+    # we have e.g. a valley with 1 or 2 nodes
+    postprocess_end_nodes(end_nodes_1,nodes_ids_1,cells)
+    postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
+    postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
+    
+    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells)
+#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
@@ -875,14 +949,22 @@ def write_profile_to_array(array,profile,dir):
             array[k,j,i] = dir
 
 
-def get_end_node(id,end_nodes):
+# find end node object in list with matching id
+def get_end_node_by_id(id,end_nodes):
   for node in end_nodes:
     if node.id == id:
       return node
   
-  print "node with id ", id, " not found in list"
+#   print "node with id ", id, " not found in list"
   return None
+
+# find end node object in list with matching grid coordinates
+def get_end_node_by_grid_coords(i,j,end_nodes):
+  for idx,node in enumerate(end_nodes):
+    if node.i == i and node.j == j:
+      return node, idx
   
+  return None, -1
 # for a given list of of end_nodes
 # check if any of these nodes lie in triangle 
 # by calculating barycentric coordinates for each node
@@ -1040,13 +1122,13 @@ def give_next_end_node(node,end_nodes):
   # we define front in relative coordinates by means of grid coordinates i and j
   diff_i = 0
   diff_j = 0
-
+  
   # find node in connections that is on the same profile
   # get node objects
   previous = None
   for n in node.connections:
-    v = get_end_node(n, end_nodes)
-    if get_end_node(n, end_nodes) is not None:  
+    v = get_end_node_by_id(n, end_nodes)
+    if get_end_node_by_id(n, end_nodes) is not None:  
       previous = v
   
   if previous:    
@@ -1067,6 +1149,8 @@ def give_next_end_node(node,end_nodes):
   candidates.append((left_line,node.j))
   candidates.append((left_line,node.j+1))
   candidates.append((left_line,node.j-1))
+  candidates.append((node.i,node.j+3))
+  candidates.append((node.i,node.j-3))
   
   for test in candidates:
     nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
@@ -1075,6 +1159,7 @@ def give_next_end_node(node,end_nodes):
         if v.id not in node.connections:
           return v
   
+#   return None
   assert(False)    
 # search for 'num' points closest points to ref; ref is an end point
 def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
@@ -1150,8 +1235,10 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   if not next_cand:
     cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
     next_cand_2 = give_next_end_node(b, cand_2_nodes)
+    if next_cand_2 is None:
+      return False
     ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
-    
+  
   next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
   alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
   
@@ -1205,7 +1292,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
-def fix_end_node_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
+def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells):
   triangles = [] # saves all triangles found by marching
   
   # start from x profile and 0 degree and take first end node you can find
