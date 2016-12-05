@@ -22,7 +22,7 @@ class End_Node():
   id = -1 # vtk id of point
   i = -1 # first index in surface map, corresponds to surface line
   j = -1 # second index in surface map, where on surface line 
-  dir = -1
+  dir = -1 # to which structure does this end node belongs to (x,y,z)(1,2,3)?
     
   def __init__(self,coords,id,dir,i,j):
     assert(len(coords) == 3)
@@ -742,7 +742,7 @@ def create_profiles_array(args,infoXml):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
     
-    fix_end_node_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells)
+#     fix_end_node_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells)
 #     fix_end_node_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_end_node_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -874,6 +874,15 @@ def write_profile_to_array(array,profile,dir):
           if dir == 3:
             array[k,j,i] = dir
 
+
+def get_end_node(id,end_nodes):
+  for node in end_nodes:
+    if node.id == id:
+      return node
+  
+  print "node with id ", id, " not found in list"
+  return None
+  
 # for a given list of of end_nodes
 # check if any of these nodes lie in triangle 
 # by calculating barycentric coordinates for each node
@@ -1020,8 +1029,32 @@ def give_neighbor_end_nodes(node,end_nodes):
       res.append(nexts[0])
       
   return res
-      
+
+# returns next end node in end nodes list
+# we assume that from our current relative position, the next end node is
+# preferable in the front right direction
+# if no node is found than check for left previous direction
+# to check relative direction, we the previous end node in same profile
+# first check      
 def give_next_end_node(node,end_nodes):
+  # we define front in relative coordinates by means of grid coordinates i and j
+  diff_i = 0
+  diff_j = 0
+
+  # find node in connections that is on the same profile
+  # get node objects
+  previous = None
+  for n in node.connections:
+    v = get_end_node(n, end_nodes)
+    if get_end_node(n, end_nodes) is not None:  
+      previous = v
+  
+  if previous:    
+    diff_i = np.sign(node.i - previous.i)
+    diff_j = np.sign(node.j - previous.j)
+    
+    print "node ", node.id, " previous: ", previous.id, " dir_i: ", diff_i, " dir_j: ", diff_j
+  
   # find first triangle
   candidates = []
   candidates.append((node.i,node.j+1)) # next node on line
@@ -1100,7 +1133,6 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,next_cand=None):
   
   if a.id == 1227 and b.id == 9167:
     return False
-  
   
   print "\na: ", a.id, " connections: ", a.connections
   print "b: ", b.id, " connections: ", b.connections 
