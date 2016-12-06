@@ -31,6 +31,7 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
+  noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
 }
 
