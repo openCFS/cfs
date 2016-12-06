@@ -1125,11 +1125,19 @@ def give_next_end_node(node,end_nodes,start_id=-1):
     return node
   # we define front in relative coordinates by means of grid coordinates i and j
   if node.dir == 1:
-    diff_i = 1
-    diff_j = 0
+    if node.j < res/2:
+      diff_i = 1
+      diff_j = 0
+    else:
+      diff_i = 0
+      diff_j = 1
   elif node.dir == 3:
-    diff_i = 0
-    diff_j = 1
+    if node.coords[0] < 0.5:
+      diff_i = 0
+      diff_j = 1
+    else:
+      diff_i = 0
+      diff_j = -1
   else: # not handled yet
     assert(False)
   
@@ -1144,10 +1152,17 @@ def give_next_end_node(node,end_nodes,start_id=-1):
   if previous:
     diff_i = np.sign(node.i - previous.i)
     diff_j = np.sign(node.j - previous.j)
-    diff_i = np.sign(node.i - previous.i)    
-    diff_j = np.sign(node.j - previous.j)
+    # if node.i is 99 and previous.i is, diff_i is 1
+    # but this is wrong, as previous.i = 0 only results from modulo the resolution
+    # in this case, diff_i should be -1!
+    if previous.i == 0 and node.i == res-1:
+      diff_i = -1
+    if node.i == 0 and previous.i == 99:
+      diff_i = 1
     
-    print "node ", node.id, " previous: ", previous.id, " dir_i: ", diff_i, " dir_j: ", diff_j
+    print "node ", node.id, " i,j: ", node.i, node.j, " previous: ", previous.id, " dir_i: ", diff_i, " dir_j: ", diff_j
+  else:
+    print "first node ", node.id, " i,j: ", node.i, node.j, " dir_i: ", diff_i, " dir_j: ", diff_j  
   
   candidates = []
   i = node.i
@@ -1172,6 +1187,7 @@ def give_next_end_node(node,end_nodes,start_id=-1):
   elif diff_j == -1:
     candidates.append((left_line,j))  #candidates.append((i-1,j))
     candidates.append((left_line,j-1))#candidates.append((i-1,j-1))
+    candidates.append((left_line,j+1))
     candidates.append((i,j-1))
     candidates.append((right_line,j-1))#candidates.append((i+1,j-1))  
     candidates.append((right_line,j))  #candidates.append((i+1,j))
@@ -1183,14 +1199,15 @@ def give_next_end_node(node,end_nodes,start_id=-1):
     candidates.append((i,j+1))
     candidates.append((left_line,j+1))#candidates.append((i-1,j+1))
     candidates.append((left_line,j))  #candidates.append((i-1,j))
+    candidates.append((left_line,j-1))  #candidates.append((i-1,j))
     candidates.append((i,j+2)) # in case we step over a valley
-    candidates.append((i,j+3)) # in case we step over a valley  
+    candidates.append((i,j+3)) # in case we step over a valley
+    
+#   if node.id == 1879:
+  print "candidates: ", candidates  
   
   for test in candidates:
     nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
-    if node.id == 2191:
-      for n in candidates:
-        print "next: ", n[0],n[1]
     if nexts:
       for v in nexts:
         print "v: ", v
@@ -1333,44 +1350,48 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
 def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells, res):
-  triangles = [] # saves all triangles found by marching
-  
+#   test = get_end_node_by_id(1838, this_end_nodes)
+#   print "node: ", test
+#   sys.exit()
   # start from x profile and 0 degree and take first end node you can find
-  node = [v for v in this_end_nodes if v.i == 0]
-  assert(node)
-  node = node[0]
-  start_node = node
+  nodes = [v for v in this_end_nodes if v.i == 0]
+  assert(nodes)
+  for n in nodes:
+    print "\nstarting with ", n.id
+    triangles = [] # saves all triangles found by marching
+    start_node = n
   
-  next = give_next_end_node(node,this_end_nodes)
+    next = give_next_end_node(start_node,this_end_nodes)
   
-  other = find_closest_points(node,next,other_1_end_node,other_2_end_node,1)
-  other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
+    other = find_closest_points(start_node,next,other_1_end_node,other_2_end_node,1)
+    other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
   
-  next.connections.add(other.id)
-  next.connections.add(node.id)
-  node.connections.add(other.id)
-  node.connections.add(next.id)
-  other.connections.add(node.id)
-  other.connections.add(next.id)
+    next.connections.add(other.id)
+    next.connections.add(start_node.id)
+    start_node.connections.add(other.id)
+    start_node.connections.add(next.id)
+    other.connections.add(start_node.id)
+    other.connections.add(next.id)
   
-  triangles.append(Marching_Triangle([node,next,other],next,other,node))
+    triangles.append(Marching_Triangle([start_node,next,other],next,other,start_node))
+    print "created triangle with edge: (", next.id, ",", other.id, ") next: ", next.id
   
-  initial_edge = [node,other]
-  run = True
-  end = False
-  while len(triangles) > 0 and run and not end:
+    initial_edge = [start_node,other]
+    run = True
+    end = False
+    while len(triangles) > 0 and run and not end:
     
-    run = check_next_triangle(triangles, this_end_nodes, other_nodes, start_node.id)
-    # check if we have just created a triangle where new active edge is 
-    # identical to active edge of very first triangle --> we are finished!
-    edge = triangles[-1].edge
-    print "edge: ", edge[0].id, edge[1].id
-    print "init edge: ", initial_edge[0].id, initial_edge[1].id
-    if len(triangles) > 2 and (edge[0] == initial_edge[0] and edge[1] == initial_edge[1]) or (edge[0] == initial_edge[1] and edge[1] == initial_edge[0]):
-      print "filled"
-      end = True 
+      run = check_next_triangle(triangles, this_end_nodes, other_nodes, start_node.id)
+      # check if we have just created a triangle where new active edge is 
+      # identical to active edge of very first triangle --> we are finished!
+      edge = triangles[-1].edge
+#       print "edge: ", edge[0].id, edge[1].id
+#       print "init edge: ", initial_edge[0].id, initial_edge[1].id
+      if len(triangles) > 2 and (edge[0] == initial_edge[0] and edge[1] == initial_edge[1]) or (edge[0] == initial_edge[1] and edge[1] == initial_edge[0]):
+        print "filled"
+        end = True 
         
-  for triangle in triangles:
-    verts = triangle.vertices
-    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+    for triangle in triangles:
+      verts = triangle.vertices
+      add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
       
