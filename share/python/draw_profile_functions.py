@@ -823,7 +823,16 @@ def create_profiles_array(args,infoXml):
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
     
-    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, end_nodes_2, cells, res)
+#     out = open("node_info.txt","w")
+#     out.write("# id \t i \t j \t x \t y \t z \n")
+#     for n in end_nodes_1+end_nodes_2+end_nodes_3:
+#       out.write(str(n.id) + " \t" + str(n.i) + " \t" + str(n.j) + " \t" + str(n.coords[0]) + " \t" + str(n.coords[1]) + " \t" + str(n.coords[2]) + "\n")
+#     
+#     out.close()
+#     sys.exit()  
+    
+    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -1124,7 +1133,7 @@ def give_next_end_node(node,end_nodes,start_id=-1):
   if node.id == start_id:
     return node
   # we define front in relative coordinates by means of grid coordinates i and j
-  if node.dir == 1:
+  if node.dir == 1  or node.dir == 2:
     if node.j < res/2:
       diff_i = 1
       diff_j = 0
@@ -1171,6 +1180,7 @@ def give_next_end_node(node,end_nodes,start_id=-1):
   left_line = node.i-1 if node.i > 0 else res-1
   right_line = node.i+1 if node.i < res-1 else 0
   
+  #candidates.append(())
   if diff_j == 0:
     if diff_i == 1:
       candidates.append((i,j-1))
@@ -1183,25 +1193,95 @@ def give_next_end_node(node,end_nodes,start_id=-1):
       candidates.append((left_line,j+1))#candidates.append((i-1,j+1))
       candidates.append((left_line,j))#candidates.append((i-1,j))
       candidates.append((left_line,j-1))#candidates.append((i-1,j-1))
-      candidates.append((i,j-1))  
-  elif diff_j == -1:
-    candidates.append((left_line,j))  #candidates.append((i-1,j))
-    candidates.append((left_line,j-1))#candidates.append((i-1,j-1))
-    candidates.append((left_line,j+1))
-    candidates.append((i,j-1))
-    candidates.append((right_line,j-1))#candidates.append((i+1,j-1))  
-    candidates.append((right_line,j))  #candidates.append((i+1,j))
-    candidates.append((i,j-2)) # in case we step over a valley
-    candidates.append((i,j-3)) # in case we step over a valley
-  else: # diff_j == 1
-    candidates.append((right_line,j))  #candidates.append((i+1,j))
-    candidates.append((right_line,j+1))#candidates.append((i+1,j+1))
-    candidates.append((i,j+1))
-    candidates.append((left_line,j+1))#candidates.append((i-1,j+1))
-    candidates.append((left_line,j))  #candidates.append((i-1,j))
-    candidates.append((left_line,j-1))  #candidates.append((i-1,j))
-    candidates.append((i,j+2)) # in case we step over a valley
-    candidates.append((i,j+3)) # in case we step over a valley
+      candidates.append((i,j-1))
+  else:
+    if diff_i == 0: 
+      if diff_j == 1:
+        candidates.append((right_line,j))
+        candidates.append((right_line,j+1))
+        candidates.append((i,j+1))
+        candidates.append((left_line,j+1))
+        candidates.append((left_line,j))
+        candidates.append((i,j+2)) # jump over valleys
+        candidates.append((i,j+3)) # jump over valleys
+      else: # diff_j = -1
+        candidates.append((left_line,j))
+        candidates.append((left_line,j-1))
+        candidates.append((i,j-1))
+        candidates.append((right_line,j-1))
+        candidates.append((right_line,j))
+        candidates.append((i,j-2)) # jump over valleys
+        candidates.append((i,j-3)) # jump over valleys 
+    else: # all diagonal cases
+      if diff_i == 1 and diff_j == 1:
+        candidates.append((right_line,j-1))
+        candidates.append((right_line,j))
+        candidates.append((right_line,j+1))
+        candidates.append((i,j+1))
+        candidates.append((left_line,j+1))
+        candidates.append((left_line,j))
+        candidates.append((i,j+2)) # jump over valleys
+        candidates.append((i,j+3)) # jump over valleys
+      elif diff_i == 1 and diff_j == -1:
+        candidates.append((left_line,j))
+        candidates.append((left_line,j-1))
+        candidates.append((i,j-1))
+        candidates.append((right_line,j-1))
+        candidates.append((right_line,j))
+        candidates.append((right_line,j+1))
+        candidates.append((i,j-2)) # jump over valleys
+        candidates.append((i,j-3)) # jump over valleys
+      elif diff_i == -1 and diff_j == 1:
+        candidates.append((right_line,j))
+        candidates.append((right_line,j+1))
+        candidates.append((i,j+1))
+        candidates.append((left_line,j+1))
+        candidates.append((left_line,j))
+        candidates.append((left_line,j-1))
+        candidates.append((i,j+2)) # jump over valleys
+        candidates.append((i,j+3)) # jump over valleys
+      else: # diff_i == -1 and diff_j == -1
+        candidates.append((left_line,j+1))
+        candidates.append((left_line,j))
+        candidates.append((left_line,j-1))
+        candidates.append((i,j-1))
+        candidates.append((right_line,j-1))
+        candidates.append((right_line,j))   
+        candidates.append((i,j-2)) # jump over valleys
+        candidates.append((i,j-3)) # jump over valleys   
+#   if diff_j == 0:
+#     if diff_i == 1:
+#       candidates.append((i,j-1))
+#       candidates.append((right_line,j-1))#candidates.append((i+1,j-1))
+#       candidates.append((right_line,j))#candidates.append((i+1,j))
+#       candidates.append((right_line,j+1))#candidates.append((i+1,j+1))
+#       candidates.append((i,j+1))
+#     else:
+#       candidates.append((i,j+1))
+#       candidates.append((left_line,j+1))#candidates.append((i-1,j+1))
+#       candidates.append((left_line,j))#candidates.append((i-1,j))
+#       candidates.append((left_line,j-1))#candidates.append((i-1,j-1))
+#       candidates.append((i,j-1))  
+#   elif diff_j == -1:
+#     candidates.append((left_line,j))  #candidates.append((i-1,j))
+#     candidates.append((left_line,j-1))#candidates.append((i-1,j-1))
+#     candidates.append((left_line,j+1))
+#     candidates.append((i,j-1))
+#     candidates.append((right_line,j-1))#candidates.append((i+1,j-1))  
+#     candidates.append((right_line,j))  #candidates.append((i+1,j))
+#     candidates.append((right_line,j+1))
+#     candidates.append((i,j-2)) # in case we step over a valley
+#     candidates.append((i,j-3)) # in case we step over a valley
+#   else: # diff_j == 1
+#     candidates.append((right_line,j))  #candidates.append((i+1,j))
+#     candidates.append((right_line,j+1))#candidates.append((i+1,j+1))
+#     candidates.append((right_line,j-1))
+#     candidates.append((i,j+1))
+#     candidates.append((left_line,j+1))#candidates.append((i-1,j+1))
+#     candidates.append((left_line,j))  #candidates.append((i-1,j))
+#     candidates.append((left_line,j-1))  #candidates.append((i-1,j))
+#     candidates.append((i,j+2)) # in case we step over a valley
+#     candidates.append((i,j+3)) # in case we step over a valley
     
 #   if node.id == 1879:
   print "candidates: ", candidates  
@@ -1273,7 +1353,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 1227 and b.id == 9167:
+#   if a.id == 3145 or b.id == 10801 or a.id == 10801 or b.id == 3145:
 #     return False
   
   print "\na: ", a.id, " connections: ", a.connections
@@ -1293,6 +1373,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
     next_cand_2 = give_next_end_node(b, cand_2_nodes,start_id)
     if next_cand_2 is None:
+      print "Ohohoh..."
       return False
     ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
   
@@ -1349,7 +1430,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
-def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node, other_2_end_node,cells, res):
+def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
 #   test = get_end_node_by_id(1838, this_end_nodes)
 #   print "node: ", test
 #   sys.exit()
@@ -1363,8 +1444,9 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node, other_2_end_
   
     next = give_next_end_node(start_node,this_end_nodes)
   
-    other = find_closest_points(start_node,next,other_1_end_node,other_2_end_node,1)
-    other_nodes = other_1_end_node if other_1_end_node[0].dir == other.dir else other_2_end_node
+    other = find_closest_point(start_node, next, other_1_end_node)[0]
+    print "other: ",other
+    other_nodes = other_1_end_node 
   
     next.connections.add(other.id)
     next.connections.add(start_node.id)
@@ -1380,7 +1462,6 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node, other_2_end_
     run = True
     end = False
     while len(triangles) > 0 and run and not end:
-    
       run = check_next_triangle(triangles, this_end_nodes, other_nodes, start_node.id)
       # check if we have just created a triangle where new active edge is 
       # identical to active edge of very first triangle --> we are finished!
