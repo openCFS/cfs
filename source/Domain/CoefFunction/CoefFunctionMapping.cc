@@ -42,7 +42,21 @@ CoefFunctionMapping<T>::~CoefFunctionMapping(){
 template<typename T>
 void CoefFunctionMapping<T>::GetTensor(Matrix<Complex>& tensor,
                               const LocPointMapped& lpm ){
-  EXCEPTION("Not implemented: Complex mapping!");
+	  //this is diagonal tensor with the coefficients
+	  tensor.Resize(this->dim_,this->dim_);
+	  tensor.Init();
+	  Double locThick=0.0;
+	  Double position=0.0;
+	  for(UInt i=0;i<this->dim_;++i){
+	    this->GetThicknessAtPoint(locThick,position,lpm,i);
+	    if(abs(locThick)>0.0){
+	    	Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+	      tensor[i][i] = fac;
+	    }else{
+	      Complex one(1.0,0.0);
+	      tensor[i][i] = one;
+	    }
+	  }
 }
 
 template<typename T>
@@ -66,19 +80,22 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
 template<typename T>
 void CoefFunctionMapping<T>::GetVector(Vector<Complex>& vec,
                               const LocPointMapped& lpm ){
-  /*vec.Resize(this->dim_,0.0);
-  Double locThick=0.0;
-  Double position=0.0;
-  for(UInt i=0;i<this->dim_;++i){
-    this->GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      vec[i] = this->dampFunction_->ComputeFactor(position,locThick);
-    }else{
-      vec[i] = 1.0;
-    }
-  }*/
+	  //this is diagonal tensor with the coefficients
+	vec.Resize(this->dim_);
+	vec.Init();
+	  Double locThick=0.0;
+	  Double position=0.0;
+	  for(UInt i=0;i<this->dim_;++i){
+	    this->GetThicknessAtPoint(locThick,position,lpm,i);
+	    if(abs(locThick)>0.0){
+	    	Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+	    	vec[i] = fac;
+	    }else{
+	      Complex one(1.0,0.0);
+	      vec[i] = one;
+	    }
+	  }
 
-  EXCEPTION("Not implemented: Complex mapping!");
 }
 
 template<typename T>
@@ -101,17 +118,17 @@ void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
 template<typename T>
 void CoefFunctionMapping<T>::GetScalar(Complex& val,
                               const LocPointMapped& lpm ){
-  EXCEPTION("Not implemented: Complex mapping!");
-
   Double locThick=0.0;
   Double position=0.0;
-  val = 1.0;
+  Complex one(1.0,0.0);
+  val = one;
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      val /= this->dampFunction_->ComputeFactor(position,locThick);
+      Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+      val /= fac;
     }else{
-      val *= 1.0;
+      val *= one;
     }
   }
 }
