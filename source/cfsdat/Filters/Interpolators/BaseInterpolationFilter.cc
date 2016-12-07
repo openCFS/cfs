@@ -26,15 +26,15 @@ namespace CFSDat{
 
 FilterPtr BaseInterpolationFilter::GenerateInterpolator(PtrParamNode interpolNode, PtrResultManager resMana){
   FilterPtr newFilter;
- if(interpolNode->Get("type")->As<std::string>() == "Conservative_CellCentroid"){
+ if(interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_Conservative_CellCentroid"){
    newFilter = FilterPtr(new CFSDat::CentroidInterpolator(0,interpolNode,resMana));
- } else if(interpolNode->Get("type")->As<std::string>() == "Conservative_CutCell"){
+ } else if(interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_Conservative_CutCell"){
    newFilter = FilterPtr(new CFSDat::GridIntersectionFilter(0,interpolNode,resMana));
- } else if (interpolNode->Get("type")->As<std::string>() == "NearestNeighbour"){
+ } else if (interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_NearestNeighbour"){
    newFilter = FilterPtr(new CFSDat::NearestNeighbourInterpolator(0,interpolNode,resMana));
- } else if (interpolNode->Get("type")->As<std::string>() == "Cell2Node"){
+ } else if (interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_Cell2Node"){
    newFilter = FilterPtr(new CFSDat::Cell2NodeInterpolator(0,interpolNode,resMana));
- } else if (interpolNode->Get("type")->As<std::string>() == "RBF"){
+ } else if (interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_RBF"){
    newFilter = FilterPtr(new CFSDat::RBFInterpolator(0,interpolNode,resMana));
  }
  return newFilter;

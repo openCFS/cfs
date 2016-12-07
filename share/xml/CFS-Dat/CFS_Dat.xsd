@@ -274,16 +274,16 @@
 
   <xsd:simpleType name="DT_InterpolationType">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="Conservative_CellCentroid"/>
-      <xsd:enumeration value="Conservative_CutCell"/>
-      <xsd:enumeration value="Cell2Node">
+      <xsd:enumeration value="FieldInterpolation_Conservative_CellCentroid"/>
+      <xsd:enumeration value="FieldInterpolation_Conservative_CutCell"/>
+      <xsd:enumeration value="FieldInterpolation_Cell2Node">
       <xsd:annotation>
         <xsd:documentation>
           Interpolation from cell-centroid to nodes of element, no interpolation between meshes!
         </xsd:documentation>
       </xsd:annotation>
       </xsd:enumeration>
-      <xsd:enumeration value="NearestNeighbour">
+      <xsd:enumeration value="FieldInterpolation_NearestNeighbour">
         <xsd:annotation>
           <xsd:documentation>
             Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
@@ -291,7 +291,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
-      <xsd:enumeration value="RBF">
+      <xsd:enumeration value="FieldInterpolation_RBF">
         <xsd:annotation>
           <xsd:documentation>
             Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
@@ -385,10 +385,11 @@
 
  <xsd:simpleType name="DT_DerivativeType">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="GradientDifferentiator"/>
-      <xsd:enumeration value="DivergenceDifferentiator"/>
-      <xsd:enumeration value="CurlDifferentiator"/>
-      <xsd:enumeration value="Lighthill"/>
+      <xsd:enumeration value="SpaceDifferentiation_Gradient"/>
+      <xsd:enumeration value="SpaceDifferentiation_Divergence"/>
+      <xsd:enumeration value="SpaceDifferentiation_Curl"/>
+      <xsd:enumeration value="AeroacousticSource_Lighthill"/>
+      <xsd:enumeration value="AeroacousticSource_LambVector"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -396,8 +397,7 @@
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
-          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0">
-          </xsd:element>
+          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>

@@ -17,10 +17,7 @@
 
 #include "MeshBasedDerivative.hh"
 #include "DataInOut/SimInput.hh"
-#include <boost/tr1/type_traits.hpp>
-#include <def_use_cgal.hh>
-#include <def_use_flann.hh>
-#include <cfsdat/Utils/Point.hh>
+
 
 namespace CFSDat{
 
@@ -28,6 +25,7 @@ namespace CFSDat{
 
 class Lighthill : public MeshBasedDerivative{
 
+public:
   struct DifferentiationStruct{
     CF::Vector<Double> localCoords;
     UInt tENum;
@@ -44,7 +42,7 @@ class Lighthill : public MeshBasedDerivative{
   };
 
 
-public:
+
 
   Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
@@ -75,11 +73,11 @@ protected:
                                  UInt numNN,
                                  Double alpha);
 
-  void CalcRotU(Vector<Double>& retVec,
+  void CalcCurlU(Vector<Double>& retVec,
                 const Vector<Double> inVec);
 
 
-  void CalcLocRotDerivativeCoefs(CF::Matrix<Double>& vec,
+  void CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
                                  CF::Vector<Double>& globPoint,
                                  CF::StdVector< Vector<Double> >& neighbors,
                                  CF::StdVector< Double >& l2Distances,
@@ -87,11 +85,11 @@ protected:
                                  UInt numNN,
                                  Double alpha);
 
-  void InterpolNodeToCenter(Vector<Double>& retVec,
+  void InterpolationNodeToCenter(Vector<Double>& retVec,
                             const Vector<Double> inVec);
 
 
-  void OmegaCrossU(const Vector<Double> Omega,
+  void OmegaVectorProductU(const Vector<Double> Omega,
                               const Vector<Double> U,
                               Vector<Double>& retVec);
 
@@ -111,6 +109,12 @@ private:
 
   // Density, if not specified in xml-scheme it is automatically set to one
   Double density_;
+
+  // String if the full Lighthill or only the Lamb-vector is computed
+  std::string Form_;
+
 };
+
+
 
 }

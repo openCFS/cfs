@@ -47,6 +47,7 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
 
     density_ = config->Get("scheme")->Get("density")->As<Double>();
 
+    Form_ = config->Get("type")->As<std::string>();
 
 }
 
@@ -98,31 +99,39 @@ bool Lighthill::Run(){
    * source-terms
    ***********************************************************/
 
-
-  Vector<Double> OmCrU;
+  /**********************************************************
+   * Check if the whole Lighthill source or only the Lamb-vector
+   * has to be computed
+   ***********************************************************/
   Vector<Double> GradOfScalar;
-  Vector<Double> interU;
-  Vector<Double> RotU;
-
+  if(Form_ != "AeroacousticSource_LambVector"){
   //Grad(1/2 u*u)
   CalcGradUScalarU(GradOfScalar, inVec);
   GradOfScalar.ScalarMult(0.5);
+  }
 
   //Curl(u)
-  CalcRotU(RotU, inVec);
-
+  Vector<Double> CurlU;
+  CalcCurlU(CurlU, inVec);
 
   //u in inVec is defined on nodes but when multiplying it
   //to differentiated results (which are elemResults) we
   //need to restrict them to elem centroids
-  InterpolNodeToCenter(interU, inVec);
-
+  Vector<Double> interpolateU;
+  InterpolationNodeToCenter(interpolateU, inVec);
 
   //Curl(u) x u
-  OmegaCrossU(RotU, interU, OmCrU);
+  Vector<Double> OmegaCrossU;
+  OmegaVectorProductU(CurlU, interpolateU, OmegaCrossU);
 
+
+  if(Form_ != "AeroacousticSource_LambVector"){
   //adding all up
-  returnVec = GradOfScalar+OmCrU*density_;
+  returnVec = GradOfScalar+OmegaCrossU*density_;
+  }else{
+    returnVec = OmegaCrossU * density_;
+  }
+
 
 
   resultManager_->ActivateResult(filterResIds[0]);
@@ -137,7 +146,7 @@ bool Lighthill::Run(){
 
 
 
-void Lighthill::OmegaCrossU(const Vector<Double> Omega,
+void Lighthill::OmegaVectorProductU(const Vector<Double> Omega,
                             const Vector<Double> U,
                             Vector<Double>& retVec){
 
@@ -147,8 +156,8 @@ void Lighthill::OmegaCrossU(const Vector<Double> Omega,
   CF::StdVector< CF::Vector<Double> >  UData;
   UData.Resize(derivData_.size());
 
-  CF::StdVector< CF::Vector<Double> >  OmCrU;
-  OmCrU.Resize(derivData_.size());
+  CF::StdVector< CF::Vector<Double> >  OmegaCrossU;
+  OmegaCrossU.Resize(derivData_.size());
 
   retVec.Resize(3*derivData_.size());
   retVec.Init();
@@ -167,17 +176,17 @@ void Lighthill::OmegaCrossU(const Vector<Double> Omega,
 
   //now we compute the cross product
   for(UInt i = 0; i < derivData_.size(); ++i){
-    OmCrU[i].Resize(3);
-    OmCrU[i][0] = OmegaData[i][1] * UData[i][2] - OmegaData[i][2] * UData[i][1];
-    OmCrU[i][1] = OmegaData[i][2] * UData[i][0] - OmegaData[i][0] * UData[i][2];
-    OmCrU[i][2] = OmegaData[i][0] * UData[i][1] - OmegaData[i][1] * UData[i][0];
+    OmegaCrossU[i].Resize(3);
+    OmegaCrossU[i][0] = OmegaData[i][1] * UData[i][2] - OmegaData[i][2] * UData[i][1];
+    OmegaCrossU[i][1] = OmegaData[i][2] * UData[i][0] - OmegaData[i][0] * UData[i][2];
+    OmegaCrossU[i][2] = OmegaData[i][0] * UData[i][1] - OmegaData[i][1] * UData[i][0];
   }
 
   //bring in such a returnVec-form (x1,y1,z1,x2,y2,z2,...)
   for (UInt i = 0; i < derivData_.size(); ++i){
-    retVec[3 * i] = OmCrU[i][0];
-    retVec[3 * i + 1] = OmCrU[i][1];
-    retVec[3 * i + 2] = OmCrU[i][2];
+    retVec[3 * i] = OmegaCrossU[i][0];
+    retVec[3 * i + 1] = OmegaCrossU[i][1];
+    retVec[3 * i + 2] = OmegaCrossU[i][2];
   }
 
 }
@@ -294,7 +303,7 @@ void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
 
 
 
-void Lighthill::CalcRotU(Vector<Double>& retVec,
+void Lighthill::CalcCurlU(Vector<Double>& retVec,
                          const Vector<Double> inVec){
 
   //resize retVec to number of nodes of target
@@ -393,7 +402,7 @@ void Lighthill::CalcRotU(Vector<Double>& retVec,
     // build the local RBF interpolation matrix, based on the nearest neighbour source points
     // build the local interpolation-value vector and solve the system ALoc*c=vector for
     // the local RBF coefficients c
-    CalcLocRotDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
+    CalcLocCurlDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
 
     CF::StdVector<UInt> eqns;
     //get the equation map for the nodes in eConn, in order to insert the
@@ -409,7 +418,7 @@ void Lighthill::CalcRotU(Vector<Double>& retVec,
 }
 
 
-void Lighthill::InterpolNodeToCenter(Vector<Double>& retVec, const Vector<Double> inVec){
+void Lighthill::InterpolationNodeToCenter(Vector<Double>& retVec, const Vector<Double> inVec){
 
   //resize retVec to number of nodes of target
   retVec.Resize(3.0 * derivData_.size());
@@ -631,7 +640,7 @@ void Lighthill::CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
 }
 
 
-void Lighthill::CalcLocRotDerivativeCoefs(CF::Matrix<Double>& vec,
+void Lighthill::CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
                                           CF::Vector<Double>& globPoint,
                                           CF::StdVector< Vector<Double> >& neighbors,
                                           CF::StdVector< Double >& l2Distances,

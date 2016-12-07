@@ -24,13 +24,13 @@ namespace CFSDat{
 
 FilterPtr BaseDerivativeFilter::GenerateSpatialDerivative(PtrParamNode derivNode, PtrResultManager resMana){
   FilterPtr newFilter;
- if(derivNode->Get("type")->As<std::string>() == "GradientDifferentiator"){
+ if(derivNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Gradient"){
    newFilter = FilterPtr(new CFSDat::GradientDifferentiator(0,derivNode,resMana));
- }else if(derivNode->Get("type")->As<std::string>() == "DivergenceDifferentiator"){
+ }else if(derivNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Divergence"){
    newFilter = FilterPtr(new CFSDat::DivergenceDifferentiator(0,derivNode,resMana));
- }else if(derivNode->Get("type")->As<std::string>() == "CurlDifferentiator"){
+ }else if(derivNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Curl"){
    newFilter = FilterPtr(new CFSDat::CurlDifferentiator(0,derivNode,resMana));
- }else if(derivNode->Get("type")->As<std::string>() == "Lighthill"){
+ }else if(derivNode->Get("type")->As<std::string>() == "AeroacousticSource_Lighthill" || "AeroacousticSource_LambVector"){
    newFilter = FilterPtr(new CFSDat::Lighthill(0,derivNode,resMana));
  }
  return newFilter;
