@@ -44,7 +44,6 @@ IF(MINGW)
 ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
     -llapack
     -lblas
     -lquadmath
@@ -52,15 +51,14 @@ ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
 ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
     -llapack
     -lblas
     )
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    )
+    -lquadmath
+     )
 ENDIF()
 
 
