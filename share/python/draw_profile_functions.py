@@ -16,6 +16,7 @@ from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 from scipy.spatial.qhull import ConvexHull
 from platform import node
+from wx.lib.analogclock.helpers import Hand
 # from basecell import calc_radius
 
 res = 1
@@ -1046,7 +1047,7 @@ def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3)
   
   return ratio
 
-# @param: vertices defining triangle
+# @param: vertices defining triangle (coordinates)
 # for evaluating quality of triangle, we take the ration of the exradius to twice the inradius
 def calc_triangle_ratio(v1,v2,v3):
   d1 = calc_distance(v1, v2)
@@ -1140,27 +1141,49 @@ def give_neighbor_end_nodes(node,end_nodes):
 # if no node is found than check for left previous direction
 # to check relative direction, we the previous end node in same profile
 # first check      
-def give_next_end_node(node,end_nodes,diff_i=None,diff_j=None,start_id=-1):
+# dir and other_dir helps determining walking direction in case node is a starting node
+def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
   # in case we have reached one vertice of the very first triangle found by algorithm 
   if node.id == start_id:
     return [node]
-  # we define front in relative coordinates by means of grid coordinates i and j
-  if node.dir == 1  or node.dir == 2:
-    if node.j < res/2:
-      diff_i = 1
-      diff_j = 0
-    else:
-      diff_i = 0
-      diff_j = 1
-  elif node.dir == 3:
-    if node.coords[0] < 0.5:
-      diff_i = 0
-      diff_j = 1
-    else:
-      diff_i = 0
-      diff_j = -1
-  else: # not handled yet
-    assert(False)
+  diff_i = 0
+  diff_j = 0
+  if dir and other_dir:
+    # we define front in relative coordinates by means of grid coordinates i and j
+    if dir == 1 and other_dir == 3 or dir == 3 and other_dir == 1:
+      if node.dir == 1:
+        if node.j < res/2:
+          diff_i = 1
+          diff_j = 0
+        else:
+          diff_i = 0
+          diff_j = 1
+          
+      elif node.dir == 3:
+        if node.coords[0] < 0.5:
+          diff_i = 0
+          diff_j = 1
+        else:
+          diff_i = 0
+          diff_j = -1
+    elif dir == 2 and other_dir == 3 or dir == 3 and other_dir == 2:
+      if node.dir == 2:
+        if node.j < res/2:
+          diff_i = 1
+          diff_j = 0
+        else:  
+          diff_i = -1
+          diff_j = 0
+      elif node.dir == 3:
+        if node.coords[0] < 0.5:
+          diff_i = 1
+          diff_j = 0
+        else:
+          diff_i = 1
+          diff_j = 0
+    else: # not handled yet
+      print "dir: ", dir, " other_dir: ", other_dir
+      assert(False)
   
   # find node in connections that is on the same profile
   # get node objects
@@ -1262,9 +1285,6 @@ def give_next_end_node(node,end_nodes,diff_i=None,diff_j=None,start_id=-1):
 #         candidates.append((i,j-2)) # jump over valleys
 #         candidates.append((i,j-3)) # jump over valleys   
 
-  if node.dir == 2:
-    candidates = candidates[::-1]
-    
   result = []  
     
   for test in candidates:
@@ -1302,15 +1322,26 @@ def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
   
     return res[0][0],res[1][0],res[2][0]
 
+# remove connections to vertices (array with 2 nodes ids)
 def update_connections(triangles,vertices):
-  res = [None] * 3
-  res[0] = set([v for v in vertices[0].connections if not (v==vertices[1].id or v==vertices[2].id)])
-  res[1] = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
-  res[2] = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
+#   res = [None] * 3
+  vertices[0].connections = set([v for v in vertices[0].connections if not (v==vertices[1].id or v==vertices[2].id)])
+  vertices[1].connections = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
+  vertices[2].connections = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
   
-  triangles[-1].connections = res
+  print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
+  print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
+  print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
+#   
+#   triangles[-1].connections = res
+  # remove connections to previous triangle vertices
   triangles[-1].edge[0].connections = set([v for v in triangles[-1].edge[0].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
   triangles[-1].edge[1].connections = set([v for v in triangles[-1].edge[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[0].connections = set([v for v in triangles[-1].vertices[0].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[1].connections = set([v for v in triangles[-1].vertices[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[2].connections = set([v for v in triangles[-1].vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  
+  print "removed connections to ", vertices[0].id, vertices[1].id, vertices[2].id, " from triangle with vertices ", triangles[-1]
 
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_cand=None):
   
@@ -1319,61 +1350,78 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 3145 or b.id == 10801 or a.id == 10801 or b.id == 3145:
-#     return False
+  if a.id == 7005 and b.id == 5225:
+    return False
   
   print "\na: ", a.id, " connections: ", a.connections
-  print "b: ", b.id, " connections: ", b.connections 
+  print "b: ", b.id, " connections: ", b.connections
   
   a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
-  b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+  b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2 
   
-  cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
-  candidates_1 = give_next_end_node(a, cand_1_nodes, start_id)
-  
-  if len(candidates_1) == 0:
-    # check if next neighbor is already saved in a
-    print "a: ", a.id, " next: ", a.next
-    if a.next is not None: # in this case we stepped over a valley
-      next_cand_1 = a.next
-      print "jump from ", a.id, " to ", a.next.id
-#       a.next = None
-    else:
-      assert(False)
-  else:  
-    next_cand_1 = candidates_1[0]
-    
-  ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
-  next_cand_2 = None
-  cand_2_nodes = None
-  candidates_2 = None
+  ratio_1 = 1e6
   ratio_2 = 1e6
+  next_cand_1 = None
+  next_cand_2 = None
   
-  if not next_cand:
-    cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
-    candidates_2 = give_next_end_node(b, cand_2_nodes,start_id)
-    if len(candidates_2) == 0:
-      if b.next is not None: # in case we have to jump over a valley, next node is already saved in end node info
-        next_cand_2 = b.next
-        print "jump from ", b.id, " to ", b.next.id
-#         b. next = None
+  if not next_cand: # if next end node is not explicitly given and we have to search for one
+    cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
+    candidates_1 = give_next_end_node(a, cand_1_nodes, end_nodes_1[0].dir, end_nodes_2[0].dir, start_id)
+    
+    if len(candidates_1) == 0:
+      # check if next neighbor is already saved in a
+      if a.next is not None: # in this case we stepped over a valley
+        next_cand_1 = a.next
       else:
-        print "Ohohoh..."
-        return False
-    else:
-      next_cand_2 = candidates_2[0]
-    ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
-  
-  next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
-  alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
-  
+        handle_latest_triangle(triangles)
+        next_cand = triangles[-1].other_candidates[-1]
+        print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
+        triangles[-1].other_candidates.pop(-1)
+        check_next_triangle(triangles, end_nodes_1, end_nodes_2, start_id, next_cand)
+        return True
+    else:  
+      next_cand_1 = candidates_1[0]
+      
+    ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
+    next_cand_2 = None
+    cand_2_nodes = None
+    candidates_2 = None
+    ratio_2 = 1e6
+    
+    if not next_cand:
+      cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+      candidates_2 = give_next_end_node(b, cand_2_nodes,end_nodes_1[0].dir, end_nodes_2[0].dir,start_id=start_id)
+      if len(candidates_2) == 0:
+        if b.next is not None: # in case we have to jump over a valley, next node is already saved in end node info
+          next_cand_2 = b.next
+        else:
+          vertices = triangles[-1].vertices
+          print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad"
+          handle_latest_triangle(triangles)
+          next_cand = triangles[-1].other_candidates[-1]
+          print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
+          triangles[-1].other_candidates.pop(-1)
+          check_next_triangle(triangles, end_nodes_1, end_nodes_2, start_id, next_cand)
+#           print "Ohohoh..."
+#           return False
+      else:
+        next_cand_2 = candidates_2[0]
+      ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
+    
+    next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
+    alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
+    
+    print next_cand_1, ratio_1, (" <- " if next_cand_1.id == next.id else " ")
+    if next_cand_2:
+      print next_cand_2, ratio_2, (" <- " if next_cand_2.id == next.id else " ")
+  else:
+    next = next_cand
+    next_nodes = end_nodes_1 if end_nodes_1[0].dir == next.dir else end_nodes_2
+    ratio_1 = calc_triangle_quality(a, a_nodes, b, b_nodes, next, next_nodes)
+    print "given next node: ", next.id, " ratio: ", ratio_1
 #   if next_cand and next_cand.id <> next.id:
 #     print "next_cand.id: ", next_cand.id, " next.id: ", next.id
 #     assert(next_cand.id == next.id)
-    
-  print next_cand_1, ratio_1, (" <- " if next_cand_1.id == next.id else " ")
-  if next_cand_2:
-    print next_cand_2, ratio_2, (" <- " if next_cand_2.id == next.id else " ")
     
   # if at least one candidate has good quality
   if min(ratio_1,ratio_2) < 25:
@@ -1383,47 +1431,68 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     next.connections.add(a.id)
     next.connections.add(b.id)
     
-    if next.id == next_cand_1.id:
-      # make sure next_cand_1 is take from list candidates_1
-      if len(candidates_1) <> 0:
-        candidates_1.pop(0)
-    else: # next.id == next_cand_1.id
-      # when we get next neighbor node directly for node and node over neighbor search,
-      # then candidates_2 is empty
-      if len(candidates_2) <> 0:
-        candidates_2.pop(0) 
-      
-    alternatives = candidates_1[:]+candidates_2[:] if candidates_2 is not None else candidates_1[0:]
+    print "added connection from ", a.id, " to ", next.id
+    print "added connection from ", b.id, " to ", next.id
+    print "added connection from ", next.id, " to ", a.id
+    print "added connection from ", next.id, " to ", b.id
+    
+    alternatives = []
+    
+    if not next_cand: # if next end node was not given explicitly
+      if next.id == next_cand_1.id:
+        # make sure next_cand_1 is take from list candidates_1
+        if len(candidates_1) <> 0:
+          candidates_1.pop(0)
+      else: # next.id == next_cand_1.id
+        # when we get next neighbor node directly for node and node over neighbor search,
+        # then candidates_2 is empty
+        if len(candidates_2) <> 0:
+          candidates_2.pop(0) 
+        
+      alternatives = candidates_1[:]+candidates_2[:] if candidates_2 is not None else candidates_1[0:]
+
     triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alternatives))
     
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id
     if alternatives is not None:
       for alt in alternatives:
         print "alternative: ", alt.id 
+    if next_cand:
+      check_next_triangle(triangles,end_nodes_1,end_nodes_2)
   else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
     vertices = triangles[-1].vertices
-    print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad -> remove"
-
-    triangles.pop()
-    update_connections(triangles, vertices)
-    print "triangles[-1].other_candidates: ", triangles[-1].other_candidates
-    # remove all created triangles 
-    while len(triangles[-1].other_candidates) == 0:
-      vertices = triangles[-1].vertices
-      print "remove triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
-      
-      triangles.pop()
-      
-      # update connections 
-      update_connections(triangles, vertices)
+    print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " is bad"
     
-    vertices = triangles[-1].vertices  
-    print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " cand: ", triangles[-1].other_candidates[0].id   
-    next_cand = triangles[-1].other_candidates[0]
-    triangles[-1].other_candidates.pop(0)
+    # take care of bad triangle
+    handle_latest_triangle(triangles)
+    
+    next_cand = triangles[-1].other_candidates[-1]
+    print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
+    triangles[-1].other_candidates.pop(-1)
     check_next_triangle(triangles, end_nodes_1, end_nodes_2, start_id, next_cand)
-        
-  return True  
+      
+  return True
+
+# handles bad triangle that is the last element in triangles list
+def handle_latest_triangle(triangles):
+  for cand in triangles[-1].other_candidates:
+    print "other candidate: ", cand.id
+    
+  while len(triangles[-1].other_candidates) == 0:
+    vertices = triangles[-1].vertices
+    print "remove triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
+    
+    triangles.pop()
+    
+    # update connections 
+    update_connections(triangles, vertices)
+    
+  vertices = triangles[-1].vertices
+  print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
+  print "with other_candidates: "
+  for cand in triangles[-1].other_candidates:
+    print "other candidate: ", cand.id  
+    
 # given 3 lists with end nodes of all 3 profiles
 # using a marching algorithm, we connect theses nodes step by step to triangles
 # start with one given triangle defined by end nodes of two profiles (assume each profile has a different color'
@@ -1435,14 +1504,16 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
   nodes = [v for v in this_end_nodes if v.i == 0]
   assert(nodes)
   for n in nodes:
-    print "\nstarting with ", n.id
+    print "\nstarting with ", n.id, " dir = ", this_end_nodes[0].dir, " other_dir= ", other_1_end_node[0].dir
+    if n.id == 2219:
+      break
     triangles = [] # saves all triangles found by marching
     start_node = n
     
 #     if this_end_nodes[0].dir == 1 and other_1_end_node[0].dir == 3:
 #       if this_end_nodes[0].j < res/2
   
-    next = give_next_end_node(start_node,this_end_nodes)[0]
+    next = give_next_end_node(start_node,this_end_nodes,this_end_nodes[0].dir,other_1_end_node[0].dir)[0]
   
     other = find_closest_point(start_node, next, other_1_end_node)[0]
     print "other: ",other
@@ -1455,7 +1526,7 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     other.connections.add(start_node.id)
     other.connections.add(next.id)
   
-    triangles.append(Marching_Triangle([start_node,next,other],next,other,start_node))
+    triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
     print "created triangle with edge: (", next.id, ",", other.id, ") next: ", next.id
   
     initial_edge = [start_node,other]
