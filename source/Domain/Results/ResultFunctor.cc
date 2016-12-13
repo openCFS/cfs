@@ -40,7 +40,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
     return;
   }
 
-
+// TODO element based interpolation from elemResults to nodeResults very slow
   // check for (combination of node list and fefunction) or coil list
   // since the coil list is used with the FeSpaceConst which does not have elements
   if( ( entityListType == EntityList::NODE_LIST && typeid(*coef_) == typeid(FeFunction<TYPE>) )

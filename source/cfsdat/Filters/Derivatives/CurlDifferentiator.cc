@@ -75,7 +75,7 @@ bool CurlDifferentiator::Run(){
   scatteredData.Resize(sourceCoords_.GetSize());
 
   // nr. of nearest neighbours for the nodal RBF basis functions
-  UInt numNN = 4 ;
+  UInt numNN = (trgGrid_->GetDim() == 2) ? 4 : 8 ;
 
   // coordinate list of nearest neighbour points
   CF::StdVector< Vector<Double> > neighbors;

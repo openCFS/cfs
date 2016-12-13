@@ -244,8 +244,7 @@ void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
   Tree.ReadScatteredData_Lighthill(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
   // nr. of nearest neighbours for the nodal RBF basis functions
-  // check this for 3D, maybe we have to set this to numNN=8
-  UInt numNN = 4 ;
+  UInt numNN = (trgGrid_->GetDim() == 2) ? 4 : 8 ;
 
   // coordinate list of nearest neighbour points
   CF::StdVector< Vector<Double> > neighbors;
@@ -357,8 +356,7 @@ void Lighthill::CalcCurlU(Vector<Double>& retVec,
   Tree.ReadScatteredData_Lighthill(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
   // nr. of nearest neighbours for the nodal RBF basis functions
-  // check this for 3D, maybe we have to set this to numNN=8
-  UInt numNN = 4 ;
+  UInt numNN = (trgGrid_->GetDim() == 2) ? 4 : 8 ;
 
   // coordinate list of nearest neighbour points
   CF::StdVector< Vector<Double> > neighbors;
