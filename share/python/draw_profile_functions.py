@@ -2,8 +2,6 @@
 import numpy as np
 from numpy import outer
 import sympy.solvers
-#from PIL import Image
-# from mesh_tool import *
 import sys
 import math
 import vtk
@@ -11,13 +9,10 @@ from matviz_vtk import *
 from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
-from scipy.spatial import Delaunay
-from sympy.physics.quantum.circuitplot import pyplot
+# from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
-from scipy.spatial.qhull import ConvexHull
 from platform import node
-from wx.lib.analogclock.helpers import Hand
-# from basecell import calc_radius
+from pygments.formatters import other
 
 res = 1
 
@@ -240,16 +235,33 @@ def profileCirc(x1,res):
   
   return vec
 
-def contains_point(id_x,y,z,map):
-     
-  valx = (y-0.5)**2 + (z-0.5)**2
-  phi = angle_to_center((y,z))
-   
-  r = map[int(degrees(phi)),id_x]
-     
-  if (valx - r*r < 1e-3 ):
+# def contains_point(id_x,y,z,map):
+#      
+#   valx = (y-0.5)**2 + (z-0.5)**2
+#   phi = angle_to_center((y,z))
+#    
+#   r = map[int(degrees(phi)),id_x]
+#      
+#   if (valx - r*r < 1e-3 ):
+#     return True
+#      
+#   return False
+
+def contains_point(x,y,z,profile):
+  assert(x >= 0.0 and x <= 1.0)
+  assert(y >= 0.0 and y <= 1.0)
+  assert(z >= 0.0 and z <= 1.0)
+  
+  phi = angle_to_center((x,z))
+#   print "(x,z): ",x,z, " angle:", degrees(phi)
+  r = calc_radius_for_quadrant(profile, y, phi)
+  val = (x-0.5)**2 + (z-0.5)**2
+  
+#   print "radius: ",r," val:",val
+  
+  if (val - r*r < 2e-3):
     return True
-     
+  
   return False
     
 
@@ -597,46 +609,96 @@ def get_surface_lines(map,numLines,dir):
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
 # each surface point is also given a unique id
 # @param pointId indicates the point id that already exists
-def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
+# def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
+def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
   
   if dir == 1:
-    id0 = 1
-    id1 = 0
+    id0 = 0
+    id1 = 1
     id2 = 2
-    id3 = 2
-    id4 = 1
+    id3 = 1
+    id4 = 2
     id5 = 0
+    assert(otherProfile1.direction == 2 and otherProfile2.direction == 3)
   elif dir == 2:
-    id0 = 0
-    id1 = 2
-    id2 = 1
-    id3 = 2
-    id4 = 1
-    id5 = 0
-  else: #dir == 3
-    id0 = 0
-    id1 = 2
+    id0 = 2
+    id1 = 0
     id2 = 1
     id3 = 1
-    id4 = 0
+    id4 = 2
+    id5 = 0
+    assert(otherProfile1.direction == 1 and otherProfile2.direction == 3)
+  else: # dir == 3
+    id0 = 2
+    id1 = 0
+    id2 = 1
+    id3 = 0
+    id4 = 1
     id5 = 2
-  
+    assert(otherProfile1.direction == 1 and otherProfile2.direction == 2)
+        
   assert(dir == 1 or dir == 2 or dir == 3)
   res = nodes.shape[1]
   
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
   
+  # for each line, check if a point is contained in two other profiles
+  # if not -> point is a surface point
+  # if yes, omit point 
+  # if point p is surface point, check if next point p+1 is also a surface point
+  # if not, check distance from this inner point (p+1) to previous surface point (p)
+  # if distance is too small (e.g. < 0.5* grid spacing (h)), then omit p
+  
   for numLine,line in enumerate(nodes):
-    lineLeft = [] # store points on one surface line temporarily
-    lineRight = []
     for i,p in enumerate(line):
       # check if point is contained in other profiles
-      if not contains_point(cartesian_to_grid_coords(p[id0], res),p[id1],p[id2],otherMap1) and not contains_point(cartesian_to_grid_coords(p[id3], res), p[id4], p[id5], otherMap2):
+      # assume we start with a point that is a surface point
+      if not contains_point(p[id0],p[id1],p[id2], otherProfile1) and not contains_point(p[id3],p[id4],p[id5], otherProfile2):  
         nodes_ids[numLine,i] = pointId
         pointId += 1
-        
+      else: # point is not on surface
+        if nodes_ids[numLine,i-1] > -1:
+          find_intersection_point()
+#         print "inside"
+#         # if we cross border from surface to inner
+#         if nodes_ids[numLine,i-1] > -1:
+#           # if distance between p and p-1 is too small, set p-1 to non-surface point
+#           if calc_distance(p, line[i-1]) < 1.0 / (2*res): 
+#             nodes_ids[numLine,i] = -1
+#             pointId -= 1
   return nodes_ids, pointId
 
+# use bisection algorithm to find intersection point between two profiles
+# left and right are tuples/lists with x,y,z coordinates
+# left is a surface point on profile
+# right is a neighbor (same profile) of left but not a surface point
+def find_intersection_point(left,right, profile):
+  dir = profile.direction
+  phi = -1.0
+  lower = -1.0
+  upper = -1.0
+  
+  # as both left and right lie on same surface line, the angle to (0.5,0.5) is the same
+  # find out on which coordinate component we have to perform bisection
+  if dir == 0:
+    phi = angle_to_center((left[1],left[2]))
+    lower = left[0]
+    upper = right[0]
+  elif dir == 1:
+    phi = angle_to_center((left[0],left[2]))
+    lower = left[1]
+    upper = right[1]
+  else: # dir == 3
+    phi = angle_to_center((left[0],left[1]))
+    lower = left[2]
+    upper = right[2]
+    
+  intersection = bisection(lower,upper,phi,profile)
+  
+def bisection(lower,upper,phi,profile):
+  midpoint = 0.5 * (lower + upper)
+  midpoint_node = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi), phi, 0.5*np.ones(3))
+  
 # creates triangles between end nodes of same profile where
 # we have e.g. a valley with 1 or 2 nodes
 def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
@@ -808,13 +870,16 @@ def create_profiles_array(args,infoXml):
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
     nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 1)
-    nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
+#     nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
+    nodes_ids_1, id = find_points_on_surface(nodes_1, 1, profiles[1], profiles[2],id)
 
     nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 2)
-    nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
+#     nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
+    nodes_ids_2, id = find_points_on_surface(nodes_2, 2, profiles[0], profiles[2], id)
     
     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
-    nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
+#     nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
+    nodes_ids_3, id = find_points_on_surface(nodes_3, 3, profiles[0], profiles[1], id)
     
     # create vtk cells and points
     cells = vtk.vtkCellArray()
@@ -842,9 +907,8 @@ def create_profiles_array(args,infoXml):
 #       out.write(str(n.id) + " \t" + str(n.i) + " \t" + str(n.j) + " \t" + str(n.coords[0]) + " \t" + str(n.coords[1]) + " \t" + str(n.coords[2]) + "\n")
 #     
 #     out.close()
-#     sys.exit()  
     
-    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
@@ -994,38 +1058,6 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
       return node, idx
   
   return None, -1
-# for a given list of of end_nodes
-# check if any of these nodes lie in triangle 
-# by calculating barycentric coordinates for each node
-# if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
-# def triangle_contains_any_node(vertices,end_nodes):
-#   for node in end_nodes:
-#     
-#     # if we are one of the vertices skip
-#     if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
-#       continue
-#     
-#     v1 = vertices[1].coords - vertices[0].coords
-#     v2 = vertices[2].coords - vertices[0].coords
-#     v3 = node.coords - vertices[0].coords
-#     
-#     dot11 = np.dot(v1,v1)
-#     dot12 = np.dot(v1,v2)
-#     dot13 = np.dot(v1,v3)
-#     dot22 = np.dot(v2,v2)
-#     dot23 = np.dot(v2,v3)
-#     dot33 = np.dot(v3,v3)
-#     
-#     denom = dot11 * dot22 - dot12 * dot12
-#     u = (dot22 * dot13 - dot12 * dot23) / denom
-#     v = (dot11 * dot23 - dot12 * dot13) / denom
-#     
-# #     print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " probe:", node.id, "   u: ", u, " ", v
-#     
-#     if (u >= 0) and (v >= 0) and (u + v < 1):
-#       return True 
-# 
-#   return False
 
 # for a given list of of end_nodes
 # check if any of these nodes form  a line with the origin (0.5,0.5,0.5) that intersects with triangle 
@@ -1033,21 +1065,11 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 # if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
 def triangle_contains_any_node(vertices,end_nodes):
   center = [0.5,0.5,0.5]
-#   s = Symbol('s')
   for node in end_nodes:
     # if we are one of the vertices skip
     if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
       continue
-    # define line in parameteric for through center and node
-    #line = center + s * (node.coords - center)
-    # define plane using triangle vertices
-#     k = Symbol('k')
-#     l = Symbol('l')
-    #plane = vertices[0].coords + k * (vertices[1].coords-vertices[0].coords) + l * (vertices[2].coords-vertices[0].coords)
     
-#     sol = sympy.solve(line-plane,s,k,l)
-    
-    # center -  vertices[0].coords = k * (vertices[1].coords-vertices[0].coords) + l * (vertices[2].coords-vertices[0].coords) +s * (center-node.coords)
     b = center - vertices[0].coords
     right1 = vertices[1].coords-vertices[0].coords
     right2 = vertices[2].coords-vertices[0].coords
@@ -1306,16 +1328,12 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
         candidates.append((i,j+1))
         candidates.append((left_line,j+1))
         candidates.append((left_line,j))
-#         candidates.append((i,j+2)) # jump over valleys
-#         candidates.append((i,j+3)) # jump over valleys
       else: # diff_j = -1
         candidates.append((left_line,j))
         candidates.append((left_line,j-1))
         candidates.append((i,j-1))
         candidates.append((right_line,j-1))
         candidates.append((right_line,j))
-#         candidates.append((i,j-2)) # jump over valleys
-#         candidates.append((i,j-3)) # jump over valleys 
     else: # all diagonal cases
       if diff_i == 1 and diff_j == 1:
         candidates.append((right_line,j-1))
@@ -1324,8 +1342,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
         candidates.append((i,j+1))
         candidates.append((left_line,j+1))
         candidates.append((left_line,j))
-#         candidates.append((i,j+2)) # jump over valleys
-#         candidates.append((i,j+3)) # jump over valleys
       elif diff_i == 1 and diff_j == -1:
         candidates.append((left_line,j))
         candidates.append((left_line,j-1))
@@ -1333,8 +1349,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
         candidates.append((right_line,j-1))
         candidates.append((right_line,j))
         candidates.append((right_line,j+1))
-#         candidates.append((i,j-2)) # jump over valleys
-#         candidates.append((i,j-3)) # jump over valleys
       elif diff_i == -1 and diff_j == 1:
         candidates.append((right_line,j))
         candidates.append((right_line,j+1))
@@ -1342,8 +1356,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
         candidates.append((left_line,j+1))
         candidates.append((left_line,j))
         candidates.append((left_line,j-1))
-#         candidates.append((i,j+2)) # jump over valleys
-#         candidates.append((i,j+3)) # jump over valleys
       else: # diff_i == -1 and diff_j == -1
         candidates.append((left_line,j+1))
         candidates.append((left_line,j))
@@ -1351,8 +1363,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
         candidates.append((i,j-1))
         candidates.append((right_line,j-1))
         candidates.append((right_line,j))   
-#         candidates.append((i,j-2)) # jump over valleys
-#         candidates.append((i,j-3)) # jump over valleys   
 
   result = []  
     
@@ -1370,7 +1380,7 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
   for r in result:
     print r.id
   return result
-#   assert(False)    
+
 # search for 'num' points closest points to ref; ref is an end point
 def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
   assert(num == 1 or num==3)
@@ -1601,9 +1611,6 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     triangles = [] # saves all triangles found by marching
     start_node = n
     
-#     if this_end_nodes[0].dir == 1 and other_1_end_node[0].dir == 3:
-#       if this_end_nodes[0].j < res/2
-  
     next = give_next_end_node(start_node,this_end_nodes,this_end_nodes[0].dir,other_1_end_node[0].dir)[0]
   
     other = find_closest_point(start_node, next, other_1_end_node)[0]
@@ -1631,8 +1638,6 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
       # check if we have just created a triangle where new active edge is 
       # identical to active edge of very first triangle --> we are finished!
       edge = triangles[-1].edge
-#       print "edge: ", edge[0].id, edge[1].id
-#       print "init edge: ", initial_edge[0].id, initial_edge[1].id
       if len(triangles) > 2 and (edge[0] == initial_edge[0] and edge[1] == initial_edge[1]) or (edge[0] == initial_edge[1] and edge[1] == initial_edge[0]):
         print "filled"
         end = True 
@@ -1640,3 +1645,4 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     for triangle in triangles:
       verts = triangle.vertices
       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+    
