@@ -845,7 +845,7 @@ def create_profiles_array(args,infoXml):
 #     sys.exit()  
     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -998,34 +998,101 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 # check if any of these nodes lie in triangle 
 # by calculating barycentric coordinates for each node
 # if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
+# def triangle_contains_any_node(vertices,end_nodes):
+#   for node in end_nodes:
+#     
+#     # if we are one of the vertices skip
+#     if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
+#       continue
+#     
+#     v1 = vertices[1].coords - vertices[0].coords
+#     v2 = vertices[2].coords - vertices[0].coords
+#     v3 = node.coords - vertices[0].coords
+#     
+#     dot11 = np.dot(v1,v1)
+#     dot12 = np.dot(v1,v2)
+#     dot13 = np.dot(v1,v3)
+#     dot22 = np.dot(v2,v2)
+#     dot23 = np.dot(v2,v3)
+#     dot33 = np.dot(v3,v3)
+#     
+#     denom = dot11 * dot22 - dot12 * dot12
+#     u = (dot22 * dot13 - dot12 * dot23) / denom
+#     v = (dot11 * dot23 - dot12 * dot13) / denom
+#     
+# #     print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " probe:", node.id, "   u: ", u, " ", v
+#     
+#     if (u >= 0) and (v >= 0) and (u + v < 1):
+#       return True 
+# 
+#   return False
+
+# for a given list of of end_nodes
+# check if any of these nodes form  a line with the origin (0.5,0.5,0.5) that intersects with triangle 
+# by calculating barycentric coordinates for each node
+# if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
 def triangle_contains_any_node(vertices,end_nodes):
+  center = [0.5,0.5,0.5]
+#   s = Symbol('s')
   for node in end_nodes:
-    
     # if we are one of the vertices skip
     if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
       continue
+    # define line in parameteric for through center and node
+    #line = center + s * (node.coords - center)
+    # define plane using triangle vertices
+#     k = Symbol('k')
+#     l = Symbol('l')
+    #plane = vertices[0].coords + k * (vertices[1].coords-vertices[0].coords) + l * (vertices[2].coords-vertices[0].coords)
     
-    v1 = vertices[1].coords - vertices[0].coords
-    v2 = vertices[2].coords - vertices[0].coords
-    v3 = node.coords - vertices[0].coords
+#     sol = sympy.solve(line-plane,s,k,l)
     
-    dot11 = np.dot(v1,v1)
-    dot12 = np.dot(v1,v2)
-    dot13 = np.dot(v1,v3)
-    dot22 = np.dot(v2,v2)
-    dot23 = np.dot(v2,v3)
-    dot33 = np.dot(v3,v3)
+    # center -  vertices[0].coords = k * (vertices[1].coords-vertices[0].coords) + l * (vertices[2].coords-vertices[0].coords) +s * (center-node.coords)
+    b = center - vertices[0].coords
+    right1 = vertices[1].coords-vertices[0].coords
+    right2 = vertices[2].coords-vertices[0].coords
+    right3 = center-node.coords
+    A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
     
-    denom = dot11 * dot22 - dot12 * dot12
-    u = (dot22 * dot13 - dot12 * dot23) / denom
-    v = (dot11 * dot23 - dot12 * dot13) / denom
+    sol = linsolve_3x3(A,b)
     
-#     print "triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id, " probe:", node.id, "   u: ", u, " ", v
-    
-    if (u >= 0) and (v >= 0) and (u + v < 1):
-      return True 
+    # sol[0] -> k, sol[0] -> l, sol[0] -> s
+    if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
+      print "line through node ", node.id, " intersects  with triangle ", vertices[0].id, vertices[1].id, vertices[2].id
+      return True
 
-  return False
+# applying Cramer's rule
+# assume A is a numpy array, b a list
+def linsolve_3x3(A,b):
+  assert(isinstance(A,np.ndarray))
+  res = [None] * 3
+  
+  det = np.linalg.det(A)
+  
+  A1 = np.zeros((3,3))
+  A1[:,0] = b 
+  A1[:,1] = A[:,1]
+  A1[:,2] = A[:,2]
+  
+  A2 = np.zeros((3,3))
+  A2[:,0] = A[:,0]
+  A2[:,1] = b
+  A2[:,2] = A[:,2]
+  
+  A3 = np.zeros((3,3))
+  A3[:,0] = A[:,0] 
+  A3[:,1] = A[:,1]
+  A3[:,2] = b
+  
+  # x1 = det(A1)/det(A)
+  res[0] = np.linalg.det(A1) / det
+  # x2 = det(A2)/det(A)
+  res[1] = np.linalg.det(A2) / det
+  # x3 = det(A3)/det(A) 
+  res[2] = np.linalg.det(A3) / det
+  
+  return res
+    
 # triangle quality is measured by the aspect ratio and whether triangle contains an end node
 # we penalize the quality if triangle contains a neighbor end node             
 def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3):
@@ -1056,7 +1123,9 @@ def calc_triangle_ratio(v1,v2,v3):
   
   aspect_ratio = d1*d2*d3 / ( (d2+d3-d1) * (d1-d2+d3) * (d1+d2-d3))
   
-  assert(aspect_ratio >= 1)
+#   assert(aspect_ratio >= 1)
+  if aspect_ratio <= 1:
+    return 1e6
   
   return aspect_ratio
     
@@ -1329,9 +1398,9 @@ def update_connections(triangles,vertices):
   vertices[1].connections = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
   vertices[2].connections = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
   
-  print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
-  print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
-  print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
+#   print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
 #   
 #   triangles[-1].connections = res
   # remove connections to previous triangle vertices
@@ -1341,8 +1410,29 @@ def update_connections(triangles,vertices):
   triangles[-1].vertices[1].connections = set([v for v in triangles[-1].vertices[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
   triangles[-1].vertices[2].connections = set([v for v in triangles[-1].vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
   
-  print "removed connections to ", vertices[0].id, vertices[1].id, vertices[2].id, " from triangle with vertices ", triangles[-1]
+#   print "removed connections to ", vertices[0].id, vertices[1].id, vertices[2].id, " from triangle with vertices ", triangles[-1]
 
+# from a list of candidates, choose the third triangle vertice such that the resulting triangle has the smallest aspect_ratio
+def give_best_next_neighbor(candidates, vert1, vert2):
+  if len(candidates) == 1 and (candidates[0].id == vert1.id or candidates[0].id == vert2.id):
+    return candidates[0]
+  best_ratio = 1e9
+  best_neighbor = None
+  
+  for node in candidates:
+#     assert(node.id <> vert1.id)
+#     assert(node.id <> vert2.id)
+    if node.id == vert1.id or node.id == vert2.id:
+      continue
+    ratio = calc_triangle_ratio(vert1.coords, vert2.coords, node.coords)
+    print "node: ", node.id," ratio: ", ratio
+    if ratio < best_ratio:
+      best_ratio = ratio
+      best_neighbor = node
+      
+  assert(best_neighbor is not None)
+  return best_neighbor
+  
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_cand=None):
   
   # take active edge from last triangle
@@ -1350,8 +1440,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   a = active_edge[0]
   b = active_edge[1]
   
-  if a.id == 7005 and b.id == 5225:
-    return False
+#   if a.id == 7005 and b.id == 5225:
+#     return False
   
   print "\na: ", a.id, " connections: ", a.connections
   print "b: ", b.id, " connections: ", b.connections
@@ -1380,7 +1470,9 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
         check_next_triangle(triangles, end_nodes_1, end_nodes_2, start_id, next_cand)
         return True
     else:  
-      next_cand_1 = candidates_1[0]
+      #next_cand_1 = candidates_1[0]
+      # test all possible triangles with neighbors and take the one with the smallest aspect ratio
+      next_cand_1 = give_best_next_neighbor(candidates_1, a, b)
       
     ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes) if next_cand_1 is not None else 1e6
     next_cand_2 = None
@@ -1405,7 +1497,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
 #           print "Ohohoh..."
 #           return False
       else:
-        next_cand_2 = candidates_2[0]
+#         next_cand_2 = candidates_2[0]
+         next_cand_2 = give_best_next_neighbor(candidates_2, a, b)
       ratio_2 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_2,cand_2_nodes) if next_cand_2 is not None else 1e6
     
     next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
@@ -1431,11 +1524,11 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     next.connections.add(a.id)
     next.connections.add(b.id)
     
-    print "added connection from ", a.id, " to ", next.id
-    print "added connection from ", b.id, " to ", next.id
-    print "added connection from ", next.id, " to ", a.id
-    print "added connection from ", next.id, " to ", b.id
-    
+#     print "added connection from ", a.id, " to ", next.id
+#     print "added connection from ", b.id, " to ", next.id
+#     print "added connection from ", next.id, " to ", a.id
+#     print "added connection from ", next.id, " to ", b.id
+#     
     alternatives = []
     
     if not next_cand: # if next end node was not given explicitly
@@ -1505,8 +1598,6 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
   assert(nodes)
   for n in nodes:
     print "\nstarting with ", n.id, " dir = ", this_end_nodes[0].dir, " other_dir= ", other_1_end_node[0].dir
-    if n.id == 2219:
-      break
     triangles = [] # saves all triangles found by marching
     start_node = n
     
@@ -1549,4 +1640,3 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     for triangle in triangles:
       verts = triangle.vertices
       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-      
