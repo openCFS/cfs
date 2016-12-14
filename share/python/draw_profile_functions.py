@@ -247,11 +247,26 @@ def profileCirc(x1,res):
 #      
 #   return False
 
-def contains_point(x,y,z,profile):
-  assert(x >= 0.0 and x <= 1.0)
-  assert(y >= 0.0 and y <= 1.0)
-  assert(z >= 0.0 and z <= 1.0)
+# for a given profile and point p, check if p lies on or inside profile
+def contains_point(p,profile):
+  assert(p[0] >= 0.0 and p[0] <= 1.0)
+  assert(p[1] >= 0.0 and p[1] <= 1.0)
+  assert(p[2] >= 0.0 and p[2] <= 1.0)
   
+  # depending on direction, estimate plane in which we perform check
+  if profile.direction == 1:# check for x profile -> z-y plane
+    x = p[2]
+    y = p[0]
+    z = p[1]
+  elif profile.direction == 2: #check for y profile -> x-z plane
+    x = p[0]
+    y = p[1]
+    z = p[2]
+  else: # dir == 3; check for z profile --> y-x plane
+    x = p[1]
+    y = p[2]
+    z = p[0]
+    
   phi = angle_to_center((x,z))
 #   print "(x,z): ",x,z, " angle:", degrees(phi)
   r = calc_radius_for_quadrant(profile, y, phi)
@@ -612,31 +627,6 @@ def get_surface_lines(map,numLines,dir):
 # def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
 def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
   
-  if dir == 1:
-    id0 = 0
-    id1 = 1
-    id2 = 2
-    id3 = 1
-    id4 = 2
-    id5 = 0
-    assert(otherProfile1.direction == 2 and otherProfile2.direction == 3)
-  elif dir == 2:
-    id0 = 2
-    id1 = 0
-    id2 = 1
-    id3 = 1
-    id4 = 2
-    id5 = 0
-    assert(otherProfile1.direction == 1 and otherProfile2.direction == 3)
-  else: # dir == 3
-    id0 = 2
-    id1 = 0
-    id2 = 1
-    id3 = 0
-    id4 = 1
-    id5 = 2
-    assert(otherProfile1.direction == 1 and otherProfile2.direction == 2)
-        
   assert(dir == 1 or dir == 2 or dir == 3)
   res = nodes.shape[1]
   
@@ -653,12 +643,13 @@ def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
     for i,p in enumerate(line):
       # check if point is contained in other profiles
       # assume we start with a point that is a surface point
-      if not contains_point(p[id0],p[id1],p[id2], otherProfile1) and not contains_point(p[id3],p[id4],p[id5], otherProfile2):  
+      if not contains_point(p, otherProfile1) and not contains_point(p, otherProfile2):  
         nodes_ids[numLine,i] = pointId
         pointId += 1
       else: # point is not on surface
-        if nodes_ids[numLine,i-1] > -1:
-          find_intersection_point()
+        assert(True)
+#         if nodes_ids[numLine,i-1] > -1:
+#           find_intersection_point()
 #         print "inside"
 #         # if we cross border from surface to inner
 #         if nodes_ids[numLine,i-1] > -1:
@@ -672,7 +663,7 @@ def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
 # left and right are tuples/lists with x,y,z coordinates
 # left is a surface point on profile
 # right is a neighbor (same profile) of left but not a surface point
-def find_intersection_point(left,right, profile):
+def find_intersection_point(left,right, profile, otherProfile1, otherProfile2):
   dir = profile.direction
   phi = -1.0
   lower = -1.0
@@ -693,11 +684,20 @@ def find_intersection_point(left,right, profile):
     lower = left[2]
     upper = right[2]
     
-  intersection = bisection(lower,upper,phi,profile)
-  
-def bisection(lower,upper,phi,profile):
+  intersection = bisection(lower,upper,phi,profile, otherProfile1, otherProfile2)
+
+# for a given interval [lower,upper] and profile angle:
+# find a point that is on the intersection of two/three profiles
+# a point fulfills this requirement if the interval is small
+# and lower is a surface point whereas upper is an inner point     
+def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
   midpoint = 0.5 * (lower + upper)
   midpoint_node = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi), phi, 0.5*np.ones(3))
+  
+  otherDir1 = otherProfile1.direction
+  otherDir2 = otherProfile2.direction
+  
+  inner = contains_point(midpoint_node, profile)
   
 # creates triangles between end nodes of same profile where
 # we have e.g. a valley with 1 or 2 nodes
@@ -730,8 +730,8 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       node.next = nn
       nn.next = node
       
-      print "set next of ", node.id, " to ", node.next.id
-      print "set next of ", nn.id, " to ", nn.next.id
+#       print "set next of ", node.id, " to ", node.next.id
+#       print "set next of ", nn.id, " to ", nn.next.id
       
       continue
     
