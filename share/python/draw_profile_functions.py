@@ -152,14 +152,24 @@ class Cubic_spline():
     dC = self.calc_d_spline_d_t(u)
     
 def dirToString(dir):
-  assert(dir > 0 and dir < 4)
+  assert(dir >= 0 and dir <= 2)
   res = 'x'
-  if dir == 2:
+  if dir == 1:
     res = 'y'
-  if dir == 3:
+  if dir == 2:
     res = 'z'
    
   return res
+
+# returns the two directions of the plane whose normal shows in profile direction
+# e.g. we have x profile, then we live in the z-y plane -> return 2,1
+def give_normal_plane_axes(profile_dir):
+  if profile_dir == 0: # x profile
+    return 2,1 # z,y plane
+  elif profile_dir == 1: # y profile
+    return 0,2 # x,z plane
+  else: # z profile
+    return 1,0 # y,x plane
 
 # converts angle (0 to 360) to radians and maps it to a value between 0 and pi/2.0 
 def degree_to_rad_quadrant(degree):
@@ -249,20 +259,21 @@ def profileCirc(x1,res):
 
 # for a given profile and point p, check if p lies on or inside profile
 def contains_point(p,profile):
+  print "p: ", p
   assert(p[0] >= 0.0 and p[0] <= 1.0)
   assert(p[1] >= 0.0 and p[1] <= 1.0)
   assert(p[2] >= 0.0 and p[2] <= 1.0)
   
   # depending on direction, estimate plane in which we perform check
-  if profile.direction == 1:# check for x profile -> z-y plane
+  if profile.direction == 0:# check for x profile -> z-y plane
     x = p[2]
     y = p[0]
     z = p[1]
-  elif profile.direction == 2: #check for y profile -> x-z plane
+  elif profile.direction == 1: #check for y profile -> x-z plane
     x = p[0]
     y = p[1]
     z = p[2]
-  else: # dir == 3; check for z profile --> y-x plane
+  else: # dir == 2; check for z profile --> y-x plane
     x = p[1]
     y = p[2]
     z = p[0]
@@ -526,7 +537,7 @@ class Profile:
     
   def __init__(self, args, dir):
     assert(args.profile == "linear" or args.profile == "spline")
-    assert (dir == 1 or dir == 2 or dir == 3)
+    assert (dir == 0 or dir == 1 or dir == 2)
     self.direction = dir
     self.type = args.profile
     self.functions = [None] * 3
@@ -535,15 +546,15 @@ class Profile:
       self.functions[1] = self.splines[0]
       self.functions[2] = self.splines[0]
     else: # 'spline' case
-      if dir == 1:
+      if dir == 0:
         self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
-      elif dir == 2:
+      elif dir == 1:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
         self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
-      else:
+      else: # dir == 2
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
@@ -560,13 +571,13 @@ def create_profiles(args,infoXml=None):
   profiles = [None]*3 # x-,y-,z-part
   
   if not args.skip_x:
-    profiles[0] = Profile(args,1)
+    profiles[0] = Profile(args,0)
     
   if not args.skip_y:
-    profiles[1] = Profile(args,2)
+    profiles[1] = Profile(args,1)
     
   if not args.skip_z:
-    profiles[2] = Profile(args,3)
+    profiles[2] = Profile(args,2)
     x = np.linspace(0, 1.0, args.res)
     
   if args.verbose == "all_profiles":
@@ -596,7 +607,7 @@ def create_profiles(args,infoXml=None):
 # @param numLines: number of lines on surface that we want to plot
 # @param dir: direction (x,y or z) as (1,2,3)
 def get_surface_lines(map,numLines,dir):
-  assert(dir == 1  or dir == 2 or dir == 3)
+  assert(dir == 0  or dir == 1 or dir == 2)
   lenx = np.size(map,1)
   
   nodes = np.zeros((numLines, lenx, 3))
@@ -606,15 +617,15 @@ def get_surface_lines(map,numLines,dir):
      
     #transformation to cartesian coordinates
     X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
-    if dir == 1:
+    if dir == 0:
       nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,1] = X
       nodes[i,:,2] = Y
-    if dir == 2:
+    elif dir == 1:
       nodes[i,:,0] = Y
       nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
       nodes[i,:,2] = X
-    if dir == 3:
+    else: #dir == 2
       nodes[i,:,0] = X
       nodes[i,:,1] = Y
       nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
@@ -625,9 +636,9 @@ def get_surface_lines(map,numLines,dir):
 # each surface point is also given a unique id
 # @param pointId indicates the point id that already exists
 # def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
-def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
-  
-  assert(dir == 1 or dir == 2 or dir == 3)
+def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId):
+  dir = profile.direction
+  assert(dir == 0 or dir == 1 or dir == 2)
   res = nodes.shape[1]
   
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
@@ -649,25 +660,26 @@ def find_points_on_surface(nodes, dir, otherProfile1, otherProfile2, pointId):
       else: # point is not on surface
         assert(True)
 #         if nodes_ids[numLine,i-1] > -1:
-#           find_intersection_point()
-#         print "inside"
-#         # if we cross border from surface to inner
-#         if nodes_ids[numLine,i-1] > -1:
-#           # if distance between p and p-1 is too small, set p-1 to non-surface point
-#           if calc_distance(p, line[i-1]) < 1.0 / (2*res): 
-#             nodes_ids[numLine,i] = -1
-#             pointId -= 1
+#           intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
+#           print "found intersection point ", intersect, " for profile ", profile.direction
+#           # calc distance to intersection point
+#           if calc_distance(nodes_ids[numLine,i-1], intersect) < 1/(2*res):
+#             # if too small, don't draw previous surface point
+#             nodes_ids[numLine,i-1] = -1
+#             pointId -=1
   return nodes_ids, pointId
 
 # use bisection algorithm to find intersection point between two profiles
 # left and right are tuples/lists with x,y,z coordinates
 # left is a surface point on profile
 # right is a neighbor (same profile) of left but not a surface point
-def find_intersection_point(left,right, profile, otherProfile1, otherProfile2):
+def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
   dir = profile.direction
   phi = -1.0
   lower = -1.0
   upper = -1.0
+  
+  print "left: ", left, " right: ", right
   
   # as both left and right lie on same surface line, the angle to (0.5,0.5) is the same
   # find out on which coordinate component we have to perform bisection
@@ -679,25 +691,46 @@ def find_intersection_point(left,right, profile, otherProfile1, otherProfile2):
     phi = angle_to_center((left[0],left[2]))
     lower = left[1]
     upper = right[1]
-  else: # dir == 3
+  else: # dir == 2
     phi = angle_to_center((left[0],left[1]))
     lower = left[2]
     upper = right[2]
     
-  intersection = bisection(lower,upper,phi,profile, otherProfile1, otherProfile2)
+  return bisection(lower,upper,phi,profile, otherProfile1, otherProfile2)
 
 # for a given interval [lower,upper] and profile angle:
 # find a point that is on the intersection of two/three profiles
 # a point fulfills this requirement if the interval is small
 # and lower is a surface point whereas upper is an inner point     
 def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
-  midpoint = 0.5 * (lower + upper)
-  midpoint_node = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi), phi, 0.5*np.ones(3))
+  print "dir: ", profile.direction
+  l = lower
+  u = upper
   
-  otherDir1 = otherProfile1.direction
-  otherDir2 = otherProfile2.direction
+  print "lower: ", lower, " upper: ", upper
   
-  inner = contains_point(midpoint_node, profile)
+  midpoint = -1.0
+  midpoint_node = None
+  while abs(upper-lower) > 1e-3:
+    midpoint = 0.5 * (l + u)
+    print "midpoint: ", midpoint
+    print "phi: ", degrees(phi), " radius: ", calc_radius_for_quadrant(profile, midpoint, phi)[0]
+    # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
+    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi)[0], phi, 0.5) 
+    midpoint_node 
+    print "midpoint: ", midpoint_node
+    
+    otherDir1 = otherProfile1.direction
+    otherDir2 = otherProfile2.direction
+    
+    # midpoint is inner, take interval from [lower,midpoint]
+    if contains_point(midpoint_node, otherProfile1) or contains_point(midpoint_node, otherProfile2):
+      u = midpoint[profile.direction-1]
+    else:
+    # midpoint is on surface, take interval from [midpoint,upper]
+      l = midpoint[profile.direction-1]
+    
+  return polar_to_cartesian(calc_radius_for_quadrant(profile, l, phi), phi, 0.5*np.ones(3))
   
 # creates triangles between end nodes of same profile where
 # we have e.g. a valley with 1 or 2 nodes
@@ -768,8 +801,8 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       node.next = nnn
       nnn.next = node
       
-      print "set next of ", node.id, " to ", node.next.id
-      print "set next of ", nnn.id, " to ", nnn.next.id
+#       print "set next of ", node.id, " to ", node.next.id
+#       print "set next of ", nnn.id, " to ", nnn.next.id
       
       delete_ids.append(next.id)
       delete_ids.append(next_2.id)
@@ -869,17 +902,17 @@ def create_profiles_array(args,infoXml):
     # first dimension of nodes : surface lines
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
-    nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 1)
+    nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 0)
 #     nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
-    nodes_ids_1, id = find_points_on_surface(nodes_1, 1, profiles[1], profiles[2],id)
+    nodes_ids_1, id = find_points_on_surface(nodes_1, profiles[0], profiles[1], profiles[2],id)
 
-    nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 2)
+    nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 1)
 #     nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
-    nodes_ids_2, id = find_points_on_surface(nodes_2, 2, profiles[0], profiles[2], id)
+    nodes_ids_2, id = find_points_on_surface(nodes_2, profiles[1], profiles[0], profiles[2], id)
     
-    nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 3)
+    nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 2)
 #     nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
-    nodes_ids_3, id = find_points_on_surface(nodes_3, 3, profiles[0], profiles[1], id)
+    nodes_ids_3, id = find_points_on_surface(nodes_3, profiles[2], profiles[0], profiles[1], id)
     
     # create vtk cells and points
     cells = vtk.vtkCellArray()
@@ -989,12 +1022,12 @@ def plot_3dlines(profile,res,numLines,dir,ha):
         
   nodes = get_surface_lines(map, numLines, dir)
   color = None
-  if dir == 1:
+  if dir == 0:
     color = "red"
-  elif dir == 2:
+  elif dir == 1:
     color = "blue"
   else:
-    assert(dir == 3)
+    assert(dir == 2)
     color = "green"  
   for i in range(numLines):
     ha.plot(nodes[i,:,0],nodes[i,:,1],nodes[i,:,2],color=color)
@@ -1019,7 +1052,7 @@ def calc_radius_for_quadrant(profile,x,rad):
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
-  assert(dir >=1 and dir <=3)
+  assert(dir >=0 and dir <=2)
   
   map = create_profile_map(profile, res)
       
@@ -1034,11 +1067,11 @@ def write_profile_to_array(array,profile,dir):
         
         p = map[int(phi/np.pi*180),i]
         if (valx <= p*p):
-          if dir == 1:
+          if dir == 0:
             array[i,j,k] = dir
-          if dir == 2:
+          if dir == 1:
             array[j,i,k] = dir
-          if dir == 3:
+          if dir == 2:
             array[k,j,i] = dir
 
 
@@ -1241,8 +1274,8 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
   diff_j = 0
   if dir and other_dir:
     # we define front in relative coordinates by means of grid coordinates i and j
-    if dir == 1 and other_dir == 3 or dir == 3 and other_dir == 1:
-      if node.dir == 1:
+    if dir == 0 and other_dir == 2 or dir == 2 and other_dir == 0:
+      if node.dir == 0:
         if node.j < res/2:
           diff_i = 1
           diff_j = 0
@@ -1250,22 +1283,22 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
           diff_i = 0
           diff_j = 1
           
-      elif node.dir == 3:
+      elif node.dir == 2:
         if node.coords[0] < 0.5:
           diff_i = 0
           diff_j = 1
         else:
           diff_i = 0
           diff_j = -1
-    elif dir == 2 and other_dir == 3 or dir == 3 and other_dir == 2:
-      if node.dir == 2:
+    elif dir == 1 and other_dir == 2 or dir == 2 and other_dir == 1:
+      if node.dir == 1:
         if node.j < res/2:
           diff_i = 1
           diff_j = 0
         else:  
           diff_i = -1
           diff_j = 0
-      elif node.dir == 3:
+      elif node.dir == 2:
         if node.coords[0] < 0.5:
           diff_i = 1
           diff_j = 0
