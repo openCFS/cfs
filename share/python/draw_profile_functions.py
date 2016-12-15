@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sympy import Symbol, symbols
 from platform import node
 from pygments.formatters import other
+from ecdsa.numbertheory import phi
 
 res = 1
 
@@ -259,7 +260,6 @@ def profileCirc(x1,res):
 
 # for a given profile and point p, check if p lies on or inside profile
 def contains_point(p,profile):
-  print "p: ", p
   assert(p[0] >= 0.0 and p[0] <= 1.0)
   assert(p[1] >= 0.0 and p[1] <= 1.0)
   assert(p[2] >= 0.0 and p[2] <= 1.0)
@@ -283,9 +283,11 @@ def contains_point(p,profile):
   r = calc_radius_for_quadrant(profile, y, phi)
   val = (x-0.5)**2 + (z-0.5)**2
   
+#   print "p: ", p, " angle: ", phi, " radius: ", r
+  
 #   print "radius: ",r," val:",val
   
-  if (val - r*r < 2e-3):
+  if (val - r*r <= 1e-3):
     return True
   
   return False
@@ -634,9 +636,10 @@ def get_surface_lines(map,numLines,dir):
 
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
 # each surface point is also given a unique id
-# @param pointId indicates the point id that already exists
+# min_distance defines smallest distance between a surface node and a neighbor inner node that we allow
+# if the distance between these two is smaller, we omit the surface node
 # def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
-def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId):
+def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=1/res):
   dir = profile.direction
   assert(dir == 0 or dir == 1 or dir == 2)
   res = nodes.shape[1]
@@ -652,6 +655,17 @@ def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId
   
   for numLine,line in enumerate(nodes):
     for i,p in enumerate(line):
+#       print "p: ", p
+      # detect crossing border from inner to outer:
+      if i > 0 and nodes_ids[numLine,i-1] == -1:
+        # it is possible that we already performed this check on
+        if contains_point(line[i-1], otherProfile1) or contains_point(line[i-1], otherProfile2):
+          intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
+          if calc_distance(p, intersect) < min_distance:
+            print "omit ", p
+            nodes_ids[numLine,i] = -1
+            continue
+
       # check if point is contained in other profiles
       # assume we start with a point that is a surface point
       if not contains_point(p, otherProfile1) and not contains_point(p, otherProfile2):  
@@ -659,18 +673,25 @@ def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId
         pointId += 1
       else: # point is not on surface
         assert(True)
-#         if nodes_ids[numLine,i-1] > -1:
-#           intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
+#         print "id: ", pointId-1
+        # detect border from outer to inner
+        if nodes_ids[numLine,i-1] > -1:
+          intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
 #           print "found intersection point ", intersect, " for profile ", profile.direction
-#           # calc distance to intersection point
-#           if calc_distance(nodes_ids[numLine,i-1], intersect) < 1/(2*res):
-#             # if too small, don't draw previous surface point
-#             nodes_ids[numLine,i-1] = -1
-#             pointId -=1
+#           print "distance of last node to intersection: ", calc_distance(line[i-1], intersect)  
+          # calc distance to intersection point
+          if calc_distance(line[i-1], intersect) < min_distance:
+#             print "removed point ", line[i-1]
+            # if too small, don't draw previous surface point
+            nodes_ids[numLine,i-1] = -1
+            pointId -=1
+            print "omit ", line[i-1]
+            
   return nodes_ids, pointId
 
 # use bisection algorithm to find intersection point between two profiles
 # left and right are tuples/lists with x,y,z coordinates
+# assume:
 # left is a surface point on profile
 # right is a neighbor (same profile) of left but not a surface point
 def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
@@ -679,22 +700,16 @@ def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
   lower = -1.0
   upper = -1.0
   
-  print "left: ", left, " right: ", right
-  
   # as both left and right lie on same surface line, the angle to (0.5,0.5) is the same
   # find out on which coordinate component we have to perform bisection
-  if dir == 0:
-    phi = angle_to_center((left[1],left[2]))
-    lower = left[0]
-    upper = right[0]
-  elif dir == 1:
-    phi = angle_to_center((left[0],left[2]))
-    lower = left[1]
-    upper = right[1]
-  else: # dir == 2
-    phi = angle_to_center((left[0],left[1]))
-    lower = left[2]
-    upper = right[2]
+  dir1,dir2 = give_normal_plane_axes(dir)
+  # convert to degrees and modulo 45 degrees to stay in first quadrant
+  phi = degrees(angle_to_center((left[dir1],left[dir2]))) % 45
+#   print "phii: ", phi
+  phi = radians(phi)
+#   print "phi in rad: ", phi
+  lower = left[dir]
+  upper = right[dir]
     
   return bisection(lower,upper,phi,profile, otherProfile1, otherProfile2)
 
@@ -703,34 +718,49 @@ def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
 # a point fulfills this requirement if the interval is small
 # and lower is a surface point whereas upper is an inner point     
 def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
-  print "dir: ", profile.direction
+  dir = profile.direction
+#   print "dir: ", dir
   l = lower
   u = upper
   
-  print "lower: ", lower, " upper: ", upper
+#   print "lower: ", lower, " upper: ", upper
   
   midpoint = -1.0
-  midpoint_node = None
-  while abs(upper-lower) > 1e-3:
+  midpoint_node = np.zeros(3)
+  while abs(u-l) > 1e-4:
     midpoint = 0.5 * (l + u)
-    print "midpoint: ", midpoint
-    print "phi: ", degrees(phi), " radius: ", calc_radius_for_quadrant(profile, midpoint, phi)[0]
+#     print "midpoint: ", midpoint
+#     print "coords_grad_1: ", profile.functions[0].calc_coords_grad_1()
+#     print "phi: ", degrees(phi), " radius: ", calc_radius_for_quadrant(profile, midpoint, phi)[0]
     # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
-    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi)[0], phi, 0.5) 
-    midpoint_node 
-    print "midpoint: ", midpoint_node
+    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi)[0], phi, 0.5)
+#     print "plane_coordinates: ", plane_coordinates
+    # direction of axes of plane normal to profile.direction
+    # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
+    dir1, dir2 =  give_normal_plane_axes(profile.direction)
+    assert(dir <> dir1 and dir <> dir2)
+    # assign plane coordinates to correct 3d coordinate components
+    midpoint_node[dir] = midpoint
+    midpoint_node[dir1] = plane_coordinates[1]
+    midpoint_node[dir2] = plane_coordinates[0]
+     
+#     print "midpoint_node: ", midpoint_node
     
     otherDir1 = otherProfile1.direction
     otherDir2 = otherProfile2.direction
     
     # midpoint is inner, take interval from [lower,midpoint]
     if contains_point(midpoint_node, otherProfile1) or contains_point(midpoint_node, otherProfile2):
-      u = midpoint[profile.direction-1]
+#       print "inner"
+      u = midpoint
     else:
+#       print "outer"
     # midpoint is on surface, take interval from [midpoint,upper]
-      l = midpoint[profile.direction-1]
+      l = midpoint
+      
+#     print "continue with interval [", l, u, "], length:", abs(u-l)
     
-  return polar_to_cartesian(calc_radius_for_quadrant(profile, l, phi), phi, 0.5*np.ones(3))
+  return midpoint_node
   
 # creates triangles between end nodes of same profile where
 # we have e.g. a valley with 1 or 2 nodes
@@ -740,8 +770,11 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
   # this node (i,j) the one after next node and (i,j+2)
   # and the left(right) next one (i-1,j+1) exists, but not next node
   for node in end_nodes:
+    # don't check on the boundary
+    if node.j > np.size(all_nodes_ids,1)-3 or node.i > np.size(all_nodes_ids,0) - 2:
+       continue
     # check if the one after the next one exist
-    # nn is node after next node
+    # nn is node after next node 
     n = get_end_node_by_grid_coords(node.i, node.j+1, end_nodes)[0]
     n_inner = True if all_nodes_ids[node.i,node.j+1] >= 0 else False
     nn = get_end_node_by_grid_coords(node.i,node.j+2,end_nodes)[0]
@@ -924,9 +957,9 @@ def create_profiles_array(args,infoXml):
     vtkData.SetName("intersection")
     vtkData.SetNumberOfValues(id)
 
-    end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,1,vtkData)
-    end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,2,vtkData)
-    end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,3,vtkData)
+    end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
+    end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
+    end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
     # creates triangles between end nodes of same profile where
     # we have e.g. a valley with 1 or 2 nodes
@@ -941,7 +974,7 @@ def create_profiles_array(args,infoXml):
 #     
 #     out.close()
     
-#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
@@ -1272,16 +1305,18 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
     return [node]
   diff_i = 0
   diff_j = 0
-  if dir and other_dir:
+  if dir is not None and other_dir is not None:
+    print "dir: ", dir, " other_dir: ", other_dir
     # we define front in relative coordinates by means of grid coordinates i and j
     if dir == 0 and other_dir == 2 or dir == 2 and other_dir == 0:
+      print "here"
       if node.dir == 0:
         if node.j < res/2:
           diff_i = 1
           diff_j = 0
         else:
           diff_i = 0
-          diff_j = 1
+          diff_j = -1
           
       elif node.dir == 2:
         if node.coords[0] < 0.5:
@@ -1308,7 +1343,7 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
     else: # not handled yet
       print "dir: ", dir, " other_dir: ", other_dir
       assert(False)
-  
+      
   # find node in connections that is on the same profile
   # get node objects
   previous = None
@@ -1483,7 +1518,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 7005 and b.id == 5225:
+#   if a.id == 10340 or b.id == 10340:
 #     return False
   
   print "\na: ", a.id, " connections: ", a.connections
@@ -1560,7 +1595,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
 #     assert(next_cand.id == next.id)
     
   # if at least one candidate has good quality
-  if min(ratio_1,ratio_2) < 25:
+  if min(ratio_1,ratio_2) < 20:
     #set connections
     a.connections.add(next.id)
     b.connections.add(next.id)
@@ -1664,10 +1699,7 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     run = True
     end = False
     while len(triangles) > 0 and run and not end:
-    
       run = check_next_triangle(triangles, this_end_nodes, other_nodes, start_node.id)
-      if not run:
-        break
       # check if we have just created a triangle where new active edge is 
       # identical to active edge of very first triangle --> we are finished!
       edge = triangles[-1].edge
@@ -1679,3 +1711,5 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
       verts = triangle.vertices
       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
     
+    if this_end_nodes[0].dir == 1:
+      break
