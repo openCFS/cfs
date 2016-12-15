@@ -1,0 +1,47 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="CFSDat_ResultDef.xsd"/>
+  <xsd:include schemaLocation="../CFS_Dat.xsd"/>  
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for Mesh-Output -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:complexType name="DT_DatMeshOutput">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="outputFile">
+            <xsd:complexType>
+              <xsd:choice>
+                <xsd:group ref="OutputGroup" minOccurs="1" maxOccurs="1"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element minOccurs="1" maxOccurs="1" name="saveResults">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="result" type="DT_ResultDef" minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  
+</xsd:schema>
