@@ -1,0 +1,56 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for first time derivative -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_TDeriv1">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:choice>
+          <xsd:element name="singleResult">
+            <xsd:annotation>
+              <xsd:documentation> Computes time derivatives a single defined result.
+                Must not be a CFS type variable.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="inputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="allResults">
+            <xsd:annotation>
+              <xsd:documentation> It is tried to compute time derivatives for all requested resutls.
+                Make sure to use CFS compilant result names. In addition not all derivative
+                reslations (baseName->D1Name->D2Name) are yet supported. </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

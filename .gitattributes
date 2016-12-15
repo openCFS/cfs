@@ -1321,6 +1321,24 @@ share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
 share/scripts/winver.bat -text
 share/xml/CFS-Dat/CFS_Dat.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_BaseFilter.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_BinOpFilt.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_DatMeshInput.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_DatMeshOutput.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_DefOn.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_Differentiation.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_DifferentiationType.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_FilterList.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_GridType.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_Interpolation.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_InterpolationType.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_NNScheme.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_NearestNeighbour.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_ResultDef.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_RotDomain.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_SimplePoint.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_TDeriv1.xsd -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/MaterialDataBase.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml

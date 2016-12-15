@@ -1,0 +1,46 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="CFSDat_SimplePoint.xsd"/>
+
+  
+  <!-- ******************************************************************** -->
+  <!-- Base data type for rotation domains, needed for differentiation -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:complexType name="DT_RotDomain">
+    <xsd:choice>
+      <xsd:element name="region">
+        <xsd:complexType>
+          <xsd:attribute name="regionName"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="cylinder">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="p1" type="DT_SimplePoint" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="p2" type="DT_SimplePoint" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="radius" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="value" type="xsd:double"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:choice>
+    <xsd:attribute name="rpm" type="xsd:double"/>
+  </xsd:complexType>
+  
+</xsd:schema>

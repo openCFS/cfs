@@ -1,0 +1,35 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="CFSDat_SimplePoint.xsd"/>
+  <xsd:include schemaLocation="CFSDat_RotDomain.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for rotating substantial derivative -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:complexType name="DT_RotSTDeriv">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="pressure" type="DT_SimpleQuantity" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="presGrad" type="DT_SimpleQuantity" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="outputQuantity" type="DT_SimpleQuantity" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="rotatingDomain" type="DT_RotDomain" minOccurs="1" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>
