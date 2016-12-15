@@ -345,6 +345,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::FILTERING_GAP, "filteringGap");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");

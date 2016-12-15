@@ -771,14 +771,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
       } else {
         EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
       }
-      if (retMat.GetNumCols() > 0) {
-        assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
-      }
+      //if (retMat.GetNumCols() > 0) {
+      //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+      //}
       return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
-    if (retMat.GetNumCols() > 0) {
-      assert(TestTensorPosDef(retMat , lpm, coef->GetMaterialDerivative()));
-    }
+    //if (retMat.GetNumCols() > 0) {
+    //  assert(TestTensorPosDef(retMat , lpm, coef->GetMaterialDerivative()));
+    //}
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
@@ -802,9 +802,9 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
-  if (retMat.GetNumCols() > 0) {
-    assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
-  }
+  //if (retMat.GetNumCols() > 0) {
+  //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+  //}
   return true;
 }
 
@@ -875,7 +875,7 @@ bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm,
   retMat.eigenvaluesWithLapack(lp_w);
   if (direction == BaseDesignElement::NO_DERIVATIVE) {
     for (unsigned int i = 0; i < lp_w.GetSize();i++) {
-      if (lp_w[i] < -1e-6) {
+      if (lp_w[i] < EPS) {
         throw Exception("The material tensor of element '" + std::to_string(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
         return false;
       }
@@ -1889,4 +1889,7 @@ template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOp
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+
 #endif

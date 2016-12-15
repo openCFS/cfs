@@ -1970,6 +1970,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   support = []
   support2 = []
   support3 = []
+  supports = []
   design = []
   nondesign = []
   count = 1
@@ -2054,6 +2055,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
       # read 2D triangle elements
       elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip())])
     elif inp[i][0:8].strip() == 'RBE2':
+      support = []
       n = 0
       for k in range(5):
         support.append(int(inp[i][32+n:40+n].strip()))
@@ -2071,6 +2073,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
             support.append(int(inp[i][8+n:16+n].strip()))
           n += 8
           k +=1
+      supports.append(support)
     elif inp[i][0:8].strip() == 'RBE3':
       n = 0
       for k in range(2):
@@ -2117,9 +2120,9 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
   elif type == "lufo_bracket":
-    print 'len support '+str(len(support))
+    print 'len support '+str(len(supports))
     print ' len force1 '+str(len(force1))
-    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], support)
+    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], supports)
   else:
     print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
 #   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
@@ -2346,7 +2349,7 @@ def add_apod6_boundary_conditions(mesh):
   mesh.bc.append(('support3', support3))
   return mesh
   
-def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., force1 = [], force2 = [],support = []):
+def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., force1 = [], force2 = [],supports = []):
   mesh = Mesh()
   mesh.nodes = all_nodes
   # insert elements
@@ -2375,16 +2378,16 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
   #  support = [69659,69669,69670,69671,69672,69673,69674,69675,69677,69689]
   for k in range(len(force1)):
       force1[k] -= offset
-  for k in range(len(support)):
-      support[k] -= offset
+  for supps in supports:
+    for support in supps:
+      support -= offset
 
   mesh.bc = []
   mesh.bc.append(('force1', force1))
   #mesh.bc.append(('force2', force2))
-  mesh.bc.append(('support', support))
-  mesh = convert_to_sparse_mesh(mesh)
-  #evtl -1 bei allen, Lufobracket_Model2     
-
+  for i in range(len(supports)):
+    mesh.bc.append(('support'+str(i+1), supports[i]))
+  mesh = convert_to_sparse_mesh(mesh)    
   return mesh
 
 def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [],force3 = [], support = [], support2 = [], support3 =[]):

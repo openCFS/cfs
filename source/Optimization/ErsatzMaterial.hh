@@ -498,6 +498,12 @@ private:
    * @return invalid in derivative case*/
   double CalcGreyness(Condition* g, bool derivative);
 
+  /** Calculates the difference between filtered and non-filtered stiffness tensor.
+   * @param derivative if false the return value is calculated. Otherwise the value in
+   *        the design element is set.
+   * */
+  double CalcFilteringGap(Condition* g, bool derivative);
+
   /** Evaluates virtually blown up local constraints based on the Function::Local neighborhood.
    * E.g. slope and mole. Note, that there are also the globalized variants.
    * @see CalcGlobalFunction() */

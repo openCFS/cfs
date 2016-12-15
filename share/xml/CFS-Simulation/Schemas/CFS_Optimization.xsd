@@ -342,6 +342,7 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="volume"/>
                 <xsd:enumeration value="penalizedVolume"/>
+                <xsd:enumeration value="filteringGap"/>
                 <xsd:enumeration value="gap"/>
                 <xsd:enumeration value="compliance"/>
                 <xsd:enumeration value="conjugateCompliance"/>
@@ -720,9 +721,10 @@
                 </xsd:element> 
                </xsd:sequence>
                 <!-- penalty parameter bounds -->  
-                <xsd:attribute name="pmin" type="xsd:float" default="0.05" use="optional"/>
-                <xsd:attribute name="pmax" type="xsd:float" default="0.05" use="optional"/>
-               
+                <xsd:attribute name="pmin_vol" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmax_vol" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmin_filt" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmax_filt" type="xsd:float" default="0.05" use="optional"/>
                 <!-- convergence tolerance for sgp algorithm -->
                 <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional"/>
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
@@ -1630,6 +1632,7 @@
       <xsd:enumeration value="youngsModulusE2"/>
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>
+      <xsd:enumeration value="filteringGap"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="tychonoff"/>
       <xsd:enumeration value="temperature"/>
@@ -1845,6 +1848,7 @@
       <!-- detail for constraintGradient in SIMP -->
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>
+      <xsd:enumeration value="filteringGap"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="compliance"/>
       <xsd:enumeration value="greyness"/>

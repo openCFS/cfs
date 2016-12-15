@@ -29,17 +29,20 @@ SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   n = 0;
   m = 0;
 
-  pmin   = this_opt_pn_->Get("pmin")->As<double>();
-  pmax   = this_opt_pn_->Get("pmax")->As<double>();
+  pmin_vol   = this_opt_pn_->Get("pmin_vol")->As<double>();
+  pmin_filt   = this_opt_pn_->Get("pmin_filt")->As<double>();
+  pmax_vol   = this_opt_pn_->Get("pmax_vol")->As<double>();
+  pmax_filt   = this_opt_pn_->Get("pmax_filt")->As<double>();
   lbound = this_opt_pn_->Get("lower_bound")->As<double>();
   ubound = this_opt_pn_->Get("upper_bound")->As<double>();
   tolerance = this_opt_pn_->Get("tolerance")->As<double>();
   tau = this_opt_pn_->Get("tau")->As<double>();
 
-  ppen = 0;
-  ppeni = 0;
-  pmaxi = 0;
-  pmini = 0;
+  ppen_vol = 0.;
+  ppen_filt = 0.;
+  ppeni = 0.;
+  pmaxi = 0.;
+  pmini = 0.;
   bisect = this_opt_pn_->Get("bisect_iter")->As<int>();
 
   merit = 0;
@@ -178,6 +181,9 @@ void SGP::PostInit()
     Condition* g = cc.view->Get(i);
     //MMAApproximation* func = new MMAApproximation(this, i, false);
     constr[i] = g;
+    if (constr[i]->GetType() == Condition::FILTERING_GAP)
+      // setup size of the filter constraint derivative
+      filter_outer_grad.Resize(obj->outer_grad.GetSize());
   }
   cc.view->Done();
 
@@ -219,7 +225,8 @@ void SGP::SolveProblem()
   double merit_old = -1.;
 
   // set penalty parameter
-  ppen = 0.5*(pmin+pmax);
+  ppen_vol = 0.5*(pmin_vol+pmax_vol);
+  ppen_filt = 0.5*(pmin_filt+pmax_filt);
 
   // initialize outer gradient
   StdVector<Matrix<double> > df(n_elem);
@@ -231,6 +238,17 @@ void SGP::SolveProblem()
   DesignToOuter();
   // updates outer variables rho_outer, writes outer_variables to design, and evaluates objective and constraint functions, gradients
   UpdateToCurrentStep();
+  bool derivative_check = true;
+  if (derivative_check) {
+    StdVector<double> deriv_check(6*n_elem), deriv(6*n_elem);
+    double max_error = 0;
+    deriv_check = GradientCheck(max_error);
+    std::cout<<"Derivative check:"<<std::endl;
+    std::cout<<"approx derivative = "<<deriv_check.ToString()<<std::endl;
+    GetOuterDerivativeVector(deriv,obj->outer_grad);
+    std::cout<<"derivative = "<<deriv<<std::endl;
+    std::cout<<"max error = "<<max_error<<std::endl;
+  }
   optimization->CommitIteration();
 
   // outer optimization loop
@@ -244,8 +262,10 @@ void SGP::SolveProblem()
     for(unsigned int i = 0; i < m; i++)
     {
       // Add non-physical constraint to merit functions
-      if (!constr[i]->IsPhysical()) {
-        merit += ppen * constr[i]->GetValue()*n_elem;
+      if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL) {
+        merit += ppen_vol * constr[i]->GetValue()*n_elem;
+      } else if (constr[i]->GetType() == Condition::FILTERING_GAP) {
+        merit += ppen_filt * constr[i]->GetValue();
       }
     }
     LOG_DBG2(sgp) << "SP: it=" << iter << " merit = " << merit;
@@ -260,34 +280,35 @@ void SGP::SolveProblem()
         break;
       }
     }
+    std::cout << "\n merit = " << merit << " merit_old = " << merit_old << " worse_counter = " << worseCounter << std::endl;
+
 
     // Get outer gradient for subproblem
     GetOuterDerivative(df, obj->outer_grad);
-    if (abs(pmin-pmax) < tolerance) {
+    if (abs(pmin_vol-pmax_vol) < tolerance) {
       // solves sub-model and updates rho_outer and theta_outer
       if (configuration == DENSITY_ROTANGLE) {
-        obj->SubSolve_Density_Rotangle(SGPApproximation::FUNC,df,ppen,rho_outer,theta_outer);
+        obj->SubSolve_Density_Rotangle(SGPApproximation::FUNC,df,ppen_vol,rho_outer,theta_outer);
       } else if (configuration == STIFF1_STIFF2) {
-        obj->SubSolve(SGPApproximation::FUNC,df,ppen,s1_outer,s2_outer,theta_outer);
+        obj->SubSolve(SGPApproximation::FUNC,df,ppen_vol,s1_outer,s2_outer,theta_outer);
       } else if (configuration == FOMO) {
-        obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppen,rho_outer,theta_outer);
+        obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppen_vol,rho_outer,theta_outer);
       }
     } else {
       if (iter < 1000) {
-        pmaxi = pmax;
-        pmini = pmin;
+        pmaxi = pmax_vol;
+        pmini = pmin_vol;
       } else if (iter < 2000) {
-        pmaxi = min(pmax,1.1*ppen);
-        pmini = max(pmin,0.9*ppen);
+        pmaxi = min(pmax_vol,1.1*ppen_vol);
+        pmini = max(pmin_vol,0.9*ppen_vol);
       } else {
-        pmaxi = min(pmax, 1.02*ppen);
-        pmini = max(pmin, 0.98*ppen);
+        pmaxi = min(pmax_vol, 1.02*ppen_vol);
+        pmini = max(pmin_vol, 0.98*ppen_vol);
       }
-      ppeni = ppen;
+      ppeni = ppen_vol;
       int ki = 0;
       bool penal_vol = true;
       double cond = 0;
-      int count = 0;
       while (ki < bisect && penal_vol) {
         std::cout<<"s-iteration: "<<ki<<" compliance: "<<obj->outer_val<<" volume: "<<constr[0]->GetValue()<< " ppeni: "<< ppeni<<" merit: "<<merit<<" pmaxi: "<<pmaxi<<" pmini: "<<pmini<<std::endl;
         if (configuration == DENSITY_ROTANGLE) {
@@ -309,24 +330,21 @@ void SGP::SolveProblem()
         for(unsigned int i = 0; i < m; i++)
         {
           // Add non-physical constraint to merit functions
-          if (!constr[i]->IsPhysical()) {
+          if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL) {
             merit += ppeni * constr[i]->GetValue()*n_elem;
+          } else if (constr[i]->GetType() == Condition::FILTERING_GAP) {
+            merit += ppen_filt * constr[i]->GetValue();
           }
         }
-        count = 0;
         cond = 0;
         if(penal_vol) {
-          assert(m <= 1);
           for(unsigned int i = 0; i < m; i++)
           {
-            //if (constr[i]->IsPhysical()) {
+            if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL) {
               cond = constr[i]->GetValue() - constr[i]->GetBoundValue();
-              count++;
-            //}
+            }
           }
-          // only one physical constraint should be used (currently: physical volume)
-          assert(count <= 1);
-          if (abs(cond) < 0.0001) {
+          if (abs(cond) < 0.001) {
             penal_vol = false;
           } else {
             if (cond > 0) {
@@ -340,7 +358,7 @@ void SGP::SolveProblem()
         }
         ki++;
       }
-      ppen = ppeni;
+      ppen_vol = ppeni;
     }
 
     LOG_DBG2(sgp) << "SP: it=" << iter << " c_grad = [" << obj->outer_grad.ToString() << "]";
@@ -375,6 +393,80 @@ void SGP::SolveProblem()
     std::cout << "\nSGP did not converge: " << summary->Get("reason/msg")->As<string>() << std::endl;
 }
 
+StdVector<double> SGP::GradientCheck(double & max_grad_error) {
+  DesignSpace* space = optimization->GetDesign();
+  space->WriteDesignToExtern(x_outer);
+  optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
+
+  // calculate objective and gradient
+  StdVector<double> grad(obj->outer_grad.GetSize());
+  StdVector<double> constr_grad(m*obj->outer_grad.GetSize());
+  EvalGradObjective(n, x_outer.GetPointer(), true, grad);
+  EvalGradConstraints(n,x_outer.GetPointer(),m,m * obj->outer_grad.GetSize(),true,true,constr_grad);
+  for (unsigned int i = 0;i < obj->outer_grad.GetSize(); i++) {
+    for (unsigned int j=0; j < m;j++) {
+      if (constr[j]->GetType() == Condition::FILTERING_GAP)
+      {
+        grad[i] += ppen_filt * constr_grad[j*obj->outer_grad.GetSize() + i];
+      }
+    }
+  }
+
+  // calculate finite difference gradient from objective function with central difference quotient
+  StdVector<unsigned int> grad_index(6);
+  grad_index[0] = space->FindDesign(DesignElement::MECH_11);
+  grad_index[1] = space->FindDesign(DesignElement::MECH_12);
+  grad_index[2] = space->FindDesign(DesignElement::MECH_13);
+  grad_index[3] = space->FindDesign(DesignElement::MECH_22);
+  grad_index[4] = space->FindDesign(DesignElement::MECH_23);
+  grad_index[5] = space->FindDesign(DesignElement::MECH_33);
+
+  double eps = 1e-6;
+  StdVector<double> diff_grad(grad_index.GetSize() * n_elem), x_outer_right(x_outer.GetSize());
+  // Check gradient with central difference quotient
+  double obj_right, obj_left, grad_error,count=0;
+  StdVector<double> constr_val(m);
+  for (unsigned int i = 0; i < n_elem;i++) {
+    for (unsigned int j=0; j< grad_index.GetSize();j++) {
+      // calculate central difference quotient
+        // Eval function value f(x+h) (right)
+      unsigned int index = grad_index[j]*n_elem+i;
+      assert(index < x_outer.GetSize());
+      x_outer[index] += eps;
+      obj_right = EvalObjective(n, x_outer.GetPointer(), true);
+      EvalConstraints(n,x_outer.GetPointer(),m,true,constr_val.GetPointer(),true);
+      for (unsigned int k=0; k < m;k++) {
+        if (constr[k]->GetType() == Condition::FILTERING_GAP)
+        {
+          //int ind = k*obj->outer_grad.GetSize() + i;
+          obj_right += ppen_filt * constr_val[k];
+        }
+      }
+      assert(index < x_outer.GetSize());
+      x_outer[index] -= 2*eps;
+
+      // Eval function value f(x-h) (left)
+      obj_left = EvalObjective(n, x_outer.GetPointer(), true);
+      EvalConstraints(n,x_outer.GetPointer(),m,true,constr_val.GetPointer(),true);
+      for (unsigned int k=0; k < m;k++) {
+        if (constr[k]->GetType() == Condition::FILTERING_GAP)
+        {
+          obj_left += ppen_filt * constr_val[k];
+        }
+      }
+      //delete constr_val;
+      assert(index < x_outer.GetSize());
+      x_outer[index] += eps;
+      diff_grad[count] = (obj_right-obj_left)/ (2.*eps);
+      grad_error = abs(diff_grad[count]-grad[index]);
+      count++;
+      if (grad_error > max_grad_error)
+        max_grad_error = grad_error;
+    }
+  }
+  return diff_grad;
+}
+
 void SGP::UpdateToCurrentStep(bool inner)
 {
   DesignSpace* space = optimization->GetDesign();
@@ -402,7 +494,11 @@ void SGP::UpdateToCurrentStep(bool inner)
   {
     Condition* g = constr[i];
     constr[i]->SetValue(optimization->CalcConstraint(g));
-    //EvalGradConstraint(g, 0, true, true, constr[i]->outer_grad); // scale and normalize
+    if (constr[i]->GetType() == Condition::FILTERING_GAP) {
+      EvalGradConstraint(g, 0, true, true, filter_outer_grad);
+      for (unsigned int j=0; j < obj->outer_grad.GetSize(); j++)
+        obj->outer_grad[i] += ppen_filt * filter_outer_grad[i];
+    }
 
     LOG_DBG3(sgp) << "FP:UTCP g[" << i << "]=" << constr[i]->ToString() << " outer_val=" << constr[i]->GetValue(); //<< " grad=" << constr[i]->outer_grad.ToString();
   }
@@ -459,6 +555,24 @@ void SGP::OuterToDesign(bool filter) {
     space->IncrementDesignId();
 }
 
+void SGP::GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> obj_grad) {
+  DesignSpace* space = optimization->GetDesign();
+  unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+  unsigned int mech12 = space->FindDesign(DesignElement::MECH_12);
+  unsigned int mech13 = space->FindDesign(DesignElement::MECH_13);
+  unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+  unsigned int mech23 = space->FindDesign(DesignElement::MECH_23);
+  unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+
+  for (unsigned int i = 0; i < 6 * n_elem; i += 6) {
+    out[i] = obj_grad[mech11*n_elem+i/6];
+    out[i+1] = obj_grad[mech12*n_elem+i/6];
+    out[i+2] = obj_grad[mech13*n_elem+i/6];
+    out[i+3] = obj_grad[mech22*n_elem+i/6];
+    out[i+4] = obj_grad[mech23*n_elem+i/6];
+    out[i+5] = obj_grad[mech33*n_elem+i/6];
+  }
+}
 void SGP::GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double> obj_grad) {
   DesignSpace* space = optimization->GetDesign();
   unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
@@ -617,7 +731,7 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
 
 void SGP::ToInfoIter(PtrParamNode pn_iter)
 {
-  pn_iter->Get("ppen")->SetValue(ppen);
+  pn_iter->Get("ppen_vol")->SetValue(ppen_vol);
   pn_iter->Get("ppeni")->SetValue(ppeni);
   pn_iter->Get("merit")->SetValue(merit);
 }
@@ -693,6 +807,13 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
+    for (int ii = 0;ii < 3; ii++) {
+      for (int jj = 0;jj < 3;jj++) {
+        if (ii != jj) {
+          df[i][ii][jj] /= 2.;
+        }
+      }
+    }
     BB = -dL * df[i] * dL;
     Matrix<double> tmp(BB);
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
@@ -736,6 +857,13 @@ double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<d
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
+    /*for (int ii = 0;ii < 3; ii++) {
+      for (int jj = 0;jj < 3;jj++) {
+        if (ii != jj) {
+          df[i][ii][jj] /= 2.;
+        }
+      }
+    }*/
     BB = -dL * df[i] * dL;
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
