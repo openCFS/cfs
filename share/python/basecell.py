@@ -39,7 +39,7 @@ def visualize_structure(array,singRegion,show,save):
         y = j * h + h / 2.0 
         z = k * h + h / 2.0
         
-        if array[i,j,k] > 0:
+        if array[i,j,k] >= 0:
           if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
             if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
               centers.append([x,y,z])

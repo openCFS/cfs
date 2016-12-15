@@ -491,7 +491,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
-      print 'old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]])
+#       print 'old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]])
       if map[dnn[n]] <> -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
