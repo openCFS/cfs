@@ -1536,6 +1536,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       result = CalcGreyness(g, derivative);
       break;
 
+      case Function::FILTERING_GAP:
+      result = CalcFilteringGap(g,derivative);
+      break;
+
       case Objective::STRESS:
       case Objective::STRESS_DENSITY:
       {
@@ -3299,6 +3303,64 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     double result = mat_vec.Inner(u2_0);
     LOG_DBG3(em) << "CHEP de=" << de->ToString() << " result=" << result;
     assert(result < 1e100);
+    return result;
+  }
+
+  double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
+    /* Calculates difference between filtered and non-filtered tensor E*/
+    //TODO: asserts
+    //assert(g->GetDesignType() != )
+    double result = 0, error;
+    unsigned int n_elem = design->GetNumberOfElements();
+    unsigned int dtype = design->FindDesign(g->GetDesignType());
+    for(unsigned int i = 0; i < n_elem; i++)
+    {
+      DesignElement* de = dynamic_cast<DesignElement*>(design->GetDesignElement(dtype*n_elem+i));
+      // (E_(ij) - filtered(E_ij))^2
+      error = de->GetDesign(DesignElement::PLAIN)- de->GetDesign(DesignElement::SMART) ;
+      if (!derivative) {
+        result += error * error;
+      } else {
+        // calculate derivative
+        // We filter over this element and the neighbors.
+        assert(de->simp != NULL);
+        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+        const Filter& f = de->simp->filter[fix];
+
+        assert(f.GetType() == Filter::DENSITY);
+        //assert(de == DesignElement::COST_GRADIENT || de == DesignElement::CONSTRAINT_GRADIENT);
+        //assert((g == NULL || (g->IsObjective() && de == DesignElement::COST_GRADIENT)) || (g == NULL || (!g->IsObjective() && de == DesignElement::CONSTRAINT_GRADIENT)) || (g == NULL || (g->IsObjective())));
+        // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
+        assert(g == NULL || g->ForDensityFiltering());
+
+        // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
+        // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
+        // note, that the stored value is already v = d f/d P_i
+        double grad = 0.0;
+        if(f.density_ == Filter::STANDARD)
+        {
+          for(int j = -1, nj = (int) f.neighborhood.GetSize(); j < nj; j++)
+          {
+            const Filter::NeighbourElement* ne = j == -1 ? NULL : &f.neighborhood[j];
+            const DesignElement* de_iter = j == -1 ? de : ne->neighbour;
+            double v = 2 * (de_iter->GetDesign(DesignElement::PLAIN)- de_iter->GetDesign(DesignElement::SMART));
+            double w = j == -1 ? f.weight : ne->weight;
+            double var = j == -1 ? 1.:0.;
+
+            if (de_iter->simp->filter[fix].weight_sum < 0.0)
+                de_iter->simp->filter[fix].weight_sum = de_iter->simp->filter[fix].CalcWeightSum(true);
+
+            double summand = v * (var -(w / de_iter->simp->filter[fix].weight_sum));
+            grad += summand;
+
+            // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+            //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+            //                << " summand=" << summand << " sum=" << sum;
+          }
+        }
+        design->data[dtype*n_elem+i].AddGradient(NULL, g, grad);
+      }
+    }
     return result;
   }
 

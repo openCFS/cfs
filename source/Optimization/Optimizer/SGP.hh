@@ -46,6 +46,8 @@ public:
 
   StdVector<Condition*> constr;
 
+  StdVector<double> filter_outer_grad;
+
   /** the cfs design variable */
   Vector<double> x_outer;
 
@@ -75,7 +77,7 @@ public:
   Matrix<double> E_0;
 
   // penalty parameter
-  double pmin,pmax,ppen,pmini,pmaxi,ppeni;
+  double pmin_vol,pmax_vol,ppen_vol,pmini,pmaxi,ppeni,pmin_filt,pmax_filt,ppen_filt;
 
   // counts outer iterations without any progress
   int worseCounter = 0;
@@ -138,6 +140,9 @@ private:
   /** updates the design and the outer function values and gradients */
   void UpdateToCurrentStep(bool inner = false);
 
+  /** Performs a gradient check with central difference quotient for necessary derivatives */
+  StdVector<double> GradientCheck(double & max_grad_error);
+
   typedef struct
   {
     bool old_point_is_optimal;
@@ -170,6 +175,9 @@ private:
 
   /** create outer derivative from full design gradient */
   void GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double>  obj_grad);
+
+  /** helper function for derivative check, return only necessary gradient entries from design gradient */
+  void GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> obj_grad) ;
 
   /** assume the current design to be FMO tensors and output them */
   void DumpFMPTensors();

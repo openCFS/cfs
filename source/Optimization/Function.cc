@@ -435,6 +435,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BANDGAP: // similar to bloch=extremal
   case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
+  case FILTERING_GAP:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -688,6 +689,7 @@ bool Function::ForSensitivityFiltering() const {
   case HEAT_ENEGRY:
   case EIGENFREQUENCY:
   case BANDGAP:
+  case FILTERING_GAP:
     return true;
 
   case VOLUME:
@@ -980,8 +982,6 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   }
   //total volume in the non-regular case is needed for the volume calculations
   this->total_vol_ = 0.0;
-
-  std::cout << "L:Is space cubic?" << space->IsCubic() << std::endl;
 
   if(!space->IsCubic())
     for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++)
