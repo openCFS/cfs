@@ -639,7 +639,7 @@ def get_surface_lines(map,numLines,dir):
 # min_distance defines smallest distance between a surface node and a neighbor inner node that we allow
 # if the distance between these two is smaller, we omit the surface node
 # def find_points_on_surface(nodes, dir, otherMap1, otherMap2, pointId):
-def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=1/res):
+def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=1.0/res):
   dir = profile.direction
   assert(dir == 0 or dir == 1 or dir == 2)
   res = nodes.shape[1]
@@ -975,7 +975,7 @@ def create_profiles_array(args,infoXml):
 #     out.close()
     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -1008,9 +1008,10 @@ def create_profiles_array(args,infoXml):
       if args.verbose == 'profile_map' or args.export == 'radius_maps':
         create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
       if args.target == "volume_mesh" or args.target == "volume_vtk":
-        write_profile_to_array(array, profiles[i], i+1)
+        print "i: ", i
+        write_profile_to_array(array, profiles[i], i)
       if args.target == "3dlines":
-        plot_3dlines(profiles[i], res, args.res_surf_lines, i+1, ha)
+        plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
   if args.target == '3dlines':
     plt.show()
@@ -1306,10 +1307,8 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
   diff_i = 0
   diff_j = 0
   if dir is not None and other_dir is not None:
-    print "dir: ", dir, " other_dir: ", other_dir
     # we define front in relative coordinates by means of grid coordinates i and j
     if dir == 0 and other_dir == 2 or dir == 2 and other_dir == 0:
-      print "here"
       if node.dir == 0:
         if node.j < res/2:
           diff_i = 1
@@ -1341,7 +1340,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
           diff_i = 1
           diff_j = 0
     else: # not handled yet
-      print "dir: ", dir, " other_dir: ", other_dir
       assert(False)
       
   # find node in connections that is on the same profile
@@ -1510,17 +1508,24 @@ def give_best_next_neighbor(candidates, vert1, vert2):
       
   assert(best_neighbor is not None)
   return best_neighbor
+
+test = None
   
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_cand=None):
-  
+  global test
   # take active edge from last triangle
   active_edge = triangles[-1].edge
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 10340 or b.id == 10340:
+#   if a.id == 10253 or b.id == 10253:
 #     return False
   
+  if test is not None:
+    print "\ntest triangle: (", test.vertices[0].id, ",", test.vertices[1].id, ",", test.vertices[2].id
+    if len(test.other_candidates) <> 0:
+      print " alt cand: ", test.other_candidates[0].id
+    
   print "\na: ", a.id, " connections: ", a.connections
   print "b: ", b.id, " connections: ", b.connections
   
@@ -1537,7 +1542,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     candidates_1 = give_next_end_node(a, cand_1_nodes, end_nodes_1[0].dir, end_nodes_2[0].dir, start_id)
     
     if len(candidates_1) == 0:
-      # check if next neighbor is already saved in a
+      # check if next neighbor is already saved in a node
       if a.next is not None: # in this case we stepped over a valley
         next_cand_1 = a.next
       else:
@@ -1601,12 +1606,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     b.connections.add(next.id)
     next.connections.add(a.id)
     next.connections.add(b.id)
-    
-#     print "added connection from ", a.id, " to ", next.id
-#     print "added connection from ", b.id, " to ", next.id
-#     print "added connection from ", next.id, " to ", a.id
-#     print "added connection from ", next.id, " to ", b.id
-#     
+
     alternatives = []
     
     if not next_cand: # if next end node was not given explicitly
@@ -1621,8 +1621,10 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
           candidates_2.pop(0) 
         
       alternatives = candidates_1[:]+candidates_2[:] if candidates_2 is not None else candidates_1[0:]
-
+    
     triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alternatives))
+    if a.id == 10181 and b.id == 2480 and test is None:
+      test = triangles[-1]
     
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", next.id
     if alternatives is not None:
@@ -1638,6 +1640,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     handle_latest_triangle(triangles)
     
     next_cand = triangles[-1].other_candidates[-1]
+    id = triangles[-1].edge[0].id
+    print "id: ", id
     print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
     triangles[-1].other_candidates.pop(-1)
     check_next_triangle(triangles, end_nodes_1, end_nodes_2, start_id, next_cand)
