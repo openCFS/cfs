@@ -55,6 +55,7 @@
   <xsd:simpleType name="DT_CoefGridDependType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="GENERAL"/>
+      <xsd:enumeration value="SPACE"/>
       <xsd:enumeration value="TIMEFREQ"/>
       <xsd:enumeration value="CONST"/>
     </xsd:restriction>
@@ -75,20 +76,21 @@
           <xsd:element name="defaultGrid">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1" type="xsd:token"/>
               </xsd:sequence>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1"/>
-              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional"
-                default="false"/>
+              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="verboseSum" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional" default="true"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="externalGrid">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="notInterpolatedNodesFile" maxOccurs="1" minOccurs="0" default="" type="xsd:token"/>
-                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
+                <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1" type="xsd:token"/>
                 <xsd:element name="globalTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="localTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
@@ -116,12 +118,12 @@
               <xsd:attribute name="inputId" type="xsd:token" use="required"/>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
-              <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional"
-                default="standard"/>
+              <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional" default="standard"/>
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1"/>
               <xsd:attribute name="verbose" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional"
-                default="false"/>
+              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="verboseSum" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="verboseTimeFreqFactor" type="xsd:boolean" use="optional" default="true"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -296,7 +298,20 @@
   <xsd:complexType name="DT_BcBasic">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:sequence>
+          <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:token" use="optional"/>
         <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default"/>
       </xsd:restriction>
     </xsd:complexContent>

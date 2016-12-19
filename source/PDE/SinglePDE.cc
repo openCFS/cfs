@@ -2347,40 +2347,68 @@ namespace CoupledField {
 
     for( UInt i = 0; i < elems.GetSize(); ++i ) {
       PtrParamNode xml = elems[i];
-
-      // get entity list, depending on type
-      std::string entName = xml->Get("name")->As<std::string>();
-      try {
-        // determine list type: In case we have have surface elements, generate explicitly
-        // a surface element list
-        EntityList::ListType listType = EntityList::ELEM_LIST; 
-        if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
-          listType = EntityList::SURF_ELEM_LIST;
-        }
-
-        switch( ptGrid_->GetEntityType(entName) ) {
-          case EntityList::NAMED_NODES:
-            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
-            break;
-          case EntityList::REGION:
-          case EntityList::NAMED_ELEMS:
-            entities[i] = ptGrid_->GetEntityList( listType, entName );
-            break;
-          case EntityList::NO_TYPE:
-            EXCEPTION("No entities with name '" << entName << "' known");
-            break;
-        }
-
-        std::set<UInt> definedDofs;
-        ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                            definedDofs, updateGeo );
-
-      } catch (Exception& e) {
-        RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
-                          << "' on entities '" << entName <<"'");
+      bool hasName = xml->Has("name");
+      bool hasRegionList = xml->Has("regionList");
+      
+      if (hasName && hasRegionList) {
+        EXCEPTION(elemName << " element contains name attribute and regionList element, both are not allowed together");
+      } else if (!hasName && !hasRegionList) {
+        EXCEPTION(elemName << " element contains neither name attribute nor regionList element, exactly one these is required");
       }
+      
+      std::string entName;
+      if (hasRegionList) {
+        StdVector<PtrParamNode> regs = xml->Get("regionList")->GetList("region");
+        if (regs.GetSize() > 1) {
+          StdVector<RegionIdType> regionTypes;
+          for(UInt r=0;r<regs.GetSize();++r) {
+            std::string regName = regs[r]->Get("name")->As<std::string>();
+            regionTypes.Push_back(ptGrid_->GetRegion().Parse(regName));
+          }
+          RegionList* regionList = new RegionList(ptGrid_);
+          regionList->SetRegions(regionTypes);
+          shared_ptr<EntityList> entList(regionList);
+          entities[i] = entList;
+        } else if (regs.GetSize() == 1) {
+          entName = regs[0]->Get("name")->As<std::string>();
+          ptGrid_->GetRegion().Parse(entName);
+          hasName = true;
+        } else {
+          EXCEPTION(elemName << " element contains regionList without any regions");
+        }
+      }
+      if (hasName) {
+        // get entity list, depending on type
+        entName = xml->Get("name")->As<std::string>();
+        try {
+          // determine list type: In case we have have surface elements, generate explicitly
+          // a surface element list
+          EntityList::ListType listType = EntityList::ELEM_LIST; 
+          if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
+            listType = EntityList::SURF_ELEM_LIST;
+          }
+  
+          switch( ptGrid_->GetEntityType(entName) ) {
+            case EntityList::NAMED_NODES:
+              entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
+              break;
+            case EntityList::REGION:
+            case EntityList::NAMED_ELEMS:
+              entities[i] = ptGrid_->GetEntityList( listType, entName );
+              break;
+            case EntityList::NO_TYPE:
+              EXCEPTION("No entities with name '" << entName << "' known");
+              break;
+          }
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                            << "' on entities '" << entName <<"'");
+        }
+      }
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                          definedDofs, updateGeo );
     } // loop: elements
-
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -2403,15 +2431,23 @@ namespace CoupledField {
       // ====================
       //  EXTERNAL GRID DATA 
       // ====================
+      shared_ptr<RegionList> regions;
+      if (list->GetType() == EntityList::REGION_LIST) {
+        regions = boost::static_pointer_cast<RegionList>(list);
+      } else {
+        RegionList* regionList = new RegionList(ptGrid_);
+        regionList->SetRegion(list->GetRegion());
+        regions = shared_ptr<RegionList>(regionList);
+      }
       if(!isComplex) {
         coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
         coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs

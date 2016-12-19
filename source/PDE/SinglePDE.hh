@@ -159,7 +159,7 @@ namespace CoupledField
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
-    //! \param[in] name EentityList the Field should be applied to
+    //! \param[in] list EntityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
     //! \param[in] compNames Names of the components (vector, tensor)
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
@@ -177,7 +177,7 @@ namespace CoupledField
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
-
+    
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }

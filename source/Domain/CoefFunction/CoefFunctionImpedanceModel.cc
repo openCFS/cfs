@@ -22,7 +22,7 @@ namespace CoupledField{
     normalisedFactor_(1.0)
   {
     // this type of coefficient is always constant
-    dependType_ = GENERAL;
+    dependType_ = CoefFunction::GENERAL;
     isAnalytic_ = false;
     isComplex_ = true;
     dimType_ = SCALAR;

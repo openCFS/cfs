@@ -90,9 +90,10 @@ public:
   
   //! Dependency of coefficient function
   typedef enum{ 
-    CONSTANT,         /*!< No dependency on space or time */
+    CONSTANT,      /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
-    GENERAL,       /*!< General dependency (spatial and / or time / freq) */
+    SPACE,         /*!< Only depending on space */
+    GENERAL,       /*!< General dependency on space and time /freq */
     SOLUTION       /*!< Dependency on another FeFunction */
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
@@ -535,8 +536,14 @@ protected:
   //! Returns true, if expression depends on time / freq
   static bool ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr);
   
-  //! Returns true, if expression depends on space
+  //! Returns true, if one of the given expressions depends on time / freq
+  static bool ExprDependsOnTimeFreq(MathParser* mp, const StdVector<std::string>& expr);
+  
+  //! Returns true, if one of the given expressions depends on space
   static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
+  
+  //! Returns true, if expression depends on space
+  static bool ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr);
   //@}
   
   //TODO: CHANGE THIS TO SHARED POINTER

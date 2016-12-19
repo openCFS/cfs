@@ -891,7 +891,7 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info_ ) {
+    if(info_) {
        ToInfo(info_->Get(ParamNode::HEADER)->Get("domain")); 
     }
   }
@@ -2911,9 +2911,16 @@ namespace CoupledField {
 
   void GridCFS::ToInfo(PtrParamNode in) 
   { 
-    in->Get("dimensions")->SetValue(GetDim()); 
-    in->Get("elements")->SetValue(GetNumElems()); 
-    in->Get("nodes")->SetValue(GetNumNodes()); 
+    PtrParamNode gridNode = in->Get("grids")->Get("grid",ParamNode::APPEND);
+    gridNode->Get("gridId")->SetValue(gridId_); 
+    gridNode->Get("dimensions")->SetValue(GetDim()); 
+    gridNode->Get("elements")->SetValue(GetNumElems()); 
+    gridNode->Get("nodes")->SetValue(GetNumNodes()); 
+    
+    //in->Get("grids")->Get("grid")->Get("gridId")->SetValue(gridId_); 
+    //in->Get("grids")->Get("grid")->Get("dimensions")->SetValue(GetDim()); 
+    //in->Get("grids")->Get("grid")->Get("elements")->SetValue(GetNumElems()); 
+    //in->Get("grids")->Get("grid")->Get("nodes")->SetValue(GetNumNodes()); 
 
     PtrParamNode list = in->Get("regions"); 
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )

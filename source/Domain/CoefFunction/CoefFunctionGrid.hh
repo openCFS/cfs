@@ -62,11 +62,11 @@ class CoefFunctionGrid : public CoefFunction{
               Global::ComplexPart format,
               PtrParamNode infoNode,
               PtrParamNode configNode,
-              shared_ptr<EntityList> list);
+              shared_ptr<RegionList> regions);
 
     ///Constructor which sets every field to default values
     /// carefully check for each field in an overloaded class
-    CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode);
+    CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode, shared_ptr<RegionList> regions);
 
     ///Destructor
     virtual ~CoefFunctionGrid();
@@ -97,14 +97,6 @@ class CoefFunctionGrid : public CoefFunction{
 
     //! Dump coefficient function to string
     virtual std::string ToString() const;
-
-    virtual void AddEntityList(shared_ptr<EntityList> ent){
-      if(!this->entities_.Contains(ent)){
-        entities_.Push_back(ent);
-      }else{
-        WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
-      }
-    }
 
     //! \copydoc CoefFunction::GetVecSize
     virtual UInt GetVecSize() const;
@@ -143,6 +135,28 @@ class CoefFunctionGrid : public CoefFunction{
     ///Sequence step
     virtual void DetermineResult(std::string inputID,UInt seqStep);
 
+    void SetEntitiesByRegions(shared_ptr<RegionList> regions){
+      Grid* grid = regions->GetGrid();
+      StdVector<RegionIdType> regIDs = regions->GetRegionIds();
+      for (UInt i = 0; i < regIDs.GetSize(); i++) {
+        std::string name = grid->GetRegionName(regIDs[i]);
+        
+        // entity list
+        EntityList::ListType listType = EntityList::ELEM_LIST; 
+        if( grid->GetEntityDim( name ) == grid->GetDim() - 1) {
+          listType = EntityList::SURF_ELEM_LIST;
+        }
+        shared_ptr<EntityList> eList = grid->GetEntityList( listType, name );
+        
+        // add entity list
+        if(!this->entities_.Contains(eList)){
+          entities_.Push_back(eList);
+        }else{
+          WARN("entity list " << eList->GetName() << " already contained in CoefFunction")
+        }
+      }
+    }
+    
     //! input reader Id for this function
     std::string inputId_;
 
@@ -157,7 +171,13 @@ class CoefFunctionGrid : public CoefFunction{
 
     //! list of regions on given grid the coefficients are defined on
     std::set<std::string> srcRegions_;
+    
+    //! string containing the names of all source regions
+    std::string allSrcRegionNames_;
 
+    //! name of the solution type given in this function
+    std::string solName_;
+    
     //! the solution type given by this function
     SolutionType solType_;
 

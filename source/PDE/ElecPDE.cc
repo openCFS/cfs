@@ -637,7 +637,7 @@ namespace CoupledField {
         //  Nodal Charges 
         // ---------------
         // Nodal charge must be constant
-        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+        if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
           EXCEPTION("Nodal charges must not be spatial dependent");
         }
 
@@ -658,7 +658,7 @@ namespace CoupledField {
         // --------------------------
         //  Surface / Volume Charges 
         // --------------------------
-        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+        if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
           EXCEPTION("The total prescribed charge must no be spatial dependent");
         }
         // "Divide" the total charge by the volume / surface of the current entity list

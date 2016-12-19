@@ -311,7 +311,7 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
 CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {
   // this type of coefficient is nonlinear, i.e. spatial and time dependent
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isComplex_ = false;
 }
 
