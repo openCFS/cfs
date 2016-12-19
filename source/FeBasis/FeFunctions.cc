@@ -825,6 +825,7 @@ DECLARE_LOG(fefunc)
         // Note: The legacy based is implemented only for 
         // coefficient functions not depending on space
         if( actBc.value->GetDependency() == CoefFunction::GENERAL ||
+            actBc.value->GetDependency() == CoefFunction::SPACE ||
             actBc.value->GetDependency() == CoefFunction::SOLUTION) {
           EXCEPTION("Boundary condition, which are not defined on elements "
               << "are not allowed to be spatially dependent!");

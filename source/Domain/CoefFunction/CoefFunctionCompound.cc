@@ -9,7 +9,7 @@ namespace CoupledField {
 // ===========================================================================
 
 CoefFunctionCompound<Double>::CoefFunctionCompound(MathParser * mp) {
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isAnalytic_ = false;
   isComplex_ = false;
   numRows_ = 0;
@@ -357,7 +357,7 @@ void CoefFunctionCompound<Complex>::CreateDivOperator(UInt spaceDim, UInt dofDim
 // ===========================================================================
 
 CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isAnalytic_ = false;
   isComplex_ = true;
   

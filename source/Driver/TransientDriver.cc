@@ -260,11 +260,11 @@ namespace CoupledField {
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
         
-        //analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = info_->GetRoot()->
             Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
+        envNode->Get("timePerStep")->SetValue(timePerStep_);
       }
       
     }

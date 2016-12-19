@@ -12,8 +12,8 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
     numDofs_ = numDofs;
     
     // check, if we have a constant expression coefficient function
-    if( val->GetDependency() == CoefFunction::GENERAL) {
-      EXCEPTION("SingleEntryInt only works with constant coefficients");
+    if((val->GetDependency() != CoefFunction::CONSTANT) && (val->GetDependency() != CoefFunction::TIMEFREQ)) {
+      EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
     }
     val_ = val;
 
@@ -33,8 +33,8 @@ SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val,
   val_ = CoefFunction::Generate(mp, Global::REAL, realVals);
   
   // check, if we have a constant expression coefficient function
-  if( val_->GetDependency() == CoefFunction::GENERAL) {
-    EXCEPTION("SingleEntryInt only works with constant coefficients");
+  if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
+    EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
   }
 }
 
@@ -56,9 +56,9 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real,
    val_ = CoefFunction::Generate(mp, Global::REAL, realVals, imagVals);
    
    // check, if we have a constant expression coefficient function
-   if( val_->GetDependency() == CoefFunction::GENERAL) {
-     EXCEPTION("SingleEntryInt only works with constant coefficients");
-   }
+  if((val_->GetDependency() != CoefFunction::CONSTANT) && (val_->GetDependency() != CoefFunction::TIMEFREQ)) {
+    EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
+  }
 }
 
 
@@ -93,7 +93,7 @@ void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Double>& stiffMat,
       stiffMat[i][i] = elemVec[i];
     }
   } else {
-    EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );
+    EXCEPTION( "SingleEntryBiLinInt only works for SCALAR and VECTOR" );
   }
 }
 
@@ -116,7 +116,7 @@ void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Complex>& stiffMat,
       stiffMat[i][i] = elemVec[i];
     }
   } else {
-    EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );
+    EXCEPTION( "SingleEntryBiLinInt only works for SCALAR and VECTOR" );
   }
 }
 
@@ -133,7 +133,7 @@ void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Complex>& stiffMat,
 //    } else  if( val_->GetDimType() == CoefFunction::VECTOR) {
 //      val_->GetVector(elemVec, lpm);
 //    } else {
-//      EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );
+//      EXCEPTION( "SingleEntryBiLinInt only works for SCALAR and VECTOR" );
 //    }
 //  }
 //  
@@ -149,7 +149,7 @@ void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Complex>& stiffMat,
 //    } else  if( val_->GetDimType() == CoefFunction::VECTOR) {
 //      val_->GetVector(elemVec, lpm);
 //    } else {
-//      EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );
+//      EXCEPTION( "SingleEntryBiLinInt only works for SCALAR and VECTOR" );
 //    }
 //  }
 

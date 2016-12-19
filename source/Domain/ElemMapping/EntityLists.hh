@@ -340,7 +340,7 @@ namespace CoupledField {
     //! Set Region ids
     void SetRegions( const StdVector<RegionIdType>& names );
 
-    //! Get Region anmes
+    //! Get Region names
     const StdVector<RegionIdType>& GetRegionIds() const {return list_; }
     
 

@@ -1320,7 +1320,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
       // In case of a total force, we can not have a spatial dependency
-      if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+      if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
         EXCEPTION("Total forces must not be spatial dependent");
       }
               

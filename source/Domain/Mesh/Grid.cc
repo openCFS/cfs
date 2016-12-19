@@ -340,6 +340,17 @@ namespace CoupledField
     return regular;
   }
 
+  std::string Grid::GetRegionName( RegionIdType& id )
+  {
+    for(UInt i = 0; i < regionData.GetSize(); i++) {
+      if(regionData[i].id == id) {
+        return regionData[i].name;
+      }
+    }
+    EXCEPTION( "No Region name found for id " << id ) ;
+    return std::string("");
+  }
+  
   void Grid::GetRegionNames( StdVector<std::string>& regionNames )
   {
     regionNames.Resize(regionData.GetSize());

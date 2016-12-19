@@ -637,7 +637,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 //        //  Nodal Charges 
 //        // ---------------
 //        // Nodal charge must be constant
-//        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+//        if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
 //          EXCEPTION("Nodal charges must not be spatial dependent");
 //        }
 //

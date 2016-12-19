@@ -89,14 +89,9 @@ CoefFunction::Generate( MathParser * mp,
 
   PtrCoefFct ret;
 
-  bool depTime = false;
-  bool depSpace = false;
-  
-  // Loop over all entries
-  for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-    depTime  |= ExprDependsOnTimeFreq(mp, realVal[i]);
-    depSpace |= ExprDependsOnSpace(mp, realVal[i]);
-  }
+  bool depTime = ExprDependsOnTimeFreq(mp, realVal);
+  bool depSpace = ExprDependsOnSpace(mp, realVal);
+
   if( format == Global::REAL) {
 
     // === REAL CASE ===
@@ -129,10 +124,9 @@ CoefFunction::Generate( MathParser * mp,
     assert(imagVal.GetSize() > 0);
     assert(imagVal.GetSize() == realVal.GetSize());
     
-    for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-      depTime  |= ExprDependsOnTimeFreq(mp, imagVal[i]);
-      depSpace |= ExprDependsOnSpace(mp, imagVal[i]);
-    }
+    depTime |= ExprDependsOnTimeFreq(mp, imagVal);
+    depSpace |= ExprDependsOnSpace(mp, imagVal);
+    
     if( depSpace ) {
       // --- a) general case: expression Matrix<MAT_DATA_TYPE> dMat_;
       shared_ptr<CoefFunctionExpression<Complex> > c 
@@ -231,13 +225,9 @@ CoefFunction::Generate( MathParser * mp,
 
    PtrCoefFct ret;
 
-   bool depTime = false;
-   bool depSpace = false;
-   // Loop over all entries
-   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-     depTime  |= ExprDependsOnTimeFreq(mp, realVal[i]);
-     depSpace |= ExprDependsOnSpace(mp, realVal[i]);
-   }
+   bool depTime = ExprDependsOnTimeFreq(mp, realVal);
+   bool depSpace = ExprDependsOnSpace(mp, realVal);
+
    if( format == Global::REAL) {
      
      // === REAL CASE ===
@@ -269,10 +259,9 @@ CoefFunction::Generate( MathParser * mp,
      assert(imagVal.GetSize() > 0);
      assert(imagVal.GetSize() == realVal.GetSize());
 
-     for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-       depTime  |= ExprDependsOnTimeFreq(mp, imagVal[i]);
-       depSpace |= ExprDependsOnSpace(mp, imagVal[i]);
-     }
+     depTime |= ExprDependsOnTimeFreq(mp, imagVal);
+     depSpace |= ExprDependsOnSpace(mp, imagVal);
+
      if( depSpace ) {
        // --- a) general case: expression
        shared_ptr<CoefFunctionExpression<Complex> > c 
@@ -469,6 +458,14 @@ bool CoefFunction::ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr
   return depends;
 }
 
+bool CoefFunction::ExprDependsOnTimeFreq(MathParser* mp, const StdVector<std::string>& expr) {
+  bool dep = false;
+  for( UInt i = 0; i < expr.GetSize(); ++i ) {
+    dep  |= ExprDependsOnTimeFreq(mp, expr[i]);
+  }
+  return dep;
+}
+
 bool CoefFunction::ExprDependsOnSpace(MathParser* mp, const std::string& expr) {
   MathParser::HandleType handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
@@ -481,6 +478,14 @@ bool CoefFunction::ExprDependsOnSpace(MathParser* mp, const std::string& expr) {
   
   mp->ReleaseHandle(handle);
   return depends;
+}
+
+bool CoefFunction::ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr) {
+  bool dep = false;
+  for( UInt i = 0; i < expr.GetSize(); ++i ) {
+    dep  |= ExprDependsOnSpace(mp, expr[i]);
+  }
+  return dep;
 }
 
 void  CoefFunction::GenScalCompNames( std::string& realVar, 
@@ -676,6 +681,7 @@ static EnumTuple coefDependTuples[] =
 {
  EnumTuple(CoefFunction::CONSTANT, "CONSTANT"), 
  EnumTuple(CoefFunction::TIMEFREQ, "TIMEFREQ"),
+ EnumTuple(CoefFunction::SPACE, "SPACE"),
  EnumTuple(CoefFunction::GENERAL,  "GENERAL"),
  EnumTuple(CoefFunction::SOLUTION, "SOLUTION")
 };

@@ -44,7 +44,6 @@ namespace CoupledField{
  *         TODO:
  *          - Tested with 2D data which works fine 3D tests are still to come
  *          - Parametrization within the xml file
- *          - User supplied tolerances are ignored at the moment
  *
  */
 template<typename DATA_TYPE>
@@ -53,7 +52,7 @@ class CoefFunctionGridNodalInterp : public CoefFunctionGridNodal<DATA_TYPE>
 public:
 
   CoefFunctionGridNodalInterp(Domain* ptDomain,
-                              PtrParamNode configNode,PtrParamNode curInfo);
+                              PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions);
 
   virtual ~CoefFunctionGridNodalInterp(){
   };
@@ -81,8 +80,6 @@ public:
 
     return "";
   };
-
-  virtual void AddEntityList(shared_ptr<EntityList> ents);
 
   //@{ \name Shortcuts
 
@@ -124,7 +121,11 @@ public:
     this->myConfigNode_->GetValue("localTolerance", localTol_, ParamNode::PASS);
   }
 
-
+protected:
+  
+  //! sets the destination regions
+  virtual void SetDestRegions(shared_ptr<RegionList> regions);
+  
 private:
 
   // =====================================
@@ -198,7 +199,8 @@ private:
 private:
   void ReadXMLNode(PtrParamNode configNode);
 
-  std::string destRegionName_;
+  //! names of all destination regions separated by commas
+  std::string destRegionNames_;
 
   //! Pointer to destination grid for interpolation (usually "default" grid)
   Grid * destGrid_;
@@ -212,6 +214,12 @@ private:
   // file name to store not interpoleted nodes
   std::string notInterpolatedNodesFileName_;
 
+  //! count the given index in the solvec for verbose sum
+  std::vector<bool> countSolvecIndex_;
+  
+  //! add the given index to this dimension
+  StdVector<UInt> solVecIndexDim_;
+  
 };
 
 
