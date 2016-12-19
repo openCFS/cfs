@@ -1551,13 +1551,24 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,start_i
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", cand.id
         
     check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=start_id)
-  
   else:
-    pop_triangles(triangles)
-    next_cand = triangles[-1].other_candidates[-1]
-    print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
-    triangles[-1].other_candidates.pop(-1)
-    check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, start_id)
+    handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,start_id)
+
+# take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
+# corresponds to going one step backwards in algorithm    
+def handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,start_id):
+  pop_triangles(triangles)
+  next_cand = triangles[-1].other_candidates[-1]
+  triangles[-1].other_candidates.pop(-1)
+  
+  # we need to revert the active edge as we're going on step back but want to keep info 
+  # on already checked and not checked neighbor candidates
+  # remove connection to previous next node
+  remove_connection_to_node(triangles[-1].next_node,triangles[-1])
+  triangles[-1].edge = triangles[-2].edge
+  print "set active edge to (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ")" 
+  print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
+  check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, start_id)
     
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_cand=None):
   # take active edge from last triangle
@@ -1565,7 +1576,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 10253 or b.id == 10253:
+#   if a.id == 2743 or b.id == 2743:
 #     return False
   
   print "\na: ", a.id, " connections: ", a.connections
@@ -1642,20 +1653,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
       for alt in alternatives:
         print "alternative: ", alt.id 
   else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
-
-    pop_triangles(triangles)
-    
-    next_cand = triangles[-1].other_candidates[-1]
-    triangles[-1].other_candidates.pop(-1)
-    # we need to revert the active edge as we're going on step back but want to keep info 
-    # on already checked and not checked neighbor candidates
-    # remove connection to previous next node
-    remove_connection_to_node(triangles[-1].next_node,triangles[-1])
-    # remove connections to previous next node
-    triangles[-1].edge = triangles[-2].edge
-    print "set active edge to (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ")" 
-    print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
-    check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, start_id)
+    handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,start_id)
       
   return True
 
