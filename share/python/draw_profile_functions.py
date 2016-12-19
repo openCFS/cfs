@@ -55,16 +55,16 @@ class Marching_Triangle():
   # define active edge where edge_node_2 is assumed to be next_node in different profile than edge_node_1  
   def __init__(self,vertices,edge_node_1,edge_node_2,alt_cand):
     self.edge = []
-    self.next_node = []
     self.other_candidates = alt_cand
     # array of three nodes
     self.vertices = vertices
     self.edge.append(edge_node_1)
     self.edge.append(edge_node_2)
-    if len(self.next_node) > 0:
-      print self.next_node[0]
-    assert(len(self.next_node) == 0)
-    self.next_node.append(edge_node_2)
+#     if len(self.next_node) > 0:
+#       print self.next_node[0]
+#     assert(len(self.next_node) == 0)
+#     self.next_node.append(edge_node_2)
+    self.next_node = edge_node_2
     
   def __str__(self):
     return "vertices: " + str(self.vertices[0].id) + " "  + str(self.vertices[1].id) + " " + str(self.vertices[2].id)
@@ -975,7 +975,7 @@ def create_profiles_array(args,infoXml):
 #     out.close()
     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
@@ -1131,6 +1131,7 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 # by calculating barycentric coordinates for each node
 # if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
 def triangle_contains_any_node(vertices,end_nodes):
+  print "check if triangle(", vertices[0].id, " ,", vertices[1].id, " ,", vertices[2].id, " ,", ") contains "
   center = [0.5,0.5,0.5]
   for node in end_nodes:
     # if we are one of the vertices skip
@@ -1146,6 +1147,7 @@ def triangle_contains_any_node(vertices,end_nodes):
     sol = linsolve_3x3(A,b)
     
     # sol[0] -> k, sol[0] -> l, sol[0] -> s
+    print "node: ", node.id, " k=", sol[0], " l=", sol[1], " s=", sol[2]
     if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
       print "line through node ", node.id, " intersects  with triangle ", vertices[0].id, vertices[1].id, vertices[2].id
       return True
@@ -1302,7 +1304,6 @@ def give_neighbor_end_nodes(node,end_nodes):
 # dir and other_dir helps determining walking direction in case node is a starting node
 def give_next_end_node(node,end_nodes,dir=None,other_dir=None,start_id=-1):
   # in case we have reached one vertice of the very first triangle found by algorithm
-  print "node.id: ", node.id, " start_id: ", start_id 
   if node.id == start_id:
     return [node]
   diff_i = 0
@@ -1533,13 +1534,19 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,start_i
   print "given next node: ", cand.id, " ratio: ", ratio
   
   if ratio < 20:
+    vertices = [a,b,cand]
     #set connections
     a.connections.add(cand.id)
     b.connections.add(cand.id)
     cand.connections.add(a.id)
     cand.connections.add(b.id)
     
-    triangles.append(Marching_Triangle([a,b,cand],a if a.dir != cand.dir else b,cand,[]))
+    triangles[-1].next_node = cand
+    triangles[-1].vertices = vertices
+    triangles[-1].edge[0] = a if a.dir != cand.dir else b
+    triangles[-1].edge[0] = cand
+    
+#     triangles.append(Marching_Triangle([a,b,cand],a if a.dir != cand.dir else b,cand,[]))
     
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", cand.id
         
@@ -1592,6 +1599,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   
   # in this case we stepped over a valley
   if len(candidates_2) == 0:
+    if b.next is None:
+      return False
     assert(b.next is not None)
     # check if next neighbor is already saved in a node
     next_cand_2 = b.next
@@ -1637,22 +1646,26 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
     pop_triangles(triangles)
     
     next_cand = triangles[-1].other_candidates[-1]
-    print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
     triangles[-1].other_candidates.pop(-1)
+    # we need to revert the active edge as we're going on step back but want to keep info 
+    # on already checked and not checked neighbor candidates
+    # remove connection to previous next node
+    remove_connection_to_node(triangles[-1].next_node,triangles[-1])
+    # remove connections to previous next node
+    triangles[-1].edge = triangles[-2].edge
+    print "set active edge to (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ")" 
+    print "check triangle ",  triangles[-1].edge[0].id, triangles[-1].edge[1].id, " with ", next_cand.id
     check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, start_id)
       
   return True
 
-# handles bad triangle that is the last element in triangles list
-def handle_latest_triangle(triangles):
-  vertices = triangles[-1].vertices
-  triangles.pop()
-  # update connections 
-  update_connections(triangles, vertices)
-  print "previous triangle: ", vertices[0].id, ",",vertices[1].id, ",",vertices[2].id
-  
-  pop_triangles(triangles)
-    
+# for a given Marching Triangle, remove all connections from vertices to node
+def remove_connection_to_node(node,triangle):
+  vertices = triangle.vertices
+  for vert in vertices:
+    print "remove connection to ", node.id , " from ", vert.id
+    vert.connections = set([v for v in vert.connections if not (v == node.id)])
+
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):   
   while len(triangles[-1].other_candidates) == 0:
