@@ -76,7 +76,17 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="type" use="required" type="DT_DerivativeType"/>
+        <xsd:attribute name="type" use="required" type="DT_DerivativeType">
+          <xsd:annotation>
+            <xsd:documentation>
+              Lambvector L = density(Vorticity x U)
+              Lighthill  T = L + GRAD(0.5 U.U)
+              Gradient  GRAD(U) = {U,x ; U,y ; U,z}
+              Divergence  DIV(U) = ux,x + uy,y + uz,z
+              Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y}
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
