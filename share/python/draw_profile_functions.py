@@ -11,9 +11,6 @@ from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 # from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
-from platform import node
-from pygments.formatters import other
-from ecdsa.numbertheory import phi
 
 res = 1
 
@@ -25,8 +22,9 @@ class End_Node():
   j = -1 # second index in surface map, where on surface line 
   dir = -1 # to which structure does this end node belongs to (x,y,z)(1,2,3)?
   next = None # store next end node in clock-wise direction when we have to step over a valley
+  neighbors = None # list with coordinates of all (inner + end) nodes
     
-  def __init__(self,coords,id,dir,i,j):
+  def __init__(self,coords,id,dir,i,j,neighbors):
     assert(len(coords) == 3)
     self.coords = coords
     self.id = id
@@ -34,6 +32,7 @@ class End_Node():
     self.j = j
     self.connections = set() # array of end_nodes that form a triangle together with this end node
     self.dir = dir
+    self.neighbors = neighbors
     
   def __str__(self):
     return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
@@ -871,11 +870,22 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
         vtkArray.SetValue(right_id,dir)
         
         if j > 0 and (left_id < 0 or prev_id < 0):
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+          # next, left next, left, left previous, previous, right previous, right, right next
+          left_next_id = left_line[j+1]
+          left_prev_id = left_line[j-1]
+          right_prev_id = right_line[j-1]
+          
+          neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
+          
+#           print "neighbors: ", neighbors    
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
           vtkArray.SetValue(this_id,dir+0.5)
       else:
         if this_id >= 0 and j > 0: # first point in line is not end point
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+          
+          neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
+#           print "neighbors: ", neighbors
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
           vtkArray.SetValue(this_id,dir+0.5)
           
           if right_id >= 0 and right_next_id >= 0:
@@ -889,6 +899,27 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
            
   return end_nodes
 
+# returs a list with indices associated with locations of neighbors in the grid
+# e.g. next neighbor has indices (i,j+1), left next (i-1,j+1)
+def give_all_neighbor_coords(i,j,nodes,nodes_ids):
+  right_line_idx = i+1 if i < nodes_ids.shape[0]-1 else 0
+  left_line_idx = i-1 if i > 0 else nodes_ids.shape[0]-1
+  # indices of neighborhood
+  idx = [(i,j+1),(left_line_idx,j+1),(left_line_idx,j),(left_line_idx,j-1),(i,j-1),(right_line_idx,j-1),(right_line_idx,j),(right_line_idx,j+1)]
+  neighbors = []
+  
+  for v in idx:
+    # skip the ones that don't exist
+    if v[0] < 0 or v[0] >= nodes_ids.shape[0] or v[1] < 0 or v[1] >= nodes_ids.shape[1]:
+      continue
+    
+    # if v is a surface node id
+    if nodes_ids[v[0],v[1]] <> -1:
+      # for each neighbor, store its coordinates and id
+      neighbors.append((nodes[v[0],v[1],:],nodes_ids[v[0],v[1]]))
+      
+  return neighbors
+  
 def add_triangle(id1,id2,id3,cells):
   tri = vtk.vtkTriangle()
   tri.GetPointIds().SetId(0, id1)
@@ -967,12 +998,12 @@ def create_profiles_array(args,infoXml):
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
     
-#     out = open("node_info.txt","w")
-#     out.write("# id \t i \t j \t x \t y \t z \n")
-#     for n in end_nodes_1+end_nodes_2+end_nodes_3:
-#       out.write(str(n.id) + " \t" + str(n.i) + " \t" + str(n.j) + " \t" + str(n.coords[0]) + " \t" + str(n.coords[1]) + " \t" + str(n.coords[2]) + "\n")
-#     
-#     out.close()
+    out = open("node_info.txt","w")
+    out.write("# id \t i \t j \t x \t y \t z \n")
+    for n in end_nodes_1+end_nodes_2+end_nodes_3:
+      out.write(str(n.id) + " \t" + str(n.i) + " \t" + str(n.j) + " \t" + str(n.coords[0]) + " \t" + str(n.coords[1]) + " \t" + str(n.coords[2]) + "\n")
+     
+    out.close()
     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
@@ -1126,32 +1157,34 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
   
   return None, -1
 
-# for a given list of of end_nodes
-# check if any of these nodes form  a line with the origin (0.5,0.5,0.5) that intersects with triangle 
-# by calculating barycentric coordinates for each node
-# if factors for the barycentric coordinates or not between 0 and 1, we are outside the triangle
-def triangle_contains_any_node(vertices,end_nodes):
-  print "check if triangle(", vertices[0].id, " ,", vertices[1].id, " ,", vertices[2].id, " ,", ") contains "
-  center = [0.5,0.5,0.5]
-  for node in end_nodes:
-    # if we are one of the vertices skip
-    if node.id == vertices[0].id or node.id == vertices[1].id or node.id == vertices[2].id:
-      continue
+# vertices contains 3 end nodes that form a triangle
+# for each end node, check if any of its neighbors is contained in triangle
+# spanned by these 3 end nodes    
+def triangle_contains_any_node(vertices):
+  center = (0.5,0.5,0.5)
+  print "check if triangle (", vertices[0].id, ",", vertices[1].id, ",", vertices[2].id, ") contains any neighbor node"  
+  for vertice in vertices:
+#     print "node ", vertice.id, " neighbors: ", vertice.neighbors
+    for n in vertice.neighbors:
+      # if we are one of the vertices skip
+      if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
+        continue
     
-    b = center - vertices[0].coords
-    right1 = vertices[1].coords-vertices[0].coords
-    right2 = vertices[2].coords-vertices[0].coords
-    right3 = center-node.coords
-    A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
-    
-    sol = linsolve_3x3(A,b)
-    
-    # sol[0] -> k, sol[0] -> l, sol[0] -> s
-    print "node: ", node.id, " k=", sol[0], " l=", sol[1], " s=", sol[2]
-    if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
-      print "line through node ", node.id, " intersects  with triangle ", vertices[0].id, vertices[1].id, vertices[2].id
-      return True
-
+      b = center - vertices[0].coords
+      right1 = vertices[1].coords-vertices[0].coords
+      right2 = vertices[2].coords-vertices[0].coords
+      right3 = center-n[0]
+      A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
+      
+      sol = linsolve_3x3(A,b)
+      
+      # sol[0] -> k, sol[0] -> l, sol[0] -> s
+      print "node: ", n[1], " k=", sol[0], " l=", sol[1], " s=", sol[2]
+      if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
+        print "line through node ", n[1], " intersects  with triangle ", vertices[0].id, vertices[1].id, vertices[2].id
+        return True    
+  
+  return False 
 # applying Cramer's rule
 # assume A is a numpy array, b a list
 def linsolve_3x3(A,b):
@@ -1198,7 +1231,7 @@ def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3)
   if node1.id == node2.id or node1.id == node3.id or node2.id == node3.id:
     return 1e6
         
-  if triangle_contains_any_node([node1,node2,node3],neighbors_1+neighbors_2+neighbors_3):
+  if triangle_contains_any_node([node1,node2,node3]):
     ratio = 1000
     
   ratio *= calc_triangle_ratio(node1.coords, node2.coords, node3.coords)
@@ -1479,9 +1512,9 @@ def update_connections(triangles,vertices):
   vertices[1].connections = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
   vertices[2].connections = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
   
-  print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
-  print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
-  print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
+#   print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
 #   
 #   triangles[-1].connections = res
   # remove connections to previous triangle vertices
@@ -1543,10 +1576,9 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,start_i
     
     triangles[-1].next_node = cand
     triangles[-1].vertices = vertices
+    print "a: ", a.id
     triangles[-1].edge[0] = a if a.dir != cand.dir else b
-    triangles[-1].edge[0] = cand
-    
-#     triangles.append(Marching_Triangle([a,b,cand],a if a.dir != cand.dir else b,cand,[]))
+    triangles[-1].edge[1] = cand 
     
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", cand.id
         
@@ -1611,8 +1643,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,start_id=None,next_can
   # in this case we stepped over a valley
   if len(candidates_2) == 0:
     if b.next is None:
-      return False
-    assert(b.next is not None)
+      handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,start_id)
     # check if next neighbor is already saved in a node
     next_cand_2 = b.next
   else:
@@ -1727,6 +1758,3 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     for triangle in triangles:
       verts = triangle.vertices
       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-    
-    if this_end_nodes[0].dir == 1:
-      break
