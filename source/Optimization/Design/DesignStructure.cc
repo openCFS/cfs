@@ -248,7 +248,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       ref.SetNonLinCorrection(de,rex);
       ref_design = de->GetType();
     }
-    #pragma omp critical
     de->simp->filter.Push_back(ref); // copy the reference data
 
     assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
