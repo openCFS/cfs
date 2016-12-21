@@ -18,6 +18,7 @@ class Timer:
     self.wall = wall
     self.cpu = cpu
     self.sub = sub
+    self.speed = cpu / wall if wall >= 3 else None
   
 # helper to get extract a timer from an xml node
 # extracts the data from a node. If no id attribute is given tries to be smart
@@ -101,12 +102,12 @@ def print_timer(timers, brief=False):
      
   max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case
   if not brief:  
-    print 'TIMER'.ljust(max_label) + ': ____ WALL____ ~ ______ (CPU) _____'
+    print('TIMER (sec)'.ljust(max_label) + ': _____WALL____ ~ ______CPU______' + (' : PAR' if not meta else ''))
   else:
-    print 'TIMER'.ljust(max_label) + ': WALL ~ _ (CPU) _'    
+    print('TIMER (sec)'.ljust(max_label) + ': WALL ~    CPU')    
  
   total_wall = max(timer[0].wall, 1)
-  total_cpu  = max(timer[0].cpu, 1e-3) 
+  total_cpu  = max(timer[0].cpu, 1e-3)
  
   for e in range(len(timer)):
      t = timer[e] 
@@ -114,33 +115,34 @@ def print_timer(timers, brief=False):
      line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) 
      if not brief:
        line += ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + ']'
-     line += ' ~ ({:7.3}'.format(t.cpu) + ')' 
+     line += ' ~ {:6.0f}'.format(t.cpu) if t.cpu >= 10000 else ' ~ {:6.1f}'.format(t.cpu)   
      if not brief: 
        line += '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
      
+     if not meta and timer[e].speed and timer[e].speed >= 1:
+       line += ' : {:.1f}'.format(timer[e].speed)
      
      for m in range(meta):
        line += (' \t | ' if m == 0 else ' \t : ') + str(int(timers[m][e].wall)) + '\t (' + str(timers[m][e].cpu) + ')'
-     print line
+     print(line)
         
-parser = argparse.ArgumentParser(description='with --analyse timer information from an info.xml is extracted.')
+parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
 parser.add_argument("input", help="the xml file to run or the info.xml file to analyse (each with extension)")
-parser.add_argument('--analyse', help="extract the timers from the 'input' info.xml file", action='store_true')
-parser.add_argument('--brief', help="brief analysis outout to make it within the 1K cdash buffer", action='store_true')
-parser.add_argument('-m', "--mesh", help="give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
-parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
+parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')
+parser.add_argument('-m', "--mesh", help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
+parser.add_argument('--exec', help="for execution what to call for cfs", default='cfs_rel')
 
-parser.add_argument('--repeat', help="how often shall one test be repeated - default is 1", type=int, default=1)
+parser.add_argument('--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
 args = parser.parse_args()
 
 
 if not os.path.exists(args.input):
-  print "cannot open file '"  + args.input + "'"
+  print("error: cannot open file '"  + args.input + "'")
   sys.exit(2)
 
-if args.analyse:
+if args.input.endswith('.info.xml'):
   if args.mesh or args.repeat != 1:
-    print '--analyse has no other parameters than <input.info.xml'
+    print("error: when analysing an info.xml don't give mesh or repeat")
     sys.exit(1)  
   
   xml = open_xml(args.input)
@@ -149,7 +151,7 @@ if args.analyse:
 
 else: # the whole run stuff
   if not args.mesh:
-    print 'give --mesh or --mest_type and --res when not doing --analyse'
+    print('error: give --mesh or --mesh_type and --res when not doing .info.xml analysis')
     sys.exit(1)            
   assert(args.input.endswith('.xml'))
   problem = args.input[:-4]

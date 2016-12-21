@@ -1303,7 +1303,7 @@ share/python/nas-tool-voidmesh.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
-share/python/performance_test.py -text
+share/python/performance.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/postproc_bloch.py -text

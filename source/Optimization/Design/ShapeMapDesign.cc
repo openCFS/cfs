@@ -1034,7 +1034,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  void ShapeMapDesign::WriteGradientFile()
  {
    // plot the stuff like this:
-   // plot "shape_map_mech.grad.plot" u 1:6 every ::0::41 w lp, "shape_map_mech.grad.plot" u ($1-41):6 every ::41::82 w lp
+   // plot "shape_map_mech.grad.plot" u 1:6 every ::0::40 w lp, "shape_map_mech.grad.plot" u ($1-41):6 every ::41::82 w lp
 
    std::ofstream out;
    string name = progOpts->GetSimName() + ".grad.plot";
@@ -1043,7 +1043,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    out.flags(std::ios::scientific);
 
    assert(opt_->objectives.data.GetSize() == 1);
-   out << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " + opt_->objectives.data[0]->ToString();
+   out << "#gnuplot: plot \"" << progOpts->GetSimName() << ".grad.plot\"  u 1:6 every ::0::" << (shape_[0].end_opt-1) << " w lp";
+   out << ", \"" + progOpts->GetSimName() << ".grad.plot\"  u ($1-" << shape_[0].end_opt << "):6 every ::"
+       << shape_[0].end_opt << "::" << (2*shape_[0].end_opt) << " w lp" << std::endl;
+   out << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt_->objectives.data[0]->ToString();
 
    int cnt = 6; // will be preincremented
    for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
