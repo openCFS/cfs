@@ -1195,7 +1195,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     return;
 
   Grid* grid = domain->GetGrid();
-  
+
   // we only hope the elements are aligned and rectangular, the size might vary
   // if(!space->IsRegular())
   //  throw Exception("A regular design domain is required to use VicinityElements");
@@ -1250,8 +1250,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       }
     }
 
-    // FIXME LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
-
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
       // we consider only direct (edge/face) neighbors
@@ -1262,7 +1260,9 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
       LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
                     << de->elem->GetShape().dim << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
-                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId;
+                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId
+                    << " e.c=" << de->elem->connect.ToString() << " o.c=" << candidate->connect.ToString();
+
 
       // if the neighbor is a surface element we don't want to play with it
       if(de->elem->GetShape().dim != candidate->GetShape().dim)

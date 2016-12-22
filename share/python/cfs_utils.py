@@ -149,7 +149,7 @@ def toGnuPlot(complex_string):
 #@param silent if so suppress output 
 def generate_qsub_script(template, cmd, filename, silent = False):
   if not os.path.exists(template):
-    raise RuntimeError("qsub template not found '" + templtate + "'")
+    raise RuntimeError("qsub template not found '" + template + "'")
    
   with open(template) as f:
     lines = f.readlines()

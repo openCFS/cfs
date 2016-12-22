@@ -73,13 +73,19 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
     if(!shape.fixed && !shape.sym_induced)
     {
       // we mirror if we have a symmetry induced shape as next shape (6 = upper-v[0], 5 = upper-v[1], ...)
-      bool sym_mirror = shape.ShallInduceSymmetryShape();
+      bool sym_ortho = shape.ShallInduceOrthogonalSymmetry();
+
+      // a diagonal induced shape is of switched direction
+      bool sym_diag  = shape.ShallInduceDiagonalSymmetry();
+
       // we copy the element when we have symmetry but not the above case (0->6, 1->5, 2->4, ...)
       bool sym_map   = shape.ShallMapHalfShape();
 
       // we have the mirror shape only when we do sym_mirror
-      ShapeParam* mirror_shape = sym_mirror ? &(shape_[s+1]) : NULL;
-      assert(!sym_mirror || mirror_shape->sym_induced);
+      ShapeParam* ortho_shape = sym_ortho ? &(shape_[s+1]) : NULL; // first induced is ortho
+      ShapeParam* diag_shape  = sym_diag  ? &(shape_[s+(sym_ortho ? 2:1)]) : NULL; // second induced is diagonal
+      assert(!sym_ortho || ortho_shape->sym_induced);
+      assert(!sym_diag  || diag_shape->sym_induced);
 
       // add one in the mirror case with odd design elements for not mirrored center element - note 0-based counting!
       bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
@@ -87,30 +93,42 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
       shape.start_opt = opt_shape_param_.GetSize();
       unsigned int end = sym_map ? shape.start_param + (shape.end_param - shape.start_param) / 2 + (odd_elements ? 1 : 0) : shape.end_param;
 
-      LOG_DBG(SMD) << "SMD opt cand odd=" << odd_elements << " sym_mirror=" << sym_mirror << " sym_map=" << sym_map << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt;
+      LOG_DBG(SMD) << "SMD opt cand odd=" << odd_elements << " sym_ortho=" << sym_ortho << " sym_diag=" << sym_diag << " sym_map=" << sym_map << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt;
 
       for(unsigned int p = shape.start_param; p < end; p++)
       {
         opt_shape_param_.Push_back(&shape_param_[p]); // when we have fixed nodes we shall handle the index!!
+        ShapeParamElement* opt = opt_shape_param_.Last(); // this are the elements
         opt_sym_param_.Push_back(SymmetryMapping());
+        SymmetryMapping& sym = opt_sym_param_.Last(); // and this corresponding structure has all additional virtual elements
+
+        unsigned int idx =  p - shape.start_param;
 
         if(sym_map && !(odd_elements && p == end -1)) // don't add symmetry for the center element of an odd row
-          opt_sym_param_.Last().map = &shape_param_[shape.end_param - 1 - (p - shape.start_param)];
+          sym.map = &shape_param_[shape.end_param - 1 - idx];
+          // first opt item maps to last sym item
 
-        if(sym_mirror)
-          opt_sym_param_.Last().mirror = &shape_param_[mirror_shape->start_param + p - shape.start_param];
+        assert(!sym_ortho || ortho_shape->start_param == shape.end_param);
+        if(sym_ortho)
+          sym.ortho = &shape_param_[ortho_shape->start_param + idx];
+          // first opt item copies to first sym
 
-        if(sym_mirror && sym_map && !(odd_elements && p == end -1)) // double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
-          opt_sym_param_.Last().mirror_map = &shape_param_[mirror_shape->end_param - 1 - (p - shape.start_param)];
+        if(sym_ortho && sym_map && !(odd_elements && p == end -1)) // double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
+          sym.ortho_map = &shape_param_[ortho_shape->end_param - 1 - idx];
+
+        if(sym_diag)
+          sym.diag = &shape_param_[diag_shape->start_param + idx];
+          // first org copies to first sym, just the orientation is changed
 
         // apply the value to the symmetry stuff, especially for the induced shape!
-        opt_sym_param_.Last().ApplyDesign(shape, opt_shape_param_.Last());
+        sym.ApplyDesign(shape, opt);
 
-        LOG_DBG(SMD) << "SMD opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt_shape_param_.Last()->GetIndex()
+        LOG_DBG(SMD) << "SMD opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt->GetIndex()
                      << " #oel=" << opt_shape_param_.GetSize()
-                     << " map_sym=" << (opt_sym_param_.Last().map != NULL ? (int) opt_sym_param_.Last().map->GetIndex() : -1)
-                     << " mirror_sym=" << (opt_sym_param_.Last().mirror != NULL ? (int) opt_sym_param_.Last().mirror->GetIndex() : -1)
-                     << " mirror_map_sym=" << (opt_sym_param_.Last().mirror_map != NULL ? (int) opt_sym_param_.Last().mirror_map->GetIndex() : -1);
+                     << " map_sym=" << (sym.map != NULL ? (int) sym.map->GetIndex() : -1)
+                     << " ortho_sym=" << (sym.ortho != NULL ? (int) sym.ortho->GetIndex() : -1)
+                     << " ortho_map_sym=" << (sym.ortho_map != NULL ? (int) sym.ortho_map->GetIndex() : -1)
+                     << " diag_sym=" << (sym.diag != NULL ? (int) sym.diag->GetIndex() : -1);
       }
 
       shape.end_opt = opt_shape_param_.GetSize(); // luckily the complex counting of symmetry references is not necessary
@@ -119,7 +137,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
         num_node_opt_shape_params_ = shape.end_opt; // as long updated as long as we have nodes. Note that profile comes after nodes!
 
       LOG_DBG(SMD) << "SMD shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
-                   << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements << " sym_mirror=" << sym_mirror << " sym_map=" << sym_map;
+                   << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements << " sym_mirror=" << sym_ortho << " sym_map=" << sym_map;
     }
   }
   assert(opt_shape_param_.GetSize() == opt_sym_param_.GetSize());
@@ -232,18 +250,13 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     {
       assert(out.InWindow(base + s));
 
-      out[base + s] = opt_shape_param_[s]->GetPlainGradient(f) * scaling;
+      Type type = FindShape(opt_shape_param_[s])->type;
+      double opt = opt_shape_param_[s]->GetPlainGradient(f);
+      double sym = opt_sym_param_[s].GetPlainSymGradient(type, f);
 
-      if(opt_sym_param_[s].mirror != NULL)
-        out[base + s] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
+      out[base + s] = (opt + sym) * scaling;
 
-      if(opt_sym_param_[s].map != NULL)
-        out[base + s] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
-
-      if(opt_sym_param_[s].mirror_map != NULL)
-        out[base + s] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
-
-      LOG_DBG3(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
+      LOG_DBG3(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " opt=" << opt << " sym=" << sym << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
     AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
@@ -264,14 +277,12 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
       assert(out.InWindow(base + i));
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
-      out[base + i] = opt_shape_param_[s]->GetPlainGradient(f) * scale;
 
-      if(opt_sym_param_[s].map != NULL)
-        out[base + i] += opt_sym_param_[s].map->GetPlainGradient(f) * scaling;
-      if(opt_sym_param_[s].mirror != NULL)
-        out[base + i] += opt_sym_param_[s].mirror->GetPlainGradient(f) * scaling;
-      if(opt_sym_param_[s].mirror_map != NULL)
-        out[base + i] += opt_sym_param_[s].mirror_map->GetPlainGradient(f) * scaling;
+      Type type = FindShape(opt_shape_param_[s])->type;
+      double opt = opt_shape_param_[s]->GetPlainGradient(f);
+      double sym = opt_sym_param_[s].GetPlainSymGradient(type, f);
+
+      out[base + i] = (opt + sym) * scale;
     }
   }
 }
@@ -283,12 +294,7 @@ void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type
   {
     opt_shape_param_[i]->Reset(vs);
     assert(!opt_shape_param_[i]->costGradient.IsEmpty());
-    if(opt_sym_param_[i].map != NULL)
-      opt_sym_param_[i].map->Reset(vs);
-    if(opt_sym_param_[i].mirror != NULL)
-      opt_sym_param_[i].mirror->Reset(vs);
-    if(opt_sym_param_[i].mirror_map != NULL)
-      opt_sym_param_[i].mirror_map->Reset(vs);
+    opt_sym_param_[i].Reset(vs);
   }
 
   AuxDesign::Reset(vs, design);
@@ -408,6 +414,12 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     assert(spe.GetLowerBound() <= spe.GetUpperBound());
   }
 
+  // now apply symmetries. The density.xml doesn't make a difference between opt and sym variables
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+  {
+    if(opt_sym_param_[i].HasSymmetry())
+      opt_sym_param_[i].ApplyDesign(*FindShape(opt_shape_param_[i]), opt_shape_param_[i]);
+  }
   MapShapeToDensity();
 }
 
@@ -679,18 +691,33 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    LOG_DBG(SMD) << "SSD: children of shapeParam: " << nodes.GetSize();
    assert(!nodes.IsEmpty());
    // first we add the shapes, as we might induce additional shapes during Init we add the profiles later
-   shape_.Reserve(nodes.GetSize() * 2); // list is for nodes which are doubled by profile, might become larger when we induce stuff
-   for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++) {
+   shape_.Reserve(nodes.GetSize() * 4); // list is for nodes which are doubled by profile, might become larger when we induce stuff. Important!!
+   for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++)
+   {
+     assert(shape_.Capacity() == nodes.GetSize() * 4 && shape_.GetSize() <= shape_.Capacity());
      shape_.Push_back(ShapeParam());
-     shape_.Last().Init(nodes[i], shape_.GetSize()-1); // size might be != i when we induce
-     LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+     ShapeParam& item = shape_.Last(); // the item to be processed. Capacity needs to be large enough such that this reference is not fucked up
+     item.Init(nodes[i], shape_.GetSize()-1, NULL); // size might be != i when we induce
+     LOG_DBG(SMD) << "SSD " << item.ToString() << " : i=" << i  << " osi=" << item.ShallInduceOrthogonalSymmetry() << " dsi=" << item.ShallInduceOrthogonalSymmetry() << " ind=" << item.sym_induced;
 
-     if(shape_.Last().ShallInduceSymmetryShape()) {
+     // first added is orthogonal
+     if(item.ShallInduceOrthogonalSymmetry()) {
        shape_.Push_back(ShapeParam());
-       shape_.Last().Init(nodes[i], shape_.GetSize()-1);
+       shape_.Last().Init(nodes[i], shape_.GetSize()-1, NULL, false);
        shape_.Last().sym_induced = true;
-       LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+       LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " osi=" << shape_.Last().ShallInduceOrthogonalSymmetry() << " ind=" << shape_.Last().sym_induced;
      }
+
+     // second added is orthogonal
+     if(item.ShallInduceDiagonalSymmetry()) {
+       shape_.Push_back(ShapeParam());
+       shape_.Last().Init(nodes[i], shape_.GetSize()-1, NULL, true); // we flip!
+       shape_.Last().sym_induced = true;
+       assert(shape_.Last().dof != item.dof);
+       assert(shape_.Last().orientation != item.orientation);
+       LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " dsi=" << shape_.Last().ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().sym_induced;
+     }
+     assert(shape_.Capacity() == nodes.GetSize() * 4); // to make it very clear that all is allright with the references
    }
    num_node_shapes_ = shape_.GetSize();
 
@@ -698,7 +725,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    for(unsigned int i = 0, n = shape_.GetSize(); i < n; i++) {
      shape_.Push_back(ShapeParam());
      shape_.Last().Init(profile, shape_.GetSize()-1, &shape_[i]); // one profile for each node shape, give reverence to node to copy sym and orientation
-     LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " si=" << shape_.Last().ShallInduceSymmetryShape() << " ind=" << shape_.Last().sym_induced;
+     LOG_DBG(SMD) << "SSD " << shape_.Last().ToString() << " : i=" << i  << " osi=" << shape_.Last().ShallInduceOrthogonalSymmetry() << " ind=" << shape_.Last().sym_induced;
    }
 
    // setup nodes within shape_param_. When nx != ny we need the number of shapes to reserve proper space
@@ -1054,11 +1081,14 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        out << "("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + " \t";
    out << std::endl;
 
+   assert(opt_sym_param_.GetSize() == opt_shape_param_.GetSize());
+   Function* c = opt_->objectives.data[0];
    for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
    {
      ShapeParamElement* spe = opt_shape_param_[e];
-     out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << FindShape(spe)->idx << " \t";
-     out << spe->dof << " \t" << spe->GetPlainDesignValue() << " \t" << spe->costGradient[0] << " \t";
+     ShapeParam* shape = FindShape(spe);
+     out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
+     out << spe->dof << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + opt_sym_param_[e].GetPlainSymGradient(shape->type, c)) << " \t";
 
      for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
        if(opt_->constraints.all[g]->HasDenseJacobian())
@@ -1271,13 +1301,7 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++) {
     opt_shape_param_[i]->PostInit(objectives, constraints);
     LOG_DBG2(SMD) << "PI i=" << i << " idx=" << opt_shape_param_[i]->GetIndex() << " #o=" << objectives << " #c=" << constraints << " -> " << opt_sym_param_[i].ToString();
-    if(opt_sym_param_[i].map != NULL)
-      opt_sym_param_[i].map->PostInit(objectives, constraints);
-    if(opt_sym_param_[i].mirror != NULL)
-      opt_sym_param_[i].mirror->PostInit(objectives, constraints);
-    if(opt_sym_param_[i].mirror_map != NULL)
-      opt_sym_param_[i].mirror_map->PostInit(objectives, constraints);
-
+    opt_sym_param_[i].PostInit(objectives, constraints);
   }
 
   if(domain->GetOptimization() != NULL)
@@ -1293,10 +1317,12 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
   return res;
  }
 
- void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_, ShapeParam* node)
+ void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_, ShapeParam* node, bool flip_orientation)
  {
    type = ShapeMapDesign::type.Parse(pn->GetName());
    idx = (int) idx_;
+
+   assert(!(node != NULL && flip_orientation));
 
    clamp = pn->Get("clamp")->As<double>();
 
@@ -1307,14 +1333,28 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
        throw Exception("shapeParam of type 'node' requires 'dof'");
      dof = Dof(pn->Get("dof")->As<std::string>());
      assert(dof == 0 || dof == 1);
+     if(flip_orientation)
+       dof = 1-dof;
 
      orientation = dof == 0 ? 1 : 0; // only 2d!
 
-     x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
-     y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+     if(!flip_orientation) {
+       x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
+       y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+     }
+     else {
+       x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+       y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
+     }
 
-     LOG_DBG(SMD) << "SP:I idx=" << idx_ << " node dof=" << dof << " orientation=" << orientation << " x_sym=" << ShapeMapDesign::symmetry.ToString(x_sym)
-                  << " y_sym=" << ShapeMapDesign::symmetry.ToString(y_sym) << " shall_induce=" << ShallInduceSymmetryShape();
+     diag  = ShapeMapDesign::symmetry.Parse(pn->Get("diagonal_sym")->As<string>());
+
+     LOG_DBG(SMD) << "SP:I idx=" << idx_ << " node dof=" << dof << " orientation=" << orientation
+                  << " x_sym=" << ShapeMapDesign::symmetry.ToString(x_sym)
+                  << " y_sym=" << ShapeMapDesign::symmetry.ToString(y_sym)
+                  << " diag="  << ShapeMapDesign::symmetry.ToString(diag)
+                  << " induce_ortho=" << ShallInduceOrthogonalSymmetry()
+                  << " induce_diag=" << ShallInduceDiagonalSymmetry();
    }
    if(type == PROFILE)
    {
@@ -1325,7 +1365,8 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
      orientation = node->orientation;
      x_sym = node->x_sym;
      y_sym = node->y_sym;
-     sym_induced = node->sym_induced;
+     diag  = node->diag;
+     sym_induced = node->sym_induced; // orthogonal and/or diagonal
    }
 
    if(pn->Has("initial"))
@@ -1357,7 +1398,7 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
      throw Exception("shapeParam needs to have either 'initial' or 'fixed'");
 }
 
-bool ShapeMapDesign::ShapeParam::ShallInduceSymmetryShape() const
+bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
 {
   if(x_sym == MIRROR && orientation == 1)
     return true;
@@ -1367,6 +1408,15 @@ bool ShapeMapDesign::ShapeParam::ShallInduceSymmetryShape() const
 
   return false;
 }
+
+bool ShapeMapDesign::ShapeParam::ShallInduceDiagonalSymmetry() const
+{
+  if(diag == MIRROR)
+    return true;
+  else
+    return false;
+}
+
 
 bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
 {
@@ -1479,36 +1529,83 @@ void ShapeMapDesign::SymmetryMapping::ApplyDesign(ShapeParam& shape, ShapeParamE
   if(map != NULL)
     map->SetDesign(org->GetPlainDesignValue());
 
-  if(mirror != NULL)
+  if(diag != NULL)
+    diag->SetDesign(org->GetPlainDesignValue());
+
+  if(ortho != NULL)
   {
     if(shape.type == NODE)
-      mirror->SetDesign(shape.max - org->GetPlainDesignValue());
+      ortho->SetDesign(shape.max - org->GetPlainDesignValue()); // consider with gradient!!
     else
-      mirror->SetDesign(org->GetPlainDesignValue());
+      ortho->SetDesign(org->GetPlainDesignValue());
   }
 
-  if(mirror_map != NULL)
+  if(ortho_map != NULL)
   {
     if(shape.type == NODE)
-      mirror_map->SetDesign(shape.max - org->GetPlainDesignValue());
+      ortho_map->SetDesign(shape.max - org->GetPlainDesignValue());
     else
-      mirror_map->SetDesign(org->GetPlainDesignValue());
+      ortho_map->SetDesign(org->GetPlainDesignValue());
   }
 }
 
-std::string ShapeMapDesign::SymmetryMapping::ToString() const
+
+double ShapeMapDesign::SymmetryMapping::GetPlainSymGradient(ShapeMapDesign::Type type, const Function* f) const
+{
+  double res = 0.0;
+  if(map != NULL)
+    res += map->GetPlainGradient(f);
+
+  if(ortho != NULL)
+    res += (type == NODE ? -1.0 : 1.0) * ortho->GetPlainGradient(f); // see ApplyDesign()
+
+
+  if(ortho_map != NULL)
+    res += (type == NODE ? -1.0 : 1.0) * ortho_map->GetPlainGradient(f);
+
+  if(diag != NULL)
+    res += diag->GetPlainGradient(f);
+
+  return res;
+}
+
+void ShapeMapDesign::SymmetryMapping::Reset(DesignElement::ValueSpecifier vs)
+{
+  if(map != NULL)
+    map->Reset(vs);
+  if(ortho != NULL)
+    ortho->Reset(vs);
+  if(ortho_map != NULL)
+    ortho_map->Reset(vs);
+  if(diag != NULL)
+    diag->Reset(vs);
+}
+
+void ShapeMapDesign::SymmetryMapping::PostInit(int objectives, int constraints)
+{
+  if(diag != NULL)
+    diag->PostInit(objectives, constraints);
+  if(map != NULL)
+    map->PostInit(objectives, constraints);
+  if(ortho != NULL)
+    ortho->PostInit(objectives, constraints);
+  if(ortho_map != NULL)
+    ortho_map->PostInit(objectives, constraints);
+}
+
+
+std::string ShapeMapDesign::SymmetryMapping::ToString(bool grad) const
 {
   std::stringstream ss;
-  ss << "map=";
-  if(map == NULL)
-    ss << "null";
-  else
-    ss << map->GetIndex();
-  ss << " mirror=";
-  if(mirror == NULL)
-    ss << "null";
-  else
-    ss << mirror->GetIndex();
+  ss << "map=" << (map == NULL ? "null" : lexical_cast<string>(map->GetIndex()));
+  if(grad && map)
+    ss << " dJ=" << map->costGradient[0];
+  ss << " diag=" << (diag == NULL ? "null" : lexical_cast<string>(diag->GetIndex()));
+  if(grad && diag)
+    ss << " dJ=" << diag->costGradient[0];
+  ss << " orthogonal=" << (ortho == NULL ? "null" : lexical_cast<string>(ortho->GetIndex()));
+  if(grad && ortho)
+    ss << " dJ=" << ortho->costGradient[0];
   return ss.str();
 }
 

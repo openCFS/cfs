@@ -1197,6 +1197,7 @@ void Domain::ToInfo(PtrParamNode in)
     s->Get("name")->SetValue(it->first);
     it->second->ToInfo(s);
   }
+
   if(progOpts->DoDetailedInfo()) {
     // Get bounding box of the grid
     Matrix<double> m = this->GetGrid()->CalcGridBoundingBox();
@@ -1210,6 +1211,7 @@ void Domain::ToInfo(PtrParamNode in)
       s->Get("max_z")->SetValue(m[2][1]);
     }
   }
+
 }
 
 bool Domain::HasPerdiodicBC() const

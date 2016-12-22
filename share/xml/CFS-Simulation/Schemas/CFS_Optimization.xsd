@@ -1139,6 +1139,8 @@
                         <!-- optional symmetries -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none"/>
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none"/>
+                        <!-- induces shape with other dof -->
+                        <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none"/>
                         <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). 
                              Overwrites shapeMap relative_*_bound if given. Negative disables.-->
                         <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1"/>
