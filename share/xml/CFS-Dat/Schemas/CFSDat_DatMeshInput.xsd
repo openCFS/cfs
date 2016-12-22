@@ -34,6 +34,13 @@
         </xsd:sequence>
         <xsd:attribute name="gridType" type="DT_GridType" default="fullGrid"/>
         <xsd:attribute name="printResultInfo" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="inputFilterIds" use="optional" type="xsd:token" default="none">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

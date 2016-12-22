@@ -197,7 +197,7 @@ void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
                                   const Vector<Double> inVec){
 
 
-  //resize retVec to number of nodes of target
+  //resize retVec to number of element-centroids of target
   retVec.Resize(3.0 * derivData_.size());
   retVec.Init();
 
@@ -257,8 +257,7 @@ void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
 
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
 
-
-  // loop over all elements and over every node of each element
+  // loop over all elements
   for(UInt i = 0; i < derivData_.size();++i){
 
     DifferentiationStruct& aStru = derivData_[i];
@@ -813,21 +812,10 @@ void Lighthill::PrepareDifferentiation(){
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
   if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){
     //case of centroid-values
-    sourceCoords_.Resize(allSrcElems.GetSize());
-    for(UInt i=0;i<allSrcElems.GetSize();++i){
-      CF::Vector<Double> cCoord;
-      inGrid->GetElemCentroid(cCoord,allSrcElems[i],true);
-      if(trgGrid_->GetDim() == 2){
-        sourceCoords_[i].Resize(2);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-      }else{
-        sourceCoords_[i].Resize(3);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-        sourceCoords_[i][2] = cCoord[2];
-      }
-    }
+    EXCEPTION("============================================================ \n"
+              "Input of Lighthill- of LambVector-filter must be defined on nodes!! \n"
+              "Just use an interpolator to transform to node-results \n"
+              "============================================================")
   }else{
     //that's the case, if the source values are defined on src-nodes
     sourceCoords_.Resize(allSrcNodes.GetSize());
@@ -869,7 +857,6 @@ void Lighthill::PrepareDifferentiation(){
   }
 
   CF::StdVector< LocPoint > locPoints;
-  //tempElems are just dummy vectors, get deleted right after we get the local coordinates
   StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
   trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
@@ -880,7 +867,7 @@ void Lighthill::PrepareDifferentiation(){
   for(UInt aMatch = 0;aMatch < allTrgElems.GetSize();++aMatch){
     if(allTrgElems[aMatch]!= NULL){
       DifferentiationStruct newStruct;
-      newStruct.localCoords = locPoints[aMatch].coord;
+      //newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.tENum = allTrgElems[aMatch]->elemNum;
       derivData_.push_back(newStruct);
     }

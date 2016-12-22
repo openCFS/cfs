@@ -33,6 +33,14 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
 
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
+
+
+  // Read value and phase and generate scalar coefficient function
+ // std::string value, phase;
+ // value = myParam_->Get("source")->Get("value")->As<std::string>();
+ // srcVal_ = CoefFunction::Generate(mParser_, type, value, phase);
+
+
 }
 
 RBFInterpolator::~RBFInterpolator(){
@@ -493,24 +501,22 @@ void RBFInterpolator::PrepareInterpolation(){
   }
 
   CF::StdVector< LocPoint > locPoints;
-  //tempElems are just dummy vectors, get deleted right after we get the local coordinates
   StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
   trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
-  tempElems.Clear();
+//  tempElems.Clear();
 
   std::cout << "\t\t 3/5 Generating interpolation info ..." << std::endl;
 
   interpolData_.reserve(allTrgElems.GetSize());
-  for(UInt aMatch = 0;aMatch < allTrgElems.GetSize();++aMatch){
-    if(allTrgElems[aMatch]!= NULL){
+  for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
+    if(tempElems[aMatch]!= NULL){
       InpolationStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = allTrgElems[aMatch]->elemNum;
+      newStruct.tENum = tempElems[aMatch]->elemNum;
       interpolData_.push_back(newStruct);
     }
   }
-
 
   std::cout << "\t\t 4/5 Clear generated temporary data storage ..." << std::endl;
   allTrgElems.Clear(false);
