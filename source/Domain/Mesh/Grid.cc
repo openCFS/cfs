@@ -189,8 +189,10 @@ namespace CoupledField
         // decision by element number is a piece of crap. we can cache some shape maps
         // to avoid memory reallocation but otherwise, it just does not work out
         return elemShapeMapUpdated_[aThread][(UInt)idx];
-      }else{
-        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+      }
+      else
+      {
+        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapUpdated_[aThread].GetSize();aIdx++){
          if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
             elemShapeMapUpdated_[aThread][aIdx]->SetElem(ptElem, isUpdated );
@@ -472,7 +474,8 @@ namespace CoupledField
   {
     RegionData& rd = regionData[reg];
 
-    if(rd.barycenters) return 0;
+    if(rd.barycenters)
+      return 0;
 
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
@@ -482,7 +485,6 @@ namespace CoupledField
     rd.barycenters = true; // don't do it again!
 
     return elems.GetSize();
-    return 0;
   }
 
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
@@ -893,8 +895,8 @@ namespace CoupledField
 
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
-
     this->SetElementBarycenters(region,false);
+
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
         if (elems[i]->barycenter[j] > max[j])
