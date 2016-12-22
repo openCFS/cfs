@@ -360,21 +360,10 @@ void GradientDifferentiator::PrepareDifferentiation(){
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
   if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){
     //case of centroid-values
-    sourceCoords_.Resize(allSrcElems.GetSize());
-    for(UInt i=0;i<allSrcElems.GetSize();++i){
-      CF::Vector<Double> cCoord;
-      inGrid->GetElemCentroid(cCoord,allSrcElems[i],true);
-      if(trgGrid_->GetDim() == 2){
-        sourceCoords_[i].Resize(2);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-      }else{
-        sourceCoords_[i].Resize(3);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-        sourceCoords_[i][2] = cCoord[2];
-      }
-    }
+    EXCEPTION("============================================================ \n"
+              "Input of GradientDifferentiator-filter must be defined on nodes!! \n"
+              "Just use an interpolator to transform to node-results \n"
+              "============================================================")
   }else{
     //that's the case, if the source values are defined on src-nodes
     sourceCoords_.Resize(allSrcNodes.GetSize());
@@ -420,15 +409,15 @@ void GradientDifferentiator::PrepareDifferentiation(){
   StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
   trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
-  tempElems.Clear();
+  //tempElems.Clear();
 
   std::cout << "\t\t 3/5 Generating differentiation info ..." << std::endl;
-  derivData_.reserve(allTrgElems.GetSize());
-  for(UInt aMatch = 0;aMatch < allTrgElems.GetSize();++aMatch){
-    if(allTrgElems[aMatch]!= NULL){
+  derivData_.reserve(tempElems.GetSize());
+  for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
+    if(tempElems[aMatch]!= NULL){
       DifferentiationStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = allTrgElems[aMatch]->elemNum;
+      newStruct.tENum = tempElems[aMatch]->elemNum;
       derivData_.push_back(newStruct);
     }
   }

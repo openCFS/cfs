@@ -20,16 +20,17 @@
       <xsd:annotation>
         <xsd:documentation> Human readable id for the current filter. Can be any string but must be
           unique within the document. For outputfilters, this id will be used for the result file
-          name. </xsd:documentation>
+          name.
+        </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="inputFilterIds" use="optional" type="xsd:token" default="none">
+<!--    <xsd:attribute name="inputFilterIds" use="optional" type="xsd:token" default="none">
       <xsd:annotation>
         <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
           the filter with the given id and the current filter. Will be ignored for input filters.
         </xsd:documentation>
       </xsd:annotation>
-    </xsd:attribute>
+    </xsd:attribute>-->
   </xsd:complexType>
  
 </xsd:schema>

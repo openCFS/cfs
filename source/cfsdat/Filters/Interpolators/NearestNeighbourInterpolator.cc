@@ -391,19 +391,19 @@ void NearestNeighbourInterpolator::PrepareInterpolation(){
   StdVector<const CF::Elem*> tempElems;
   //mapping of global point targetCoords_ to local locPoints
   trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
-  tempElems.Clear();
+  //  tempElems.Clear();
 
   std::cout << "\t\t 3/5 Generating interpolation info ..." << std::endl;
 
-  interpolData_.reserve(allTrgElems.GetSize());
-  for(UInt aMatch = 0;aMatch < allTrgElems.GetSize();++aMatch){
-    if(allTrgElems[aMatch]!= NULL){
-      InpolationStruct newStruct;
-      newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = allTrgElems[aMatch]->elemNum;
-      interpolData_.push_back(newStruct);
+    interpolData_.reserve(allTrgElems.GetSize());
+    for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
+      if(tempElems[aMatch]!= NULL){
+        InpolationStruct newStruct;
+        newStruct.localCoords = locPoints[aMatch].coord;
+        newStruct.tENum = tempElems[aMatch]->elemNum;
+        interpolData_.push_back(newStruct);
+      }
     }
-  }
 
 
   std::cout << "\t\t 4/5 Clear generated temporary data storage ..." << std::endl;
