@@ -71,7 +71,6 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp;
   const UInt numIntPts = intPoints.GetSize();
@@ -91,7 +90,7 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
     elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
@@ -169,7 +168,6 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp1,lp2;
   const UInt numIntPts = intPoints.GetSize();
@@ -194,7 +192,7 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         this->factor_*fac, 1.0);
 #else
@@ -325,7 +323,6 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
    myFactor *= tmp/(surface1+surface2);
   }
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp1,lp2;
   const UInt numIntPts = intPoints.GetSize();
@@ -346,7 +343,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         myFactor*fac, 1.0);
 #else
@@ -478,7 +475,6 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   LocPoint ipMaster, ipSlave;
   LocPointMapped lpmNc, lpmMaster, lpmSlave;
 
-#define USE_BLAS_VERSION
   const UInt numIntPts = intPoints.GetSize();
   for( UInt i = 0; i < numIntPts; ++i ) {
     // Calculate global coordinates of integration point
@@ -545,7 +541,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         this->factor_*fac, 1.0);
 #else

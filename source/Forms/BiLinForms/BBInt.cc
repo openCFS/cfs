@@ -68,7 +68,6 @@ namespace CoupledField{
      elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
      elemMat.Init();
 
-#define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp;
      const UInt numIntPts = intPoints.GetSize();
@@ -85,7 +84,7 @@ namespace CoupledField{
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
@@ -216,7 +215,6 @@ namespace CoupledField{
      kernel.Resize( nrFncs * bOperator_->GetDimDof() );
      kernel.Init();
 
-#define USE_BLAS_VERSION
 
      // Call the CalcBMat()-method
      this->bOperator_->CalcOpMat( bMat_, lpm, ptFe);
@@ -224,10 +222,10 @@ namespace CoupledField{
      // Calculate scalar factor
      this->coefScalar_->GetScalar(fac, lpm);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
      bMat_.Mult_Blas(bMat_, kernel, true, false, this->factor_ * fac, 1.0);
 #else
-     elemMat += Transpose(bMat) * bMat_ * this->factor_ * fac;
+     kernel += Transpose(bMat_) * bMat_ * this->factor_ * fac;
 #endif
    }
    
@@ -286,10 +284,10 @@ namespace CoupledField{
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        this->bMat_.Mult_Blas(this->bMat_, elemMat, true, false, this->factor_*fac, 1.0);
 #else
-       elemMat += Transpose(bMat) * this->bMat_ * this->factor_ * fac;
+       elemMat += Transpose(this->bMat_) * this->bMat_ * this->factor_ * fac;
 #endif
      }
      //ptFe->SetOnlyLowestOrder(false);
@@ -330,7 +328,6 @@ namespace CoupledField{
      elemMat.Resize( nrFncs1 * this->bOperator_->GetDimDof() );
      elemMat.Init();
 
-#define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp1,lp2;
      const UInt numIntPts = intPoints.GetSize();
@@ -350,10 +347,10 @@ namespace CoupledField{
        this->coefScalar_->GetScalar(fac, lp1);
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        bMatT_.Mult_Blas(this->bMat_, elemMat, false, false, this->factor_ * fac, 1.0);
 #else
-       elemMat += Transpose(bMat_) * bMat_ * this->factor_ * fac;
+       elemMat += Transpose(this->bMat_) * this->bMat_ * this->factor_ * fac;
 #endif
      }
    }

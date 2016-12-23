@@ -3451,8 +3451,7 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface,
-                                         bool icModes)
+                                         NcInterfaceInfo &iface )
   {
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
@@ -3600,7 +3599,7 @@ namespace CoupledField {
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, -1.0, curcpl, updatedGeo_, true);
         flux_du1_v1->SetBCoefFunctionOpA(coefMech);
@@ -3615,7 +3614,7 @@ namespace CoupledField {
     if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            factor, -1.0, curcpl, updatedGeo_, true);
       flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
@@ -3636,7 +3635,7 @@ namespace CoupledField {
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, 1.0, curcpl, updatedGeo_, true);
       flux_du1_v2->SetBCoefFunctionOpA(coefMech);
@@ -3792,10 +3791,10 @@ namespace CoupledField {
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,3>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
 #endif
 
 } // end of namespace

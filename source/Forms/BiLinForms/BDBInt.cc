@@ -80,7 +80,6 @@ namespace CoupledField{
     elemMat.Resize( nrFncs * bOperator_->GetDimDof());
     elemMat.Init();
     
-#define USE_BLAS_VERSION
 
     // Loop over all integration points
     LocPointMapped lp;
@@ -103,12 +102,12 @@ namespace CoupledField{
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
       dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
       bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0);
 #else
-      dbMat = (dMat * bMat) * fac;
-      elemMat += Transpose(bMat) * dbMat * factor_;
+      dbMat_ = (dMat_ * bMat_) * fac;
+      elemMat += Transpose(bMat_) * dbMat_ * factor_;
 #endif
 
     }
@@ -316,7 +315,6 @@ namespace CoupledField{
     kernel.Resize( nrFncs * bOperator_->GetDimDof());
     kernel.Init();
 
-#define USE_BLAS_VERSION
 
     // Call the CalcBMat()-method
     bOperator_->CalcOpMat( bMat_, lpm, ptFe);
@@ -327,12 +325,12 @@ namespace CoupledField{
     dData_->GetTensor(dMat_,lpm);
     dbMat_.Resize(dMat_.GetNumRows(),nrFncs* bOperator_->GetDimDof());
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
     bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0, true); // conjugate complex
 #else
-    dbMat = (dMat * bMat) * fac;
-    kernel += TransposeConjugate(bMat) * dbMat * factor_;
+    dbMat_ = (dMat_ * bMat_);
+    kernel += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
   }
