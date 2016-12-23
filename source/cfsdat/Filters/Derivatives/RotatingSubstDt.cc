@@ -170,7 +170,7 @@ bool RotatingSubstDt::Run(){
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
     //now we add the substantial part
     UInt gIdx = 0;
-    EqnMapSimple& mapping = *resultManager_->GetResultAdpter(*aIter)->mapping.get();
+    EqnMapSimple& mapping = *resultManager_->GetResultAdapter(*aIter)->mapping.get();
     StdVector<UInt> aEqn(1);
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
 
@@ -206,8 +206,8 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
   r       = cylNode->Get("radius")->Get("value")->As<Double>();
 
   ResultManager::ConstInfoPtr gradInfo = resultManager_->GetExtInfo(gradId_);
-  ResultManager::ConstResPtr gradRes = resultManager_->GetResultAdpter(gradId_);
-  EqnMapSimple& mapping = *resultManager_->GetResultAdpter(timeId_,1)->mapping.get();
+  ResultManager::ConstResPtr gradRes = resultManager_->GetResultAdapter(gradId_);
+  EqnMapSimple& mapping = *resultManager_->GetResultAdapter(timeId_,1)->mapping.get();
   StdVector<UInt>& eNums = *gradInfo->entityNumbers.get();
   bool hasExtraction = eNums.GetSize() != 0;
 

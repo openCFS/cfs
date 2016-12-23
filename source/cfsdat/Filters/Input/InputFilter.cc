@@ -29,7 +29,7 @@ namespace CFSDat{
 InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
             : BaseFilter(numWorkers,config,resMan){
 
-  this->filtSteamType_ = INPUT_FILTER;
+  this->filtStreamType_ = INPUT_FILTER;
 
   CreateDummyCfsParamNode();
   PtrParamNode infoNode;
@@ -131,7 +131,7 @@ bool InputFilter::Run(){
     if(filterResIds.Find(*aIter) == -1)
       continue;
     ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
-    ResultManager::ConstResPtr cRes = resultManager_->GetResultAdpter(*aIter);
+    ResultManager::ConstResPtr cRes = resultManager_->GetResultAdapter(*aIter);
 
     ExtendedResultInfo fileResult;
     for(UInt i=0;i<availInputResults_.GetSize();++i){

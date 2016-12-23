@@ -109,7 +109,7 @@ CF::StdVector<shared_ptr<BaseResult> >& ResultManager::GetBaseResultVector(uuids
   return resultMap_[remappedId].second->baseResultVector;
 }
 
-ResultManager::ConstResPtr ResultManager::GetResultAdpter(uuids::uuid requestedId, Integer timeStepOffset){
+ResultManager::ConstResPtr ResultManager::GetResultAdapter(uuids::uuid requestedId, Integer timeStepOffset){
   checkFinalized();
   uuids::uuid remappedId = remapMasterResults(requestedId,timeStepOffset);
   return resultMap_[remappedId].second;

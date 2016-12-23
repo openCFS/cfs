@@ -22,29 +22,38 @@
 #include "Filters/Derivatives/BaseDerivativeFilter.hh"
 #include "Filters/Derivatives/RotatingSubstDt.hh"
 #include "Filters/Derivatives/TimeDerivFilter.hh"
+#include "SignalProcessing/FftFilter.hh"
 #include <boost/tokenizer.hpp>
 
 namespace CFSDat{
 
-FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana){
+FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   FilterPtr newPtr;
-if(filtNode->GetName() == "meshInput"){
-
-  newPtr = FilterPtr(new CFSDat::InputFilter(0,filtNode,resMana));
-}else if(filtNode->GetName() == "meshOutput"){
-  newPtr = FilterPtr(new CFSDat::OutputFilter(0,filtNode,resMana));
-}else if(filtNode->GetName() == "timeDeriv1"){
-  newPtr = FilterPtr(new CFSDat::TimeDerivFilterD1(0,filtNode,resMana));
-}else if(filtNode->GetName() == "substantialDeriv"){
-  newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
-}else if(filtNode->GetName() == "interpolation"){
-  newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
-}else if(filtNode->GetName() == "binaryOperation"){
-  newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
-}else if(filtNode->GetName() == "differentiation"){
-  newPtr = BaseDerivativeFilter::GenerateSpatialDerivative(filtNode,resMana);
-}
-return newPtr;
+  if (filtNode->GetName() == "meshInput") {
+    newPtr = FilterPtr(new CFSDat::InputFilter(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "meshOutput") {
+    newPtr = FilterPtr(new CFSDat::OutputFilter(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "timeDeriv1") {
+    newPtr = FilterPtr(new CFSDat::TimeDerivFilterD1(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "substantialDeriv") {
+    newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "interpolation") {
+    newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
+  }
+  else if (filtNode->GetName() == "binaryOperation") {
+    newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
+  }
+  else if (filtNode->GetName() == "differentiation") {
+    newPtr = BaseDerivativeFilter::GenerateSpatialDerivative(filtNode,resMana);
+  }
+  else if (filtNode->GetName() == "fft") {
+    newPtr.reset(new FftFilter(0, filtNode, resMana));
+  }
+  return newPtr;
 }
 
 
@@ -54,20 +63,22 @@ BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
 
   std::cout << "\t---> Creating Filter with ID \"" << config->Get("id", CF::ParamNode::EX)->As<std::string>() << "\"" << std::endl;
 
-  filtSteamType_ = BaseFilter::NO_STREAM;
+  filtStreamType_ = BaseFilter::NO_STREAM;
   filterTag_ = boost::uuids::random_generator()();
   filterId_ = config->Get("id", CF::ParamNode::EX)->As<std::string>();
 
   std::string inIds = config->Get("inputFilterIds", CF::ParamNode::EX)->As<std::string>();
 
-  typedef  boost::char_separator<char>  c_sep;
-  typedef  boost::tokenizer< c_sep > tok;
-
-  c_sep sep(" ,");
-  tok varTok(inIds, sep);
-
-  for(tok::iterator beg=varTok.begin(); beg!=varTok.end();++beg){
-    inputIds_.insert(beg->c_str());
+  if (inIds.length() > 0 && inIds != "none") {
+    typedef  boost::char_separator<char>  c_sep;
+    typedef  boost::tokenizer< c_sep > tok;
+  
+    c_sep sep(" ,");
+    tok varTok(inIds, sep);
+  
+    for(tok::iterator beg=varTok.begin(); beg!=varTok.end();++beg){
+      inputIds_.insert(beg->c_str());
+    }
   }
 
   resultManager_ = resMan;

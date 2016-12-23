@@ -32,7 +32,7 @@ public:
   RotatingSubstDt(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
     : BaseFilter(numWorkers,config, resMan){
 
-    this->filtSteamType_ = FIFO_FILTER;
+    this->filtStreamType_ = FIFO_FILTER;
 
     if(params_->Has("rotatingDomain"))
       rpm_ = params_->Get("rotatingDomain")->Get("rpm")->As<Double>();

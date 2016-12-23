@@ -95,6 +95,7 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotDomain.xsd ${DST_DIR}/Schemas/CFSDat_RotDomain.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd ${DST_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_SimplePoint.xsd ${DST_DIR}/Schemas/CFSDat_SimplePoint.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FftFilter.xsd ${DST_DIR}/Schemas/CFSDat_FftFilter.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TDeriv1.xsd ${DST_DIR}/Schemas/CFSDat_TDeriv1.xsd
   COMMENT "Updating XML schemata for CFS-Dat..."
 )

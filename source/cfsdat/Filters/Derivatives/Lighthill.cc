@@ -27,7 +27,7 @@ namespace CFSDat{
 Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
 :MeshBasedDerivative(numWorkers,config,resMan){
 
-  this->filtSteamType_ = FIFO_FILTER;
+  this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
 
   //check if scheme has been defined in the xml-file
@@ -255,7 +255,7 @@ void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
   // vector containing the values of each nearest neighbour point
   CF::StdVector< Vector<Double> > vectors;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
   // loop over all elements
   for(UInt i = 0; i < derivData_.size();++i){
@@ -366,7 +366,7 @@ void Lighthill::CalcCurlU(Vector<Double>& retVec,
   // vector containing the values of each nearest neighbour point
   CF::StdVector< Vector<Double> > vectors;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
 
   // loop over all elements and over every node of each element
@@ -431,7 +431,7 @@ void Lighthill::InterpolationNodeToCenter(Vector<Double>& retVec, const Vector<D
   // can be 1D for scalar values or 2D/3D for vector values
   CF::Vector<Double> vec;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
   // Checking if input is scalar- or vector-type. This needs to be done
   // because of the input of CGAL and FLANN
@@ -881,7 +881,7 @@ void Lighthill::PrepareDifferentiation(){
   allTrgNodes.Clear(false);
 
   std::cout << "\t\t 5/5 Remap data to equation numbers ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
 
   std::cout << "\t\t Differentiation prepared!" << std::endl;
 }

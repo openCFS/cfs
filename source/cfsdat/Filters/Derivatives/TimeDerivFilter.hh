@@ -34,7 +34,7 @@ public:
     : BaseFilter(numWorkers,config, resMan){
     baseQuantity_ = CoupledField::NO_SOLUTION_TYPE;
     isFirstRun_ = true;
-    filtSteamType_ = FIFO_FILTER;
+    filtStreamType_ = FIFO_FILTER;
   }
 
   virtual ~TimeDerivFilter(){

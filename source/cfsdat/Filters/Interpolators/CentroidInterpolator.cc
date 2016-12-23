@@ -25,7 +25,7 @@ namespace CFSDat{
 CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshBasedInterpolator(numWorkers,config,resMan){
 
-  this->filtSteamType_ = FIFO_FILTER;
+  this->filtStreamType_ = FIFO_FILTER;
 
 }
 
@@ -66,7 +66,7 @@ bool CentroidInterpolator::Run(){
   CF::Vector<Double> shFnc;
   CF::StdVector<UInt> eqns;
   CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
   for(UInt i=0;i < interpolData_.size();++i){
     InpolationStruct& aStru = interpolData_[i];
 
@@ -189,7 +189,7 @@ void CentroidInterpolator::PrepareInterpolation(){
   //for an export import step, here would be the right place
 
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
   CF::StdVector<UInt> sEqn;
   for(UInt i=0;i<interpolData_.size();++i){
     upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);

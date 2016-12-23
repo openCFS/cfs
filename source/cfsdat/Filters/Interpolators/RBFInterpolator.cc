@@ -27,7 +27,7 @@ namespace CFSDat{
 RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
 :MeshBasedInterpolator(numWorkers,config,resMan){
 
-  this->filtSteamType_ = FIFO_FILTER;
+  this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
@@ -96,7 +96,7 @@ bool RBFInterpolator::Run(){
   CF::Vector<Double> vec;
   CF::Vector<Double> R_k;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
   // Checking if input is scalar- or vector-type. This needs to be done
   // because of the input of CGAL
@@ -526,7 +526,7 @@ void RBFInterpolator::PrepareInterpolation(){
   allTrgNodes.Clear(false);
 
   std::cout << "\t\t 5/5 Remap data to equation numbers ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
 
 
   std::cout << "\t\t Interpolation prepared!" << std::endl;
