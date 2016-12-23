@@ -1967,6 +1967,7 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
   force1 = []
   force2 = []
   force3 = []
+  forces = []
   support = []
   support2 = []
   support3 = []
@@ -2075,9 +2076,10 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
           k +=1
       supports.append(support)
     elif inp[i][0:8].strip() == 'RBE3':
+      force = []
       n = 0
       for k in range(2):
-        force1.append(int(inp[i][56+n:64+n].strip()))
+        force.append(int(inp[i][56+n:64+n].strip()))
         n += 8
       n = 0
       while inp[i+1][0] == '+':
@@ -2089,9 +2091,11 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
           if inp[i][8+n:16+n].strip() == '':
             end = False
           else:
-            force1.append(int(inp[i][8+n:16+n].strip()))
+            force.append(int(inp[i][8+n:16+n].strip()))
           n += 8
           k += 1
+      forces.append(force)
+
     #elif inp[i][0:8].strip() == '$HMMOVE' and inp[i][8:16].strip() == '6':
       # set flag for design material
     #  des = True
@@ -2121,8 +2125,8 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
   elif type == "lufo_bracket":
     print 'len support '+str(len(supports))
-    print ' len force1 '+str(len(force1))
-    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], supports)
+    print ' len forces '+str(len(forces))
+    mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,forces,[], supports)
   else:
     print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
 #   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
@@ -2349,7 +2353,7 @@ def add_apod6_boundary_conditions(mesh):
   mesh.bc.append(('support3', support3))
   return mesh
   
-def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., force1 = [], force2 = [],supports = []):
+def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., forces = [], force2 = [],supports = []):
   mesh = Mesh()
   mesh.nodes = all_nodes
   # insert elements
@@ -2376,14 +2380,16 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
   #  force2 = [69693]
   #if support == []:
   #  support = [69659,69669,69670,69671,69672,69673,69674,69675,69677,69689]
-  for k in range(len(force1)):
-      force1[k] -= offset
+  for f in forces:
+    for force in f:
+      force -= offset
   for supps in supports:
     for support in supps:
       support -= offset
 
   mesh.bc = []
-  mesh.bc.append(('force1', force1))
+  for i in range(len(forces)):
+    mesh.bc.append(('force'+str(i+1), forces[i]))
   #mesh.bc.append(('force2', force2))
   for i in range(len(supports)):
     mesh.bc.append(('support'+str(i+1), supports[i]))

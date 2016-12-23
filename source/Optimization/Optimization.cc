@@ -772,11 +772,13 @@ void Optimization::SolveStateProblem(Excitation* excite)
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
   // solve for objectives and constraints
-  StdVector<Function*> ff = GetActiveFunctions();
+  // solve also for observe
+  StdVector<Function*> ff = GetFunctions(false);
 
   for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
     Function* f = ff[i];
+    assert(f != NULL);
     if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
@@ -808,24 +810,33 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f)
     */
 }
 
-StdVector<Function*> Optimization::GetActiveFunctions() const
+StdVector<Function*> Optimization::GetFunctions(bool only_active) const
 {
   StdVector<Function*> result;
 
   const unsigned int cn = objectives.data.GetSize();
   const unsigned int gn = constraints.active.GetSize();
+  const unsigned int on = only_active ? 0 : constraints.observe.GetSize();
 
-  result.Resize(cn + gn);
+  result.Reserve(cn + gn + on);
+  result.Resize(0); // To allow push back
+
 
   for(unsigned int i = 0; i < cn; i++)
   {
-    result[i] = objectives.data[i];
-    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+    result.Push_back(objectives.data[i]);
+    LOG_DBG2(opt) << "GAF: o=" << result.Last()->ToString();
   }
   for(unsigned int i = 0; i < gn; i++)
   {
-    result[cn + i] = constraints.active[i];
-    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+    result.Push_back(constraints.active[i]);
+    LOG_DBG2(opt) << "GAF: g=" << result.Last()->ToString();
+  }
+
+  for(unsigned int i = 0; i < on; i++)
+  {
+    result.Push_back(constraints.observe[i]);
+    LOG_DBG2(opt) << "GAF: g_observe=" << result.Last()->ToString();
   }
 
   return result;

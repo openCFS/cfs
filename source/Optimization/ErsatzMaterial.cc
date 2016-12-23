@@ -227,11 +227,11 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize();
+  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize() + constraints.observe.GetSize();
 
   for(unsigned int i = 0; i < total; i++)
   {
-    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.active[i - objectives.data.GetSize()]);
+    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.all[i - objectives.data.GetSize()]);
 
     std::string func = "'" + f->type.ToString(f->GetType()) + "'";
 
@@ -2206,6 +2206,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // forward simulation!
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(StateSolution::RAW_VECTOR)));
     Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)));
+
+    // temporary vector for displacement used for squared_output
+    Vector<T> u_square(u.GetSize());
+
     assert(u.GetSize() == l.GetSize());
     LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
     LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
@@ -2215,11 +2219,21 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::OUTPUT:
       case Function::SQUARED_OUTPUT:
       {
-        // this is <l, u> which is for complex not really defined as it might be non-real
-        T inner = u.Inner(l);
+        T inner;
+        if (f->GetType() == Objective::SQUARED_OUTPUT) {
+          // this is <l, u o u>
+          for(unsigned int i = 0;i<u.GetSize();i++) {
+            u_square[i] = u[i] * u[i];
+            //l[i] *= l[i];
+          }
+          inner = u_square.Inner(l);
+        } else {
+          // this is <l, u> which is for complex not really defined as it might be non-real
+          inner = u.Inner(l);
+        }
         result = ((complex<double>) inner).real();
-        if (f->GetType() == Objective::SQUARED_OUTPUT)
-          result *= result;
+        //if (f->GetType() == Objective::SQUARED_OUTPUT)
+        //  result *= result;
         result *= excite.GetFactor(f);
         LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
@@ -3518,7 +3532,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // We traverse all excitations and conditionally perform a context switch. Because of the context switch
     // we need to solve the adjoints within the same context
 
-    StdVector<Function*> funcs = GetActiveFunctions();
+    StdVector<Function*> funcs = GetFunctions(false);
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
@@ -3551,6 +3565,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
       {
         Function* f = funcs[fi];
+        assert(f != NULL);
         // some functions need the selection vector for function evaluation, e.g. output
         if(f->NeedsSelectionVector())
           ConstructSelection(excite, f, false);// don't change the rhs of the system but restore
