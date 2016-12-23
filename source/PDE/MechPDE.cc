@@ -1,4 +1,4 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+  // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -1134,22 +1134,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           DefineMortarCoupling<3,3>(MECH_DISPLACEMENT, *ncIt);
         break;
       case NC_NITSCHE:
-      {
-        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_->GetNcInterface(ncIt->interfaceId).get());
-        assert(ncIf);
-        
-        //check for softening
-        bool icModes = false;
-        if ( regionSoftening_[ncIf->GetMasterVolRegion()] == "icModesTW" ||
-             regionSoftening_[ncIf->GetSlaveVolRegion()]  == "icModesTW" )
-               icModes = true;
-
         if(dim_ == 2)
-          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, icModes);
+          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt);
         else
-          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, icModes);
-
-      }
+          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt);
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");

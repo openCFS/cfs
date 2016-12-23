@@ -24,8 +24,6 @@
 #include "BaseBOperator.hh"
 
 
-#define USE_BLAS_VERSION
-
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>

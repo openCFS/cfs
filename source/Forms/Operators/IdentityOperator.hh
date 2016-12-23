@@ -28,8 +28,6 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 
 
-#define USE_BLAS_VERSION
-
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
@@ -341,7 +339,7 @@ namespace CoupledField{
         //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
 
         if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.lpmVol->jacDet);
           lp.lpmVol->jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -349,7 +347,7 @@ namespace CoupledField{
           bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
         }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.jacDet);
           lp.jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -368,7 +366,7 @@ namespace CoupledField{
         bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
         bMat.Init();
         if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.lpmVol->jacDet);
           bMatInitial.Mult_Blas(lp.lpmVol->jac,bMat,false,true,jacDetInv,0.0);
 #else
@@ -378,7 +376,7 @@ namespace CoupledField{
           bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
         }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.jacDet);
           bMatInitial.Mult_Blas(lp.jac,bMat,false,true,jacDetInv,0.0);
 #else
