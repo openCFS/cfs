@@ -945,6 +945,15 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
+  template<typename T>
+  T Vector<T>::Sum() const {
+    T sum = (T) 0;
+    for (UInt i = 0; i < size_; ++i) {
+      sum += data_[i];
+    }
+    return sum;
+  }
+  
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  

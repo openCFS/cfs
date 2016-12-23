@@ -29,7 +29,7 @@ OutputFilter::OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, s
 
   outFile_ = CoupledField::DefineInOutFiles::CreateSingleOutputFileObject(this->filterId_,params_->Get("outputFile")->GetChild(),infoNode_,false);
 
-  this->filtSteamType_ = OUTPUT_FILTER;
+  this->filtStreamType_ = OUTPUT_FILTER;
 }
 
 OutputFilter::~OutputFilter(){
@@ -51,24 +51,47 @@ bool OutputFilter::Run(){
 
   //lets write results if they are valid
   rIter = upResIds.Begin();
-  bool allsccess = true;
+  bool allsuccess = true;
   for(; rIter != upResIds.End() ; rIter++){
     //if(resultManager_->IsResultVecUpToDate(*rIter)){
       if(resultManager_->GetExtInfo(*rIter)->isMeshResult){
-        ResultManager::ConstResPtr cRes = resultManager_->GetResultAdpter(*rIter);
+        ResultManager::ConstResPtr cRes = resultManager_->GetResultAdapter(*rIter);
         StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
-        if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
-          EXCEPTION("Complex valued results are not yet supported!")
-        }else{
-          outFile_->BeginStep(aStepIter_->first,aStepIter_->second);
+        CF::StdVector<UInt> eqnVec;
 
-          CF::StdVector<UInt> eqnVec;
+        outFile_->BeginStep(aStepIter_->first,aStepIter_->second);
+
+        if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
+          Vector<Complex> & fullVec = resultManager_->GetResultVector<Complex>(*rIter,eqnVec);
+          //now we loop over the result array and copy the values according to
+          for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
+
+            Result<Complex>* myResult = dynamic_cast<Result<Complex>* >(cResVec[aRe].get());
+            Vector<Complex> & resVec =  myResult->GetVector();
+            
+            if( resVec.ContainsNaN() || resVec.ContainsInf() ){
+              WARN("Detected result with NAN or INF values. Setting this result to zero.");
+              resVec.Init(0.0);
+            }
+
+            //obtain region equations
+            std::string regName = cResVec[aRe]->GetEntityList()->GetName();
+            CF::RegionIdType rId = resultManager_->GetExtInfo(*rIter)->ptGrid->GetRegion().Parse(regName);
+            cRes->mapping->GetRegionEquations(eqnVec,rId);
+            resVec.Resize(eqnVec.GetSize()); //TODO
+            for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
+              resVec[aEq] =  fullVec[eqnVec[aEq]];
+            }
+            outFile_->AddResult(cResVec[aRe]);
+          }
+        }else{
           Vector<Double> & fullVec = resultManager_->GetResultVector<Double>(*rIter,eqnVec);
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
             Result<Double>* myResult = dynamic_cast<Result<Double>* >(cResVec[aRe].get());
             Vector<Double> & resVec =  myResult->GetVector();
+            
             if( resVec.ContainsNaN() || resVec.ContainsInf() ){
               WARN("Detected result with NAN or INF values. Setting this result to zero.");
               resVec.Init(0.0);
@@ -85,19 +108,20 @@ bool OutputFilter::Run(){
             outFile_->AddResult(cResVec[aRe]);
           }
         }
+
         outFile_->FinishStep();
 
         resultManager_->SetValid(*rIter);
 
       }else{
-        allsccess &= false;
+        allsuccess &= false;
       }
 
   }
   ++aStepIter_;
   //check for last step
   if(aStepIter_ == globalStepValueMap_.end())
-    return true;
+    return allsuccess;
   else
     return false;
 }

@@ -64,14 +64,14 @@ public:
   void InitResults();
 
   bool IsOutput(){
-    return filtSteamType_ == OUTPUT_FILTER;
+    return filtStreamType_ == OUTPUT_FILTER;
   }
 
   std::string GetId(){
     return filterId_;
   }
 
-  std::set<std::string> GetInputIds(){
+  const std::set<std::string>& GetInputIds(){
     return inputIds_;
   }
 
@@ -179,7 +179,7 @@ protected:
   //! some filters may ignore this or define their own
   std::map<UInt,Double> globalStepValueMap_;
 
-  StreamType filtSteamType_;
+  StreamType filtStreamType_;
 
   CF::StdVector< str1::shared_ptr<BaseFilter> > sources_;
 

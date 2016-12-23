@@ -1328,6 +1328,7 @@ share/xml/CFS-Dat/Schemas/CFSDat_DatMeshOutput.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DefOn.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_Differentiation.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DifferentiationType.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_FftFilter.xsd svneol=native#text/xml
 share/xml/CFS-Dat/Schemas/CFSDat_FilterList.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_GridType.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_Interpolation.xsd -text
@@ -2308,6 +2309,8 @@ source/cfsdat/Filters/Interpolators/RBFInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/RBFInterpolator.hh -text
 source/cfsdat/Filters/Output/OutputFilter.cc -text
 source/cfsdat/Filters/Output/OutputFilter.hh -text
+source/cfsdat/Filters/SignalProcessing/FftFilter.cc svneol=native#text/plain
+source/cfsdat/Filters/SignalProcessing/FftFilter.hh svneol=native#text/plain
 source/cfsdat/README -text
 source/cfsdat/Utils/AnalyticalFields.cc -text
 source/cfsdat/Utils/AnalyticalFields.hh -text

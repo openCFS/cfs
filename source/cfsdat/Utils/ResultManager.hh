@@ -110,7 +110,7 @@ public:
   //! \param (in) requestedId  unique id of result
   //! \param (in)  timeStepOffset offset for future/past results
   //! \return read only Result adaptor pointer
-  ConstResPtr GetResultAdpter(uuids::uuid requestedId, Integer timeStepOffset=0);
+  ConstResPtr GetResultAdapter(uuids::uuid requestedId, Integer timeStepOffset=0);
 
   //! Sets the timevalue for the given id
   //! here we do not need a offset result values as associated results are adapted on the fly.

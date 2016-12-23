@@ -328,6 +328,8 @@ template<typename T> class ElemStoreSol;
     //! Equality operator
     bool operator==(const Vector<T> &x) const;
     
+    //! Sum of all the vector's elements
+    T Sum() const;
 //@}
 
 

@@ -28,6 +28,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_RotSubstantialTimeDeriv.xsd"/> 
   <xsd:include schemaLocation="Schemas/CFSDat_Interpolation.xsd"/>  
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_FftFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
 
 
@@ -47,6 +48,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="fft" type="DT_FFT"/>
     </xsd:choice>
   </xsd:group>
 

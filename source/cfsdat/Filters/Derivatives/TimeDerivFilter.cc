@@ -26,7 +26,7 @@ TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode
  // for now this is the way to go
 
   // This filter is a filter of the type First In First Out (FIFO)
-  this->filtSteamType_ = FIFO_FILTER;
+  this->filtStreamType_ = FIFO_FILTER;
   //first case we have explicitly given the single result tag
   if( params_->Has("singleResult") ){
     PtrParamNode singleNode = params_->Get("singleResult");

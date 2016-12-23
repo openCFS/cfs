@@ -35,7 +35,7 @@ FilterPtr BinOpFilter::GenerateOperator(PtrParamNode binOpNode, PtrResultManager
 template<class Operator>
 GenericBinOpFilter<Operator>::GenericBinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                              :BinOpFilter(numWorkers,config,resMan){
-  this->filtSteamType_ = FIFO_FILTER;
+  this->filtStreamType_ = FIFO_FILTER;
   this->res1Name = config->Get("quantity1")->Get("resultName")->As<std::string>();
   this->res2Name = config->Get("quantity2")->Get("resultName")->As<std::string>();
   this->outName = config->Get("output")->Get("resultName")->As<std::string>();
