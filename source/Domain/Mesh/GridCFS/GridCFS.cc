@@ -2266,27 +2266,6 @@ namespace CoupledField {
      region = orderedElems_[ielem-1]->regionId;
    }
 
-
-
-  const Elem * GridCFS::GetElem( UInt elemNr ) {
-    LOG_DBG2(gridcfs) << "GetElem ptr for element nr " << elemNr;
-
- #ifndef NDEBUG
-    if ( elemNr > numElems_ ) {
-      EXCEPTION( "GridCFS: There are only " << numElems_
-                 << " elements in the grid! You requested element number "
-                 << elemNr << ". Go check your mesh file!" );
-    }
-    if ( orderedElems_[elemNr-1] == NULL ) {
-      EXCEPTION( "Element with Nr. " << elemNr << " is not contained in mesh!" );
-    }
- #endif
-
-    return orderedElems_[elemNr-1];
-
-  }
-
-
   void GridCFS::FindElementNeighorhood()
   {
     // TODO: This is from the legacy code -> replace with ShapeMap concept!
