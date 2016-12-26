@@ -63,7 +63,7 @@ def read_info(xml, gap = False):
 ## execute cfs and return the timer with gap
 def run_and_read(binary, mesh, xml, problem):
   execute(binary + " -m " + mesh + " -p " + xml + " " + problem, output=True) 
-  info = libxml2.parseFile(problem + '.info.xml').xpathNewContext()
+  info = open_xml(problem + '.info.xml')
   timer = read_info(info, gap=True)
   return timer
 

@@ -425,7 +425,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
   while upper - lower > 1e-14:
     mid = lower + 0.5 * (upper - lower)
     val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
-    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    print(" lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val))
     # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
     if val > target:
       lower = mid
@@ -656,7 +656,7 @@ def find_closes_info_xml(filename, key, start, end):
   for i in range(start, end + direction, direction):
     name = string.replace(filename, key, str(i))
     
-    print  "check " + name + "\n"
+    print("check " + name + "\n")
     
     if not os.path.exists(name):
       continue
@@ -664,7 +664,7 @@ def find_closes_info_xml(filename, key, start, end):
     xml = open_xml(name)
     
     status = xpath(xml, "/cfsInfo/@status")
-    print "file " + name + " has status " + status
+    print("file " + name + " has status " + status)
 
     if status == "finished":
       return i
@@ -741,7 +741,7 @@ def extract_old_header(infile):
   infi = open(infile, "r")
   for event, element in etree.iterparse(infi):
     if element.tag == "header":
-      print "found header"
+      print("found header")
       # we use the header from the original file
       header = etree.tostring(element)
       break
@@ -829,7 +829,7 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode="auto
   # determine interpolation parameter, normalized to 1
   beta = (f - lower) / (upper - lower)
   alpha = 1.0 - beta
-  print "f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n"
+  print("f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n")
 
   # preliminary result, before normalizing to 1.0
   tmp = []
@@ -917,7 +917,7 @@ def make2DWindow(divider, strength, lower):
 # extrudes an 2D array to the third dimenstion
 def extrude(data_2d):
   edge = data_2d.shape[0] 
-  if edge <> data_2d.shape[1]:
+  if edge != data_2d.shape[1]:
     raise RuntimeError("require quadratic input")
   
   ret = numpy.zeros((edge, edge, edge))
@@ -1025,7 +1025,7 @@ def rotate(data, center, angle):
        by = 0.5*h + y*h
        bx2 = 0.5*h + x2*h
        by2 = 0.5*h + y2*h
-       print "org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")"
+       print("org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")")
         
        if x2 >= 0 and x2 < nx and y2 >= 0 and y2 < ny:
          ret[y, x] = data[y2, x2] 
