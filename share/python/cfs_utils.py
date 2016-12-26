@@ -177,9 +177,9 @@ def generate_qsub_script(template, cmd, filename, silent = False):
 # return error code, 0 for no problem
 def execute(cmd, output = False, silent = False):
  if output:
-   print cmd
+   print(cmd)
  ret = os.system(cmd)
- if ret <> 0 and not silent:
+ if ret != 0 and not silent:
    raise RuntimeError("execution returns " + str(ret) + ": '" + cmd + "'") 
  return ret    
 
@@ -239,7 +239,7 @@ class Coordinate:
     return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)  
  
   def printline(self):
-    print str(self.x) + ", " + str(self.y) + ", " + str(self.z)
+    print(str(self.x) + ", " + str(self.y) + ", " + str(self.z))
     
   def toString(self):
     return str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
@@ -304,7 +304,7 @@ def cleanOversampledArray(data):
   unique.append(0)
   line = data[:,0] 
   for i in range(1, data.shape[0]):
-    if line[i] <> line[unique[len(unique)-1]]:
+    if line[i] != line[unique[len(unique)-1]]:
       unique.append(i)
   
   # copy unique data
