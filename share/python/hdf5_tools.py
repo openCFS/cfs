@@ -12,8 +12,8 @@ import operator
 # exits with an message if not
 def validate_region(hdf5_file, region):
   regions = hdf5_file['/Mesh/Regions']
-  if not any(k in regions.keys() for k in [region]):
-    print "region " + region + " not within regions " + str(regions.keys())
+  if not any(k in list(regions.keys()) for k in [region]):
+    print("region " + region + " not within regions " + str(list(regions.keys())))
 
 def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
@@ -44,9 +44,9 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
-  if region_force <> None:
+  if region_force != None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
-  if region_support <> None:
+  if region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
   
   # determine elem_dim from first region element dimensions or from all
@@ -63,7 +63,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   for e in range(len(reg_nodes)):
     nodes[e] = all_nodes[reg_nodes[e] - 1]
   # extract boundary force nodes from region_force if available
-  if region_force <> None:
+  if region_force != None:
     nodes_force = numpy.zeros((len(reg_force_nodes), 3))
     for e in range(len(reg_force_nodes)):
       nodes_force[e] = all_nodes[reg_force_nodes[e] - 1]
@@ -71,7 +71,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     nodes_force = None
   
   # extract boundary support nodes from region_support if available
-  if region_support <> None:
+  if region_support != None:
     # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
     nodes_support = numpy.zeros((len(reg_support_nodes), 3))
     for e in range(len(reg_support_nodes)):
@@ -163,8 +163,8 @@ def read_displacement(hdf5_file,nr,region = None):
         u_max = u[k][1]
       u_average += u[k][1]
     u_average /= len(force_nodes)
-    print 'u_max = ' + str(u_max)
-    print 'u_average = '+ str(u_average)
+    print('u_max = ' + str(u_max))
+    print('u_average = '+ str(u_average))
   return u
 
 def read_density(hdf5_file):
@@ -173,27 +173,27 @@ def read_density(hdf5_file):
     
 # dumps meta data    
 def dump_h5_meta(hdf5_file):   
-  print 'Steps in "' + hdf5_file.filename + '":'
+  print('Steps in "' + hdf5_file.filename + '":')
   ms = hdf5_file['/Results/Mesh/MultiStep_1']
   for name in ms:
-    if name <> 'ResultDescription':
-      print '  ' + name
+    if name != 'ResultDescription':
+      print('  ' + name)
 
   step = 'Step_' + str(last_h5_step(hdf5_file)) 
   ms = hdf5_file['/Results/Mesh/MultiStep_1/' + step]    
-  print 'Results:'
+  print('Results:')
   des = None
   for name in ms:
-    print '  ' + name
+    print('  ' + name)
     des = name
   if des == None:
     raise Exception("no design variables within last step " + name)
   
   ms = hdf5_file['/Results/Mesh/MultiStep_1/' + step + '/' + des]   
-  print 'Regions (for ' + des + '):'
+  print('Regions (for ' + des + '):')
   for name in ms:
     size = len(hdf5_file['/Mesh/Regions/' + name + '/Elements'])
-    print '  ' + name + ' with ' + str(size) + ' elements'
+    print('  ' + name + ' with ' + str(size) + ' elements')
     
     des = None
           
@@ -205,8 +205,8 @@ def has_element(hdf5_file, name, given_step=99999):
     for v in ms:
       if name == v:
         return True
-  except Exception, e:
-    print 'error probing for ' + name + ' in has_element: ', e
+  except Exception as e:
+    print('error probing for ' + name + ' in has_element: ', e)
 
   return False
           

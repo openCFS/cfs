@@ -1,6 +1,5 @@
 # This collects some tool routines for optimization
 
-import libxml2
 import numpy
 import numpy.linalg
 import math
@@ -14,9 +13,9 @@ from cfs_utils import *
 def print_design_info(filename, attribute, set = None, fill = None):
   try: 
     dens = read_density(filename, attribute, set=set, fill=fill)
-    print "for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens))
+    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
   except:  
-    print "failed to read '" + attribute + "'"
+    print("failed to read '" + attribute + "'")
     #print  sys.exc_info()
 
 
@@ -68,15 +67,15 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
   if len(vals) < x * y * z:
     if fill == None:
       # we need to be 1D
-      print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
+      print("read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute)
       x = len(vals)
       ret = numpy.zeros((x)) # overwrite full array
       for i in range(x):
         ret[i] = vals[i]    
     else:
-      print "fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
-           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z)
+      print("fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
+           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z))
 
       ret += fill # was zeros, fill with default value
       num = read_density_as_vector(filename, 'nr', set)
@@ -104,7 +103,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   
     assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
-  print len(sett)
+  #print(len(sett))
   
   designs = 1
   if design2:
@@ -137,10 +136,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 4
     if design6 and type == design6:
       idx = 5
-    if idx <> -1:
+    if not idx == -1:
       tmp = element.get(attribute)
       if tmp is None:
-        print "Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'."
+        print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
       des = float(tmp)
       out[nr - 1, idx] = des
@@ -194,11 +193,6 @@ def read_mesh_info(filename, silent):
     nx = int(mesh[0].get("x"))
     ny = int(mesh[0].get("y"))
     nz = int(mesh[0].get("z"))
-    # temporary fix to process corrupt data
-    if nx == 59 and ny == 59:
-      print "FIXME: switch mesh 59 to 60"
-      nx = 60
-      ny = 60
     # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
     return nx, ny, nz    
        
@@ -431,7 +425,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
   while upper - lower > 1e-14:
     mid = lower + 0.5 * (upper - lower)
     val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
-    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    print(" lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val))
     # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
     if val > target:
       lower = mid
@@ -662,16 +656,15 @@ def find_closes_info_xml(filename, key, start, end):
   for i in range(start, end + direction, direction):
     name = string.replace(filename, key, str(i))
     
-    print  "check " + name + "\n"
+    print("check " + name + "\n")
     
     if not os.path.exists(name):
       continue
     
-    doc = libxml2.parseFile(name)
-    xml = doc.xpathNewContext()
+    xml = open_xml(name)
     
     status = xpath(xml, "/cfsInfo/@status")
-    print "file " + name + " has status " + status
+    print("file " + name + " has status " + status)
 
     if status == "finished":
       return i
@@ -748,7 +741,7 @@ def extract_old_header(infile):
   infi = open(infile, "r")
   for event, element in etree.iterparse(infi):
     if element.tag == "header":
-      print "found header"
+      print("found header")
       # we use the header from the original file
       header = etree.tostring(element)
       break
@@ -774,31 +767,30 @@ class LumpedMechDisplacement:
 # @return an list of tuples. the first item is the frequency, the next is a list of  LumpedMechDisplacement elements.
 #        Multiple frequencies are not possible but the last one is used.
 def readLumpedMechDisplacement(info_xml, region):
-  doc = libxml2.parseFile(info_xml)
-  xml = doc.xpathNewContext()
+  xml = open_xml(info_xml)
   # detect multiple eigenfrequencies
   last_freq = "-1.0"
   result = []
   for step in range(0, 5000):
     xpath_base = "//result[@data='lumpedMechDisplacement'][@location='" + region + "']/item[@step='" + str(step) + "']"
-    res = xml.xpathEval(xpath_base + "/@step_val")
-    if len(res) == 0 or res[0].getContent() == last_freq:
+    res = xml.xpath(xpath_base)
+    if len(res) == 0 or not 'step_val' in res[0].attrib or res[0].attrib['step_val'] == last_freq:
       continue
-    last_freq = res[0].getContent()
+    last_freq = res[0].attrib['step_val']
     item = []
     item.append(float(last_freq))
     # read data
-    e = xml.xpathEval(xpath_base + "/@id")
-    x = xml.xpathEval(xpath_base + "/@x")
-    y = xml.xpathEval(xpath_base + "/@y")
-    z = xml.xpathEval(xpath_base + "/@z")
+    e = xml.xpath(xpath_base + "/@id")
+    x = xml.xpath(xpath_base + "/@x")
+    y = xml.xpath(xpath_base + "/@y")
+    z = xml.xpath(xpath_base + "/@z")
     # assume len(res) = len(x) = len(y), eventually also len(z)
     data = []
     for i in range(len(e)):
-      e_val = int(e[i].getContent())
-      x_val = float(x[i].getContent())
-      y_val = float(y[i].getContent())
-      z_val = cond(len(z) == 0, 0.0, float(z[i].getContent()))
+      e_val = int(e[i])
+      x_val = float(x[i])
+      y_val = float(y[i])
+      z_val = cond(len(z) == 0, 0.0, float(z[i]))
       data.append(LumpedMechDisplacement(e_val, x_val, y_val, z_val))
     item.append(data)
     result.append(item)
@@ -837,7 +829,7 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode="auto
   # determine interpolation parameter, normalized to 1
   beta = (f - lower) / (upper - lower)
   alpha = 1.0 - beta
-  print "f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n"
+  print("f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n")
 
   # preliminary result, before normalizing to 1.0
   tmp = []
@@ -925,7 +917,7 @@ def make2DWindow(divider, strength, lower):
 # extrudes an 2D array to the third dimenstion
 def extrude(data_2d):
   edge = data_2d.shape[0] 
-  if edge <> data_2d.shape[1]:
+  if edge != data_2d.shape[1]:
     raise RuntimeError("require quadratic input")
   
   ret = numpy.zeros((edge, edge, edge))
@@ -1033,7 +1025,7 @@ def rotate(data, center, angle):
        by = 0.5*h + y*h
        bx2 = 0.5*h + x2*h
        by2 = 0.5*h + y2*h
-       print "org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")"
+       print("org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")")
         
        if x2 >= 0 and x2 < nx and y2 >= 0 and y2 < ny:
          ret[y, x] = data[y2, x2] 

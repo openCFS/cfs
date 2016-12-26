@@ -112,12 +112,17 @@ public:
   {
     /** note that we would need a default constructor for StdVector
      * @param pn node for the shape
-     * @param node reference for profile only to copy sym and orientation, ...*/
-    void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node = NULL);
+     * @param node reference for profile only to copy sym and orientation, ...
+     * @param flip_orientation reinterpret direction for diagonal mirroring. Only for node, not again for profile */
+    void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node, bool flip_orientation = false);
     void ToInfo(PtrParamNode pn);
 
-    /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape */
-    bool ShallInduceSymmetryShape() const;
+    /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape.
+     * This is for orthogonal mirroring, depending on the orientation we map or mirror orthogonal */
+    bool ShallInduceOrthogonalSymmetry() const;
+
+    /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps */
+    bool ShallInduceDiagonalSymmetry() const;
 
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
     bool ShallMapHalfShape() const;
@@ -159,8 +164,10 @@ public:
      * additional shape */
     Symmetry x_sym = NONE;
     Symmetry y_sym = NONE;
+    /** diag always induces a new shape */
+    Symmetry diag  = NONE;
 
-    /** a shape with dof x and x_symmetry mirror means that an additional mirror induced shape needs to be inserted.
+    /** a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional mirror induced shape needs to be inserted.
      * This bool indicates if this shape is such a mirror induced shape */
     bool sym_induced = false;
   };
@@ -250,7 +257,7 @@ protected:
 
   unsigned int GetEndShapeIdx(const Function* f, bool opt) const;
 
-  /** This are our shape parameters which are blown up to shape_param_.
+  /** This are our shape parameters which are blown up to shape_param_. Whend induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size */
   StdVector<ShapeParam> shape_;
 
@@ -272,29 +279,41 @@ protected:
    * @aee opt_sym_param_ */
   StdVector<ShapeParamElement*> opt_shape_param_;
 
-  /** symmetry means that fever data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
+  /** symmetry means that fewer data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
    * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
   struct SymmetryMapping
   {
     /** short cut to check if we have any symmetry */
-    bool HasSymmetry() const { assert(!(mirror_map && (!map || !mirror))); return map != NULL || mirror != NULL; }
+    bool HasSymmetry() const { assert(!(ortho_map && (!map || !ortho))); return map != NULL || ortho != NULL || diag != NULL; }
 
     /** apply the value for the opt element to the symmetry elements considering all special cases */
     void ApplyDesign(ShapeParam& shape, ShapeParamElement* org);
 
-    /** for logging */
-    std::string ToString() const;
+    /** returns all plain gradients for the sym elements or 0.0 if no sym */
+    double GetPlainSymGradient(ShapeMapDesign::Type type, const Function* f) const;
+
+    void Reset(DesignElement::ValueSpecifier vs);
+
+    void PostInit(int objectives, int constraints);
+
+    /** for logging
+     * @param grad add gradient details */
+    std::string ToString(bool grad=false) const;
+
 
     /** this repeats the data. For a horizontal structure with dof=y and x_symmetry=mirror the left elements are in opt_
      * and the right is here (0->6, 1->5, ...) */
     ShapeParamElement* map = NULL;
 
-    /** this mirrors the data. For a vertical structure with dof=x and x_symmetry=mirror an additional shape has been
+    /** this orthogonal mirrors the data. For a vertical structure with dof=x and x_symmetry=mirror an additional shape has been
      * introduced (with flag ShapeParam::sym_induced set). Here also the value of the design needs to be mirrored (max - val) */
-    ShapeParamElement* mirror = NULL;
+    ShapeParamElement* ortho = NULL;
 
-    /** this is for full symmetry (x_sym and y_sym): we map (e.g. left to right) and mirror the structure the same time. */
-    ShapeParamElement* mirror_map = NULL;
+    /** maps to an induced element where dof is exchanged in contrast to orthogonal */
+    ShapeParamElement* diag = NULL;
+
+    /** this is for full orthogonal symmetry (x_sym and y_sym): we map (e.g. left to right) and mirror the structure the same time. */
+    ShapeParamElement* ortho_map = NULL;
   };
 
   /** This are pointers the matching symmetric elements for each opt_shape_param_ element. All attributes NULL if no symmetry applies! */

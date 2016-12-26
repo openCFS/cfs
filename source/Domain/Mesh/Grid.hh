@@ -204,7 +204,8 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    //! Return the shape representation for a given element
+    //! Return the shape representation for a given element. Note that it is
+    //! dangerous to call ElemShapeMap::SetElem()!
 
     //! This method returns the element shape map for a given geometrical
     //! element. In the case of Lagrangian-mapped elements, we keep internally
