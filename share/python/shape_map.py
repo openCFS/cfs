@@ -437,10 +437,10 @@ def plot_data(res, shapes):
       
     for i in range(0,n-1):
       x, y = shape.get_profile(i, i+1, True) # left          
-      l = plt.Line2D(x,y, color= shape.color)                                    
+      l = plt.Line2D(x,y, marker='.', color=shape.color)        
       sub.add_line(l)
       x, y = shape.get_profile(i, i+1, False) # right          
-      l = plt.Line2D(x,y, color= shape.color)                                    
+      l = plt.Line2D(x,y, marker='.', color=shape.color)                                    
       sub.add_line(l)
       
   return fig, sub

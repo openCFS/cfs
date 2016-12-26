@@ -24,12 +24,12 @@ def refine(vals, size):
 #@ return image, density_array
 def density_to_image(filename, set, design, fillval=0.0):
   if not is_valid_density_file(filename):
-    print "not a valid density file given!"
+    print("not a valid density file given!")
     sys.exit(1)
 
 
   if not design and not test_density_xml_attribute(filename, 'physical', set):
-    print "the 'physical' design is not present, use non-physical 'design'"
+    print("the 'physical' design is not present, use non-physical 'design'")
     design = 'desgin'
   
   dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=fillval)
@@ -102,16 +102,16 @@ args = parser.parse_args()
 
 if not args.saveall:
   if not os.path.exists(args.input):  
-    print "file '" + args.input + "' not found"
+    print("file '" + args.input + "' not found")
     os.sys.exit()
 
 if args.info:
   ids = read_set_ids(args.input)
-  print 'number of sets in ' + args.input + ': ' + str(len(ids)) 
+  print('number of sets in ' + args.input + ': ' + str(len(ids)))
   if len(ids) > 0:
-    print "first set: '" + ids[0] + "'"
+    print("first set: '" + ids[0] + "'")
   if len(ids) > 1:
-    print "last set: '" + ids[-1] + "'"
+    print("last set: '" + ids[-1] + "'")
 
   print_design_info(args.input, 'design', args.set)
   print_design_info(args.input, 'physical', args.set)
@@ -119,9 +119,9 @@ if args.info:
 
 if args.saveall:
   files = glob.glob(args.input)
-  print "saveall with filter '" + args.input + "' finds " + str(len(files)) + " files"
+  print("saveall with filter '" + args.input + "' finds " + str(len(files)) + " files")
   for f in files:
-    print "read image '" + f + "'"
+    print("read image '" + f + "'")
     img, den = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
     img.save(base + '.png')
@@ -144,7 +144,7 @@ else:
             tiled[:,j*nx] = 0
       img = Image.fromarray(tiled)
   if args.save:
-    print "saving image to file " + args.save
+    print("saving image to file " + args.save)
     img.save(args.save)
   else:
    img.show()

@@ -251,6 +251,13 @@ ElemShapeMap::~ElemShapeMap() {
 
 }
 
+std::string ElemShapeMap::ToString() const
+{
+  std::stringstream ss;
+  ss << "e=" << ptElem_->elemNum << " c=" << ptElem_->connect.ToString() << " bc=" << ptElem_->barycenter.ToString();
+  return ss.str();
+}
+
 void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
   ptElem_ = ptElem;
   isUpdated_ = isUpdated;
@@ -1863,6 +1870,14 @@ Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {
 
 BaseFE* LagrangeElemShapeMap::GetBaseFE() {
   return ptFe_;
+}
+
+std::string LagrangeElemShapeMap::ToString() const
+{
+  std::stringstream ss;
+  ss << ElemShapeMap::ToString();
+  ss << " co=" << coords_.ToString(2);
+  return ss.str();
 }
 
 void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {

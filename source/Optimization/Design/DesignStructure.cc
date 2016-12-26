@@ -457,6 +457,12 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   assert(!periodic_); // only regular may be periodic!!
 
+  // the idea is as follows:
+  // * We assume non regular grid.
+  // * For an element t we check for all neighbors the distance to center
+  // * If a neighbor is close enough we check also the neighbors recursively
+  // * check means only, that the neighbors of check are checked!
+  // * Hence buddies might grow (appending only) while traversing
   std::set<unsigned int> checked;
 
   int dim = (int) grid->GetDim();

@@ -9,7 +9,7 @@ from two_scale_tools import *
 import argparse
 import sys
 import os
-import StringIO
+import io
 import xml.etree.ElementTree
 import xml.dom.minidom
 from cfs_utils import *
@@ -34,8 +34,8 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       try:
         res['microparams'] = [get_element(f, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(number_of_parameters[args.show])]
       except:
-        res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
-        res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
+        res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1 
+        res['s2'] = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1
         res['s3'] = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
         res['sh1'] = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
   elif args.parametrization == 'trans-iso':
@@ -45,7 +45,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       theta = get_element(f, "design_poisson_" + args.hom_access, args.h5_region, args.h5_step)
     except:
       theta = 0.0
-      print 'could not read theta (design_poisson_' + args.hom_access + '), setting to ' + str(theta)
+      print('could not read theta (design_poisson_' + args.hom_access + '), setting to ' + str(theta))
     m = 2.0 * numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1 / (m * (1 - theta))
     s2 *= 1 / (m * (1 - theta))
@@ -70,15 +70,15 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     res['angle'] = numpy.zeros(((len(s1), 3)))
     return res
   if has_element(hdf_file, "design_density_" + args.hom_access):
-    print "args.h5_step:" + str(args.h5_step)
+    print("args.h5_step:" + str(args.h5_step))
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
     res['s1'] *= rho
     res['s2'] *= rho
     res['s3'] *= rho
-    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
+    print("scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty))
   
-  angle = numpy.zeros(((len(res.values()[0]), 3)))
+  angle = numpy.zeros(((len(list(res.values())[0]), 3)))
   
   if args.show == "hom_rot_cross" or args.show == "hom_sheared_rot_cross" or args.show == "rot" or args.show == "stream" or args.show == 'hom_rect_mod':
     try:
@@ -86,14 +86,14 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       	try:
       	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
       	except:
-      	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
+      	  print('could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain')
       	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
       else:
         angle[:, 0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
         angle[:, 1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
         angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
-    except Exception, e:
-      print 'could not read angle, ignore it: ', e
+    except Exception as e:
+      print('could not read angle, ignore it: ', e)
   res['angle'] = angle
   
   return res
@@ -109,10 +109,10 @@ def show_or_write(viz, args):
   global info
   if isinstance(viz, Image.Image):
     # print 'array' + str(numpy.array(viz))
-    print 'average ' + str(numpy.average(numpy.array(viz)))
+    print('average ' + str(numpy.average(numpy.array(viz))))
     volume = 1 - numpy.average(numpy.array(viz)) / 255
-    print 'volume fraction from image : ' + str(volume)
-    if info <> None:
+    print('volume fraction from image : ' + str(volume))
+    if info != None:
       vol = xml.etree.ElementTree.SubElement(info, "volume")
       vol.set("imageMaterial", str(volume))  
     
@@ -125,16 +125,16 @@ def show_or_write(viz, args):
     sub = viz[1]
     if args.save:
       extent = sub.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-      print 'write file: ' + args.save
+      print('write file: ' + args.save)
       fig.savefig(args.save, bbox_inches=extent)
-      if args.save.split('.')[-1] <> 'pdf':      
+      if args.save.split('.')[-1] != 'pdf':      
         # I war not able to  render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 
         tmp = Image.open(args.save).convert('L')  # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
         dat = numpy.array(tmp)
         volume = len(numpy.where(dat.reshape(dat.size, 1) < 128)[0]) / float(dat.size)  # cont fields below 128 which is become black with a thrshold of 0.5
-        print 'volume fraction from image : ' + str(volume)
-        if info <> None:
+        print('volume fraction from image : ' + str(volume))
+        if info != None:
           vol = xml.etree.ElementTree.SubElement(info, "volume")
           vol.set("imageMaterial", str(volume))  
     else:
@@ -210,7 +210,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           microparams = read_stiff_angle(f, dim_2D, args)
           s2 = microparams['s2']
           s3 = microparams['s3']
-          print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
+          print("Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2)))
         s1 = microparams['s1']
         angle = microparams['angle']
         sh1 = microparams['sh1']
@@ -219,18 +219,18 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       angle += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
       angle *= -1.0
-      if args.angle_factor <> 1.0:
-        print 'scale angle by ' + str(args.angle_factor)
+      if args.angle_factor != 1.0:
+        print('scale angle by ' + str(args.angle_factor))
         angle *= args.angle_factor  
       if not args.show == "simp":
-        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+        print('unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']')
       else:
-        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
+        print('unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']')
   
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
         v = calc_volume(s1, s2)
-        print "Only correct in 2D: volume for regular grid: " + str(v)
+        print("Only correct in 2D: volume for regular grid: " + str(v))
         if args.show == "hom_rect": 
           if args.hom_grad == 'none':
             viz = show_frame(coords, s1, s2, args.hom_dir, args.res, args.scale)
@@ -256,7 +256,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "stream":
             samples = args.hom_samples.split(',')
-            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, float(samples[0]), float(samples[1]), args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
+            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, float(samples[0]), float(samples[1]), args.stream_max_traces_per_cell, args.res, args.save != None, info, args.stream_force)            
         else:
           assert(False)
       # the 3D VTK stuff      
@@ -268,15 +268,15 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         if args.hom_samples or args.cell_size:
           if args.type == "apod6":
             valid_position = valid_position_apod6
-            print 'Apod6 is calculated!' 
+            print('Apod6 is calculated!') 
           elif args.type == "robot":
             valid_position = valid_position_robot
-            print 'Robot is calculated!'
+            print('Robot is calculated!')
           else:
             valid_position = None
-            print 'Warning: No type for valid_position was selected!'
+            print('Warning: No type for valid_position was selected!')
           if args.hom_grad == 'none':
-            print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
+            print('for hom_rect in 3D with hom_samples you need to specify hom_grad')
             exit()
           else:
             if args.cell_size:
@@ -289,12 +289,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 if args.type == "apod6":
                   valid_position = valid_position_apod6
                   valid_ring_position = valid_ring_position_apod6
-                  print 'Apod6 is validated!'
+                  print('Apod6 is validated!')
                 elif args.type == "robot":
                   valid_position = valid_position_robot
                   #TODO: not implemented yet for robot arm
                   valid_ring_position = None
-                  print 'Robot is validated!'
+                  print('Robot is validated!')
 
                 if args.show == 'simp':
                   me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
@@ -334,20 +334,20 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
               # postprocess the structured mesh for the robot arm, removal of some irregularities 
               mesh = post_process_mesh(mesh, coords, nondes_coords, nx, ny, nz)
           else:
-            print 'hom_rect in 3D only for --hom_grad none implemented'
+            print('hom_rect in 3D only for --hom_grad none implemented')
             exit()
               
     # no hom_rect stuff but orientational stiffness
     else:
       if args.tensor == 'mechTensor':
-        print "Input data is read as " + args.notation
+        print("Input data is read as " + args.notation)
       if h5_read:
         tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
       else:
-        print tensor
+        print(tensor)
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
-      if args.plot <> None:
+      if args.plot != None:
         plot_angle_data(args.plot, angle, data)
         # quit!! such we can check for viz!!
         exit() 
@@ -355,7 +355,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
   
     if viz is None:
-      print 'Error: no visualization calculated!'
+      print('Error: no visualization calculated!')
     else:
       volume = show_or_write(viz, args)
   
@@ -363,9 +363,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   else:
     angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
   
-    print "largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data))
+    print("largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data)))
     if len(aux) > 0:
-      print "largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
+      print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
     poly = create_vtk_poly_data(angle, data if args.show == None else aux)
     
@@ -444,7 +444,7 @@ args = parser.parse_args()
 
 # check ans postproc arguments
 if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
-  print "'show' and 'symmetries' do not match"
+  print("'show' and 'symmetries' do not match")
   sys.exit(1)
 aux_code = args.show if not args.show == None else args.symmetries  # might still be default
 
@@ -472,19 +472,18 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
   
   if args.input.startswith('['):
     input = eval(args.input)
-    print input
-    if len(input) <> 21 and len(input) <> 6:
-      print "the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)"
+    print(input)
+    if len(input) != 21 and len(input) != 6:
+      print("the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)")
       sys.exit(1)
   
-    dim_2D = len(input) <> 21
+    dim_2D = len(input) != 21
   else:
     assert(args.input.endswith(".info.xml"))
-    doc = libxml2.parseFile(args.input)
-    xml = doc.xpathNewContext()
+    xml = open_xml(args.input)
     dim = xpath(xml, "//domain/@dimensions")
     matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real")
-    res = map(float, matrix.split()) # convert list with string elements to list with float elements
+    res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
     res = np.asarray(res)            # convert list to array
     if dim == '2':
       res = res.reshape(3,3)         # reshaping array
@@ -497,14 +496,14 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
   if args.tensor == 'mechTensor':  
     tensor = to_mech_tensor(input)
     tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
-    print "Voigt notation of input tensor:"
+    print("Voigt notation of input tensor:")
   if args.tensor == 'piezoTensor':
     tensor = to_piezo_tensor(input)
   
   dump_tensor(tensor)
 
   if len(tensor) == 3 or len(tensor) == 2:
-    assert((len(tensor) == 3 and args.tensor == 'mechTensor') or (len(tensor) <> 3 and args.tensor <> 'mechTensor'))
+    assert((len(tensor) == 3 and args.tensor == 'mechTensor') or (len(tensor) != 3 and args.tensor != 'mechTensor'))
     vec = None
     
     if len(tensor) == 3:
@@ -521,23 +520,23 @@ else:
   h5_read = True
   infoXml_read = False
   if not os.path.exists(args.input):
-    print 'Error: file does not exist: ' + args.input
+    print('Error: file does not exist: ' + args.input)
     sys.exit(1)
   f = h5py.File(args.input, 'r')
   if args.h5_info:
     dump_h5_meta(f)
     sys.exit()   
   validate_region(f, args.h5_region)
-  if len(args.unstructured) <> 0:
+  if len(args.unstructured) != 0:
     nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
-    print 'Reading elements from H5-file done '
+    print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
-    print 'detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region" 
+    print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
   centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
   if args.mesh:
     nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
   dim_2D = min[2] == max[2]
-  print 'detected dimension ' + ('2D' if dim_2D else '3D')
+  print('detected dimension ' + ('2D' if dim_2D else '3D'))
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh:
@@ -547,7 +546,7 @@ if not args.target_volume:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code)
 else:
   if args.scale > 0:
-    print "Error: don't give --scale and --target_volume concurrently!"
+    print("Error: don't give --scale and --target_volume concurrently!")
     sys.exit(1) 
     # coords for non-design region
     if args.unstructured:
@@ -581,17 +580,18 @@ else:
       if(err < best_err):
         best_err = err
         best_s = s
-      print ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper - lower) + " best=" + str(best_err) + " test=" + str(s),
-      print " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
+      msg =  ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper - lower) + " best=" + str(best_err) + " test=" + str(s)
+      msg += " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
+      print(msg)
             
     lower = numpy.max((1e-4, best_s - 0.5 * (upper - lower) / 5.)) 
     upper = numpy.min((2.0, best_s + 0.5 * (upper - lower) / 5.))
     level += 1
 
   # the last result does not mean to be the best result
-  if err <> best_err:
+  if err != best_err:
     vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
-    print "!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume))
+    print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
     tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))
     tv.set("current", str(vol))
@@ -601,7 +601,7 @@ else:
 
 
 if args.info:
-  print 'write info xml file: ' + args.info
+  print('write info xml file: ' + args.info)
   out = open(args.info, "w")
   out.write(xml.dom.minidom.parseString(xml.etree.ElementTree.tostring(info)).toprettyxml())
   out.close()

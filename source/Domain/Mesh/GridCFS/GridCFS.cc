@@ -2929,6 +2929,8 @@ namespace CoupledField {
       in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
     }
 
+
+
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {
       in->Get("nx")->SetValue(reg[0]);
@@ -3046,7 +3048,6 @@ namespace CoupledField {
   Double GridCFS::CalcHullVolume(bool updated)
   {
     double s = CalcVolumeOfAllRegions(updated);
-
     // Volume of the bounding box of the grid
     Double cube_vol = 1.0;
     Matrix<Double> m = CalcGridBoundingBox();
@@ -3054,7 +3055,6 @@ namespace CoupledField {
     {
       cube_vol *= m[d][1] - m[d][0];
     }
-
     LOG_DBG(gridcfs) << "Volume of rectangular dense mesh: " << s;
 
     if( std::abs(s - cube_vol) / s < 1e-5 ) {
@@ -3230,14 +3230,10 @@ namespace CoupledField {
     StdVector<Elem*> elems;
     GetElems(elems,regionId);
 
-    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elems[0], false);
     double volume = 0.0;
 
     for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
-    {
-      esm->SetElem(elems[i], updated);
-      volume += esm->CalcVolume();
-    }
+      volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
 
     return volume;
   }

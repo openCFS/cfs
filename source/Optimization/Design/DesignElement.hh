@@ -329,7 +329,7 @@ public:
   StdVector<int> idx;
 private:
   /** see BaseDesignElement::GetOptIndex() */
-  unsigned int opt_index_ = std::numeric_limits<unsigned int>::max();
+  unsigned int opt_index_;
 };
 
 
