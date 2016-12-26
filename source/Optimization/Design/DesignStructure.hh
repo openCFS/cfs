@@ -16,6 +16,7 @@
 namespace CoupledField {
 class DesignSpace;
 class Grid;
+class GridCFS;
 struct Elem;
 }  // namespace CoupledField
 
@@ -100,12 +101,9 @@ private:
    * Is able to cross periodic boundaries */
   DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
-  /** This is a helper for InitFilter(). It is recursive!.
-   * See implementation for docu. */
+  /** A helper for InitFilter() with a recursive like implementation. See implementation. */
   void FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                          StdVector<std::pair<Elem*, int> >& initial,
-                          StdVector<Filter::NeighbourElement>& neighbors,
-                          StdVector<unsigned int>& too_far);
+                          StdVector<Filter::NeighbourElement>& neighbors);
 
   /** calc the distance between two points for the periodic case,
    * where periodic boundaries are considered.
@@ -180,7 +178,10 @@ private:
   /** shortcut to the grid dimension */
   unsigned int dim;
 
-  Grid* grid;
+
+  Grid* grid = NULL;
+  /** shortcut to grid cfs to save virtual table lookup for GetElem() */
+  GridCFS* gridcfs = NULL;
 
   ErsatzMaterial* em;
 
