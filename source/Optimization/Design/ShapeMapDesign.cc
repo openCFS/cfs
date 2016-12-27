@@ -83,12 +83,12 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
       bool sym_map   = shape.ShallMapHalfShape();
 
       // see SetupShapeDesign()
-      ShapeParam* ortho_shape      = shape.sym_ortho;
-      ShapeParam* diag_shape       = shape.sym_diag;
-      ShapeParam* diag_ortho_shape = shape.sym_diag_ortho;
+      ShapeParam* ortho      = shape.sym_ortho;
+      ShapeParam* diag       = shape.sym_diag;
+      ShapeParam* diag_ortho = shape.sym_diag_ortho;
 
-      assert(!sym_ortho || ortho_shape->sym_induced);
-      assert(!sym_diag  || diag_shape->sym_induced);
+      assert(!sym_ortho || ortho->sym_induced);
+      assert(!sym_diag  || diag->sym_induced);
 
       // add one in the mirror case with odd design elements for not mirrored center element - note 0-based counting!
       bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
@@ -113,24 +113,26 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
           sym->AddSymmetryReference(&shape_param_[shape.end_param - 1 - idx], &shape, true, false);
           // first opt item maps to last sym item
 
-        assert(!sym_ortho || ortho_shape->start_param == shape.end_param);
+        assert(!sym_ortho || ortho->start_param == shape.end_param);
         if(sym_ortho)
-          sym->AddSymmetryReference(&shape_param_[ortho_shape->start_param + idx], ortho_shape, false, shape.type == NODE); // reciprocal for node
+          sym->AddSymmetryReference(&shape_param_[ortho->start_param + idx], ortho, false, shape.type == NODE); // reciprocal for node
           // first opt item copies to first sym
 
         if(sym_ortho && sym_map && !(odd_elements && p == end -1)) // double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
-          sym->AddSymmetryReference(&shape_param_[ortho_shape->end_param - 1 - idx], ortho_shape, true, shape.type == NODE); // reciprocal for node
+          sym->AddSymmetryReference(&shape_param_[ortho->end_param - 1 - idx], ortho, true, shape.type == NODE); // reciprocal for node
 
         if(sym_diag)
-          sym->AddSymmetryReference(&shape_param_[diag_shape->start_param + idx], diag_shape, false, false);
+          sym->AddSymmetryReference(&shape_param_[diag->start_param + idx], diag, false, false);
           // first org copies to first sym, just the orientation is changed
 
-        assert(!(sym_map && sym_diag));
+        if(sym_diag && sym_map && !(odd_elements && p == end-1))
+          sym->AddSymmetryReference(&shape_param_[diag->end_param - 1 - idx], diag, true, false);
 
-        if(diag_ortho_shape)
-          sym->AddSymmetryReference(&shape_param_[diag_ortho_shape->start_param + idx], diag_ortho_shape, false, true);
+        if(diag_ortho)
+          sym->AddSymmetryReference(&shape_param_[diag_ortho->start_param + idx], diag_ortho, false, true);
 
-        assert(!(sym_map && diag_ortho_shape));
+        if(diag_ortho && sym_map && !(odd_elements && p == end-1))
+          sym->AddSymmetryReference(&shape_param_[diag_ortho->end_param - 1 - idx], diag_ortho, true, shape.type == NODE); // reciprocal for node
 
         // apply the value to the symmetry stuff, especially for the induced shape!
         sym->ApplyDesign();
