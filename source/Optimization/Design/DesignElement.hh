@@ -315,6 +315,7 @@ public:
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
 
+
   /** overwrite to add opt_idx */
   virtual std::string ToString() const;
 
