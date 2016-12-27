@@ -170,6 +170,14 @@ public:
     /** a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional mirror induced shape needs to be inserted.
      * This bool indicates if this shape is such a mirror induced shape */
     bool sym_induced = false;
+
+   /** For a non-sym_induced shape this are the links to the induced shapes.
+    * for full symmetry as for bloch modes one structure becomes four structures, here are the three.
+    * Note that there is for full symmetry also mapping,  only 1/8 of the data is opt! */
+    ShapeParam* sym_ortho = NULL; // same direction
+    ShapeParam* sym_diag  = NULL; // changed direction to base shape
+    ShapeParam* sym_diag_ortho = NULL; // first diag, then ortho -> changed direction to base shape
+
   };
 
 protected:
@@ -204,7 +212,7 @@ protected:
 
   /** helper to fill shape_param_
    * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
-   * @param start_end indicate the first and last element to enable check for clamed */
+   * @param start_end indicate the first and last element to enable check for clamped */
   void CreateShapeVariable(const ShapeParam* param, int free, bool start_end);
 
   /** helper for debugging */
@@ -275,49 +283,71 @@ protected:
   /** same as num_node_shape_params_ but based on opt_shape_param_ */
   int num_node_opt_shape_params_ = -1;
 
-  /** This are the external shape param variables which means shape_param_ w/o fixed AND considering symmetry!
-   * @aee opt_sym_param_ */
-  StdVector<ShapeParamElement*> opt_shape_param_;
-
   /** symmetry means that fewer data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
    * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
-  struct SymmetryMapping
+  struct ElementSymmetry
   {
+    ElementSymmetry(ShapeParamElement* base);
+
     /** short cut to check if we have any symmetry */
-    bool HasSymmetry() const { assert(!(ortho_map && (!map || !ortho))); return map != NULL || ortho != NULL || diag != NULL; }
+    bool HasSymmetry() const { return !hidden.IsEmpty(); }
 
     /** apply the value for the opt element to the symmetry elements considering all special cases */
-    void ApplyDesign(ShapeParam& shape, ShapeParamElement* org);
+    void ApplyDesign();
 
     /** returns all plain gradients for the sym elements or 0.0 if no sym */
-    double GetPlainSymGradient(ShapeMapDesign::Type type, const Function* f) const;
+    double GetPlainSymGradient(const Function* f) const;
 
     void Reset(DesignElement::ValueSpecifier vs);
 
     void PostInit(int objectives, int constraints);
 
+    /** @param elem the virtual element
+     * @param shape the original shape (when mapping) or the induced one
+     * @param map do we map or only mirror
+     * @param reciprocal if the value is shape.max - base->value */
+    void AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool map, bool reciprocal);
+
     /** for logging
      * @param grad add gradient details */
     std::string ToString(bool grad=false) const;
 
+    /** the symmetry information. */
+    struct Virtual
+    {
+      /** just for StdVector */
+      Virtual() {};
 
-    /** this repeats the data. For a horizontal structure with dof=y and x_symmetry=mirror the left elements are in opt_
-     * and the right is here (0->6, 1->5, ...) */
-    ShapeParamElement* map = NULL;
+      ShapeParamElement* elem  = NULL;  // the virtual element from opt_shape_param_
+      ShapeParam*        shape = NULL;  // the original shape (when only map) or the induced shape
+      bool               map   = false;    // just for debugging, do we stem from debugging information?
+      bool               reciprocal = false; // copy the original value or shape.max - val, also for gradient!
+    };
 
-    /** this orthogonal mirrors the data. For a vertical structure with dof=x and x_symmetry=mirror an additional shape has been
-     * introduced (with flag ShapeParam::sym_induced set). Here also the value of the design needs to be mirrored (max - val) */
-    ShapeParamElement* ortho = NULL;
+    /** This is the mappings we have */
+    StdVector<Virtual> hidden;
 
-    /** maps to an induced element where dof is exchanged in contrast to orthogonal */
-    ShapeParamElement* diag = NULL;
-
-    /** this is for full orthogonal symmetry (x_sym and y_sym): we map (e.g. left to right) and mirror the structure the same time. */
-    ShapeParamElement* ortho_map = NULL;
+    /** This is the element we build our symmetries to if we do */
+    ShapeParamElement* base = NULL;
   };
 
-  /** This are pointers the matching symmetric elements for each opt_shape_param_ element. All attributes NULL if no symmetry applies! */
-  StdVector<SymmetryMapping> opt_sym_param_;
+  /** Only some of the ShapeParamElements are really for optimization. Skipped are fixed shapes and symmetric shapes/elements. */
+  struct OptVar
+  {
+    /** for StdVector only! */
+    OptVar() { };
+    ~OptVar();
+
+    void Init(ShapeParamElement* elem);
+
+    /** Link to the shape param element which is actually for optimization. We don't own this! */
+    ShapeParamElement* elem = NULL;
+    /** in case of symmetry here the links to the hidden ShapeParamElements are contained. We own this! */
+    ElementSymmetry*   sym = NULL;
+  };
+
+  /** This are the external shape param variables which means shape_param_ w/o fixed and optional symmetry links */
+  StdVector<OptVar> opt_shape_param_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
