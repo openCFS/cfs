@@ -14,14 +14,13 @@ from numpy import sin
 from numpy import cos
 from numpy import sqrt
 
-## print tensor, pyhton makes for 6x6 tensors too early line breaks
+## print tensor nicely
 def dump_tensor(tensor):
   for y in range(tensor.shape[0]):
-    sys.stdout.write(str(y+1) + ": ")
+    msg = '{:2}: '.format(y+1)
     for x in range(tensor.shape[1]):
-      #sys.stdout.write(str(tensor[y][x]) + "\t")
-      print('%(val)10.4g ' % {"val": tensor[y][x]}, end=' ')
-    print("")    
+      msg += '{:10.4g} '.format(tensor[y][x])
+    print(msg)    
 
 
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
