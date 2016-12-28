@@ -81,7 +81,7 @@ def get_image(input, set, design, fill=0.0):
   if not args.orgsize:
     ix, iy = dens.shape[0:2]
     f = 800 / max(ix, iy)
-    img = img.resize((f * ix, f * iy))
+    img = img.resize((int(f * ix), int(f * iy)))
   
   return img, dens
 

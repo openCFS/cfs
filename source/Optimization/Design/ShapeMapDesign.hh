@@ -110,7 +110,7 @@ public:
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
   {
-    /** note that we would need a default constructor for StdVector
+    /** Note that we need a default constructor for StdVector. The symmetry pointers for profile are not set yet!
      * @param pn node for the shape
      * @param node reference for profile only to copy sym and orientation, ...
      * @param flip_orientation reinterpret direction for diagonal mirroring. Only for node, not again for profile */
