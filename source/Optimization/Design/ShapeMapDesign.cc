@@ -87,6 +87,9 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
       ShapeParam* diag       = shape.sym_diag;
       ShapeParam* diag_ortho = shape.sym_diag_ortho;
 
+      assert(!(sym_ortho && ortho == NULL));
+      assert(!(sym_diag && diag == NULL));
+      assert(!(sym_ortho && sym_diag && diag == NULL));
       assert(!sym_ortho || ortho->sym_induced);
       assert(!sym_diag  || diag->sym_induced);
 
@@ -129,7 +132,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
           sym->AddSymmetryReference(&shape_param_[diag->end_param - 1 - idx], diag, true, false);
 
         if(diag_ortho)
-          sym->AddSymmetryReference(&shape_param_[diag_ortho->start_param + idx], diag_ortho, false, true);
+          sym->AddSymmetryReference(&shape_param_[diag_ortho->start_param + idx], diag_ortho, false, shape.type == NODE);
 
         if(diag_ortho && sym_map && !(odd_elements && p == end-1))
           sym->AddSymmetryReference(&shape_param_[diag_ortho->end_param - 1 - idx], diag_ortho, true, shape.type == NODE); // reciprocal for node
@@ -232,10 +235,35 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
    num_node_shapes_ = shape_.GetSize();
 
    // now add the profiles
-   for(unsigned int i = 0, n = shape_.GetSize(); i < n; i++) {
+   for(unsigned int i = 0; i < (unsigned int) num_node_shapes_; i++) {
+     ShapeParam* nodal = &shape_[i];
      shape_.Push_back(ShapeParam());
-     shape_.Last().Init(profile, shape_.GetSize()-1, &shape_[i]); // one profile for each node shape, give reverence to node to copy sym and orientation
-     LOG_DBG(SMD) << "SSD i=" << i << " node=" << shape_[i].ToString() << " profile " << shape_.Last().ToString();
+     ShapeParam* prof = &shape_.Last(); // don't shadow the profile ParamNode
+     prof->Init(profile, shape_.GetSize()-1,nodal); // one profile for each node shape, give reverence to node to copy sym and orientation
+     assert(!(nodal->sym_induced && !prof->sym_induced));
+     assert(prof->sym_ortho == NULL && prof->sym_diag == NULL && prof->sym_diag_ortho == NULL); // needs to be set later
+     LOG_DBG(SMD) << "SSD i=" << i << " node=" << nodal->ToString() << " profile " << prof->ToString();
+   }
+   assert((int) shape_.GetSize() == 2 * num_node_shapes_);
+
+   // now set the symmetry links for profiles
+   for(unsigned int i = 0; i <  (unsigned int) num_node_shapes_; i++) {
+     ShapeParam& node    = shape_[i];
+     ShapeParam& profile = shape_[num_node_shapes_ + i];
+     assert((node.sym_induced && profile.sym_induced) || (!node.sym_induced && !profile.sym_induced));
+     assert(profile.sym_ortho == NULL && profile.sym_diag == NULL && profile.sym_diag_ortho == NULL); // not set yet
+     if(!node.sym_induced) // we search for the base functions
+     {
+       if(node.sym_ortho != NULL)
+         profile.sym_ortho = &shape_[profile.idx + (node.sym_ortho->idx - node.idx)];
+
+       if(node.sym_diag != NULL)
+         profile.sym_diag = &shape_[profile.idx + (node.sym_diag->idx - node.idx)];
+
+       if(node.sym_diag_ortho != NULL)
+         profile.sym_diag_ortho = &shape_[profile.idx + (node.sym_diag_ortho->idx - node.idx)];
+     }
+     LOG_DBG(SMD) << "SSD i=" << i << " profile " << profile.ToString();
    }
 
    // setup nodes within shape_param_. When nx != ny we need the number of shapes to reserve proper space
@@ -1457,8 +1485,10 @@ bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
 std::string ShapeMapDesign::ShapeParam::ToString() const
 {
   std::stringstream ss;
-  ss << ShapeMapDesign::type.ToString(this->type) << " idx=" << idx << " dof=" << dof << " o=" << orientation << " xs=" << x_sym << " ys=" << y_sym
-     << " so=" << (sym_ortho != NULL) << " sd=" << (sym_diag != NULL) << " sdo=" << (sym_diag_ortho != NULL) << " ind=" << sym_induced;
+  ss << ShapeMapDesign::type.ToString(this->type) << " idx=" << idx << " dof=" << dof << " o=" << orientation << " xsym=" << x_sym << " ysim=" << y_sym
+     << " ortho=" << (sym_ortho != NULL ? sym_ortho->idx : -1)
+     << " diag=" << (sym_diag != NULL ? sym_diag->idx : -1)
+     << " diag_ortho=" << (sym_diag_ortho != NULL ? sym_diag_ortho->idx : -1) << " ind=" << sym_induced;
   return ss.str();
 }
 
