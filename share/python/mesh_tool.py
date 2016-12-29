@@ -449,7 +449,6 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
     msg += 'plus ' + str(colorful_count) + ' non gray elements'
   print(msg)  
     
-
 # @param mesh dense mesh (input)
 # @return sparse mesh
 def convert_to_sparse_mesh(dense):
