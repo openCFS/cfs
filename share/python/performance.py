@@ -28,16 +28,16 @@ def set_timer(node):
   # the label is more complicated. Older info.xml might not have label yet
   l = node.tag
   if l == 'timer':
-    l = node.attrib['label'] if node.attrib.has_key('label') else None
+    l = node.attrib['label'] if 'label' in node.attrib else None
     if l == None: # do our best
       # is this the root node?
       if node.getparent().getparent().tag == "cfsInfo":
         l = 'total'
       else:
-        l = node.getparent().tag if node.getparent().tag <> "summary" else node.getparent().getparent().tag
+        l = node.getparent().tag if node.getparent().tag != "summary" else node.getparent().getparent().tag
   # the optional attribute sub="true" indicates that this is sub-element 
   # and shall to be considered for missing_time
-  s = node.attrib['sub'] if node.attrib.has_key('sub') else None
+  s = node.attrib['sub'] if 'sub' in node.attrib else None
   return Timer(l, w, c, s == 'true')      
           
 ## extracts all timers from info.xml and give back as array of Timer objects
@@ -84,15 +84,16 @@ def minimal_timer(timers):
 ## create gnuplot output from timer
 # timer list of Timer objects
 def gnuplot(timer, header=True):
-  if header:  
-    print "#",
+  if header:
+    line = '#'  
     for i in range(len(timer)):
-      print '(' + str(i*2+1) + '):' + timer[i].label + ' \t(' + str(i*2+2) + ')<-cpu \t',
-    print ""
+      line += '(' + str(i*2+1) + '):' + timer[i].label + ' \t(' + str(i*2+2) + ')<-cpu \t'
+    print(line)
 
+  line = ''
   for t in timer:
-    print str(t.wall) + ' \t' + str(t.cpu) + ' \t',
-  print ""      
+    line += str(t.wall) + ' \t' + str(t.cpu) + ' \t'
+  print(line)      
   
 ## print standard analysis
 # @timer a list of Timer or a list of a list of Timer, then the minimum is printed first 

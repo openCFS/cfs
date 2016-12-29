@@ -81,7 +81,7 @@ def get_image(input, set, design, fill=0.0):
   if not args.orgsize:
     ix, iy = dens.shape[0:2]
     f = 800 / max(ix, iy)
-    img = img.resize((f * ix, f * iy))
+    img = img.resize((int(f * ix), int(f * iy)))
   
   return img, dens
 
@@ -130,7 +130,7 @@ else:
   
   if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need  
-      img = img.resize((1000/args.tile, 1000/args.tile))
+      img = img.resize((int(1000/args.tile), int(1000/args.tile)))
       nx = img.size[0]
       ny = img.size[1]
       dat = numpy.array(img) 
