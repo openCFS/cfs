@@ -130,7 +130,7 @@ else:
   
   if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need  
-      img = img.resize((1000/args.tile, 1000/args.tile))
+      img = img.resize((int(1000/args.tile), int(1000/args.tile)))
       nx = img.size[0]
       ny = img.size[1]
       dat = numpy.array(img) 

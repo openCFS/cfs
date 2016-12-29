@@ -14,7 +14,9 @@ offset = None
 def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   global gap_count
   #print "check_gap(rs=" + str(range_start) + ", re=" + str(range_end) + ")"
-  
+  range_start = int(range_start)
+  range_end = int(range_end)
+
   mi = min(data[range_start:range_end+1,test_col])
   ma = max(data[range_start:range_end+1,test_col-1])
   rel = (mi - ma)/((ma+mi)/2.0)
@@ -24,11 +26,11 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   if (mi - ma) > eps: # rel negative if mi < ma
     gap_count += 1       
     if gnuplot:
-      print 'set object ' + str(gap_count) + ' rect from ' + str(range_start) + ',' + str(ma) + ' to ' + str(range_end) + ',' + str(mi)
+      print('set object ' + str(gap_count) + ' rect from ' + str(range_start) + ',' + str(ma) + ' to ' + str(range_end) + ',' + str(mi))
     else:
-      type = 'full' if range_end - range_start > data.shape[0] else 'partial'
+      mytype = 'full' if range_end - range_start > data.shape[0] else 'partial'
       if xml is not None:
-        node = etree.SubElement(xml, type)
+        node = etree.SubElement(xml, mytype)
         node.append(etree.Element("wave_vector", start=str(range_start), end=str(range_end)))
         node.append(etree.Element("frequency", start=str(ma), end=str(mi)))
         node.append(etree.Element("mode", start=str(test_col-offset), end=str(test_col-offset+1)))
@@ -36,8 +38,8 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
         node.attrib["rel_size"] = str(rel)
         node.attrib["count"] = str(gap_count)
       else:
-        print type + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1),
-        print ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel)
+        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1), end=' ')
+        print(' size: ' + str(mi - ma) + ' rel.size: ' + str(rel))
 
 
 
@@ -66,14 +68,14 @@ def get_dim(args):
   if args.dim is None:
     if has_header:
       if not args.gnuplot:
-        print "detect dim " + str(header_dim) + " from comment in file " + args.bloch
+        print("detect dim " + str(header_dim) + " from comment in file " + args.bloch)
       return header_dim  
     else:  
       raise "no --dim given and no valid comment in '" + args.bloch + "' to derive the dimension"
   else:
     if has_header:
-      if args.dim <> header_dim and not args.gnuplot:
-        print "--dim " + str(args.dim) + " given but header in '" + args.bloch + "' suggests dimension " + str(header_dim)
+      if args.dim != header_dim and not args.gnuplot:
+        print("--dim " + str(args.dim) + " given but header in '" + args.bloch + "' suggests dimension " + str(header_dim))
     return args.dim                                                                                                     
 
 ## determines the number of segments and segment size
@@ -85,7 +87,7 @@ def get_segments(args, data, dim):
   if args.horizontal:
     num = 1
     if not args.gnuplot:
-       print 'assume horizontal segment'  
+       print('assume horizontal segment')  
   else:
     header = get_header(args.bloch)    
     if 'edges="' in header:
@@ -93,11 +95,11 @@ def get_segments(args, data, dim):
       end   = header[start:].find('"')  
       num = int(header[start:start+end])
       if not args.gnuplot:
-        print 'read ' + str(num) + ' segments from header for ' + str(len(data)) + '-1 data lines'   
+        print('read ' + str(num) + ' segments from header for ' + str(len(data)) + '-1 data lines')   
   
-  if (len(data)-1) % num <> 0:
+  if (len(data)-1) % num != 0:
     if not args.gnuplot:
-      print '--numer of data lines (' + str(len(data)) + ' -1) incompatible with ' + str(num) + ' segments' 
+      print('--numer of data lines (' + str(len(data)) + ' -1) incompatible with ' + str(num) + ' segments') 
 
   if num == 1:
    return [len(data)]
@@ -128,6 +130,9 @@ parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice 
 parser.add_argument('--horizontal', action='store_true', help='display only the horizontal part of the wavevector (G->X)')
 args = parser.parse_args()
 
+if not os.path.exists(args.bloch):
+  print("file not found '" + args.bloch + "'")
+  sys.exit(1)
 org = numpy.loadtxt(args.bloch)
  
 dim = get_dim(args)
@@ -140,7 +145,7 @@ for w in range(len(org)):
   wv = org[w]
   for ev in range(offset+1, len(wv)):
     if wv[ev] < wv[ev-1]:
-      print '#unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1])                 
+      print('#unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1]))                 
 
 segments = get_segments(args, org, dim)
 
@@ -153,13 +158,13 @@ cnt = 1
 root = None if not args.xml else etree.Element('bloch', file=args.bloch)
 
 if args.info and not args.gnuplot: 
-  print "\nmode range:"
-  print "-----------"
+  print("\nmode range:")
+  print("-----------")
   for i in range(offset, max_mode):
     mi = min(org[:,i])
     ma = max(org[:,i])
-    print 'mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma), # print step 1-based
-    print ' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0)) 
+    print('mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma), end=' ') # print step 1-based
+    print(' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0))) 
 
 if args.xml:
   modes = etree.SubElement(root, "modes")
@@ -177,26 +182,26 @@ gaps = None if args.xml is None else etree.SubElement(root, "gaps")
   
 if args.gnuplot:
   if args.gnuplot == "eps":
-    print 'set size ratio 1.0'
-    print 'set terminal postscript eps enhanced "Helvetica, 12" color' #  change to monochrome for papers
-    print 'set output "' + args.bloch[:-len(".dat")] + '.eps"'
+    print('set size ratio 1.0')
+    print('set terminal postscript eps enhanced "Helvetica, 12" color') #  change to monochrome for papers
+    print('set output "' + args.bloch[:-len(".dat")] + '.eps"')
   if args.gnuplot == "png":
-    print 'set size ratio 1.0'
-    print 'set terminal png size 1000,1000 font "Helvetica, 16"'
-    print 'set output "' + args.bloch[:-len(".dat")] + '.png"' # leave it as bloch.png
+    print('set size ratio 1.0')
+    print('set terminal png size 1000,1000 font "Helvetica, 16"')
+    print('set output "' + args.bloch[:-len(".dat")] + '.png"') # leave it as bloch.png
         
     # print 'set output "tmp.eps"'
   # unset eventually older boxes
   for i in range(60):
-     print 'unset object ' + str(i)
-  print 'set style rectangle back fc rgb "gray"'         
+     print('unset object ' + str(i))
+  print('set style rectangle back fc rgb "gray"')         
 
   
 # search for partial band gaps
 if not args.nopartial:
   if not args.gnuplot and not args.xml:
-    print "\npartial band gaps >= rel.size " + str(eps)
-    print "---------------------------------------"
+    print("\npartial band gaps >= rel.size " + str(eps))
+    print("---------------------------------------")
   for s in range(0,len(segments)):
     for i in range(offset+1, max_mode):  
       check_gap(org, i, 0 if s == 0 else segments[s-1], segments[s], eps, args.gnuplot, gaps)
@@ -204,32 +209,32 @@ if not args.nopartial:
 # search for full band gaps
 if not args.horizontal:
   if not args.gnuplot and not args.xml:
-    print "\nfull band gaps >= rel.size " + str(eps)
-    print "---------------------------------------"
+    print("\nfull band gaps >= rel.size " + str(eps))
+    print("---------------------------------------")
   for i in range(offset+1,  max_mode): # we start comparing the second to the first
     check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
 
 if args.gnuplot:
   if args.commonsymbol:
-    print 'set yrange [0:*]'
+    print('set yrange [0:*]')
   else:
-    print 'set yrange [0:' + str(max_freq * 1.2) + ']' # leave space for the labels
+    print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
   if args.horizontal:
-    print 'set xrange [0:' + str(segments[-1]) + ']'    
+    print('set xrange [0:' + str(segments[-1]) + ']')    
   else:
     for s in range(0,len(segments)-1):
-      print 'set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2'  
+      print('set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')  
   
   if args.nicelabel:
-     print 'set ylabel "eigenfrequency in Hz"'
-     print 'set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"'
-     print 'set xtics ("O" 0',
+     print('set ylabel "eigenfrequency in Hz"')
+     print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
+     print('set xtics ("O" 0', end=' ')
      for i in range(len(segments)):
-        print ', "' +  chr(ord('A')+i) + '" ' + str(segments[i]),
-     print ')'    
+        print(', "' +  chr(ord('A')+i) + '" ' + str(segments[i]), end=' ')
+     print(')')    
   else:
-    print 'unset ylabel' 
-    print 'unset xlabel'     
+    print('unset ylabel') 
+    print('unset xlabel')     
 
   
 
@@ -237,7 +242,7 @@ if args.gnuplot:
   lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i-offset+1) + '. mode" ' 
-    print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '') 
+    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')) 
  
  
 if args.xml:
