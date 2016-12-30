@@ -86,6 +86,12 @@ namespace CoupledField
       return updatedGeo_;
     }
     
+    //! check, if PDE has complex material parameters;
+    //! has to be overwritten by specific PDE
+    virtual bool IsMaterialComplex()  {
+    	return isMaterialComplex_;
+    }
+
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
@@ -406,6 +412,9 @@ namespace CoupledField
     //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
     bool updatedGeo_;
     
+    //! flag indicating that material parametters are complex
+    bool isMaterialComplex_;
+
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 
