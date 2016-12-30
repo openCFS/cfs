@@ -98,7 +98,8 @@ namespace CoupledField {
     isDirectCoupled_(false),
     isInitialized_(false),
     iterCplPde_(NULL),
-    updatedGeo_(false)
+    updatedGeo_(false),
+	isMaterialComplex_( false )
   {
     
     // get id for linear system
@@ -3518,6 +3519,16 @@ namespace CoupledField {
 //      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
 //      std::cout << "Nu2: " << values[0] << std::endl;
     }
+    else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
+       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+       if ( isMaterialComplex_ ) {
+    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]
+    	                                ->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	   factor = CoefFunction::Generate( mp_, Global::COMPLEX,
+ 				                  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
+    	   //std::cout << "DO complex Factor NMG" << std::endl;
+       }
+    }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
@@ -3579,9 +3590,10 @@ namespace CoupledField {
       }
     }
 
-    if ( analysistype_ == HARMONIC ) {
-      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
-    }
+//    Who wrote this????? It is tested!!
+//    if ( analysistype_ == HARMONIC ) {
+//      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
+//    }
 
     curcpl = BiLinearForm::MASTER_MASTER;
 
@@ -3592,10 +3604,18 @@ namespace CoupledField {
     // not symmetric. Nitsche formulation is basically sym due to the
     // set counterpart directive for the context.
 
-    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else  {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -3605,10 +3625,18 @@ namespace CoupledField {
         flux_du1_v1->SetBCoefFunctionOpA(coefMech);
     }
     else {
-      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+    		             ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+    		               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+    		               factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+                         ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -3619,19 +3647,35 @@ namespace CoupledField {
       flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
-        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-          (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
-    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -3641,18 +3685,34 @@ namespace CoupledField {
       flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
-        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-           (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, 1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     //curcpl = BiLinearForm::SLAVE_MASTER;
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;

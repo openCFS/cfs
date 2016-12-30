@@ -39,6 +39,11 @@ namespace CoupledField{
       *  @return depending on the formulation: ACOU_POTENTIAL or ACOU_PRESSURE. */
      SolutionType GetNativeSolutionType() const { return formulation_; }
 
+     //! check, if PDE has complex material parameters;
+     bool IsMaterialComplex()  {
+     	return complexFluidFormulation_;
+     }
+
   protected:
 
     //! \copydoc SinglePDE::CreateFeSpaces

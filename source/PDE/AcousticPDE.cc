@@ -337,7 +337,8 @@ namespace CoupledField{
       else {
     	  if ( complexFluidFormulation_ ) {
     		  //in this case c0 is actually 1/c0^2!!
-    		  //! coeffK: 1/compressionModulus
+    		  //! coeffM: 1/compressionModulus
+    		  //! coeffK = 1/density
     		  coeffM = CoefFunction::Generate( mp_, Global::COMPLEX,
     		      				  CoefXprBinOp(mp_, factor, blk, CoefXpr::OP_DIV ) );
     		  ///coeffM: 1/density
@@ -1008,8 +1009,8 @@ namespace CoupledField{
   }
 
   void AcousticPDE::DefineNcIntegrators() {
-	if ( complexFluidFormulation_ )
-		EXCEPTION("Complex fluid and NC-interfaces currently not allowed");
+//	if ( complexFluidFormulation_ )
+//		EXCEPTION("Complex fluid and NC-interfaces currently not allowed");
 
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
                                            endIt = ncInterfaces_.End();
@@ -1706,6 +1707,7 @@ namespace CoupledField{
 		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
 		if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
 			complexFluidFormulation_ = true;
+			isMaterialComplex_ = true;
 			if ( this->analysistype_ != HARMONIC )
 				EXCEPTION("Complex fluid region just allowed in harmonic analysis");
 	   		//need an acoustic pressure formulation
