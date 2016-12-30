@@ -360,8 +360,8 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
     ma_z = ma_z if ma_z > coord[2] else coord[2]   
     mi_z = mi_z if mi_z < coord[2] else coord[2]
   
-  print "min = [" + str(mi_x) + ", " +  str(mi_y) + ", " +  str(mi_z) + "]"
-  print "max = [" + str(ma_x) + ", " +  str(ma_y) + ", " +  str(ma_z) + "]"
+  print("min = [" + str(mi_x) + ", " +  str(mi_y) + ", " +  str(mi_z) + "]")
+  print("max = [" + str(ma_x) + ", " +  str(ma_y) + ", " +  str(ma_z) + "]")
   delta = 1e-4
   top = []
   bottom = []
@@ -403,7 +403,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
   bottom_c = 0
   back_c = 0
   front_c = 0
-  print 'lr_counter = ' + str(lr_counter) + ', bt_counter = ' + str(bt_counter) + ', bf_counter = ' + str(bf_counter)
+  print('lr_counter = ' + str(lr_counter) + ', bt_counter = ' + str(bt_counter) + ', bf_counter = ' + str(bf_counter))
   # insert the same number of nodes to each region pair
   for i in range(len(mesh.nodes)):
     if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta and left_c < lr_counter:
@@ -451,13 +451,13 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   hull = Delaunay(nondes_centers)
   if type == "robot":
     hull_des = Delaunay(centers)
-  print 'calculating convex hull of non-design done'
+  print('calculating convex hull of non-design done')
   # choose validation for simp result or 2-scale result
   if simp is None:
     ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz)
   else:
     ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1,None,None, dx,dy,dz)
-  print 'interpolation of thicknesses done'
+  print('interpolation of thicknesses done')
 
   # lowest density = void density
   void = min(ip_data.ravel())
@@ -469,9 +469,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   ny = (int(delta[1] / dy) + 1)*dy_f
   nz = (int(delta[2] / dz) + 1)*dz_f
 
-  print "nx,ny,nz = " + str(nx) + ", " + str(ny) + ", " + str(nz)
-  print "des: ma,mi = " + str(ma) + " " + str(mi) 
-  print "nondes: ma,mi = " + str(nondes_max) + " " + str(nondes_min) 
+  print("nx,ny,nz = " + str(nx) + ", " + str(ny) + ", " + str(nz))
+  print("des: ma,mi = " + str(ma) + " " + str(mi)) 
+  print("nondes: ma,mi = " + str(nondes_max) + " " + str(nondes_min)) 
   #thickness of shell 1mm: tx,... is thickness of non-design shell
   if type == "apod6":
     tx = 0
@@ -489,15 +489,15 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   # offset for function apod6 (valid_position), fixes a bug 
   offset = dx + 1e-6
   if ny == 0 or nz == 0 or nx == 0:
-    print 'chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized'
+    print('chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized')
     exit()
-  print "tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz)
+  print("tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz))
   # add nodes including offset for shell 
   for z in range(-tz,nz+1+tz):
     for y in range(-ty, ny + 1 + ty):
       for x in range(-tx,nx+1+tx):
         mesh.nodes.append((mi[0] + float(x) * dx/dx_f, mi[1] +  float(y) * dy/dy_f, mi[2] +float(z) * dz/dz_f))
-  print 'inserting mesh.nodes done'
+  print('inserting mesh.nodes done')
   nnx = nx + 2 * tx
   nny = ny + 2 * ty 
   nnz = nz + 2 * tz
@@ -505,9 +505,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   res = [dx_f,dy_f,dz_f]
   count = 0
   hole = -2. if type == "robot" else void
-  for k in xrange(tz,nz-dz_f + 1 + tz,dz_f):
-    for j in xrange(ty,ny-dy_f + 1 + ty,dy_f):
-      for i in xrange(tx,nx -dx_f + 1 + tx,dx_f):    
+  for k in range(tz,nz-dz_f + 1 + tz,dz_f):
+    for j in range(ty,ny-dy_f + 1 + ty,dy_f):
+      for i in range(tx,nx -dx_f + 1 + tx,dx_f):    
         coord = out[count]
         if simp is None:
           s1, s2, s3 = ip_data[count][0:3]
@@ -537,7 +537,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           else:
               array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))             
         count += 1
-  print 'calculation of density array done'
+  print('calculation of density array done')
   number = 0
   void3_count = 0
   for z in range(nnz):
@@ -600,7 +600,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
     mesh = add_apod6_boundary_conditions(mesh)
   elif type == "robot":
     mesh = add_robot_boundary_conditions(mesh)
-  print 'mesh has ' + str(number) + "design and non-design elements"
-  print 'volume = ' +str(float(number)/float(number + void3_count))
+  print('mesh has ' + str(number) + "design and non-design elements")
+  print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
