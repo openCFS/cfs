@@ -193,7 +193,7 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   info_(opt->optInfoNode->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
-  timer_(new Timer()),
+  optimizer_timer_(new Timer()),
   design_(DesignMemory(-1, 0.0))
 {
   assert(pn != NULL);
@@ -203,7 +203,7 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   LOG_DBG(optimizer) << "BO: gen_opt_pn_=" << gen_opt_pn_->GetName();
   LOG_DBG(optimizer) << "BO: this_opt_pn_=" << (this_opt_pn_ != NULL ? this_opt_pn_->GetName() : "null") ;
 
-  info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
+  info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->optimizer_timer_ );
 }
 
 BaseOptimizer::~BaseOptimizer()
@@ -220,14 +220,14 @@ void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 
 void BaseOptimizer::SolveOptimizationProblem()
 {
-  timer_->Start();
+  optimizer_timer_->Start();
   SolveProblem();
 
   // dirty fix to have the final status streamed for iTop
    // if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
   // optimization->CommitIteration(true);
 
-  timer_->Stop();
+  optimizer_timer_->Stop();
 }
 
 void BaseOptimizer::LogFileHeader(Optimization::Log& log)
@@ -293,8 +293,10 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
+  optimizer_timer_->Stop();
 
-  timer_->Stop();
+  shared_ptr<Timer> eval_obj = optimization->optInfoNode->Get("eval_objective/timer")->AsTimer();
+  eval_obj->Start();
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -339,8 +341,9 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   
   LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
 
-  timer_->Start();
-  
+  optimizer_timer_->Start();
+  eval_obj->Stop();
+
   return ret;
 }
 
@@ -350,7 +353,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   // On the other hand, it is called be the Optimizer before usually and so generates no cost. (But one cannot rely on this behaviour.)
   EvalObjective(n, x, cfs_scale);
 
-  timer_->Stop();
+  optimizer_timer_->Stop();
   
   bool need_eval = design_.design_id != design_.gradient_design_id; 
   
@@ -360,7 +363,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
     design_.gradient_design_id = design_.design_id;
   }
   
-  timer_->Start();
+  optimizer_timer_->Start();
   
   return(need_eval);  
 }
@@ -369,8 +372,11 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 {
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
   
-  timer_->Stop();
+  optimizer_timer_->Stop();
   
+  shared_ptr<Timer> grad_obj = optimization->optInfoNode->Get("eval_grad_objective/timer")->AsTimer();
+  grad_obj->Start();
+
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
     
@@ -407,7 +413,8 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
                      << " need_eval=" << need_eval << " -> grad.scale=" << objective->scaling.value
                      << " grad.opt_scaling=" << objective->opt_scaling.value;
 
-  timer_->Start();
+  optimizer_timer_->Start();
+  grad_obj->Stop();
   
   return !restart_requested;
 }
@@ -420,7 +427,10 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   // if it does not, this does not cost more than reading the design
   EvalObjective(n, x, cfs_scale);
   
-  timer_->Stop();
+  shared_ptr<Timer> timer_constr = optimization->optInfoNode->Get("eval_constraints/timer")->AsTimer();
+  timer_constr->Start();
+
+  optimizer_timer_->Stop();
   
   // iterate over all constraints
   for(int i = 0; i < m; i++)
@@ -433,7 +443,8 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   }
   optimization->constraints.view->Done(); // reset local constraint to global mode
 
-  timer_->Start();
+  timer_constr->Stop();
+  optimizer_timer_->Start();
 }
 
 double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize)
@@ -476,7 +487,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
 
 int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values)
 {
-  timer_->Stop();
+  optimizer_timer_->Stop();
   
   // always initialize the window!!
   int nnz(0); 
@@ -503,7 +514,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   for(int p = 0; normalize && p < nnz; p++)
     values[start + p] *= flip_sign;
 
-  timer_->Start();
+  optimizer_timer_->Start();
   
   return nnz;
 }
@@ -511,11 +522,14 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
 void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
       StdVector<double>& values, GradientType grtype)
 {
+
+  optimizer_timer_->Stop();
+
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
+  shared_ptr<Timer> grad_constr = optimization->optInfoNode->Get("eval_grad_constraints/timer")->AsTimer();
+  grad_constr->Start();
 
   SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
-  
-  timer_->Stop();
 
   // note, that we have dense gradients!
   // iterate over the gradients
@@ -542,7 +556,8 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
   assert(start == nentries);
 
-  timer_->Start();
+  grad_constr->Stop();
+  optimizer_timer_->Start();
 }
 
 
@@ -550,7 +565,7 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
 {
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
 
-  timer_->Stop();
+  optimizer_timer_->Stop();
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
@@ -580,5 +595,5 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   
-  timer_->Start();
+  optimizer_timer_->Start();
 }
