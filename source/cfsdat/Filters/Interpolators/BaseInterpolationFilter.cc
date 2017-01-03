@@ -19,6 +19,7 @@
 #include "Filters/Interpolators/Cell2NodeInterpolator.hh"
 #include "Filters/Interpolators/GridIntersectionFilter.hh"
 #include "Filters/Interpolators/RBFInterpolator.hh"
+#include "Filters/Interpolators/Node2CellInterpolator.hh"
 
 
 namespace CFSDat{
@@ -36,6 +37,8 @@ FilterPtr BaseInterpolationFilter::GenerateInterpolator(PtrParamNode interpolNod
    newFilter = FilterPtr(new CFSDat::Cell2NodeInterpolator(0,interpolNode,resMana));
  } else if (interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_RBF"){
    newFilter = FilterPtr(new CFSDat::RBFInterpolator(0,interpolNode,resMana));
+ }else if (interpolNode->Get("type")->As<std::string>() == "FieldInterpolation_Node2Cell"){
+   newFilter = FilterPtr(new CFSDat::Node2CellInterpolator(0,interpolNode,resMana));
  }
  return newFilter;
 }

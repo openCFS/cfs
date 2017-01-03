@@ -29,6 +29,7 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/Cell2NodeInterpolator.cc
   Filters/Interpolators/GridIntersectionFilter.cc
   Filters/Interpolators/RBFInterpolator.cc
+  Filters/Interpolators/Node2CellInterpolator.cc
   Filters/SignalProcessing/FftFilter.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc

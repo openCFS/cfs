@@ -2305,6 +2305,8 @@ source/cfsdat/Filters/Interpolators/MeshBasedInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/MeshBasedInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.hh -text
+source/cfsdat/Filters/Interpolators/Node2CellInterpolator.cc -text
+source/cfsdat/Filters/Interpolators/Node2CellInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/RBFInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/RBFInterpolator.hh -text
 source/cfsdat/Filters/Output/OutputFilter.cc -text
