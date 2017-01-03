@@ -42,6 +42,13 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="FieldInterpolation_Node2Cell">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from nodes to cell-centroids of one element, no interpolation between meshes!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
   
