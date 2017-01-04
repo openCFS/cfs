@@ -254,7 +254,6 @@ std::string CoefFunctionGrid::ToString() const {
 }
 
 UInt CoefFunctionGrid::GetVecSize() const {
-  std::cout << "CoefFunctionGrid::GetVecSize" << std::endl;
   return dimDof_;
 }
 
