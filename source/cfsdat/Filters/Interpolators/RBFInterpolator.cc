@@ -101,8 +101,6 @@ bool RBFInterpolator::Run(){
   // Checking if input is scalar- or vector-type. This needs to be done
   // because of the input of CGAL
   // Maybe there is a more efficient way to deal with this issue?!
-//std::cout<<inVec.GetSize()<<std::endl;
-//std::cout<<sourceCoords_.GetSize()<<std::endl;
   if(inVec.GetSize() == sourceCoords_.GetSize()){
     //this is the case of scalar scattered values
     inDim_=0;
@@ -139,6 +137,8 @@ bool RBFInterpolator::Run(){
           scatteredData[i][2] = inVec[3 * i + 2]; // z-component
         }
       }else{
+std::cout<<"\t\t Size of input-vector:"<<inVec.GetSize()<<std::endl;
+std::cout<<"\t\t Number of source-points:"<<sourceCoords_.GetSize()<<std::endl;
         EXCEPTION("Incorrect Input Data!")
       }
     }
