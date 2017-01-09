@@ -512,50 +512,6 @@ namespace CoupledField{
       // for calculation of postprocessing results
       massInts_[actRegion] = massInt;
 
-      // ====================================================================
-      // check for lamb vector, RHS of aeroacoustics
-      // ====================================================================
-      std::string lambId = curRegNode->Get("lambId")->As<std::string>();
-      PtrCoefFct regionDivLamb;
-
-      if ( lambId != "" ) {
-    	if ( complexFluidFormulation_ )
-    		EXCEPTION("Complex fluid and Lamb-vector currently not allowed");
-        std::set<UInt> definedDofs;
-        //just real valued lamb vector allowed
-        shared_ptr<ResultInfo> lambInfo = GetResultInfo(SPLIT_LAMB);
-        //Add the region information
-        PtrParamNode vorticNode = myParam_->Get("lambList")->GetByVal("lamb","name",lambId.c_str());
-
-        ReadUserFieldValues( actSDList, vorticNode, lambInfo->dofNames, lambInfo->entryType,
-            isComplex_, regionDivLamb, definedDofs, updatedGeo_ );
-        regionDivLamb->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
-        lambCoef_->AddRegion( actRegion, regionDivLamb );
-
-
-
-//        // =====================================
-//        //  lamb vector RHS e.g. for aeroacoustics (LINEAR FORM)
-//        // =====================================
-//        BaseBDBInt* rhsBilin = NULL;
-//        rhsBilin = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-//            new GradientOperator<FeH1,2>(),
-//            coeffM, 1.0, updatedGeo_);
-//        rhsBilin->SetName("RHSAsymBiliniar form for KX");
-//        rhsBilin->SetFeSpace( feFunctions_[formulation_]->GetFeSpace(),feFunctions_[formulation_]->GetFeSpace());
-//
-//        LinearForm* rhsLinForm = new KRhsIntegrator<Double>(rhsBilin, 1.0, feFunctions_[formulation_], lambCoef_ );
-//        rhsLinForm->SetName("RHSLinForm");
-////        rhsLinForm->SetSolDependent();
-//        // Set explicitly the solution dependency
-//        LinearFormContext * rhsLinContext =
-//            new LinearFormContext( rhsLinForm );
-//        rhsLinContext->SetEntities( actSDList );
-//        rhsLinContext->SetFeFunction( feFunctions_[formulation_] );
-//        assemble_->AddLinearForm( rhsLinContext );
-
-
-      }
 
       // ====================================================================
       // check for flow (Pierce equation)
@@ -2216,29 +2172,6 @@ namespace CoupledField{
     resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
     stiffFormFunctors_.insert(keFuncPot);
 
-
-    // === ACOUSTIC Source FIELD LAMB===
-    // DIV LAMB
-    shared_ptr<ResultInfo> divLamb( new ResultInfo);
-    divLamb->resultType = SPLIT_DIVLAMB;
-    divLamb->dofNames = "";
-    divLamb->unit = "kg/(m^3s^2)";
-
-    divLamb->definedOn = ResultInfo::NODE;
-    divLamb->entryType = ResultInfo::SCALAR;
-
-    lambCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
-    DefineFieldResult( lambCoef_, divLamb );
-
-    // LAMB
-    shared_ptr<ResultInfo> lamb( new ResultInfo);
-    lamb->resultType = SPLIT_LAMB;
-    lamb->dofNames = vecDofNames;
-    lamb->unit = "kg/(ms)^2";
-
-    lamb->definedOn = ResultInfo::NODE;
-    lamb->entryType = ResultInfo::VECTOR;
-    DefineFieldResult( lambCoef_, lamb );
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){

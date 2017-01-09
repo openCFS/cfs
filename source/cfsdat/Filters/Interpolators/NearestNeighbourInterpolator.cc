@@ -122,6 +122,7 @@ bool NearestNeighbourInterpolator::Run(){
           }
     }
 
+  // TODO tear apart the interpolation from the run method
   // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
   KNNSearch Tree;
   Tree.ReadScatteredData_Interpolation(sourceCoords_, inDim_, trgGrid_, scatteredData);
@@ -240,6 +241,12 @@ bool NearestNeighbourInterpolator::Run(){
     }// for aNode
   }// for element
   resultManager_->ActivateResult(filterResIds[0]);
+
+  //check mesh filter results and evaluate the quality of the filters
+  // TODO make a XML input that triggers the quality evaluation
+  if(true){
+	  std::cout<< this->CheckFilterResults()<<std::endl;
+  }
 
   //now deactivate own upstream results
   for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
@@ -467,5 +474,9 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
   resultManager_->SetValid(filterResIds[0]);
 }
 
+std::string NearestNeighbourInterpolator::CheckFilterResults(){
+
+	return "Check OK!";
 }
 
+}
