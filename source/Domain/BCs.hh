@@ -85,6 +85,10 @@ namespace CoupledField {
     //! Equation map
     shared_ptr<EqnMap> eqnMap;
 
+    /** name as given in xml file might be empty */
+    std::string name;
+
+
     /** does this constraint originate from periodic bcs */
     bool periodic;
   };
