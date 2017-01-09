@@ -13,8 +13,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from sympy import Symbol, symbols
 
 res = 1
-out_edges = open("edges.txt","w")
-out_neighbors = open("neighbors.txt","w")
 
 class End_Node():
   coords = None
@@ -1007,7 +1005,7 @@ def create_profiles_array(args,infoXml):
      
     out.close()
     
-#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
@@ -1470,26 +1468,17 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
         candidates.append((right_line,j-1))
         candidates.append((right_line,j))   
 
-  result = []
-  
-  global out_neighbors
-  out_neighbors.write("node " + str(node.id) + " neighbors: ")  
+  result = []  
     
   for test in candidates:
     nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
     if nexts:
       for v in nexts:
         print "v: ", v
-        out_neighbors.write("\t" + str(v.id) + " ")
         if v.id not in node.connections:
           result.append(v)
-        else:
-          out_neighbors.write(" already connected \t")
         if initial_edge and (v.id == initial_edge[0].id or v.id == initial_edge[1].id):
           result.append(node)
-        
-  
-  out_neighbors.write("\n")
           
   if initial_edge and (node.id == initial_edge[0].id or node.id == initial_edge[1].id):
     result.append(node)
@@ -1561,7 +1550,7 @@ def give_best_next_neighbor(candidates, vert1, vert2):
   assert(best_neighbor is not None)
   return best_neighbor
 
-def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,initial_edge,alternatives):
+def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,initial_edge):
    # take active edge from last triangle
   active_edge = triangles[-1].edge
   a = active_edge[0]
@@ -1599,17 +1588,10 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,initial
     triangles[-1].edge[1] = cand 
     
     print "created triangle with edge: (", triangles[-1].edge[0].id, ",", triangles[-1].edge[1].id, ") next: ", cand.id
-#     triangles.append(Marching_Triangle([a,b,cand],a if a.dir != cand.dir else b,cand,[]))
-    global out_edges
-    out_edges.write("edge (" + str(a.id) + "," + str(b.id) + ")  alternatives: ")
-    if alternatives and len(alternatives) > 0:
-      for alt in alternatives:
-        out_edges.write(str(alt.id) + " ")
-    out_edges.write("\n")    
+        
     check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=initial_edge)
   else:
-    print "bad triangle ", a.id, ",", b.id, ",", cand.id
-    handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternatives)
+    handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge)
 
 # if we don't have alternatives (other candidates for next end node):
 # take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
@@ -1617,6 +1599,7 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,initial
 # if there are alternatives, remove connections to del_node and check new triangle with one alternative    
 #def handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternatives=None,del_node=None):
 def handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternatives=None):
+  print "bad triangle ", triangles[-1].vertices[0].id, ",", triangles[-1].vertices[1].id, ",", triangles[-1].vertices[2].id
   next_cand = None
   # if we don't have alternatives for neighbor end nodes
   if alternatives is None or len(alternatives) == 0:
@@ -1639,7 +1622,7 @@ def handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternati
   # on already checked and not checked neighbor candidates
   # remove connection to previous next node
   
-  check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, initial_edge,alternatives)
+  check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, initial_edge)
     
 def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   # take active edge from last triangle
@@ -1647,8 +1630,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 5787 or b.id == 5787:
-#     return False
+  if a.id == 5787 or b.id == 5787:
+    return False
   
   print "\na: ", a.id, " connections: ", a.connections
   print "b: ", b.id, " connections: ", b.connections
@@ -1699,18 +1682,10 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   if next_cand_2:
     print next_cand_2, ratio_2, (" <- " if next_cand_2.id == next.id else " ")
     
-  alternatives = candidates_1[:]+candidates_2[:]
-  
-  global out_edges
-  out_edges.write("edge (" + str(a.id) + "," + str(b.id) + ")  alternatives:")
-  if alternatives and len(alternatives) > 0:
-    for alt in alternatives:
-      out_edges.write(str(alt.id) + " ")
-    out_edges.write("\n") 
-    
+  alternatives = candidates_1[:]+candidates_2[:] if candidates_2 is not None else candidates_1[0:]
   # remove chosen next node from alternatives
   alternatives = [v for v in alternatives if v.id <> next.id]
-  
+    
   # if at least one candidate has good quality
   if min(ratio_1,ratio_2) < 20:
     #set connections
@@ -1742,12 +1717,6 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
       for alt in alternatives:
         print "alternative: ", alt.id 
   else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
-    print "bad triangle ", a.id, ",", b.id, ",", next.id
-    print "alternatives:"
-    if alternatives:
-      for alt in alternatives:
-        print alt.id
-  
     handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternatives)
       
   return True
@@ -1757,7 +1726,7 @@ def remove_connection_to_node(node,triangle):
   vertices = triangle.vertices
   for vert in vertices:
     print "remove connection to ", node.id , " from ", vert.id
-    vert.connections = set([v for v in vert.connections if v <> node.id])
+    vert.connections = set([v for v in vert.connections if not (v == node.id)])
 
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):   
