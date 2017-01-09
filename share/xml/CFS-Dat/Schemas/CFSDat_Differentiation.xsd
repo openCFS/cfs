@@ -79,11 +79,12 @@
         <xsd:attribute name="type" use="required" type="DT_DerivativeType">
           <xsd:annotation>
             <xsd:documentation>
-              Lambvector L = density(Vorticity x U)
-              Lighthill  T = L + GRAD(0.5 U.U)
-              Gradient  GRAD(U) = {U,x ; U,y ; U,z}
-              Divergence  DIV(U) = ux,x + uy,y + uz,z
-              Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y}
+              Lambvector L = density(Vorticity x U) <br/>
+              Lighthill  T = L + GRAD(0.5 U.U) <br/>
+              Gradient  GRAD(U) = {U,x ; U,y ; U,z} <br/>
+              Divergence  DIV(U) = ux,x + uy,y + uz,z <br/>
+              Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y} <br/>
+              Set the density as option in the scheme tag.
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>

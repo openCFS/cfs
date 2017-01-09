@@ -533,12 +533,6 @@ namespace CoupledField{
 
   }
   
-//  void AcousticSplitPDE::FinalizePostProcResults(){
-//    //first call base class method
-//    SinglePDE::FinalizePostProcResults();
-//
-//  }
-
   void AcousticSplitPDE::DefinePostProcResults(){
     shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
 
@@ -566,30 +560,6 @@ namespace CoupledField{
 
 
     // === FLOW FIELD ===
-    // vorticity
-    shared_ptr<ResultInfo> vorticity( new ResultInfo);
-    vorticity->resultType = FLUIDMECH_VORTICITY;
-    vorticity->dofNames = vecComponents;
-    vorticity->unit = "1/s";
-
-    vorticity->definedOn = ResultInfo::NODE;
-    vorticity->entryType = ResultInfo::VECTOR;
-
-    vorticityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
-    DefineFieldResult( vorticityCoef_, vorticity );
-
-    //density
-    shared_ptr<ResultInfo> density( new ResultInfo);
-    density->resultType = FLUIDMECH_DENSITY;
-    density->dofNames = "";
-    density->unit = "kg/m^3";
-
-    density->definedOn = ResultInfo::NODE;
-    density->entryType = ResultInfo::SCALAR;
-
-    densityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
-    DefineFieldResult( densityCoef_, density );
-
     //velocity
     shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
     flowvelocity->resultType = FLUIDMECH_VELOCITY;
@@ -614,7 +584,7 @@ namespace CoupledField{
       vel->dofNames = vecDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::NODE;
+      vel->definedOn = ResultInfo::ELEMENT;
       // Velocity v = grad Potential
       if( isComplex_ ) {
         velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));
@@ -644,47 +614,21 @@ namespace CoupledField{
 
 
       Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-      // === ACOUSTIC Source FIELD LAMB===
-      // LAMB
-      shared_ptr<ResultInfo> lamb( new ResultInfo);
-      lamb->resultType = SPLIT_LAMB;
-      lamb->dofNames = vecDofNames;
-      lamb->unit = "kg/(ms)^2";
+      // === Corrected Velocity scalar split equation===
+      shared_ptr<ResultInfo> velCorr( new ResultInfo);
+      velCorr->resultType = SPLIT_VECTOR_VELOCITY;
+      velCorr->dofNames = vecDofNames;
+      velCorr->unit = "m/s";
 
-      lamb->definedOn = ResultInfo::NODE;
-      lamb->entryType = ResultInfo::VECTOR;
+      velCorr->definedOn = ResultInfo::NODE;
+      velCorr->entryType = ResultInfo::VECTOR;
 
       CoefXprBinOp minusFct = CoefXprBinOp(mp_, velocityCoef_, velFct,
                                              CoefXpr::OP_SUB);
-      PtrCoefFct uMinusGradScalar = CoefFunction::Generate(mp_, part, minusFct);
+      PtrCoefFct velCorrVec = CoefFunction::Generate(mp_, part, minusFct);
 
-      CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, uMinusGradScalar,
-                                                 CoefXpr::OP_CROSS);
-      PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
+      DefineFieldResult( velCorrVec, velCorr );
 
-      CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
-                                                 CoefXpr::OP_MULT);
-      PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
-      DefineFieldResult( lambVec, lamb );
-
-/*  // COPY constructor problem
-      // #1 möchte gerne Lamb vector als ergebnis
-      // #2 muss ich nach set derivative noch was amchen?
-      //divLamb
-      shared_ptr<ResultInfo> divLamb( new ResultInfo);
-      divLamb->resultType = SPLIT_DIVLAMB;
-      divLamb->dofNames = "";
-      divLamb->unit = "kg/(m^3s^2)";
-
-      divLamb->definedOn = ResultInfo::NODE;
-      divLamb->entryType = ResultInfo::SCALAR;
-
-  //    PtrCoefFct divLambVec;
-  //    divLambVec = lambVec;  // TODO ... copy constructor coeffunction
-      UInt gDim = this->domain_->GetGrid()->GetDim();
-      UInt dDim = lamb->dofNames.GetSize();
-      lambVec->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE,gDim,dDim);
-      DefineFieldResult( lambVec, divLamb );*/
 
     }else{
       // === incompressible flow_VELOCITY pertubation===
@@ -693,7 +637,7 @@ namespace CoupledField{
       vel->dofNames = vecDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::NODE;
+      vel->definedOn = ResultInfo::ELEMENT;
       // Velocity v = curl Potential
       // TODO formulation_ onlz if this ... (FE function space)?
       if( isComplex_ ) {
@@ -704,26 +648,6 @@ namespace CoupledField{
       velFct = velFctPot;
       stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
-
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-      // === ACOUSTIC Source FIELD LAMB===
-      // LAMB
-      shared_ptr<ResultInfo> lamb( new ResultInfo);
-      lamb->resultType = SPLIT_LAMB;
-      lamb->dofNames = vecDofNames;
-      lamb->unit = "kg/(ms)^2";
-
-      lamb->definedOn = ResultInfo::NODE;
-      lamb->entryType = ResultInfo::VECTOR;
-
-      CoefXprBinOp crossFct = CoefXprBinOp(mp_, vorticityCoef_, velFct,
-                                                 CoefXpr::OP_CROSS);
-      PtrCoefFct vorticityCrossU = CoefFunction::Generate(mp_, part, crossFct);
-
-      CoefXprVecScalOp multiFct = CoefXprVecScalOp(mp_, vorticityCrossU, densityCoef_,
-                                                 CoefXpr::OP_MULT);
-      PtrCoefFct lambVec = CoefFunction::Generate(mp_, part, crossFct);
-      DefineFieldResult( lambVec, lamb );
 
     }
 
@@ -743,30 +667,4 @@ namespace CoupledField{
   }
 
 
-//  void AcousticSplitPDE::FinilizeBeforTimeStep() {
-//    RegionIdType actRegion;
-//
-//    // Define integrators for "standard" materials
-//    std::map<RegionIdType, BaseMaterial*>::iterator it;
-//    shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
-//
-//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-//      // Set current region and material
-//      actRegion = it->first;
-//
-//      // Get current region name
-//      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-//
-//      // create new entity list
-//      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-//      actSDList->SetRegion( actRegion );
-//
-//      // --- Set the FE ansatz for the current region ---
-//      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-//
-//
-//
-//    }
-//
-// }
 }

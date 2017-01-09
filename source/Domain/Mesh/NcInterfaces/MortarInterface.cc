@@ -394,7 +394,7 @@ void MortarInterface::ResetInterface(){
 
 
 void MortarInterface::UpdateInterface() {
-  
+
   if ( !isMoving_ && (elemList_->GetSize() > 0 || isReset_) ) return;
   
   isReset_ = false;
@@ -529,7 +529,7 @@ void MortarInterface::UpdateInterface() {
   }
 
   UInt numElems = elemList_->GetSize();
-  
+
   if( numElems > 0 ) {
     UpdateIntegrators();
     
@@ -572,7 +572,8 @@ void MortarInterface::UpdateInterface() {
   else {
     EXCEPTION("No intersection elements were computed for non-conforming"
         << " interface '" << name_
-        << "'. Please check your mesh file.");
+        << "'. Please check your mesh file." <<
+		" Different precision of interface neighbors?");
   }
 
  // myTimer->Stop();

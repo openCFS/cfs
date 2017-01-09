@@ -67,6 +67,8 @@ protected:
 
 private:
 
+  std::string CheckFilterResults();
+
   // Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
