@@ -20,6 +20,10 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "DataInOut/ResultHandler.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 namespace CoupledField{
 
@@ -140,31 +144,40 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! stores the nodes to take into account for evaluating the sum of sources
     StdVector< std::vector<bool> > usedRegionNodesForSum_;
     
+    //! Read solution from sourceFile according to the given stepnumber and stepvalue
+    void ReadSolution(UInt step, Double stepValue, Vector<DATA_TYPE> & sol);
+    
     //! Read solution from sourceFile according to the given stepnumber
     void ReadSolution(UInt step,Vector<DATA_TYPE> & sol);
     
     //! Updates the solution vector
     bool UpdateSolution();
-
-    //! Perform a simple equation mapping for nodal grids
+    
+#ifdef USE_OPENMP
+    //! thread locking for UpdateSolution function
+    omp_lock_t updateSolutionLock_;
+#endif
+    
     //! Initialize the solution vector solVec_;
     void InitSolVec();
 
     //! Extract the solution for a source element in order to apply the interpolation operator
     void GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum);
 
-    //! Returns the step to be read in along with temporal interpolation factors
-    //! If those are necessary
-    UInt GetStepNum(bool &interpolateT,Double & iFactor1, Double & iFactor2);
-
     //! Stores the current solution vector
     Vector<DATA_TYPE> solVec_;
 
-    //! stores the next solution vector for temporal interpolation
-    Vector<DATA_TYPE> solVecFuture_;
+    //! stores the step number of a solution vector for temporal interpolation
+    UInt stepNumberInterpolationA_;
+    
+    //! stores the a solution vector for temporal interpolation
+    Vector<DATA_TYPE> solVecInterpolationA_;
 
-    //! stores the solution vector at previuous timesteps
-    Vector<DATA_TYPE> solVecOld_;
+    //! stores the step number of a second solution vector for temporal interpolation
+    UInt stepNumberInterpolationB_;
+    
+    //! stores the a second solution vector for temporal interpolation
+    Vector<DATA_TYPE> solVecInterpolationB_;
 
     //! Total number of nodes
     UInt numNodes_;
@@ -178,9 +191,9 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Handle for expression determines current time/freq value 
     MathParser::HandleType mHandleStep_;
     
-    //! stores the stepnumber of the last read solution process
-    UInt lastStepRead_;
-
+    //! stores the stepnumber of the last update solution process
+    UInt lastStepUpdate_;
+    
     //! flag indicating if the timevalue map of input should be ignored
     bool snapToCFSStep_;
     

@@ -23,6 +23,7 @@
 #include <boost/tr1/type_traits.hpp>
 #include <set>
 #include <string>
+#include <limits>
 
 namespace CoupledField{
 
@@ -35,19 +36,33 @@ template<class DATA_TYPE>
                                                           PtrParamNode configNode,
                                                           shared_ptr<RegionList> regions)
                                    :CoefFunctionGrid(ptDomain, configNode, regions){
-    lastStepRead_ = 99999999;
+    lastStepUpdate_ = std::numeric_limits<uint>::max();
+    stepNumberInterpolationA_ = std::numeric_limits<uint>::max();
+    stepNumberInterpolationB_ = std::numeric_limits<uint>::max();
     initializedSpaceFactors_ = false;
     initializedRegionNodes_ = false;
     initializedUsedRegionNodesForSum_ = false;
     initializedRegionNodeCoordinates_ = false;
+#ifdef USE_OPENMP
+    omp_init_lock(&updateSolutionLock_);
+#endif
     
     //Set sequence Step according to XML definition
     this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
+    
+    std::string dependType = configNode->Get("dependtype")->As<std::string>();
+    if (dependType == "CONST" || dependType == "SPACE") {
+      this->dependType_ = CoefFunction::SPACE;
+    } else {
+      this->dependType_ = CoefFunction::GENERAL;
+    }
 
     // get some boolean setting values
     this->snapToCFSStep_ = configNode->Get("snapToCFSTimeStep")->As<bool>();
     this->verboseSum_ = configNode->Get("verboseSum")->As<bool>();
     this->verboseTimeFreqFactor_ = configNode->Get("verboseTimeFreqFactor")->As<bool>();
+    
+    
 
     // get the solution quantity
     solName_ = configNode->Get("quantity")->As<std::string>();
@@ -168,6 +183,7 @@ template<class DATA_TYPE>
     if (hasSpaceFactor_) {
       std::string factorString = OneFactorStringFromMultipleFactors(spaceFactors);
       spaceFactorFunction_ = CreateFactorFunction(factorString);
+      this->dependType_ = GetMaxCoefDependType(this->dependType_, spaceFactorFunction_->GetDependency());
     } else if (hasConstantFactor_) {
       std::string factorString = OneFactorStringFromMultipleFactors(constantFactors);
       shared_ptr<CoefFunction> factorFnc = CreateFactorFunction(factorString);
@@ -180,11 +196,13 @@ template<class DATA_TYPE>
     if (hasTimeFreqFactor_) {
       std::string factorString = OneFactorStringFromMultipleFactors(timeFreqFactors);
       timeFreqFactorFunction_ = CreateFactorFunction(factorString);
+      this->dependType_ = GetMaxCoefDependType(this->dependType_, timeFreqFactorFunction_->GetDependency());
     }
     hasGeneralFactor_ = generalFactors.GetSize() > 0;
     if (hasGeneralFactor_) {
       std::string factorString = OneFactorStringFromMultipleFactors(generalFactors);
       generalFactorFunction_ = CreateFactorFunction(factorString);
+      this->dependType_ = GetMaxCoefDependType(this->dependType_, generalFactorFunction_->GetDependency());
     }
   }
   
@@ -379,7 +397,7 @@ template<class DATA_TYPE>
     if (dimDof < 1) {
       return;
     }
-    const UInt size = res.GetSize();
+    const UInt size = nodeNums.GetSize();
     const bool useSpaceFactor = useSpaceFactorA || useSpaceFactorB;
     const bool useOnlyConstFactor = useConstFactor && !useSpaceFactor;
 #pragma omp parallel
@@ -490,6 +508,15 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
+  void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step, Double stepValue, Vector<DATA_TYPE> & sol){
+    Double actValue = this->mp_->Eval(mHandleStep_);
+    std::string varName = this->isComplex_ ? "f" : "t";
+    this->mp_->SetValue(MathParser::GLOB_HANDLER, varName, stepValue);
+    this->ReadSolution(step, sol);
+    this->mp_->SetValue(MathParser::GLOB_HANDLER, varName, actValue);
+  }
+  
+  template<class DATA_TYPE>
   void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
     // evaulate space factors and time/frequency factors
     this->InitSpaceFactor();
@@ -581,129 +608,99 @@ template<class DATA_TYPE>
 
   template<class DATA_TYPE>
   bool CoefFunctionGridNodal<DATA_TYPE>::UpdateSolution(){
-    bool updated=false;
-    if(this->GetDependency() != CoefFunction::CONSTANT){
-      UInt stepnumber=0;
-      bool needTinterp=false;
-      Double factor1,factor2;
-      if(this->snapToCFSStep_){
-        stepnumber = GetStepNum(needTinterp,factor1,factor2);
-        stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
-        if(lastStepRead_ != stepnumber){
-          this->ReadSolution(stepnumber,this->solVec_);
-          lastStepRead_ = stepnumber;
-          updated = true;
-        }
-      }else{
-        stepnumber = GetStepNum(needTinterp,factor1,factor2);
-        if(needTinterp){
-          if(this->solVecFuture_.GetSize() == 0){
-            this->solVecFuture_.Resize(numEqns_);
-            this->solVecFuture_.Init(0.0);
-          }
-          if(lastStepRead_ != stepnumber){
-            this->solVecOld_ = this->solVecFuture_;
-            this->ReadSolution(stepnumber,this->solVecFuture_);
-            lastStepRead_ = stepnumber;
-            updated = true;
-          }
-          //should not happen anyway
-          if(this->solVecOld_.GetSize() == 0){
-            EXCEPTION("Time interpolation of sources failed: solVecOld_ is empty");
-            //this->solVecOld_.Resize(this->solVecFuture_.GetSize());
-            //this->solVecOld_.Init(0.0);
-          }
-
-          WARN("Interpolating between src-file timestep #" << stepnumber -1 << " and " << stepnumber);
-          const UInt size = this->solVecOld_.GetSize();
-#pragma omp parallel for
-          for(UInt i=0;i<size;i++){
-            this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
-          }
-        }else{
-          LOG_DBG(coeffunctiongridnodal) << "++ Reading source step #" << stepnumber << " ...";
-          this->ReadSolution(stepnumber,this->solVec_);
-          lastStepRead_ = stepnumber;
-          updated = true;
-          LOG_DBG(coeffunctiongridnodal) << "Done." << std::endl;
-        }
+#ifdef USE_OPENMP
+    omp_set_lock(&updateSolutionLock_);
+#endif
+    const UInt stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
+    if (stepnumber == this->lastStepUpdate_) {
+#ifdef USE_OPENMP
+      omp_unset_lock(&updateSolutionLock_);
+#endif
+      return false;
+    }
+    if (this->dependType_ == CoefFunction::SPACE) {
+      if (this->lastStepUpdate_ != std::numeric_limits<uint>::max()) {
+        this->lastStepUpdate_ = stepnumber;
+#ifdef USE_OPENMP
+        omp_unset_lock(&updateSolutionLock_);
+#endif
+        return false;
       }
     }
-    return updated;
-  }
-
-  template<class DATA_TYPE>
-  UInt CoefFunctionGridNodal<DATA_TYPE>::GetStepNum(bool & interpolateT,Double & iFactor1, Double & iFactor2){
-    //first we cover the Const Case
-    if(dependType_ == CoefFunction::CONSTANT){
-      interpolateT = false;
-      iFactor1 = 0.0;
-      iFactor2 = 0.0;
-      //we return just the first step from the value map
-      //as an future expansion the user could supply
-      //the desired time/freqeuncy step...
-      return stepValueMap_.begin()->first;
-    }
-
-    //Ok, this is the case for which it is possible that we need
-    //temporal interpolation
-    curTStep_ = this->mp_->Eval(mHandleStep_);
-    UInt step = 0;
-  
-    //std::cout << "timestep: " << curTStep_ << std::endl;
-    //ok find makes no sense here, we need to iterate over it and
-    // apply some tolerance..
-    std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
-    for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - curTStep_) < 1e-10){
-        break;
+    if (this->snapToCFSStep_) {
+      this->ReadSolution(stepnumber,this->solVec_);
+    } else {
+      Double stepValue;
+      if (this->isComplex_) {
+        stepValue = this->domain_->GetBasePDE()->GetSolveStep()->GetActFreq();
+      } else {
+        stepValue = this->domain_->GetBasePDE()->GetSolveStep()->GetActTime();
       }
-    }
-    if(stepIter==stepValueMap_.end()){
-      //ok there we have to trigger temporal interpolation
-      //for now we just throw an exception
-      stepIter = stepValueMap_.begin();
-      Double oldTime = stepIter->second;
-      UInt pos = 1;
-      if(curTStep_ > oldTime){
-        for(;stepIter != stepValueMap_.end(); ++stepIter,++pos){
-          if(stepIter->second > curTStep_){
-            break;
-          }else{
-            oldTime = stepIter->second;
-          }
-        }
-      } else { // interpolated time steps befor first real time step
-        // determine t_{-1} time step
-        if (stepValueMap_.size() == 1)
-        {
-          oldTime = 0.0;
-        } else {
-          oldTime *= 2; 
+      std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
+      UInt preStepNumber = stepIter->first;
+      Double preStepValue = stepIter->second;
+      UInt postStepNumber = stepIter->first;
+      Double postStepValue = stepIter->second;
+      bool notEnd = true;
+      if (stepValue > postStepValue) {
+        while (stepIter->second < stepValue && notEnd) {
+          preStepNumber = postStepNumber;
+          preStepValue = postStepValue;
           ++stepIter;
-          oldTime -= stepIter->second; 
-          --stepIter;
+          if (stepIter != stepValueMap_.end()) {
+            postStepNumber = stepIter->first;
+            postStepValue = stepIter->second;
+          } else {
+            notEnd = false;
+          }
+        }
+        if (stepValue > postStepValue) {
+          preStepNumber = postStepNumber;
+          preStepValue = postStepValue;
         }
       }
-      interpolateT = true;
-      Double dt = stepIter->second - oldTime;
-      iFactor1 = (stepIter->second - curTStep_)/dt;
-      iFactor2 = (curTStep_  - oldTime)/dt;
-  
-      if(stepIter==stepValueMap_.end()){
-        step = curStep_;
-        iFactor1 = 1;
-        iFactor2 = 0;
-      }else{
-        step = stepIter->first;
+      if (preStepNumber == postStepNumber) {
+        this->ReadSolution(preStepNumber,this->solVec_);
+      } else {
+        const Double factorPre = (postStepValue - stepValue) / (postStepValue - preStepValue);
+        const Double factorPost = (stepValue - preStepValue) / (postStepValue - preStepValue);
+        
+        bool Apre = preStepNumber != this->stepNumberInterpolationB_;
+        const Double facA = Apre ? factorPre : factorPost;
+        const Double facB = Apre ? factorPost : factorPre;
+        const UInt newA = Apre ? preStepNumber : postStepNumber;
+        const Double newAValue = Apre ? preStepValue : postStepValue;
+        const UInt newB = Apre ? postStepNumber : preStepNumber;
+        const Double newBValue = Apre ? postStepValue : preStepValue;
+        
+        if (this->stepNumberInterpolationA_ != newA) {
+          if (this->stepNumberInterpolationA_ == std::numeric_limits<uint>::max()) {
+            this->solVecInterpolationA_.Resize(this->numEqns_);
+            this->solVecInterpolationA_.Init(0.0);
+          }
+          this->ReadSolution(newA,newAValue,this->solVecInterpolationA_);
+          this->stepNumberInterpolationA_ = newA;
+        }
+        if (this->stepNumberInterpolationB_ != newB) {
+          if (this->stepNumberInterpolationB_ == std::numeric_limits<uint>::max()) {
+            this->solVecInterpolationB_.Resize(this->numEqns_);
+            this->solVecInterpolationB_.Init(0.0);
+          }
+          this->ReadSolution(newB,newBValue,this->solVecInterpolationB_);
+          this->stepNumberInterpolationB_ = newB;
+        }
+        
+#pragma omp parallel for
+        for(UInt i=0;i<numEqns_;i++){
+          this->solVec_[i] = facA * this->solVecInterpolationA_[i] + facB *  this->solVecInterpolationB_[i];
+        }
       }
-    }else{
-      step = stepIter->first;
-      interpolateT = false;
-      iFactor1 = 0.0;
-      iFactor2 = 0.0;
     }
-    return step;
+    this->lastStepUpdate_ = stepnumber;
+#ifdef USE_OPENMP
+    omp_unset_lock(&updateSolutionLock_);
+#endif
+    return true;
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

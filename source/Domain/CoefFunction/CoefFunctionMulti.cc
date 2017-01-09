@@ -100,8 +100,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   }
 
   // adjust dependency of this coeffunction
-  dependType_ = std::max(this->GetDependency(), 
-                         coef->GetDependency());
+  dependType_ = GetMaxCoefDependType(this->GetDependency(), coef->GetDependency());
   
   regionCoefs_[region] = coef;
 }

@@ -131,7 +131,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
     std::cout << "Done" << std::endl;
     std::cout.flush();
   }else{
-    if(this->dependType_ != CoefFunction::CONSTANT){
+    if(this->dependType_ != CoefFunction::SPACE){
       if(this->UpdateSolution())
         this->interpolFunction_->ApplyExternalData();
     }
@@ -417,12 +417,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   //obtain grid pointer
   this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
-  //check what kind of dependency is there...
-  //hardcode to general even we have static data. perhaps we cover this case...
-  this->dependType_ = CoefFunction::GENERAL;
-
-  //TODO: Cover the case of static external data. i.e. do not bind to time/freq parameter
-
   //determine source region list
   StdVector<PtrParamNode> regs = configNode->Get("regionList")->GetList("region");
   std::stringstream ss;
@@ -436,9 +430,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
     }
   }
   this->allSrcRegionNames_ = ss.str();
-
-  this->curStep_ = 1;
-  this->curTStep_ = 0;
 }
 
 template<typename DATA_TYPE>
@@ -782,7 +773,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
     values[i] = opMat * eSol;
   }
   //release memory in case of constant data
-  if(this->dependType_ == CoefFunction::CONSTANT){
+  if(this->dependType_ == CoefFunction::SPACE){
     localCoords_.Clear();
     foundElements_.Clear();
   }

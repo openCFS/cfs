@@ -33,23 +33,17 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
   this->conservativeReady_ = false;
   this->srcIsSurface_ = false;
-  this->dependType_ = CoefFunction::GENERAL;
-
+  
   this->extDataInfo_ = curInfo->Get("defaultGrid",ParamNode::APPEND);
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue("noInterpolation");
 
   this->srcGrid_ = this->domain_->GetGrid();
 
   //lets determine the destination region and set it to our source regions
-  //std::string destreg = configNode->GetParent()->GetParent()->Get("name")->As<std::string>();
-  //obtain entitylist from grid and add it
-  //shared_ptr<EntityList> curList = this->srcGrid_->GetEntityList(EntityList::ELEM_LIST,destreg);
   this->DetermineResult(this->inputId_,this->aSeqStep_);
   this->dimDof_ = this->resultInfo_->dofNames.GetSize();
   // Determine which steps are available
   this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
-  this->curStep_ = this->stepValueMap_.begin()->first;
-  this->curTStep_ = this->stepValueMap_.begin()->second;
 
   //====================================================
   // Create interpolation in time and space
@@ -70,8 +64,6 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
   this->SetRegions(regions);
   this->InitSolVec();
   this->WriteGlobalFactorsToXML(configNode);
-  //read in the first solution
-  //this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
 }
 
 // ========================

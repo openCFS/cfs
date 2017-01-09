@@ -104,6 +104,9 @@ public:
     VECTOR_DIVERGENCE  /*!< Return divergence of vector valued CoefFuncton when called with getScalar*/
   } CoefDerivativeType;
   static Enum<CoefDerivativeType> CoefDerivativeType_;
+  
+  //! Get the maximum CoefFunction dependency type
+  static CoefDependType GetMaxCoefDependType(CoefDependType typeA, CoefDependType typeB);
 
   // ========================
   //  FACTORY METHODS
