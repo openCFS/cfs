@@ -131,10 +131,8 @@ CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode, sh
   srcGrid_ = NULL;
   domain_ = ptDomain;
   solType_ = NO_SOLUTION_TYPE;
-  curStep_ = 0;
   aSeqStep_ = 0;
   curInterpType_ = NO_INTERPOLATION;
-  curTStep_ = 0;
   myConfigNode_ = configNode;
   verbose_ = false;
   //obtain the sequence step for result

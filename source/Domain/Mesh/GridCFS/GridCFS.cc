@@ -2023,20 +2023,21 @@ namespace CoupledField {
 
   void GridCFS::GetNodesByRegion( StdVector<UInt> & nodeList,
                                   const RegionIdType regionId ) {
-
+    std::vector<bool> usedNode(numNodes_ + 1, false);
+    nodeList.Clear();
+    
     Integer index = 0;
-
+  
     // look in volume regions
     index = volRegionIds_.Find(regionId);
     if ( index != -1 ) {
-      nodeList.Reserve(numVolElemNodes_[index]*4);
       UInt numElems = volElems_[index].GetSize();
       for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
         const Elem * el = volElems_[index][iElem];
         const StdVector<UInt> & connect = el->connect;
         UInt numNodes = connect.GetSize();
         for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
-          nodeList.Push_back(connect[iNode]);
+          usedNode[connect[iNode]] = true;
         }
       }
       
@@ -2044,14 +2045,13 @@ namespace CoupledField {
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
       if ( index != -1 ) {
-        nodeList.Reserve(numSurfElemNodes_[index]*4);
         UInt numElems = surfElems_[index].GetSize();
         for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
           const Elem * el = surfElems_[index][iElem];
           const StdVector<UInt> & connect = el->connect;
           UInt numNodes = connect.GetSize();
           for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
-            nodeList.Push_back(connect[iNode]);
+            usedNode[connect[iNode]] = true;
           }
         }
       } else {
@@ -2059,12 +2059,21 @@ namespace CoupledField {
                    << "' was not found in the grid!" ); 
       }
     }
-    // sort vector, remove duplicates and return it 
-    std::sort(nodeList.Begin(), nodeList.End());
-    StdVector<UInt>::iterator it;
-    it = std::unique(nodeList.Begin(), nodeList.End());
     
-    nodeList.Resize( std::distance( nodeList.Begin(), it ));
+    uint count = 0;
+#pragma omp parallel for reduction(+:count)
+    for (uint i = 1; i <= numNodes_;++i) {
+      if (usedNode[i]) {
+        count++;
+      }
+    }
+    nodeList.Reserve(count);
+    for (uint i = 1; i <= numNodes_;++i) {
+      if (usedNode[i]) {
+        nodeList.Push_back(i);
+      }
+    }
+    
   }
 
 

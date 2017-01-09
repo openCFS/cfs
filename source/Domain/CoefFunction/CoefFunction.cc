@@ -8,6 +8,28 @@
 
 namespace CoupledField{
 
+//! Get the maximum CoefFunction dependency type
+CoefFunction::CoefDependType CoefFunction::GetMaxCoefDependType(CoefFunction::CoefDependType typeA, CoefFunction::CoefDependType typeB) {
+  if (typeA == CoefFunction::SOLUTION || typeB == CoefFunction::SOLUTION) {
+    return CoefFunction::SOLUTION;
+  }
+  if (typeA == CoefFunction::GENERAL || typeB == CoefFunction::GENERAL) {
+    return CoefFunction::GENERAL;
+  }
+  if (typeA == CoefFunction::SPACE) {
+    if (typeB == CoefFunction::TIMEFREQ) {
+      return CoefFunction::GENERAL;
+    }
+    return CoefFunction::SPACE;
+  } else if (typeA == CoefFunction::TIMEFREQ) {
+    if (typeB == CoefFunction::SPACE) {
+      return CoefFunction::GENERAL;
+    }
+    return CoefFunction::TIMEFREQ;
+  }
+  return typeB;
+}  
+  
 //! Generate scalar-valued coefficient function
 PtrCoefFct 
 CoefFunction::Generate( MathParser * mp,
