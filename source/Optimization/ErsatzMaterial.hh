@@ -306,6 +306,10 @@ protected:
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
 
+  /** calculates the relative band gap based on slack variables formulation with ev >= alpha-slack and ev <= alpha+slack
+   * with diff/lower = 2*slack/(alpha-slack) */
+  double CalcRelSlackBandGap(Function* f, bool derivative);
+
   /** Calculates alpha/slack quotient in order to e.g. distribute load on all supports equally*/
   double CalcAlphaSlackQuotient(Function* f, bool derivative);
 

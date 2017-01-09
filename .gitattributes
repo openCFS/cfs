@@ -1303,9 +1303,10 @@ share/python/nas-tool-voidmesh.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
-share/python/performance_test.py -text
+share/python/performance.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
+share/python/postproc_bloch.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/process_density.py -text
 share/python/process_image.py -text
@@ -1318,7 +1319,6 @@ share/python/streamviz/streamviz.py -text
 share/python/test.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
-share/python/xmlreplace.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
@@ -1348,6 +1348,7 @@ share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
+share/scripts/qsub_template.sh -text
 share/scripts/toolchain_cross_linux_macosx_x86_64.cmake -text
 share/scripts/toolchain_cross_linux_mingw_w64_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake -text
