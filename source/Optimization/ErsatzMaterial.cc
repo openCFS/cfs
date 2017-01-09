@@ -455,7 +455,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(g->GetExcitation()->DoBloch() && g->DoFullBloch() && g->GetBound() == Condition::UPPER_BOUND && n->GetBound() == Condition::LOWER_BOUND)
     {
       assert(n->GetExcitation()->DoBloch() && n->DoFullBloch());
-      assert(ev.GetSize() == log.bloch_info.GetSize() + 1); // first value is bloch
       //assert(n->GetEigenValueID() == g->GetEigenValueID() + 1); // who knows what happens else?!
       const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
       double lower, upper; // see ErsatzMaterial::CalcEigenFrequency()
@@ -1708,6 +1707,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::ALPHA_SLACK_QUOTIENT:
         result = CalcAlphaSlackQuotient(f, derivative);
         break;
+      case Function::REL_SLACK_BANDGAP:
+        result = CalcRelSlackBandGap(f, derivative);
+        break;
+
       case Function::EXPRESSION:
         result = CalcExpression(g, derivative);
         break;
@@ -2635,6 +2638,41 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       CalcU1KU2(tf, sol_lower->elem[App::MECH], App::MECH, sol_lower->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, std::pow(2.0 * M_PI * lower_freq, 2));
     }
     return upper_freq - lower_freq;
+  }
+
+
+  double ErsatzMaterial::CalcRelSlackBandGap(Function* f, bool derivative)
+  {
+    assert(f->ctxt->DoBloch());
+    assert(f->GetType() == Function::REL_SLACK_BANDGAP);
+    if(!design->HasAlphaVariable() || !design->HasSlackVariable())
+      throw Exception("Function " + f->ToString() + " is based on the slack variables 'slack' and 'alpha' which were not contained in the design.");
+
+    double a = design->GetAlphaVariable();
+    double s = design->GetSlackVariable();
+
+    if(IsNoise(a) && IsNoise(s))
+      optInfoNode->SetWarning("'alpha' and 'slack' are both close to zero. Best adjust your bounds to avoid division by zero.");
+
+    assert(std::abs(a-s) > 1e-8);
+
+    double result = 0.0;
+
+    if(!derivative)
+      result = 2*s/(a-s);
+    else
+    {
+      AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
+      assert(ad != NULL);
+
+      double da = -2*s / ((a-s)*(a-s));
+      double ds = 2*s / ((a-s)*(a-s)) + 2/(a-s);
+
+      ad->GetAlphaDesign()->AddGradient(f, da);
+      ad->GetSlackDesign()->AddGradient(f, ds);
+    }
+
+    return result;
   }
 
   double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)

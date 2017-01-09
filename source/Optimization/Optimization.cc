@@ -393,6 +393,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::ALPHA_SLACK_QUOTIENT, "alphaSlackQuotient");
   Function::type.Add(Function::BANDGAP, "bandgap");
+  Function::type.Add(Function::REL_SLACK_BANDGAP, "relSlackBandGap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
@@ -955,7 +956,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   {
     design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART,  objectives.data[0]); // use the first such that we know about the robust index
     if(progOpts->DoDetailedInfo())
-      design->WriteGradientFile(); // if constraints are not calculated yet whill be overwitten later with the good data for this iterations
+      design->WriteGradientFile(); // if constraints are not calculated yet will be overwritten later with the good data for this iterations
   }
 }
 

@@ -260,7 +260,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation
-  ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
+  ip_near = ip.griddata(c, v, out, 'nearest') if grad != 'nearest' else None
   
   return ip_data, ip_near, out, nx, ny 
 
@@ -420,7 +420,7 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
   return im 
 # visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
 def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, do_save):
-  print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently'
+  print('image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently')
   s1 /= 2.
   s2 /= 2.
   centers, min, max, elem = coords
@@ -550,7 +550,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
        for j in range(offy, int(height+eps) - offy):
           pix[x_off+i,y_off+j] = (255,255,255)
   if warn:
-    print 'Warning: minimal thickness scaled to 1 Pixel.'
+    print('Warning: minimal thickness scaled to 1 Pixel.')
   return im  
 
 
@@ -864,7 +864,7 @@ def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
   
   im, draw, dim, dx, dy = create_image(min, max, nx)   
    
-  print "max=" + str(max_val) + " min=" + str(min_val)
+  print("max=" + str(max_val) + " min=" + str(min_val))
    
   if scale == -1.0:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]

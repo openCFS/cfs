@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import libxml2
 import sys
 import os.path
 from cfs_utils import *
@@ -19,23 +18,26 @@ class Timer:
     self.wall = wall
     self.cpu = cpu
     self.sub = sub
+    self.speed = cpu / wall if wall >= 3 else None
   
 # helper to get extract a timer from an xml node
 # extracts the data from a node. If no id attribute is given tries to be smart
 def set_timer(node):  
-  w = float(node.prop('wall'))
-  c = float(node.prop('cpu'))
+  w = float(node.attrib['wall'])
+  c = float(node.attrib['cpu'])
   # the label is more complicated. Older info.xml might not have label yet
-  l = node.prop('label')
-  if l == None: # do our best
-    # is this the root node?
-    if node.parent.parent.name == "cfsInfo":
-      l = 'total'
-    else:
-      l = node.parent.name if node.parent.name <> "summary" else node.parent.parent.name
+  l = node.tag
+  if l == 'timer':
+    l = node.attrib['label'] if 'label' in node.attrib else None
+    if l == None: # do our best
+      # is this the root node?
+      if node.getparent().getparent().tag == "cfsInfo":
+        l = 'total'
+      else:
+        l = node.getparent().tag if node.getparent().tag != "summary" else node.getparent().getparent().tag
   # the optional attribute sub="true" indicates that this is sub-element 
   # and shall to be considered for missing_time
-  s = node.prop('sub')
+  s = node.attrib['sub'] if 'sub' in node.attrib else None
   return Timer(l, w, c, s == 'true')      
           
 ## extracts all timers from info.xml and give back as array of Timer objects
@@ -43,7 +45,7 @@ def set_timer(node):
 #           minus the sum of the rest
 def read_info(xml, gap = False):
   res = []
-  all = xml.xpathEval('//timer')
+  all = xml.xpath("//*[contains(local-name(),'timer')]") # sum stuff is renamed like snopt_timer
   for node in all:
     res.append(set_timer(node))  
 
@@ -61,7 +63,7 @@ def read_info(xml, gap = False):
 ## execute cfs and return the timer with gap
 def run_and_read(binary, mesh, xml, problem):
   execute(binary + " -m " + mesh + " -p " + xml + " " + problem, output=True) 
-  info = libxml2.parseFile(problem + '.info.xml').xpathNewContext()
+  info = open_xml(problem + '.info.xml')
   timer = read_info(info, gap=True)
   return timer
 
@@ -82,15 +84,16 @@ def minimal_timer(timers):
 ## create gnuplot output from timer
 # timer list of Timer objects
 def gnuplot(timer, header=True):
-  if header:  
-    print "#",
+  if header:
+    line = '#'  
     for i in range(len(timer)):
-      print '(' + str(i*2+1) + '):' + timer[i].label + ' \t(' + str(i*2+2) + ')<-cpu \t',
-    print ""
+      line += '(' + str(i*2+1) + '):' + timer[i].label + ' \t(' + str(i*2+2) + ')<-cpu \t'
+    print(line)
 
+  line = ''
   for t in timer:
-    print str(t.wall) + ' \t' + str(t.cpu) + ' \t',
-  print ""      
+    line += str(t.wall) + ' \t' + str(t.cpu) + ' \t'
+  print(line)      
   
 ## print standard analysis
 # @timer a list of Timer or a list of a list of Timer, then the minimum is printed first 
@@ -100,12 +103,12 @@ def print_timer(timers, brief=False):
      
   max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case
   if not brief:  
-    print 'TIMER'.ljust(max_label) + ': ____ WALL____ ~ ______ (CPU) _____'
+    print('TIMER (sec)'.ljust(max_label) + ': _____WALL____ ~ ______CPU______' + (' : PAR' if not meta else ''))
   else:
-    print 'TIMER'.ljust(max_label) + ': WALL ~ _ (CPU) _'    
+    print('TIMER (sec)'.ljust(max_label) + ': WALL ~    CPU')    
  
   total_wall = max(timer[0].wall, 1)
-  total_cpu  = max(timer[0].cpu, 1e-3) 
+  total_cpu  = max(timer[0].cpu, 1e-3)
  
   for e in range(len(timer)):
      t = timer[e] 
@@ -113,42 +116,43 @@ def print_timer(timers, brief=False):
      line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) 
      if not brief:
        line += ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + ']'
-     line += ' ~ ({:7.3}'.format(t.cpu) + ')' 
+     line += ' ~ {:6.0f}'.format(t.cpu) if t.cpu >= 10000 else ' ~ {:6.1f}'.format(t.cpu)   
      if not brief: 
        line += '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
      
+     if not meta and timer[e].speed and timer[e].speed >= 1:
+       line += ' : {:.1f}'.format(timer[e].speed)
      
      for m in range(meta):
        line += (' \t | ' if m == 0 else ' \t : ') + str(int(timers[m][e].wall)) + '\t (' + str(timers[m][e].cpu) + ')'
-     print line
+     print(line)
         
-parser = argparse.ArgumentParser(description='with --analyse timer information from an info.xml is extracted.')
+parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
 parser.add_argument("input", help="the xml file to run or the info.xml file to analyse (each with extension)")
-parser.add_argument('--analyse', help="extract the timers from the 'input' info.xml file", action='store_true')
-parser.add_argument('--brief', help="brief analysis outout to make it within the 1K cdash buffer", action='store_true')
-parser.add_argument('-m', "--mesh", help="give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
-parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
+parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')
+parser.add_argument('-m', "--mesh", help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
+parser.add_argument('--exec', help="for execution what to call for cfs", default='cfs_rel')
 
-parser.add_argument('--repeat', help="how often shall one test be repeated - default is 1", type=int, default=1)
+parser.add_argument('--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
 args = parser.parse_args()
 
 
 if not os.path.exists(args.input):
-  print "cannot open file '"  + args.input + "'"
+  print("error: cannot open file '"  + args.input + "'")
   sys.exit(2)
 
-if args.analyse:
+if args.input.endswith('.info.xml'):
   if args.mesh or args.repeat != 1:
-    print '--analyse has no other parameters than <input.info.xml'
+    print("error: when analysing an info.xml don't give mesh or repeat")
     sys.exit(1)  
   
-  info = libxml2.parseFile(args.input).xpathNewContext()
-  timer = read_info(info, gap=True)
+  xml = open_xml(args.input)
+  timer = read_info(xml, gap=True)
   print_timer(timer, args.brief)
 
 else: # the whole run stuff
   if not args.mesh:
-    print 'give --mesh or --mest_type and --res when not doing --analyse'
+    print('error: give --mesh or --mesh_type and --res when not doing .info.xml analysis')
     sys.exit(1)            
   assert(args.input.endswith('.xml'))
   problem = args.input[:-4]

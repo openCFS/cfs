@@ -2,8 +2,6 @@
 
 # This script generates initial density distributions as pseudo density.xml files
 # This is used when doing inverse homogenization and bloch mode optimization.
-
-import libxml2
 from numpy import *
 import math
 from optimization_tools import *
@@ -35,7 +33,7 @@ class Coordinate:
     return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)  
  
   def printline(self):
-    print str(self.x) + ", " + str(self.y) + ", " + str(self.z)
+    print(str(self.x) + ", " + str(self.y) + ", " + str(self.z))
     
   def toString(self):
     return str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
@@ -130,7 +128,7 @@ def find_radius(dim, div, vol, order, invert, lower_val):
     #print "     act_vol=" + str(act_vol) + " err=" + str(err) + " mid=" + str(mid) + " next lower=" + str(lower) + " next upper=" + str(upper) 
   
   # we are so close that left and right data is almost the same
-  print "dim=" + str(dim) + " order=" + str(order) + " target_vol=" + str(vol) + " result_vol=" + str(data.sum() / float(data.size)) + ' min=' + str(numpy.amin(data)) + ' max=' + str(numpy.amax(data)) 
+  print("dim=" + str(dim) + " order=" + str(order) + " target_vol=" + str(vol) + " result_vol=" + str(data.sum() / float(data.size)) + ' min=' + str(numpy.amin(data)) + ' max=' + str(numpy.amax(data))) 
   return data
 
 def cross(dim, vol, res, lower):
@@ -146,7 +144,7 @@ def cross(dim, vol, res, lower):
     h = h.real
   s = h * res
 
-  print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
+  print('cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells")
 
   if dim == 2:
     data = numpy.ones((res, res)) * lower # violate exact volume
@@ -174,7 +172,7 @@ def rectangle(dim, vol, res, lower):
   assert(h >= 1/res and h <= 1)
   s = h * res
 
-  print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
+  print('cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells")
 
   data = numpy.ones((res, res)) * lower # violate exact volume
   
@@ -227,7 +225,7 @@ def channel(dim, res, vol, lower):
         data[x,y] = 1.0
         countSolids = countSolids + 1
   
-  print "created channel with " + str(res*res-countSolids) + " elems" + " and solid volume " + str(countSolids/float(res*res))
+  print("created channel with " + str(res*res-countSolids) + " elems" + " and solid volume " + str(countSolids/float(res*res)))
   return data
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
 def hashtag_dist_2d(x, y, amplitude, speed):
@@ -287,9 +285,9 @@ if args.ball:
     vol *= 1.0/4.0 * numpy.pi 
   else:
     vol *= 1.0/6.0 * numpy.pi
-  print "assign volume " + str(args.vol) + " to ball which restricts the total volume to " + str(vol)    
+  print("assign volume " + str(args.vol) + " to ball which restricts the total volume to " + str(vol))    
     
-ord = ("-o_" + str(args.order)) if args.order <> 6 else ""   
+ord = ("-o_" + str(args.order)) if args.order != 6 else ""   
 
 data = None
 filename = None
@@ -303,7 +301,7 @@ elif args.hashtag is not None: # also capture 0.0
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 elif args.channel:
   if args.dim == 3:
-    print 'can only create 2d channels'
+    print('can only create 2d channels')
     sys.exit()
   data = channel(args.dim, args.res, args.vol, args.lower)
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
@@ -316,10 +314,10 @@ if args.save:
   filename = args.save
 if filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.gif') or filename.endswith('.tif'):
   get_image(data).save(filename)
-  print "generated image '" + filename + "'"
+  print("generated image '" + filename + "'")
 elif not args.write_mesh:
   write_density_file(filename, data, setname)
-  print "generated density file '" + filename + "'" 
+  print("generated density file '" + filename + "'") 
 
 if args.write_mesh:
   mesh = Mesh()  
@@ -327,7 +325,7 @@ if args.write_mesh:
   sparse = convert_to_sparse_mesh(mesh)
   mesh_name = filename.replace('.density.xml', '.mesh')
   write_gid_mesh(sparse, mesh_name)
-  print "generated sparse mesh '" + mesh_name + "'"
+  print("generated sparse mesh '" + mesh_name + "'")
   
 if args.show:
   get_image(data, 800).show()

@@ -329,7 +329,13 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   assert((dynamic_cast<ShapeMapDesign*>(space_) != NULL && space_->GetNumberOfShapeMappingVariables() > 0) ||
          (dynamic_cast<ShapeMapDesign*>(space_) == NULL && space_->GetNumberOfShapeMappingVariables() == 0));
 
-  unsigned int size = space_->data.GetSize() + space_->GetNumberOfShapeMappingVariables(); // the latter is 0 when no shape map
+  int slack_size = 0;
+  if(space_->HasSlackVariable())
+    slack_size++;
+  if(space_->HasAlphaVariable())
+    slack_size++;
+
+  unsigned int size = space_->data.GetSize() + slack_size + space_->GetNumberOfShapeMappingVariables(); // the latter is 0 when no shape map
 
   block.Resize(size);
 
@@ -350,6 +356,20 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     block[i] = ss.str();
   }
 
+  if(space_->HasSlackVariable())
+  {
+    std::stringstream ss;
+    ss << "<slack nr=\"0\" type=\"slack\" design=\"" << space_->GetSlackVariable() << "\"/>";
+    block[space_->data.GetSize() + 0] = ss.str();
+  }
+
+  if(space_->HasAlphaVariable())
+  {
+    std::stringstream ss;
+    ss << "<slack nr=\"1\" type=\"alpha\" design=\"" << space_->GetAlphaVariable() << "\"/>";
+    block[space_->data.GetSize() + 1] = ss.str();
+  }
+
   // add shape map design if we have it. Can be visualized by shape_map.py.
   // Also in the SMD case the above design is of interest!
   if(space_->GetNumberOfShapeMappingVariables() > 0)
@@ -366,7 +386,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
-      block[space_->data.GetSize() + i] = ss.str();
+      block[space_->data.GetSize() + slack_size + i] = ss.str();
     }
   }
 
