@@ -88,7 +88,7 @@ def calc_radius(stiff):
   return val 
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
-def create_mesh_with_profiles(args,infoXml):
+def create_mesh_with_profiles(args,infoXml,log):
   print "stiffnesses: ",args.x1,args.x2,args.y1,args.y2,args.z1,args.z2
   
   mesh = None
@@ -107,13 +107,13 @@ def create_mesh_with_profiles(args,infoXml):
   args.z2 = calc_radius(args.z2)
   infoStr += ' rz2="' + str(args.z2) + '"'
   
-  if infoXml <> None:
+  if infoXml is not None:
     assert(infoStr)
     infoXml.write(infoStr + "/>\n\n")
   
   print "radii: ",args.x1/2.0,args.x2/2.0,args.y1/2.0,args.y2/2.0,args.z1/2.0,args.z2/2.0    
   
-  array = create_profiles_array(args, infoXml)
+  array = create_profiles_array(args, infoXml,log)
   
   if args.target.startswith("volume"):
     calc_volume(array,infoXml)
@@ -159,7 +159,8 @@ parser.add_argument('--verbose', help="show spline plots",choices=["off","all_pr
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
-parser.add_argument('--export', help="export different stuff", choices=["radius_maps","surface_points"], required=False)
+parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
+parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 
 args = parser.parse_args()
 
@@ -200,7 +201,7 @@ if args.target == "surface_mesh" or args.target == "3dlines":
 infoXml = None
 
 if args.to_info_xml:
-   # command line
+  # command line
   cmd = sys.argv[0].split('/')[-1]
   for i in range(1, len(sys.argv)):
     cmd += ' ' + sys.argv[i] 
@@ -211,13 +212,18 @@ if args.to_info_xml:
   infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
   infoXml.write('  <cmd value="' + cmd + '"/>\n')
   infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
+
+log = None 
+
+if args.logging:
+  log = open(mesh_name+".log","w")
   
 # sanity checks
 if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
   print("error: need values for x1,x2 and y1,y2 and z1,z2!")
   sys.exit(1)
 
-mesh = create_mesh_with_profiles(args,infoXml)
+mesh = create_mesh_with_profiles(args,infoXml,log)
 
 if args.target == 'volume_mesh':   
   file = mesh_name + '.mesh'
