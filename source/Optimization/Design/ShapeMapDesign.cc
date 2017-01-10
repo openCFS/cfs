@@ -579,6 +579,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     {
       lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
       upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
+      LOG_DBG2(SMD) << "RDX: e=" << spe.GetIndex() << " v=" << val << " lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound() << " lv=" << lower_violation << " uv=" << upper_violation;
 
       if(enforce_bounds_) {
         spe.SetDesign(std::max(spe.GetLowerBound(), std::min(spe.GetUpperBound(), val)));
@@ -1007,7 +1008,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              // select the dominant shape parameter which lead to max rho for this ip
              ShapeParamElement* s1 = item.nodes[shape_idx];
              ShapeParamElement* s2 = item.nodes[shape_idx+1];
-             LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " s1=" << s1->ToString() << " #dJ=" << s1->costGradient.GetSize() << " s2=" << s2->ToString() << " #dJ=" << s2->costGradient.GetSize();
+             LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " s1=" << s1->ToString() << " #dJ=" << s1->costGradient.GetSize() << " s2=" << s2->ToString() << " #dJ=" << s2->costGradient.GetSize();
 
              // this will point to the initially or cached da_norm
              double& da_norm = item.da_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)]; // reference such that we automatically store the stuff
@@ -1309,7 +1310,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   else
   {
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
-    if(rb >= 0)
+    if(rb >= 0 && !DensityFile::NeedLoadErsatzMaterial()) // don't set the bounds relative to initial when we later load an external design
     {
       spe.SetUpperBound(std::min(param->upper, std::max(param->value + rb/2, param->lower)));
       spe.SetLowerBound(std::max(param->lower, std::min(param->value - rb/2, param->upper)));
