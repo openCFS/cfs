@@ -193,14 +193,6 @@ class CoefFunctionGrid : public CoefFunction{
     //! external step to t map
     std::map<UInt, Double> stepValueMap_;
 
-    /**
-    //! stores the current stepnumber of external result
-    UInt curStep_;
-
-    //! stores the current step value of external result
-    Double curTStep_;
-    **/
-
     //! stores the current mutlisequence step for external result
     UInt aSeqStep_;
 

@@ -279,7 +279,6 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! struct needed for creation of typedef to template function for copying the result vector
     struct CopyResultFunction {
       //! type definition for pointer to CopyResult function
-      //typedef void (CoefFunctionGridNodal<DATA_TYPE>::*blafunction)(Vector<DATA_TYPE>&, Vector<DATA_TYPE>&, StdVector<UInt>&,
       typedef void (*Ptr)(Vector<DATA_TYPE>&, Vector<DATA_TYPE>&, StdVector<UInt>&, 
                                 StdVector<DATA_TYPE>&, StdVector<DATA_TYPE>&, const DATA_TYPE,
                                 StdVector<DATA_TYPE>&, StdVector<DATA_TYPE>&, std::vector<bool>&);

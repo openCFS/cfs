@@ -89,6 +89,9 @@ template<class DATA_TYPE>
   //! Destructor
   template<class DATA_TYPE>
   CoefFunctionGridNodal<DATA_TYPE>::~CoefFunctionGridNodal(){
+#ifdef USE_OPENMP
+    omp_destroy_lock(&updateSolutionLock_);
+#endif
   }
   
   //! function to create on string of global factors from multiple strings
@@ -608,10 +611,10 @@ template<class DATA_TYPE>
 
   template<class DATA_TYPE>
   bool CoefFunctionGridNodal<DATA_TYPE>::UpdateSolution(){
+    const UInt stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
 #ifdef USE_OPENMP
     omp_set_lock(&updateSolutionLock_);
 #endif
-    const UInt stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
     if (stepnumber == this->lastStepUpdate_) {
 #ifdef USE_OPENMP
       omp_unset_lock(&updateSolutionLock_);
