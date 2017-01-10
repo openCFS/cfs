@@ -133,6 +133,19 @@ bool Lighthill::Run(){
   }
 
 
+  // Check filter mesh and output values
+  if(true){
+	  // Check output values
+	  // d'Alembertoperator(p)= d(Source_i)/dx_i
+	  // (a) INTEGRATION(Source_i) over the domain must be approximately zero
+
+	  // (b) INTEGRATION(d(Source_i)/dx_i) over the domain must be approximately zero
+	  //                                   if Source_i(Wall) = 0 and Source_i(In-/Outlet)=0
+
+	  // Check mesh
+	  // Mesh size must be smaller than << Ma*c/(20*f) in the source region
+	  // to determine acoustically relevant flow structures
+  }
 
   resultManager_->ActivateResult(filterResIds[0]);
 

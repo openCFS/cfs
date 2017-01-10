@@ -66,6 +66,8 @@ protected:
 
 
 private:
+  void Interpolation(Vector<Double>& returnVec, CF::StdVector< CF::Vector<Double> >  scatteredData,
+		  CF::Vector<Double> vec, str1::shared_ptr<EqnMapSimple> downMap);
 
   std::string CheckFilterResults();
 
