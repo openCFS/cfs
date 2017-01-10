@@ -13,7 +13,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from sympy import Symbol, symbols
 
 res = 1
+# file object to log activities while fixing surface gaps
 logger = None
+# file object for info xml
+infoXml = None
 
 class End_Node():
   coords = None
@@ -77,14 +80,9 @@ class Cubic_spline():
   #f23 = 3*t**2*(1-t)
   #f33 = t**3
    
-  bend = None
-   
+  t_1 = None   
   #control polygon contains 4 ponts (array of lists, 1 list per point) 
   CP = None
-   
-  def __init__(self):
-    print "Default instantiation not allowed for cubic splines!"
-    sys.exit(1)
    
   # CP is numpy array with 4 coordinates; for each coordinate use a list with x- and y-component
   def __init__(self, CP = None):
@@ -92,6 +90,19 @@ class Cubic_spline():
     t = np.linspace(0,1,1000) # over-sampling
     C = self.eval_t(t)
     self.explicit = interpolate.interp1d(C[0,:],C[1,:])
+    
+    global infoXml
+    if infoXml is not None:
+      infoXml.write('      <controlPolygon>\n')
+      cp = self.CP
+      infoXml.write('        <P1 x="' + str(cp[0][0]) + '" y="' + str(cp[1][0]) + '"/>\n')
+      infoXml.write('        <P2 x="' + str(cp[0][1]) + '" y="' + str(cp[1][1]) + '"/>\n')
+      infoXml.write('        <P3 x="' + str(cp[0][2]) + '" y="' + str(cp[1][2]) + '"/>\n')
+      infoXml.write('        <P4 x="' + str(cp[0][3]) + '" y="' + str(cp[1][3]) + '"/>\n')
+      infoXml.write('      </controlPolygon>\n')
+#       coords_cut = self.calc_coords_grad_1()
+#       infoXml.write('      <gradient dx/dy="1" t="' + str(self.calc_param_grad_1()) + '" x="' + str(coords_cut[0]) + '" y="' + str(coords_cut[1]) + '"/>\n')
+      
       
   # base functions for cubic spline with 4 control points
   def f03(self,t):
@@ -118,6 +129,9 @@ class Cubic_spline():
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
   
   def calc_param_grad_1(self):
+    if self.t_1 is not None:
+      return self.t_1
+    
     u = Symbol('u')
     
     dC = self.calc_d_spline_d_t(u) # dC/dt
@@ -129,9 +143,10 @@ class Cubic_spline():
       t = sol[1]
     else:
       print "No t found where dx/dy = 1"
-     
-    # conversion from t as sympy.Float to regular Python float necessary
-    return float(t)
+    
+    # conversion from t as sympy.Float to regular Python float necessary  
+    self.t_1 = float(t)
+    return self.t_1
   
   def plot(self):
     t = np.linspace(0, 1, 100)
@@ -296,21 +311,26 @@ def contains_point(p,profile):
 # obejct defines spline in a principle plane, e.g. spline for 0 or 90 degree
 class PrincipleSpline():
   
-  def __init__(self):
-    self.spline = None
-    self.angle = -1
-    self.type = "bspline"
+  spline = None
+  angle = -1
+  coords_cut = None 
   
   def __init__(self, x1, y1, bend, angle=0):
     rx = 0.5 - x1/2.0 # radius for center (0,1)
     ry = 0.5 - y1/2.0 # radius for center (0,1)
-  
+    
+    global infoXml
+    if infoXml is not None:
+      infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+    
+    self.angle = angle
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
     self.spline = Cubic_spline(P)
-    self.angle = angle
     # coordinate where slope is 1
     self.coords_cut = self.calc_coords_grad_1()
-    self.type = "bspline"
+    
+    if infoXml is not None:
+      infoXml.write('    </bSpline>\n')
     
   # eval function in case x is one element, not a list  
   def eval_elem(self,x):
@@ -339,7 +359,7 @@ class PrincipleSpline():
   
   def calc_coords_grad_1(self):
     return self.spline.calc_coords_grad_1()
-  
+    
 # object defining spline for angles between 0,...,90 degree
 class BisecSpline:
   def __init__(self):
@@ -362,6 +382,11 @@ class BisecSpline:
     assert(bend <= 1 and bend >= 0)
     self.type = None
     
+    global infoXml
+    if infoXml:
+      infoXml.write('    <bisectionFunction>\n')
+      infoXml.write('      <bicubic>\n')
+#       infoXml.write('      <bicubic coeff0="' + str(sol[0]) + '" coeff1="' + str(sol[1]) + '" coeff2="' + str(sol[2]) + '" coeff3="' + str(sol[3]) +'"/>\n')
     ###### case 1 : bisec spline + cubic polynomial --> bicubic ###################
     # we have a left part from a=(0,x1) which is the average of the splines x1,y1 and x1,z1
     # where the curve has grad=1 we have point b
@@ -399,13 +424,22 @@ class BisecSpline:
   
     cubic = np.poly1d(sol[::-1]) # cubic polynomial
     
+    if infoXml:
+      infoXml.write('        <polynomial order="cubic" a0="' + str(sol[0]) + '" a1="' + str(sol[1]) + '" a2="' + str(sol[3]) +'"/>\n')
+      infoXml.write('      </bicubic>\n')
+      infoXml.write('      <bSpline rad1 = "' + str(x1) + '" rad2="' + str(height) + '" bend="' + str(bend) + '">\n')
+    
     #### case 2: b-spline --> bsp #############
     # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
     # curve as undershoot
-  
+    
     P = np.array([[0,0.5+x1/2.0],[0.5*bend,0.5+x1/2.0],[0.5-0.5*bend,height],[0.5,height]])
-    bspline = Cubic_spline(P) 
-  
+    bspline = Cubic_spline(P)
+    
+    if infoXml:
+      infoXml.write('      </bSpline>\n')
+      infoXml.write('      <linear x1="' + str(x1) + '"/>\n')
+    
     #### case 3: linear --> lin ###########
     # in case undershooting for x1=0.9, y1=0.1, z1=0.1
     lin = Linear_1D(x1, x1)
@@ -426,7 +460,11 @@ class BisecSpline:
     # in case we have undershooting for biqua AND for spline
     else:
       self.type = "linear"
-  
+      
+    if infoXml:
+      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle[0])) + '"/>\n')
+      infoXml.write('    </bisectionFunction>\n\n')  
+      
   def get_coords_cut(self):
     return self.cut
       
@@ -543,6 +581,11 @@ class Profile:
     self.direction = dir
     self.type = args.profile
     self.functions = [None] * 3
+
+    global infoXml    
+    if infoXml:  
+      infoXml.write('  <profile dir="' + str(dir) + '">\n')
+      
     if self.type == "linear":
       self.functions[0] = Linear_1D(args.x1, args.x2)
       self.functions[1] = self.splines[0]
@@ -562,7 +605,10 @@ class Profile:
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
         
       self.bisec_angle = self.functions[1].angle
-      
+    
+    if infoXml:  
+      infoXml.write('  </profile>\n\n')
+  
     if args.verbose == "bisec":
       self.functions[1].plot_all()
       
@@ -930,9 +976,11 @@ def add_triangle(id1,id2,id3,cells):
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
-def create_profiles_array(args,infoXml,log):
-  global logger
+def create_profiles_array(args,info,log):
+  global logger, infoXml
   logger = log
+  infoXml = info
+  
   res = args.res
   array = np.ones((res,res,res)) * (-1)
   vec = None
