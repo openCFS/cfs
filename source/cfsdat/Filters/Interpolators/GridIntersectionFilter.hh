@@ -16,7 +16,7 @@
 #ifndef SOURCE_CFSDAT_FILTERS_INTERPOLATORS_GRIDINTERSECTIONFILTER_HH_
 #define SOURCE_CFSDAT_FILTERS_INTERPOLATORS_GRIDINTERSECTIONFILTER_HH_
 
-#include "MeshBasedInterpolator.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "MatVec/CoordFormat.hh"
@@ -33,7 +33,7 @@ namespace CFSDat{
 //!  - based on these pairs, create a sparse matrix
 //!  - each pair can be converted to a weight and is thereby summed to the matrix entries
 //!  - during runtime only a matrix vector multiplication is performed, all costly objects are cleared
-class GridIntersectionFilter : public MeshBasedInterpolator{
+class GridIntersectionFilter : public MeshFilter{
 
 public:
 
@@ -45,7 +45,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 

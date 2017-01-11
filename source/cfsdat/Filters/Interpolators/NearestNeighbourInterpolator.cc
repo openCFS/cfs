@@ -23,7 +23,7 @@
 namespace CFSDat{
 
 NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                     :MeshBasedInterpolator(numWorkers,config,resMan){
+                     :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
@@ -123,7 +123,6 @@ bool NearestNeighbourInterpolator::Run(){
 
 
   // TODO tear apart the interpolation from the run method
-  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
   this->Interpolation(returnVec, scatteredData, vec, downMap );
 
   resultManager_->ActivateResult(filterResIds[0]);
@@ -147,7 +146,7 @@ std::cout<<returnVec.GetSize()<<std::endl;
 }
 
 
-void NearestNeighbourInterpolator::PrepareInterpolation(){
+void NearestNeighbourInterpolator::PrepareCalculation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...
@@ -367,6 +366,7 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
 void NearestNeighbourInterpolator::Interpolation(Vector<Double>& returnVec, CF::StdVector< CF::Vector<Double> >  scatteredData,
 		CF::Vector<Double> vec, str1::shared_ptr<EqnMapSimple> downMap){
 
+    // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
 	  KNNSearch Tree;
 	  Tree.ReadScatteredData_Interpolation(sourceCoords_, inDim_, trgGrid_, scatteredData);
 

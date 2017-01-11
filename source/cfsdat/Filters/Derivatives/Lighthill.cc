@@ -25,7 +25,7 @@
 namespace CFSDat{
 
 Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-:MeshBasedDerivative(numWorkers,config,resMan){
+:MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
@@ -574,12 +574,12 @@ void Lighthill::InterpolationNodeToCenter(Vector<Double>& retVec, const Vector<D
 
 
 void Lighthill::CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
-                                            CF::Vector<Double>& globPoint,
-                                            CF::StdVector< Vector<Double> >& neighbors,
-                                            CF::StdVector< Double >& l2Distances,
-                                            CF::StdVector< Vector<Double> >& vectors,
-                                            UInt numNN,
-                                            Double alpha){
+                                            const CF::Vector<Double>& globPoint,
+                                            const CF::StdVector< Vector<Double> >& neighbors,
+                                            const CF::StdVector< Double >& l2Distances,
+                                            const CF::StdVector< Vector<Double> >& vectors,
+                                            const UInt numNN,
+                                            const Double alpha){
 
   CF::Matrix<Double> derivCoefVec;
   derivCoefVec.Resize(numNN,1);
@@ -651,12 +651,12 @@ void Lighthill::CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
 
 
 void Lighthill::CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
-                                          CF::Vector<Double>& globPoint,
-                                          CF::StdVector< Vector<Double> >& neighbors,
-                                          CF::StdVector< Double >& l2Distances,
-                                          CF::StdVector< Vector<Double> >& vectors,
-                                          UInt numNN,
-                                          Double alpha){
+                                            const CF::Vector<Double>& globPoint,
+                                            const CF::StdVector< Vector<Double> >& neighbors,
+                                            const CF::StdVector< Double >& l2Distances,
+                                            const CF::StdVector< Vector<Double> >& vectors,
+                                            const UInt numNN,
+                                            const Double alpha){
 
   CF::Matrix<Double> derivCoefVec;
   derivCoefVec.Resize(numNN,1);
@@ -746,7 +746,7 @@ void Lighthill::CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
 }
 
 
-void Lighthill::PrepareDifferentiation(){
+void Lighthill::PrepareCalculation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...

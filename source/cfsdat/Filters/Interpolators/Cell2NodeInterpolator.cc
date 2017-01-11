@@ -23,7 +23,7 @@
 namespace CFSDat{
 
 Cell2NodeInterpolator::Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                     :MeshBasedInterpolator(numWorkers,config,resMan){
+                     :MeshFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
 }
 
@@ -101,7 +101,7 @@ bool Cell2NodeInterpolator::Run(){
   return true;
 }
 
-void Cell2NodeInterpolator::PrepareInterpolation(){
+void Cell2NodeInterpolator::PrepareCalculation(){
   //1. Get Cell points from input
   //3. Search for containing elements in trg
   //4. Store for each src cell local Coordinates, src cell Idx, trg cell idx

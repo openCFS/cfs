@@ -15,15 +15,15 @@
 #pragma once
 
 
-#include "MeshBasedInterpolator.hh"
 #include "DataInOut/SimInput.hh"
 #include <cfsdat/Utils/Point.hh>
+#include <Filters/MeshFilter.hh>
 
 
 namespace CFSDat{
 
 
-class Node2CellInterpolator : public MeshBasedInterpolator{
+class Node2CellInterpolator : public MeshFilter{
 
 public:
   struct InpolationStruct{
@@ -44,7 +44,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 

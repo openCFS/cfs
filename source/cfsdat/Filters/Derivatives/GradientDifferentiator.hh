@@ -15,7 +15,7 @@
 #pragma once
 
 
-#include "MeshBasedDerivative.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 #include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
@@ -26,7 +26,7 @@ namespace CFSDat{
 
 
 
-class GradientDifferentiator : public MeshBasedDerivative{
+class GradientDifferentiator : public MeshFilter{
 
   struct DifferentiationStruct{
     CF::Vector<Double> localCoords;
@@ -56,7 +56,7 @@ public:
 
 protected:
 
-  virtual void PrepareDifferentiation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 

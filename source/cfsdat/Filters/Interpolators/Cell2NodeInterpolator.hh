@@ -12,12 +12,9 @@
  */
 //================================================================================================
 
-//#ifndef SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CELL2NODEINTERPOLATOR_HH_
-//#define SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CELL2NODEINTERPOLATOR_HH_
-
 #pragma once
 
-#include "MeshBasedInterpolator.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 
 namespace CFSDat{
@@ -26,7 +23,7 @@ namespace CFSDat{
 //! Upon initialization we determine cell NearesNeighbours
 //! additionally we set the local coordinates accoring to source
 //! during traversal, we just apply those loads
-class Cell2NodeInterpolator : public MeshBasedInterpolator{
+class Cell2NodeInterpolator : public MeshFilter{
 
   struct InpolationStruct{
     CF::Vector<Double> localCoords;
@@ -54,7 +51,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 

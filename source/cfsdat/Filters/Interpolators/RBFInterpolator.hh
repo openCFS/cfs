@@ -15,15 +15,15 @@
 #pragma once
 
 
-#include "MeshBasedInterpolator.hh"
 #include "DataInOut/SimInput.hh"
 #include <cfsdat/Utils/Point.hh>
+#include <Filters/MeshFilter.hh>
 
 
 namespace CFSDat{
 
 //! Class for calculating interpolation using radial basis functions (RBF)
-class RBFInterpolator : public MeshBasedInterpolator{
+class RBFInterpolator : public MeshFilter{
 
 public:
   struct InpolationStruct{
@@ -45,7 +45,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 

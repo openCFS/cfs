@@ -15,9 +15,9 @@
 #pragma once //instead of the #ifndef #def ...
 
 
-#include "MeshBasedInterpolator.hh"
 #include "DataInOut/SimInput.hh"
 #include <cfsdat/Utils/Point.hh>
+#include <Filters/MeshFilter.hh>
 
 
 
@@ -26,8 +26,7 @@ namespace CFSDat{
 //! Class for calculating a nearest neighbour interpolation using CGAL
 //! for neighbour search
 
-
-class NearestNeighbourInterpolator : public MeshBasedInterpolator{
+class NearestNeighbourInterpolator : public MeshFilter{
 
   struct InpolationStruct{
     CF::Vector<Double> localCoords;
@@ -55,13 +54,13 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-  // Read scattered data
+  //! Read scattered data
   void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids, CF::StdVector< CF::Vector<Double> > scatteredData);
 
 
@@ -71,10 +70,10 @@ private:
 
   std::string CheckFilterResults();
 
-  // Coordinates of input data
+  //! Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
-  // Coordinates of target data
+  //! Coordinates of target data
   CF::StdVector< CF::Vector<double> > targetCoords_;
 
   //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).

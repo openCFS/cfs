@@ -23,7 +23,7 @@
 namespace CFSDat{
 
 CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                     :MeshBasedInterpolator(numWorkers,config,resMan){
+                     :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
 
@@ -100,7 +100,7 @@ bool CentroidInterpolator::Run(){
   return true;
 }
 
-void CentroidInterpolator::PrepareInterpolation(){
+void CentroidInterpolator::PrepareCalculation(){
   //1. Get Cell centroids from input
   //2. Get Cell volumes from input
   //3. Search for containing elements in trg

@@ -24,7 +24,7 @@
 namespace CFSDat{
 
 GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-:MeshBasedInterpolator(numWorkers,config,resMan){
+:MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
 
@@ -74,7 +74,7 @@ bool GridIntersectionFilter::Run(){
   return true;
 }
 
-void GridIntersectionFilter::PrepareInterpolation(){
+void GridIntersectionFilter::PrepareCalculation(){
   std::cout << "\t ---> GridIntersection preparing for interpolation" << std::endl;
 
   //in this filter we only have one upstream result

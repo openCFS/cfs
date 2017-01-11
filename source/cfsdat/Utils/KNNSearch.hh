@@ -14,11 +14,11 @@
 
 #pragma once
 
-#include "cfsdat/Filters/Interpolators/BaseInterpolationFilter.hh"
 #include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
 #include <cfsdat/Utils/Point.hh>
+#include <Filters/BaseMeshFilterType.hh>
 #include "MatVec/Vector.hh"
 
 namespace CFSDat{

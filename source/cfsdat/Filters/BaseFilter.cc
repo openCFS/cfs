@@ -18,12 +18,11 @@
 #include "Filters/Arithmetic/BinOpFilter.hh"
 #include "Filters/Input/InputFilter.hh"
 #include "Filters/Output/OutputFilter.hh"
-#include "Filters/Interpolators/BaseInterpolationFilter.hh"
-#include "Filters/Derivatives/BaseDerivativeFilter.hh"
 #include "Filters/Derivatives/RotatingSubstDt.hh"
 #include "Filters/Derivatives/TimeDerivFilter.hh"
 #include "SignalProcessing/FftFilter.hh"
 #include <boost/tokenizer.hpp>
+#include <Filters/BaseMeshFilterType.hh>
 
 namespace CFSDat{
 
@@ -41,14 +40,11 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   else if (filtNode->GetName() == "substantialDeriv") {
     newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
   }
-  else if (filtNode->GetName() == "interpolation") {
-    newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
+  else if ((filtNode->GetName() == "interpolation") || (filtNode->GetName() == "differentiation")) {
+    newPtr = BaseMeshFilterType::Generate(filtNode,resMana);
   }
   else if (filtNode->GetName() == "binaryOperation") {
     newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
-  }
-  else if (filtNode->GetName() == "differentiation") {
-    newPtr = BaseDerivativeFilter::GenerateSpatialDerivative(filtNode,resMana);
   }
   else if (filtNode->GetName() == "fft") {
     newPtr.reset(new FftFilter(0, filtNode, resMana));

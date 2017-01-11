@@ -16,7 +16,7 @@
 #define SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CENTROIDINTERPOLATOR_HH_
 
 
-#include "MeshBasedInterpolator.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 
 namespace CFSDat{
@@ -25,7 +25,7 @@ namespace CFSDat{
 //! Upon initialization we determine cell centroids and volume from input
 //! additionally we set the local coordinates accoring to source
 //! during traversal, we just apply those loads
-class CentroidInterpolator : public MeshBasedInterpolator{
+class CentroidInterpolator : public MeshFilter{
 
   struct InpolationStruct{
     CF::Vector<Double> localCoords;
@@ -53,7 +53,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
