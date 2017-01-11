@@ -15,7 +15,7 @@
 #pragma once
 
 
-#include "MeshBasedDerivative.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 
 
@@ -23,7 +23,7 @@ namespace CFSDat{
 
 
 
-class Lighthill : public MeshBasedDerivative{
+class Lighthill : public MeshFilter{
 
 public:
   struct DifferentiationStruct{
@@ -54,7 +54,7 @@ public:
 
 protected:
 
-  virtual void PrepareDifferentiation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
@@ -66,24 +66,24 @@ protected:
 
 
   void CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
-                                 CF::Vector<Double>& globPoint,
-                                 CF::StdVector< Vector<Double> >& neighbors,
-                                 CF::StdVector< Double >& l2Distances,
-                                 CF::StdVector< Vector<Double> >& vectors,
-                                 UInt numNN,
-                                 Double alpha);
+                                 const CF::Vector<Double>& globPoint,
+                                 const CF::StdVector< Vector<Double> >& neighbors,
+                                 const CF::StdVector< Double >& l2Distances,
+                                 const CF::StdVector< Vector<Double> >& vectors,
+                                 const UInt numNN,
+                                 const Double alpha);
 
   void CalcCurlU(Vector<Double>& retVec,
                 const Vector<Double> inVec);
 
 
   void CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
-                                 CF::Vector<Double>& globPoint,
-                                 CF::StdVector< Vector<Double> >& neighbors,
-                                 CF::StdVector< Double >& l2Distances,
-                                 CF::StdVector< Vector<Double> >& vectors,
-                                 UInt numNN,
-                                 Double alpha);
+                                    const CF::Vector<Double>& globPoint,
+                                    const CF::StdVector< Vector<Double> >& neighbors,
+                                    const CF::StdVector< Double >& l2Distances,
+                                    const CF::StdVector< Vector<Double> >& vectors,
+                                    const UInt numNN,
+                                    const Double alpha);
 
   void InterpolationNodeToCenter(Vector<Double>& retVec,
                             const Vector<Double> inVec);

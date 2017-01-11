@@ -15,7 +15,7 @@
 #pragma once
 
 
-#include "MeshBasedDerivative.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
 #include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
@@ -26,7 +26,7 @@ namespace CFSDat{
 
 
 
-class CurlDifferentiator : public MeshBasedDerivative{
+class CurlDifferentiator : public MeshFilter{
 
   struct DifferentiationStruct{
     CF::Vector<Double> localCoords;
@@ -56,22 +56,22 @@ public:
 
 protected:
 
-  virtual void PrepareDifferentiation();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-  // build the local RBF interpolation matrix, based on the nearest neighbour source points
-  // build the local interpolation-value vector and solve the system ALoc*c=vector for
-  // the local RBF coefficients c
+  //! build the local RBF interpolation matrix, based on the nearest neighbour source points
+  //! build the local interpolation-value vector and solve the system ALoc*c=vector for
+  //! the local RBF coefficients c
   void CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
-                                 CF::Vector<Double>& globPoint,
-                                 CF::StdVector< Vector<Double> >& neighbors,
-                                 CF::StdVector< Double >& l2Distances,
-                                 CF::StdVector< Vector<Double> >& vectors,
-                                 UInt numNN,
-                                 Double alpha);
+                                const CF::Vector<Double>& globPoint,
+                                const CF::StdVector< Vector<Double> >& neighbors,
+                                const CF::StdVector< Double >& l2Distances,
+                                const CF::StdVector< Vector<Double> >& vectors,
+                                const UInt numNN,
+                                const Double alpha);
 
 
 private:

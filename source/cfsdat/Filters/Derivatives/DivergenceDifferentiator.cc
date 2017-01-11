@@ -25,7 +25,7 @@
 namespace CFSDat{
 
 DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                     :MeshBasedDerivative(numWorkers,config,resMan){
+                     :MeshFilter(numWorkers,config,resMan){
 
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -193,12 +193,12 @@ for(UInt i = 0; i < derivData_.size();++i){
 
 
 void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
-                                      CF::Vector<Double>& globPoint,
-                                      CF::StdVector< Vector<Double> >& neighbors,
-                                      CF::StdVector< Double >& l2Distances,
-                                      CF::StdVector< Vector<Double> >& vectors,
-                                      UInt numNN,
-                                      Double alpha){
+                                      const CF::Vector<Double>& globPoint,
+                                      const CF::StdVector< Vector<Double> >& neighbors,
+                                      const CF::StdVector< Double >& l2Distances,
+                                      const CF::StdVector< Vector<Double> >& vectors,
+                                      const UInt numNN,
+                                      const Double alpha){
   CF::Matrix<Double> derivCoefVec;
   CF::Matrix<Double> ALoc;
   ALoc.Resize(numNN,numNN);
@@ -291,7 +291,7 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
 }
 
 
-void DivergenceDifferentiator::PrepareDifferentiation(){
+void DivergenceDifferentiator::PrepareCalculation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...

@@ -24,7 +24,7 @@
 namespace CFSDat{
 
 Node2CellInterpolator::Node2CellInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-:MeshBasedInterpolator(numWorkers,config,resMan){
+:MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
 }
@@ -105,7 +105,7 @@ bool Node2CellInterpolator::Run(){
 
 
 
-void Node2CellInterpolator::PrepareInterpolation(){
+void Node2CellInterpolator::PrepareCalculation(){
   //1. Get list of target elements
   //2. For every target element get number of nodes
 

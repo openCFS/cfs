@@ -4,22 +4,22 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     MeshBasedDerivative.cc
+ *       \file     MeshFilter.cc
  *       \brief    <Description>
  *
- *       \date     Oct 4, 2016
+ *       \date     Jan 11, 2017
  *       \author   kroppert
  */
 //================================================================================================
 
-#include "MeshBasedDerivative.hh"
+#include <Filters/MeshFilter.hh>
 #include "DataInOut/DefineInOutFiles.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 namespace CFSDat{
 
-MeshBasedDerivative::MeshBasedDerivative(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                      :BaseDerivativeFilter(numWorkers,config,resMan){
+MeshFilter::MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+                      :BaseMeshFilterType(numWorkers,config,resMan){
 
   std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
   std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
@@ -38,7 +38,7 @@ MeshBasedDerivative::MeshBasedDerivative(UInt numWorkers, CF::PtrParamNode confi
   }
 
   //Now we read the input grid. Another possibility would be to give the user the opportunity
-  //to perform interpolation onto a grid which already has results
+  //to perform interpolation/differentiation onto a grid which already has results
   //a grid only input filter is not directly possible due to the concept of a result driven pipeline.
 
   //create grid
@@ -61,18 +61,18 @@ MeshBasedDerivative::MeshBasedDerivative(UInt numWorkers, CF::PtrParamNode confi
 
 }
 
-void MeshBasedDerivative::FinishInit(){
+void MeshFilter::FinishInit(){
   //first go up
   CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
   for(; srcIter != sources_.End() ; srcIter++){
     // should we check here anything for success?
     (*srcIter)->FinishInit();
   }
-  PrepareDifferentiation();
+  PrepareCalculation();
 }
 
 //TODO for now copy paste code from inputfilter... not very nice
-void MeshBasedDerivative::CreateDummyCfsParamNode(){
+void MeshFilter::CreateDummyCfsParamNode(){
 
   PtrParamNode meshInputNode = params_->Get("targetMesh")->GetChild();
   dummyXMLNode_.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));

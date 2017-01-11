@@ -4,33 +4,38 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     MeshInterpolators.hh
+ *       \file     MeshFilter.hh
  *       \brief    <Description>
  *
- *       \date     Jan 6, 2016
- *       \author   ahueppe
+ *       \date     Jan 11, 2017
+ *       \author   kroppert
  */
 //================================================================================================
 
-#ifndef SOURCE_CFSDAT_FILTERS_INTERPOLATORS_MESHBASEDINTERPOLATOR_HH_
-#define SOURCE_CFSDAT_FILTERS_INTERPOLATORS_MESHBASEDINTERPOLATOR_HH_
+#pragma once
 
-#include "BaseInterpolationFilter.hh"
+#include <Filters/BaseMeshFilterType.hh>
 
 namespace CFSDat{
 
 
-//! Base class for Grid based interpolation schemes
+//! Base class for Grid based interpolation- or differentiation-schemes
 
-//! Many Interpolation procedures require mesh results for
+//! Some procedures require mesh results for
 //! input and output. This class serves as a base for algorithms
 //! requiring this kind of result representation
-class MeshBasedInterpolator : public BaseInterpolationFilter{
+class MeshFilter : public BaseMeshFilterType{
 
 public:
-  MeshBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~MeshBasedInterpolator(){
+  //! Constructor, which reads the input- and output-result names from the xml-file and stores it
+  //! in a string for further checking, if the "connectivity" of filters is correct
+  //! Also the source- and target-regions are read from the xml-file
+  //! Last step of this constructor is to read the target-mesh and create
+  //! a new GridCFS-object
+  MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+
+  virtual ~MeshFilter(){
     delete trgGrid_;
   }
 
@@ -40,7 +45,7 @@ public:
 
 protected:
 
-  virtual void PrepareInterpolation() = 0;
+  virtual void PrepareCalculation() = 0;
 
   virtual ResultIdList SetUpstreamResults()=0;
 
@@ -68,4 +73,3 @@ protected:
 
 }
 
-#endif /* SOURCE_CFSDAT_FILTERS_INTERPOLATORS_MESHBASEDINTERPOLATOR_HH_ */

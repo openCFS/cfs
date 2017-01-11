@@ -11,19 +11,17 @@ ENDIF(MKL_INCLUDE_DIR)
 SET(CFSDAT_SRCS
   cfsdat.cc
   Filters/BaseFilter.cc
+  Filters/BaseMeshFilterType.cc
+  Filters/MeshFilter.cc
   Filters/Arithmetic/BinOpFilter.cc
   Filters/Input/InputFilter.cc
   Filters/Output/OutputFilter.cc
   Filters/Derivatives/TimeDerivFilter.cc
   Filters/Derivatives/RotatingSubstDt.cc
-  Filters/Derivatives/BaseDerivativeFilter.cc
   Filters/Derivatives/GradientDifferentiator.cc
   Filters/Derivatives/DivergenceDifferentiator.cc
   Filters/Derivatives/CurlDifferentiator.cc
-  Filters/Derivatives/MeshBasedDerivative.cc
   Filters/Derivatives/Lighthill.cc
-  Filters/Interpolators/BaseInterpolationFilter.cc
-  Filters/Interpolators/MeshBasedInterpolator.cc
   Filters/Interpolators/CentroidInterpolator.cc
   Filters/Interpolators/NearestNeighbourInterpolator.cc
   Filters/Interpolators/Cell2NodeInterpolator.cc

@@ -25,7 +25,7 @@
 namespace CFSDat{
 
 GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-                     :MeshBasedDerivative(numWorkers,config,resMan){
+                     :MeshFilter(numWorkers,config,resMan){
 
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -285,7 +285,7 @@ void GradientDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
 
 
 
-void GradientDifferentiator::PrepareDifferentiation(){
+void GradientDifferentiator::PrepareCalculation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...

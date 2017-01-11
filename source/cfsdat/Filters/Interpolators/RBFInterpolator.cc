@@ -25,7 +25,7 @@
 namespace CFSDat{
 
 RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-:MeshBasedInterpolator(numWorkers,config,resMan){
+:MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
@@ -366,7 +366,7 @@ void RBFInterpolator::CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
 }
 
 
-void RBFInterpolator::PrepareInterpolation(){
+void RBFInterpolator::PrepareCalculation(){
   //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
   //2. Get the target coordinates (trg)
   //3. Store for each trg element local Coordinates, elem number, volume, ...
