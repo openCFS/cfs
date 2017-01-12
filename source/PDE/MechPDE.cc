@@ -1726,7 +1726,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       regionStiffness_[regionId] = curCoef;
       PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
 
-      std::cout << "REAL" << std::endl;
       if ((subType_ == "planeStrain") || (subType_ == "planeStress"))
         bOp = new ScaledStrainOperator2D<FeH1, Double>();
       else if (subType_ == "2.5d")

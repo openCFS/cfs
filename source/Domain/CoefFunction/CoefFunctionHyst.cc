@@ -2,8 +2,6 @@
 
 // classes for function / spline approximation
 #include "Materials/Models/Preisach.hh"
-#include "Materials/Models/VectorPreisach.hh"
-#include "Materials/Models/VectorPreisachv7.hh"
 #include "Materials/Models/VectorPreisachv10.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"

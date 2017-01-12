@@ -806,7 +806,6 @@ namespace CoupledField
       case GENERAL:
         // in this case we have already the full permeability tensor
         
-        //std::cout << "WTF?" << std::endl;
         GetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
         break;
         
