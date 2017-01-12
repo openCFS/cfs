@@ -5,7 +5,6 @@ import numpy
 import os
 import sys
 import argparse
-from random import choice
 from lxml import etree
 
 gap_count = 0
@@ -38,9 +37,7 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
         node.attrib["rel_size"] = str(rel)
         node.attrib["count"] = str(gap_count)
       else:
-        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1), end=' ')
-        print(' size: ' + str(mi - ma) + ' rel.size: ' + str(rel))
-
+        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1) + ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel))
 
 
 # return the feader of bloch.dat or "" if none
@@ -163,8 +160,7 @@ if args.info and not args.gnuplot:
   for i in range(offset, max_mode):
     mi = min(org[:,i])
     ma = max(org[:,i])
-    print('mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma), end=' ') # print step 1-based
-    print(' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0))) 
+    print('mode ' + str(i-offset+1) + ' min:' + str(mi) + ' max:' + str(ma) + ' size:' + str(ma - mi) + ' rel.size: ' + str((ma - mi)/((ma+mi)/2.0))) 
 
 if args.xml:
   modes = etree.SubElement(root, "modes")
@@ -228,15 +224,13 @@ if args.gnuplot:
   if args.nicelabel:
      print('set ylabel "eigenfrequency in Hz"')
      print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
-     print('set xtics ("O" 0', end=' ')
+     xtics = 'set xtics ("O" 0'
      for i in range(len(segments)):
-        print(', "' +  chr(ord('A')+i) + '" ' + str(segments[i]), end=' ')
-     print(')')    
+        xtics += ', "' +  chr(ord('A')+i) + '" ' + str(segments[i])
+     print(xtics + ')')    
   else:
     print('unset ylabel') 
     print('unset xlabel')     
-
-  
 
   wl =   '' if args.nolines else ' with linespoints lw 2 '
   lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
