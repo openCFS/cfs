@@ -330,7 +330,7 @@ class PrincipleSpline():
     self.coords_cut = self.calc_coords_grad_1()
     
     if infoXml is not None:
-      infoXml.write('    </bSpline>\n')
+      infoXml.write('    </bspline>\n')
     
   # eval function in case x is one element, not a list  
   def eval_elem(self,x):
@@ -427,7 +427,7 @@ class BisecSpline:
     if infoXml:
       infoXml.write('        <polynomial order="cubic" a0="' + str(sol[0]) + '" a1="' + str(sol[1]) + '" a2="' + str(sol[3]) +'"/>\n')
       infoXml.write('      </bicubic>\n')
-      infoXml.write('      <bSpline rad1 = "' + str(x1) + '" rad2="' + str(height) + '" bend="' + str(bend) + '">\n')
+      infoXml.write('      <bspline rad1 = "' + str(x1) + '" rad2="' + str(height[0]) + '" bend="' + str(bend) + '">\n')
     
     #### case 2: b-spline --> bsp #############
     # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
@@ -437,7 +437,7 @@ class BisecSpline:
     bspline = Cubic_spline(P)
     
     if infoXml:
-      infoXml.write('      </bSpline>\n')
+      infoXml.write('      </bspline>\n')
       infoXml.write('      <linear x1="' + str(x1) + '"/>\n')
     
     #### case 3: linear --> lin ###########
@@ -455,7 +455,7 @@ class BisecSpline:
     # in case function composed of b-spline and cubic function has undershoot  
     # in case b-spline has no undershoot (point p is not below bspline(x=0))
     elif height > 0.5 + x1/2.0:  
-      self.type = "bSpline"
+      self.type = "bspline"
       
     # in case we have undershooting for biqua AND for spline
     else:
@@ -518,7 +518,7 @@ class BisecSpline:
   def eval(self,x):
     if self.type == "bicubic":
       return self.eval_bicubic(x)
-    elif self.type == "bSpline":
+    elif self.type == "bspline":
       return self.eval_spline(x)
     else: #linear case
       return self.eval_linear(x)
@@ -534,7 +534,7 @@ class BisecSpline:
     if self.type == "bicubic":
       bicubic = self.eval_bicubic(x)
       plt.plot(x,bicubic,label='bicubic',linewidth=5.0)
-    if self.type == "bSpline":
+    if self.type == "bspline":
       spline = self.eval_spline(x)
       plt.plot(x,spline,label='spline',linewidth=5.0)
     else:  

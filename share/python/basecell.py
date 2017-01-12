@@ -129,7 +129,8 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     save = "volume.vtp" if not args.save else args.save
-    assert(save.endswith('.vtp'))
+    if not save.endswith('.vtp'):
+      save += ".vtp"
     visualize_structure(array,args.single_region,args.show,save)
     
   if infoXml <> None:
