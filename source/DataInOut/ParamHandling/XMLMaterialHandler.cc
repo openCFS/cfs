@@ -1342,7 +1342,6 @@ namespace CoupledField {
       }
       else if (mag->Get("hystModel")->Has("vectorPreisach"))
       {
-        std::cout << "vectorPreisach found" << std::endl;
         PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
 
         // force name
@@ -1350,18 +1349,14 @@ namespace CoupledField {
 
         // read E saturation of Preisach hysterese model
         if(p->Has("hSat")){
-          std::cout << "hSat found" << std::endl;
           material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
         }
 
         Double tmp;
         material->GetScalar(tmp, X_SATURATION, Global::REAL);
-        std::cout << "X_SATURATION: " << tmp << std::endl;
-        std::cout << "Material: " << material->GetName() << std::endl;
 
         // read P saturation of Preisach hysterese model
         if(p->Has("mSat")){
-          std::cout << "mSat found" << std::endl;
           material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
         }
         /*
@@ -1397,7 +1392,6 @@ namespace CoupledField {
 //        }
 
         //not needed anymore as vectorPreisach always is vectorial
-        std::cout << "setScalar VECTOR" << std::endl;
         material->SetScalar("VECTOR", PREISACH_DIM);
 //        if(p->Has("preisachDim"))
 //        {
@@ -1410,7 +1404,6 @@ namespace CoupledField {
 //          material->SetScalar("SCALAR", PREISACH_DIM);
 //        }
 
-        std::cout << "setScalar rotResistance" << std::endl;
         if(p->Has("rotResistance")){
           material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
         } else {

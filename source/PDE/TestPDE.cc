@@ -21,7 +21,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
-#include "Materials/Models/VectorPreisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
 

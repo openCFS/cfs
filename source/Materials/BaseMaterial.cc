@@ -12,8 +12,8 @@
 #include "MatVec/Matrix.hh"
 
 #include "Materials/Models/Preisach.hh"
-#include "Materials/Models/VectorPreisach.hh"
-#include "Materials/Models/VectorPreisachv7.hh"
+//#include "Materials/Models/VectorPreisach.hh"
+//#include "Materials/Models/VectorPreisachv7.hh"
 #include "Materials/Models/VectorPreisachv10.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"

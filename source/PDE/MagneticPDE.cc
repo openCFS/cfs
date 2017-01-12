@@ -26,7 +26,7 @@
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
-#include "Materials/Models/VectorPreisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 
 // new postprocessing concept
@@ -163,9 +163,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       
       //get possible nonlinearities defined in this region
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-
-      std::cout << "ActRegion: " << regionName << std::endl;
-      std::cout << "ActMat: " << actMat->GetName() << std::endl;
 
       // ====================================================================
       //  NONLINEAR BH RELATION (NON-HYSTERETIC)
