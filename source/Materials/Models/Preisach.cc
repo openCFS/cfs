@@ -350,5 +350,4 @@ namespace CoupledField
 
     return Xout;
   }
-
 }

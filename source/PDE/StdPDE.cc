@@ -342,6 +342,33 @@ namespace CoupledField {
     }
   }
 
+  // **********
+  // Hysteresis
+  // **********
+  void StdPDE::LockHysteresis(){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          it->second->setOverwrite(false);
+        }
+     }
+  }
+
+  void StdPDE::UnlockHysteresis(){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          it->second->setOverwrite(true);
+        }
+      }
+  }
+
 } // end of namespace
 
 

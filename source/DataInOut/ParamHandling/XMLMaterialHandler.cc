@@ -153,9 +153,6 @@ namespace CoupledField {
       RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
                         << "' of class '" << matClass << "'" );
     }
-    
-   
-
     return material;
   }
 
@@ -868,9 +865,10 @@ namespace CoupledField {
         if(p->Has("pSat"))
           material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
 
-        // read P saturation of Preisach hysterese model
-        if(p->Has("Pr"))
-          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL ); 
+        // never used
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
 
         // read direction of polarization
         if(p->Has("dirP"))
@@ -885,39 +883,42 @@ namespace CoupledField {
             EXCEPTION(dir << " is valid coordinate direction for electric preisach "
                       << " hysteresis model polarization");
         }
-        
-        if(p->Has("preisachDim"))
-        {
-          int dim = p->Get("preisachDim")->As<Integer>();
+        // not needed anymore -> preisach is always scalar; vector model has its own name now
+        material->SetScalar("SCALAR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
 
-          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
-          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
-          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
-        } else {
-          material->SetScalar("SCALAR", PREISACH_DIM);
-        }
+        // only relevant for vector model
+//        if(p->Has("rotRes")){
+//          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+//        } else {
+//          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+//        }
+//
+//        if(p->Has("evalVersion")){
+//          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+//        } else {
+//          material->SetScalar(4, EVAL_VERSION);
+//        }
 
-        if(p->Has("rotRes")){
-          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
-        }
-
-        if(p->Has("evalVersion")){
-          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
-        } else {
-          material->SetScalar(4, EVAL_VERSION);
-        }
-
-        if(p->Has("isTesting")){
-          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
-        } else {
-          material->SetScalar(0, IS_TESTING);
-        }
+        // was only needed for vector model
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
 
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
-        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
     
         // read real permittivity tensor    
         if(p->Has("weights"))
@@ -925,6 +926,113 @@ namespace CoupledField {
           Matrix<Double> preisachWeightTensor(dim,dim);
           ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+      }
+      else if (elec->Get("hystModel")->Has("vectorPreisach"))
+      {
+        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach");
+
+        // force name
+        material->SetScalar("vectorPreisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("eSat"))
+          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read P saturation of Preisach hysterese model
+        if(p->Has("pSat"))
+          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        /*
+         * new numbering: 1 -> classical vector model (sutor2012)
+         *                2 -> revised model (sutor2015)
+         *                10 -> classical vector model, matrix based
+         *                20 -> revised model, matrix based
+         */
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(2, EVAL_VERSION);
+        }
+
+        // never used so far
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // only relevant for scalar model
+//        // read direction of polarization
+//        if(p->Has("dirP"))
+//        {
+//          int dir = p->Get("dirP")->As<Integer>();
+//
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                      << " hysteresis model polarization");
+//        }
+
+        //not needed anymore as vectorPreisach always is vectorial
+        material->SetScalar("VECTOR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        if(p->Has("rotResistance")){
+          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("angularDistance")){
+          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
+        }
+
+        // not used anymore
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+        /*
+         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+         * written to a bmp file of resolution bmpResolution
+         */
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
         }
       }
     }
@@ -1152,6 +1260,208 @@ namespace CoupledField {
       } // end of nonlinear section
     } // end of magneticPermeability  
 
+    //read Preisach hysterese model
+    if(mag->Has("hystModel"))
+    {
+      if(mag->Get("hystModel")->Has("preisach"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
+
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read P saturation of Preisach hysterese model
+        if(p->Has("mSat"))
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        // never used
+//        // read M saturation of Preisach hysterese model
+//        if(p->Has("Mr"))
+//          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // read direction of polarization
+        if(p->Has("dirM"))
+        {
+          int dir = p->Get("dirM")->As<Integer>();
+
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+                      << " hysteresis model polarization");
+        }
+        // not needed anymore -> preisach is always scalar; vector model has its own name now
+        material->SetScalar("SCALAR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        // only relevant for vector model
+//        if(p->Has("rotRes")){
+//          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+//        } else {
+//          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+//        }
+//
+//        if(p->Has("evalVersion")){
+//          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+//        } else {
+//          material->SetScalar(4, EVAL_VERSION);
+//        }
+
+        // was only needed for vector model
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+      }
+      else if (mag->Get("hystModel")->Has("vectorPreisach"))
+      {
+        std::cout << "vectorPreisach found" << std::endl;
+        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
+
+        // force name
+        material->SetScalar("vectorPreisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("hSat")){
+          std::cout << "hSat found" << std::endl;
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        }
+
+        Double tmp;
+        material->GetScalar(tmp, X_SATURATION, Global::REAL);
+        std::cout << "X_SATURATION: " << tmp << std::endl;
+        std::cout << "Material: " << material->GetName() << std::endl;
+
+        // read P saturation of Preisach hysterese model
+        if(p->Has("mSat")){
+          std::cout << "mSat found" << std::endl;
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+        }
+        /*
+         * new numbering: 1 -> classical vector model (sutor2012)
+         *                2 -> revised model (sutor2015)
+         *                10 -> classical vector model, matrix based
+         *                20 -> revised model, matrix based
+         */
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(2, EVAL_VERSION);
+        }
+
+        // never used so far
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // only relevant for scalar model
+//        // read direction of polarization
+//        if(p->Has("dirP"))
+//        {
+//          int dir = p->Get("dirP")->As<Integer>();
+//
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                      << " hysteresis model polarization");
+//        }
+
+        //not needed anymore as vectorPreisach always is vectorial
+        std::cout << "setScalar VECTOR" << std::endl;
+        material->SetScalar("VECTOR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        std::cout << "setScalar rotResistance" << std::endl;
+        if(p->Has("rotResistance")){
+          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("angularDistance")){
+          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
+        }
+
+        // not used anymore
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+        /*
+         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+         * written to a bmp file of resolution bmpResolution
+         */
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
+        }
+      }
+    }
+
+ /*
+  *
     if(mag->Has("hystModel"))
     {
       if(mag->Get("hystModel")->Has("preisach"))
@@ -1209,6 +1519,18 @@ namespace CoupledField {
           material->SetScalar(4, EVAL_VERSION);
         }
 
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
+        }
+
         if(p->Has("isTesting")){
           material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
         } else {
@@ -1228,8 +1550,11 @@ namespace CoupledField {
         }
       }
     }
+  *
+  */
 
 /* old
+ *
     //read Preisach hysterese model
     if(mag->Has("hystModel"))
     {

@@ -64,7 +64,7 @@ namespace CoupledField {
   static const RegionIdType NO_REGION_ID = -1;
   static const RegionIdType ALL_REGIONS = -2;
 
-  static const Double PI = std::acos(-1.0L);
+  //static const Double PI = std::acos(-1.0L);
   static const Double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   static const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
 
@@ -272,7 +272,8 @@ namespace CoupledField {
       HEAT_CONDUCTIVITY, HEAT_CAPACITY, PIEZO_TENSOR, HEAT_CONDUCTIVITY_TENSOR,
       MAGNETOSTRICTION_TENSOR_h,
       X_SATURATION, Y_SATURATION, Y_REMANENCE, PREISACH_WEIGHTS, A_JILES,
-      ALPHA_JILES, K_JILES, C_JILES, P_DIRECTION, HYST_MODEL, PREISACH_DIM, ROT_RESISTANCE, EVAL_VERSION, IS_TESTING,
+      ALPHA_JILES, K_JILES, C_JILES, P_DIRECTION, HYST_MODEL, PREISACH_DIM, ROT_RESISTANCE, EVAL_VERSION,
+      PRINT_PREISACH,PRINT_PREISACH_RESOLUTION,IS_TESTING, ANG_DISTANCE,
       NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,
       NONLIN_DATA_NAME, DYNAMIC_VISCOSITY, KINEMATIC_VISCOSITY,
       DATA_ACCURACY, MAX_APPROX_VAL,

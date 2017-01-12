@@ -1235,6 +1235,8 @@ namespace CoupledField
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
 
+
+    std::cout << "Assemble: AssembleRHSLinForms" << std::endl;
     StdVector<Integer> eqnVec;
     FeFctIdType fctId;
     StdVector<LinearFormContext*>::iterator formsIt;
@@ -1310,8 +1312,6 @@ namespace CoupledField
 
             // Calculate real valued element vector
             form->CalcElemVector( elemVec, entIt );
-
-            //std::cout << "elemVector: " << elemVec << std::endl;
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );

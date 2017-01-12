@@ -164,6 +164,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       //get possible nonlinearities defined in this region
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
 
+      std::cout << "ActRegion: " << regionName << std::endl;
+      std::cout << "ActMat: " << actMat->GetName() << std::endl;
+
       // ====================================================================
       //  NONLINEAR BH RELATION (NON-HYSTERETIC)
       // ====================================================================
@@ -280,7 +283,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
               curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
 
-              std::cout << "Using FixPoint Hystersis" << std::endl;
+              std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
 
               isHysteresisFixPoint_ = true;
             } else {
@@ -838,7 +841,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           }
         }
 
-        std::cout << "type of lin: " << typeid(lin).name() << std::endl;
+        //std::cout << "type of lin: " << typeid(lin).name() << std::endl;
 
         lin->SetName("rhs_magnetization");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -846,7 +849,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         ctx->SetFeFunction(feFct);
         assemble_->AddLinearForm(ctx);
         // Add entity list will add nothing, if entities were already assigned
-        feFct->AddEntityList(actSDList);
+        //feFct->AddEntityList(actSDList);
       }
     }
 

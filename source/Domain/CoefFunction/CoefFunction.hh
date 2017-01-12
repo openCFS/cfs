@@ -513,10 +513,23 @@ public:
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
 
-  //!
+  //! Functions needed for Hystersis
   virtual void SetPreviousHystVals() {
 	  EXCEPTION("SetPreviousHystVals not available");
   }
+
+  //! function for Hysteresis operator to allow or disallow memory setting
+  virtual void setOverwrite(bool overwrite){
+    EXCEPTION("setOverwrite not available");
+  }
+
+  //! for calculation of div and rot in coefFncHyst, we need information about grid
+  //! and about regions which have hysteresis assigned;
+  //! we can get access to both information if we know the PDE which called this coef function
+  virtual void SetLinkedPDE(StdPDE* linkedPDE){
+    EXCEPTION( "Not implemented in base class");
+  }
+
   //@}
 
   //@}
@@ -570,6 +583,9 @@ protected:
 
   //! Flag indicating if the CoefFunction supports derivatives
   bool supportDerivative_;
+
+  //! only needed for hystersis
+  StdPDE* linkedPDE_;
 
 };
 
@@ -644,7 +660,6 @@ public:
     }
     return;
   }
-
 };
 
 }

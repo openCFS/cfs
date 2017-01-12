@@ -142,7 +142,6 @@ typedef std::multimap<int, std::string> EnumMap;
           EnumMap::const_iterator it, end;
           it = map.begin();
           end = map.end();
-
             
           for( ; it != end; it++)
           {

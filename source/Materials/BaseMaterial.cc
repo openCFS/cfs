@@ -14,6 +14,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "Materials/Models/VectorPreisach.hh"
 #include "Materials/Models/VectorPreisachv7.hh"
+#include "Materials/Models/VectorPreisachv10.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -702,6 +703,13 @@ namespace CoupledField
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                bool isInverse, bool computeHystInverse, UInt dim ) {
 
+    /*
+     * is this function ever called?
+     * -> grep shows NO call to InitHyst;
+     *    instead everything is handeled via CoefFunctionHyst
+     */
+    std::cout << "Actually called" << std::endl;
+
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
 
@@ -736,11 +744,59 @@ namespace CoupledField
         int isTesting;
         GetScalar(isTesting, IS_TESTING);
 
-        if(evalVersion == 7){
-          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-        } else {
-          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
-        }
+        Double angDistance;
+        Matrix<Double> easyAxis_Matrix;
+        Vector<Double> easyAxis = Vector<Double>(dim);
+        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+
+      /*
+       * should be obsolete as hyst_ is initialized in coefFctHyst
+       */
+
+      bool classical;
+
+      if(evalVersion == 1){
+        classical = true; // original vector preisach model -> sutor2012
+
+        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 2){
+        classical = false; // revised vector preisach model -> sutor2015
+
+        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 10){
+        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
+
+        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 20){
+        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
+
+        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else {
+        EXCEPTION("evalVersion has to be one of the following: \n "
+            "1: classical vector model (sutor2012) \n"
+            "2: revised vector model (sutor2015) [DEFAULT] \n"
+            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+      }
+
+//        if((evalVersion == 7)||(evalVersion == 8)){
+//          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//        } else if((evalVersion == 9)||(evalVersion == 10)){
+//		  Vector<Double> easyAxis = Vector<Double>(dim_);
+//		  Double phaseLag = 0.0;
+//		  hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
+//        } else {
+//          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//        }
+
       }
 
 

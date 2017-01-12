@@ -161,6 +161,14 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
+    /*
+     * for use in lineSearch: temporal values should not
+     * affect the memory of the hysteresis operator
+     * -> lock before perfroming lineSearch, then unlock afterwards
+     */
+    void LockHysteresis();
+    void UnlockHysteresis();
+
     bool IsHysteresis_Fixpoint()
     { return isHysteresisFixPoint_;};
 

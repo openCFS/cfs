@@ -211,10 +211,47 @@
   <xsd:complexType name="DT_MagHystModel">
     <xsd:choice>
       <xsd:element name="preisach" type="DT_MagPreisachHystModel"/>
+      <xsd:element name="vectorPreisach" type="DT_MagVectorPreisachHystModel"/>
     </xsd:choice>
   </xsd:complexType>
+    
+  <xsd:complexType name="DT_MagPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="hSat" type="xsd:double"/>
+      <xsd:element name="mSat" type="xsd:double"/>
+      <xsd:element name="dirM" type="DT_Direction"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="100000000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+  </xsd:complexType>
   
+    <xsd:complexType name="DT_MagVectorPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="hSat" type="xsd:double"/>
+      <xsd:element name="mSat" type="xsd:double"/>
+      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="100000000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
   
+   <!-- old
   <xsd:complexType name="DT_MagPreisachHystModel">
     <xsd:sequence>
       <xsd:element name="hSat" type="xsd:double"/>
@@ -225,6 +262,8 @@
       <xsd:element name="preisachDim"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="rotRes"  type="xsd:double" minOccurs="0"/>
       <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="isTesting"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="weights">
         <xsd:simpleType>
@@ -235,7 +274,7 @@
       </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
-  <!-- old
+ 
   <xsd:complexType name="DT_MagPreisachHystModel">
     <xsd:sequence>
       <xsd:element name="hSat" type="xsd:double"/>

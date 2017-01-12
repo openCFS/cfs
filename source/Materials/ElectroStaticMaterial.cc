@@ -36,7 +36,10 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_DIM );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( EVAL_VERSION );
+    isAllowed_.insert( PRINT_PREISACH );
+    isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
+    isAllowed_.insert( ANG_DISTANCE );
     isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
@@ -137,7 +140,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
                                         Global::ComplexPart dataType ) {
     
-
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
       std::string dim = "tensor";
@@ -146,6 +148,8 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType == Global::REAL || dataType == Global::IMAG ) {
+        std::cout << param.GetNumRows() << std::endl;
+        std::cout << param.GetNumCols() << std::endl;
         if ( tensorParams_[matType].GetNumRows() == 0 ) {
           tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();

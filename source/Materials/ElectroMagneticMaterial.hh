@@ -49,6 +49,10 @@ namespace CoupledField {
     void GetScalar( Complex& param, MaterialType matType, 
 		    Global::ComplexPart dataType ) const;
 
+    //! get a scalar integer material parameter (needed for hysteresis only)
+    void GetScalar( Integer& param,
+                    MaterialType matType ) const;
+
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
@@ -78,8 +82,9 @@ namespace CoupledField {
     //============================ HYSTERESIS ===================================
 
     //Initialize hysteresis
-    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
-                           bool isInverse = false, bool computeInverse = false );
+    //Already defined in base class; never called?
+    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+    //                       bool isInverse = false, bool computeInverse = false );
 
     //set values for differential material approach
     virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
