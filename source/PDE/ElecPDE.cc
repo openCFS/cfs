@@ -711,7 +711,26 @@ namespace CoupledField {
     // =================================
     //  Polarisation -> from hysteresis (VOLUME)
     // =================================
-
+    /*!
+     * Mathematical formulation
+     * (see detailed version under ...)
+     *
+     * Final weak form for fixpoint iteration with f containing all other rhs loads:
+     *  \int \grad W_e \cdot \eps_0 \grad V_e = f + \int \grad W_e \cdot P
+     *
+     *  -> we have to add the term
+     *    \int \grad W_e \cdot P
+     *  -> BUIntegrator(Gradient, factor*(+1), coefFncHyst)
+     *
+     * Notes:
+     *  - Polarization has only to be considered in volume integral
+     *  -> both boundary as well as interface conditions are set for D
+     *     (which should not change by splitting it into \eps_0 E + P)
+     *  - Only polarization itself is required; no derivatives, no divergence
+     *  -> the term \int W_e div(P) has to be treated by Green's integral theorem, too
+     *  -> if we would not do this, the boundary terms would only contain \eps_0 E instead
+     *     of \eps_0 E + P; therewith, conditions for D would be set wrong
+     */
     //check for hysteresis
     if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
@@ -730,8 +749,27 @@ namespace CoupledField {
         // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
         bool fullevaluation = false;
 
+        if(isComplex_) {
+          if( dim_ == 2 ) {
+            lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(),
+                                           Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+          } else {
+            lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,3,1,Complex>(),
+                                            Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+          }
+        } else  {
+          if( dim_ == 2 ) {
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (),
+                                            (factor),it->second,  coefUpdateGeo, fullevaluation);
+          } else {
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (),
+                                             (factor),it->second,  coefUpdateGeo, fullevaluation);
+          }
+        }
+
+/*
         //NOTE: 
-        //If this is red correctly, we assume an integrator of the form - \int_\Omega \varphi \nabla \cdot \vec{P} d\Omega
+        //If this is read correctly, we assume an integrator of the form - \int_\Omega \varphi \nabla \cdot \vec{P} d\Omega
         //This cannot be acchieved with the code below as it really defines 
         // -\int_\Omega \nabla \cdot \varphi \cdot \vec{P} d\Omega which does not make sense.
         //The operator in BUInt is supposed to work only on the test function.
@@ -741,7 +779,7 @@ namespace CoupledField {
         // 2. Modify the coefFunction (Material?) to return the divergence directly and
         //    set an identity operator on the scalar test function.
 
-        /* for possibility two, a test with the following can be a solution 
+         for possibility two, a test with the following can be a solution
         it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -752,9 +790,9 @@ namespace CoupledField {
 
          But make sure, that the result is as expected. The SetDerivativeOperation is only
          implemented in some CoefFunctions...
-         */
 
 
+ * see comment above: cannot work
         if(isComplex_) {
           if( dim_ == 2 ) {
           // we need -factor as we put +divP to the rhs
@@ -775,6 +813,52 @@ namespace CoupledField {
           }
         }
 
+
+         * NEW:
+         * 1. use identity operator (as we do not want to have the derivative of the test function)
+         * 2. set it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE); to
+         *      use div(P) instead of P
+         *
+         *      -> does not work as the coefFunction is not analytic
+         *      Further attemps to calculate divP failed, too as coefFunction has no conection to
+         *      the FE-Space; i.e. we cannot use the divergence operator on it
+         *
+         * Last chance:
+         *  apply integration by parts, i.e. instead of using
+         *    - int varphi div(P)
+         *  we use
+         *    int nabla varphi P   -  surfint varphi P
+         *
+         *  to do so, we have to get access to the surface regions connected to the
+         *  actual region and add integrators on these surface regions, too;
+         *  open questions:
+         *    1. how to do that
+         *    2. what about jumps in the material parameter (D_n1 = D_n2; E_t1 = E_t2; what about P?);
+         *        do we have to consider this? how is this done for E?
+
+
+
+         * new: coefFncHyst has the posibility to calculate the divergence (or at least to approximate it)
+         * to do so, it has to have a connection to this pde first
+
+        it->second->SetLinkedPDE(this);
+
+         * the next step is to mark the coefFnc with a specialType so that it returns the divergence
+         * this call will also set the dimension type from vector to scalar (so that the BUIntegrator gets
+         * calls the right function
+
+        std::cout << "Polarization dimension: " << it->second->GetDimType() << std::endl;
+        it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
+        std::cout << "div(Polarization) dimension: " << it->second->GetDimType() << std::endl;
+
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                           Complex(-1*factor), it->second,coefUpdateGeo, fullevaluation);
+        } else  {
+          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                          -1*factor, it->second,coefUpdateGeo, fullevaluation);
+        }*/
+
         lin->SetName("rhs_polarization");
         lin->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -782,7 +866,7 @@ namespace CoupledField {
         ctx->SetFeFunction(myFct);
         assemble_->AddLinearForm(ctx);
         // Add entity list will add nothing, if entities were already assigned
-        //myFct->AddEntityList(actSDList);
+        myFct->AddEntityList(actSDList);
       }
     }
 
@@ -860,7 +944,7 @@ namespace CoupledField {
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
     if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
       /* for both the delta material method as well as the std fixpoint method we have to know
-       * which regions are affected by hystersis
+       * which regions are affected by hysteresis
        */
 
       shared_ptr<CoefFunction > curCoef_tmp;
@@ -889,6 +973,7 @@ namespace CoupledField {
           realVal[4] = eps0;
           realVal[8] = eps0;
         }
+
         StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
         imagVal.Init("0.0");
 
@@ -1080,7 +1165,7 @@ namespace CoupledField {
   void ElecPDE::FinalizeAfterTimeStep() {
 
 	  //check for hysteresis
-	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {
+	  if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
 		  //set current values to previous values for hysteresis operator
 		  //needed for the next time step
 		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();

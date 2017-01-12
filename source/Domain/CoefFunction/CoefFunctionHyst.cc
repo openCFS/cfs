@@ -4,6 +4,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "Materials/Models/VectorPreisach.hh"
 #include "Materials/Models/VectorPreisachv7.hh"
+#include "Materials/Models/VectorPreisachv10.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
 #include "Forms/Operators/BaseBOperator.hh"
@@ -20,7 +21,7 @@ CoefFunctionHyst::CoefFunctionHyst( BaseMaterial* const material,
                     shared_ptr<ElemList> actSDList,
                     PtrCoefFct dependency,
 					SubTensorType tensorType,
-					MaterialType matType) : CoefFunction() {
+					MaterialType matType, StdPDE* linkedPDE) : CoefFunction() {
 
   // this type of coefficient is nonlinear (i.e. solution dependent)
   dimType_ = VECTOR;
@@ -32,6 +33,14 @@ CoefFunctionHyst::CoefFunctionHyst( BaseMaterial* const material,
   matType_    = matType;
   material_   = material;
   tol_ = 1e-15;
+
+  // NEW argument: linkedPDE = PDE which created this coeffunction
+  // use this pde to get access to the grid and to all regions with
+  // hysteresis set
+  linkedPDE_ = linkedPDE;
+
+  // if set to false; changes to hystersis operator will not be stored
+  overwrite_ = true;
 
   Init(material, actSDList);
 }
@@ -45,6 +54,7 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
 
 	// set the parameters
 	Double Xsat, Ysat;
+	std::cout << "Give me back X_SATURATION, please" << std::endl;
 	material->GetScalar(Xsat, X_SATURATION, Global::REAL);
 	material->GetScalar(Ysat, Y_SATURATION, Global::REAL);
 	Matrix<Double> weights;
@@ -85,25 +95,84 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
     evalVersion_ = 0;
 	} else if(methodType_ == VECTOR){
 
+	  dim_ = dependCoef_->GetVecSize();
+
 	  //std::cout << "Using Vector Hysteresis" << std::endl;
+	  Double angDistance;
+	  Matrix<Double> easyAxis_Matrix;
+	  Vector<Double> easyAxis = Vector<Double>(dim_);
+    int printOut;
+    int bmpResolution;
 
 	  material->GetScalar(rotRes_, ROT_RESISTANCE, Global::REAL);
+	  material->GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+
+	  std::cout << "angularDistance from material file: " << angDistance << std::endl;
+
+	  material->GetScalar(printOut,PRINT_PREISACH);
+	  material->GetScalar(bmpResolution,PRINT_PREISACH_RESOLUTION);
+
+    std::cout << "read print and print resolution" << std::endl;
+    std::cout << "PRINT_PREISACH: " << printOut << std::endl;
+    std::cout << "PRINT_PREISACH_RESOLUTION: " << bmpResolution << std::endl;
+
+
+	  /*
+	   * if printOut > 0 -> activate output of overlaid switching and rotation state; output every printOut timestep
+	   * bmpResolution -> number of pixels (std = 1000)
+	   */
+	  printOut_ = (UInt)printOut;
+	  bmpResolution_ = (UInt)bmpResolution;
 
     int eval;
     material->GetScalar(eval, EVAL_VERSION);
 
     evalVersion_ = (UInt) eval;
-    int isTesting;
-    material->GetScalar(isTesting, IS_TESTING);
+    bool classical;
 
-	  dim_ = dependCoef_->GetVecSize();
-	  if(evalVersion_ == 7){
-	    //std::cout << "Using Vector Hystersis v7" << std::endl;
-	    hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotRes_,dim_, isVirgin, isTesting!=0, (UInt) evalVersion_);
-	  } else {
-	    //std::cout << "Using Vector Hystersis v" << evalVersion_ << std::endl;
-	    hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotRes_,dim_, isVirgin, isTesting!=0, (UInt) evalVersion_);
-	  }
+    if(evalVersion_ == 1){
+      classical = true; // original vector preisach model -> sutor2012
+
+      hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                 weights, rotRes_, dim_, isVirgin,
+                                                 classical, angDistance);
+    } else if(evalVersion_ == 2){
+      classical = false; // revised vector preisach model -> sutor2015
+
+      hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                 weights, rotRes_, dim_, isVirgin,
+                                                 classical, angDistance);
+    } else if(evalVersion_ == 10){
+      classical = true; // original vector preisach model -> sutor2015; matrix based implementation
+
+      hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                 weights, rotRes_, dim_, isVirgin,
+                                                 classical, angDistance);
+    } else if(evalVersion_ == 20){
+      classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
+
+      hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                 weights, rotRes_, dim_, isVirgin,
+                                                 classical, angDistance);
+    } else {
+      EXCEPTION("evalVersion has to be one of the following: \n "
+          "1: classical vector model (sutor2012) \n"
+          "2: revised vector model (sutor2015) [DEFAULT] \n"
+          "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+          "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+    }
+//	  if((evalVersion_ == 7)||(evalVersion_ == 8)){
+//	    //std::cout << "Using Vector Hystersis v7" << std::endl;
+//	    hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotRes_,dim_, isVirgin, isTesting!=0, (UInt) evalVersion_);
+//	  } else if((evalVersion_ == 9)||(evalVersion_ == 10)){
+//	    //TODO: read out from xml file!!!
+//	    Vector<Double> easyAxis = Vector<Double>(dim_);
+//	    Double phaseLag = 0.0;
+//	    hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotRes_,dim_, isVirgin, isTesting!=0, (UInt) evalVersion_,phaseLag,easyAxis);
+//	  } else {
+//	    //std::cout << "Using Vector Hystersis v" << evalVersion_ << std::endl;
+//	    hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotRes_,dim_, isVirgin, isTesting!=0, (UInt) evalVersion_);
+//	  }
 	}
 
 	// set map: global to local element number
@@ -198,6 +267,10 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
   }
   //std::cout << "Init CoefFncHyst passed" << std::endl;
 
+}
+
+void CoefFunctionHyst::setOverwrite(bool overwrite_new){
+  overwrite_ = overwrite_new;
 }
 
 void CoefFunctionHyst::GetTensor( Matrix<Double>& tensor,
@@ -479,22 +552,199 @@ void CoefFunctionHyst::GetTensor( Matrix<Double>& tensor,
     }
 }
 
-void CoefFunctionHyst::GetScalar( Double& valY,
-                                  const LocPointMapped& lpm ) {
-
-  if(methodType_ != SCALAR){
-    EXCEPTION("Only implemented for scalar model");
-  }
-	Double valX;
-	ComputeXY(lpm, valX, valY);
+void CoefFunctionHyst::SetLinkedPDE(StdPDE* linkedPDE){
+  linkedPDE_ = linkedPDE;
 }
 
-void CoefFunctionHyst::GetVector( Vector<Double>& valY,const LocPointMapped& lpm ) {
+// normally SetDerivativeOperation is only valid for analytic coefFunctions
+// however, we can use the same types here to trigger the approximation of DIVERGENCE and ROTATION here
+// (needed for rhs-fixpoint coupling)
+void CoefFunctionHyst::SetDerivativeOperation(CoefDerivativeType type){
+  this->derivType_ = type;
 
+  //make some checks here!
+  switch(dimType_){
+  case SCALAR:
+    //only NONE is valid right now
+    //if extended to gradient, this would be fine too
+    if(type==VECTOR_DIVERGENCE){
+      EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+    }
+    break;
+  case VECTOR:
+    //this is fine in all cases right now
+    if(type==VECTOR_DIVERGENCE){
+      //change dim type to scalar
+      this->dimType_ = SCALAR;
+      //PAY ATTENTION: In case of a derivative, the coefFunction is
+      // no longer analytic due to the current implementation!
+      this->isAnalytic_ = false;
+    }
+    break;
+  case TENSOR:
+    if(type==VECTOR_DIVERGENCE){
+      EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+    }
+    break;
+  default:
+    break;
+  }
+  return;
+}
+
+// has to be callable with Vector<Double>, too in order to use it for vector case
+void CoefFunctionHyst::GetScalar( Double& valY,const LocPointMapped& lpm ) {
+
+  if(derivType_ == VECTOR_DIVERGENCE){
+//    // Approximate divergence by taking the polarization from neighboring elements
+//    // and divide difference to own value
+//    Double divP = 0.0;
+//
+//    // get own coordinates (i.e. coordinates of element center)
+//    const Elem * el = lpm.ptEl;
+//    LocPoint ownCoords = Elem::shapes[el->type].midPointCoord;
+//
+//    // try to get neighborhood of el
+//    if(linkedPDE_ == NULL){
+//      WARN("No linked PDE was set! Cannot compute div. Return 0 instead");
+//      valY = 0;
+//      return;
+//    }
+//
+//    // map neighborhood of ALL elements (takes some time but has to be done only once
+//    linkedPDE_->GetGrid()->FindElementNeighorhood();
+//
+//    Double neighborValue_scal;
+//    Double ownValue_scal;
+//    Double xVal;
+//    Vector<Double> neighborValue_vec;
+//    Vector<Double> ownValue_vec;
+//    Vector<Double> xVal_vec;
+//    // get own value
+//    if(methodType_ == SCALAR){
+//      ComputeXY(lpm, xVal, ownValue_scal);
+//      std::cout << "Own value (scal): " << ownValue_scal << std::endl;
+//    } else {
+//      ComputeXY_vec(lpm, xVal_vec, ownValue_vec, false);
+//      std::cout << "Own value (vec): " << ownValue_vec.ToString() << std::endl;
+//    }
+//    std::cout << "Own coordinates: " << ownCoords << std::endl;
+//
+//    // get shape map
+//    shared_ptr<ElemShapeMap> esm_own = linkedPDE_->GetGrid()->GetElemShapeMap( el);
+//    Vector<Double> ownCoords_glob;
+//    esm_own->Local2Global(ownCoords_glob,ownCoords);
+//    std::cout << "Own coordinates (global): " << ownCoords_glob << std::endl;
+//
+//
+//    // get all neighbors of the CURRENT element and iterate through it
+//    StdVector<std::pair<Elem*, int> >::iterator vecIt;
+//    StdVector<NonLinType> nonLinTypesNeigh;
+//
+//    std::cout << "Size of neighborhood: " << el->extended->neighborhood->GetSize() << std::endl;
+//
+//    // get surface element neighbors
+//    StdVector<Elem *> surfEl;
+//    //UInt volElemNum = el->elemNum;
+//
+//    std::cout << "SurfElems attached: " << Elem::shapes[el->type].numSurfElems << std::endl;
+//
+//    for(vecIt = el->extended->neighborhood->Begin(); vecIt != el->extended->neighborhood->End(); vecIt++){
+//      // get regionId
+//      std::cout << "Take a look at neighbor" << std::endl;
+//
+//      Elem* neighbor = vecIt->first;
+//
+//      // get lp of neighbors midpoint
+//      LocPoint neighborlp = Elem::shapes[neighbor->type].midPointCoord;
+//
+//      std::cout << "Neighbor coordinates: " << neighborlp << std::endl;
+//
+//      // get shape map
+//      shared_ptr<ElemShapeMap> esm = linkedPDE_->GetGrid()->GetElemShapeMap( neighbor);
+//      Vector<Double> neighborCoords_glob;
+//      esm->Local2Global(neighborCoords_glob,neighborlp);
+//      std::cout << "Neighbor coordinates (global): " << neighborCoords_glob << std::endl;
+//
+//      // calculate distance in x,y,z between own midpoint and neighbor midpoint
+//      //Vector<Double> xyzDist = ownCoords.coord-neighborlp.coord;
+//      Vector<Double> xyzDist_glod = ownCoords_glob-neighborCoords_glob;
+//
+//      //std::cout << "Dist in local coords: " << xyzDist << std::endl;
+//      std::cout << "Dist in global coords: " << xyzDist_glod << std::endl;
+//
+//      // approximate divergence by dP(x)/dx + dP(y)/dy + dP(z)/dz
+//      // with dP(dirP_) = ownValue_scal - neighborValue_scal
+//      // check if dx,dy.dz is not 0
+//      Double dxyz;
+//      if(methodType_ == SCALAR){
+//        dxyz = xyzDist_glod[dirP_];
+//      } else {
+//        dxyz = xyzDist_glod.NormMax();
+//      }
+//
+//      if(abs(dxyz) > 1e-15){
+//          // only if there is a difference in coordinates in the direction of interest, we
+//          // have to continue
+//          RegionIdType neighRegion = neighbor->regionId;
+//          // check if this region has hystersis assigned
+//          nonLinTypesNeigh = linkedPDE_->GetNonLinRegionTypes()[neighRegion];
+//
+//          if ( nonLinTypesNeigh.Find(HYSTERESIS) != -1 || nonLinTypesNeigh.Find(HYSTERESIS_FIXPOINT) != -1 ){
+//            std::cout << "Neighbor with hysteresis found" << std::endl;
+//            // neighbor has hystersis, too; -> it should have a coefFunction of this type and such has
+//            // the function ComputeXY
+//
+//            // get shape map
+//            shared_ptr<ElemShapeMap> esm = linkedPDE_->GetGrid()->GetElemShapeMap( neighbor);
+//
+//            // create a lpm with 0.0 as weight (we do not want to integrate)
+//            LocPointMapped neighborlpm;
+//            neighborlpm.Set(neighborlp, esm, 0.0);
+//
+//            // compute value of neighbor (if value already was computed this will cause only an array access)
+//            if(methodType_ == SCALAR){
+//              ComputeXY(neighborlpm, xVal, neighborValue_scal);
+//            } else {
+//              ComputeXY_vec(neighborlpm, xVal_vec, neighborValue_vec,false);
+//            }
+//
+//          } else {
+//            std::cout << "Neighbor without hysteresis found" << std::endl;
+//            // neighbor has no hysteresis (i.e. polarization/magnetization = 0)
+//            // neighborValue = 0; div to neighbor != 0!
+//            neighborValue_scal = 0;
+//            neighborValue_vec.Init();
+//          }
+//          if(methodType_ == SCALAR){
+//            divP += (ownValue_scal - neighborValue_scal)/dxyz;
+//          } else {
+//            for(UInt i = 0; i < dim_; i++){
+//              if(xyzDist_glod[i] > 1e-15){
+//                divP += (ownValue_vec[i] - neighborValue_vec[i])/xyzDist_glod[i];
+//              }
+//            }
+//          }
+//        }
+//      }
+//      std::cout << "Estimated div: " << divP << std::endl;
+//      valY = 0;//divP;
+
+    // std access to scalar (works only for scalar model)
+    } else {
+      if(methodType_ != SCALAR){
+        EXCEPTION("Only implemented for scalar model");
+      }
+      Double valX;
+      ComputeXY(lpm, valX, valY);
+    }
+}
+
+void CoefFunctionHyst::GetVector( Vector<Double>& valY,const LocPointMapped& lpm) {
  // std::cout << "CoefFunctionHyst::GetVector called" << std::endl;
   if(methodType_ == VECTOR){
     Vector<Double> valX;
-    ComputeXY_vec(lpm, valX, valY, true);
+    ComputeXY_vec(lpm, valX, valY, overwrite_);
   } else if(methodType_ == SCALAR){
     Double valX_scal;
     Double valY_scal;
@@ -508,30 +758,36 @@ void CoefFunctionHyst::GetVector( Vector<Double>& valY,const LocPointMapped& lpm
 
 void CoefFunctionHyst::SetPreviousHystVals() {
 
-	EntityIterator it = SDList_->GetIterator();
+  if(overwrite_ == false){
+    std::cout << "Do not SetPreviousHystVals!" << std::endl;
+    return;
+  } else {
+    std::cout << "SetPreviousHystVals!" << std::endl;
+    EntityIterator it = SDList_->GetIterator();
 
-	//Vector<Double> elemSol;
-	for(it.Begin(); !it.IsEnd(); it++) {
-		const Elem * el = it.GetElem();
-		LocPoint lp = Elem::shapes[el->type].midPointCoord;
-		LocPointMapped lpm;
-		shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
-		lpm.Set(lp, esm, 0.0);
-		UInt idx = globalElem2Local_[el->elemNum];
+    //Vector<Double> elemSol;
+    for(it.Begin(); !it.IsEnd(); it++) {
+      const Elem * el = it.GetElem();
+      LocPoint lp = Elem::shapes[el->type].midPointCoord;
+      LocPointMapped lpm;
+      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+      lpm.Set(lp, esm, 0.0);
+      UInt idx = globalElem2Local_[el->elemNum];
 
-		if(methodType_ == SCALAR){
-      Double X, Y;
-      ComputeXY(lpm, X, Y);
-      Xprevious_[idx] = X;
-      Yprevious_[idx] = Y;
-		} else if(methodType_ == VECTOR){
-		  Vector<Double> X,Y;
-		  ComputeXY_vec(lpm, X, Y, true);
-		  //std::cout << "SetPreviousHystVals X / Y " << X.ToString() << " / " << Y.ToString() << std::endl;
-      XpreviousVEC_[idx] = X;
-      YpreviousVEC_[idx] = Y;
-		}
-	}
+      if(methodType_ == SCALAR){
+        Double X, Y;
+        ComputeXY(lpm, X, Y);
+        Xprevious_[idx] = X;
+        Yprevious_[idx] = Y;
+      } else if(methodType_ == VECTOR){
+        Vector<Double> X,Y;
+        ComputeXY_vec(lpm, X, Y, overwrite_);
+        //std::cout << "SetPreviousHystVals X / Y " << X.ToString() << " / " << Y.ToString() << std::endl;
+        XpreviousVEC_[idx] = X;
+        YpreviousVEC_[idx] = Y;
+      }
+    }
+  }
 }
 
 void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y, bool overwrite) {
@@ -655,7 +911,7 @@ void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>&
     }
 
   //  std::cout << "Try to compute value" << std::endl;
-    Y = hyst_->computeValue_vec(X, idx);
+    Y = hyst_->computeValue_vec(X, idx, overwrite);
 
   //
   //  /*
@@ -734,16 +990,14 @@ void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>&
 //    std::cout << "firstIdx: " << firstIdx << std::endl;
 //    std::cout << "idx: " << idx << std::endl;
 
+    if(printOut_ > 0){
     //std::cout << "CNT: " << cnt << std::endl;
-    if((cnt==100)&&(idx==firstIdx)){
-      if((evalVersion_ == 0)||(evalVersion_ == 6)||(evalVersion_ == 7)){
+    if((cnt%printOut_==0)&&(idx==firstIdx)){
+
         std::cout << "Outputting bmp" << std::endl;
         std::stringstream filenamebuf;
         filenamebuf << "Switch_Elem"<<firstIdx<<"_Step" << std::setfill('0') << std::setw(5)<<cnt<<"_v"<<evalVersion_<<"_numRows"<<numRows_<<".bmp";
-        hyst_->switchingStateToBmp(10000,filenamebuf.str(),idx,true);
-      } else {
-        std::cout << "No output of bmp as these versions do only partially update the switching matrix." << std::endl;
-      }
+        hyst_->switchingStateToBmp(bmpResolution_,filenamebuf.str(),idx,true);
 
 //
 //      if(evalVersion_ == 7){
@@ -753,12 +1007,16 @@ void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>&
 //      }
 
     }
-
+    }
     if(idx == firstIdx){
       //std::cout << "cnt++" << std::endl;
       cnt++;
     }
   }
+
+  std::cout << "Input E: " << X.ToString() << std::endl;
+  std::cout << "Output P: " << Y.ToString() << std::endl;
+
 }
 
 void CoefFunctionHyst::ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y) {
@@ -803,7 +1061,6 @@ void CoefFunctionHyst::ComputeXY( const LocPointMapped& lpm, Double& X, Double& 
 	  YpreviousIt_[idx] = Y;
 	  //std::cout << "X: " << X << std::endl;
 	  //std::cout << "Y: " << Y << std::endl;
-
 	}
 }
 

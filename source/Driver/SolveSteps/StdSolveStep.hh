@@ -91,6 +91,7 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
     virtual void StepTransNonLinHysteresis();
+    virtual void StepTransNonLinHysteresisTotal();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();

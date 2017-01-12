@@ -24,7 +24,7 @@ namespace CoupledField {
       return 0.0;
     };
 
-    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem) {
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite = true) {
       EXCEPTION( "computeValue not implemented in base-Class" );
       Vector<Double> Yout;
       return Yout;

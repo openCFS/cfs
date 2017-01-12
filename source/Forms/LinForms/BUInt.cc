@@ -32,6 +32,7 @@ BUIntegrator(BaseBOperator * bOp,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
+
 //  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 //#ifndef NDEBUG
 //  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){

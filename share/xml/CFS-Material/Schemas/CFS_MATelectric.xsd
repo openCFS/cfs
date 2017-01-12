@@ -89,10 +89,49 @@
   <xsd:complexType name="DT_ElecHystModel">
     <xsd:choice>
       <xsd:element name="preisach" type="DT_ElecPreisachHystModel"/>
+      <xsd:element name="vectorPreisach" type="DT_ElecVectorPreisachHystModel"/>
     </xsd:choice>
   </xsd:complexType>
   
   <xsd:complexType name="DT_ElecPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="eSat" type="xsd:double"/>
+      <xsd:element name="pSat" type="xsd:double"/>
+      <xsd:element name="dirP" type="DT_Direction"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="100000000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+  </xsd:complexType>
+  
+    <xsd:complexType name="DT_ElecVectorPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="eSat" type="xsd:double"/>
+      <xsd:element name="pSat" type="xsd:double"/>
+      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="100000000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- 
+  
+    <xsd:complexType name="DT_ElecVectorPreisachHystModel">
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
@@ -102,15 +141,17 @@
       <xsd:element name="preisachDim"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="rotRes"  type="xsd:double" minOccurs="0"/>
       <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="isTesting"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="weights">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="1000000"/>
+            <xsd:maxLength value="100000000"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
-  
+  -->
 </xsd:schema>

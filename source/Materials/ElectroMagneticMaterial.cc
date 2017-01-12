@@ -47,7 +47,10 @@ namespace CoupledField
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( EVAL_VERSION );
+    isAllowed_.insert( PRINT_PREISACH );
+    isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
+    isAllowed_.insert( ANG_DISTANCE );
     isAllowed_.insert( PREISACH_DIM );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );
@@ -289,6 +292,21 @@ namespace CoupledField
     }
   }
 
+  void ElectroMagneticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
+
+    integerMap::const_iterator pos;
+    pos = integerParams_.find( matType );
+    std::string value;
+
+    if ( pos == integerParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }
+
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
                                            MaterialType matType, 
                                            Global::ComplexPart dataType,
@@ -403,6 +421,8 @@ namespace CoupledField
 //    }
 //  }
 
+  /*
+   * done in base class
   void ElectroMagneticMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                           bool isInverse, bool computeHystInverse ) {
 
@@ -466,7 +486,7 @@ namespace CoupledField
       vecYact_.Init();
     }
   }
-
+*/
 
   void ElectroMagneticMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& valVec) {
 

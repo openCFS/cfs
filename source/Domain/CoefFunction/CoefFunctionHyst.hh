@@ -30,7 +30,7 @@ public:
                     shared_ptr<ElemList> actSDList,
                     PtrCoefFct dependency,
 					SubTensorType tensorType,
-					MaterialType matType);
+					MaterialType matType, StdPDE* linkedPDE = NULL);
 
   //! Destructor
   virtual ~CoefFunctionHyst();
@@ -41,7 +41,7 @@ public:
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
 
-  void GetVector(Vector<Double>& coefScalar, const LocPointMapped& lpm );
+  void GetVector(Vector<Double>& coefScalar, const LocPointMapped& lpm);
 
   //! Return real-valued tensor at integration point
   void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm );
@@ -65,6 +65,11 @@ public:
       numRows = matTensorStart_.GetNumRows();
       numCols = matTensorStart_.GetNumCols();
   }
+
+  void SetLinkedPDE(StdPDE* linkedPDE);
+  void SetDerivativeOperation(CoefDerivativeType type);
+
+  void setOverwrite(bool overwrite_new);
 
 protected:
   
@@ -139,11 +144,26 @@ protected:
   Double xSat_;
   Double ySat_;
   Double rotRes_;
+  UInt printOut_;
+  UInt bmpResolution_;
   Double rev_mat_fac_;
 
   UInt evalVersion_;
   UInt numRows_;
   Double tol_;
+  bool overwrite_;
+
+
+
+  //! to get divergence and rotation (for fixpoint iteration) add flag specialType_
+  //! if specialType_ == "div": getScalar returns divergence
+  //! if specialType_ == "rot": getVector returns rotation
+  std::string specialType_;
+
+  // for calculation of div and rot we need information about grid
+  // and about regions which have hysteresis assigned;
+  // we can get access to both information if we know the PDE which called this coef function
+  StdPDE* linkedPDE_;
 
 };
 
