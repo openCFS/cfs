@@ -293,6 +293,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
     avg_radius += radius;
     avg_neighbours += neighbors.GetSize();
+    if(neighbors.GetSize() > 1000)
+      in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
