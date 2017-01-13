@@ -77,14 +77,12 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   n_obj_grad(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
   outfilename(""),
-  timer_(new Timer()),
-  timer_callback_(new Timer())
+  timer_(new Timer("snopt", true)) // sub-timer as we already have optimizer_timer_
 {
   LOG_DBG(snopt) << "Initialize SnOpt";
   
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_callback_timer")->SetValue(timer_callback_ );
-  
+  info_->Get(ParamNode::SUMMARY)->Get("snopt/timer")->SetValue(timer_ );
+
   static_snopt = this;
   
   BaseOptimizer::PostInitScale(1.0);
@@ -313,7 +311,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   timer_->Stop();
-  timer_callback_->Start();
+
   
   // reorder design
   StdVector<double> x;
@@ -383,8 +381,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     // first snopt action and we do not want to loose the initial design in the output.
     perform_commit_iteration_ = true; // done on the next Callback() call
   }
-  
-  timer_callback_->Stop();
+
   timer_->Start();
 
   // flush the output

@@ -36,7 +36,7 @@ def set_timer(node):
       else:
         l = node.getparent().tag if node.getparent().tag != "summary" else node.getparent().getparent().tag
   # the optional attribute sub="true" indicates that this is sub-element 
-  # and shall to be considered for missing_time
+  # and shall not be considered for missing_time
   s = node.attrib['sub'] if 'sub' in node.attrib else None
   return Timer(l, w, c, s == 'true')      
           
