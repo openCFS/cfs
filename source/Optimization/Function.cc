@@ -401,6 +401,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
+  case OVERHANG:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -592,6 +593,7 @@ bool Function::IsLocal(Type t) {
   case JUMP:
   case BUMP:
   case CURVATURE:
+  case OVERHANG:
   case PERIODIC:
   case DESIGN:
   case SUM_MODULI:
@@ -709,6 +711,7 @@ bool Function::ForSensitivityFiltering() const {
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
+  case OVERHANG:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -877,6 +880,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
+  case OVERHANG:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -1048,8 +1052,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
           throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
         break;
 
-
   case SLOPE:
+  case OVERHANG:
     if(user == DEFAULT && snopt)
       locality_ = NEXT;
     if(user == DEFAULT && !snopt)
@@ -1889,16 +1893,16 @@ void Function::Local::ToInfo(PtrParamNode in) {
   in->Get("locality")->SetValue(locality.ToString(locality_));
   in->Get("local_size")->SetValue(virtual_elem_map.GetSize());
 
-  if (IsGlobalized()) {
+  if(IsGlobalized()) {
     in->Get("normalize")->SetValue(normalize_);
     in->Get("power")->SetValue(power_);
   }
-  if (ft == OSCILLATION || ft == GLOBAL_OSCILLATION) {
+  if(ft == OSCILLATION || ft == GLOBAL_OSCILLATION) {
     in->Get("beta")->SetValue(beta_);
     in->Get("phase")->SetValue(phase.ToString(phase_));
   }
 
-  if (ft == MOLE || ft == GLOBAL_MOLE)
+  if(ft == MOLE || ft == GLOBAL_MOLE)
     in->Get("eps")->SetValue(eps_);
 
   // we simply handle periodic only in ShapeMapDesign, extend if you generalize!
@@ -1906,9 +1910,8 @@ void Function::Local::ToInfo(PtrParamNode in) {
   if((func_->GetDesignType() == BaseDesignElement::NODE || func_->GetDesignType() == BaseDesignElement::PROFILE) && ft != Function::PERIODIC)
     in->Get("periodic")->SetValue(periodic);
 
-  if (structure_ != NULL)
+  if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
-
 }
 
 Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
@@ -2085,6 +2088,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
       fv = CalcSlope();
     else
       fv = CalcCurvature();
+    break;
+
+  case OVERHANG:
+    assert(false);
+    fv = -1.0; // CalcOverhang();
     break;
 
   case SUM_MODULI:
@@ -2283,6 +2291,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
         gv = CalcCurvatureGradient(n);
       break;
 
+    case OVERHANG:
+      assert(false);
+      gv = -1.0; // CalcOverhangGradient();
+      break;
+
     case STRESS:
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
@@ -2428,6 +2441,22 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 }
 
 double Function::Local::Identifier::CalcSlope() const {
+  double mine = element->GetDesign(DesignElement::SMART);
+  assert(this->neighbor.GetSize() == 1);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+  LOG_DBG3(func) << "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
+                 << " sign=" << sign << " slope -> " << (s * (mine - other));
+  return s * (mine - other);
+}
+
+
+double Function::Local::Identifier::CalcOverhang(const Local* local) const {
+  double a1 = GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
+  double w1 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
+
   double mine = element->GetDesign(DesignElement::SMART);
   assert(this->neighbor.GetSize() == 1);
   double other = neighbor[0]->GetDesign(DesignElement::SMART);

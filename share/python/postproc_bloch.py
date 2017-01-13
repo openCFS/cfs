@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='*', help="selection of the info.xml files to process (with wildcards), default is all")
 parser.add_argument('--fast', help="don't generate images when they already exist", action='store_true')
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
-parser.add_argument('--sort', help="don't generate images but print results sorted by relative band-gap", action='store_true')
+parser.add_argument('--sort', help="don't generate images but print results sorted by normalized band-gap", action='store_true')
 args = parser.parse_args()
 
 input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")   
@@ -32,7 +32,7 @@ for f in input:
           lower = float(iter.attrib['ev_'+ str(ev) + '_max'])
           upper = float(iter.attrib['ev_'+ str(ev+1) + '_min'])
           assert(lower > 0)
-          results.append((problem, (upper-lower) / lower, lower, upper, ev))
+          results.append((problem, (upper-lower) / (lower + .5*(upper-lower)), lower, upper, ev))
           break # no need to loop further
           
     else:        
@@ -55,4 +55,7 @@ for f in input:
 if args.sort:
   sorted = sorted(results, key=lambda x: x[1], reverse=False)
   for gap in sorted:
-    print('{:5.2f}'.format(gap[1]) + ' {:7.1f}'.format(gap[2]) + '->{:7.1f}'.format(gap[3]) + ' ' + str(gap[4]) + '->' + str(gap[4]+1) + ' \t' + gap[0])
+    lower = gap[2]
+    upper = gap[3]
+    rel = (upper-lower) / lower
+    print('norm: {:4.2f}'.format(gap[1]) + ' rel: {:5.2f}'.format(rel) + ' {:7.1f}'.format(gap[2]) + ' ->{:7.1f}'.format(gap[3]) + ' ' + str(gap[4]) + '->' + str(gap[4]+1) + ' \t' + gap[0])
