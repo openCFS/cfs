@@ -568,19 +568,23 @@ class BisecSpline:
     
 # @return vector with Profile or list of vectors
 class Profile:
-  def  __init__(self):
-    self.bisec_angle = -1
-    self.type = None
-    # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
-    self.functions = [None] * 3
-    self.direction = 0
-    
+  bisec_angle = -1
+  type = None
+  # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
+  functions = [None] * 3
+  direction = -1
+  # depending on profile, store the radii of the two boundary circles
+  radius_left = 0
+  radius_right = 0
+      
   def __init__(self, args, dir):
     assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 0 or dir == 1 or dir == 2)
     self.direction = dir
     self.type = args.profile
-    self.functions = [None] * 3
+    self.x1 = args.x1
+    self.y1 = args.y1
+    self.z1 = args.z1
 
     global infoXml    
     if infoXml:  
@@ -595,14 +599,20 @@ class Profile:
         self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
+        self.radius_left = args.x1
+        self.radius_right = args.x1
       elif dir == 1:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
         self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
+        self.radius_left = args.y1
+        self.radius_right = args.y1
       else: # dir == 2
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
+        self.radius_left = args.z1
+        self.radius_right = args.z1
         
       self.bisec_angle = self.functions[1].angle
     
@@ -665,19 +675,13 @@ def get_surface_lines(map,numLines,dir):
      
     #transformation to cartesian coordinates
     X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
-    if dir == 0:
-      nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
-      nodes[i,:,1] = X
-      nodes[i,:,2] = Y
-    elif dir == 1:
-      nodes[i,:,0] = Y
-      nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
-      nodes[i,:,2] = X
-    else: #dir == 2
-      nodes[i,:,0] = X
-      nodes[i,:,1] = Y
-      nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
-    
+    idx_y, idx_x = give_normal_plane_axes(dir)
+    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
+    assert(idx_z <> idx_x and idx_z <> idx_y)
+    nodes[i,:,idx_x] = X
+    nodes[i,:,idx_y] = Y
+    nodes[i,:,idx_z] = np.linspace(0.0,1.0,lenx)
+      
   return nodes
 
 # for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
@@ -977,7 +981,7 @@ def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
 def create_profiles_array(args,info,log):
-  global logger, infoXml
+  global logger, infoXml, res
   logger = log
   infoXml = info
   
@@ -1016,21 +1020,16 @@ def create_profiles_array(args,info,log):
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
     nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 0)
-#     nodes_ids_1, id = find_points_on_surface(nodes_1, 1, map_y, map_z,id)
     nodes_ids_1, id = find_points_on_surface(nodes_1, profiles[0], profiles[1], profiles[2],id)
 
     nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 1)
-#     nodes_ids_2, id = find_points_on_surface(nodes_2, 2, map_x, map_z, id)
     nodes_ids_2, id = find_points_on_surface(nodes_2, profiles[1], profiles[0], profiles[2], id)
     
     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 2)
-#     nodes_ids_3, id = find_points_on_surface(nodes_3, 3, map_x, map_y, id)
     nodes_ids_3, id = find_points_on_surface(nodes_3, profiles[2], profiles[0], profiles[1], id)
     
     # create vtk cells and points
     cells = vtk.vtkCellArray()
-    points = vtk.vtkPoints()
-    points.SetNumberOfPoints(id)
     
     # set scalar info of intersection points to 1.0 to make them visible
     vtkData = vtk.vtkFloatArray()
@@ -1046,19 +1045,32 @@ def create_profiles_array(args,info,log):
     postprocess_end_nodes(end_nodes_1,nodes_ids_1,cells)
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
+
+    radius = profiles[0].radius_left    
+    previous_points_left, previous_points_right,id = generate_end_nodes_in_circle(profiles[0], profiles[0].radius_left, 0, id, False)
+    for point in previous_points_left:
+      ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
+      
+    points_left = []
+    points_right = []
+    step = 2.0/res
     
-#     out = open("node_info.txt","w")
-#     out.write("# id \t i \t j \t x \t y \t z \n")
-#     for n in end_nodes_1+end_nodes_2+end_nodes_3:
-#       out.write(str(n.id) + " \t" + str(n.i) + " \t" + str(n.j) + " \t" + str(n.coords[0]) + " \t" + str(n.coords[1]) + " \t" + str(n.coords[2]) + "\n")
-#      
-#     out.close()
+    while len(points_left) <> 1 and len(points_right)<> 1:
+      points_left, points_right, id = generate_end_nodes_in_circle(profiles[0],radius,step,id)
+      radius -= step
+      for point in points_left:
+        ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
+      
+    plt.show()
+    sys.exit()  
+      
     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
-#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_1, end_nodes_3, cells)
-#     fix_profile_intersection_gaps(end_nodes_3, end_nodes_1, end_nodes_2, cells)
 
+    points = vtk.vtkPoints()
+    points.SetNumberOfPoints(id)
+    
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
         if nodes_ids_1[i,j] >= 0:          
@@ -1097,7 +1109,7 @@ def create_profiles_array(args,info,log):
   
   return array
 
-# creates map with info on Profile depending on radius
+# creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
 def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   map = np.zeros((360, res))
@@ -1869,3 +1881,62 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     for triangle in triangles:
       verts = triangle.vertices
       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+
+# generate points on the bounding circle (left and right) of a profile
+# radius is the current radius of a circle where we already have the boundary points
+# step is the step size we use to reduce the radius 
+# the reduced radius is then used to sample end nodes
+# when introducing new nodes in the mesh, we also have to assign them an unique id
+# id+1 is the current number of points in the surface mesh
+def generate_end_nodes_in_circle(profile,radius,step,id,set_id=True):
+  global res
+  dir = profile.direction
+  
+  nodes_left = []
+  nodes_right = []
+  
+  radius -= step
+  
+  if radius < 1e-3:
+    x,y = polar_to_cartesian(radius, 0, 0.5) 
+    coords_left = np.zeros(3)
+    coords_right = np.zeros(3)
+    idx_y, idx_x = give_normal_plane_axes(dir)
+    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
+    
+    coords_left[idx_x] = x
+    coords_left[idx_y] = y
+    coords_left[idx_z] = 0.0
+    
+    coords_right[idx_x] = x
+    coords_right[idx_y] = y
+    coords_right[idx_z] = 1.0
+    
+    nodes_left.append(End_Node(coords_left,id,dir,0,0,[]))
+    id +=1 if set_id else 0
+    nodes_right.append(End_Node(coords_right,id,dir,0,res,[]))
+    id +=1 if set_id else 0
+    
+    return nodes_left, nodes_right, id
+  
+  for angle in range(0,360):
+    x,y = polar_to_cartesian(radius, radians(angle), 0.5)
+    coords_left = np.zeros(3)
+    coords_right = np.zeros(3)
+    idx_y, idx_x = give_normal_plane_axes(dir)
+    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
+    assert(idx_z <> idx_x and idx_z <> idx_y)
+    coords_left[idx_x] = x
+    coords_left[idx_y] = y
+    coords_left[idx_z] = 0.0
+    
+    coords_right[idx_x] = x
+    coords_right[idx_y] = y
+    coords_right[idx_z] = 1.0 
+      
+    nodes_left.append(End_Node(coords_left,id,dir,angle,0,[]))
+    id += 1  if set_id else 0
+    nodes_right.append(End_Node(coords_right,id,dir,angle,res,[]))
+    id += 1  if set_id else 0
+  
+  return nodes_left, nodes_right, id
