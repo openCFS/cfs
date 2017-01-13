@@ -43,6 +43,7 @@ template<class DATA_TYPE>
     initializedRegionNodes_ = false;
     initializedUsedRegionNodesForSum_ = false;
     initializedRegionNodeCoordinates_ = false;
+    initializedConstantInput_ = false;
 #ifdef USE_OPENMP
     omp_init_lock(&updateSolutionLock_);
 #endif
@@ -56,6 +57,7 @@ template<class DATA_TYPE>
     } else {
       this->dependType_ = CoefFunction::GENERAL;
     }
+    CoefDependType inputDependType = this->dependType_;
 
     // get some boolean setting values
     this->snapToCFSStep_ = configNode->Get("snapToCFSTimeStep")->As<bool>();
@@ -79,6 +81,9 @@ template<class DATA_TYPE>
       var = "t";
     mp_->SetExpr(mHandleStep_, var);
     this->InitGlobalFactorFunctions(configNode);
+    
+    this->hasSpaceInputButTimeFactor_ = inputDependType == CoefFunction::SPACE && this->dependType_ == CoefFunction::GENERAL;
+    
     //if(this->srcGrid_->GetDim() == 3 && this->domain_->GetGrid()->GetDim()==2){
       //TODO: Set 3D coodinate system to global factor
    //   WARN("3D->2D not supported.");
@@ -405,10 +410,12 @@ template<class DATA_TYPE>
     const bool useOnlyConstFactor = useConstFactor && !useSpaceFactor;
 #pragma omp parallel
     {
-      StdVector<DATA_TYPE> tSum(dimDof);
-      StdVector<DATA_TYPE> tFactorSum(dimDof);
+      StdVector<DATA_TYPE> tSum;
+      StdVector<DATA_TYPE> tFactorSum;
       if (countSum) {
+        tSum.Resize(dimDof);
         tSum.Init(0.0);
+        tFactorSum.Resize(dimDof);
         tFactorSum.Init(0.0);
       }
       DATA_TYPE tSum1 = 0.0;
@@ -486,11 +493,11 @@ template<class DATA_TYPE>
           }
         }
       }
-#pragma omp critical
       if (countSum && dimDof == 1) {
         tSum[0] += tSum1;
         tFactorSum[0] += tFactorSum1;
       }
+#pragma omp critical
       {
         if (countSum) {
           for (UInt d = 0; d < dimDof; ++d) {
@@ -521,8 +528,30 @@ template<class DATA_TYPE>
   
   template<class DATA_TYPE>
   void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
-    // evaulate space factors and time/frequency factors
+    if (srcRegions_.size() < 1) {
+      return;
+    }
+    // evaulate space factors 
     this->InitSpaceFactor();
+    
+    if (this->hasSpaceInputButTimeFactor_ && !this->initializedConstantInput_ && (constantInput_.GetSize() == 0)) {
+      bool cachedHasTimeFreqFactor = this->hasTimeFreqFactor_;
+      this->hasTimeFreqFactor_ = false;
+      bool cachedHasGeneralFactor = this->hasGeneralFactor_;
+      this->hasGeneralFactor_ = false;
+      
+      constantInput_.Resize(srcRegions_.size());
+      this->ReadSolution(stepValueMap_.begin()->first, sol);
+      
+      this->hasConstantFactor_ = false;
+      this->hasTimeFreqFactor_ = cachedHasTimeFreqFactor;
+      this->hasSpaceFactor_ = false;
+      this->hasGeneralFactor_ = cachedHasGeneralFactor;
+      
+      this->initializedConstantInput_ = true;
+    }
+    
+    // evaluate time/frequency factors
     bool useConstantFactor = this->hasConstantFactor_;
     DATA_TYPE constantFactor = this->constantFactor_;
     if (this->hasTimeFreqFactor_) {
@@ -540,25 +569,44 @@ template<class DATA_TYPE>
       }
     }
     // data for summing loaded values
-    StdVector<DATA_TYPE> loadedSum(dimDof_);
-    loadedSum.Init(0.0);
-    StdVector<DATA_TYPE> factorSum(dimDof_);
-    factorSum.Init(0.0);
+    StdVector<DATA_TYPE> loadedSum;
+    StdVector<DATA_TYPE> factorSum;
+    if (this->verboseSum_) {
+      loadedSum.Resize(dimDof_);
+      loadedSum.Init(0.0);
+      factorSum.Resize(dimDof_);
+      factorSum.Init(0.0);
+    }
     
+    // get function for copying the result vector
+    typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr crf = GetCopyResultFunction(
+      this->hasGeneralFactor_, this->hasSpaceFactor_, useConstantFactor, 
+      this->verboseSum_, this->useAllRegionNodesForSum_, this->dimDof_);
+      
     std::set<std::string>::iterator regIter = srcRegions_.begin();
-    sol.Resize(numEqns_);
-    sol.Init(0.0);
+    if (sol.GetSize() != numEqns_) {
+      sol.Resize(numEqns_);
+      sol.Init(0.0);
+    }
     this->InitRegionNodes();
+    bool loadValues = true;
+    if (this->hasSpaceInputButTimeFactor_ && this->initializedConstantInput_) {
+      loadValues = false;
+    }
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       // get result and cast it to required type
-      shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
-      Vector<DATA_TYPE> resVec;
-      try{
-        Result<DATA_TYPE>* myResult = dynamic_cast<Result<DATA_TYPE>* >(Bres.get());
-        resVec =   myResult->GetVector();
-      }catch(...){
-        EXCEPTION("Cannot cast to desired vector type. Are you trying to load real data into a harmonic computation?");
+      shared_ptr<BaseResult> Bres;
+      Result<DATA_TYPE> dummyResult; //to eliminate compiler warning 
+      Result<DATA_TYPE>* myResult = &dummyResult;
+      if (loadValues) {
+        Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
+        try{
+          myResult = dynamic_cast<Result<DATA_TYPE>* >(Bres.get());
+        }catch(...){
+          EXCEPTION("Cannot cast to desired vector type. Are you trying to load real data into a harmonic computation?");
+        }
       }
+      Vector<DATA_TYPE>& resVec = loadValues ?  myResult->GetVector() : this->constantInput_[i];
       // get node numbers
       StdVector<UInt>& nodeNums = regionNodes_[i];
       
@@ -579,15 +627,26 @@ template<class DATA_TYPE>
       std::vector<bool> dummy;
       std::vector<bool>& countNodes = this->verboseSum_ ? this->usedRegionNodesForSum_[i] : dummy;
       
-      // get function for copying the result vector
-      typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr crf = GetCopyResultFunction(
-        this->hasGeneralFactor_, this->hasSpaceFactor_, useConstantFactor, 
-        this->verboseSum_, this->useAllRegionNodesForSum_, this->dimDof_);
-      
       // copying the result vector
-      crf(sol,resVec,nodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
+      if (this->hasSpaceInputButTimeFactor_ && !this->initializedConstantInput_) {
+        this->constantInput_[i].Resize(resVec.GetSize());
+        StdVector<UInt> dummyNodeNums(size);
+#pragma omp parallel for
+        for (UInt i = 0; i < size; i++) {
+          dummyNodeNums[i] = i;
+        }
+        crf(this->constantInput_[i],resVec,dummyNodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
+      } else {
+        crf(sol,resVec,nodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
+      }
     }
-    if (this->verboseSum_) {
+    
+    // verbose of the loaded sum
+    bool verboseLoadedSum = this->verboseSum_;
+    if (verboseLoadedSum && this->hasSpaceInputButTimeFactor_) {
+      verboseLoadedSum = !this->initializedConstantInput_;
+    }
+    if (verboseLoadedSum) {
       std::cout << "Sum of " << this-> solName_ <<" read at " << allSrcRegionNames_ << ": ";
       for (UInt d = 0; d < this->dimDof_; ++d) {
         std::cout << loadedSum[d];
@@ -596,6 +655,14 @@ template<class DATA_TYPE>
         }
       }
       std::cout << std::endl;
+    }
+    
+    // verbose of the sum after applying factors
+    bool verboseFactorSum = this->verboseSum_ && this->hasFactor_;
+    if (verboseFactorSum && this->hasSpaceInputButTimeFactor_) {
+      verboseFactorSum = this->initializedConstantInput_;
+    }
+    if (verboseFactorSum) {
       if (hasFactor_) {
         std::cout << "Sum of " << this-> solName_ <<" read at " << allSrcRegionNames_ << " after applying global factors: ";
         for (UInt d = 0; d < this->dimDof_; ++d) {
@@ -622,13 +689,15 @@ template<class DATA_TYPE>
       return false;
     }
     if (this->dependType_ == CoefFunction::SPACE) {
-      if (this->lastStepUpdate_ != std::numeric_limits<uint>::max()) {
-        this->lastStepUpdate_ = stepnumber;
-#ifdef USE_OPENMP
-        omp_unset_lock(&updateSolutionLock_);
-#endif
-        return false;
+      bool updated = this->lastStepUpdate_ == std::numeric_limits<uint>::max();
+      if (updated) {
+        this->ReadSolution(stepValueMap_.begin()->first,this->solVec_);
       }
+      this->lastStepUpdate_ = stepnumber;
+#ifdef USE_OPENMP
+      omp_unset_lock(&updateSolutionLock_);
+#endif
+      return updated;
     }
     if (this->snapToCFSStep_) {
       this->ReadSolution(stepnumber,this->solVec_);

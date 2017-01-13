@@ -1234,9 +1234,6 @@ namespace CoupledField
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
-
-
-    std::cout << "Assemble: AssembleRHSLinForms" << std::endl;
     StdVector<Integer> eqnVec;
     FeFctIdType fctId;
     StdVector<LinearFormContext*>::iterator formsIt;

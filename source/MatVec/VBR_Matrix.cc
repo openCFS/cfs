@@ -627,9 +627,9 @@ namespace CoupledField {
    int rbs;    // row block size
    int cbs;    // col block size
    UInt colNum; // column number
+#ifdef NDEBUG
    UInt ind;    //index to data array
 
-#ifdef NDEBUG
    char trans = 'N';
    Double alpha = -1.0;
    Double beta = 1.0;
@@ -646,10 +646,10 @@ namespace CoupledField {
        colNum = colInd_[ibc];
        cStart = bCol_[colNum];
        cbs = bCol_[colNum+1] - bCol_[colNum];
-       ind = valPtr_[ibc];
-
-       //perform mat-vec multiplication on dense sub-block
 #ifdef NDEBUG
+       ind = valPtr_[ibc];
+       
+       //perform mat-vec multiplication on dense sub-block
        dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
               &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
        ind+=cbs*rbs;

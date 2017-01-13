@@ -435,19 +435,12 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace> targetSpace,
                                                                       Vector<DATA_TYPE>& feFncVec){
+  this->UpdateSolution();
   if(!this->consInterpReady_){
     std::cout << "++ Preparing for conservative interpolation of external data... ";
     std::cout.flush();
     boost::shared_ptr<Timer> t(new Timer);
     t->Start();
-    //read in the first solution (deactivate verbosity during this initialization)
-    bool tempVerboseSum = this->verboseSum_;
-    this->verboseSum_ = false;
-    bool tempVerboseTimeFreqFactor = this->verboseTimeFreqFactor_;
-    this->verboseTimeFreqFactor_ = false;
-    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
-    this->verboseSum_ = tempVerboseSum;
-    this->verboseTimeFreqFactor_ = tempVerboseTimeFreqFactor;
 
     //ok so we need to gather the formation
     this->MapElemNodesConservative();
@@ -472,6 +465,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       ++eIt;
     }
     
+    // caring for verbose of interpolated sources
     if (this->verboseSum_) {
       UInt size = feFncVec.GetSize();
       this->countSolvecIndex_.resize(size,false);
@@ -479,7 +473,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         this->solVecIndexDim_.Resize(size,0);
       }
     }
-    
 
     //ok lets create the container
     myContainer = new CoordFormat<DATA_TYPE>(numRows,numCols,nnz,false);
@@ -557,10 +550,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
     std::cout << " done." << std::endl;
     std::cout.flush();
-  }
-  //perhaps we need to reread the solution vector from file
-  if(this->GetDependency() != CoefFunction::CONSTANT){
-    this->UpdateSolution();
   }
 
   //here it gets simple we just take the external solution vector and multiply with matrix

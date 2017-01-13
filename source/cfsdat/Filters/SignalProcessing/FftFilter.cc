@@ -7,6 +7,7 @@
 
 #include <cfsdat/Filters/SignalProcessing/FftFilter.hh>
 
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 // check if Intel MKL is available
@@ -53,14 +54,14 @@ void FftFilter::GetWindow(Vector<Double> & winVec, WindowType winType, UInt N,
       
     case WIN_BLACKMAN:
       for (UInt i = 0; i < N; ++i) {
-        p = 2.0 * PI * (Double) i / (Double) N;
+        p = 2.0 * M_PI * (Double) i / (Double) N;
         winVec[i] = 0.42 - 0.5 * std::cos(p) + 0.08 * std::cos(2.0*p);
       }
       break;
       
     case WIN_BLACKMAN_HARRIS:
       for (UInt i = 0; i < N; ++i) {
-        p = 2.0 * PI * (Double) i / (Double) N;
+        p = 2.0 * M_PI * (Double) i / (Double) N;
         winVec[i] = 0.35875 - 0.48829 * std::cos(p)
                             + 0.14128 * std::cos(2.0*p)
                             - 0.01168 * std::cos(3.0*p);
@@ -69,21 +70,21 @@ void FftFilter::GetWindow(Vector<Double> & winVec, WindowType winType, UInt N,
       
     case WIN_HAMMING:
       for (UInt i = 0; i < N; ++i) {
-        p = 2.0 * PI * (Double) i / (Double) N;
+        p = 2.0 * M_PI * (Double) i / (Double) N;
         winVec[i] = 0.54 - 0.46 * std::cos(p);
       }
       break;
       
     case WIN_HANN:
       for (UInt i = 0; i < N; ++i) {
-        p = 2.0 * PI * (Double) i / (Double) N;
+        p = 2.0 * M_PI * (Double) i / (Double) N;
         winVec[i] = 0.5 - 0.5 * std::cos(p);
       }
       break;
       
     case WIN_NUTTAL:
       for (UInt i = 0; i < N; ++i) {
-        p = 2.0 * PI * (Double) i / (Double) N;
+        p = 2.0 * M_PI * (Double) i / (Double) N;
         winVec[i] = 0.355768 - 0.487396 * std::cos(p)
                              + 0.144232 * std::cos(2.0*p)
                              - 0.012604 * std::cos(3.0*p);
