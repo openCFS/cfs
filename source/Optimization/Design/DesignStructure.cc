@@ -235,7 +235,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-  #pragma omp parallel for reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
+  #pragma omp parallel for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
