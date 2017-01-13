@@ -271,6 +271,16 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     
     //! factor function depending on time/frequency and space
     shared_ptr<CoefFunction> generalFactorFunction_;
+    
+    
+    //! stores if the special case is present, that constant input data is given but time dependent global factors
+    bool hasSpaceInputButTimeFactor_;
+    
+    //! stores if the constant input data is initialized
+    bool initializedConstantInput_;
+    
+    //! cached constant input data
+    StdVector< Vector< DATA_TYPE > > constantInput_;
 
     //=======================================================================================
     // Functions and structure for copying the nodal grid result
