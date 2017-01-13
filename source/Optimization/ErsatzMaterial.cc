@@ -1489,9 +1489,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
-    shared_ptr<Timer> timer = optInfoNode->Get("eval/timer")->AsTimer();
-    timer->Start();
-
     interfaceDrivenGradCalc_ = false;
 
     assert(f != NULL);
@@ -1574,6 +1571,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::JUMP:
       case Function::BUMP:
       case Function::CURVATURE:
+      case Function::OVERHANG:
       case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:
@@ -1719,7 +1717,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       // no default, gcc warns
     }
-    timer->Stop();
     LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
     return result;
   }

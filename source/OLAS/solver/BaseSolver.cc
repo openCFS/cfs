@@ -122,13 +122,14 @@ namespace CoupledField {
   {
     // Assert that info Node is set
     assert( infoNode_ );
-    
+
     // not all solvers are switched to ParamNode yet
     PtrParamNode base = infoNode_;
-    setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
-    solveTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
+    setupTimer_ = boost::shared_ptr<Timer>(new Timer("setup_" + solverType.ToString(GetSolverType())));
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue(setupTimer_);
+
+    solveTimer_ = boost::shared_ptr<Timer>(new Timer("solve_" + solverType.ToString(GetSolverType())));
+    base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue(solveTimer_);
   }
   
   void BaseSolver::SetPrecond( BasePrecond* precond ) {

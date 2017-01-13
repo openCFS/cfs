@@ -223,8 +223,6 @@ private:
 
   /** Timer for SnOpt */ 
   boost::shared_ptr<Timer> timer_;
-  /** Timer for callback function */ 
-  boost::shared_ptr<Timer> timer_callback_;
 };
 
 } // end of namespace

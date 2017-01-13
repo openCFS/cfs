@@ -362,6 +362,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::CURVATURE, "curvature");
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
+  Function::type.Add(Function::OVERHANG, "overhang");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
@@ -516,8 +517,6 @@ bool Optimization::IsTransient() {
 }
 
 double Optimization::GetStepWeight(unsigned int ts) const{
-  // FIXME
-  assert(!context->DoMultiSequence());
   unsigned int nts = context->GetDriver()->GetNumSteps();
   if(IsFirstTransientStepStatic()){
     if(ts == 0){
