@@ -162,6 +162,7 @@
       <xsd:enumeration value="biot-savart"/>
       <xsd:enumeration value="coil"/>
       <xsd:enumeration value="magnet"/>
+      <xsd:enumeration value="magForceMaxwell"/>
       
       <!-- Mechanic -->
       <xsd:enumeration value="mechanic"/>

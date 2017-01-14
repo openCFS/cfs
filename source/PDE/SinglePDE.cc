@@ -944,7 +944,7 @@ namespace CoupledField {
               // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
 
             fnc = resultFunctors_[candidate->resultType];
-            
+
             // pass result to resulthandler
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
@@ -3526,7 +3526,6 @@ namespace CoupledField {
     	                                ->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
     	   factor = CoefFunction::Generate( mp_, Global::COMPLEX,
  				                  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
-    	   //std::cout << "DO complex Factor NMG" << std::endl;
        }
     }
     else

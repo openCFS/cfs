@@ -1,4 +1,4 @@
-	#include "CoefFunctionSurf.hh"
+#include "CoefFunctionSurf.hh"
 
 #include <boost/tr1/type_traits.hpp>
 
@@ -153,6 +153,7 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
   coefScalar *= factor_;
+  std::cout << "Value: " << coefScalar << std::endl;
 }
 
 void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
@@ -223,4 +224,48 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
 }
   
 
+CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
+                                    Double matFactor,
+									Double factor,
+                                    shared_ptr<ResultInfo> surfInfo )
+: CoefFunctionSurf(mapNormal, factor, surfInfo) {
+
+
+  // not sure about the following one
+  matFactor_ = matFactor;
+
+}
+
+void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
+                                 const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  surfLpm.SetSurfInfo( regions_);
+  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+
+  //get magnetic flux density
+  Vector<Double> Bvec;
+  coefs_[region]->GetVector(Bvec, *surfLpm.lpmVol );
+
+  //compute normal component of B and square of B
+  Double Bn = Bvec * surfLpm.normal;
+  Double B2 = Bvec.Inner();
+
+  coefVec = factor_ * matFactor_ * ( Bn * Bvec - 0.5*B2*surfLpm.normal );
+
+}
+
+void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
+                               const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  EXCEPTION("SurfMaxwell for Harmonic Analysis not implemented");
+
+}
+
+CoefFunctionSurfMaxwell::~CoefFunctionSurfMaxwell() {
+
+}
 }

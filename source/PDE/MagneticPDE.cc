@@ -1400,6 +1400,42 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }
     resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
 
+    if( analysistype_ != HARMONIC ) {
+    	// === MAXWELL FORCE DENSITY ===
+    	shared_ptr<ResultInfo> mfd(new ResultInfo);
+    	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
+    	mfd->dofNames = vecComponents;
+    	mfd->unit = "N/m^3";
+    	mfd->definedOn = ResultInfo::SURF_ELEM;
+    	mfd->entryType = ResultInfo::VECTOR;
+    	availResults_.insert( mfd );
+
+    	// Note: The positive normal direction in this case is defined as the
+    	//       inward facing one.  1/mu0 = 1/(4*pi*1E-07
+    	Double mu0Inv = 1.0 / (4.0 * M_PI * 1.0E-07);
+    	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, mu0Inv, -1.0, mfd));
+    	DefineFieldResult( maxForceDens, mfd);
+    	surfCoefFcts_[maxForceDens] = bFunc;
+
+    	// === MAXWELL FORCE (TOTAL) ===
+    	shared_ptr<ResultInfo> mf(new ResultInfo);
+    	mf->resultType = MAG_FORCE_MAXWELL;
+    	mf->dofNames = vecComponents;
+    	mf->unit = "N";
+    	mf->definedOn = ResultInfo::SURF_REGION;
+    	mf->entryType = ResultInfo::VECTOR;
+    	availResults_.insert( mf );
+
+    	// build result functor for integration
+    	shared_ptr<ResultFunctor> mfFunc;
+    	if( isComplex_ ) {
+    		mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
+    	} else {
+    		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
+    	}
+    	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
+    }
+
     // === MAGNETIC ENERGY ===
     if( isMixed_)
       WARN("Adjust energy for mixed case.");
