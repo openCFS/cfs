@@ -1375,6 +1375,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
+    SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
     SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
     SolutionTypeEnum.Add(MAG_CORE_LOSS_DENSITY, "magCoreLossDensity");
@@ -1382,6 +1383,7 @@ namespace CoupledField {
     
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
+    SolutionTypeEnum.Add(MAG_FORCE_MAXWELL, "magForceMaxwell");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");

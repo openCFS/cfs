@@ -37,25 +37,25 @@ public:
   virtual ~CoefFunctionSurf();
 
   //! Set single volume coefficient function
-  void AddVolumeCoef( RegionIdType, PtrCoefFct );
+  virtual void AddVolumeCoef( RegionIdType, PtrCoefFct );
   
   //! Pass volume coefficients
-  void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ); 
+  virtual void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs );
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<Double>& coefMat, 
+  virtual void GetTensor(Matrix<Double>& coefMat,
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetTensor
-    void GetTensor(Matrix<Complex>& coefMat, 
+  virtual void GetTensor(Matrix<Complex>& coefMat,
                    const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<Double>& coefVec, 
+  virtual void GetVector(Vector<Double>& coefVec,
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<Complex>& coefVec, 
+  virtual void GetVector(Vector<Complex>& coefVec,
                  const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetScalar
@@ -63,7 +63,7 @@ public:
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetScalar
-    void GetScalar(Complex& coefScalar, 
+  virtual void GetScalar(Complex& coefScalar,
                    const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
@@ -92,7 +92,6 @@ public:
   
   //@}
   
-private:
 
   //! Map with CoefFunctions for each region
   std::map<RegionIdType, PtrCoefFct> coefs_;
@@ -107,6 +106,68 @@ private:
   Double factor_;
 };
 
+//! This class represents coefficient functions, which are defined just on a
+//! surface and computes the force defined by Maxwell's stress tensor
+//! It#s derived from CoefFunctionSurf
+class CoefFunctionSurfMaxwell : public CoefFunctionSurf {
+public:
+
+  //! Constructor
+
+  //! Constructor for the class
+  //! \param mapNormal If true, only the normal component w.r.t. to the
+  //!                  surface element is taken into account.By default,
+  //!                  the normal direction points OUT of the related volumes.
+  //! \param material parameter
+  //! \param factor Additional scaling factor
+  //! \param surfInfo Result info object for surface result
+
+  CoefFunctionSurfMaxwell( bool mapNormal,
+		  	             Double matFactor,
+                     	 Double factor = 1.0,
+						 shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+
+  //! Destructor
+  virtual ~CoefFunctionSurfMaxwell();
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Double>& coefMat,
+                 const LocPointMapped& lpm ) {
+	  EXCEPTION("CoefFunctionSurfMaxwell:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Complex>& coefMat,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Complex>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetScalar not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Complex& coefScalar,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetScalar not implemented");
+  };
+
+
+private:
+
+  //! Constant material factor
+  Double matFactor_;
+};
 
 } // end of namespace
 #endif
