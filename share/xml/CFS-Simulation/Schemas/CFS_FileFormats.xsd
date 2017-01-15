@@ -68,6 +68,12 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="fileName" type="xsd:token" default="default">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">Specify exact path to input file.
+            </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- Definition of input element group -->
@@ -82,7 +88,7 @@
       <xsd:element name="unv" type="DT_InputUNV"/>
       <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
-      <xsd:element name="ensight" type="DT_InputEnsight"/>      
+      <xsd:element name="ensight" type="DT_InputEnsight"/>
     </xsd:choice>
   </xsd:group>
 
@@ -180,13 +186,6 @@
           <xsd:element name="region" type="DT_InputGmsh_RegionType" minOccurs="0"
             maxOccurs="unbounded"/>
         </xsd:sequence>
-        <xsd:attribute name="fileName" type="xsd:token" default="default">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Specify exact path to .msh file.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
         <xsd:attribute name="coordSysId" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
@@ -259,13 +258,6 @@
           <xsd:element name="region" type="DT_InputComsol_RegionType" minOccurs="0"
             maxOccurs="unbounded"/>
         </xsd:sequence>
-        <xsd:attribute name="fileName" type="xsd:token" default="default">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Specify exact path to .mphtxt file.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
         <xsd:attribute name="mph" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
@@ -318,7 +310,6 @@
         <xsd:attribute name="generateRegionNodes" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="readEntities" type="xsd:token" default=""/>
         <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
-        <xsd:attribute name="fileName" type="xsd:token" default="default"/>
         <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
         <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
@@ -338,7 +329,6 @@
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName" type="xsd:token" default="default"/>
         <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
         <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
@@ -354,13 +344,12 @@
     <xsd:annotation>
       <xsd:documentation xml:lang="de">
         Read Ideas universal files. These can e.g. be generated using
-        Siemens NX PLM, GiD (File -&gt; Export -&gt; Using Template .bas -&gt; UNV)
+        Siemens NX PLM, GiD (File -> Export -> Using Template .bas -> UNV)
         or Gmsh.
       </xsd:documentation>
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName" type="xsd:token" default="default"/>
         <xsd:attribute name="mapXTo" type="DT_InputUNVCoordMap" default="x"/>
         <xsd:attribute name="mapYTo" type="DT_InputUNVCoordMap" default="y"/>
         <xsd:attribute name="mapZTo" type="DT_InputUNVCoordMap" default="z"/>
@@ -403,7 +392,6 @@
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName" type="xsd:token" default="default"/>
         <xsd:attribute name="strict" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
@@ -427,7 +415,7 @@
           default="nodeCmpToSurfRegions">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              ANSYS Workbench  Mechanical (Tools  -&gt; Write Input  File) and
+              ANSYS Workbench  Mechanical (Tools  -> Write Input  File) and
               Finite  Element Modeler  (Write APDL  Solver File)  write named  
               selections of surfaces  as node  components. Therefore,  the CDB  reader
               reconstructs  surface  elements from  node  components and adds them as
@@ -475,21 +463,21 @@
               <xsd:sequence>
                 <xsd:element name="variable" minOccurs="0" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="CFSVarName" use="required"  type="xsd:token"/>
-                      <!--xsd:annotation >
+                    <xsd:attribute name="CFSVarName" use="required" type="xsd:token"/>
+                    <!--xsd:annotation >
                         <xsd:documentation xml:lang="en">
                          CFS++ compliant variable name. May be one of fluidMechPressure | fluidMechVelocity |
                          fluidMechPressure_deriv2
                         </xsd:documentation>
                       </xsd:annotation-->
-                    <xsd:attribute name="EnsightVarName" use="required"  type="xsd:token"/>
-                      <!--xsd:annotation >
+                    <xsd:attribute name="EnsightVarName" use="required" type="xsd:token"/>
+                    <!--xsd:annotation >
                         <xsd:documentation xml:lang="en">
                           Name of variable as given in case file
                         </xsd:documentation>
                       </xsd:annotation-->
                     <!--xsd:attribute name="multByCellVolume" use="optional"  type="xsd:boolean" default="false"/-->
-                      <!--xsd:annotation >
+                    <!--xsd:annotation >
                         <xsd:documentation xml:lang="en">
                           If this is true, the value at node/cellCenter is multiplied by the cell volume
                           during read. 
@@ -504,7 +492,7 @@
                       </xsd:simpleType>
                     </xsd:attribute-->
                     <xsd:attribute name="dof" use="optional" type="xsd:token">
-                      <xsd:annotation >
+                      <xsd:annotation>
                         <xsd:documentation xml:lang="en">
                           In case of vectors (e.g. velocity) which are stored component wise as scalar results we can give the 
                           target dof for CFS here.
@@ -517,26 +505,15 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="readEntities"
-		       type="xsd:token"
-		       default=""/>
-        <xsd:attribute name="linearizeEntities"
-          type="xsd:token"
-          default=""/>
-        <xsd:attribute name="fileName"
-		       type="xsd:token"
-		       default="default"/>
-        <xsd:attribute name="coordSysId"
-           type="xsd:token"
-           default="default"/>
-        <xsd:attribute name="scaleFac"
-           type="xsd:double"
-           default="1.0"/>
+        <xsd:attribute name="readEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+        <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of scattered data input type -->
   <!-- ******************************************************************** -->
@@ -758,7 +735,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of input tag for .csvt files -->
   <!-- ******************************************************************** -->
