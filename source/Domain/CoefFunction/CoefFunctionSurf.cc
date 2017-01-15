@@ -249,11 +249,13 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
   Vector<Double> Bvec;
   coefs_[region]->GetVector(Bvec, *surfLpm.lpmVol );
 
-  //compute normal component of B and square of B
-  Double Bn = Bvec * surfLpm.normal;
-  Double B2 = Bvec.Inner();
-
-  coefVec = factor_ * matFactor_ * ( Bn * Bvec - 0.5*B2*surfLpm.normal );
+  //compute: factors * ( (B*n)*B - 1/2*B^2*n )
+  Double Bn = Bvec * surfLpm.normal; // normal component of B
+  Double B2 = Bvec.Inner(); // square of B
+  Vector<Double> BnB = Bvec; BnB.ScalarMult(Bn); // B * normal component
+  Vector<Double> B2n = surfLpm.normal; B2n.ScalarMult(0.5*B2); // n * B^2/2
+  coefVec = BnB - B2n;
+  coefVec.ScalarMult(factor_ * matFactor_); // don't forget factors
 
 }
 
