@@ -73,6 +73,9 @@ public:
   /** tau of model function in subsolve */
   double tau;
 
+  /** turn of finite differences derivative check*/
+  bool derivative_check;
+
   /** base material matrix */
   Matrix<double> E_0;
 

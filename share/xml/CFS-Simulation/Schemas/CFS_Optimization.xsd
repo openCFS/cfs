@@ -371,6 +371,8 @@
                 <!-- slope of slope = second derivate. Meant for shape mapping node and profile -->
                 <xsd:enumeration value="curvature"/>
                 <xsd:enumeration value="globalCurvature"/>
+                <!-- the overhap constraint is specific for shape mapping with nodes and profiles -->
+                <xsd:enumeration value="overhang"/>
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->
@@ -730,7 +732,8 @@
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
                 <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>    
                 <xsd:attribute name="tau" default="0." type="xsd:float" use="optional"/>    
-                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>           
+                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>  
+                <xsd:attribute name="derivative_check" default="false" type="xsd:boolean" use="optional"/>           
                            
               </xsd:complexType>
             </xsd:element>
