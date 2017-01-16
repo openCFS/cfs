@@ -103,7 +103,6 @@ class Cubic_spline():
 #       coords_cut = self.calc_coords_grad_1()
 #       infoXml.write('      <gradient dx/dy="1" t="' + str(self.calc_param_grad_1()) + '" x="' + str(coords_cut[0]) + '" y="' + str(coords_cut[1]) + '"/>\n')
       
-      
   # base functions for cubic spline with 4 control points
   def f03(self,t):
     return (1-t)**3
@@ -568,23 +567,17 @@ class BisecSpline:
     
 # @return vector with Profile or list of vectors
 class Profile:
-  bisec_angle = -1
-  type = None
-  # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
-  functions = [None] * 3
-  direction = -1
-  # depending on profile, store the radii of the two boundary circles
-  radius_left = 0
-  radius_right = 0
-      
   def __init__(self, args, dir):
     assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 0 or dir == 1 or dir == 2)
+    self.bisec_angle = -1
     self.direction = dir
     self.type = args.profile
-    self.x1 = args.x1
-    self.y1 = args.y1
-    self.z1 = args.z1
+    # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
+    self.functions = [None] * 3
+    # depending on profile, store the radii of the two boundary circles
+    self.radius_left = 0
+    self.radius_right = 0
 
     global infoXml    
     if infoXml:  
@@ -599,20 +592,20 @@ class Profile:
         self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
-        self.radius_left = args.x1
-        self.radius_right = args.x1
+        self.radius_left = args.x1 / 2.0
+        self.radius_right = args.x1 / 2.0
       elif dir == 1:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
         self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
-        self.radius_left = args.y1
-        self.radius_right = args.y1
+        self.radius_left = args.y1 / 2.0
+        self.radius_right = args.y1 / 2.0
       else: # dir == 2
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
         self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
-        self.radius_left = args.z1
-        self.radius_right = args.z1
+        self.radius_left = args.z1 / 2.0
+        self.radius_right = args.z1 / 2.0
         
       self.bisec_angle = self.functions[1].angle
     
@@ -1039,38 +1032,15 @@ def create_profiles_array(args,info,log):
     end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
-    
+     
     # creates triangles between end nodes of same profile where
     # we have e.g. a valley with 1 or 2 nodes
     postprocess_end_nodes(end_nodes_1,nodes_ids_1,cells)
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
-
-    radius = profiles[0].radius_left    
-    previous_points_left, previous_points_right,id = generate_end_nodes_in_circle(profiles[0], profiles[0].radius_left, 0, id, False)
-    for point in previous_points_left:
-      ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
-      
-    points_left = []
-    points_right = []
-    step = 2.0/res
     
-    while len(points_left) <> 1 and len(points_right)<> 1:
-      points_left, points_right, id = generate_end_nodes_in_circle(profiles[0],radius,step,id)
-      radius -= step
-      for point in points_left:
-        ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
-      
-    plt.show()
-    sys.exit()  
-      
-    
-    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
-
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
-    
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
         if nodes_ids_1[i,j] >= 0:          
@@ -1078,8 +1048,18 @@ def create_profiles_array(args,info,log):
         if nodes_ids_2[i,j] >= 0:          
           points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
         if nodes_ids_3[i,j] >= 0:          
-          points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])    
-          
+          points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
+    
+    for i in range(np.size(nodes_ids_1,1)):
+      assert(nodes_ids_1[i,0] <> -1)      
+    
+    # ha is 3dplot object
+    triangulate_boundary_circles(profiles[0],nodes_ids_1,id,ha,points,cells,vtkData)
+#     triangulate_boundary_circles(profiles[1],id,ha,cells)
+#     plt.show() 
+#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
     polydata.GetPointData().SetScalars(vtkData)
@@ -1298,9 +1278,17 @@ def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3)
 # @param: vertices defining triangle (coordinates)
 # for evaluating quality of triangle, we take the ration of the exradius to twice the inradius
 def calc_triangle_ratio(v1,v2,v3):
-  d1 = calc_distance(v1, v2)
-  d2 = calc_distance(v1, v3)
-  d3 = calc_distance(v2, v3)
+  global logger
+  d1 = calc_distance(v1, v2) # a
+  d2 = calc_distance(v1, v3) # b
+  d3 = calc_distance(v2, v3) # c
+  
+  inradius = 0.5* np.sqrt((d2+d3-d1)*(d3+d1-d2)*(d1+d2-d3) / (d1+d2+d3))
+  exradius = d1*d2*d3/np.sqrt((d1+d2+d3)*(d2+d3-d1)*(d3+d1-d2)*(d1+d2-d3))
+  
+  if logger:
+    logger.write("inradius " + str(inradius) + "\n")
+    logger.write("exradius " + str(exradius) + "\n")
   
   aspect_ratio = d1*d2*d3 / ( (d2+d3-d1) * (d1-d2+d3) * (d1+d2-d3))
   
@@ -1311,18 +1299,21 @@ def calc_triangle_ratio(v1,v2,v3):
   return aspect_ratio
     
 def find_closest_point(ref_node,next_node,end_nodes):
+  global logger
   # iterate over all end nodes in list and compare distances to 'ref' node
   min_distance = 1e6
   min_node = None
   ref_coords = ref_node.coords + 0.5 * (next_node.coords - ref_node.coords)
    
   for node in end_nodes:
-    assert(node.dir != ref_node.dir)
+#     assert(node.dir != ref_node.dir)
     dist = calc_distance(ref_coords, node.coords)
     if dist < min_distance:
       min_distance = dist
       min_node = node
   
+  if logger:
+    logger.write("closest node to id=" + str(ref_node.id) + ": id=" + str(min_node.id) + "\n")
   return min_node,min_distance 
 
 def find_three_closest_points(ref_node,next_node,end_nodes):
@@ -1397,8 +1388,8 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
 #   if initial_edge and (node.id == initial_edge[0].id or node.id == initial_edge[1].id):
 #     return [node]
   global logger
-  diff_i = 0
-  diff_j = 0
+  diff_i = None
+  diff_j = None
   if dir is not None and other_dir is not None:
     # we define front in relative coordinates by means of grid coordinates i and j
     if dir == 0 and other_dir == 2 or dir == 2 and other_dir == 0:
@@ -1433,7 +1424,9 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
           diff_i = 1
           diff_j = 0
     else: # not handled yet
-      assert(False)
+      #assert(False)
+      diff_i = 1
+      diff_j = 0
       
   # find node in connections that is on the same profile
   # get node objects
@@ -1442,8 +1435,10 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
     v = get_end_node_by_id(n, end_nodes)
     if get_end_node_by_id(n, end_nodes) is not None:  
       previous = v
+#       print "n: ", n
+#       print "initial_edge[0].id: ", initial_edge[0].id
       # if node is starting node, it cannot be node previous to this node
-      if n <> initial_edge[0].id or n <> initial_edge[1].id:
+      if initial_edge and (n <> initial_edge[0].id or n <> initial_edge[1].id):
         break
     
   if previous:
@@ -1720,7 +1715,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   cand_2_nodes = None
   candidates_2 = None
   
-  cand_1_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
+  cand_1_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, a) else end_nodes_2
   candidates_1 = give_next_end_node(a, cand_1_nodes, end_nodes_1[0].dir, end_nodes_2[0].dir, initial_edge=initial_edge)
 
   # in this case we stepped over a valley
@@ -1736,7 +1731,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
     next_cand_1 = give_best_next_neighbor(candidates_1, a, b)
     ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes)
   
-  cand_2_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+  cand_2_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, b) else end_nodes_2
   candidates_2 = give_next_end_node(b, cand_2_nodes,end_nodes_1[0].dir, end_nodes_2[0].dir,initial_edge=initial_edge)
   
   # in this case we stepped over a valley
@@ -1754,6 +1749,8 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
   alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
   
+#   if next_cand_1 is None:
+#     return False
   if logger:
     logger.write(str(next_cand_1) + " ratio=" + str(ratio_1) + (" <- " if next_cand_1.id == next.id else " ") + "\n")
     if next_cand_2:
@@ -1771,7 +1768,10 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
     next.connections.add(a.id)
     next.connections.add(b.id)
     
-    triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alternatives))
+    #triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alternatives))
+    # decide whether a or b is member based on triangle ratios
+    # and not profile directions as a.dir might be equal b.dir 
+    triangles.append(Marching_Triangle([a,b,next],a if ratio_1 > ratio_2 else b,next,alternatives))
     
     if logger: 
       logger.write("added connection from " + str(a.id) + " to " + str(next.id) + "\n")
@@ -1834,7 +1834,7 @@ def pop_triangles(triangles):
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
-def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
+def fix_profile_intersection_gaps(this_end_nodes, other_end_nodes,cells):
   global logger
   # start from x profile and 0 degree and take first end node you can find
   nodes = [v for v in this_end_nodes if v.i == 0]
@@ -1843,16 +1843,15 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     triangles = [] # saves all triangles found by marching
     start_node = n
     
-    next = give_next_end_node(start_node,this_end_nodes,this_end_nodes[0].dir,other_1_end_node[0].dir)[0]
+    next = give_next_end_node(start_node,this_end_nodes,this_end_nodes[0].dir,other_end_nodes[0].dir)[0]
   
-    other = find_closest_point(start_node, next, other_1_end_node)[0]
+    other = find_closest_point(start_node, next, other_end_nodes)[0]
     
     if logger: 
-      logger.write("\nstarting with " + str(n.id) + " dir = " + str(this_end_nodes[0].dir) + " other_dir= " + str(other_1_end_node[0].dir) + "\n")
-      logger.write("other: " + str(other))
+      logger.write("\nstarting with " + str(n.id) + " dir = " + str(this_end_nodes[0].dir) + " other_dir= " + str(other_end_nodes[0].dir) + "\n")
+      logger.write("other: " + str(other) + "\n")
       
-    other_nodes = other_1_end_node 
-  
+      
     next.connections.add(other.id)
     next.connections.add(start_node.id)
     start_node.connections.add(other.id)
@@ -1869,7 +1868,7 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
     run = True
     end = False
     while len(triangles) > 0 and run and not end:
-      run = check_next_triangle(triangles, this_end_nodes, other_nodes, initial_edge)
+      run = check_next_triangle(triangles, this_end_nodes, other_end_nodes, initial_edge)
       # check if we have just created a triangle where new active edge is 
       # identical to active edge of very first triangle --> we are finished!
       edge = triangles[-1].edge
@@ -1888,43 +1887,30 @@ def fix_profile_intersection_gaps(this_end_nodes, other_1_end_node,cells):
 # the reduced radius is then used to sample end nodes
 # when introducing new nodes in the mesh, we also have to assign them an unique id
 # id+1 is the current number of points in the surface mesh
-def generate_end_nodes_in_circle(profile,radius,step,id,set_id=True):
+def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set_id=True):
   global res
   dir = profile.direction
+  
+  # in case step size is so big such that radius -= step becomes negative
+  if radius < 0:
+    radius = 1e-4
+  
+  step_angle = degrees(arc_length / radius)
+  print "arc length:", arc_length
+  print "radius: ", radius
+  print "step_angle: ", step_angle
   
   nodes_left = []
   nodes_right = []
   
-  radius -= step
+  print("radius: " + str(radius))
   
-  if radius < 1e-3:
-    x,y = polar_to_cartesian(radius, 0, 0.5) 
-    coords_left = np.zeros(3)
-    coords_right = np.zeros(3)
-    idx_y, idx_x = give_normal_plane_axes(dir)
-    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
-    
-    coords_left[idx_x] = x
-    coords_left[idx_y] = y
-    coords_left[idx_z] = 0.0
-    
-    coords_right[idx_x] = x
-    coords_right[idx_y] = y
-    coords_right[idx_z] = 1.0
-    
-    nodes_left.append(End_Node(coords_left,id,dir,0,0,[]))
-    id +=1 if set_id else 0
-    nodes_right.append(End_Node(coords_right,id,dir,0,res,[]))
-    id +=1 if set_id else 0
-    
-    return nodes_left, nodes_right, id
-  
-  for angle in range(0,360):
+  for line,angle in enumerate(np.arange(0,360,step_angle)):
     x,y = polar_to_cartesian(radius, radians(angle), 0.5)
     coords_left = np.zeros(3)
     coords_right = np.zeros(3)
     idx_y, idx_x = give_normal_plane_axes(dir)
-    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
+    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y][0]
     assert(idx_z <> idx_x and idx_z <> idx_y)
     coords_left[idx_x] = x
     coords_left[idx_y] = y
@@ -1933,10 +1919,114 @@ def generate_end_nodes_in_circle(profile,radius,step,id,set_id=True):
     coords_right[idx_x] = x
     coords_right[idx_y] = y
     coords_right[idx_z] = 1.0 
-      
-    nodes_left.append(End_Node(coords_left,id,dir,angle,0,[]))
-    id += 1  if set_id else 0
-    nodes_right.append(End_Node(coords_right,id,dir,angle,res,[]))
-    id += 1  if set_id else 0
+    
+    # assign any other direction to end node as triangulation routine assumes two different directions  
+    nodes_left.append(End_Node(coords_left,id,(dir-1)%3,line,0,[]))
+    if set_id:
+      id += 1  
+      vtk_id = points.InsertNextPoint(coords_left)
+      vtkData.InsertValue(vtk_id,-1)
+      if vtk_id <> nodes_left[-1].id:
+        print("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id))
+    
+    # assign any other direction to end node as triangulation routine assumes two different directions
+    nodes_right.append(End_Node(coords_right,id,(dir-1)%3,line,res-1,[]))
+    if set_id:
+      id += 1  
+      vtk_id = points.InsertNextPoint(coords_right)
+      vtkData.InsertValue(vtk_id,-1)
+      if vtk_id <> nodes_right[-1].id:
+        print("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id))
+    
+    # if radius is too small, we only have one point left
+    if radius < 1e-3:
+      break    
   
   return nodes_left, nodes_right, id
+
+# meshes the left and right boundary circles of a profile with triangles
+# for this, we need to add additional points on smaller circles within starting circle
+# we need nodes_ids to determine ids of points on starting circle 
+def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
+  radius = profile.radius_left
+  arc_length = radius * radians(360.0/np.size(nodes_ids,0))
+  previous_points_left, previous_points_right,id = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
+  set_correct_point_ids(previous_points_left, previous_points_right,nodes_ids)
+  
+  for point in previous_points_left:
+      ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
+  for point in previous_points_right:
+    ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
+  
+  points_left = []
+  points_right = []
+  triangles = []
+  step = 4.0/res
+  
+  # create points on circles lying in the same plane as original circle
+  while len(points_left) <> 1 and len(points_right)<> 1:
+    radius -= step
+    points_left, points_right, id = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
+     
+    for point in points_left:
+      ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
+    for point in points_right:
+      ha.scatter(point.coords[0],point.coords[1],point.coords[2])
+#       
+# #     plt.show()    
+#     
+#     # create first triangle
+#     start_node = previous_points_left[0]
+#     next = give_next_end_node(start_node, previous_points_left, previous_points_left[0].dir, points_left[0].dir)[0]
+#     other = find_closest_point(start_node, next, points_left)[0]
+#     if logger:
+#       logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
+#       logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
+#     print "previous: ", previous_points_left[0].id, previous_points_left[1].id
+#     print "inner: ", points_left[0].id, points_left[1].id
+#       
+#     print "start_node", start_node.id
+#     print "next", next.id 
+# #     print "other", other.id, other.dir
+#         
+#     next.connections.add(other.id)
+#     next.connections.add(start_node.id)
+#     start_node.connections.add(other.id)
+#     start_node.connections.add(next.id)
+#     other.connections.add(start_node.id)
+#     other.connections.add(next.id)
+#         
+#     triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
+#     initial_edge = [start_node,other]
+#     run = True
+#     end = False
+#     while len(triangles) > 0 and run and not end:
+#       run = check_next_triangle(triangles, previous_points_left, points_left, initial_edge)
+#       # check if we have just created a triangle where new active edge is 
+#       # identical to active edge of very first triangle --> we are finished!
+#       edge = triangles[-1].edge
+#       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
+#         if logger:
+#           logger.write("filled \n")
+#         end = True 
+#             
+#     for triangle in triangles:
+#       verts = triangle.vertices
+#       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+     
+    break  
+def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
+  for node in nodes_left:
+    assert(nodes_ids[node.i,node.j] > -1)
+    node.id = nodes_ids[node.i,node.j]
+
+  for node in nodes_right:
+    assert(nodes_ids[node.i,node.j] > -1)
+    node.id = nodes_ids[node.i,node.j]  
+    
+# checks if node is in list    
+def list_contains_end_nodes(list,node):
+  for n in list:
+    if n.id == node.id:
+      return True
+  return False
