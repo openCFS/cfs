@@ -146,7 +146,8 @@ def toGnuPlot(complex_string):
 #@param template use qsub_templtate.sh as base for your own template, it might be sufficient
 #@param cmd the cfs call from run.py
 #@param filename shall end with .sh
-#@param silent if so suppress output 
+#@param silent if so suppress output#
+#@return the qsub command 
 def generate_qsub_script(template, cmd, filename, silent = False):
   if not os.path.exists(template):
     raise RuntimeError("qsub template not found '" + template + "'")
@@ -160,7 +161,6 @@ def generate_qsub_script(template, cmd, filename, silent = False):
     pwd = os.getcwd()
     if not silent:
       print(" add 'cd " + pwd + "'")
-    lines.append('# cd ' + pwd + ' added by generate_qsub_script()\n')
     lines.append('cd ' + pwd + '\n')
   
   # the job to be executed
@@ -172,6 +172,7 @@ def generate_qsub_script(template, cmd, filename, silent = False):
   out = open(filename, "w")
   out.writelines(lines)
   out.close()
+  return "qsub " + filename
 
 # execute cmd and rais error when not 0 and not silen
 # return error code, 0 for no problem

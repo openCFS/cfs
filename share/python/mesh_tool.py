@@ -273,7 +273,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
       show = (200, 10, 10) if binary else (int(val * 255), int(val * 255), int(val * 255)) 
       check_pix[x, ny - y - 1] = show if e.region == 'mech' else (10, 10, 200) if e.region == 'void' else (200, 10, 10)
       
-  check_img = check_img.resize((size, ny * size / nx))    
+  check_img = check_img.resize((size, int(ny * size / nx)))    
   check_img.show()     
 
 
