@@ -841,9 +841,6 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       node.next = nn
       nn.next = node
       
-#       print "set next of ", node.id, " to ", node.next.id
-#       print "set next of ", nn.id, " to ", nn.next.id
-      
       continue
     
     # check valleys that contains 2 end nodes
@@ -854,13 +851,6 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
     ln,ln_idx       = get_end_node_by_grid_coords(node.i-1,node.j+1,end_nodes)
     lnn, lnn_idx  = get_end_node_by_grid_coords(node.i-1,node.j+2,end_nodes)
     
-#     print "\nnode: ", node.id
-#     print "nnn: ", nnn
-#     print "rn: ", rn
-#     print "rnn: ", rnn
-#     print "ln: ", ln
-#     print "lnn: ", lnn
-    
     # next node the node after next node should not be of type end node
     if nnn and not (n or n_inner)  and not ( nn or nn_inner) and (ln and lnn or rn and rnn):
       # check which one is first in the valley
@@ -870,17 +860,11 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       next_2 = lnn if lnn else rnn
       next_2_idx = lnn_idx if lnn else rnn_idx
       
-#       print "next: ", next.id
-#       print "next_2: ", next_2.id
-      
       add_triangle(node.id, next.id,next_2.id, cells)
       add_triangle(node.id, next_2.id,nnn.id, cells)
       
       node.next = nnn
       nnn.next = node
-      
-#       print "set next of ", node.id, " to ", node.next.id
-#       print "set next of ", nnn.id, " to ", nnn.next.id
       
       delete_ids.append(next.id)
       delete_ids.append(next_2.id)
@@ -921,14 +905,12 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           
           neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
           
-#           print "neighbors: ", neighbors    
           end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
           vtkArray.SetValue(this_id,dir+0.5)
       else:
         if this_id >= 0 and j > 0: # first point in line is not end point
           
           neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
-#           print "neighbors: ", neighbors
           end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
           vtkArray.SetValue(this_id,dir+0.5)
           
@@ -1053,11 +1035,13 @@ def create_profiles_array(args,info,log):
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
     
     # ha is 3dplot object
-    triangulate_boundary_circles(profiles[0],nodes_ids_1,id,ha,points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,ha,points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,ha,points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,ha,points,cells,vtkData)
 #     triangulate_boundary_circles(profiles[1],id,ha,cells)
 #     plt.show() 
-#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
@@ -1437,8 +1421,6 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
     v = get_end_node_by_id(n, end_nodes)
     if get_end_node_by_id(n, end_nodes) is not None:  
       previous = v
-#       print "n: ", n
-#       print "initial_edge[0].id: ", initial_edge[0].id
       # if node is starting node, it cannot be node previous to this node
       if initial_edge and (n <> initial_edge[0].id or n <> initial_edge[1].id):
         break
@@ -1637,11 +1619,6 @@ def give_best_next_neighbor(candidates, vert1, vert2):
       best_ratio = ratio
       best_neighbor = node
       
-  if best_neighbor is None:
-    print "best_neighbor is None, cands: "
-    for cand in candidates:
-      print cand.id   
-      
   assert(best_neighbor is not None)
   return best_neighbor
 
@@ -1838,6 +1815,9 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
     print "next_cand_1: ", next_cand_1
     print "next_cand_2: ", next_cand_2
   
+  assert(next_cand_1 is not None)
+  assert(next is not None)  
+  
   if logger:
     logger.write(str(next_cand_1) + " ratio=" + str(ratio_1) + (" <- " if next_cand_1.id == next.id else " ") + "\n")
     if next_cand_2:
@@ -1977,7 +1957,7 @@ def fix_profile_intersection_gaps(this_end_nodes, other_end_nodes,cells):
 # when introducing new nodes in the mesh, we also have to assign them an unique id
 # id+1 is the current number of points in the surface mesh
 def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set_id=True):
-  global res
+  global res, logger
   dir = profile.direction
   
   # number of points change with circle radius
@@ -1987,14 +1967,14 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     radius = 1e-4
   
   step_angle = degrees(arc_length / radius)
-  print "arc length:", arc_length
-  print "radius: ", radius
-  print "step_angle: ", step_angle
+  
+  if logger:
+    logger.write("arc length:" + str(arc_length) + "\n")
+    logger.write("radius: " + str(radius) + "\n")
+    logger.write("step_angle: " + str(step_angle) + "\n")
   
   nodes_left = []
   nodes_right = []
-  
-  print("radius: " + str(radius))
   
   for line,angle in enumerate(np.arange(0,360,step_angle)):
     tmp_res += 1
@@ -2020,6 +2000,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id <> nodes_left[-1].id:
         print("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id))
+      assert(vtk_id == nodes_left[-1].id)  
     
     # assign any other direction to end node as triangulation routine assumes two different directions
     nodes_right.append(End_Node(coords_right,id,dir,line,res-1,[]))
@@ -2029,7 +2010,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id <> nodes_right[-1].id:
         print("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id))
-    
+      assert(vtk_id == nodes_right[-1].id)   
     # if radius is too small, we only have one point left
     if radius < 1e-3:
       break    
@@ -2040,7 +2021,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
 # for this, we need to add additional points on smaller circles within starting circle
 # we need nodes_ids to determine ids of points on starting circle 
 def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
-  global res, res_surf_lines
+  global res, res_surf_lines, logger
   radius = profile.radius_left
   arc_length = radius * radians(360.0/np.size(nodes_ids,0))
   previous_points_left, previous_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
@@ -2059,8 +2040,6 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
   
   # create points on circles lying in the same plane as original circle
   while len(previous_points_left) > 1 and len(previous_points_right) > 1:
-    print "len(previous_points_left): ", len(previous_points_left)
-    print "len(previous_points_right): ", len(previous_points_right)
     radius -= step
     points_left, points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
      
@@ -2075,21 +2054,14 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
     triangles = []
     for lists in [(previous_points_left,points_left),(previous_points_right,points_right)]:
       start_node = lists[0][0]
-      print "start_node: ", start_node.id
       next = give_next_end_node_on_circle(start_node, lists[0], None, res_surf_lines, res)[0]
       other = find_closest_point(start_node, next, lists[1])[0]
       if logger:
         logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
         logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
-#       print "previous: ", lists[0][0].id, lists[0][1].id
-#       print "inner: ", lists[1][0].id
-      #print "inner: ", lists[1][1].id
-          
-      print "start_node", start_node.id
-      print "next", next.id 
-      print "other", other.id, other.dir
-       
-      print "tmp_res: ", tmp_res
+        logger.write("start_node" + str(start_node.id) + "\n")
+        logger.write("next" + str(next.id) + "\n")
+        logger.write("other" + str(other.id) + "\n")
             
       next.connections.add(other.id)
       next.connections.add(start_node.id)
@@ -2121,11 +2093,13 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
      
     clear_all_connections(previous_points_left)
     clear_all_connections(previous_points_right)
-
+    
+  return id
 # for given end node list, remove all connections of end nodes
 def clear_all_connections(list):
   for n in list:
     n.connections = set()    
+    
 def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
   for node in nodes_left:
     assert(nodes_ids[node.i,node.j] > -1)
