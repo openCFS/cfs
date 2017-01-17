@@ -1903,53 +1903,19 @@ def pop_triangles(triangles):
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
-def fix_profile_intersection_gaps(this_end_nodes, other_end_nodes,cells):
+def fix_profile_intersection_gaps(this_end_nodes,other_end_nodes,cells):
   global logger
   # start from x profile and 0 degree and take first end node you can find
   nodes = [v for v in this_end_nodes if v.i == 0]
   assert(nodes)
   for n in nodes:
-    triangles = [] # saves all triangles found by marching
     start_node = n
     
     next = give_next_end_node(start_node,this_end_nodes,this_end_nodes[0].dir,other_end_nodes[0].dir)[0]
   
     other = find_closest_point(start_node, next, other_end_nodes)[0]
     
-    if logger: 
-      logger.write("\nstarting with " + str(n.id) + " dir = " + str(this_end_nodes[0].dir) + " other_dir= " + str(other_end_nodes[0].dir) + "\n")
-      logger.write("other: " + str(other) + "\n")
-      
-      
-    next.connections.add(other.id)
-    next.connections.add(start_node.id)
-    start_node.connections.add(other.id)
-    start_node.connections.add(next.id)
-    other.connections.add(start_node.id)
-    other.connections.add(next.id)
-  
-    triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
-    initial_edge = [start_node,other]
-    if logger:
-      logger.write("created triangle with edge: (" + str(next.id) + "," + str(other.id) + ") next: " + str(next.id) + "\n")
-      logger.write("initial edge: " + str(start_node.id) + str(other.id) + "\n")
-      
-    run = True
-    end = False
-    while len(triangles) > 0 and run and not end:
-      run = check_next_triangle(triangles, this_end_nodes, other_end_nodes, initial_edge)
-      # check if we have just created a triangle where new active edge is 
-      # identical to active edge of very first triangle --> we are finished!
-      edge = triangles[-1].edge
-      if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
-        if logger:
-          logger.write("filled \n")
-        end = True 
-        
-    for triangle in triangles:
-      verts = triangle.vertices
-      add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-
+    start_triangulation(start_node,next,other,this_end_nodes,other_end_nodes,cells)  
 # generate points on the bounding circle (left and right) of a profile
 # radius is the current radius of a circle where we already have the boundary points
 # step is the step size we use to reduce the radius 
@@ -2047,47 +2013,21 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
       ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
     for point in points_right:
       ha.scatter(point.coords[0],point.coords[1],point.coords[2])
-#       
-    plt.show()    
+#     plt.show()    
 #     
 #     # create first triangle
-    triangles = []
     for lists in [(previous_points_left,points_left),(previous_points_right,points_right)]:
       start_node = lists[0][0]
       next = give_next_end_node_on_circle(start_node, lists[0], None, res_surf_lines, res)[0]
       other = find_closest_point(start_node, next, lists[1])[0]
-      if logger:
-        logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
-        logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
-        logger.write("start_node" + str(start_node.id) + "\n")
-        logger.write("next" + str(next.id) + "\n")
-        logger.write("other" + str(other.id) + "\n")
+#       if logger:
+#         logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
+#         logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
+#         logger.write("start_node" + str(start_node.id) + "\n")
+#         logger.write("next" + str(next.id) + "\n")
+#         logger.write("other" + str(other.id) + "\n")
+      start_triangulation(start_node, next, other,lists[0],lists[1],cells)
             
-      next.connections.add(other.id)
-      next.connections.add(start_node.id)
-      start_node.connections.add(other.id)
-      start_node.connections.add(next.id)
-      other.connections.add(start_node.id)
-      other.connections.add(next.id)
-            
-      triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
-      initial_edge = [start_node,other]
-      run = True
-      end = False
-      while len(triangles) > 0 and run and not end:
-        run = check_next_triangle(triangles, lists[0], lists[1], initial_edge)
-        # check if we have just created a triangle where new active edge is 
-        # identical to active edge of very first triangle --> we are finished!
-        edge = triangles[-1].edge
-        if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
-          if logger:
-            logger.write("filled \n")
-          end = True 
-                
-      for triangle in triangles:
-        verts = triangle.vertices
-        add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-     
     previous_points_left = points_left
     previous_points_right = points_right
      
@@ -2115,3 +2055,43 @@ def list_contains_end_nodes(list,node):
     if n.id == node.id:
       return True
   return False
+
+# starts triangulation algorithm for given initial triangle
+# all three nodes must be of type End_Node
+# next_node is on same 'circle/direction' as start_node
+# other_node is on other 'circle/direction' as start_node
+def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
+  triangles = [] # saves all triangles found by marching
+  
+  if logger: 
+    logger.write("\nstarting with " + str(start.id) + " dir = " + str(this_end_nodes[0].dir) + " other_dir= " + str(other_end_nodes[0].dir) + "\n")
+    logger.write("other: " + str(other) + "\n")
+
+  next.connections.add(other.id)
+  next.connections.add(start.id)
+  start.connections.add(other.id)
+  start.connections.add(next.id)
+  other.connections.add(start.id)
+  other.connections.add(next.id)
+  
+  triangles.append(Marching_Triangle([start,next,other],next,other,[start]))
+  initial_edge = [start,other]
+  if logger:
+    logger.write("created triangle with edge: (" + str(next.id) + "," + str(other.id) + ") next: " + str(next.id) + "\n")
+    logger.write("initial edge: " + str(start.id) + str(other.id) + "\n")
+    
+  run = True
+  end = False
+  while len(triangles) > 0 and run and not end:
+    run = check_next_triangle(triangles, this_end_nodes, other_end_nodes, initial_edge)
+    # check if we have just created a triangle where new active edge is 
+    # identical to active edge of very first triangle --> we are finished!
+    edge = triangles[-1].edge
+    if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
+      if logger:
+        logger.write("filled \n")
+      end = True 
+      
+  for triangle in triangles:
+    verts = triangle.vertices
+    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
