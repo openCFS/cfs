@@ -1052,9 +1052,6 @@ def create_profiles_array(args,info,log):
         if nodes_ids_3[i,j] >= 0:          
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
     
-    for i in range(np.size(nodes_ids_1,1)):
-      assert(nodes_ids_1[i,0] <> -1)      
-    
     # ha is 3dplot object
     triangulate_boundary_circles(profiles[0],nodes_ids_1,id,ha,points,cells,vtkData)
 #     triangulate_boundary_circles(profiles[1],id,ha,cells)
@@ -1553,6 +1550,8 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
 
 # similar to give_next_end_node but much simpler
 def give_next_end_node_on_circle(node,end_nodes,initial_edge,max_i,max_j):
+  if len(end_nodes) == 1:
+    return [node]
 #   assert(initial_edge is not None)
   assert(list_contains_end_nodes(end_nodes, node))
   result = []
@@ -1637,6 +1636,11 @@ def give_best_next_neighbor(candidates, vert1, vert2):
     if ratio < best_ratio:
       best_ratio = ratio
       best_neighbor = node
+      
+  if best_neighbor is None:
+    print "best_neighbor is None, cands: "
+    for cand in candidates:
+      print cand.id   
       
   assert(best_neighbor is not None)
   return best_neighbor
@@ -2054,7 +2058,9 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
   tmp_res = 0
   
   # create points on circles lying in the same plane as original circle
-  while len(points_left) <> 1 and len(points_right)<> 1:
+  while len(previous_points_left) > 1 and len(previous_points_right) > 1:
+    print "len(previous_points_left): ", len(previous_points_left)
+    print "len(previous_points_right): ", len(previous_points_right)
     radius -= step
     points_left, points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
      
@@ -2063,50 +2069,63 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
     for point in points_right:
       ha.scatter(point.coords[0],point.coords[1],point.coords[2])
 #       
-# #     plt.show()    
+    plt.show()    
 #     
 #     # create first triangle
-    start_node = previous_points_left[0]
-    next = give_next_end_node_on_circle(start_node, previous_points_left, None, res_surf_lines, res)[0]
-    other = find_closest_point(start_node, next, points_left)[0]
-    if logger:
-      logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
-      logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
-    print "previous: ", previous_points_left[0].id, previous_points_left[1].id
-    print "inner: ", points_left[0].id, points_left[1].id
+    triangles = []
+    for lists in [(previous_points_left,points_left),(previous_points_right,points_right)]:
+      start_node = lists[0][0]
+      print "start_node: ", start_node.id
+      next = give_next_end_node_on_circle(start_node, lists[0], None, res_surf_lines, res)[0]
+      other = find_closest_point(start_node, next, lists[1])[0]
+      if logger:
+        logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
+        logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
+#       print "previous: ", lists[0][0].id, lists[0][1].id
+#       print "inner: ", lists[1][0].id
+      #print "inner: ", lists[1][1].id
+          
+      print "start_node", start_node.id
+      print "next", next.id 
+      print "other", other.id, other.dir
        
-    print "start_node", start_node.id
-    print "next", next.id 
-    print "other", other.id, other.dir
-    
-    print "tmp_res: ", tmp_res
-         
-    next.connections.add(other.id)
-    next.connections.add(start_node.id)
-    start_node.connections.add(other.id)
-    start_node.connections.add(next.id)
-    other.connections.add(start_node.id)
-    other.connections.add(next.id)
-         
-    triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
-    initial_edge = [start_node,other]
-    run = True
-    end = False
-    while len(triangles) > 0 and run and not end:
-      run = check_next_triangle(triangles, previous_points_left, points_left, initial_edge)
-      # check if we have just created a triangle where new active edge is 
-      # identical to active edge of very first triangle --> we are finished!
-      edge = triangles[-1].edge
-      if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
-        if logger:
-          logger.write("filled \n")
-        end = True 
-             
-    for triangle in triangles:
-      verts = triangle.vertices
-      add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+      print "tmp_res: ", tmp_res
+            
+      next.connections.add(other.id)
+      next.connections.add(start_node.id)
+      start_node.connections.add(other.id)
+      start_node.connections.add(next.id)
+      other.connections.add(start_node.id)
+      other.connections.add(next.id)
+            
+      triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
+      initial_edge = [start_node,other]
+      run = True
+      end = False
+      while len(triangles) > 0 and run and not end:
+        run = check_next_triangle(triangles, lists[0], lists[1], initial_edge)
+        # check if we have just created a triangle where new active edge is 
+        # identical to active edge of very first triangle --> we are finished!
+        edge = triangles[-1].edge
+        if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
+          if logger:
+            logger.write("filled \n")
+          end = True 
+                
+      for triangle in triangles:
+        verts = triangle.vertices
+        add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
      
-    break  
+    previous_points_left = points_left
+    previous_points_right = points_right
+     
+    clear_all_connections(previous_points_left)
+    clear_all_connections(previous_points_right)
+
+# for given end node list, remove all connections of end nodes
+def clear_all_connections(list):
+  for n in list:
+    n.connections = set()    
 def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
   for node in nodes_left:
     assert(nodes_ids[node.i,node.j] > -1)
