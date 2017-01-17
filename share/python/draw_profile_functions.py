@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sympy import Symbol, symbols
 
 res = 1
+res_surf_lines = 1
 # file object to log activities while fixing surface gaps
 logger = None
 # file object for info xml
@@ -617,8 +618,9 @@ class Profile:
       
 # return information on profiles 
 def create_profiles(args,infoXml=None):
-  global res 
+  global res, res_surf_lines 
   res = args.res
+  res_surf_lines = args.res_surf_lines
   profiles = [None]*3 # x-,y-,z-part
   
   if not args.skip_x:
@@ -1383,13 +1385,16 @@ def give_neighbor_end_nodes(node,end_nodes):
 # to check relative direction, we the previous end node in same profile
 # first check      
 # dir and other_dir helps determining walking direction in case node is a starting node
+# res: in case resolution of grid on which end_nodes live on has different resolution then basecell grid
+# --> this is the case whenn triangulating boundary circles, there we have to create points inside the circle with different resolution
 def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None):
   # in case we have reached one vertice of the very first triangle found by algorithm
 #   if initial_edge and (node.id == initial_edge[0].id or node.id == initial_edge[1].id):
 #     return [node]
-  global logger
+  global logger, res, res_surf_lines
   diff_i = None
   diff_j = None
+  
   if dir is not None and other_dir is not None:
     # we define front in relative coordinates by means of grid coordinates i and j
     if dir == 0 and other_dir == 2 or dir == 2 and other_dir == 0:
@@ -1447,9 +1452,9 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
     # if node.i is res-1 and previous.i is, diff_i is 1
     # but this is wrong, as previous.i = 0 only results from modulo the resolution
     # in this case, diff_i should be -1!
-    if previous.i == 0 and node.i == res-1:
+    if previous.i == 0 and node.i == res_surf_lines-1:
       diff_i = -1
-    if node.i == 0 and previous.i == res-1:
+    if node.i == 0 and previous.i == res_surf_lines-1:
       diff_i = 1
     if logger:
       logger.write("node " + str(node.id) + " i,j: " + str(node.i) + "," + str(node.j) + " previous: " + str(previous.id) + " dir_i: " + str(diff_i) + " dir_j: " + str(diff_j) + "\n")
@@ -1461,8 +1466,8 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
   i = node.i
   j = node.j
   
-  left_line = node.i-1 if node.i > 0 else res-1
-  right_line = node.i+1 if node.i < res-1 else 0
+  left_line = node.i-1 if node.i > 0 else res_surf_lines-1
+  right_line = node.i+1 if node.i < res_surf_lines-1 else 0
   
   #candidates.append(())
   if diff_j == 0:
@@ -1546,6 +1551,34 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
   
   return result
 
+# similar to give_next_end_node but much simpler
+def give_next_end_node_on_circle(node,end_nodes,initial_edge,max_i,max_j):
+#   assert(initial_edge is not None)
+  assert(list_contains_end_nodes(end_nodes, node))
+  result = []
+  next = [v for v in end_nodes if v.i == (node.i+1)%max_i and v.j == node.j]
+  
+  for v in next:
+    if v.id not in node.connections:
+      result.append(v)
+    if initial_edge and (v.id == initial_edge[0].id or v.id == initial_edge[1].id):
+      result.append(node)      
+  if initial_edge and (node.id == initial_edge[0].id or node.id == initial_edge[1].id):
+    result.append(node)
+      
+  assert(len(result)>0)
+  
+  global logger
+  if logger:
+    if next:
+      logger.write("this: " + str(node.id) + " i:" + str(node.i) + " j:" + str(node.j) + " nexts on circle: ")
+      for n in result:
+        logger.write(str(n.id) + " ")
+      logger.write("\n")
+        
+  return result
+  
+
 # search for 'num' points closest points to ref; ref is an end point
 def find_closest_points(ref_node,next_node,end_nodes_1,end_nodes_2,num):
   assert(num == 1 or num==3)
@@ -1616,9 +1649,8 @@ def check_next_triangle_with_cand(cand,triangles,end_nodes_1,end_nodes_2,initial
   b = active_edge[1]
   
   # end node list that contains node a
-  a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
-  # end node list that contains node b
-  b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2
+  a_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, a) else end_nodes_2
+  b_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, b) else end_nodes_2
   
   cand_nodes = end_nodes_1 if end_nodes_1[0].dir == cand.dir else end_nodes_2
   ratio = calc_triangle_quality(a, a_nodes, b, b_nodes, cand, cand_nodes)
@@ -1699,14 +1731,39 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   a = active_edge[0]
   b = active_edge[1]
   
+  max_i_1 = 0
+  max_j_1 = 0
+  max_i_2 = 0
+  max_j_2 = 0
+  # determines if we are meshing a circular area
+  on_circle = False
+  if end_nodes_1[0].dir == end_nodes_2[0].dir:
+    on_circle = True 
+    # calc max value for i and j (surface grid coordinates)
+    for n in end_nodes_1:
+      if n.i > max_i_1:
+        max_i_1 = n.i
+      if n.j > max_j_1:  
+        max_j_1 = n.j
+    for n in end_nodes_2:
+      if n.i > max_i_2:
+        max_i_2 = n.i
+      if n.j > max_j_2:  
+        max_j_2 = n.j 
+  
+  max_i_1 += 1
+  max_j_1 += 1
+  max_i_2 += 1
+  max_j_2 += 1      
+           
 #   if a.id == 7418 or b.id == 7418:
 #     return False
   if logger:
     logger.write("\na: " + str(a.id) + " connections: " + str(a.connections) + "\n")
     logger.write("b: " + str(b.id) + " connections: " + str(b.connections) + "\n")
   
-  a_nodes = end_nodes_1 if end_nodes_1[0].dir == a.dir else end_nodes_2
-  b_nodes = end_nodes_1 if end_nodes_1[0].dir == b.dir else end_nodes_2 
+  a_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, a) else end_nodes_2
+  b_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, b) else end_nodes_2 
   
   ratio_1 = 1e6
   ratio_2 = 1e6
@@ -1715,8 +1772,18 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   cand_2_nodes = None
   candidates_2 = None
   
-  cand_1_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, a) else end_nodes_2
-  candidates_1 = give_next_end_node(a, cand_1_nodes, end_nodes_1[0].dir, end_nodes_2[0].dir, initial_edge=initial_edge)
+  if list_contains_end_nodes(end_nodes_1, a):
+    cand_1_nodes = end_nodes_1
+    max_i = max_i_1
+    max_j = max_j_1  
+  else:
+    cand_1_nodes = end_nodes_2
+    max_i = max_i_2
+    max_j = max_j_2
+  if on_circle:
+    candidates_1 = give_next_end_node_on_circle(a, cand_1_nodes,initial_edge,max_i,max_j)
+  else:
+    candidates_1 = give_next_end_node(a, cand_1_nodes, end_nodes_1[0].dir, end_nodes_2[0].dir, initial_edge=initial_edge)
 
   # in this case we stepped over a valley
   if len(candidates_1) == 0:
@@ -1726,13 +1793,24 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
       handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge)
     # check if next neighbor is already saved in a node
     next_cand_1 = a.next
-  else:  
+  else:
     # test all possible triangles with neighbors and take the one with the smallest aspect ratio
     next_cand_1 = give_best_next_neighbor(candidates_1, a, b)
     ratio_1 = calc_triangle_quality(a,a_nodes,b,b_nodes,next_cand_1,cand_1_nodes)
-  
-  cand_2_nodes = end_nodes_1 if list_contains_end_nodes(end_nodes_1, b) else end_nodes_2
-  candidates_2 = give_next_end_node(b, cand_2_nodes,end_nodes_1[0].dir, end_nodes_2[0].dir,initial_edge=initial_edge)
+
+  if list_contains_end_nodes(end_nodes_1, b):
+    cand_2_nodes = end_nodes_1
+    max_i = max_i_1
+    max_j = max_j_1  
+  else:
+    cand_2_nodes = end_nodes_2
+    max_i = max_i_2
+    max_j = max_j_2
+
+  if on_circle:
+    candidates_2 = give_next_end_node_on_circle(b, cand_2_nodes,initial_edge,max_i,max_j)
+  else:  
+    candidates_2 = give_next_end_node(b, cand_2_nodes,end_nodes_1[0].dir, end_nodes_2[0].dir,initial_edge=initial_edge)
   
   # in this case we stepped over a valley
   if len(candidates_2) == 0:
@@ -1749,8 +1827,13 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   next = next_cand_1 if ratio_1 < ratio_2 else next_cand_2
   alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
   
-#   if next_cand_1 is None:
-#     return False
+  if next_cand_1 is None:
+    print "next_cand_1 is None: a=", a.id, " b=", b.id
+  if next is None:
+    print "next is None: a=", a.id, " b=", b.id
+    print "next_cand_1: ", next_cand_1
+    print "next_cand_2: ", next_cand_2
+  
   if logger:
     logger.write(str(next_cand_1) + " ratio=" + str(ratio_1) + (" <- " if next_cand_1.id == next.id else " ") + "\n")
     if next_cand_2:
@@ -1771,7 +1854,9 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
     #triangles.append(Marching_Triangle([a,b,next],a if a.dir != next.dir else b,next,alternatives))
     # decide whether a or b is member based on triangle ratios
     # and not profile directions as a.dir might be equal b.dir 
-    triangles.append(Marching_Triangle([a,b,next],a if ratio_1 > ratio_2 else b,next,alternatives))
+    edge_0 = a if not list_contains_end_nodes(a_nodes, next) else b
+    
+    triangles.append(Marching_Triangle([a,b,next],edge_0,next,alternatives))
     
     if logger: 
       logger.write("added connection from " + str(a.id) + " to " + str(next.id) + "\n")
@@ -1891,6 +1976,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
   global res
   dir = profile.direction
   
+  # number of points change with circle radius
+  tmp_res = 0
   # in case step size is so big such that radius -= step becomes negative
   if radius < 0:
     radius = 1e-4
@@ -1906,6 +1993,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
   print("radius: " + str(radius))
   
   for line,angle in enumerate(np.arange(0,360,step_angle)):
+    tmp_res += 1
     x,y = polar_to_cartesian(radius, radians(angle), 0.5)
     coords_left = np.zeros(3)
     coords_right = np.zeros(3)
@@ -1921,7 +2009,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     coords_right[idx_z] = 1.0 
     
     # assign any other direction to end node as triangulation routine assumes two different directions  
-    nodes_left.append(End_Node(coords_left,id,(dir-1)%3,line,0,[]))
+    nodes_left.append(End_Node(coords_left,id,dir,line,0,[]))
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_left)
@@ -1930,7 +2018,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
         print("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id))
     
     # assign any other direction to end node as triangulation routine assumes two different directions
-    nodes_right.append(End_Node(coords_right,id,(dir-1)%3,line,res-1,[]))
+    nodes_right.append(End_Node(coords_right,id,dir,line,res-1,[]))
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_right)
@@ -1942,15 +2030,16 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     if radius < 1e-3:
       break    
   
-  return nodes_left, nodes_right, id
+  return nodes_left, nodes_right, id, tmp_res
 
 # meshes the left and right boundary circles of a profile with triangles
 # for this, we need to add additional points on smaller circles within starting circle
 # we need nodes_ids to determine ids of points on starting circle 
 def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
+  global res, res_surf_lines
   radius = profile.radius_left
   arc_length = radius * radians(360.0/np.size(nodes_ids,0))
-  previous_points_left, previous_points_right,id = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
+  previous_points_left, previous_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
   set_correct_point_ids(previous_points_left, previous_points_right,nodes_ids)
   
   for point in previous_points_left:
@@ -1962,11 +2051,12 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
   points_right = []
   triangles = []
   step = 4.0/res
+  tmp_res = 0
   
   # create points on circles lying in the same plane as original circle
   while len(points_left) <> 1 and len(points_right)<> 1:
     radius -= step
-    points_left, points_right, id = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
+    points_left, points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
      
     for point in points_left:
       ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
@@ -1976,43 +2066,45 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
 # #     plt.show()    
 #     
 #     # create first triangle
-#     start_node = previous_points_left[0]
-#     next = give_next_end_node(start_node, previous_points_left, previous_points_left[0].dir, points_left[0].dir)[0]
-#     other = find_closest_point(start_node, next, points_left)[0]
-#     if logger:
-#       logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
-#       logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
-#     print "previous: ", previous_points_left[0].id, previous_points_left[1].id
-#     print "inner: ", points_left[0].id, points_left[1].id
-#       
-#     print "start_node", start_node.id
-#     print "next", next.id 
-# #     print "other", other.id, other.dir
-#         
-#     next.connections.add(other.id)
-#     next.connections.add(start_node.id)
-#     start_node.connections.add(other.id)
-#     start_node.connections.add(next.id)
-#     other.connections.add(start_node.id)
-#     other.connections.add(next.id)
-#         
-#     triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
-#     initial_edge = [start_node,other]
-#     run = True
-#     end = False
-#     while len(triangles) > 0 and run and not end:
-#       run = check_next_triangle(triangles, previous_points_left, points_left, initial_edge)
-#       # check if we have just created a triangle where new active edge is 
-#       # identical to active edge of very first triangle --> we are finished!
-#       edge = triangles[-1].edge
-#       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
-#         if logger:
-#           logger.write("filled \n")
-#         end = True 
-#             
-#     for triangle in triangles:
-#       verts = triangle.vertices
-#       add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+    start_node = previous_points_left[0]
+    next = give_next_end_node_on_circle(start_node, previous_points_left, None, res_surf_lines, res)[0]
+    other = find_closest_point(start_node, next, points_left)[0]
+    if logger:
+      logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "," + str(other.id) + "\n")
+      logger.write("initial edge: " + str(start_node.id) + "," + str(other.id) + "\n")
+    print "previous: ", previous_points_left[0].id, previous_points_left[1].id
+    print "inner: ", points_left[0].id, points_left[1].id
+       
+    print "start_node", start_node.id
+    print "next", next.id 
+    print "other", other.id, other.dir
+    
+    print "tmp_res: ", tmp_res
+         
+    next.connections.add(other.id)
+    next.connections.add(start_node.id)
+    start_node.connections.add(other.id)
+    start_node.connections.add(next.id)
+    other.connections.add(start_node.id)
+    other.connections.add(next.id)
+         
+    triangles.append(Marching_Triangle([start_node,next,other],next,other,[start_node]))
+    initial_edge = [start_node,other]
+    run = True
+    end = False
+    while len(triangles) > 0 and run and not end:
+      run = check_next_triangle(triangles, previous_points_left, points_left, initial_edge)
+      # check if we have just created a triangle where new active edge is 
+      # identical to active edge of very first triangle --> we are finished!
+      edge = triangles[-1].edge
+      if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
+        if logger:
+          logger.write("filled \n")
+        end = True 
+             
+    for triangle in triangles:
+      verts = triangle.vertices
+      add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
      
     break  
 def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
