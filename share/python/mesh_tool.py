@@ -1665,9 +1665,10 @@ def create_mesh_from_gmsh(meshfile,type):
   if type == "apod6":
     mesh = create_mesh_for_apod6(meshfile,nodes,elem)
   elif type == "aux_cells" or type == "base_cell":
-    mesh = create_mesh_for_aux_cells(meshfile,nodes,elem)
+    mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,1)
   else:
-    print "Error: No correct type was selected! options: apod6, aux_cells"
+    raise RuntimeError("Error: No correct type was selected! options: apod6, aux_cells")
+    
   write_gid_mesh(mesh, meshfile+".mesh") 
   
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
@@ -2561,7 +2562,6 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
   # create_mesh
   mesh = Mesh()
   mesh.nodes = all_nodes
-
   
   min_diam_x = 1000000. 
   min_diam_y = 1000000. 
@@ -2575,11 +2575,12 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
       count = 0
       for k in range (len(e.nodes)):
         # determine the min_diam and max_diam of an element  
-        if count + 1 == len(e.nodes):
+        if count + 1 >= len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[0]][1]))
           min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[0]][2]))
         else:
+          assert(count + 1 < len(e.nodes))
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[count+1]][0]))
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[count+1]][1]))
           min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[count+1]][2]))
