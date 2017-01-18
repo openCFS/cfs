@@ -19,6 +19,7 @@
 #include "Filters/Interpolators/CentroidInterpolator.hh"
 #include "Filters/Interpolators/NearestNeighbourInterpolator.hh"
 #include "Filters/Interpolators/Cell2NodeInterpolator.hh"
+#include "Filters/Interpolators/FEBasedInterpolator.hh"
 #include "Filters/Interpolators/GridIntersectionFilter.hh"
 #include "Filters/Interpolators/RBFInterpolator.hh"
 #include "Filters/Interpolators/Node2CellInterpolator.hh"
@@ -65,9 +66,12 @@ FilterPtr BaseMeshFilterType::Generate(PtrParamNode ptrNode, PtrResultManager re
  else if(ptrNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Curl"){
    newFilter = FilterPtr(new CFSDat::CurlDifferentiator(0,ptrNode,resMana));
  }
- else if(ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_Lighthill" || "AeroacousticSource_LambVector"){
+ else if(ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_Lighthill" || ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LambVector"){
    newFilter = FilterPtr(new CFSDat::Lighthill(0,ptrNode,resMana));
  }
+ else if (ptrNode->Get("type")->As<std::string>() == "FieldInterpolation_FEBased"){
+    newFilter = FilterPtr(new CFSDat::FEBasedInterpolator(0,ptrNode,resMana));
+  }
  return newFilter;
 }
 

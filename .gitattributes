@@ -2293,6 +2293,8 @@ source/cfsdat/Filters/Interpolators/Cell2NodeInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/Cell2NodeInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.hh -text
+source/cfsdat/Filters/Interpolators/FEBasedInterpolator.cc -text
+source/cfsdat/Filters/Interpolators/FEBasedInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.cc -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.hh -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.cc -text

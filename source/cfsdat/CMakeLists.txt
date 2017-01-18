@@ -25,6 +25,7 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/CentroidInterpolator.cc
   Filters/Interpolators/NearestNeighbourInterpolator.cc
   Filters/Interpolators/Cell2NodeInterpolator.cc
+  Filters/Interpolators/FEBasedInterpolator.cc
   Filters/Interpolators/GridIntersectionFilter.cc
   Filters/Interpolators/RBFInterpolator.cc
   Filters/Interpolators/Node2CellInterpolator.cc

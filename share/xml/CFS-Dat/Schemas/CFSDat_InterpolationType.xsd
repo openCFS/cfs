@@ -19,6 +19,13 @@
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="FieldInterpolation_Conservative_CellCentroid"/>
       <xsd:enumeration value="FieldInterpolation_Conservative_CutCell"/>
+      <xsd:enumeration value="FieldInterpolation_FEBased">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation between meshes based on first order FE basis functions!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
       <xsd:enumeration value="FieldInterpolation_Cell2Node">
         <xsd:annotation>
           <xsd:documentation>

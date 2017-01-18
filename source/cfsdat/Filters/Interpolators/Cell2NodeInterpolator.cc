@@ -171,7 +171,6 @@ void Cell2NodeInterpolator::PrepareCalculation(){
       //obtain element volume
       InpolationStruct newStruct;
       shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
-      newStruct.volume = eShape->CalcVolume();
       newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.srcEqn = allSrcElems[aMatch];
       newStruct.tENum = trgElements[aMatch]->elemNum;
@@ -252,11 +251,11 @@ void Cell2NodeInterpolator::AdaptFilterResults(){
   }
   //we require mesh result input
   if(!inInfo->isMeshResult){
-    EXCEPTION("NearesNeighbour interpolation required input to be defined on mesh");
+    EXCEPTION("Cell2Node interpolation required input to be defined on mesh");
   }
   //require defined on elems
   if(inInfo->definedOn != ExtendedResultInfo::ELEMENT){
-    EXCEPTION("NearesNeighbour interpolation can only handle element results");
+    EXCEPTION("Cell2Node interpolation can only handle element results");
   }
   //got the upstream result validated?
   if(!inInfo->isValid){

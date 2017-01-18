@@ -12,6 +12,9 @@
  */
 //================================================================================================
 
+//#ifndef SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CELL2NODEINTERPOLATOR_HH_
+//#define SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CELL2NODEINTERPOLATOR_HH_
+
 #pragma once
 
 #include <Filters/MeshFilter.hh>
@@ -23,28 +26,28 @@ namespace CFSDat{
 //! Upon initialization we determine cell NearesNeighbours
 //! additionally we set the local coordinates accoring to source
 //! during traversal, we just apply those loads
-class Cell2NodeInterpolator : public MeshFilter{
+class FEBasedInterpolator : public MeshFilter{
 
   struct InpolationStruct{
     CF::Vector<Double> localCoords;
-    UInt tENum;
-    UInt srcEqn;
+    UInt sENum;
+    UInt tNNum;
 
-    InpolationStruct() : tENum(0),srcEqn(0){
+    InpolationStruct() : sENum(0),tNNum(0){
       localCoords.Resize(3);
     }
 
     bool operator < (const InpolationStruct& str) const
     {
-        return (srcEqn < str.srcEqn);
+        return (tNNum < str.tNNum);
     }
   };
 
 public:
 
-  Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~Cell2NodeInterpolator();
+  virtual ~FEBasedInterpolator();
 
   virtual bool Run();
 
@@ -58,9 +61,9 @@ protected:
 
 private:
 
-
+  //! Number of neighbor points to include in interpolation.
   std::vector<InpolationStruct> interpolData_;
-  StdVector<UInt> nodeNeighbours_;
+
 
 };
 
