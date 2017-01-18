@@ -1035,10 +1035,9 @@ def create_profiles_array(args,info,log):
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
     
     # ha is 3dplot object
-    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,ha,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,ha,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,ha,points,cells,vtkData)
-#     triangulate_boundary_circles(profiles[1],id,ha,cells)
+    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
 #     plt.show() 
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
@@ -1055,7 +1054,9 @@ def create_profiles_array(args,info,log):
     if args.show:
       show_vtk(polydata, 1000, [], True)
       
-    show_write_vtk(polydata,1000,"surface.vtp")
+    write_stl(polydata)  
+      
+#     show_write_vtk(polydata,1000,"surface.vtp")
   else:
     for i in range(0,3):
       if profiles[i] == None:
@@ -1943,6 +1944,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
   nodes_right = []
   
   for line,angle in enumerate(np.arange(0,360,step_angle)):
+    if angle > 0 and (360.0 - angle) < step_angle/2.0:
+      break
     tmp_res += 1
     x,y = polar_to_cartesian(radius, radians(angle), 0.5)
     coords_left = np.zeros(3)
@@ -1986,17 +1989,12 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
 # meshes the left and right boundary circles of a profile with triangles
 # for this, we need to add additional points on smaller circles within starting circle
 # we need nodes_ids to determine ids of points on starting circle 
-def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
+def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   global res, res_surf_lines, logger
   radius = profile.radius_left
   arc_length = radius * radians(360.0/np.size(nodes_ids,0))
   previous_points_left, previous_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
   set_correct_point_ids(previous_points_left, previous_points_right,nodes_ids)
-  
-  for point in previous_points_left:
-      ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
-  for point in previous_points_right:
-    ha.scatter(point.coords[0],point.coords[1],point.coords[2],color="red")
   
   points_left = []
   points_right = []
@@ -2008,14 +2006,8 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
   while len(previous_points_left) > 1 and len(previous_points_right) > 1:
     radius -= step
     points_left, points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
-     
-    for point in points_left:
-      ha.scatter(point.coords[0],point.coords[1],point.coords[2])  
-    for point in points_right:
-      ha.scatter(point.coords[0],point.coords[1],point.coords[2])
-#     plt.show()    
-#     
-#     # create first triangle
+    
+    # create first triangle
     for lists in [(previous_points_left,points_left),(previous_points_right,points_right)]:
       start_node = lists[0][0]
       next = give_next_end_node_on_circle(start_node, lists[0], None, res_surf_lines, res)[0]
@@ -2027,10 +2019,10 @@ def triangulate_boundary_circles(profile,nodes_ids,id,ha,points,cells,vtkData):
 #         logger.write("next" + str(next.id) + "\n")
 #         logger.write("other" + str(other.id) + "\n")
       start_triangulation(start_node, next, other,lists[0],lists[1],cells)
-            
+             
     previous_points_left = points_left
     previous_points_right = points_right
-     
+      
     clear_all_connections(previous_points_left)
     clear_all_connections(previous_points_right)
     
@@ -2078,7 +2070,7 @@ def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
   initial_edge = [start,other]
   if logger:
     logger.write("created triangle with edge: (" + str(next.id) + "," + str(other.id) + ") next: " + str(next.id) + "\n")
-    logger.write("initial edge: " + str(start.id) + str(other.id) + "\n")
+    logger.write("initial edge: " + str(start.id) + "," + str(other.id) + "\n")
     
   run = True
   end = False
@@ -2095,3 +2087,8 @@ def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
   for triangle in triangles:
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+
+# # checks how many triangles is duplicated
+# # @param vtkCellArray    
+# def check_for_duplicate_triangles(cells):
+  
