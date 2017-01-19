@@ -3,7 +3,10 @@ import platform
 # from PIL import Image # load only in the function we need it!
 import sys, os, numpy, math
 from copy import deepcopy
-from hdf5_tools import *
+try:
+  from hdf5_tools import *
+except:
+  print("failed to import hdf5_tools, hopefully we don't need it")    
 import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
@@ -152,9 +155,9 @@ class Element:
     
     
   def dump(self):
-    print self.nodes
-    print self.region
-    print self.density     
+    print(self.nodes)
+    print(self.region)
+    print(self.density)     
 
 
 # gid Mesh
@@ -270,7 +273,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
       show = (200, 10, 10) if binary else (int(val * 255), int(val * 255), int(val * 255)) 
       check_pix[x, ny - y - 1] = show if e.region == 'mech' else (10, 10, 200) if e.region == 'void' else (200, 10, 10)
       
-  check_img = check_img.resize((size, ny * size / nx))    
+  check_img = check_img.resize((size, int(ny * size / nx)))    
   check_img.show()     
 
 
@@ -298,7 +301,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   # convert angle to rad and check for feasibility
   angle = shearAngle / 180 * math.pi
   if (abs(angle) > math.pi / 2 - 1e-6):
-    print 'angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6'
+    print('angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6')
     return 0 
   dx = scale / nx / math.cos(angle)
   # from daniel ?! dy = scale/ny
@@ -402,14 +405,14 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
 #          b.region = 'void'
 #        mesh.elements.append(b)
 #    print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
-  mesh.bc.append(("south", range(0, nx + 1)))
-  mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-  mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("south", list(range(0, nx + 1))))
+  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
   if type == 2:
     # pressure boundary for a test case
-    print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
-    mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
+    print('Warning: pressure area has to be set manually in method create_dense_mesh.')
+    mesh.bc.append(("pressure2", list(range(int(0.8 * nx), nx + 1))))
   elif type == 3:
     # other boundary conditions for msfem test
     # lower/upper loads
@@ -417,35 +420,35 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
     off_x = int(0.05 * nx)
     off_y = int(0.1 * ny)
     if (nx+1)/2. % 2 == 0:
-      mesh.bc.append(("load1", range(mid-off_x,mid + off_x)))
-      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x)))
+      mesh.bc.append(("load1", list(range(mid-off_x,mid + off_x))))
+      mesh.bc.append(("load2", list(range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x))))
     else:
-      mesh.bc.append(("load1", range(mid-off_x,mid + 1 + off_x)))
-      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1)))
+      mesh.bc.append(("load1", list(range(mid-off_x,mid + 1 + off_x))))
+      mesh.bc.append(("load2", list(range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1))))
     # support lower left
-    mesh.bc.append(("support", range(0,off_x+1)))
-    mesh.bc.append(("support", range(0,(nx+1)*off_y+1,nx+1)))
+    mesh.bc.append(("support", list(range(0,off_x+1))))
+    mesh.bc.append(("support", list(range(0,(nx+1)*off_y+1,nx+1))))
     # support lower right
-    mesh.bc.append(("support", range(nx - off_x,nx+1)))
-    mesh.bc.append(("support", range(nx,(nx+1)*(off_y+1),nx+1)))
+    mesh.bc.append(("support", list(range(nx - off_x,nx+1))))
+    mesh.bc.append(("support", list(range(nx,(nx+1)*(off_y+1),nx+1))))
     # support upper left
-    mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
-    mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
+    mesh.bc.append(("support", list(range((nx+1)*ny, (nx+1)*ny+off_x+1))))
+    mesh.bc.append(("support", list(range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1))))
 
     # support upper right
-    mesh.bc.append(("support", range((nx+1)*(ny+1) -1 - off_x,(nx+1)*(ny+1))))
-    mesh.bc.append(("support", range((nx+1)*(ny+1)-(nx+1)*off_y-1,(nx+1)*(ny+1),nx+1)))
+    mesh.bc.append(("support", list(range((nx+1)*(ny+1) -1 - off_x,(nx+1)*(ny+1)))))
+    mesh.bc.append(("support", list(range((nx+1)*(ny+1)-(nx+1)*off_y-1,(nx+1)*(ny+1),nx+1))))
 
 
   
   # print mesh.bc
-
-  print "dense resolution: " + str(nx) + " x " + str(ny) + " elements (" + str(scale) + "m x " + str(float(ny) / nx * scale) + "m)",
-  print " -> " + str(mech_count) + " mech elements out of " + str(nx * ny) + " (" + str(float(mech_count) / (nx * ny) * 100.0) + " %)",
-  print " with threshold " + str(threshold) 
+  msg = "dense resolution: " + str(nx) + " x " + str(ny) + " elements (" + str(scale) + "m x " + str(float(ny) / nx * scale) + "m)"
+  msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny) + " (" + str(float(mech_count) / (nx * ny) * 100.0) + " %)"
+  msg += " with threshold " + str(threshold)
   if colorful_count > 0:
-    print 'plus ' + str(colorful_count) + ' non gray elements'
-
+    msg += 'plus ' + str(colorful_count) + ' non gray elements'
+  print(msg)  
+    
 # @param mesh dense mesh (input)
 # @return sparse mesh
 def convert_to_sparse_mesh(dense):
@@ -457,7 +460,7 @@ def convert_to_sparse_mesh(dense):
   # copy element, the indices of the nodes will be replaced later
   for i in range(len(dense.elements)):
     e = dense.elements[i]
-    if e.region <> 'void':
+    if e.region != 'void':
       sparse.elements.append(deepcopy(e))
       for n in range(len(e.nodes)):
         nns.add(e.nodes[n])
@@ -481,7 +484,7 @@ def convert_to_sparse_mesh(dense):
      newnodes = []  # el.nodes is a tuple, values cannot be replaces
      for n in range(len(el.nodes)):
        newnodes.append(map[el.nodes[n]])
-       assert(el.nodes[n] <> -1)
+       assert(el.nodes[n] != -1)
      el.nodes = newnodes
 
   # finally handle the boundary conditions
@@ -491,9 +494,9 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
-#       print 'old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]])
-      if map[dnn[n]] <> -1:
-        nodes.append(map[dnn[n]])
+      print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
+      if map[dnn[n]] != -1:
+        #nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
   return sparse
 
@@ -528,7 +531,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
   num_2d = quad4 + tri3
   num_3d = hexa8 + wedge6 + tet4
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
-  print 'number of elements ' + str(num_1d + num_2d + num_3d)
+  print('number of elements ' + str(num_1d + num_2d + num_3d))
   dim = 3 if num_3d > 0 else 2
   
   out = open(filename, "w")
@@ -611,7 +614,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
 
 # names all nodes on edges, faces and corners of cubic domain
 def name_bc_nodes(mesh):
-  assert(mesh <> None)
+  assert(mesh != None)
   assert(mesh.nz > 1)
   nx = mesh.nx
   ny = mesh.ny
@@ -622,8 +625,8 @@ def name_bc_nodes(mesh):
   nnz = nz + 1
   
   # naming faces of cube
-  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
-  mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
+  mesh.bc.append(("left", list(range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx))))
+  mesh.bc.append(("right", list(range(nx, (nnx * nny * nnz) + 1, nnx))))
 
   side = (("bottom", []))
   mesh.bc.append(side)
@@ -639,8 +642,8 @@ def name_bc_nodes(mesh):
 
   
   # back and front as it appears with paraview
-  mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
+  mesh.bc.append(("back", list(range(0, (nx + 1) * (ny + 1)))))
+  mesh.bc.append(("front", list(range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1)))))
 
   # naming cube corners
   mesh.bc.append(("left_bottom_back", [0]))
@@ -653,18 +656,18 @@ def name_bc_nodes(mesh):
   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
   
   # naming cube edges
-  mesh.bc.append(("bottom_back",range(nnx)))
-  mesh.bc.append(("bottom_front",range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx)))
-  mesh.bc.append(("bottom_left",range(0,nnx*nny*nnz-nnx-1,nnx*nny)))
-  mesh.bc.append(("bottom_right",range(nnx-1,nnx*nny*nnz-1-1,nnx*nny)))
-  mesh.bc.append(("top_back",range(nnx*nny-nnx,nnx*nny)))
-  mesh.bc.append(("top_front",range(nnx*nny*nny-nnx,nnx*nny*nny)))
-  mesh.bc.append(("top_left",range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny)))
-  mesh.bc.append(("top_right",range(nnx*nny-1,nnx*nny*nnz,nnx*nny)))
-  mesh.bc.append(("back_left",range(0,nnx*nny-nnx+1,nnx)))
-  mesh.bc.append(("back_right",range(nnx-1,nnx*nny,nnx)))
-  mesh.bc.append(("front_left",range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx)))
-  mesh.bc.append(("front_right",range(nnx * nny * nz + nx,nnx * nny * nnz,nnx)))
+  mesh.bc.append(("bottom_back",list(range(nnx))))
+  mesh.bc.append(("bottom_front",list(range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx))))
+  mesh.bc.append(("bottom_left",list(range(0,nnx*nny*nnz-nnx-1,nnx*nny))))
+  mesh.bc.append(("bottom_right",list(range(nnx-1,nnx*nny*nnz-1-1,nnx*nny))))
+  mesh.bc.append(("top_back",list(range(nnx*nny-nnx,nnx*nny))))
+  mesh.bc.append(("top_front",list(range(nnx*nny*nny-nnx,nnx*nny*nny))))
+  mesh.bc.append(("top_left",list(range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny))))
+  mesh.bc.append(("top_right",list(range(nnx*nny-1,nnx*nny*nnz,nnx*nny))))
+  mesh.bc.append(("back_left",list(range(0,nnx*nny-nnx+1,nnx))))
+  mesh.bc.append(("back_right",list(range(nnx-1,nnx*nny,nnx))))
+  mesh.bc.append(("front_left",list(range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx))))
+  mesh.bc.append(("front_right",list(range(nnx * nny * nz + nx,nnx * nny * nnz,nnx))))
   
   
   return mesh  
@@ -678,14 +681,14 @@ def validate_periodicity(mesh):
   countTop = len([x for x in mesh.bc if x[0] == 'top'][0][1]);
   countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
   
-  if countLeft <> countRight:
-    print "left: ", countLeft, " right: ", countRight
+  if countLeft != countRight:
+    print("left: ", countLeft, " right: ", countRight)
    
-  if countFront <> countBack:
-    print "front: ", countFront, " back: ", countBack
+  if countFront != countBack:
+    print("front: ", countFront, " back: ", countBack)
    
-  if countTop <> countBottom:
-    print "top: ", countTop, " bottom: ", countBottom
+  if countTop != countBottom:
+    print("top: ", countTop, " bottom: ", countBottom)
   
   return countLeft, countRight, countFront, countBack, countTop, countBottom
   
@@ -702,7 +705,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   mesh = Mesh(nx, ny)
   
   # buld2d case
-  ny = y_res if y_res <> None else x_res
+  ny = y_res if y_res != None else x_res
   width = 1.0
   height = float(ny)/nx if opt_height is None else opt_height 
    
@@ -808,7 +811,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
 
       # mark the interface of the inclusion with the outer boundary
-      if inclusion <> None:
+      if inclusion != None:
         if x==0 and e.region == 'inner':
           left_iface.append(ll)
           left_iface.append(ll+nx+1)
@@ -835,20 +838,20 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
   if type == 'ghost':
-    mesh.bc.append(("south", range(0, nx)))
-    mesh.bc.append(("north", range((nx + 1) * (ny - 1), (nx + 1) * (ny - 1) + nx)))
-    mesh.bc.append(("west", range(0, (nx + 1) * (ny - 1) + 1, nx + 1)))
-    mesh.bc.append(("east", range(nx - 1, (nx + 1) * (ny - 1) + nx, nx + 1)))
+    mesh.bc.append(("south", list(range(0, nx))))
+    mesh.bc.append(("north", list(range((nx + 1) * (ny - 1), (nx + 1) * (ny - 1) + nx))))
+    mesh.bc.append(("west", list(range(0, (nx + 1) * (ny - 1) + 1, nx + 1))))
+    mesh.bc.append(("east", list(range(nx - 1, (nx + 1) * (ny - 1) + nx, nx + 1))))
 
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx - 1]))
     mesh.bc.append(("left_upper", [(nx - 1) * (ny)]))
     mesh.bc.append(("right_upper", [(nx + 1) * (ny - 1) + nx - 1]))
     
-    mesh.bc.append(("south_ghost", range(0, nx + 1)))
-    mesh.bc.append(("north_ghost", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("west_ghost", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("east_ghost", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+    mesh.bc.append(("south_ghost", list(range(0, nx + 1))))
+    mesh.bc.append(("north_ghost", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("west_ghost", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("east_ghost", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
   
     mesh.bc.append(("left_lower_ghost", [0]))
     mesh.bc.append(("right_lower_ghost", [nx]))
@@ -866,11 +869,11 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("east_mid", [int(round(0.5 * ((nx + 1) * (ny - 1) + nx - 1 - (nx - 1)) + (nx - 1)))]))
     return mesh, nx, ny, dx, dy
   elif type == 'pressure2':
-    mesh.bc.append(("south", range(0, nx + 1)))
-    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
-    mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
+    mesh.bc.append(("south", list(range(0, nx + 1))))
+    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
+    mesh.bc.append(("pressure2", list(range(int(0.8 * nx), nx + 1))))
   
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
@@ -878,10 +881,10 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
     return mesh
   elif type == 'triangle_msfem':
-    mesh.bc.append(("bottom", range(0, nx + 1)))
-    mesh.bc.append(("top", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("left", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("right", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+    mesh.bc.append(("bottom", list(range(0, nx + 1))))
+    mesh.bc.append(("top", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("left", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("right", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
   
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
@@ -890,12 +893,12 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     return mesh
   elif type == 'two_load':
     mid = int((nx+1.)/2.)
-    mesh.bc.append(("load1", range(mid,mid+1)))
-    mesh.bc.append(("load2", range((nx+1)*ny + mid, (nx+1)*ny + mid+1))) 
-    mesh.bc.append(("support", range(0,1)))
-    mesh.bc.append(("support", range(nx,nx+1)))
-    mesh.bc.append(("support", range((nx+1)*ny,(nx+1)*ny+1,nx+1)))
-    mesh.bc.append(("support", range((nx+1)*(ny+1)-1,(nx+1)*(ny+1))))
+    mesh.bc.append(("load1", list(range(mid,mid+1))))
+    mesh.bc.append(("load2", list(range((nx+1)*ny + mid, (nx+1)*ny + mid+1)))) 
+    mesh.bc.append(("support", list(range(0,1))))
+    mesh.bc.append(("support", list(range(nx,nx+1))))
+    mesh.bc.append(("support", list(range((nx+1)*ny,(nx+1)*ny+1,nx+1))))
+    mesh.bc.append(("support", list(range((nx+1)*(ny+1)-1,(nx+1)*(ny+1)))))
 
  
   elif type == 'msfem_two_load':
@@ -904,25 +907,25 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     off_x = int(0.05 * nx)
     off_y = int(0.1 * ny)
     if (nx+1)/2. % 2 == 0:
-      mesh.bc.append(("load1", range(mid-off_x,mid + off_x)))
-      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x)))
+      mesh.bc.append(("load1", list(range(mid-off_x,mid + off_x))))
+      mesh.bc.append(("load2", list(range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x))))
     else:
-      mesh.bc.append(("load1", range(mid-off_x,mid + 1 + off_x)))
-      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1)))
+      mesh.bc.append(("load1", list(range(mid-off_x,mid + 1 + off_x))))
+      mesh.bc.append(("load2", list(range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1))))
     # support lower left
-    mesh.bc.append(("support", range(0,off_x+1)))
-    mesh.bc.append(("support", range(0,(nx+1)*off_y+1,nx+1)))
+    mesh.bc.append(("support", list(range(0,off_x+1))))
+    mesh.bc.append(("support", list(range(0,(nx+1)*off_y+1,nx+1))))
     # support lower right
-    mesh.bc.append(("support", range(nx - off_x,nx+1)))
-    mesh.bc.append(("support", range(nx,(nx+1)*(off_y+1),nx+1)))
+    mesh.bc.append(("support", list(range(nx - off_x,nx+1))))
+    mesh.bc.append(("support", list(range(nx,(nx+1)*(off_y+1),nx+1))))
     # support upper left
-    mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
-    mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
+    mesh.bc.append(("support", list(range((nx+1)*ny, (nx+1)*ny+off_x+1))))
+    mesh.bc.append(("support", list(range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1))))
   elif type.startswith('force_inverter') or type.startswith('gripper'): 
-    mesh.bc.append(("south", range(0, nx + 1)))
-    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+    mesh.bc.append(("south", list(range(0, nx + 1))))
+    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
     if type.endswith('half'):
       factor = 2
       mesh.bc.append(("left_upper", [(nx+1)*ny]))
@@ -933,22 +936,22 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("right_lower", [nx]))
     mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   else: 
-    mesh.bc.append(("south", range(0, nx + 1)))
-    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+    mesh.bc.append(("south", list(range(0, nx + 1))))
+    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
     mesh.bc.append(("left_upper", [(nx+1)*ny]))
     mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
 
-  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
+  print('width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy))
   
   liu = numpy.unique(left_iface)
   
   if len(left_iface) > 0:
     mesh.bc.append(("left_iface", liu))
-    print str(len(liu)) + ' nodes (' + str(len(liu) / float(ny) * 100.) + '%) at the left interface for radius ' + str(inclusion_size)
+    print(str(len(liu)) + ' nodes (' + str(len(liu) / float(ny) * 100.) + '%) at the left interface for radius ' + str(inclusion_size))
   if len(right_iface) > 0:
     mesh.bc.append(("right_iface", numpy.unique(right_iface)))
   if len(lower_iface) > 0:
@@ -957,7 +960,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("upper_iface", numpy.unique(upper_iface)))
   
   if second > 0:
-    print str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)'
+    print(str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)')
 
   return mesh
 
@@ -1006,8 +1009,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   nx = x_res  
    
   if type == "bulk3d": 
-      ny = y_res if y_res <> None else x_res 
-      nz = z_res if z_res <> None else x_res 
+      ny = y_res if y_res != None else x_res 
+      nz = z_res if z_res != None else x_res 
       width = scale
       height = scale*float(ny)/nx 
       depth = scale*float(nz)/nx 
@@ -1039,7 +1042,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   nny = ny + 1
   nnz = nz + 1
     
-  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
+  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz))
   
   
   # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
@@ -1156,12 +1159,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
   
-  print "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements ",
-  print " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)",
-  print " with threshold " + str(threshold) 
+  msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
+  msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
+  msg += " with threshold " + str(threshold) 
+  print(msg)
   
   if second > 0: 
-    print str(second) + ' elements of secondary region (' + str(100.0 * second / (nnx * nny * nnz)) + '%)' 
+    print(str(second) + ' elements of secondary region (' + str(100.0 * second / (nnx * nny * nnz)) + '%)') 
    
   return mesh
 
@@ -1207,9 +1211,9 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
       e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))            
       mesh.elements.append(e) 
   
-  mesh.bc.append(("west", range(nx+2, (nx+1) * ny, nx+1)))
-  mesh.bc.append(("north", range(nx*ny, (nx+1) * ny-1, 1)))
-  mesh.bc.append(("south", range(nx+2, 2*nx+1, 1)))
+  mesh.bc.append(("west", list(range(nx+2, (nx+1) * ny, nx+1))))
+  mesh.bc.append(("north", list(range(nx*ny, (nx+1) * ny-1, 1))))
+  mesh.bc.append(("south", list(range(nx+2, 2*nx+1, 1))))
   #mesh.bc.append(("south",[nx,2*nx]))
   #mesh.bc.append(("south", [nx]))
   mesh.bc.append(("left_lower", [0]))
@@ -1218,38 +1222,38 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
   mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
 
   if case == 'pipe_bend': 
-    mesh.ne.append(('inlet', range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx)))
-    mesh.ne.append(('outlet', range(int((ny - 1) * nx + 0.7 * nx - eps), int((ny - 1) * nx + 0.9 * nx + eps))))
+    mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
+    mesh.ne.append(('outlet', list(range(int((ny - 1) * nx + 0.7 * nx - eps), int((ny - 1) * nx + 0.9 * nx + eps)))))
   elif case == 'two_inlet_one_outlet':
-    mesh.ne.append(('inlet', range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx)))
-    mesh.ne.append(('inlet', range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx)))
-    mesh.ne.append(('outlet', range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx)))
+    mesh.ne.append(('inlet', list(range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx))))
+    mesh.ne.append(('inlet', list(range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx))))
+    mesh.ne.append(('outlet', list(range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx))))
   elif case == 'two_inlet_two_outlet':
     inletLength = 0.15 * ny
-    mesh.ne.append(('inlet',range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx) ))
-    mesh.ne.append(('inlet',range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx) ))
-    mesh.ne.append(('outlet',range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx) ))
-    mesh.ne.append(('outlet',range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx) ))
+    mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) ))
+    mesh.ne.append(('inlet',list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx)) ))
+    mesh.ne.append(('outlet',list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx)) ))
+    mesh.ne.append(('outlet',list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx)) ))
   elif case == 'two_inlet_two_outlet': 
     inletLength = 0.15 * ny 
-    mesh.ne.append(('inlet',range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx) )) 
-    mesh.ne.append(('inlet',range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx) )) 
-    mesh.ne.append(('outlet',range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx) )) 
-    mesh.ne.append(('outlet',range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx) ))
+    mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) )) 
+    mesh.ne.append(('inlet',list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx)) )) 
+    mesh.ne.append(('outlet',list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx)) )) 
+    mesh.ne.append(('outlet',list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx)) ))
   elif case == "pipe":
-    mesh.ne.append(('inlet',range(nx,nx*(ny-1),nx)))   
-    mesh.ne.append(('outlet',range(2*nx-1,nx*ny-1,nx)))  
+    mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))   
+    mesh.ne.append(('outlet',list(range(2*nx-1,nx*ny-1,nx))))  
   elif case == "diffuser":
-    mesh.ne.append(('inlet',range(nx,nx*(ny-1),nx)))
-    mesh.ne.append(('outlet',range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx)))
+    mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))
+    mesh.ne.append(('outlet',list(range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx))))
   return mesh
 
 def create_backstep(x_res, y_res, z_res): 
   mesh = Mesh() 
  
   nx = x_res 
-  ny = y_res if y_res <> None else x_res 
-  nz = z_res if z_res <> None else x_res 
+  ny = y_res if y_res != None else x_res 
+  nz = z_res if z_res != None else x_res 
  
   nnx = nx+1 
   nny = ny+1 
@@ -1266,7 +1270,7 @@ def create_backstep(x_res, y_res, z_res):
    
   eps = 1e-4 
  
-  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz) 
+  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)) 
    
    
   # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer  
@@ -1322,10 +1326,10 @@ def create_backstep(x_res, y_res, z_res):
          
         mesh.elements.append(e) 
  
-  print "Created " + str(second) + " obstacle elements" 
+  print("Created " + str(second) + " obstacle elements") 
            
-  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx))) 
-  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx))) 
+  mesh.bc.append(("left", list(range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))) 
+  mesh.bc.append(("right", list(range(nx, (nnx*nny*nnz)+1, nnx)))) 
    
   side = (("bottom", [])) 
   mesh.bc.append(side) 
@@ -1341,8 +1345,8 @@ def create_backstep(x_res, y_res, z_res):
  
    
   # back and front as it appears with paraview 
-  mesh.bc.append(("back", range(0, (nx+1)*(ny+1)))) 
-  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1)))) 
+  mesh.bc.append(("back", list(range(0, (nx+1)*(ny+1))))) 
+  mesh.bc.append(("front", list(range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))) 
  
  
   mesh.bc.append(("left_bottom_back",   [0])) 
@@ -1355,8 +1359,8 @@ def create_backstep(x_res, y_res, z_res):
   mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1])) 
    
   for i in range(1,nz-1): 
-    mesh.ne.append(('inlet',range(ymax*nx+nx+i*nx*ny,nx*ny*(i+1)-nx,nx))) 
-    mesh.ne.append(('outlet',range(2*nx+i*nx*ny-1,nx*ny*(i+1)-nx,nx))) 
+    mesh.ne.append(('inlet',list(range(ymax*nx+nx+i*nx*ny,nx*ny*(i+1)-nx,nx)))) 
+    mesh.ne.append(('outlet',list(range(2*nx+i*nx*ny-1,nx*ny*(i+1)-nx,nx)))) 
  
   return mesh 
  
@@ -1364,8 +1368,8 @@ def create_backstep(x_res, y_res, z_res):
 def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size): 
  
   nx = x_res 
-  ny = y_res if y_res <> None else x_res 
-  nz = z_res if z_res <> None else x_res 
+  ny = y_res if y_res != None else x_res 
+  nz = z_res if z_res != None else x_res 
  
   nnx = nx+1 
   nny = ny+1 
@@ -1383,7 +1387,7 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
   mesh = Mesh(nx,ny,nz)    
   eps = 1e-4 
  
-  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz) 
+  print('width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)) 
    
    
   # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer  
@@ -1440,8 +1444,8 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
  
   #print "Created " + str(second) + " obstacle elements" 
            
-  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx))) 
-  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+  mesh.bc.append(("left", list(range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))) 
+  mesh.bc.append(("right", list(range(nx, (nnx*nny*nnz)+1, nnx))))
   
   side = (("bottom", [])) 
   mesh.bc.append(side) 
@@ -1485,20 +1489,20 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
     dist_wall = 0.04 
     x_wall = int(math.sqrt(dist_wall / (dx * dx))+eps) #find out distance from wall 
     for i in range(nx*ny*nz-(x_wall+in_x)*nx*ny,nx*ny*nz-x_wall*nx*ny,nx*ny): 
-      mesh.ne.append(('inlet',range(i+x_wall*nx,i+(x_wall+in_x)*nx,nx))) 
+      mesh.ne.append(('inlet',list(range(i+x_wall*nx,i+(x_wall+in_x)*nx,nx)))) 
     for i in range(0,in_x*nx*ny,nx*ny): 
-      mesh.ne.append(('outlet', range((x_wall+1)*nx*ny-in_x-x_wall+i,(x_wall+1)*nx*ny-x_wall+i,1))) 
+      mesh.ne.append(('outlet', list(range((x_wall+1)*nx*ny-in_x-x_wall+i,(x_wall+1)*nx*ny-x_wall+i,1)))) 
   elif case == 'pipe': 
     for i in range (1,nz-1): 
-      mesh.ne.append(('inlet', range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx))) 
-      mesh.ne.append(('outlet', range(int(i*nx*ny + 2*nx-1),int(i*nx*ny + 2*nx-1+nx*(ny-2)),nx))) 
+      mesh.ne.append(('inlet', list(range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx)))) 
+      mesh.ne.append(('outlet', list(range(int(i*nx*ny + 2*nx-1),int(i*nx*ny + 2*nx-1+nx*(ny-2)),nx)))) 
   elif case == 'two_inlet_one_outlet': 
-    print "Not implemented yet!" 
+    print("Not implemented yet!") 
   elif case == 'diffuser': 
     for i in range (1,nz-1): 
-      mesh.ne.append(('inlet', range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx))) 
+      mesh.ne.append(('inlet', list(range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx)))) 
     for i in range (int(0.3*nz),int(0.7*nz)): 
-      mesh.ne.append(('outlet', range(int(i*nx*ny + 0.3*nx*ny + nx-1),int(i*nx*ny + 0.7*nx*ny+ nx-1),nx))) 
+      mesh.ne.append(('outlet', list(range(int(i*nx*ny + 0.3*nx*ny + nx-1),int(i*nx*ny + 0.7*nx*ny+ nx-1),nx)))) 
   elif case == 'distributor': 
     center_x = nx / 2.0 
     center_y = ny / 2.0 
@@ -1507,13 +1511,13 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
     width_y = 0.1 * ny  
     width_z = 0.1 * nz  
     for i in range(int(round(center_z-width_z/2.0)),int(round(center_z+width_z/2.0))): 
-      mesh.ne.append(('outlet',range(int(i*nx*nz-center_x+2.0*width_x),int(i*nx*nz-center_x+3.0*width_x),1))) # top face 
-      mesh.ne.append(('outlet',range(int((i-1)*nx*nz+center_x+2.0*width_x),int((i-1)*nx*nz+center_x+3.0*width_x),1))) # bottom face 
+      mesh.ne.append(('outlet',list(range(int(i*nx*nz-center_x+2.0*width_x),int(i*nx*nz-center_x+3.0*width_x),1)))) # top face 
+      mesh.ne.append(('outlet',list(range(int((i-1)*nx*nz+center_x+2.0*width_x),int((i-1)*nx*nz+center_x+3.0*width_x),1)))) # bottom face 
     for i in range(int(center_z-int(width_z)),int(center_z+int(width_z))): 
-      mesh.ne.append(('inlet',range(int(i*nx*ny+nx*int(center_y-width_y)),int(i*nx*ny+nx*int(center_y+width_y)),nx))) #left face 
+      mesh.ne.append(('inlet',list(range(int(i*nx*ny+nx*int(center_y-width_y)),int(i*nx*ny+nx*int(center_y+width_y)),nx)))) #left face 
     for i in range(int(round(center_y-width_y/2.0)),int(round(center_y+width_y/2.0)),1): 
-      mesh.ne.append(('outlet',range(int(i*nx+center_x+2.0*width_x),int(i*nx+center_x+3.0*width_x),1))) #back face 
-      mesh.ne.append(('outlet',range(int(nx*ny*(nz-1)+i*nx+center_x+2.0*width_x),int(nx*ny*(nz-1)+i*nx+center_x+3.0*width_x),1))) #front face 
+      mesh.ne.append(('outlet',list(range(int(i*nx+center_x+2.0*width_x),int(i*nx+center_x+3.0*width_x),1)))) #back face 
+      mesh.ne.append(('outlet',list(range(int(nx*ny*(nz-1)+i*nx+center_x+2.0*width_x),int(nx*ny*(nz-1)+i*nx+center_x+3.0*width_x),1)))) #front face 
    
   return mesh 
 
@@ -1537,11 +1541,11 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
   # Create mesh  
   mesh = Mesh()
   # extract boundary force nodes from region_force if available
-  if region_force <> None:
+  if region_force != None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
     mesh.bc.append((region_force, reg_force_nodes[:] - 1))
   # extract boundary force nodes from region_force if available
-  elif region_support <> None:
+  elif region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
     mesh.bc.append((region_support, reg_support_nodes[:] - 1))
   else:
@@ -1554,7 +1558,7 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
     mesh.nodes.append(all_nodes[i])
     
   # counter for regions
-  idx = range(len(region))
+  idx = list(range(len(region)))
   for i in range(len(region)):
     idx[i] = 0  
   for i in range(len(all_elements[:, 0])):
@@ -1575,11 +1579,11 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
 
 
 def create_mesh_from_tetgen(meshfile, region):
-  print 'read tetgenfile' + meshfile + '.1.ele'
+  print('read tetgenfile' + meshfile + '.1.ele')
   all_elements = numpy.loadtxt(meshfile + '.1.ele', dtype='int' , skiprows=1)
-  print 'read all_elements done'
+  print('read all_elements done')
   all_nodes = numpy.loadtxt(meshfile + '.1.node', skiprows=1)
-  print 'read all_nodes done'
+  print('read all_nodes done')
   # all_faces = numpy.loadtxt(meshfile+'1.face',skiprows=1)
   # all_edges = numpy.loadtxt(meshfile+'1.edge',skiprows=1)
   
@@ -1618,7 +1622,7 @@ def create_mesh_from_gmsh(meshfile,type):
     # read and check header
     if count == 2:
       if float(item[0]) != 2.2:
-        print 'Error: Gmsh format should be 2.2, result probably wrong'
+        print('Error: Gmsh format should be 2.2, result probably wrong')
     # read number of nodes
     elif count == 5:
       num_node = int(item[0])
@@ -1667,8 +1671,7 @@ def create_mesh_from_gmsh(meshfile,type):
   elif type == "aux_cells" or type == "base_cell":
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,1)
   else:
-    raise RuntimeError("Error: No correct type was selected! options: apod6, aux_cells")
-    
+    print("Error: No correct type was selected! options: apod6, aux_cells")
   write_gid_mesh(mesh, meshfile+".mesh") 
   
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
@@ -1711,7 +1714,7 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
     elif bc[0] == 'support3':
       id = 10
     else:
-      print 'Warning mesh.bc type not handled!'
+      print('Warning mesh.bc type not handled!')
     for l in range(len(bc[1])):
       out.write(str(count+1) + ' ' +str(15) + ' 2 0 ' + str(id) + ' ' + str(bc[1][l] + 1)+' \n')
       count +=1
@@ -1733,7 +1736,7 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   
 def create_nastran_mesh_from_cfs(meshfile,h5file):
   # manually select cfs hdf5 file
-  print 'Set regions and boundary nodes manually, default: design, non-design, force1,force2 and support'
+  print('Set regions and boundary nodes manually, default: design, non-design, force1,force2 and support')
   mesh = create_mesh_from_hdf5(h5file, ['design','non-design'], ['force1','force2','force3','support','support2','support3'])
   out = open(meshfile, "w")
   #design nodes and non-design nodes
@@ -1817,7 +1820,7 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
   
 def create_optistruct_mesh_from_cfs(meshfile,h5file):
   # manually select cfs hdf5 file
-  print 'Set regions and boundary nodes manually, default: design, non-design, non-design2, force1,force2, force3, support, support2, support3'
+  print('Set regions and boundary nodes manually, default: design, non-design, non-design2, force1,force2, force3, support, support2, support3')
   mesh = create_mesh_from_hdf5(h5file, ['design','non-design','non-design2'], ['force1','force2','force3','support','support2','support3'])
   out = open(meshfile, "w")
   #design nodes and non-design nodes
@@ -2122,11 +2125,11 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = -1):
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,offset)
   elif type == "lufo_bracket":
-    print 'len support '+str(len(support))
-    print ' len force1 '+str(len(force1))
+    print('len support '+str(len(support)))
+    print(' len force1 '+str(len(force1)))
     mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,force1,[], support)
   else:
-    print "Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket"
+    print("Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket")
 #   write_gid_mesh(mesh, meshfile+".mesh",scale) # moved to create_mesh.py
   
   return mesh
@@ -2674,10 +2677,10 @@ def create_2d_mesh_from_array(array):
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
       mesh.elements.append(e)
   
-  mesh.bc.append(("south", range(0, nx + 1)))
-  mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
-  mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
-  mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("south", list(range(0, nx + 1))))
+  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
   mesh.bc.append(("left_lower", [0]))
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
@@ -2706,13 +2709,13 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   hull = Delaunay(nondes_centers)
   if type == "robot":
     hull_des = Delaunay(centers)
-  print 'calculating convex hull of non-design done'
+  print('calculating convex hull of non-design done')
   # choose validation for simp result or 2-scale result
   if simp is None:
     ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz)
   else:
     ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1,None,None, dx,dy,dz)
-  print 'interpolation of thicknesses done'
+  print('interpolation of thicknesses done')
 
   # lowest density = void density
   void = min(ip_data.ravel())
@@ -2724,9 +2727,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   ny = (int(delta[1] / dy) + 1)*dy_f
   nz = (int(delta[2] / dz) + 1)*dz_f
 
-  print "nx,ny,nz = " + str(nx) + ", " + str(ny) + ", " + str(nz)
-  print "des: ma,mi = " + str(ma) + " " + str(mi) 
-  print "nondes: ma,mi = " + str(nondes_max) + " " + str(nondes_min) 
+  print("nx,ny,nz = " + str(nx) + ", " + str(ny) + ", " + str(nz))
+  print("des: ma,mi = " + str(ma) + " " + str(mi)) 
+  print("nondes: ma,mi = " + str(nondes_max) + " " + str(nondes_min)) 
   #thickness of shell 1mm: tx,... is thickness of non-design shell
   if type == "apod6":
     tx = 0
@@ -2744,15 +2747,15 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   # offset for function apod6 (valid_position), fixes a bug 
   offset = dx + 1e-6
   if ny == 0 or nz == 0 or nx == 0:
-    print 'chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized'
+    print('chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized')
     exit()
-  print "tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz)
+  print("tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz))
   # add nodes including offset for shell 
   for z in range(-tz,nz+1+tz):
     for y in range(-ty, ny + 1 + ty):
       for x in range(-tx,nx+1+tx):
         mesh.nodes.append((mi[0] + float(x) * dx/dx_f, mi[1] +  float(y) * dy/dy_f, mi[2] +float(z) * dz/dz_f))
-  print 'inserting mesh.nodes done'
+  print('inserting mesh.nodes done')
   nnx = nx + 2 * tx
   nny = ny + 2 * ty 
   nnz = nz + 2 * tz
@@ -2760,9 +2763,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   res = [dx_f,dy_f,dz_f]
   count = 0
   hole = -2. if type == "robot" else void
-  for k in xrange(tz,nz-dz_f + 1 + tz,dz_f):
-    for j in xrange(ty,ny-dy_f + 1 + ty,dy_f):
-      for i in xrange(tx,nx -dx_f + 1 + tx,dx_f):    
+  for k in range(tz,nz-dz_f + 1 + tz,dz_f):
+    for j in range(ty,ny-dy_f + 1 + ty,dy_f):
+      for i in range(tx,nx -dx_f + 1 + tx,dx_f):    
         coord = out[count]
         if simp is None:
           s1, s2, s3 = ip_data[count][0:3]
@@ -2792,7 +2795,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           else:
               array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))             
         count += 1
-  print 'calculation of density array done'
+  print('calculation of density array done')
   number = 0
   void3_count = 0
   for z in range(nnz):
@@ -2852,6 +2855,6 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
     mesh = add_apod6_boundary_conditions(mesh)
   elif type == "robot":
     mesh = add_robot_boundary_conditions(mesh)
-  print 'mesh has ' + str(number) + "design and non-design elements"
-  print 'volume = ' +str(float(number)/float(number + void3_count))
+  print('mesh has ' + str(number) + "design and non-design elements")
+  print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh

@@ -60,6 +60,7 @@ namespace CoupledField {
     //! Default Constructor
     BaseSolver() {
       usingPenalty_ = false;
+      ptPrecond_ = NULL;
     }
 
     //! Default Destructor

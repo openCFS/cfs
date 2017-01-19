@@ -85,7 +85,7 @@ def create_symmety_planes(minima, scale, add_planes):
     theta = angle[1]
 
     
-    print "angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1])
+    print("angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1]))
     
     # actor_c.RotateX(90)
     # actor_c.RotateY(angle[0] * 180/numpy.pi)
@@ -694,12 +694,12 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
             real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
 
   real_volume /= within * dx * dy * dz
-  print 'volume of 3D Two-scale result = ' + str(vol)
-  print 'real volume of 3D lattice = ' + str(real_volume)  
-  if grad <> 'nearest':  
-    print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
+  print('volume of 3D Two-scale result = ' + str(vol))
+  print('real volume of 3D lattice = ' + str(real_volume))  
+  if grad != 'nearest':  
+    print(str(within) + ' elements out of ' + str(len(out)) + ' in convex hull')  
   if invalid > 0:  
-    print str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)'
+    print(str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)')
     
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
@@ -833,12 +833,12 @@ def create_3d_cross_ip(coords, s1, s2, s3, angles, ip_nx, grad, scale,valid_posi
             real_volume += scale * s2 * dx * dy_offset * scale * s2 * dz
 
   real_volume /= within * dx * dy * dz
-  print 'volume of 3D Two-scale result = ' + str(vol)
-  print 'real volume of 3D lattice = ' + str(real_volume)  
-  if grad <> 'nearest':  
-    print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
+  print('volume of 3D Two-scale result = ' + str(vol))
+  print('real volume of 3D lattice = ' + str(real_volume))  
+  if grad != 'nearest':  
+    print(str(within) + ' elements out of ' + str(len(out)) + ' in convex hull')  
   if invalid > 0:  
-    print str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)'
+    print(str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)')
     
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
@@ -862,10 +862,10 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   scale_y = delta[1]/(ny*dy)
   scale_z = delta[2]/(nz*dz)
   
-  print "delta: " + str(delta)
-  print "dx,dy,dz: " + str(dx) + ", "+ str(dy) + ", " + str(dz) 
+  print("delta: " + str(delta))
+  print("dx,dy,dz: " + str(dx) + ", "+ str(dy) + ", " + str(dz)) 
   if ny == 0 or nz == 0 or nx == 0:
-    print 'chose a higher hom_samples such that also the smallest side gets discretized'
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
 
   out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
@@ -889,7 +889,7 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
-  ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
@@ -907,7 +907,7 @@ def show_write_vtk(poly, res, save, actors=[]):
     #writer.SetDataModeToAscii()
     writer.SetFileName(save)
     writer.Write()
-    print "saved polydata to file", save
+    print("saved polydata to file", save)
   else:
     show_vtk(poly, res, actors)  
     

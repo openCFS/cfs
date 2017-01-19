@@ -5,7 +5,7 @@ import argparse
 # for inclusion_opverlapp finds inclusion_size for create_2d_mesh via bisection
 def find_inclusion_overlap(args):
   if args.inclusion_overlap < 0.0 or args.inclusion_overlap > 1.0:
-    print "inclusion_overlap shall be within 0 ... 1"  
+    print("inclusion_overlap shall be within 0 ... 1")  
     sys.exit()
     
   mesh = None  
@@ -22,7 +22,7 @@ def find_inclusion_overlap(args):
     #print overlap
     #print args.inclusion_overlap
     err = overlap - args.inclusion_overlap * ny 
-    print "overlap for inclusion_size " + str(radius) + " is " + str(overlap) + " -> error " + str(err) + "\n"
+    print("overlap for inclusion_size " + str(radius) + " is " + str(overlap) + " -> error " + str(err) + "\n")
     
     if err > 0:
       upper = radius
@@ -58,14 +58,14 @@ mesh_name = args.type
 
 # sanity checks
 if args.lbm and not (args.type == "lbm2d" or "lbm3d"):
-  print "error: --lbm only for --type lbm2d or lbm3d"
+  print("error: --lbm only for --type lbm2d or lbm3d")
   sys.exit()
   
 if (args.inclusion or args.inclusion_size or args.inclusion_overlap) and (args.type == "bulk3d" or args.type ==  "cantilever2d_reinforced"): 
-  print "inclusions currently not for your type implemented" 
+  print("inclusions currently not for your type implemented") 
   
-if args.inclusion_overlap and args.type <> "bulk2d":
-  print "--inclusion_overlap only for bulk2d implemented"
+if args.inclusion_overlap and args.type != "bulk2d":
+  print("--inclusion_overlap only for bulk2d implemented")
   sys.exit()  
   
 if args.inclusion == 'ball' and (args.type == "lbm3d" or args.type == "lbm2d"):
@@ -73,16 +73,16 @@ if args.inclusion == 'ball' and (args.type == "lbm3d" or args.type == "lbm2d"):
   sys.exit()
   
 if (args.inclusion and not (args.inclusion_size or args.inclusion_overlap)) or ((args.inclusion_size or args.inclusion_overlap) and not args.inclusion):
-  print "inclusions require both --inclusion and --inclusion_size or --inclusion_overlap"  
+  print("inclusions require both --inclusion and --inclusion_size or --inclusion_overlap")  
   sys.exit()  
 
 if args.inclusion and args.patch:
-  print "--inclusion and --patch don't go concurrently"
+  print("--inclusion and --patch don't go concurrently")
   sys.exit() 
   
 if args.type == "voxels_from_optistruct" or args.type == "convert_optistruct":
   if args.optistruct == None:
-    print "Need optistruct file for conversion"
+    print("Need optistruct file for conversion")
     sys.exit()
 
 mesh= None 
@@ -117,11 +117,11 @@ else: # default case 2d_mesh
     mesh = find_inclusion_overlap(args) 
   
 res_name = '_' + str(args.res)
-if (args.type == 'bulk2d' or args.type == 'bulk3d') and args.y_res <> None:
+if (args.type == 'bulk2d' or args.type == 'bulk3d') and args.y_res != None:
   res_name += '_' + str(args.y_res)
 if args.type == 'bulk3d' and args.z_res:
   res_name += '_' + str(args.z_res)
-if args.width <> 1.0:
+if args.width != 1.0:
   res_name += '-w_' + str(args.width).replace('.', '_')
 if args.height is not None:
   res_name += '-h_' + str(args.height).replace('.', '_')
@@ -137,5 +137,5 @@ if args.type == 'convert_optistruct':
 file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
 
 write_gid_mesh(mesh, file)
-print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
+print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 

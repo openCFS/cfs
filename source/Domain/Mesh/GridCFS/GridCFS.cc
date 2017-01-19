@@ -2266,27 +2266,6 @@ namespace CoupledField {
      region = orderedElems_[ielem-1]->regionId;
    }
 
-
-
-  const Elem * GridCFS::GetElem( UInt elemNr ) {
-    LOG_DBG2(gridcfs) << "GetElem ptr for element nr " << elemNr;
-
- #ifndef NDEBUG
-    if ( elemNr > numElems_ ) {
-      EXCEPTION( "GridCFS: There are only " << numElems_
-                 << " elements in the grid! You requested element number "
-                 << elemNr << ". Go check your mesh file!" );
-    }
-    if ( orderedElems_[elemNr-1] == NULL ) {
-      EXCEPTION( "Element with Nr. " << elemNr << " is not contained in mesh!" );
-    }
- #endif
-
-    return orderedElems_[elemNr-1];
-
-  }
-
-
   void GridCFS::FindElementNeighorhood()
   {
     // TODO: This is from the legacy code -> replace with ShapeMap concept!
@@ -2950,6 +2929,8 @@ namespace CoupledField {
       in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
     }
 
+
+
     StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
     if(!reg.IsEmpty()) {
       in->Get("nx")->SetValue(reg[0]);
@@ -3067,7 +3048,6 @@ namespace CoupledField {
   Double GridCFS::CalcHullVolume(bool updated)
   {
     double s = CalcVolumeOfAllRegions(updated);
-
     // Volume of the bounding box of the grid
     Double cube_vol = 1.0;
     Matrix<Double> m = CalcGridBoundingBox();
@@ -3075,7 +3055,6 @@ namespace CoupledField {
     {
       cube_vol *= m[d][1] - m[d][0];
     }
-
     LOG_DBG(gridcfs) << "Volume of rectangular dense mesh: " << s;
 
     if( std::abs(s - cube_vol) / s < 1e-5 ) {
@@ -3251,14 +3230,10 @@ namespace CoupledField {
     StdVector<Elem*> elems;
     GetElems(elems,regionId);
 
-    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elems[0], false);
     double volume = 0.0;
 
     for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
-    {
-      esm->SetElem(elems[i], updated);
-      volume += esm->CalcVolume();
-    }
+      volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
 
     return volume;
   }

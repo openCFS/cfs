@@ -188,7 +188,12 @@ namespace CoupledField
     
     //! Returns a single element with the given element number
     //! \param elemNr element number
-    const Elem * GetElem( UInt elemNr );
+    const Elem* GetElem(UInt elemNr)
+    {
+      assert(orderedElems_[elemNr-1] != NULL);
+      assert(orderedElems_[elemNr-1]->elemNum == elemNr);
+      return orderedElems_[elemNr-1];
+    }
 
     virtual UInt GetMaxNumNodesPerElem()
     {

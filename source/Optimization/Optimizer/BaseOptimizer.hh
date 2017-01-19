@@ -195,7 +195,7 @@ namespace CoupledField
 
     /** Determine the time spent in the external optimizer.
      * This is SolveProblem minus all evaluations */
-    boost::shared_ptr<Timer> timer_;
+    boost::shared_ptr<Timer> optimizer_timer_;
 
     /** this is the link to the general optimization where we can find autoscale. Is not NULL */
     PtrParamNode gen_opt_pn_;

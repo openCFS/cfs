@@ -112,7 +112,7 @@ public:
   double merit;
 
   /** designMaterial helper object for two-scale optimization */
-  DesignMaterial* helper_dm ;
+  DesignMaterial* helper_dm = NULL;
 
 protected:
 

@@ -65,6 +65,7 @@ class Function
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
       ALPHA_SLACK_QUOTIENT,      /*!< quotient of the two slack variables alpha and slack */
       BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
+      REL_SLACK_BANDGAP,         /*!< relative band gap formulation (alpha + slack - (alpha - slack))/(alpha - slack) = 2*slack/(alpha-slack) based on 'alpha+/-slack' eigenfrequency bounds */
 
       // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
@@ -120,6 +121,7 @@ class Function
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala'). Multiplies slope with prev and with next */
       CURVATURE,                 /*!< Second derivative (prev, this, next) timing h=1 */
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
+      OVERHANG,                  /*!< Overhang constraint for shape mapping for additive manufacturing */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -451,13 +453,17 @@ class Function
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
         double CalcSlope() const;
+        /** calculate the slope gradient for a given element
+         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
+        double CalcSlopeGradient(int neigh_idx) const;
+
+        /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
+        double CalcOverhang(const Local* local) const;
+        double CalcOverhangGradient(int neigh_idx) const { assert(false); return -1; };
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
 
-        /** calculate the slope gradient for a given element
-         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
-        double CalcSlopeGradient(int neigh_idx) const;
 
         /** the perimeter is similar to the slope constraint but always globalized (sum) */
         double CalcPerimeter(double eps, double l_k) const;

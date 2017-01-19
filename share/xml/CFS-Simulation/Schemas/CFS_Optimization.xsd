@@ -370,6 +370,8 @@
                 <!-- slope of slope = second derivate. Meant for shape mapping node and profile -->
                 <xsd:enumeration value="curvature"/>
                 <xsd:enumeration value="globalCurvature"/>
+                <!-- the overhap constraint is specific for shape mapping with nodes and profiles -->
+                <xsd:enumeration value="overhang"/>
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->
@@ -1139,6 +1141,8 @@
                         <!-- optional symmetries -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none"/>
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none"/>
+                        <!-- induces shape with other dof -->
+                        <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none"/>
                         <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). 
                              Overwrites shapeMap relative_*_bound if given. Negative disables.-->
                         <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1"/>
@@ -1657,6 +1661,8 @@
       <xsd:enumeration value="alphaSlackQuotient"/>
       <!-- band gap. Requires child element gap -->
       <xsd:enumeration value="bandgap"/>
+      <!--  relative band gap based on slack and alpha -->
+      <xsd:enumeration value="relSlackBandGap"/>
       <!--  temperature tracking at interface -->
       <xsd:enumeration value="tempTrackingAtInterface"/>
     </xsd:restriction>
