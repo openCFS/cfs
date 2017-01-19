@@ -3,10 +3,10 @@ import platform
 # from PIL import Image # load only in the function we need it!
 import sys, os, numpy, math
 from copy import deepcopy
-try:
-  from hdf5_tools import *
-except:
-  print("failed to import hdf5_tools, hopefully we don't need it")    
+# try:
+#   from hdf5_tools import *
+# except:
+#   print("failed to import hdf5_tools, hopefully we don't need it")    
 import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
