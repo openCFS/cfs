@@ -21,6 +21,8 @@
 #include "MatVec/CRS_Matrix.hh"
 #include <cmath>
 
+
+
 namespace CFSDat{
 
 GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
