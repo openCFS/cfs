@@ -2,9 +2,5 @@
 # * copy the files to the cfs bin dir
 #=============================================================================
 
-# remove folder containing installation info
-FILE(MAKE_DIRECTORY "@gmp_install@/share/")
-FILE(RENAME "@gmp_install@/info/" "@gmp_install@/share/info/")
-
 # copy data from install dir to the target.
 FILE(COPY "@gmp_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
