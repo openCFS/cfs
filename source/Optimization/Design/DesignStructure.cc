@@ -265,7 +265,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
     StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
-    neighbors.Clear()
     neighbors.Resize(0);
     StdVector<unsigned int>& too_far = too_fars[aThread];
     too_far.Resize(0);
