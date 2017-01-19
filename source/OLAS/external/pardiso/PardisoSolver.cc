@@ -11,6 +11,7 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "Domain/Domain.hh"
 
 #include "def_use_pardiso.hh"
 #include <def_cfs_fortran_interface.hh>
@@ -197,8 +198,9 @@ extern "C" {
 #endif
 
       if ( errorFlag != PARDISO_NO_ERROR) {
-        EXCEPTION( "Error occured during cleanup:\n"
-                   << GetErrorString(errorFlag) )
+        std::cout << "Error occured during cleanup: " << GetErrorString(errorFlag) << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in desctructors
       }
 
     // Read iterative solver statistics
@@ -215,7 +217,9 @@ extern "C" {
       try {
         fs::remove("pardiso-ml.out");
       } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+        std::cout << "Error while trying to remove pardiso-ml.out: " << ex.what() << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in desctructors
       }      
     }
 

@@ -245,8 +245,8 @@ namespace CoupledField {
     BaseDirectSolver() {
     }
 
-    //! Default Destructor
-    ~BaseDirectSolver() {
+    //! Default Destructor. 
+    ~BaseDirectSolver()  {
     }
 
   };

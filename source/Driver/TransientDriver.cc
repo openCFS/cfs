@@ -127,7 +127,9 @@ namespace CoupledField {
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        EXCEPTION( "Could not assign default signal action");
+        std::cerr << "Could not assign default signal action" << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1);
       }
       
       // set global pointer to zero

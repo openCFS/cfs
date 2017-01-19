@@ -195,12 +195,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated")
-  IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
-    
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs") 
-  ENDIF()
-
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
+  # most specific -Wno-error= are for plain old boost. Check to skip them fro newer boost than 1.58
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes  -Wno-unused-local-typedefs -Wno-address -Wno-error=address -Wno-error=misleading-indentation -Wno-error=placement-new")
 
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
