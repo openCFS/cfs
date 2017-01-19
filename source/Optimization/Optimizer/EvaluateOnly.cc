@@ -41,7 +41,7 @@ void EvaluateOnly::SolveProblem()
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
 
   // there is no time within this optimizer spent
-  timer_->Stop();
+  optimizer_timer_->Stop();
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = Optimization::context->GetHarmonicDriver();

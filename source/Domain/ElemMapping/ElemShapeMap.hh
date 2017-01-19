@@ -258,7 +258,9 @@ namespace CoupledField {
       return ptGrid_;
     }
 
-    //! Set current element
+    //! Set current element.
+    //! Be very careful with it,
+    //! @see Grid::GetElemShapeMap()
     //! \param ptElem output Current element
     virtual void SetElem( const Elem* ptElem,
                           bool isUpdated = false );
@@ -430,6 +432,9 @@ namespace CoupledField {
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
 
+    /** for debugging purpos */
+    virtual std::string ToString() const;
+
   protected:
 
     //! Type of shape mapping
@@ -552,6 +557,8 @@ namespace CoupledField {
     
     //! @copydoc ElemShapeMap::GetBaseFE
     virtual BaseFE* GetBaseFE();
+
+    virtual std::string ToString() const;
 
   protected:
 

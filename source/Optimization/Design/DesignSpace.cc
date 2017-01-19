@@ -59,6 +59,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
 
+  write_gradient_timer_ = boost::shared_ptr<Timer>(new Timer("gradient_chain_rule", true)); // sub-timer
+  info_->Get("gradient_chain_rule/timer")->SetValue(write_gradient_timer_);
+
   // make sure we have a context, even when we have no optimization
   if(!Optimization::manager.IsInitialized())
     Optimization::manager.Init();

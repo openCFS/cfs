@@ -3,7 +3,6 @@
 # based on the grid-export by cfs -G (best together with -g)
 # Who ever wants can add gid-mesh and hdf5 interfaces. 
 
-import libxml2
 import numpy
 import numpy.linalg
 import os

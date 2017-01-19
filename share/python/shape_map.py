@@ -30,13 +30,13 @@ def create_figure(res):
 
 def dump_shapes(shapes):
   for s in shapes:
-     print s   
+     print(s)   
 
 def find_shape(shapes, el):
   for s in shapes:
     if el >= s.el[0] and el <= s.el[-1]:
       return s
-  print 'none of the ' + str(len(shapes)) + ' shapes has an element with nr ' + str(el) 
+  print('none of the ' + str(len(shapes)) + ' shapes has an element with nr ' + str(el)) 
   return None     
 
 def find_shape_by_dof(shapes, dof):
@@ -90,9 +90,9 @@ class Shape:
     
   # averages the current profiles (only valid)
   def average_valid_profile(self):
-    if len(self.profile) <> len(self.valid):
-      print len(self.profile)
-      print len(self.valid)    
+    if len(self.profile) != len(self.valid):
+      print(len(self.profile))
+      print(len(self.valid))    
     assert(len(self.profile) == len(self.valid))   
     c = 0
     s = 0
@@ -140,7 +140,7 @@ def symmetrize(shapes):
   offset = np.mean(center) - 0.5 # positive is shift to right
   shift = int(offset * len(y[0].val) + .5)
 
-  print "center on x-axis is " + str(np.mean(center)) + " (shift " + str(shift) + " nodes) with var " + str(np.var(center)) 
+  print("center on x-axis is " + str(np.mean(center)) + " (shift " + str(shift) + " nodes) with var " + str(np.var(center))) 
 
   assert(np.var(center) < 0.001) 
   
@@ -190,7 +190,7 @@ def read_file(filename, profile):
     for i in range(1,len(all)): # skip first comment
       line = all[i].split()
       id = int(line[2])
-      if curr.id <> id:
+      if curr.id != id:
         shapes.append(Shape(id = id, dof=int(line[3])))
         curr = shapes[-1]  
       curr.el.append(int(line[0]))
@@ -219,8 +219,8 @@ def read_file(filename, profile):
           curr = shapes[-1]
         else:
           # we have a profile, hence search the corresponding shape
-          if profile <> None:
-            print 'error: profile data given in ' + filename + ' and concurrently via command line'
+          if profile != None:
+            print('error: profile data given in ' + filename + ' and concurrently via command line')
             sys.exit(-2)  
           curr = find_shape(shapes, nr - shapes[-1].el[-1])   
      
@@ -233,14 +233,14 @@ def read_file(filename, profile):
    
     # check if there was no profile in the xml
     if len(shapes[-1].val) > 0 and len(shapes[-1].profile) == 0:
-       if profile <> None: # error message comes below
+       if profile != None: # error message comes below
          for shape in shapes:
            shape.profile = [profile] * len(shape.el)
            shape.valid   = [True] * len(shape.el)       
 
   # for both input formats
-  if len(shapes[-1].val) <> len(shapes[-1].profile):
-    print "error: no profiles in '" + filename + "' and not given via command line"
+  if len(shapes[-1].val) != len(shapes[-1].profile):
+    print("error: no profiles in '" + filename + "' and not given via command line")
     sys.exit(-3)    
   return shapes  
 
@@ -252,7 +252,7 @@ def resample(shapes, resample):
 
   for o in shapes:
      s = Shape(o.id, o.dof)
-     s.el = range(len(res) * (resample+1), (len(res)+1) * (resample+1))
+     s.el = list(range(len(res) * (resample+1), (len(res)+1) * (resample+1)))
      v = interp1d(org_space, o.val, kind='cubic')
      s.val = v(new_space)
      p = interp1d(org_space, o.profile, kind='cubic')
@@ -292,7 +292,7 @@ def find_data_in_line(line):
       start = -1
       end = -1           
   # check if we ended with data
-  if end <> -1:
+  if end != -1:
     center = 1.0/len(line) * (start+end)/2.0
     profile = 1.0/len(line) * float(end-start)
     data.append((center, profile))
@@ -339,7 +339,7 @@ def repair_shapes(shapes):
         # reset
         start = -1
         end = -1      
-  print "repaired " + str(cnt) + " times"        
+  print("repaired " + str(cnt) + " times")        
 
 # fills shape content for import_form_image based on the previous shapes data
 def smart_append_data(n, data, shapes):
@@ -399,14 +399,14 @@ def import_from_image(filename, resample, repair):
   # we assume that the first line determines the number of shapes
   # start with columns
   num = len(find_data_in_line(dat[:,0]))
-  print "we assume " + str(num) + " horizontal shapes"
+  print("we assume " + str(num) + " horizontal shapes")
   for i in range(num):
     shapes.append(Shape(id = len(shapes), dof=1))
   for i in numpy.linspace(0,nx-1, resample+1): #resample +1 because for 10 elements we have 11 variables
      smart_append_data(resample, find_data_in_line(dat[:,int(i)]), shapes[-num:]) # the last num shapes just appended
 
   num = len(find_data_in_line(dat[0,:]))
-  print "we assume " + str(num) + " vertical shapes"
+  print("we assume " + str(num) + " vertical shapes")
   for i in range(num):
     shapes.append(Shape(id = len(shapes), dof=0))
   for i in numpy.linspace(0,nx-1, resample+1):
@@ -416,7 +416,7 @@ def import_from_image(filename, resample, repair):
 
   # add the element numbers   
   for shape in shapes:
-    shape.el = range(cnt, cnt + len(shape.val))
+    shape.el = list(range(cnt, cnt + len(shape.val)))
     cnt += len(shape.val)
         
   if repair:       
@@ -437,10 +437,10 @@ def plot_data(res, shapes):
       
     for i in range(0,n-1):
       x, y = shape.get_profile(i, i+1, True) # left          
-      l = plt.Line2D(x,y, color= shape.color)                                    
+      l = plt.Line2D(x,y, marker='.', color=shape.color)        
       sub.add_line(l)
       x, y = shape.get_profile(i, i+1, False) # right          
-      l = plt.Line2D(x,y, color= shape.color)                                    
+      l = plt.Line2D(x,y, marker='.', color=shape.color)                                    
       sub.add_line(l)
       
   return fig, sub
@@ -489,7 +489,7 @@ if __name__ == '__main__':
   else:
     shapes = import_from_image(args.input, args.resample, args.repair)
   
-  print 'average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes]))
+  print('average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes])))
     
   if args.symmetrize:
     symmetrize(shapes)  
@@ -502,10 +502,10 @@ if __name__ == '__main__':
     fig.savefig(args.save)  
   if not args.noshow:
     fig.show()
-    raw_input("Press Enter to terminate.")
+    input("Press Enter to terminate.")
 else:
   f = 'shape_map_mech_39.grad.plot'
-  print f
+  print(f)
   #shapes = read_file(f, profile=0.1)
   #dump_shapes(shapes)
   #fig, sub = plot_data(800, shapes)

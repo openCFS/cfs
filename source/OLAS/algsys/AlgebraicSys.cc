@@ -49,13 +49,13 @@ namespace CoupledField {
   // ***********************
   AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
   {
+    size_ = 0;
     myParam_ = param;
     myInfo_ = info;
     graphManager_       = NULL;
     solver_             = NULL;
     eigenSolver_        = NULL;
     precond_            = NULL;
-    
     
     numFcts_            = 0;
     numBlocks_          = 0;
@@ -117,7 +117,7 @@ namespace CoupledField {
     }
     
     // create timer object
-    graphTimer_ = boost::shared_ptr<Timer>(new Timer());
+    graphTimer_ = boost::shared_ptr<Timer>(new Timer("graph", true)); // sub-timer
   }
 
 
@@ -3060,7 +3060,7 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // add timer
-    setupNode->Get("setupTime")->SetValue(graphTimer_);
+    setupNode->Get("graph/timer")->SetValue(graphTimer_);
     
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");

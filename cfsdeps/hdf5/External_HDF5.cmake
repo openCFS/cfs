@@ -158,7 +158,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
       -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
       -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-      -DHDF5_BUILD_TOOLS:BOOL=ON
+      -DHDF5_BUILD_TOOLS:BOOL=OFF # isn't it sufficient to use system hdf5 tools?!
       # On Mac OS X we can get problems with the system strdup function.
       -DH5_HAVE_STRDUP:BOOL=OFF
     )

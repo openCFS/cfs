@@ -77,14 +77,12 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   n_obj_grad(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
   outfilename(""),
-  timer_(new Timer()),
-  timer_callback_(new Timer())
+  timer_(new Timer("snopt", true)) // sub-timer as we already have optimizer_timer_
 {
-  LOG_TRACE(snopt) << "Initialize SnOpt";
+  LOG_DBG(snopt) << "Initialize SnOpt";
   
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_callback_timer")->SetValue(timer_callback_ );
-  
+  info_->Get(ParamNode::SUMMARY)->Get("snopt/timer")->SetValue(timer_ );
+
   static_snopt = this;
   
   BaseOptimizer::PostInitScale(1.0);
@@ -103,7 +101,7 @@ SnOpt::~SnOpt()
 
 void SnOpt::Init()
 {
-  LOG_TRACE(snopt) << "Init";
+  LOG_DBG(snopt) << "Init";
   
 
   // ================================================================== 
@@ -141,7 +139,7 @@ void SnOpt::Init()
   // init Jacobian(s)
   initJacobians();
 
-  LOG_TRACE(snopt) << "I: get_bounds_info";
+  LOG_DBG(snopt) << "I: get_bounds_info";
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   LOG_DBG3(snopt) << "I lb=" << xlow.ToString();
   LOG_DBG3(snopt) << "I ub=" << xupp.ToString();
@@ -183,10 +181,10 @@ void SnOpt::setSnoptOutputFiles()
 
 void SnOpt::SolveProblem()
 {
-  LOG_TRACE(snopt) << "SolveProblem";
+  LOG_DBG(snopt) << "SolveProblem";
   
   // set start parameters here to allow restarted SolveProblem()
-  LOG_TRACE(snopt) << "get_starting_point";
+  LOG_DBG(snopt) << "get_starting_point";
   optimization->GetDesign()->WriteDesignToExtern(x.GetPointer());
   LOG_DBG3(snopt) << "SP x-org: " << StdVector<double>::ToString(n, x.GetPointer());
   
@@ -313,7 +311,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   timer_->Stop();
-  timer_callback_->Start();
+
   
   // reorder design
   StdVector<double> x;
@@ -383,8 +381,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     // first snopt action and we do not want to loose the initial design in the output.
     perform_commit_iteration_ = true; // done on the next Callback() call
   }
-  
-  timer_callback_->Stop();
+
   timer_->Start();
 
   // flush the output
@@ -396,7 +393,7 @@ int SnOpt::Callback(integer* Status, const integer n,
 
 bool SnOpt::get_nlp_info()
 {
-  LOG_TRACE(snopt) << "get_nlp_info";
+  LOG_DBG(snopt) << "get_nlp_info";
   
   // number of design variables
   n = optimization->GetDesign()->GetNumberOfVariables();
@@ -433,8 +430,8 @@ bool SnOpt::get_nlp_info()
   
   optimization->constraints.view->Done();
 
-  LOG_TRACE(snopt) << "Problem dimensions: n = " << n << ", nF = " << nF << ", nG = " << nG << ", nA = " << nA;
-  LOG_TRACE(snopt) << "Problem dimensions: lin_constraints = " << lin_constraints << ", nonlin_constraints = " << nonlin_constraints;
+  LOG_DBG(snopt) << "Problem dimensions: n = " << n << ", nF = " << nF << ", nG = " << nG << ", nA = " << nA;
+  LOG_DBG(snopt) << "Problem dimensions: lin_constraints = " << lin_constraints << ", nonlin_constraints = " << nonlin_constraints;
   
   assert(nA >= lin_constraints);
   
@@ -443,14 +440,14 @@ bool SnOpt::get_nlp_info()
 
 bool SnOpt::eval_f(int n, const double* x, double &obj_value)
 {
-  LOG_TRACE(snopt) << "eval_f";
+  LOG_DBG(snopt) << "eval_f";
   obj_value = EvalObjective(n, x, true); // as with SCPIP we do always autoscale!
   return true;
 }
 
 bool SnOpt::eval_grad_f(int n, const double* x, double* grad_f)
 {
-  LOG_TRACE(snopt) << "eval_grad_f";
+  LOG_DBG(snopt) << "eval_grad_f";
   assert((int) gradhelper.GetSize() >= n);
 
   // restart_requested handled in intermediate_callback
@@ -468,7 +465,7 @@ bool SnOpt::eval_grad_f(int n, const double* x, double* grad_f)
 
 bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 {
-  LOG_TRACE(snopt) << "eval_g";
+  LOG_DBG(snopt) << "eval_g";
   
   // for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
 
@@ -481,7 +478,7 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 
 bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 {
-  LOG_TRACE(snopt) << "ejg: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
+  LOG_DBG(snopt) << "ejg: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
   assert((int) gradhelper.GetSize() >= nele_jac);
 
   // the gradients are dense in snopt
@@ -507,8 +504,8 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 
 void SnOpt::AdjustWorkArrayMemory()
 {
-  LOG_TRACE(snopt) << "AdjustWorkArrayMemory";
-  LOG_TRACE(snopt) << "old values: lencw = " << lencw << ", leniw = " << leniw << ", lenrw = " << lenrw;
+  LOG_DBG(snopt) << "AdjustWorkArrayMemory";
+  LOG_DBG(snopt) << "old values: lencw = " << lencw << ", leniw = " << leniw << ", lenrw = " << lenrw;
   
   // remember old values
   integer tmpcw(lencw);
@@ -519,8 +516,8 @@ void SnOpt::AdjustWorkArrayMemory()
   snmema_(&INFO, &nF, &n, &nxname, &nFname, &nA, &nG, &mincw, &miniw, &minrw,
       &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, 8*lencw);
   
-  LOG_TRACE(snopt) << "After snmema_:";
-  LOG_TRACE(snopt) << "min values: mincw = " << mincw << ", miniw = " << miniw 
+  LOG_DBG(snopt) << "After snmema_:";
+  LOG_DBG(snopt) << "min values: mincw = " << mincw << ", miniw = " << miniw
                    << ", minrw = " << minrw << ", INFO = " << INFO;
 
   // enlarge the minimal values determined by snmema_ by this factor
@@ -537,7 +534,7 @@ void SnOpt::AdjustWorkArrayMemory()
     cw.Resize(8*lencw);
     snseti_("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 25, 8*lencw);
-    LOG_TRACE(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
+    LOG_DBG(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
   }
   
   if(leniw < miniw)
@@ -546,7 +543,7 @@ void SnOpt::AdjustWorkArrayMemory()
     iw.Resize(leniw);
     snseti_("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 23, 8*lencw);
-    LOG_TRACE(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
+    LOG_DBG(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
   }
   
   if(lenrw < minrw)
@@ -555,13 +552,13 @@ void SnOpt::AdjustWorkArrayMemory()
     rw.Resize(lenrw);
     snseti_("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 20, 8*lencw);
-    LOG_TRACE(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
+    LOG_DBG(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
   }
 }
 
 void SnOpt::SetSnOptOptions()
 {
-  LOG_TRACE(snopt) << "SetSnOptOptions";
+  LOG_DBG(snopt) << "SetSnOptOptions";
   
   // must make sure these options are set
   bool setMinorItLimit(false);
@@ -617,7 +614,7 @@ void SnOpt::SetSnOptOptions()
 
 void SnOpt::initJacobians()
 {
-  LOG_TRACE(snopt) << "initJacobians()";
+  LOG_DBG(snopt) << "initJacobians()";
   
   // create Jacobian
   G.Resize(1, 0.0); // FIXME: G is not even used by snopt...
@@ -701,7 +698,7 @@ void SnOpt::initJacobians()
   lenA = indexlin;
   
   LOG_DBG(snopt) << "lenG = " << lenG << ", nG = " << nG << "; lenA = " << lenA << ", nA = " << nA;
-  LOG_TRACE(snopt) << "end of initJacobians()";
+  LOG_DBG(snopt) << "end of initJacobians()";
 }
 
 void SnOpt::setupLinearConstraints()
@@ -789,7 +786,7 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   
   if(!option.empty())
   {
-    LOG_TRACE(snopt) << "adjusted " << key;
+    LOG_DBG(snopt) << "adjusted " << key;
     // set the option
     snseti_(option.c_str(), &value, &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw);
@@ -836,7 +833,7 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
      
   if(!option.empty())
   {
-    LOG_TRACE(snopt) << "adjusted " << key;
+    LOG_DBG(snopt) << "adjusted " << key;
     // set the option
     snsetr_(option.c_str(), &value, &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw );
@@ -860,7 +857,7 @@ void SnOpt::SetStringValue(const std::string& key, const std::string& value)
   
   if(!option.empty())
   {
-    LOG_TRACE(snopt) << "adjusted " << key;
+    LOG_DBG(snopt) << "adjusted " << key;
     // set the option
     snset_(option.c_str(), &iPrint, &iSumm, &INFO,
         &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw );
