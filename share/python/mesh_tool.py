@@ -1624,7 +1624,7 @@ def create_mesh_from_gmsh(meshfile,type):
       num_node = int(item[0])
     #add nodes
     elif count > 5 and count <= num_node + 5:
-      nodes.append([int(item[0]),float(item[1]),float(item[2]),float(item[3])])
+      nodes.append([float(item[1]),float(item[2]),float(item[3])])
     elif count > num_node + 5 and count <= num_node + 7:
       #skip lines
       count += 1 
@@ -2594,7 +2594,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-  
+      
   mesh = convert_to_sparse_mesh(mesh)
   
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
