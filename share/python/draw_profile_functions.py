@@ -11,6 +11,7 @@ from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 # from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
+from meshpy.tet import MeshInfo, build
 
 res = 1
 res_surf_lines = 1
@@ -18,6 +19,8 @@ res_surf_lines = 1
 logger = None
 # file object for info xml
 infoXml = None
+
+tris = []
 
 class End_Node():
   coords = None
@@ -142,7 +145,7 @@ class Cubic_spline():
     elif  sol[1] > 0 and sol[1] <= 1:
       t = sol[1]
     else:
-      print "No t found where dx/dy = 1"
+      print("No t found where dx/dy = 1")
     
     # conversion from t as sympy.Float to regular Python float necessary  
     self.t_1 = float(t)
@@ -346,7 +349,7 @@ class PrincipleSpline():
   # wrapper function
   #@param x: can be one argument value or list or aguments
   def eval(self,x):
-    if isinstance(x, (float,int,long)):
+    if isinstance(x, (float,int)):
       return self.eval_elem(x)
     
     # in case x is a list    
@@ -418,10 +421,10 @@ class BisecSpline:
         [1, rx, rx**2, rx**3],
         [0, 1,  2*rx, 3*rx**2]
         ]) 
-    rhs = np.array([ly, 1.0, height, 0])
+    rhs = np.array([ly[0], 1.0, height[0], 0])
     
     sol = np.linalg.solve(A, rhs)
-  
+    
     cubic = np.poly1d(sol[::-1]) # cubic polynomial
     
     if infoXml:
@@ -665,14 +668,14 @@ def get_surface_lines(map,numLines,dir):
   
   nodes = np.zeros((numLines, lenx, 3))
   for i,grad in enumerate(np.arange(0,360,360.0/numLines)):
-    radii = map[grad,:]
+    radii = map[int(grad),:]
     rad = grad/180.0*np.pi
      
     #transformation to cartesian coordinates
     X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
     idx_y, idx_x = give_normal_plane_axes(dir)
-    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y]
-    assert(idx_z <> idx_x and idx_z <> idx_y)
+    idx_z = [v for v in (0,1,2) if v != idx_x and v != idx_y]
+    assert(idx_z != idx_x and idx_z != idx_y)
     nodes[i,:,idx_x] = X
     nodes[i,:,idx_y] = Y
     nodes[i,:,idx_z] = np.linspace(0.0,1.0,lenx)
@@ -783,7 +786,7 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
     # direction of axes of plane normal to profile.direction
     # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
     dir1, dir2 =  give_normal_plane_axes(profile.direction)
-    assert(dir <> dir1 and dir <> dir2)
+    assert(dir != dir1 and dir != dir2)
     # assign plane coordinates to correct 3d coordinate components
     midpoint_node[dir] = midpoint
     midpoint_node[dir1] = plane_coordinates[1]
@@ -810,6 +813,7 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
 # creates triangles between end nodes of same profile where
 # we have e.g. a valley with 1 or 2 nodes
 def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
+  global tris
   delete_ids = []
   # a valley with one end node in between:
   # this node (i,j) the one after next node and (i,j+2)
@@ -836,6 +840,7 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       next_idx = ln_idx if ln is not None else rn_idx
       
       add_triangle(node.id, next.id, nn.id, cells)
+      tris.append((node.id, next.id, nn.id))
       
       delete_ids.append(next.id)
       node.next = nn
@@ -861,8 +866,10 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       next_2_idx = lnn_idx if lnn else rnn_idx
       
       add_triangle(node.id, next.id,next_2.id, cells)
+      tris.append((node.id, next.id,next_2.id))
       add_triangle(node.id, next_2.id,nnn.id, cells)
-      
+      tris.append((node.id, next_2.id,nnn.id))
+        
       node.next = nnn
       nnn.next = node
       
@@ -878,6 +885,7 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
 # returns array of size 2 x n with ids of end nodes in first row, second row reserved for fix_gaps()
 def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
   end_nodes = []
+  global tris
   
   for i in range(0,nodes_ids.shape[0]):
     this_line = nodes_ids[i]
@@ -892,6 +900,7 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
       right_next_id = right_line[j+1]
       if this_id >= 0 and next_id >= 0 and right_id >= 0:
         add_triangle(this_id,right_id,next_id,cells)
+        tris.append((this_id,right_id,next_id))
         
         vtkArray.SetValue(this_id,dir)
         vtkArray.SetValue(next_id,dir)
@@ -916,12 +925,15 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           
           if right_id >= 0 and right_next_id >= 0:
             add_triangle(this_id,right_id,right_next_id,cells)
+            tris.append((this_id,right_id,right_next_id))
       
       if right_id >= 0 and next_id >= 0 and right_next_id >=0:
         add_triangle(right_id,right_next_id,next_id,cells)
+        tris.append((right_id,right_next_id,next_id))
         
       if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0:
         add_triangle(this_id,right_next_id,next_id,cells)
+        tris.append((this_id,right_next_id,next_id))
            
   return end_nodes
 
@@ -940,7 +952,7 @@ def give_all_neighbor_coords(i,j,nodes,nodes_ids):
       continue
     
     # if v is a surface node id
-    if nodes_ids[v[0],v[1]] <> -1:
+    if nodes_ids[v[0],v[1]] != -1:
       # for each neighbor, store its coordinates and id
       neighbors.append((nodes[v[0],v[1],:],nodes_ids[v[0],v[1]]))
       
@@ -1025,20 +1037,28 @@ def create_profiles_array(args,info,log):
     
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
+    raw_points = []
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
         if nodes_ids_1[i,j] >= 0:          
           points.SetPoint(nodes_ids_1[i,j], nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2])
+          raw_points.append((nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2]))
         if nodes_ids_2[i,j] >= 0:          
           points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
+          raw_points.append((nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2]))
         if nodes_ids_3[i,j] >= 0:          
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
-    
+          raw_points.append((nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2]))
+          
     # ha is 3dplot object
     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
-#     plt.show() 
+#     plt.show()
+
+#     global tris
+    surface_to_volume_mesh(raw_points,tris)
+     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
 
@@ -1093,7 +1113,7 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     ha.set_xlabel('X')
     ha.set_ylabel('Y')
     ha.set_zlabel('Z')
-    X,Y = np.meshgrid(range(res),range(360))
+    X,Y = np.meshgrid(list(range(res)),list(range(360)))
     ha.plot_surface(X, Y, map)
     plt.show()
     
@@ -1423,7 +1443,7 @@ def give_next_end_node(node,end_nodes,dir=None,other_dir=None,initial_edge=None)
     if get_end_node_by_id(n, end_nodes) is not None:  
       previous = v
       # if node is starting node, it cannot be node previous to this node
-      if initial_edge and (n <> initial_edge[0].id or n <> initial_edge[1].id):
+      if initial_edge and (n != initial_edge[0].id or n != initial_edge[1].id):
         break
     
   if previous:
@@ -1697,7 +1717,7 @@ def handle_bad_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge,alternati
     next_cand = give_best_next_neighbor(alternatives, triangles[-1].edge[0], triangles[-1].edge[1])
     if next_cand:
       # remove chosen next node from alternatives
-      alternatives = [v for v in alternatives if v.id <> next_cand.id]
+      alternatives = [v for v in alternatives if v.id != next_cand.id]
     
 #     remove_connection_to_node(del_node,)
   # we need to revert the active edge as we're going on step back but want to keep info 
@@ -1810,11 +1830,11 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
   alt = next_cand_2 if ratio_1 < ratio_2 else next_cand_1
   
   if next_cand_1 is None:
-    print "next_cand_1 is None: a=", a.id, " b=", b.id
+    print("next_cand_1 is None: a=" + str(a.id) + " b=" + str(b.id)  + "\n")
   if next is None:
-    print "next is None: a=", a.id, " b=", b.id
-    print "next_cand_1: ", next_cand_1
-    print "next_cand_2: ", next_cand_2
+    print("next is None: a=" + str(a.id) + " b=" + str(b.id) + "\n")
+    print("next_cand_1: " + str(next_cand_1) + "\n")
+    print("next_cand_2: " + str(next_cand_2) + "\n")
   
   assert(next_cand_1 is not None)
   assert(next is not None)  
@@ -1826,7 +1846,7 @@ def check_next_triangle(triangles,end_nodes_1,end_nodes_2,initial_edge=None):
     
   alternatives = candidates_1[:]+candidates_2[:]
   # remove chosen next node from alternatives
-  alternatives = [v for v in alternatives if v.id <> next.id]
+  alternatives = [v for v in alternatives if v.id != next.id]
     
   # if at least one candidate has good quality
   if min(ratio_1,ratio_2) < 20:
@@ -1875,7 +1895,7 @@ def remove_connection_to_node(node,triangle):
   for vert in vertices:
     if logger:
       logger.write("remove connection to " + str(node.id) + " from " + str(vert.id) + "\n")
-    vert.connections = set([v for v in vert.connections if v <> node.id])
+    vert.connections = set([v for v in vert.connections if v != node.id])
 
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):
@@ -1951,8 +1971,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     coords_left = np.zeros(3)
     coords_right = np.zeros(3)
     idx_y, idx_x = give_normal_plane_axes(dir)
-    idx_z = [v for v in (0,1,2) if v <> idx_x and v <> idx_y][0]
-    assert(idx_z <> idx_x and idx_z <> idx_y)
+    idx_z = [v for v in (0,1,2) if v != idx_x and v != idx_y][0]
+    assert(idx_z != idx_x and idx_z != idx_y)
     coords_left[idx_x] = x
     coords_left[idx_y] = y
     coords_left[idx_z] = 0.0
@@ -1967,8 +1987,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       id += 1  
       vtk_id = points.InsertNextPoint(coords_left)
       vtkData.InsertValue(vtk_id,-1)
-      if vtk_id <> nodes_left[-1].id:
-        print("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id))
+      if vtk_id != nodes_left[-1].id:
+        print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id)))
       assert(vtk_id == nodes_left[-1].id)  
     
     # assign any other direction to end node as triangulation routine assumes two different directions
@@ -1977,8 +1997,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       id += 1  
       vtk_id = points.InsertNextPoint(coords_right)
       vtkData.InsertValue(vtk_id,-1)
-      if vtk_id <> nodes_right[-1].id:
-        print("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id))
+      if vtk_id != nodes_right[-1].id:
+        print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id)))
       assert(vtk_id == nodes_right[-1].id)   
     # if radius is too small, we only have one point left
     if radius < 1e-3:
@@ -2054,6 +2074,7 @@ def list_contains_end_nodes(list,node):
 # other_node is on other 'circle/direction' as start_node
 def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
   triangles = [] # saves all triangles found by marching
+  global tris
   
   if logger: 
     logger.write("\nstarting with " + str(start.id) + " dir = " + str(this_end_nodes[0].dir) + " other_dir= " + str(other_end_nodes[0].dir) + "\n")
@@ -2087,8 +2108,22 @@ def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
   for triangle in triangles:
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+    tris.append((verts[0].id, verts[1].id, verts[2].id))
 
-# # checks how many triangles is duplicated
-# # @param vtkCellArray    
-# def check_for_duplicate_triangles(cells):
+def surface_to_volume_mesh(points,cells):
+  mesh_info = MeshInfo()
+  
+  print(cells)
+  
+  mesh_info.set_points(points)
+  mesh_info.set_facets(cells) 
+  
+  mesh = build(mesh_info)
+  print("Mesh Points:")
+  for i, p in enumerate(mesh.points):
+      print(str(i) + "," + str(p) + "\n")
+  print("Point numbers in tetrahedra:")
+  for i, t in enumerate(mesh.elements):
+      print(i + "," + t + "\n")
+  mesh.write_vtk("test.vtk")
   

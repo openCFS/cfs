@@ -10,14 +10,14 @@ import vtk
 def calc_volume(array,infoXml):
   res, res, res = array.shape
   
-  elems = np.where(array <> -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
   
   vol = float(elems)/float(res**3)
   
-  if infoXml <> None:
+  if infoXml != None:
     infoXml.write('  <volume value="' + str(vol) + '"/>\n')
   
-  print "volume:", vol
+  print("volume:" + str(vol))
 
 def visualize_structure(array,singRegion,show,save):
   # create vtk cells and points
@@ -57,7 +57,7 @@ def visualize_structure(array,singRegion,show,save):
   if save:
     show_write_vtk(polydata,1000,save)
   if show: 
-    print "starting visualization..."
+    print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
   
 def give_radiusFunction():
@@ -89,7 +89,7 @@ def calc_radius(stiff):
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args,infoXml,log):
-  print "stiffnesses: ",args.x1,args.x2,args.y1,args.y2,args.z1,args.z2
+  print("stiffnesses: "  +str(args.x1) + "," + str(args.x2) + "," + str(args.y1) + "," + str(args.y2) + "," + str(args.z1) + "," + str(args.z2))
   
   mesh = None
   
@@ -111,7 +111,7 @@ def create_mesh_with_profiles(args,infoXml,log):
     assert(infoStr)
     infoXml.write(infoStr + "/>\n\n")
   
-  print "radii: ",args.x1/2.0,args.x2/2.0,args.y1/2.0,args.y2/2.0,args.z1/2.0,args.z2/2.0    
+  print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
   array = create_profiles_array(args, infoXml,log)
   
@@ -133,7 +133,7 @@ def create_mesh_with_profiles(args,infoXml,log):
       save += ".vtp"
     visualize_structure(array,args.single_region,args.show,save)
     
-  if infoXml <> None:
+  if infoXml != None:
     infoXml.write('</basecell>')  
   
   return mesh
@@ -165,7 +165,7 @@ parser.add_argument('--logging',help="print logging while fixing surface gaps to
 
 args = parser.parse_args()
 
-if args.stiffness <> None:
+if args.stiffness != None:
   args.x1 = args.stiffness
   args.x2 = args.stiffness
   args.y1 = args.stiffness
@@ -174,7 +174,7 @@ if args.stiffness <> None:
   args.z2 = args.stiffness
 else:
   if args.x1 == None or args.y1 == None or args.z1 == None:
-    print "Error:stiffness or x1, y1, z1 necessary!"
+    print("Error:stiffness or x1, y1, z1 necessary!")
     sys.exit(1)
 
   if args.x2 == None:
@@ -196,7 +196,7 @@ mesh_name = mesh_name if args.save == None else args.save
 
 if args.target == "surface_mesh" or args.target == "3dlines":
   if not args.res_surf_lines:
-    print "Error: resolution of lines on surface required!"
+    print("Error: resolution of lines on surface required!")
     sys.exit(1)
 
 infoXml = None
@@ -232,7 +232,7 @@ if args.target == 'volume_mesh':
   
   write_gid_mesh(mesh, file)
 
-  print "created file '" + file + "' with " + str(len(mesh.elements)) + " elements"
+  print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
 ############## info xml scheme #####################
 # <basecell>
