@@ -27,6 +27,10 @@ namespace CFSDat{
 DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
+#ifndef USE_CGAL
+    EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+#endif
+
 
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
@@ -135,9 +139,6 @@ bool DivergenceDifferentiator::Run(){
   KNNSearch Tree;
   Tree.ReadScatteredData_Div(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
-  CF::StdVector<CF::Elem*> elems;
-  trgGrid_->GetVolElems(elems, ALL_REGIONS);
-
 
   // loop over all elements
 for(UInt i = 0; i < derivData_.size();++i){
@@ -163,11 +164,15 @@ for(UInt i = 0; i < derivData_.size();++i){
             alpha = l2dists[0] * 1.5e+03;
           }
 
+//std::cout<<"globalCoord"<<globalCoord<<std::endl;
+//std::cout<<"neighbors"<<neighbors<<std::endl;
+//std::cout<<"vectors"<<vectors<<std::endl;
+//std::cout<<"l2dists"<<l2dists<<std::endl;
 
           // now we have to calculate the local RBF interpolation matrix with the nn nodes
           // and also do the inversion
           CalcLocRBFDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
-
+//std::cout<<"vec"<<vec<<std::endl;
           CF::StdVector<UInt> eqns;
             //get the equation map for the nodes in eConn, in order to insert the
             //interpolation in the correct position in the result vector
@@ -234,7 +239,7 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
         derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
       }
       }else{
-        EXCEPTION("3D values and 2D mesh!");
+        EXCEPTION("2D values and 3D mesh!");
       }
       break;
     case 2:
@@ -254,6 +259,8 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
         derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
       }
       }else{
+        EXCEPTION("3D-values and 2D-mesh!");
+        /*
         //case of 2D mesh and 3D values
         vals.Resize(numNN,3);
         vals[i][0] = vectors[i][0];
@@ -268,6 +275,7 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
           derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
           derivVec[i][2] = 0.0;
         }
+        */
       }
       break;
     }
@@ -287,7 +295,6 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
   tempvec = temp * derivCoefVec;
   //in order to obtain the divergence of the vectorfield, we have to add tempvec[:,0]+tempvec[:,1]+tempvec[:,2]
   vec[0][0] = tempvec.Trace();
-
 }
 
 
@@ -396,10 +403,11 @@ void DivergenceDifferentiator::PrepareCalculation(){
   // Obtaining target coordinates
   std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
   // target (output) is solely defined on nodes
-  targetCoords_.Resize(allTrgNodes.GetSize());
-  for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
+  targetCoords_.Resize(allTrgElemNums.GetSize());
+  for(UInt nIter=0; nIter < allTrgElemNums.GetSize(); ++nIter){
       CF::Vector<Double> SCoord;
-      trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
+      trgGrid_->GetElemCentroid(SCoord, allTrgElemNums[nIter], true);
+      //trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
       if(trgGrid_->GetDim() == 2){
         targetCoords_[nIter].Resize(2);
         targetCoords_[nIter][0] = SCoord[0];

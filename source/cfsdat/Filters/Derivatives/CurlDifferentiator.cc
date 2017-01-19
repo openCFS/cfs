@@ -27,6 +27,11 @@ namespace CFSDat{
 CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
+#ifndef USE_CGAL
+    EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+#endif
+
+
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
 
@@ -217,7 +222,7 @@ void CurlDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
     switch( inDim_ ){
     case 0:
       //should already be caught
-      EXCEPTION("Divergence of a scalar field!");
+      EXCEPTION("Curl of a scalar field!");
       break;
     case 1:
       vals.Resize(numNN,2);
@@ -392,10 +397,10 @@ void CurlDifferentiator::PrepareCalculation(){
   // Obtaining target coordinates
   std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
   // target (output) is solely defined on nodes
-  targetCoords_.Resize(allTrgNodes.GetSize());
-  for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
+  targetCoords_.Resize(allTrgElemNums.GetSize());
+  for(UInt nIter=0; nIter < allTrgElemNums.GetSize(); ++nIter){
     CF::Vector<Double> SCoord;
-    trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
+    trgGrid_->GetElemCentroid(SCoord, allTrgNodes[nIter], true);
     if(trgGrid_->GetDim() == 2){
       targetCoords_[nIter].Resize(2);
       targetCoords_[nIter][0] = SCoord[0];

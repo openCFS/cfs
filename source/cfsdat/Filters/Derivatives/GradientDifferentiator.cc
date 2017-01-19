@@ -27,6 +27,10 @@ namespace CFSDat{
 GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
+#ifndef USE_CGAL
+    EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+#endif
+
 
   this->filtStreamType_ = FIFO_FILTER;
   inDim_ = 0;
@@ -388,10 +392,10 @@ void GradientDifferentiator::PrepareCalculation(){
   // Obtaining target coordinates
   std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
   // target (output) is solely defined on nodes
-  targetCoords_.Resize(allTrgNodes.GetSize());
-  for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
+  targetCoords_.Resize(allTrgElemNums.GetSize());
+  for(UInt nIter=0; nIter < allTrgElemNums.GetSize(); ++nIter){
       CF::Vector<Double> SCoord;
-      trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
+      trgGrid_->GetElemCentroid(SCoord, allTrgElemNums[nIter], true);
       if(trgGrid_->GetDim() == 2){
         targetCoords_[nIter].Resize(2);
         targetCoords_[nIter][0] = SCoord[0];
