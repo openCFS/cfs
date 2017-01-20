@@ -195,14 +195,16 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated")
-  # most specific -Wno-error= are for plain old boost. Check to skip them fro newer boost than 1.58
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes  -Wno-unused-local-typedefs -Wno-address -Wno-error=address -Wno-error=misleading-indentation -Wno-error=placement-new")
-
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes  -Wno-unused-local-typedefs ")
+  IF(CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there seem to be no gcc 5.x arround?!
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-error=misleading-indentation -Wno-error=placement-new ")
+  ENDIF()  
+  # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-c++11-extensions -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual-Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression ")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
