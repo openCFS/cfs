@@ -5,7 +5,7 @@
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-
+#include <boost/type_traits/is_complex.hpp>
 
 
 DECLARE_LOG(idbcPenalty)
@@ -20,16 +20,7 @@ namespace CoupledField {
     penaltyTerm_ = 0.0;
 
     // Determine entry type from template parameter
-    eType_ = BaseMatrix::NOENTRYTYPE;
-    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
-      eType_ = BaseMatrix::DOUBLE;
-    }
-    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
-      eType_ = BaseMatrix::COMPLEX;
-    }
-    else {
-      EXCEPTION( "Internal template error! No swearing please!" );
-    }
+    eType_ = boost::is_complex<T>() ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE;
 
     // Generate vector for storing Dirchlet values
     SingleVector *stdVec = NULL;
