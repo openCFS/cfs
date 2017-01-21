@@ -224,6 +224,7 @@ namespace CoupledField {
     //! as the standard product defined on the two types T_Mtype and
     //! T_Vtype unless T_Mtype is an actual tiny matrix in which case
     //! the transpose of the matrix is used. The result is stored in y.
+    // FIXME: delete?
     inline static T multT( const T &A,
                            const typename AssocType<T>::T_Vtype &x ) {
       return A*x;

@@ -117,15 +117,11 @@ namespace CoupledField {
   class CGSolver : public BaseIterativeSolver {
 
   public:
-
-    //!typename of matrix entries (=T)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;	
-
     //!tiny vector of the same dimension as matrix block
-    typedef typename AssocType<T>::T_Vtype T_Vtype;	
+    typedef typename AssocType<T>::T_Vtype T_Vtype;
 
     //scalar of the same primitive data type as matrix
-    typedef typename AssocType<T>::T_Stype T_Stype;	
+    typedef typename AssocType<T>::T_Stype T_Stype;
 
 
     /** The CG constructor initialized the variables but does not
