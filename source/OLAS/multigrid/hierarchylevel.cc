@@ -633,8 +633,8 @@ SetupSmoother( const Settings *const settings,
 //     cannot be specified dynamically
 #define CASE_CONVERT_CRS_TO_LAPACKGB( FTypeID, entryF ) \
 case FTypeID: { \
-    LapackGBMatrix< entryF, T_Mtype >* lapackA = \
-        dynamic_cast<LapackGBMatrix< entryF, T_Mtype >*>(DirSysMatrix_); \
+    LapackGBMatrix< entryF, T >* lapackA = \
+        dynamic_cast<LapackGBMatrix< entryF, T >*>(DirSysMatrix_); \
     if( lapackA == NULL ) { \
         Error( "HierarchyLevel<T>::SetupDirectSolver: dynamic cast " \
                "failed", __FILE__, __LINE__ ); \
@@ -756,7 +756,7 @@ SetupDirectSolver( const Settings* const settings )
             DirSysMatrix_ = 
             GenerateStdMatrixObject( SysMatrix_->GetEntryType(),
                                      SPARSE_SYM,
-                                     BlockSize<T_Mtype>::size,
+                                     BlockSize<T>::size,
                                      SysMatrix_->GetNumRows(),
                                      SysMatrix_->GetNumCols(),
                                      SysMatrix_->GetNnz() );
@@ -781,10 +781,10 @@ SetupDirectSolver( const Settings* const settings )
             // convert the system matrix into the symmetrix sparse format
             Integer *const crsRow  = SysMatrix_->GetRowPointer();
             Integer *const crsCol  = SysMatrix_->GetColPointer();
-            T_Mtype *const crsDat  = SysMatrix_->GetDataPointer();
+            T *const crsDat  = SysMatrix_->GetDataPointer();
             Integer *const scrsRow = scrs->GetRowPointer();
             Integer *const scrsCol = scrs->GetColPointer();
-            T_Mtype *const scrsDat = scrs->GetDataPointer();
+            T *const scrsDat = scrs->GetDataPointer();
             Integer  crs_ij = 1,
                     scrs_ij = 1;
             scrsRow[1] = scrs_ij;
