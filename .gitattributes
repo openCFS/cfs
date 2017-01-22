@@ -1845,7 +1845,6 @@ source/MatVec/SparseOLASMatrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/SparsityPatterns.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/StdMatrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/StdMatrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/MatVec/TypeDefs.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/TypeDefs.hh svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/VBR_Matrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/VBR_Matrix.hh svneol=native#text/x-c%2B%2Bhdr
