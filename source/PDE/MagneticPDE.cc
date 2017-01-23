@@ -60,6 +60,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   //! Always use updated Lagrangian formulation 
   updatedGeo_        = true;
   isMagnetoStrictCoupled_ = false;
+  mechanicPDE_ = NULL;
   
   reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
 
@@ -86,9 +87,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
   }
 
-  void MagneticPDE::SetMagnetoStrictCoupling()
+  void MagneticPDE::SetMagnetoStrictCoupling(SinglePDE *mechanicPDE)
   {
-  
+    mechanicPDE_ = mechanicPDE;
     isMagnetoStrictCoupled_ = true;
 
   }
@@ -663,6 +664,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   void MagneticPDE::DefineNcIntegrators() {
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
                                            endIt = ncInterfaces_.End();
+                                                                                      
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
@@ -693,7 +695,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
  
   void MagneticPDE::DefineRhsLoadIntegrators() {
     
-     
      double factor = 1.0;
     if ( isMagnetoStrictCoupled_ == true ){
       factor = -1.0;  
@@ -909,7 +910,117 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       ctx->SetFeFunction(feFct);
       assemble_->AddLinearForm(ctx);
       feFct->AddEntityList(ent[i]);
+
+      bRHSRegions_[ent[i]->GetRegion()] = coef[i];
     } // for
+    
+      
+    // ===============
+    //  mechStrain (couples in case of magnetostrictive material)
+    // ===============
+    LOG_DBG(magpde) << "Reading mechanical strain";
+    
+    // as we do not have access to the mechanical subtype we have to get the information about
+    // the number opf dof from the overall dimensions; luckily planeStrain and planeStress do not differ
+    // in case of strainDofNames and tensorType
+    SubTensorType tensorType;
+    StdVector<std::string> stressDofNames;
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+      stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
+    } else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+        stressDofNames = "rr", "zz", "rz", "phiphi";
+      } else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+        stressDofNames = "xx", "yy", "xy";
+      }
+    }
+                
+    ReadRhsExcitation( "mechStrain", stressDofNames, ResultInfo::TENSOR, isComplex_, 
+                        ent, coef, coefUpdateGeo );
+                                                
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      
+      // get region and material from entity
+      RegionIdType curRegionId = ent[i]->GetRegion();
+      BaseMaterial* curMaterial = NULL;
+      bool complexMat = complexMatData_[curRegionId];
+      curMaterial = materials_[curRegionId];
+          
+    shared_ptr<CoefFunction > curCoef;
+
+    
+    if( complexMat ) {
+	 //MAGNETOSTRICTION_TENSOR_h_mag is already in a 3 x 6 tensor so we read it in without further transposing (last flag = false) 
+      curCoef = curMaterial->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h_mag, tensorType, 
+                                          Global::COMPLEX, false  );
+    } else {
+      curCoef = curMaterial->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h_mag, tensorType, 
+                                           Global::REAL, false );
+    }
+
+  //  std::cout << "coefUpdateGeoMag " << coefUpdateGeo << std::endl;
+
+    if ( complexMat) {
+	  // NEW: 3.7.15
+	  // explanation for factor 1.0 (instead of -1):
+	  // the used coupling equations for magnotostriction are:
+	  // H = -hS + nuB
+	  // sigma = cS - hB
+	  // Bringing the term -hS to the right hand side would lead to +hS 
+	  // Different from the weak formulation in mechanics, we do NOT loose a -1 factor
+	  // Reason: Greens Integral theorem for rot(rot H) has a shifted sign compared to the Integral theorem for div(div D) 
+	  // (see "Numerical simulations of electromechanical transducers" Appendix B B47 and B50
+	  
+	  // Apprently, the results show, that it is basically the other way round -> check what the hell is going on here
+	  
+	Complex couple_factor = Complex(-1.0);
+	
+      if( isaxi_ ) {
+			    
+	 lin = new BDUIntegrator<CurlOperatorAxi<Complex>, Complex> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+
+      } else if( dim_ == 2 ) {
+	lin = new BDUIntegrator<CurlOperator<FeH1,2,Complex>, Complex> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+	
+       } else if( dim_ == 3 ) {
+	lin = new BDUIntegrator<CurlOperator<FeH1,3,Complex>, Complex> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+	
+      } else {
+        EXCEPTION( "unknown dimension in magnetics" );
+      }
+    }
+    else {
+	
+	 //Double couple_factor = -1.0;
+	 Double couple_factor = -1.0;
+
+	if( isaxi_ ) {
+			    
+	 lin = new BDUIntegrator<CurlOperatorAxi<Double>, Double> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+
+      } else if( dim_ == 2 ) {
+	lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>, Double> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+	
+       } else if( dim_ == 3 ) {
+	lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>, Double> (factor*couple_factor,coef[i],curCoef,coefUpdateGeo);
+	
+      } else {
+        EXCEPTION( "unknown dimension in magnetics" );
+      }
+    }
+      
+      lin->SetName("mechStrainInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(feFct);
+      assemble_->AddLinearForm(ctx);
+      feFct->AddEntityList(ent[i]);
+    } // for
+  
   }
   
   void MagneticPDE::ReadSpecialBCs() {
@@ -955,6 +1066,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   //   Query parameter object for information about coils
   // ******************************************************
   void MagneticPDE::ReadCoils() {
+
     // Check if the element "coils" is present at all.
     // Otherwise leave
     PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
@@ -1690,6 +1802,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
         indDens->AddRegion( coilRegsIt->first, indIntegrand );
       }
+
     }
 
   }

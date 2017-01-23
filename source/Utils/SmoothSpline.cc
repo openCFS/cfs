@@ -43,7 +43,7 @@ namespace CoupledField
 
   void SmoothSpline::CalcApproximation( bool start )
   {
-
+std::cout << "SmoothSpline: CalcApproximation" << std::endl;
     Integer i;
 
     xStart_ = x_[0];
@@ -101,6 +101,7 @@ namespace CoupledField
         mu_old   = 0.5*mu_; 
         monotone = false;
       }
+      std::cout << "mu_ " << mu_ << std::endl;
     }
 
     //fine tuning of discrepancy parameter mu, so that the computed

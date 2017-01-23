@@ -209,6 +209,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   }
   
   motionNode = nciNode->Get("generalMotion", ParamNode::PASS);
+  useMeshSmoothing_ = (nciNode->Get("useMeshSmoothing")->As<std::string>()=="yes");
+
   if (motionNode) {
     std::string coordSysId = "default";
     StdVector<std::string> displaceExpr;
@@ -229,6 +231,12 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
                     ->As<std::string>() == "master");
     motionNode->GetValue("eulerianSystem", isEulerian_, ParamNode::PASS);
+  }
+
+  if(useMeshSmoothing_ == true){
+	  isMoving_ = true;
+	  WARN("You activated useMeshSmoothing. Mortar interface will move "
+         << "only due to mechanical displacements calculated by geometry updates!");
   }
 
   //make this perhaps accessible from xml file
@@ -412,8 +420,9 @@ void MortarInterface::UpdateInterface() {
   StdVector<std::string> listNodeNames;
   std::string newNodesName = name_ + "_nodes";
 
-  MoveInterface();
-
+  if(useMeshSmoothing_ == false){
+	MoveInterface();
+  }
   ptGrid_->GetSurfElems(masterElems, masterSurfRegion_);
   ptGrid_->GetSurfElems(slaveElems, slaveSurfRegion_);
 

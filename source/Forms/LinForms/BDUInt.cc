@@ -110,6 +110,9 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // obtain d matrix
        this->dCoef_->GetTensor( dMat, lp );
        
+       //std::cout << "dMat" << std::endl;
+       //std::cout << dMat << std::endl;
+       
        //calc factor
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
        fac *= factor_;
@@ -117,12 +120,24 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
        
-       bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
+       //std::cout << "bMat" << std::endl;
+       //std::cout << bMat << std::endl;
+       
+       //bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
+       bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumCols());
+       
        // Calculate BdMat
        bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0);
-
+       
+       //std::cout << "bdMat" << std::endl;
+      // std::cout << bdMat << std::endl;
+       
        rhsCoefs_->GetVector(cVec,lp);  
        //elemVec += bMat * cVec * fac;
+       
+       //std::cout << "cVec" << std::endl;
+       //std::cout << cVec << std::endl;       
+       
        elemVec += bdMat * cVec;
      }
 

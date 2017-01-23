@@ -2371,6 +2371,9 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
 
+    //std::cout << "Updating RHS with matrix "
+    //    << feMatrixType.ToString(matrixType) << std::endl;
+
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
 

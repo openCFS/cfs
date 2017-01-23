@@ -165,6 +165,11 @@ namespace CoupledField
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 
+/*old
+    //! flag if effective Mass or Stiffness formulation shall be used 
+    //! effMass_ = true -> mass formulation; effMass_ = false -> stiffness formualation
+    bool effMass_;
+*/
     StdVector<std::string> dofNames_;
 
     // ========================================================================

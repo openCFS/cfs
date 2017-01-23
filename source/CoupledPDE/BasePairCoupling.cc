@@ -229,6 +229,9 @@ namespace CoupledField {
     // Define the integrators
     DefineIntegrators();
 
+    //std::cout << "BasePairCoupling: pde1_->IsNonLin()? " << pde1_->IsNonLin() << std::endl;
+    //std::cout << "BasePairCoupling: pde2_->IsNonLin()? " << pde2_->IsNonLin() << std::endl;
+
   }
   
   void BasePairCoupling::FinalizeInit() {

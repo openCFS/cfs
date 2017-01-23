@@ -506,6 +506,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             assemble_->AddBiLinearForm( voltCoilContextT );
           }
 
+          // CoefFunction for current density of this coil
+          PtrCoefFct jFct;
+          if( isComplex_ ) {
+            jFct.reset( new CoefFunctionJVoltCoil<Complex>(ptGrid_, coilIt->second,
+                                                           feFunctions_[COIL_CURRENT]));
+          } else {
+            jFct.reset( new CoefFunctionJVoltCoil<Double>( ptGrid_, coilIt->second,
+                                                          feFunctions_[COIL_CURRENT]));
+          }
+          coilCurrentDens_[actRegion] = jFct;
+
+
         } // loop: parts
 
         // === R ===
@@ -1010,7 +1022,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // it is an integrated result but we need to save the coef function
       // somewhere for the finalization
       fieldCoefs_[COIL_INDUCED_VOLTAGE] = psiDotDens;
-
     }
 
 
@@ -1123,7 +1134,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<ResultInfo> psiRes(new ResultInfo());
     psiRes->resultType = COIL_LINKED_FLUX;
     psiRes->dofNames = "";
-    psiRes->unit = "Vs/m^2";
+    // should this not have the same unit as normal flux (Vs)?
+    // old: psiRes->unit = "Vs/m^2";
+    psiRes->unit = "Vs";
     psiRes->definedOn = ResultInfo::COIL;
     psiRes->entryType = ResultInfo::SCALAR;
 
@@ -1140,7 +1153,30 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // it is an integrated result but we need to save the coef function
     // somewhere for the finalization
     fieldCoefs_[COIL_LINKED_FLUX] = psiDens;
+    
+    // === COIL INDUCTANCE  ===
+    // more or less the same as COIL LINKED FLUX with the only difference
+    // that during the integration the factor 1/coil_current is applied
+    shared_ptr<ResultInfo> indRes(new ResultInfo());
+    indRes->resultType = COIL_INDUCTANCE;
+    indRes->dofNames = "";
+    indRes->unit = "Vs/A";
+    indRes->definedOn = ResultInfo::COIL;
+    indRes->entryType = ResultInfo::SCALAR;
 
+    availResults_.insert( indRes );
+    shared_ptr<ResultFunctor> indFunc;
+    shared_ptr<CoefFunctionMulti> indDens(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                                    isComplex_));
+    if( isComplex_ ){
+      indFunc.reset( new ResultFunctorIntegrate<Complex>(indDens, feFct, indRes) );
+    } else {
+      indFunc.reset( new ResultFunctorIntegrate<Double>(indDens, feFct, indRes) );
+    }
+    resultFunctors_[COIL_INDUCTANCE] = indFunc;
+    // it is an integrated result but we need to save the coef function
+    // somewhere for the finalization
+    fieldCoefs_[COIL_INDUCTANCE] = indDens;
 
     // === CORE LOSS DENSITY ===
     shared_ptr<ResultInfo> cldRes(new ResultInfo());
@@ -1230,12 +1266,105 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     }
 
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    
+    // === INDUCED VOLTAGE ===
+    // This code assembles a CoefFunctionMulti containing all coil regions, which
+    // is integrated by a ResultFunctorIntegrate. Ref: M. Kaltenbacher, Numer. Sim.
+    // of. Mech. Sens. and Act., 2nd edition, p. 212, Eq. (7.19)
+    // Every coil part has an own CoefFunction for the current density, which is
+    // why the coil regions are searched to find the corresponding part.
+    // It is assumed implicitly that a part cannot contain a region contained by
+    // another part. If that happens, the CoefFunctionMulti throws.
+    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+      PtrCoefFct temp = GetCoefFct(COIL_INDUCED_VOLTAGE);
+      
+      shared_ptr<CoefFunctionMulti> psiDotDens =
+          dynamic_pointer_cast<CoefFunctionMulti>(temp);
+          
+      CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
+      
+      for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
+		
+        std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
+            coilRegsIt->second->parts_.find( coilRegsIt->first );
+            
+        CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
+            boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
+            
+        PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+        
+        CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
+            GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_MULT );
+            
+        PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
+        
+        psiDotDens->AddRegion( coilRegsIt->first, integrand );
+      }
+    }
+
+    // === COIL LINKED FLUX ===
+    // same as for induced voltage, but with the vector potential instead
+    // of the first time derivative of the vector potential
+    //
+    // The coil inductance is COIL_LINKED_FLUX / COIL_CURRENT
+    // integrate this at the same time
+    PtrCoefFct temp = GetCoefFct(COIL_LINKED_FLUX);
+    PtrCoefFct temp_ind = GetCoefFct(COIL_INDUCTANCE);
+    
+    shared_ptr<CoefFunctionMulti> psiDotDens =
+        dynamic_pointer_cast<CoefFunctionMulti>(temp);
+        
+    shared_ptr<CoefFunctionMulti> indDens =
+        dynamic_pointer_cast<CoefFunctionMulti>(temp_ind);    
+        
+    CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
+    
+    for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
+	    
+      std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
+          coilRegsIt->second->parts_.find( coilRegsIt->first );
+          
+      CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
+          boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
+          
+      PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+      
+      CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
+          GetCoefFct( MAG_POTENTIAL ), CoefXpr::OP_MULT );
+          
+      PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
+      
+      psiDotDens->AddRegion( coilRegsIt->first, integrand );
+      
+      // once again with 1/COIL_CURRENT
+      shared_ptr<Coil> actCoil = coilRegsIt->second;
+      PtrCoefFct coilCurrentDensity;
+      PtrCoefFct coilCurrent;
+
+      // this gives us just the current density! we have to multiply with the winding cross section!
+	  CoefXprUnaryOp coilCurrentDensityOp = CoefXprUnaryOp(mp_, coilCurrentDens_[coilRegsIt->first],CoefXpr::OP_NORM);
+	  coilCurrentDensity = CoefFunction::Generate( mp_, part, coilCurrentDensityOp );
+
+	CoefXprBinOp coilCurrentOp = CoefXprBinOp(mp_, coilCurrentDensity, 
+			boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_MULT);
+			
+	coilCurrent = CoefFunction::Generate( mp_, part, coilCurrentOp );
+
+      CoefXprBinOp indIntegrandOp = CoefXprBinOp( mp_, integrand,
+          coilCurrent, CoefXpr::OP_DIV );
+          
+      PtrCoefFct indIntegrand = CoefFunction::Generate( mp_, part, indIntegrandOp );
+      
+      indDens->AddRegion( coilRegsIt->first, indIntegrand );
+
+    }
 
     // === H field ===
     // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
     // the remanence is the RHS load flux density
     shared_ptr<CoefFunctionMulti> hCoef =
         dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+        
     regIt = regions_.Begin();
     for( ; regIt != regions_.End(); ++regIt ){
       if( bRHSRegions_.find( *regIt ) != bRHSRegions_.end() ){
@@ -1250,51 +1379,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             CoefXprBinOp( mp_, reluc_, GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
         hCoef->AddRegion(*regIt,h);
       }
-    }
-
-    // === INDUCED VOLTAGE ===
-    // This code assembles a CoefFunctionMulti containing all coil regions, which
-    // is integrated by a ResultFunctorIntegrate. Ref: M. Kaltenbacher, Numer. Sim.
-    // of. Mech. Sens. and Act., 2nd edition, p. 212, Eq. (7.19)
-    // Every coil part has an own CoefFunction for the current density, which is
-    // why the coil regions are searched to find the corresponding part.
-    // It is assumed implicitly that a part cannot contain a region contained by
-    // another part. If that happens, the CoefFunctionMulti throws.
-    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
-      PtrCoefFct temp = GetCoefFct(COIL_INDUCED_VOLTAGE);
-      shared_ptr<CoefFunctionMulti> psiDotDens =
-          dynamic_pointer_cast<CoefFunctionMulti>(temp);
-      CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
-      for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
-        std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
-            coilRegsIt->second->parts_.find( coilRegsIt->first );
-        CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
-            boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
-        PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
-        CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
-            GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_MULT );
-        PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
-        psiDotDens->AddRegion( coilRegsIt->first, integrand );
-      }
-    }
-
-    // === COIL LINKED FLUX ===
-    // same as for induced voltage, but with the vector potential instead
-    // of the first time derivative of the vector potential
-    PtrCoefFct temp = GetCoefFct(COIL_LINKED_FLUX);
-    shared_ptr<CoefFunctionMulti> psiDotDens =
-        dynamic_pointer_cast<CoefFunctionMulti>(temp);
-    CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
-    for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
-      std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
-          coilRegsIt->second->parts_.find( coilRegsIt->first );
-      CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
-          boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
-      PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
-      CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
-          GetCoefFct( MAG_POTENTIAL ), CoefXpr::OP_MULT );
-      PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
-      psiDotDens->AddRegion( coilRegsIt->first, integrand );
     }
 
     // === CORE LOSS DENSITY ===

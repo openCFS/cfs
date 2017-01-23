@@ -202,6 +202,10 @@ class MortarInterface : public BaseNcInterface {
     Vector<Double> temp1_, temp2_;
 
     bool isReset_;
+    
+    //if true, nc interface will be updated, but no mesh update will be done
+    //the mesh update will be done by iterative geometry updates (and there it will also be triggered)
+    bool useMeshSmoothing_;
 
     bool precomputeIntersectionCandiates_;
 

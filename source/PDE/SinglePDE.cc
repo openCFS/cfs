@@ -1953,10 +1953,26 @@ namespace CoupledField {
     //=====================================================================
     // inhomogeneous Dirichlet BC
     // =====================================================================
-    // iterate over all available result tyes
+    // iterate over all available result types
+    
+    // loop over timederivative
     std::map<SolutionType,std::string>::const_iterator idbcIt;
-    idbcIt = idbcSolNameMap_.begin();
-    for( ; idbcIt != idbcSolNameMap_.end(); ++idbcIt ) {
+    std::map<SolutionType,std::string>::const_iterator idbcIt_end;
+    
+    for(UInt timeDeriv = 0; timeDeriv < 3; timeDeriv++){
+	    if(timeDeriv == 0){
+		idbcIt = idbcSolNameMap_.begin();
+		idbcIt_end = idbcSolNameMap_.end();
+	    }else if(timeDeriv == 1){
+		idbcIt = idbcSolNameMapD1_.begin();
+		idbcIt_end = idbcSolNameMapD1_.end();
+	    }else if(timeDeriv == 2){
+		idbcIt = idbcSolNameMapD2_.begin();
+		idbcIt_end = idbcSolNameMapD2_.end();    
+	    } else {
+		 EXCEPTION("Max timederiv = 2");
+	    }
+		for( ; idbcIt != idbcIt_end; ++idbcIt ) {
 
       // get for each solutiontype the corresponding element name for the
       // homogeneous Dirichlet Bc
@@ -2010,21 +2026,24 @@ namespace CoupledField {
           }
         }
 
-        actBc->entities = actList;
-        actBc->result = actFeFunction->GetResultInfo();
-        if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
-          actBc->dofs.insert(0);
-        } else {
-          actBc->dofs = definedDofs;        
-        }
-        
-        actBc->value = coef;
-        actBc->updatedGeo = updatedGeo;
+		  actBc->entities = actList;
+		  actBc->result = actFeFunction->GetResultInfo();
+		  if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+		    actBc->dofs.insert(0);
+		  } else {
+		    actBc->dofs = definedDofs;        
+		  }
+		  
+		  actBc->value = coef;
+		  actBc->updatedGeo = updatedGeo;
+		  actBc->timeDerivOrder = timeDeriv;
 
-        // add definition to feFunction
-        actFeFunction->AddInhomDirichletBc(actBc);
-      } // loop: idbcs
-    } // loop: solutiontypes
+		  // add definition to feFunction
+		  actFeFunction->AddInhomDirichletBc(actBc);
+		} // loop: idbcs
+	    } // loop: solutiontypes
+    } // loop: timederiv
+    
     
     // =====================================================================
     // Constraint Conditions

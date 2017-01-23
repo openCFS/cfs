@@ -165,6 +165,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   PtrParamNode result;
   // make sure we have valid element and attribute names.
   string myName = ToValidLabel(name_raw);
+
   if (action == DEFAULT)
     action = defaultAction_;
 

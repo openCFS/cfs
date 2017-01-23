@@ -615,6 +615,12 @@
     </xsd:restriction>
   </xsd:simpleType>
   
+  <xsd:simpleType name="DT_MagStrictRegionResult">
+    <xsd:restriction base="xsd:token">
+	<xsd:enumeration value="magEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+    
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_MagStrictStoreResults">
     <xsd:sequence>
@@ -629,6 +635,18 @@
           </xsd:complexContent>
         </xsd:complexType>
       </xsd:element>
+      <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MagStrictRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+      
+      
     </xsd:sequence>
   </xsd:complexType>
   

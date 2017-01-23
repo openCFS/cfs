@@ -5,6 +5,7 @@
 #include "SinglePDE.hh" 
 #include "Driver/SolveSteps/SolveStepMagEdge.hh"
 #include "Utils/Coil.hh"
+#include "CoefFunctionJVoltCoil.hh"
 
 namespace CoupledField
 {

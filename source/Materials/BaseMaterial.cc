@@ -259,6 +259,7 @@ namespace CoupledField
   void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const string& dim ) const {
 
     string help = MaterialTypeEnum.ToString( matType );
+
     EXCEPTION( "Material type (" << dim << ") " << help 
                << " was not read form/defined in material file" );
   }
@@ -708,8 +709,6 @@ namespace CoupledField
      * -> grep shows NO call to InitHyst;
      *    instead everything is handeled via CoefFunctionHyst
      */
-    std::cout << "Actually called" << std::endl;
-
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
 
@@ -1055,7 +1054,7 @@ namespace CoupledField
                                               Global::ComplexPart matDataType, 
                                               bool transpose ) {
      PtrCoefFct mFunct;
-     
+          
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
        // --------------------------------------
        //  Coefficient Function already defined
@@ -1072,16 +1071,21 @@ namespace CoupledField
        if(matDataType == Global::REAL){
          CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
          Matrix<Double> coefMat;
+
          GetTensor(coefMat,matType,matDataType,type);
+         //std::cout << "PreTranspose: " << coefMat << std::endl;
          // transpose if flag is true
+
          if( transpose ) {
            Matrix<Double> temp;
            coefMat.Transpose(temp);
            coefMat = temp;
          }
+		//std::cout << "PostTranspose: " << coefMat << std::endl;
          tmpFnc->SetTensor(coefMat);
          mFunct.reset(tmpFnc);
        }else if(matDataType == Global::COMPLEX){
+
          CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
          Matrix<Complex> coefMat;
          GetTensor(coefMat,matType,matDataType,type);
@@ -1098,6 +1102,7 @@ namespace CoupledField
        }
      }
      mFunct->SetCoordinateSystem(this->coosy_);
+
      return mFunct;
    }
    
@@ -1194,7 +1199,11 @@ namespace CoupledField
      EXCEPTION("Currently only implemented for ElectroMagnetic material")
    }
    
-   
+   PtrCoefFct BaseMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                                           Global::ComplexPart matDataType,
+                                                           PtrCoefFct mechStrain ) {
+	EXCEPTION("Only implemented for ElectroMagnetic material")									     
+   }
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,

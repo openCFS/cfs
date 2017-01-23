@@ -132,9 +132,12 @@
 
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="fix" type="DT_BcHomVector"/>
-                <xsd:element name="displacement" type="DT_BcInhomVector"/>
 
+                <xsd:element name="fix"          type="DT_BcHomVector"   />
+                <xsd:element name="displacement" type="DT_BcInhomVector" />
+                <xsd:element name="velocity" type="DT_BcInhomVector" />
+                <xsd:element name="acceleration" type="DT_BcInhomVector" />
+                
                 <!-- RHS Load Values-->
                 <xsd:element name="stress" type="DT_BcInhomTensor"/>
                 <xsd:element name="strain" type="DT_BcInhomTensor"/>
@@ -143,6 +146,8 @@
                 <xsd:element name="force" type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomVector"/>
+                <!-- for iterative coupling to magnetostrictive material -->
+                <xsd:element name="magFluxDensity"      type="DT_BcInhomVector"    />
 
                 <!-- RHS, due to thermal strains-->
                 <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
@@ -196,6 +201,10 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        
+        <!-- switch between effective mass and stiffness formulation -->
+        <xsd:attribute name="effectiveMass" type="DT_CFSBool" use="optional" default="no"/>
+        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

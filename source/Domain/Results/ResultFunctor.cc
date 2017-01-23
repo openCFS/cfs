@@ -208,6 +208,7 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
       const Elem * el = elemIt.GetElem();
       // energy density is factor_ * elemSol^T * kernel * elemSol
       this->feFct_->GetElemSolution( elemSol, el);
+
       if( accuracy_ == FULL ) {
         // ==================
         //  FULL INTEGRATION
@@ -215,6 +216,7 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
         forms_[el->regionId]->CalcElementMatrix(elemMatR, 
                                                 elemIt, elemIt);
         temp = elemMatR * elemSol;
+
         tempEnergy += (temp * elemSol) * factor_;
         
       } else if ( accuracy_ == MIDPOINT ) {

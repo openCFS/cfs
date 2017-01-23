@@ -47,7 +47,7 @@ namespace CoupledField {
 
     //! Constructor
     InhomDirichletBc();
-    
+
     //! 
     virtual ~InhomDirichletBc();
 
@@ -59,6 +59,9 @@ namespace CoupledField {
     
     //! Flag, if updated geometry is to be used
     bool updatedGeo;
+    
+    //! Integer prescribing the timederivation order 
+    UInt timeDerivOrder;
   };
 
   // -------------------------------------------------------------------------

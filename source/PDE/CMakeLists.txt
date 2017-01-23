@@ -7,6 +7,7 @@ SET(PDE_SRCS
   ElecPDE.cc
   PerturbedFlowPDE.cc
   HeatPDE.cc
+  CoefFunctionJVoltCoil
   MagEdgePDE.cc
   MagneticPDE.cc
   MechPDE.cc
