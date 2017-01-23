@@ -310,6 +310,53 @@ namespace CoupledField {
     return TYPE(); 
   } 
 
+  // this functions localized the maximal component (absolute value) and returns it with its original sign
+  // example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1
+  template<class TYPE> 
+  Double Vector<TYPE>::SignedMax() const 
+  { 
+    EXCEPTION( "Vector<TPYE>::SignedMax only defined for TYPE=/Double" ); 
+    return TYPE(); 
+  } 
+
+
+  template<> 
+  double Vector<Double>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i){
+      ret_new = std::max(ret, std::abs(data_[i]));
+      if(ret != ret_new){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	}
+	ret = ret_new;
+	}
+		
+    return data_[idx]; 
+  }
+
+  template<> 
+  double Vector<Complex>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i) {
+      ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
+      if(std::abs(ret) != std::abs(ret_new)){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	ret = ret_new;
+	}
+    }		
+    return data_[idx].real(); 
+  } 
+
   template<> 
   double Vector<Double>::NormMax() const 
   { 

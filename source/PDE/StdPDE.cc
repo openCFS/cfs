@@ -311,7 +311,6 @@ namespace CoupledField {
   shared_ptr<BaseFeFunction> StdPDE::GetFeFunction(SolutionType solType) {
 
     shared_ptr<BaseFeFunction> feFct;    
-    
     if( feFunctions_.find(solType) != feFunctions_.end() ){
       feFct = feFunctions_[solType];
     }

@@ -167,7 +167,7 @@ namespace CoupledField {
     // have to be multiplied with -1
     std::string factor = "1.0";
     if ( isPiezoCoupled_ == true )
-      factor = "-1.0";  
+      factor = "-1.0";  // get applied to the stiffness matrix in function GetStiffIntegrator
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -963,7 +963,25 @@ namespace CoupledField {
          * here we treat the case: D = eps0*E + P
          * P will be put on the rhs, for stiffness integrator we need just eps0, so we reset curCoef to eps0
          */
-        std::string eps0 = "8.854187817e-12";
+        //std::string eps0 = "8.854187817e-12";
+        /*
+         * unluckily, this will not converge, as eps0 is much too small
+         * -> the first calculated E will be very large which leads to an
+         * overevaluation of P; once P is "out of bounds" no stable point
+         * cannot be reached again
+         * Test if we can improve convergence if we start with larger value
+         * (approximated by Ysat/Xsat); of course, the solution P = eps_test E + P
+         * will not be correct anymore but maybe we can at least get some converging results out
+         * of it
+         */
+        Double Xsat,Ysat;
+        actSDMat->GetScalar(Xsat, X_SATURATION, Global::REAL);
+        actSDMat->GetScalar(Ysat, Y_SATURATION, Global::REAL);
+        Double epsTest = Ysat/(1*Xsat);
+        std::ostringstream eps_;
+
+        eps_ << epsTest;
+        std::string eps0 = eps_.str();
         StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
         realVal.Init("0.0");
         realVal[0] = eps0;
@@ -985,7 +1003,7 @@ namespace CoupledField {
         isHysteresisFixPoint_ = true;
       } else {
 
-        //std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
+        std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
 
         curCoef = curCoef_tmp;
         isHysteresisFixPoint_ = false;
@@ -1212,7 +1230,7 @@ namespace CoupledField {
   
 
   void ElecPDE::DefinePrimaryResults() {
-    
+   
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     
     // Electric Potential

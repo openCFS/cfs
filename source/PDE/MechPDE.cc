@@ -1385,14 +1385,150 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     } // for
     
     
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+    
+    // ===============
+    //  magneticFluxDensity (couples in case of magnetostrictive material)
+    // ===============
+    LOG_DBG(mechpde) << "Reading magnetic flux density";
+    
+    ReadRhsExcitation( "magFluxDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, 
+                        ent, coef, coefUpdateGeo );
+                        
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+
+      // get region and material from entity
+      RegionIdType curRegionId = ent[i]->GetRegion();
+      BaseMaterial* curMaterial = NULL;
+      bool complexMat = complexMatData_[curRegionId];
+      curMaterial = materials_[curRegionId];
+      
+     	    SubTensorType tensorType = NO_TENSOR;
+	    if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
+		tensorType = PLANE_STRAIN;
+	    } else if( subType_ == "axi" ){
+		tensorType = AXI;
+	    } else if (subType_ == "3d" ){
+		tensorType = FULL;
+	    } else {
+		EXCEPTION( "Unknown subtype '" << subType_ << "'" );
+	    }
+      
+    shared_ptr<CoefFunction > curCoef;
+    
+    
+    if( complexMat ) {
+      curCoef = curMaterial->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h_mech, tensorType, 
+                                          Global::COMPLEX, true  );
+    } else {
+      curCoef = curMaterial->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h_mech, tensorType, 
+                                           Global::REAL, true );
+    }
+
+   // std::cout << "coefUpdateGeoMech " << coefUpdateGeo << std::endl;
+
+    if ( complexMat) {
+	  // explanation for factor 1.0:
+	  // the used coupling equations for magnotostriction are:
+	  // H = -hS + nuB
+	  // sigma = cS - hB
+	  // Bringing the term -hB to the right hand side would lead to +hB BUT
+	  // due to the prior weak formulation we lost one -1 factor so that we have -hB on the RHS.
+	  // However, we have -div(sigma) as in the mechanical case such that we get an additional -1 again leading to +hB
+	//Complex factor = Complex(1.0);
+	Complex factor = Complex(1.0);
+      if( subType_ == "axi" ) {
+			    
+	 lin = new BDUIntegrator<StrainOperatorAxi<FeH1,Complex>, Complex> (factor,coef[i],curCoef,coefUpdateGeo);
+	  /*  		
+       lin = new BUIntegrator<Complex> (new StrainOperatorAxi<FeH1,Complex>(),
+                                            Complex(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+                                                                                        
+	/*	
+        integ = new BUIntegrator<Complex><Complex>(new StrainOperatorAxi<FeH1,Complex>(),
+						new CurlOperatorAxi<Complex>(),
+                                    //new GradientOperator<FeH1,2,1,Complex>(),
+                                    curCoef, factor, true );*/
+      } else if( subType_ == "planeStrain" ) {
+	lin = new BDUIntegrator<StrainOperator2D<FeH1,Complex>, Complex> (factor,coef[i],curCoef,coefUpdateGeo);
+	/*
+	  lin = new BUIntegrator<Complex> (new StrainOperator2D<FeH1,Complex>(),
+                                            Complex(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+			
+      } else if( subType_ == "planeStress" ) {
+	 	lin = new BDUIntegrator<StrainOperator2D<FeH1,Complex>, Complex> (factor,coef[i],curCoef,coefUpdateGeo);
+	/*
+	  lin = new BUIntegrator<Complex> (new StrainOperator2D<FeH1,Complex>(),
+                                            Complex(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+                                            
+      } else if( subType_ == "3d") {
+		lin = new BDUIntegrator<StrainOperator3D<FeH1,Complex>, Complex> (factor,coef[i],curCoef,coefUpdateGeo);
+	  /*lin = new BUIntegrator<Complex> (new StrainOperator3D<FeH1,Complex>(),
+                                            Complex(-1.0), CoefFunction::Generate( mp_, part,
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo); */
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    }
+    else {
+	    //Double factor = 1.0;
+	    Double factor = 1.0;
+	 if( subType_ == "axi" ) {		
+       			    
+	 lin = new BDUIntegrator<StrainOperatorAxi<FeH1,Double>, Double> (factor,coef[i],curCoef,coefUpdateGeo);
+	  /*  		
+       lin = new BUIntegrator<Double> (new StrainOperatorAxi<FeH1,Double>(),
+                                            Double(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+                                                                                        
+	/*	
+        integ = new BUIntegrator<Double><Double>(new StrainOperatorAxi<FeH1,Double>(),
+						new CurlOperatorAxi<Double>(),
+                                    //new GradientOperator<FeH1,2,1,Double>(),
+                                    curCoef, factor, true );*/
+      } else if( subType_ == "planeStrain" ) {
+	lin = new BDUIntegrator<StrainOperator2D<FeH1,Double>, Double> (factor,coef[i],curCoef,coefUpdateGeo);
+	/*
+	  lin = new BUIntegrator<Double> (new StrainOperator2D<FeH1,Double>(),
+                                            Double(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+			
+      } else if( subType_ == "planeStress" ) {
+	 	lin = new BDUIntegrator<StrainOperator2D<FeH1,Double>, Double> (factor,coef[i],curCoef,coefUpdateGeo);
+	/*
+	  lin = new BUIntegrator<Double> (new StrainOperator2D<FeH1,Double>(),
+                                            Double(-1.0), CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo);*/
+                                            
+      } else if( subType_ == "3d") {
+		lin = new BDUIntegrator<StrainOperator3D<FeH1,Double>, Double> (factor,coef[i],curCoef,coefUpdateGeo);
+	  /*lin = new BUIntegrator<Double> (new StrainOperator3D<FeH1,Double>(),
+                                            Double(-1.0), CoefFunction::Generate( mp_, part,
+                                                   CoefXprBinOp(mp_,  curCoef, coef[i], CoefXpr::OP_MULT) ), coefUpdateGeo); */
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    }
+      
+      lin->SetName("magneticFluxDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+
+    } // for
+        
     // ==================
     //  THERMAL STRAIN
     // ==================
     LOG_DBG(mechpde) << "Reading thermal strain definition";
     StdVector<PtrCoefFct > tCoef;
     ReadRhsExcitation("thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, tCoef, coefUpdateGeo, input);
-
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
@@ -2043,6 +2179,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // -----------------------------------
     hdbcSolNameMap_[MECH_DISPLACEMENT] = "fix";
     idbcSolNameMap_[MECH_DISPLACEMENT] = "displacement";
+    idbcSolNameMapD1_[MECH_DISPLACEMENT] = "velocity";
+    idbcSolNameMapD2_[MECH_DISPLACEMENT] = "acceleration";
     
     // this defines the primary unknown
     results_.Push_back( disp );
@@ -2068,6 +2206,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     dispDofNames = feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
     shared_ptr<BaseFeFunction> vFct;
+    shared_ptr<BaseFeFunction> aFct;
     if ( analysistype_ != STATIC ) {
       // === MECHANIC VELOCITY ===
       shared_ptr<ResultInfo> vel(new ResultInfo);
@@ -2079,6 +2218,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       availResults_.insert( vel );
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
+      //feFunctions_[MECH_VELOCITY] = vFct;
 
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
@@ -2089,6 +2229,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       acc->definedOn = ResultInfo::NODE;
       availResults_.insert( acc );
       DefineTimeDerivResult( MECH_ACCELERATION, 2, MECH_DISPLACEMENT );
+      aFct = timeDerivFeFunctions_[MECH_ACCELERATION];
+      //feFunctions_[MECH_ACCELERATION] = aFct;
     }
 
     // === MECHANIC RHS ===

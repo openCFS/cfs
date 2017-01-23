@@ -1072,6 +1072,8 @@ namespace CoupledField
 #ifdef CHECK_INDEX
     if (size_col_ != x.GetSize()) 
     {
+	    std::cout << "Matrix r x c " << size_row_ << " x " << size_col_ << std::endl;
+	    std::cout << size_col_ << " vs " << x.GetSize() << std::endl;
       EXCEPTION("incompatible dimension");
     }
 #endif

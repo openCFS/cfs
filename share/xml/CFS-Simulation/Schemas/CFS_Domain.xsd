@@ -145,6 +145,15 @@
           this side are assumed to be smaller than the ones on the slave side.
         </xsd:documentation>
       </xsd:annotation>
+    </xsd:attribute>   
+    <xsd:attribute name="useMeshSmoothing" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+	    This option is only reasonable if iterative coupling and a geometry update
+	    is activated. This option will cause the interface to be updated according
+	    to the mesh update calculated in the iterative coupling.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="slaveSide" type="xsd:token" use="required">
       <xsd:annotation>

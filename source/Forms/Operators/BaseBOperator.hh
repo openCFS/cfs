@@ -76,6 +76,7 @@ public:
                        const Vector<Double>& solVec ){
     Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
+
     retVec = bOp * solVec;
 
   }

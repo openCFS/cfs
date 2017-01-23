@@ -66,6 +66,7 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
+    isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mech );
 
   }
 
@@ -368,19 +369,22 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {
+					    
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
-
+	
     if ( pos == tensorParams_.end() ) {
       std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
-    else {
+    else { 
+	
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
         matTensor = pos->second;
       }
       else {
+
         ComputeSubTensor(matTensor, matType, subTensor);
       }
 
@@ -401,14 +405,32 @@ namespace CoupledField
     PtrCoefFct mFunct;
     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
       
-      CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
-      
-      subTensorXpr.SetSubTensorType( tensorType, transposed );
-      if ( subTensorXpr.IsComplex() ) {
-          mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
-      }
-      else {
-          mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+      if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
+        /*
+         * special case: iterative magnetostrictive coupling
+         * here we need to have the 3x6 material tensor on the rhs
+         * this has to be read in as a CoefXprSubTensor instead of MechSubTensor
+         * as the later one only excepts and accepts 6x6 elasticity tensors
+         */
+        CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
+        subTensorXpr.SetSubTensorType( tensorType, transposed );
+        if ( subTensorXpr.IsComplex() ) {
+
+            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+        }
+        else {
+            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+        }
+      } else {
+        CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
+
+        subTensorXpr.SetSubTensorType( tensorType, transposed );
+        if ( subTensorXpr.IsComplex() ) {
+            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+        }
+        else {
+            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+        }
       }
     } else {
       EXCEPTION( "Material tensor not found" );
@@ -585,17 +607,62 @@ namespace CoupledField
 
   void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const
   {
+
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
     Matrix<Complex> const &mat = pos->second;
 
-    ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
+	if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
+		ComputeSubTensor_magstrict(matMatrix, matType, subTensor);
+	} else {
+		ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
   }
+}
+
+void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
+                                         MaterialType matType, SubTensorType subTensor) const {
+  // std::cout << "MechMaterial ComputeSubTensor-> MagStrictVersion" << std::endl;
+
+  tensorMap::const_iterator pos;
+  pos = tensorParams_.find( matType );
+
+  Matrix<Complex> const &mat = pos->second;
+
+  if ( subTensor == AXI ) {
+    matMatrix.Resize(2,4);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[0][3] = mat[0][2];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+    matMatrix[1][3] = mat[1][2];
+  }
+  else if ( subTensor == PLANE_STRAIN ||
+      subTensor == PLANE_STRESS ) {
+    matMatrix.Resize(2,3);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+
+  } else {
+    subTensorNotAvailable( matType, subTensor );
+  }
+}
+
+
 
   template<class T>
   void MechanicMaterial::ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& mat)
   {
+
     switch(subTensor)
     {
     case AXI:

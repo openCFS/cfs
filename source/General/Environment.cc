@@ -444,6 +444,10 @@ namespace CoupledField {
         return "N";
         break;
 
+      case FLUX_INDUCED_STRAIN:
+	  return "";
+	  break;
+
       case MECH_DEF_SURF_VOLUME:
         return "m^3";
         break;
@@ -832,6 +836,8 @@ namespace CoupledField {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
       out = PERMEABILITY;
+    } else if( in == "reluctivity_magstrict"){
+	out = RELUCTIVITY_MAGSTRICT;
     } else if( in == "heatConductivity") {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
@@ -908,6 +914,9 @@ namespace CoupledField {
       case PERMEABILITY:
         out = "permeability";
         break;
+      case RELUCTIVITY_MAGSTRICT:
+      out = "reluctivity_magstrict";
+      break;
       case NLHEAT_CONDUCTIVITY:
         out = "heatConductivity";
         break;
@@ -1365,7 +1374,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
     SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
-    
+    SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
+
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
@@ -1490,6 +1500,7 @@ namespace CoupledField {
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
+    MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
     MaterialTypeEnum.Add( MAG_PERMEABILITY, "Magnetic_permeability" );
     MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_permeability_1" ); 
     MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_permeability_2" ); 
@@ -1551,6 +1562,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
     MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" ); 
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mech, "Magnetostriction_Tensor_h_mech" );
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h_mag, "Magnetostriction_Tensor_h_mag" );
     MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 

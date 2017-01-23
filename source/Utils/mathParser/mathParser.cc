@@ -523,7 +523,8 @@ namespace CoupledField {
     parser.DefineConst("pi", (double) M_PI);
 
     // Register functions from within CFS
-    parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
+    parser.DefineFun("sample1D", Interpolate1D::Interpolate1, false );
+    parser.DefineFun("sample1D_2", Interpolate1D::Interpolate2, false );
     parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
     parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
 

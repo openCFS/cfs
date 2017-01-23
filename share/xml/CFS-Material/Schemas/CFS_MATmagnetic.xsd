@@ -19,13 +19,46 @@
   <xsd:complexType name="DT_MatMagnetic">
     <xsd:sequence>
       <xsd:element name="electricConductivity" type="DT_NonNegFloat"/>
+      <xsd:element name="magneticReluctivity_MagStrict" type="DT_MagstrictReluctivity" minOccurs="0"/>
       <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
       <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
+      <xsd:element name="magnetoStrictionTensor_h_mag" type="DT_MagStrictTensor_mag" minOccurs="0"/>
       <xsd:element name="density" type="xsd:token" minOccurs="0"/>
       <xsd:element name="coreLoss" type="DT_CoreLoss" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
+
+
+  <xsd:complexType name="DT_MagStrictTensor_mag">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+ 
+  <!-- ******************************************************************* -->
+  <!--   Definition of nonlinear magnetic reluctivity (only for magstrict coupling) -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagstrictReluctivity" >
+    <xsd:sequence>
+      <xsd:element name="nonlinear" type="DT_NonLinMagstrictReluctivity" minOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>  
 
   <!-- ******************************************************************* -->
   <!--   Definition of magnetic permeability-->
@@ -83,6 +116,15 @@
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
+  <!--   Definition of non linear magnetic reluctivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinMagstrictReluctivity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinMagstrictReluctivity"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
   <!--   Definition of non linear magnetic permeability-->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_NonLinMagnPermeability">
@@ -100,6 +142,19 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic non linear magnetic reluctivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IsotrNonLinMagstrictReluctivity">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
   <!-- ******************************************************************* -->
   <!--   Definition of isotropic non linear magnetic permeability-->
   <!-- ******************************************************************* -->

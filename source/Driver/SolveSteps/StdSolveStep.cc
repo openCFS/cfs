@@ -418,6 +418,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   void StdSolveStep::SolveStepTrans() {
 	if (( isHyst_ ) && (PDE_.IsHysteresis_Fixpoint() == false )) {
+	  std::cout << "Use deltaMat hysteresis stepping" << std::endl;
 		StepTransNonLinHysteresis();
 	} else if (( isHyst_ ) && (PDE_.IsHysteresis_Fixpoint() == true )){
 	  StepTransNonLinHysteresisTotal();
@@ -1002,7 +1003,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
-
   }
 
 
@@ -1076,6 +1076,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
       do {
         iterationCounter++;
+
+        std::cout << "############# ITERATION " << iterationCounter << "############" << std::endl;
 
         /*
          * in StepTransNonLin, we perform the setup step at multiple points of this loop
@@ -1377,6 +1379,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
+
+    PDE_.FinalizeAfterTimeStep();
   }
   
   void StdSolveStep::StepTransNonLinHysteresisTotal() {

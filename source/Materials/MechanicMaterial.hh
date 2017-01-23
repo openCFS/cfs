@@ -140,6 +140,9 @@ namespace CoupledField {
     /** compute the correct subTensor (3D, AXI, ..) from the material */
     void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
 
+   void ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix, MaterialType matType, 
+                          SubTensorType subTensor) const;
+
 
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();

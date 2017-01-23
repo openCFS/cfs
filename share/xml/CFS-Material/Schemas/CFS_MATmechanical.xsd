@@ -23,10 +23,32 @@
         minOccurs="0"/>
       <xsd:element name="thermalExpanison" type="DT_ThermalExpansion" minOccurs="0"/>
       <xsd:element name="mechanicalDamping" type="DT_MechDamping" minOccurs="0"/>
+        <xsd:element name="magnetoStrictionTensor_h_mech" type="DT_MagStrictTensor_mech" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
 
+  <xsd:complexType name="DT_MagStrictTensor_mech">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
   <!-- ******************************************************************* -->
   <!--   Definition of mechanical elasticity tensor                        -->
   <!-- ******************************************************************* -->

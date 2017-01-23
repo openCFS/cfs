@@ -662,6 +662,41 @@ namespace CoupledField {
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
+    
+     //read real magmech coupling tensor
+    if(mech->Has("magnetoStrictionTensor_h_mech"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = mech->Get("magnetoStrictionTensor_h_mech");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h_mech, pctCoef);
+    }
+  /* old style
+    if(mech->Has("magnetoStrictionTensor_h_mech")) {
+      Matrix<Double> couplingTensor(3,6);
+
+      PtrParamNode mst = mech->Get("magnetoStrictionTensor_h_mech");
+      if(mst->Has("real")) {
+        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mech, Global::REAL );
+      }
+      if(mst->Has("imag")) {
+        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mech, Global::IMAG );
+      }
+    }
+    */
   }
 
 
@@ -861,6 +896,7 @@ namespace CoupledField {
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
           material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
+ 
         // read P saturation of Preisach hysterese model
         if(p->Has("pSat"))
           material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
@@ -1052,6 +1088,46 @@ namespace CoupledField {
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
     
+    // read nonlinear reluctivity for magnetostrictive strains
+    if(mag->Has("magneticReluctivity_MagStrict"))
+    {
+      
+      // we know only nonlinear isotropic material
+      if(mag->Get("magneticReluctivity_MagStrict")->Has("nonlinear") ) {
+        if (mag->Get("magneticReluctivity_MagStrict")->Get("nonlinear")->Has("isotropic")) {
+          PtrParamNode iso = mag->Get("magneticReluctivity_MagStrict")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info.approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
+
+          // read approximation type  
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+          }
+          
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read nonlinear dataName of magnetic permeability
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>();
+
+          // pass info to material class
+          material->SetNonLinMatIso( MAGSTRICT_RELUCTIVITY, info);
+        } // nonlinear isotropic material   
+        
+      } // end of nonlinear section
+    } // end of magneticReluctivity_MagStrict  
+
+ 
     // read magnetic permeability
     if(mag->Has("magneticPermeability"))
     {
@@ -1579,7 +1655,41 @@ namespace CoupledField {
         }
       }
     }
-*/
+  */
+     //read real magmech coupling tensor
+    if(mag->Has("magnetoStrictionTensor_h_mag"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = mag->Get("magnetoStrictionTensor_h_mag");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h_mag, pctCoef);
+    }
+    /* old style
+    if(mag->Has("magnetoStrictionTensor_h_mag")) {
+      Matrix<Double> couplingTensor(3,6);
+
+      PtrParamNode mst = mag->Get("magnetoStrictionTensor_h_mag");
+      if(mst->Has("real")) {
+        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mag, Global::REAL );
+      }
+      if(mst->Has("imag")) {
+        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mag, Global::IMAG );
+      }
+    }
+   */
     // read core loss
     if(mag->Has("coreLoss")){
       PtrParamNode clParam = mag->Get("coreLoss");
@@ -1844,6 +1954,26 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadMagStrict(BaseMaterial *material,
                                          PtrParamNode pn) {
     //read real magmech coupling tensor
+    if(pn->Has("magnetoStrictionTensor_h"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = pn->Get("magnetoStrictionTensor_h");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h, pctCoef);
+    }
+
+    /* old way
     if(pn->Has("magnetoStrictionTensor_h")) {
       Matrix<Double> couplingTensor(3,6);
 
@@ -1857,6 +1987,7 @@ namespace CoupledField {
         material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::IMAG );
       }
     }
+    */
   }
 
   //**********************************************************************

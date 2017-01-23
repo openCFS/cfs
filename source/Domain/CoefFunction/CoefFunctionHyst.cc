@@ -2,6 +2,8 @@
 
 // classes for function / spline approximation
 #include "Materials/Models/Preisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
+//#include "Materials/Models/VectorPreisachv7.hh"
 #include "Materials/Models/VectorPreisachv10.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
@@ -385,8 +387,14 @@ void CoefFunctionHyst::GetTensor( Matrix<Double>& tensor,
 
       ComputeXY_vec(lpm, Xval, Ycurrent, true);
 
+      std::cout << "Current E_in: " << Xval.ToString() << std::endl;
+      std::cout << "Old E_in: " << XpreviousVEC_[idx].ToString() << std::endl;
+
       Vector<Double> dX = Xval;
       dX.Add(-1.0,XpreviousVEC_[idx]);
+
+      std::cout << "Current P_out: " << Ycurrent.ToString() << std::endl;
+      std::cout << "Old P_out: " << YpreviousVEC_[idx].ToString() << std::endl;
 
       Vector<Double> dY = Ycurrent;
       dY.Add(-1.0,YpreviousVEC_[idx]);
@@ -394,7 +402,8 @@ void CoefFunctionHyst::GetTensor( Matrix<Double>& tensor,
       dY.Add(rev_mat_fac_,dX);
 
       //matDeltaTensor_[idx].Init();
-      CreateDeltaMatrix(dX,dY,matDeltaTensor_[idx],4,idx);
+      UInt version = 1;
+      CreateDeltaMatrix(dX,dY,matDeltaTensor_[idx],version,idx);
 
       if((regionId == 5) || (regionId == 6)){
         std::cout << "Xin: " << Xval.ToString() << std::endl;
@@ -1012,8 +1021,8 @@ void CoefFunctionHyst::ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>&
     }
   }
 
-  std::cout << "Input E: " << X.ToString() << std::endl;
-  std::cout << "Output P: " << Y.ToString() << std::endl;
+//  std::cout << "Input E: " << X.ToString() << std::endl;
+//  std::cout << "Output P: " << Y.ToString() << std::endl;
 
 }
 
@@ -1068,7 +1077,7 @@ std::string CoefFunctionHyst::ToString() const {
 
 void CoefFunctionHyst::CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat, UInt version, UInt idxElem){
 
-  //std::cout << "Using version: " << version << std::endl;
+ // std::cout << "Using version: " << version << std::endl;
 
     /*
      * Check vector norms first
@@ -1118,349 +1127,367 @@ void CoefFunctionHyst::CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, 
                 deltaMat[i][i] = matDeltaTensor_[idxElem][i][i]; //rev_mat_fac_;
               }
       } else {
-       /*
-        * solve least min problem to solve underdetermined system
-        *  Ax = b
-        *
-        * with A = mat(dX) being:
-        * 2d: [[dx1   0 dx2]
-        *      [  0 dx2 dx1]]
-        * 3d: [[dx1   0   0   0  dx3 dx2]
-        *      [  0 dx2   0  dx3   0 dx1]
-        *      [  0   0 dx3  dx2 dx1   0]]
-        *
-        * x = vec(deltaMat) - using Voigts notation:
-        * 2d: [dm11 dm22 dm21]
-        * 3d: [dm11 dm22 dm33 dm32 dm31 dm21]
-        *
-        * b = vec(dY):
-        * 2d: [dy1 dy2]
-        * 3d: [dy1 dy2 dy3]
-        *
-        * there are two ways to solve the system (which should be equal from mathematical point of view
-        * but due to calculations of inverse matrices and so on we get quite different results)
-        *
-        * 1. solve
-        *  A^T A x = A^T b
-        *        x = (A^T A)^-1 A^T b
-        * 2. solve
-        *  A A^T z = b
-        *        x = A^T z = A^T (A A^T)^-1 b
-        *
-        * (equivalence: (A^T A)^-1 A^T b ?= A^T (A A^T)^-1 b
-        *   1. multiply both sides with (A^T A)
-        *     (A^T A) (A^T A)^-1 A^T b = (A^T A) A^T (A A^T)^-1 b
-        *     A^T b = (A^T A) A^T (A A^T)^-1 b
-        *   2. reoder brackets on rhs
-        *     A^T b = A^T (A A^T) (A A^T)^-1 b
-        *     A^T b = A^T b
-        *
-        * comparison of 1. and 2.:
-        *  i) if all dxi != 0, the resulting matrix from 1. is close to the one obtained by the std procedure, i.e.
-        *     dmii = dyi/dxi; dmij = 0 for i!=j
-        *  ii) if one dxi == 0, the matrix A^T A is singular, i.e. 1. does not work
-        *  iii) 1. can be regularized by adding omega*I to A^T A before inverting; the resulting solution will be close
-        *     to the one of the second method, does not solve the original system anymore but does work even if one dx1 == 0
-        *  iv) 2. is solvable even if one dx1 == 0 as A A^T does not become singular
-        *  v) 2. results in matrices which are quite small on the diagonal , thus leading to problems during the solution
-        *     of the FE system (at least it didn't work so far)
-        *  vi) 1. is harder to solve as A^T A is larger than A A^T
-        *
-        * suggested procedure:
-        *   use regularized version of 1. i.e. solve
-        *   (A^T A + omega I) x = A^T b
-        *
-        *   with
-        *     omega = 0, if all dxi != 0
-        *     omega > 0  if one dxi = 0
-        *
-        *   (for all dxi = 0, set dmii = rev_mat_fac; dmij = 0 for i!=j)
-        *
-        * -> does not work; A^T A has extrem bad condition
-        * -> inversion/solution fails often
-        * -> even matrix vector multiplication leads to extremly unstable results (the xth entry behind the . can
-        *     change the resulting vector from e^-6 to e^-2 etc)
-        *
-        * new procedure:
-        *   use std procedure, i.e. dmii = dyi/dxi as long as dxi > threshold
-        *   if all dxi < threshold -> use matrix with rev_mat_fac as diagonal entries
-        *   otherwise use 2.
-        *
-        *
-        */
-
-        /*
-         * I create matrix A from input dX
-         */
-        Matrix<Double> A;
-        UInt dim2 = 0;
-        if(dim_ == 2){
-          // number of unknowns of the material tensor
-          dim2 = 3;
-          /*
-           *  x = [d11 d22 d21] (Voigt)
-           *  A = [[dX1 0   dX2]
-           *       [  0 dX2 dX1]]
-           *  y = [dY1 dY2]
-           */
-          A = Matrix<Double>(dim_,dim2);
-          A.Init();
-          A[0][0] = dX[0];
-          A[1][1] = dX[1];
-          A[0][2] = dX[1];
-          A[1][2] = dX[0];
-
-        } else if (dim_ == 3) {
-          // number of unknowns of the material tensor
-          dim2 = 6;
-          /*
-           * x = [d11 d22 d33 d32 d31 d21] (Voigt)
-           * A = [[dX1   0   0   0 dX3 dX2]
-           *      [  0 dX2   0 dX3   0 dX1]
-           *      [  0   0 dX3 dX2 dX1   0]]
-           * y = [dY1 dY2 dY3]
-           */
-          A = Matrix<Double>(dim2,dim_);
-          A.Init();
-          A[0][0] = dX[0];
-          A[0][4] = dX[2];
-          A[0][5] = dX[1];
-          A[1][1] = dX[1];
-          A[1][3] = dX[2];
-          A[1][5] = dX[0];
-          A[2][2] = dX[2];
-          A[2][3] = dX[1];
-          A[2][4] = dX[0];
-        }
-
-        /*
-         * Get matrix A^T A and rhs A^T b
-         */
-
-        Matrix<Double> ATA = Matrix<Double>(dim2,dim2);
-        ATA.Init();
-        Vector<Double> ATb = Vector<Double>(dim2);
-        ATb.Init();
-
-        A.MultT(A,ATA);
-        A.MultT(dY,ATb);
-
-        /*
-         * Check if regularization is needed
-         */
-        bool needed = false;
-        Double omega = rev_mat_fac_;
-        for(UInt i = 0; i < dim_; i++){
-          if(dX[i] == 0){
-            needed = true;
-          }
-        }
-        if(needed){
-          std::cout << "Adding regularization" << std::endl;
-          for(UInt i = 0; i < dim2; i++){
-            ATA[i][i] += omega;
-          }
-        }
-
-        std::cout << "ATA: " << ATA.ToString() << std::endl;
-        std::cout << "ATb: " << ATb.ToString() << std::endl;
-
-
-
-        /*
-         * Solve system via Gaussian eleminiation -> implementation without pivoting, thus not stable
-         * try implementation of invert instead -> even worse
-         */
-
-        Vector<Double> x = Vector<Double>(dim2);
-        Matrix<Double> ATAI = Matrix<Double>(dim2,dim2);
-        ATAI.Init();
-        ATA.Invert(ATAI);
-
-        std::cout << "ATAI: " << ATAI.ToString() << std::endl;
-
-        x.Init();
-        x = ATAI*ATb;
-        //ATA.DirectSolve(x,ATb);
-
-        std::cout << "Vector x: " << x << std::endl;
-
-        x.Init();
-        ATAI.Mult(ATb,x);
-
-        std::cout << "Vector x (after MULT): " << x << std::endl;
-
-        Double scal = 0.0;
-        dX.Inner(dY,scal);
-        std::cout << "Result of scalar product: " << scal << std::endl;
-
-
-        /*
-         * Distribute entries of x into deltaMat
-         */
-        for(UInt i = 0; i < dim_; i++){
-          for(UInt j = 0; j <= i; j++){
-            if(i == j){
-              deltaMat[i][i] = x[i];
-            } else {
-              deltaMat[i][j] = x[dim2-i-j];
-              deltaMat[j][i] = deltaMat[i][j];
-            }
-          }
-        }
 
 //
-//    //    std::cout << "Case2" << std::endl;
-//      /*
-//       * Solve least square problem to determine delta matrix [deltaMat], such that
-//       * dY = [deltaMat]*dX
-//       *
-//       * Assumptions: deltaMat = symmetric
-//       * Procedure (for 2D, uncoupled case):
-//       *  1. definition
-//       *  deltaMat = [ [d11 d12]; [d21 d22] ] = [ [d11 d12]; [d12 d22] ]
-//       *  dX = [dX1 dX2]
-//       *  dY = [dY1 dY2]
-//       *
-//       *  x = [d11 d22 d12] (Voigt)
-//       *  A = [[dX1 0 dX2]
-//       *       [0 dX2 dX1]]
-//       *  y = [dY1 dY2]
-//       *
-//       *  2. solve least squares problem
-//       *    Ax = y
-//       *  by solving
-//       *    (A*A^T)z = y
-//       *  and setting
-//       *    x = (A^T)z
-//       *
-//       *  3. create deltaMat from x
-//       *
-//       *  Note: solution may lead to very small diagonal entries for deltamat
-//       *        in that case consider a regularization, i.e. solve
-//       *          (omega*I + A*A^T)z = y
-//       *        with omega being a regularization parameter
-//       *
-//       *
-//       * TODO: extend for coupled case
-//       */
 //
-//      Matrix<Double> AT;
-//      UInt dim2 = 0;
-//      if(dim_ == 2){
-//        // number of unknowns of the material tensor
-//        dim2 = 3;
+//       /*
+//        * solve least min problem to solve underdetermined system
+//        *  Ax = b
+//        *
+//        * with A = mat(dX) being:
+//        * 2d: [[dx1   0 dx2]
+//        *      [  0 dx2 dx1]]
+//        * 3d: [[dx1   0   0   0  dx3 dx2]
+//        *      [  0 dx2   0  dx3   0 dx1]
+//        *      [  0   0 dx3  dx2 dx1   0]]
+//        *
+//        * x = vec(deltaMat) - using Voigts notation:
+//        * 2d: [dm11 dm22 dm21]
+//        * 3d: [dm11 dm22 dm33 dm32 dm31 dm21]
+//        *
+//        * b = vec(dY):
+//        * 2d: [dy1 dy2]
+//        * 3d: [dy1 dy2 dy3]
+//        *
+//        * there are two ways to solve the system (which should be equal from mathematical point of view
+//        * but due to calculations of inverse matrices and so on we get quite different results)
+//        *
+//        * 1. solve
+//        *  A^T A x = A^T b
+//        *        x = (A^T A)^-1 A^T b
+//        * 2. solve
+//        *  A A^T z = b
+//        *        x = A^T z = A^T (A A^T)^-1 b
+//        *
+//        * (equivalence: (A^T A)^-1 A^T b ?= A^T (A A^T)^-1 b
+//        *   1. multiply both sides with (A^T A)
+//        *     (A^T A) (A^T A)^-1 A^T b = (A^T A) A^T (A A^T)^-1 b
+//        *     A^T b = (A^T A) A^T (A A^T)^-1 b
+//        *   2. reoder brackets on rhs
+//        *     A^T b = A^T (A A^T) (A A^T)^-1 b
+//        *     A^T b = A^T b
+//        *
+//        * comparison of 1. and 2.:
+//        *  i) if all dxi != 0, the resulting matrix from 1. is close to the one obtained by the std procedure, i.e.
+//        *     dmii = dyi/dxi; dmij = 0 for i!=j
+//        *  ii) if one dxi == 0, the matrix A^T A is singular, i.e. 1. does not work
+//        *  iii) 1. can be regularized by adding omega*I to A^T A before inverting; the resulting solution will be close
+//        *     to the one of the second method, does not solve the original system anymore but does work even if one dx1 == 0
+//        *  iv) 2. is solvable even if one dx1 == 0 as A A^T does not become singular
+//        *  v) 2. results in matrices which are quite small on the diagonal , thus leading to problems during the solution
+//        *     of the FE system (at least it didn't work so far)
+//        *  vi) 1. is harder to solve as A^T A is larger than A A^T
+//        *
+//        * suggested procedure:
+//        *   use regularized version of 1. i.e. solve
+//        *   (A^T A + omega I) x = A^T b
+//        *
+//        *   with
+//        *     omega = 0, if all dxi != 0
+//        *     omega > 0  if one dxi = 0
+//        *
+//        *   (for all dxi = 0, set dmii = rev_mat_fac; dmij = 0 for i!=j)
+//        *
+//        * -> does not work; A^T A has extrem bad condition
+//        * -> inversion/solution fails often
+//        * -> even matrix vector multiplication leads to extremly unstable results (the xth entry behind the . can
+//        *     change the resulting vector from e^-6 to e^-2 etc)
+//        *
+//        * new procedure:
+//        *   use std procedure, i.e. dmii = dyi/dxi as long as dxi > threshold
+//        *   if all dxi < threshold -> use matrix with rev_mat_fac as diagonal entries
+//        *   otherwise use 2.
+//        *
+//        *
+//        */
+//
 //        /*
-//         * start with transposed matrix (such that we can use MultT later on
-//         *
-//         *  x = [d11 d22 d21] (Voigt)
-//         *  A = [[dX1 0   dX2]
-//         *       [  0 dX2 dX1]]
-//         *  AT = [[dX1   0]
-//         *        [  0 dX2]
-//         *        [dX2 dX1]]
-//         *  y = [dY1 dY2]
+//         * I create matrix A from input dX
 //         */
-//        AT = Matrix<Double>(dim2,dim_);
-//        AT.Init();
-//        AT[0][0] = dX[0];
-//        AT[1][1] = dX[1];
-//        AT[2][0] = dX[1];
-//        AT[2][1] = dX[0];
+//        Matrix<Double> A;
+//        UInt dim2 = 0;
+//        if(dim_ == 2){
+//          // number of unknowns of the material tensor
+//          dim2 = 3;
+//          /*
+//           *  x = [d11 d22 d21] (Voigt)
+//           *  A = [[dX1 0   dX2]
+//           *       [  0 dX2 dX1]]
+//           *  y = [dY1 dY2]
+//           */
+//          A = Matrix<Double>(dim_,dim2);
+//          A.Init();
+//          A[0][0] = dX[0];
+//          A[1][1] = dX[1];
+//          A[0][2] = dX[1];
+//          A[1][2] = dX[0];
 //
-//      } else if (dim_ == 3) {
-//        // number of unknowns of the material tensor
-//        dim2 = 6;
+//        } else if (dim_ == 3) {
+//          // number of unknowns of the material tensor
+//          dim2 = 6;
+//          /*
+//           * x = [d11 d22 d33 d32 d31 d21] (Voigt)
+//           * A = [[dX1   0   0   0 dX3 dX2]
+//           *      [  0 dX2   0 dX3   0 dX1]
+//           *      [  0   0 dX3 dX2 dX1   0]]
+//           * y = [dY1 dY2 dY3]
+//           */
+//          A = Matrix<Double>(dim2,dim_);
+//          A.Init();
+//          A[0][0] = dX[0];
+//          A[0][4] = dX[2];
+//          A[0][5] = dX[1];
+//          A[1][1] = dX[1];
+//          A[1][3] = dX[2];
+//          A[1][5] = dX[0];
+//          A[2][2] = dX[2];
+//          A[2][3] = dX[1];
+//          A[2][4] = dX[0];
+//        }
+//
 //        /*
-//         * x = [d11 d22 d33 d32 d31 d21] (Voigt)
-//         * A = [[dX1   0   0   0 dX3 dX2]
-//         *      [  0 dX2   0 dX3   0 dX1]
-//         *      [  0   0 dX3 dX2 dX1   0]]
-//         * AT = [[dX1   0   0]
-//         *       [  0 dX2   0]
-//         *       [  0   0 dX3]
-//         *       [  0 dX3 dX2]
-//         *       [dX3   0 dX1]
-//         *       [dX2 dX1   0]]
-//         * y = [dY1 dY2 dY3]
+//         * Get matrix A^T A and rhs A^T b
 //         */
-//        AT = Matrix<Double>(dim2,dim_);
-//        AT.Init();
-//        AT[0][0] = dX[0];
-//        AT[1][1] = dX[1];
-//        AT[2][2] = dX[2];
-//        AT[3][1] = dX[2];
-//        AT[3][2] = dX[1];
-//        AT[4][0] = dX[2];
-//        AT[4][2] = dX[0];
-//        AT[5][0] = dX[1];
-//        AT[5][1] = dX[0];
-//      }
 //
-//      Matrix<Double> AAT = Matrix<Double>(dim_,dim_);
-//      /*
-//       * perform AAT = (AT)^T * AT
-//       */
-//      AT.MultT(AT,AAT);
+//        Matrix<Double> ATA = Matrix<Double>(dim2,dim2);
+//        ATA.Init();
+//        Vector<Double> ATb = Vector<Double>(dim2);
+//        ATb.Init();
 //
-//      Matrix<Double> AATI = Matrix<Double>(dim_,dim_);
+//        A.MultT(A,ATA);
+//        A.MultT(dY,ATb);
 //
-//      //std::cout << "AAT (pre reg): " << AAT << std::endl;
-//
-//      // add regualrization
-//      double omega = 0.0;
-//      for(UInt i = 0; i < dim_; i++){
-//        AAT[i][i] += omega;
-//      }
-//
-//      //std::cout << "AAT (post reg): " << AAT << std::endl;
-//
-//      AAT.Invert(AATI);
-//
-//      Vector<Double> z = Vector<Double>(dim_);
-//      Vector<Double> x = Vector<Double>(dim2);
-//
-//      // solve least squares problem
-//      z = AATI*dY;
-//
-//      // recover vector of unknowns
-//      x = AT*z;
-//
-//      // sort vector into matrix
-//      for(UInt i = 0; i < dim_; i++){
-//        for(UInt j = 0; j <= i; j++){
-//          if(i == j){
-//            deltaMat[i][i] = x[i];
-//          } else {
-//            deltaMat[i][j] = x[dim2-i-j];
-//            deltaMat[j][i] = deltaMat[i][j];
+//        /*
+//         * Check if regularization is needed
+//         */
+//        // get maximum of dX
+//        Double dxMax = 0.0;
+//        for(UInt i = 0; i < dim_; i++){
+//          if(abs(dX[i]) > dxMax){
+//            dxMax = abs(dX[i]);
 //          }
 //        }
-//      }
 //
-//      // check result
-//      Vector<Double> tmp;
-//      tmp = deltaMat*dX;
 //
-////      for(UInt i = 0; i < dim_; i++){
-////        //for(UInt j = 0; j < dim_; j++){
-////            deltaMat[i][i] = abs(deltaMat[i][i]);
-////        //}
-////      }
-//
-//      for(UInt i = 0; i < dim_; i++){
-//        for(UInt j = 0; j < dim_; j++){
-//          if(i != j){
-//            /*
-//             * it converges but only if offdiagonal entries are 0
-//             * what is the problem with the offdiagonal entries????
-//             */
-//           // deltaMat[i][j] = 0; //abs(deltaMat[i][j]);
-//
-//            //deltaMat[i][j] = -deltaMat[i][j];
+//        bool needed = false;
+//        Double tol = 1e-10;
+//        Double omega = rev_mat_fac_;
+//        for(UInt i = 0; i < dim_; i++){
+//          if(dX[i]/dxMax < tol){
+//            needed = true;
 //          }
 //        }
+//        if(needed){
+//          std::cout << "Adding regularization" << std::endl;
+//          for(UInt i = 0; i < dim2; i++){
+//            ATA[i][i] += omega;
+//          }
+//        }
+//
+//        std::cout << "ATA: " << ATA.ToString() << std::endl;
+//        std::cout << "ATb: " << ATb.ToString() << std::endl;
+//
+//
+//
+//        /*
+//         * Solve system via Gaussian eleminiation -> implementation without pivoting, thus not stable
+//         * try implementation of invert instead -> even worse
+//         */
+//
+//        Vector<Double> x = Vector<Double>(dim2);
+//        Matrix<Double> ATAI = Matrix<Double>(dim2,dim2);
+//        ATAI.Init();
+//        ATA.Invert(ATAI);
+//
+//        std::cout << "ATAI: " << ATAI.ToString() << std::endl;
+//
+//        x.Init();
+//        x = ATAI*ATb;
+//        //ATA.DirectSolve(x,ATb);
+//
+//        std::cout << "Vector x: " << x << std::endl;
+//
+//        x.Init();
+//        ATAI.Mult(ATb,x);
+//
+//        std::cout << "Vector x (after MULT): " << x << std::endl;
+//
+//        Double scal = 0.0;
+//        dX.Inner(dY,scal);
+//        std::cout << "Result of scalar product: " << scal << std::endl;
+//
+//
+//        /*
+//         * Distribute entries of x into deltaMat
+//         */
+//        for(UInt i = 0; i < dim_; i++){
+//          for(UInt j = 0; j <= i; j++){
+//            if(i == j){
+//              deltaMat[i][i] = x[i];
+//            } else {
+//              deltaMat[i][j] = x[dim2-i-j];
+//              deltaMat[j][i] = deltaMat[i][j];
+//            }
+//          }
+//        }
+
+
+    //    std::cout << "Case2" << std::endl;
+      /*
+       * Solve least square problem to determine delta matrix [deltaMat], such that
+       * dY = [deltaMat]*dX
+       *
+       * Assumptions: deltaMat = symmetric
+       * Procedure (for 2D, uncoupled case):
+       *  1. definition
+       *  deltaMat = [ [d11 d12]; [d21 d22] ] = [ [d11 d12]; [d12 d22] ]
+       *  dX = [dX1 dX2]
+       *  dY = [dY1 dY2]
+       *
+       *  x = [d11 d22 d12] (Voigt)
+       *  A = [[dX1 0 dX2]
+       *       [0 dX2 dX1]]
+       *  y = [dY1 dY2]
+       *
+       *  2. solve least squares problem
+       *    Ax = y
+       *  by solving
+       *    (A*A^T)z = y
+       *  and setting
+       *    x = (A^T)z
+       *
+       *  3. create deltaMat from x
+       *
+       *  Note: solution may lead to very small diagonal entries for deltamat
+       *        in that case consider a regularization, i.e. solve
+       *          (omega*I + A*A^T)z = y
+       *        with omega being a regularization parameter
+       *
+       *
+       * TODO: extend for coupled case
+       */
+
+      Matrix<Double> AT;
+      UInt dim2 = 0;
+      if(dim_ == 2){
+        // number of unknowns of the material tensor
+        dim2 = 3;
+        /*
+         * start with transposed matrix (such that we can use MultT later on
+         *
+         *  x = [d11 d22 d21] (Voigt)
+         *  A = [[dX1 0   dX2]
+         *       [  0 dX2 dX1]]
+         *  AT = [[dX1   0]
+         *        [  0 dX2]
+         *        [dX2 dX1]]
+         *  y = [dY1 dY2]
+         */
+        AT = Matrix<Double>(dim2,dim_);
+        AT.Init();
+        AT[0][0] = dX[0];
+        AT[1][1] = dX[1];
+        AT[2][0] = dX[1];
+        AT[2][1] = dX[0];
+
+      } else if (dim_ == 3) {
+        // number of unknowns of the material tensor
+        dim2 = 6;
+        /*
+         * x = [d11 d22 d33 d32 d31 d21] (Voigt)
+         * A = [[dX1   0   0   0 dX3 dX2]
+         *      [  0 dX2   0 dX3   0 dX1]
+         *      [  0   0 dX3 dX2 dX1   0]]
+         * AT = [[dX1   0   0]
+         *       [  0 dX2   0]
+         *       [  0   0 dX3]
+         *       [  0 dX3 dX2]
+         *       [dX3   0 dX1]
+         *       [dX2 dX1   0]]
+         * y = [dY1 dY2 dY3]
+         */
+        AT = Matrix<Double>(dim2,dim_);
+        AT.Init();
+        AT[0][0] = dX[0];
+        AT[1][1] = dX[1];
+        AT[2][2] = dX[2];
+        AT[3][1] = dX[2];
+        AT[3][2] = dX[1];
+        AT[4][0] = dX[2];
+        AT[4][2] = dX[0];
+        AT[5][0] = dX[1];
+        AT[5][1] = dX[0];
+      }
+
+      Matrix<Double> AAT = Matrix<Double>(dim_,dim_);
+      /*
+       * perform AAT = (AT)^T * AT
+       */
+      AT.MultT(AT,AAT);
+
+      Matrix<Double> AATI = Matrix<Double>(dim_,dim_);
+
+ //     std::cout << "AAT: " << AAT.ToString() << std::endl;
+      //std::cout << "AAT (pre reg): " << AAT << std::endl;
+
+      // add regualrization
+      double omega = 0.0;
+      for(UInt i = 0; i < dim_; i++){
+        AAT[i][i] += omega;
+      }
+
+      //std::cout << "AAT (post reg): " << AAT << std::endl;
+
+      AAT.Invert(AATI);
+
+//      std::cout << "AATI: " << AATI.ToString() << std::endl;
+
+      Vector<Double> z = Vector<Double>(dim_);
+      Vector<Double> x = Vector<Double>(dim2);
+
+      // solve least squares problem
+      z = AATI*dY;
+
+      // recover vector of unknowns
+      x = AT*z;
+
+      // sort vector into matrix
+      for(UInt i = 0; i < dim_; i++){
+        for(UInt j = 0; j <= i; j++){
+          if(i == j){
+            deltaMat[i][i] = x[i];
+          } else {
+            deltaMat[i][j] = x[dim2-i-j];
+            deltaMat[j][i] = deltaMat[i][j];
+          }
+        }
+      }
+
+      std::cout << "deltaMat: " << deltaMat.ToString() << std::endl;
+
+      // check result
+      Vector<Double> tmp;
+      tmp = deltaMat*dX;
+
+//      for(UInt i = 0; i < dim_; i++){
+//        //for(UInt j = 0; j < dim_; j++){
+//            deltaMat[i][i] = abs(deltaMat[i][i]);
+//        //}
 //      }
+
+      for(UInt i = 0; i < dim_; i++){
+        for(UInt j = 0; j < dim_; j++){
+          if(i != j){
+            /*
+             * it converges but only if offdiagonal entries are 0
+             * what is the problem with the offdiagonal entries????
+             */
+           // deltaMat[i][j] = 0; //abs(deltaMat[i][j]);
+
+            //deltaMat[i][j] = -deltaMat[i][j];
+          }
+        }
+      }
 
 //      std::cout << "dX: " << dX << std::endl;
 //      std::cout << "dY: " << dY << std::endl;

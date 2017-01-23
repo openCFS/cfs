@@ -608,7 +608,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   // Initialize those PDEs which are not directly coupled
   std::map<SinglePDE*, bool>::iterator it;
 
-  for( UInt iStage = 0; iStage < 3; ++iStage ) {
+  for( UInt iStage = 0; iStage < 1; ++iStage ) {
     for (UInt i = 0; i < numSinglePde_; i++) {
       it = isDirectCoupled_.find(ptSinglePde_[i]);
       if ((*it).second == false) {
@@ -638,9 +638,39 @@ void Domain::InitPDEs(UInt sequenceStep)
     if( isParentDomain_) {
 	std::cout << "++ Initializing direct coupling" << std::endl;
 	}
+	//std::cout << "Domain.cc - preInit: pde->Name()? " << ptDirectCoupledPde_[i]->GetName() << std::endl;
+	//std::cout << "Domain.cc - preInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
+	
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
+    
+    //std::cout << "Domain.cc - postInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
   }
+
+  
+    // Initialize those PDEs which are not directly coupled
+  for( UInt iStage = 1; iStage < 3; ++iStage ) {
+    for (UInt i = 0; i < numSinglePde_; i++) {
+      it = isDirectCoupled_.find(ptSinglePde_[i]);
+      if ((*it).second == false) {
+        switch(iStage) {
+          case 0:
+            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
+            break;
+          case 1:
+            ptSinglePde_[i]->Init_Stage2();
+            break;
+          case 2:
+            ptSinglePde_[i]->Init_Stage3();
+            break;
+          default:
+            EXCEPTION( "Only 3 stages of initialization known");
+            break;
+        }
+      }
+    }
+  }
+
 
   // Initialize algebraic system of each SinglePDE
   // Note: DefineAlgSys() triggers only the initialization
@@ -653,7 +683,6 @@ void Domain::InitPDEs(UInt sequenceStep)
       ptSinglePde_[i]->DefineAlgSys();
     }
   }
-
 }
 
 // **************************
@@ -800,7 +829,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
-    //std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
+    // std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   
@@ -898,9 +927,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       pde1 = GetSinglePDE("mechanic");
       pde2 = GetSinglePDE("magnetic");
 
-      // in the case of acou-Mech coupling, the acoustic
-      // entries have to be multiplied by -1
-      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling();
+	//pass mechanic pde to magnetic for the case of nonlinear magnetostriction
+      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling(pde1);
 
       coupling = new MagnetoStrictCoupling(pde1, pde2, pairNodes[i], info_,
                                       simState_, this );

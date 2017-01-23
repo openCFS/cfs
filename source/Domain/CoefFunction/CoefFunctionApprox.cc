@@ -58,7 +58,11 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
     } else {
       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
     }
-  }
+  } else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
+
+	 Double SignedMaxStrain = elemSol.SignedMax();
+	 coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
+}
   else if( nLinFnc_->GetMatType() == CORE_LOSS ){
     // this is the case for general functions depending on the norm of a field
     Double fieldAbs = elemSol.NormL2();

@@ -8,6 +8,8 @@
 #include <map>
 #include "SinglePDE.hh"
 #include "Utils/Coil.hh"
+#include "CoefFunctionJVoltCoil.hh"
+
 namespace CoupledField
 {
 
@@ -32,7 +34,8 @@ namespace CoupledField
     //!  Destructor
     virtual ~MagneticPDE();
     
-    void SetMagnetoStrictCoupling();
+	//! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
+    void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
 
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
@@ -99,7 +102,13 @@ namespace CoupledField
     //! Coefficient function, containing the overall reluctivity
     shared_ptr<CoefFunctionMulti> reluc_;
     
-    
+    //! Coefficient function, containing the overall conductivity
+    shared_ptr<CoefFunctionMulti> conduc_;
+
+    //! Map containing the remanence (B excitation on RHS)
+    //! needed for calculating H field
+    std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
+
     //! Query parameter object for information on coils
     void ReadCoils();
 
@@ -120,6 +129,8 @@ namespace CoupledField
 
     //! flag for magn_strict coupling
     bool isMagnetoStrictCoupled_;
+	
+	SinglePDE *mechanicPDE_;
 
     void FinalizeAfterTimeStep();
 

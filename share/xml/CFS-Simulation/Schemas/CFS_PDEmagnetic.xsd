@@ -58,6 +58,8 @@
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
+		    <xsd:element name="reluctivity_magstrict" type="DT_MagneticNonLinReluc"/>  
+
                 <xsd:element name="permeability" type="DT_MagneticNonLinPerm">
                   <xsd:annotation>
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
@@ -122,6 +124,8 @@
                     <xsd:documentation>Prescribes the magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <!-- for iterative coupling to magnetostrictive material -->
+                <xsd:element name="mechStrain"      type="DT_BcInhomVector"    />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -163,6 +167,16 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of reluctivity nonlinearity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of permeability nonlinearity type -->
+  <xsd:complexType name="DT_MagneticNonLinReluc">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of permeability nonlinearity -->
@@ -270,6 +284,7 @@
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="geo"/>
       <xsd:enumeration value="permeability"/>
+      <xsd:enumeration value="reluctivity_magstrict"/>
       <xsd:enumeration value="conductivity"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -300,6 +315,7 @@
       <xsd:enumeration value="magForceLorentzDensity"/>
       <xsd:enumeration value="magEddyPowerDensity"/>
       <xsd:enumeration value="magEnergyDensity"/>
+      <xsd:enumeration value="fluxIndStrain"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magMagnetization"/>
     </xsd:restriction>

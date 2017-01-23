@@ -106,6 +106,10 @@ namespace CoupledField{
     
     //! Flag, if incompatible modes are used
     bool useICModes_;
+    /*
+     * does it have to be const bool?
+     * with const bool I have troubles when using StrainOperator for rhs coupling in mechanics
+     */
 
   };
 
@@ -291,7 +295,7 @@ namespace CoupledField{
   protected:
 
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
 
   };
 
@@ -521,7 +525,7 @@ namespace CoupledField{
   protected:
 
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
 
   };
 
@@ -724,7 +728,7 @@ namespace CoupledField{
   protected:
 
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
 
   };
 

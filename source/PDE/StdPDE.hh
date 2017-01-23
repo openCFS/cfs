@@ -292,6 +292,12 @@ namespace CoupledField {
     
     //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType
     std::map<SolutionType, std::string> idbcSolNameMap_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 1 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD1_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 2 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD2_;
         
     //@}
 

@@ -647,6 +647,8 @@ namespace CoupledField
     StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
         itEnd = ncInterfaces_.End();
 
+	//std::cout << "MoveNcInterfaces - Grid.cc 662" << std::endl;
+
     //Here some special things need to be done
     //basically this code is very experimental and may fail in many
     //situations. anyhow, we first remove the NCInterface nodes and update

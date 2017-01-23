@@ -168,8 +168,13 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency );
-
+                                            PtrCoefFct dependency );                             
+                                            
+    //! Return scalar-valued coefficient function for nonlinear function (only for magstrict nu)
+    virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct dependency );                                           
+					    
     //! Return scalar-valued coefficient function for nonlinear function
     //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
     virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,

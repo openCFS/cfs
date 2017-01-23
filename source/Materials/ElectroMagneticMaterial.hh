@@ -77,6 +77,11 @@ namespace CoupledField {
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct fluxCoef );
+ 
+    //! only valid for magnetostrictive coupling; nu = nu(S)
+    virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct mechStrain );                                       
 
     //@}
     //============================ HYSTERESIS ===================================
@@ -126,7 +131,9 @@ namespace CoupledField {
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
 
-    
+   void ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix, MaterialType matType, 
+                          SubTensorType subTensor) const;
+
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
     
