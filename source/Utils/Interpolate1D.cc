@@ -13,29 +13,14 @@ namespace CoupledField {
   std::map<std::string, Vector<Double> > Interpolate1D::yVals_ = 
     std::map<std::string, Vector<Double> >();
   
-  
-  Double Interpolate1D::Interpolate2( const char* fileName, 
-                                     double xEntry,
-                                     double method ){
-
-  return Interpolate(fileName,xEntry,method,2);
-  }
-
-  Double Interpolate1D::Interpolate1( const char* fileName, 
-                                     double xEntry,
-                                     double method ){
-  
-  return Interpolate(fileName,xEntry,method,1);
-  }
-  
   Double Interpolate1D::Interpolate( const char* fileName, 
                                      double xEntry,
-                                     double method, UInt yComponent ) {
+                                     double method ) {
 
     // check if file was already read in
     if( xVals_.find(std::string(fileName)) == xVals_.end() ) {
       Vector<Double> xValsTemp, yValsTemp;
-      ReadFile( fileName, xValsTemp, yValsTemp, yComponent );
+      ReadFile( fileName, xValsTemp, yValsTemp );
       xVals_[fileName] = xValsTemp;
       yVals_[fileName] = yValsTemp;
     }
@@ -122,9 +107,8 @@ namespace CoupledField {
   
   void Interpolate1D::ReadFile( const char* fileName, 
                                 Vector<Double>& xVals,
-                                Vector<Double>& yVals,
-                                UInt yComponent) {
-						 
+                                Vector<Double>& yVals ) {
+    
     // open file
     std::ifstream sampleData;
     sampleData.open( fileName, std::ios::binary );
@@ -188,25 +172,11 @@ namespace CoupledField {
                   << "'.\nInvalid entry: '" << line <<"'");
       
       // read y value from string stream
-      Double tmp;
-      
-      for(UInt yComp = 0; yComp < yComponent; yComp++){
-		tmp = 0.0;
-		sstr >> tmp;
-		//std::cout << tmp << " ";
-		if(!sstr)
-			EXCEPTION("A problem occured while reading from '" << fileName
-                  << "'.\nInvalid entry: '" << line <<"'");
-	}
-	//std::cout << "blub" ;
-	// take last value
-      y = tmp;
-      /*
       sstr >> y;
       if(!sstr)
         EXCEPTION("A problem occured while reading from '" << fileName
                   << "'.\nInvalid entry: '" << line <<"'");
-      */
+      
       // store values in vectors xVals and yVals
       xVals.Push_back(x);
       yVals.Push_back(y);
