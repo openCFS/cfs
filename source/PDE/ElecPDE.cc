@@ -1180,6 +1180,21 @@ namespace CoupledField {
 	  feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
 
+  void ElecPDE::FinalizeAfterIteration() {
+
+    //check for hysteresis
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+      //set current values to previous values for hysteresis operator
+      //needed for the next time step
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        it->second->SetPreviousHystVals();
+      }
+    }
+  }
+
+
   void ElecPDE::FinalizeAfterTimeStep() {
 
 	  //check for hysteresis
@@ -1189,7 +1204,8 @@ namespace CoupledField {
 		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
 		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
 		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-			  it->second->SetPreviousHystVals();
+			  //it->second->SetPreviousHystVals();
+		    it->second->ResetPreviousHystVals();
 		  }
 	  }
   }

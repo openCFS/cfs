@@ -195,9 +195,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated")
-  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes  -Wno-unused-local-typedefs ")
-  IF(CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there seem to be no gcc 5.x arround?!
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-error=misleading-indentation -Wno-error=placement-new ")
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes -Wno-unused-local-typedefs")
+  IF(CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address")
+  ENDIF()  
+  IF(CFS_CXX_COMPILER_VER VERSION_GREATER "6.0") # below option introduced by 6.x
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-error=misleading-indentation -Wno-error=placement-new")
   ENDIF()  
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

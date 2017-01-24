@@ -518,6 +518,11 @@ public:
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
+  //! Functions needed for Hystersis
+  virtual void ResetPreviousHystVals() {
+    EXCEPTION("ResetPreviousHystVals not available");
+  }
+
   //! function for Hysteresis operator to allow or disallow memory setting
   virtual void setOverwrite(bool overwrite){
     EXCEPTION("setOverwrite not available");

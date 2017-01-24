@@ -213,6 +213,15 @@ namespace CoupledField {
         percentCounter += timeStepPercent;
       }
 
+      /*
+       * for debugging -> remove later one
+       * TODO: remove!
+       */
+      if(true){
+        log = true;
+      }
+
+
       if(log)
       {
         if(progOpts->IsQuiet())
