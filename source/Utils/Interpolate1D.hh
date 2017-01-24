@@ -32,16 +32,6 @@ namespace CoupledField {
     //! \return Interpolated value
     static Double Interpolate( const char* fileName, 
                                Double xEntry, 
-                               Double method, UInt yComponent );
-
-    //! reads in the 1 column beyound the x values (in total the second column) as y-values
-    static Double Interpolate1( const char* fileName, 
-                               Double xEntry, 
-                               Double method );
-
-    //! reads in the 2 column beyound the x values (in total the third column) as y-values
-    static Double Interpolate2( const char* fileName, 
-                               Double xEntry, 
                                Double method );
 
   private:
@@ -49,8 +39,7 @@ namespace CoupledField {
     //! Read in data from file
     static void ReadFile( const char* fileName,
                           Vector<Double>& xVals,
-                          Vector<Double>& yVals,
-                          UInt yComponent = 1);
+                          Vector<Double>& yVals );
 
     //! Calculate second derivative for cubic spline interpolation
     static void Spline( const Vector<Double>& x, const Vector<Double>& y,

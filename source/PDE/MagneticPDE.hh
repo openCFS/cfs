@@ -8,7 +8,6 @@
 #include <map>
 #include "SinglePDE.hh"
 #include "Utils/Coil.hh"
-#include "CoefFunctionJVoltCoil.hh"
 
 namespace CoupledField
 {

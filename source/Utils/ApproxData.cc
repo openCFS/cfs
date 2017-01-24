@@ -14,21 +14,13 @@ DEFINE_LOG(approxdata, "approxdata")
 
   ApproxData::ApproxData(std::string nlFileName, MaterialType matType, UInt numIndep)
   {
-	  std::cout << "ApproxData: Constructor" << std::endl;
     numIndepend_ = numIndep;
     matType_ = matType;
     nlFileName_ = nlFileName;
     factor_ = 1.;
-    
-    std::cout << "ApproxData: " << "; nlFileName_ - " << nlFileName_ << std::endl;
-    
-    
     if (numIndepend_ == 1) {
-	    std::cout << "ApproxData: Read ONE Dependency" << std::endl;
       ReadNlinFunc(nlFileName);
-      std::cout << "ApproxData: Perform Check" << std::endl;
       PerformChecksOnInputData(nlFileName);
-      std::cout << "ApproxData: Perform Check - done" << std::endl;
     } else if (numIndepend_ == 2) {
       ReadNlinFuncTwoIndep(nlFileName);
     } else if (numIndepend_ == 3) {
