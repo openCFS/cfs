@@ -48,6 +48,7 @@ public:
 
   //!
   void SetPreviousHystVals();
+  void ResetPreviousHystVals();
 
   //! Create for the vector case deltaMat from dX and dY
   void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat, UInt version, UInt idxElem);
@@ -105,10 +106,14 @@ protected:
   Matrix<Double>* matDeltaTensor_;
 
   //! for vector version
+  //! XpreviousVEC_ and YpreviousVEC_ for previousTimestep and Iteration
+  //! XpreviousItVEC_; YpreviousItVEC_; dXpreviousItVec_; dYpreviousItVec_  during non-lin-iteration to avoid reevaluating
   Vector<Double>* XpreviousVEC_;
   Vector<Double>* XpreviousItVEC_;
+  Vector<Double>* dXpreviousItVEC_;
   Vector<Double>* YpreviousVEC_;
   Vector<Double>* YpreviousItVEC_;
+  Vector<Double>* dYpreviousItVEC_;
 
   //! globale element to local element numbering
   std::map<UInt, UInt> globalElem2Local_;

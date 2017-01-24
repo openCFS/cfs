@@ -45,7 +45,9 @@ SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
 CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
 
 # create build/tmp directory
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
+# somehow CTEST_START_WITH_EMPTY_BINARY_DIRECTORY does not work?! So do it also manually
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 # read ID_CXX 
 EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
@@ -72,10 +74,6 @@ set(CTEST_BUILD_NAME "${BUILDNAME}")
 # will generate CTestConfig.cmake using our sites variant
 WRITE_CTEST_CONFIG()
 
-#-----------------------------------------------------------------------------
-# Start out with an empty binary directory.
-#-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 #-----------------------------------------------------------------------------
 # Enter the following values into the initial cache

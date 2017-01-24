@@ -1073,6 +1073,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
       // set iteration counter
       UInt iterationCounter=0;
+      Double oldIncError = 0.0;
+
+      // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
+      // P_current/E_current
+      //PDE_.FinalizeAfterTimeStep();
 
       do {
         iterationCounter++;
@@ -1313,12 +1318,30 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         Double solIncrL2Norm = solInc.NormL2();
         Double actSolL2Norm  = stageSol.NormL2();
 
-        if ( actSolL2Norm )
+        if ( actSolL2Norm)
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else {
           incrementalErr = solIncrL2Norm;
           //WARN("Zero solution vector!! ");
         }
+
+        std::cout << "incrementalErr: " << incrementalErr << std::endl;
+        std::cout << "residualErr: " << residualErr << std::endl;
+
+
+//        if(incrementalErr > oldIncError){
+//          std::cout << "Error increased since last iteration; do a reset of deltaMat" << std::endl;
+//          // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
+//          // P_current/E_current
+//          PDE_.FinalizeAfterTimeStep();
+//        } else {
+//          std::cout << "Error decreased since last iteration; continue as normal" << std::endl;
+//          // FinalizeAfterIteration sets old hysteresis values so that deltaP and deltaE can be computed
+//          PDE_.FinalizeAfterIteration();
+//        }
+//
+//        oldIncError = incrementalErr;
+//
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
@@ -1327,9 +1350,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           if (PDE_.IsIterCoupled()) {
             WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-      } else {
-            WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-      }
+          } else {
+                WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          }
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -1340,6 +1363,10 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+       // if (performOneMoreStep){
+          PDE_.FinalizeAfterIteration();
+       // }
 
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
@@ -1380,7 +1407,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       fncIt->second->GetTimeScheme()->FinishStep();
     }
 
-    PDE_.FinalizeAfterTimeStep();
+    //PDE_.FinalizeAfterTimeStep();
+    //PDE_.FinalizeAfterIteration();
   }
   
   void StdSolveStep::StepTransNonLinHysteresisTotal() {
@@ -1979,13 +2007,12 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     const UInt nrEtas = 4;
     const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
 
-    //const UInt nrEtas = 11;
-    //const Double eta[nrEtas] = {1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, -0.01, -0.02, -0.05, -0.001}; //, 0.5, 0.25, 0.125, 0.1};
         // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
     for( UInt i=0; i<nrEtas; i++) {
+      std::cout << "Testing eta = " << eta[i] << std::endl;
       actSol.Add( 1.0, solOld, eta[i], solIncrement);
 
       //store new solution
@@ -2043,6 +2070,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       }
     }
 
+    std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
     
     // Set new solution
