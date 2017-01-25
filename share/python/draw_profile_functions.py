@@ -21,6 +21,8 @@ logger = None
 infoXml = None
 
 tris = []
+raw_points = []
+raw_points_ids = []
 
 class End_Node():
   coords = None
@@ -840,8 +842,11 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       next_idx = ln_idx if ln is not None else rn_idx
       
       add_triangle(node.id, next.id, nn.id, cells)
-      tris.append((node.id, next.id, nn.id))
-      
+      if ln is not None:
+        tris.append([int(node.id),int(next.id),int(nn.id)])
+      else:
+        tris.append([int(node.id),int(nn.id),int(next.id)])
+        
       delete_ids.append(next.id)
       node.next = nn
       nn.next = node
@@ -866,9 +871,9 @@ def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
       next_2_idx = lnn_idx if lnn else rnn_idx
       
       add_triangle(node.id, next.id,next_2.id, cells)
-      tris.append((node.id, next.id,next_2.id))
+      tris.append([int(node.id),int(next.id),int(next_2.id)])
       add_triangle(node.id, next_2.id,nnn.id, cells)
-      tris.append((node.id, next_2.id,nnn.id))
+      tris.append([int(node.id),int(next_2.id),int(nnn.id)])
         
       node.next = nnn
       nnn.next = node
@@ -900,7 +905,7 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
       right_next_id = right_line[j+1]
       if this_id >= 0 and next_id >= 0 and right_id >= 0:
         add_triangle(this_id,right_id,next_id,cells)
-        tris.append((this_id,right_id,next_id))
+        tris.append([int(this_id),int(next_id),int(right_id)])
         
         vtkArray.SetValue(this_id,dir)
         vtkArray.SetValue(next_id,dir)
@@ -925,15 +930,15 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           
           if right_id >= 0 and right_next_id >= 0:
             add_triangle(this_id,right_id,right_next_id,cells)
-            tris.append((this_id,right_id,right_next_id))
+            tris.append([int(this_id),int(right_next_id),int(right_id)])
       
       if right_id >= 0 and next_id >= 0 and right_next_id >=0:
         add_triangle(right_id,right_next_id,next_id,cells)
-        tris.append((right_id,right_next_id,next_id))
+        tris.append([int(right_id),int(next_id),int(right_next_id)])
         
       if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0:
         add_triangle(this_id,right_next_id,next_id,cells)
-        tris.append((this_id,right_next_id,next_id))
+        tris.append([int(this_id),int(next_id),int(right_next_id)])
            
   return end_nodes
 
@@ -1037,30 +1042,42 @@ def create_profiles_array(args,info,log):
     
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
-    raw_points = []
+    global raw_points, raw_points_ids
     for i,line in enumerate(nodes_1):
       for j in range(len(line)):
         if nodes_ids_1[i,j] >= 0:          
           points.SetPoint(nodes_ids_1[i,j], nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2])
           raw_points.append((nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2]))
+          raw_points_ids.append(int(nodes_ids_1[i,j]))
         if nodes_ids_2[i,j] >= 0:          
           points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
           raw_points.append((nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2]))
+          raw_points_ids.append(int(nodes_ids_2[i,j]))
         if nodes_ids_3[i,j] >= 0:          
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
           raw_points.append((nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2]))
+          raw_points_ids.append(int(nodes_ids_3[i,j]))
           
     # ha is 3dplot object
     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
+    print("number of points:",id)
 #     plt.show()
 
-#     global tris
-    surface_to_volume_mesh(raw_points,tris)
-     
     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+    
+    print("number of cells:",cells.GetNumberOfCells())
+    global tris
+    
+    tris = []
+    for i in range(cells.GetNumberOfCells()):
+      idList = vtk.vtkIdList()
+      cells.GetNextCell(idList)
+      tris.append((idList.GetId(0),idList.GetId(1),idList.GetId(2)))
+    
+    surface_to_volume_mesh()
 
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
@@ -1944,7 +1961,7 @@ def fix_profile_intersection_gaps(this_end_nodes,other_end_nodes,cells):
 # when introducing new nodes in the mesh, we also have to assign them an unique id
 # id+1 is the current number of points in the surface mesh
 def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set_id=True):
-  global res, logger
+  global res, logger, raw_points, raw_points_ids
   dir = profile.direction
   
   # number of points change with circle radius
@@ -1986,6 +2003,9 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_left)
+      raw_points.append(coords_left)
+      raw_points_ids.append(int(vtk_id))
+      
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id != nodes_left[-1].id:
         print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id)))
@@ -1996,6 +2016,8 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_right)
+      raw_points.append(coords_right)
+      raw_points_ids.append(int(vtk_id))
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id != nodes_right[-1].id:
         print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id)))
@@ -2108,16 +2130,29 @@ def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
   for triangle in triangles:
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-    tris.append((verts[0].id, verts[1].id, verts[2].id))
+    tris.append([int(verts[0].id), int(verts[1].id), int(verts[2].id)])
 
-def surface_to_volume_mesh(points,cells):
+def surface_to_volume_mesh():
+  global raw_points, raw_points_ids, tris
   mesh_info = MeshInfo()
   
-  print(cells)
+  out = open("points.txt","w")
   
-  mesh_info.set_points(points)
-  mesh_info.set_facets(cells) 
+  for i,p in enumerate(raw_points):
+    out.write("id=" + str(raw_points_ids[i]) + "  coords:" + str(p[0]) + " " + str(p[1]) + " " + str(p[2]) + "\n")
   
+  out.close()
+    
+  mesh_info.set_points(raw_points,raw_points_ids)
+  
+  mesh_info.set_facets(tris)
+  
+  out_cell = open("cells.txt","w")
+  for i,cell in enumerate(tris):
+    out_cell.write("id=" + str(i) + " verts:" + str(cell[0]) + " " + str(cell[1]) + " " + str(cell[2]) + "\n")
+  
+  out_cell.close()
+#   mesh = build(mesh_info,verbose=True,diagnose=True)
   mesh = build(mesh_info)
   print("Mesh Points:")
   for i, p in enumerate(mesh.points):
