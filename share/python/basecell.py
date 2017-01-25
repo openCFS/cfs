@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from draw_profile_functions import *
-from mesh_tool import *
+import mesh_tool
 import numpy as np
 import matviz_rot
 from matviz_vtk import *
@@ -121,11 +121,9 @@ def create_mesh_with_profiles(args,infoXml,log):
     if args.z1 == 0.0 and args.z2 == 0.0:
       mesh = create_2d_mesh_from_array(array)
     else:
-      mesh = create_3d_mesh_from_array(array,args.single_region)
+      mesh = mesh_tool.create_3d_mesh_from_array(array,args.single_region)
       
-    mesh = convert_to_sparse_mesh(mesh)
-    
-    validate_periodicity(mesh)
+    mesh_tool.validate_periodicity(mesh)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     save = "volume.vtp" if not args.save else args.save
@@ -155,7 +153,7 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
-parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=False)
+parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
@@ -230,7 +228,7 @@ if args.target == 'volume_mesh':
   file = mesh_name + '.mesh'
   assert(file.endswith('.mesh'))
   
-  write_gid_mesh(mesh, file)
+  mesh_tool.write_gid_mesh(mesh, file)
 
   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
