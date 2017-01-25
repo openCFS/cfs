@@ -2761,12 +2761,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
     shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
-    Vector<double> load(1);
+    Vector<double> load(1); // scalar
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
 
     double trackVal = trackingFunc_->GetParameter();
     double factor = 0.0;
     trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+
+    LOG_DBG3(em) << "CSTAN node=" << node << " u=" << stateSol[0];
+    assert(stateSol[0] >= 0);
+    assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal));
+    assert(factor > 0);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
   }
