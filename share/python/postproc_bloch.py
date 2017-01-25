@@ -43,6 +43,8 @@ for f in input:
       execute("gnuplot -c " + problem + ".plot")
       execute("show_density.py " + problem + ".density.xml --save " + label + ".2d.png")
       execute("show_density.py " + problem + ".density.xml --tile 3 --save " + label + ".tiled.png")
+  except KeyboardInterrupt:
+    os.sys.exit(1)
   except RuntimeError as re:
    print('caught RuntimeError working with ' + problem + ': ' + str(re))
    if not args.failsafe:
