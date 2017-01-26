@@ -5,11 +5,11 @@ import sympy.solvers
 import sys
 import math
 import vtk
+from vtk.util.numpy_support import vtk_to_numpy
 from matviz_vtk import *
 from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
-# from sympy.physics.quantum.circuitplot import pyplot
 from sympy import Symbol, symbols
 from meshpy.tet import MeshInfo, build
 
@@ -1077,7 +1077,8 @@ def create_profiles_array(args,info,log):
       cells.GetNextCell(idList)
       tris.append((idList.GetId(0),idList.GetId(1),idList.GetId(2)))
     
-    surface_to_volume_mesh()
+    ps, cs = read_vtk("surface.vtp")
+    surface_to_volume_mesh(ps,cs)
 
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
@@ -2131,27 +2132,49 @@ def start_triangulation(start,next,other,this_end_nodes,other_end_nodes,cells):
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
     tris.append([int(verts[0].id), int(verts[1].id), int(verts[2].id)])
+    
+def read_vtk(filename):
+  reader = vtk.vtkXMLPolyDataReader()
+  reader.SetFileName(filename)
+  reader.Update()
+  polydata = reader.GetOutput()
+  points = vtk_to_numpy(polydata.GetPoints().GetData())
+  for p in points:
+    for n in p:
+      n = float(n)
+  cells = vtk_to_numpy(polydata.GetPolys().GetData())
+  for c in cells:
+    c = int(c)
+    
+  print(points)
+  print(cells) 
+#   print("num points:", len(pp))
+#   print("num cells:", len(cc))
+#   print(cc)
 
-def surface_to_volume_mesh():
-  global raw_points, raw_points_ids, tris
+  return points,cells
+
+def surface_to_volume_mesh(ps,cs):
+#   global raw_points, raw_points_ids, tris
   mesh_info = MeshInfo()
   
-  out = open("points.txt","w")
-  
-  for i,p in enumerate(raw_points):
-    out.write("id=" + str(raw_points_ids[i]) + "  coords:" + str(p[0]) + " " + str(p[1]) + " " + str(p[2]) + "\n")
-  
-  out.close()
+#   out = open("points.txt","w")
+#   
+#   for i,p in enumerate(raw_points):
+#     out.write("id=" + str(raw_points_ids[i]) + "  coords:" + str(p[0]) + " " + str(p[1]) + " " + str(p[2]) + "\n")
+#   
+#   out.close()
     
-  mesh_info.set_points(raw_points,raw_points_ids)
-  
+#   mesh_info.set_points(raw_points,raw_points_ids)
+#   mesh_info.set_facets(tris)
+  mesh_info.set_points(ps)
   mesh_info.set_facets(tris)
   
-  out_cell = open("cells.txt","w")
-  for i,cell in enumerate(tris):
-    out_cell.write("id=" + str(i) + " verts:" + str(cell[0]) + " " + str(cell[1]) + " " + str(cell[2]) + "\n")
-  
-  out_cell.close()
+#   out_cell = open("cells.txt","w")
+#   for i,cell in enumerate(tris):
+#     out_cell.write("id=" + str(i) + " verts:" + str(cell[0]) + " " + str(cell[1]) + " " + str(cell[2]) + "\n")
+#   
+#   out_cell.close()
 #   mesh = build(mesh_info,verbose=True,diagnose=True)
   mesh = build(mesh_info)
   print("Mesh Points:")
