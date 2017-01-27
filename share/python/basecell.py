@@ -159,11 +159,15 @@ parser.add_argument('--target', help="what to generate",choices=["volume_vtk","v
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
 parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
+parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear'], required=False)
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 
 args = parser.parse_args()
 
-if args.stiffness != None:
+if args.res_surf_lines is None:
+  args.res_surf_lines = args.res
+
+if args.stiffness is not None:
   args.x1 = args.stiffness
   args.x2 = args.stiffness
   args.y1 = args.stiffness
@@ -192,10 +196,10 @@ else:
 
 mesh_name = mesh_name if args.save == None else args.save
 
-if args.target == "surface_mesh" or args.target == "3dlines":
-  if not args.res_surf_lines:
-    print("Error: resolution of lines on surface required!")
-    sys.exit(1)
+# if args.target == "surface_mesh" or args.target == "3dlines":
+#   if not args.res_surf_lines:
+#     print("Error: resolution of lines on surface required!")
+#     sys.exit(1)
 
 infoXml = None
 
