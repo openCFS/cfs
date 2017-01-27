@@ -159,7 +159,9 @@ parser.add_argument('--target', help="what to generate",choices=["volume_vtk","v
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
 parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
-parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear'], required=False)
+parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
+parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
+parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 
 args = parser.parse_args()
