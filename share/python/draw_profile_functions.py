@@ -995,13 +995,13 @@ def create_profiles_array(args,info,log):
   vec = None
   t = np.linspace(0, 1.0, args.res)
   
+  profiles = create_profiles(args,infoXml)
+  
   hf = plt.figure()
   ha = hf.add_subplot(111, projection='3d')
   ha.set_xlabel('X')
   ha.set_ylabel('Y')
   ha.set_zlabel('Z')
-  
-  profiles = create_profiles(args,infoXml)
   
   assert(len(profiles) == 3)
   
