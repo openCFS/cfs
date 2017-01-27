@@ -3,7 +3,6 @@ from vtk.util.colors import *
 from numpy import *
 from matviz_rot import *
 from matviz_vtk import *
-from mesh_tool import *
 # polyhedron lib from: http://cens.ioc.ee/projects/polyhedron/
 #from polyhedron import Vrep, Hrep
 import scipy.interpolate as ip
