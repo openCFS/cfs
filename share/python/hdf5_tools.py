@@ -194,27 +194,54 @@ def get_element(hdf5_file, name, region, given_step=99999):
 
 # returns nodal or elemental results as numpy array
 def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
-    """read data from a hdf5-file:
-          result: string specifying the results to return: e.g. 'accuPressure','mechDisplacement',...
-          region: string specifying the region name
-          step  : integer defining the step or 'last' for laststep  """
-    if step=='last':
-        step=last_h5_step(hdf5_file,multistep)
-    h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
-    h5_s = h5_ms['Step_%i'%step] # extract step
-    h5_res = h5_s[result] # extract result
-    if region==None :
-        if len(h5_res.keys())>1 :
-            raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step)+" Available regions: "+", ".join(h5_res.keys()))
-        else :
-            region = h5_res.keys()[0]
-    h5_res_reg = h5_res[region] # extraxt region
-    res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
-    if 'Imag' in h5_res_reg[res_type].keys() :
-        return h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value
-    else :
-        return h5_res_reg[res_type]['Real'].value
+    """
+    read data from a hdf5-file
+    
+    Parameters
+    ----------
+    result: string 
+      specifies the results to return: e.g. 'accuPressure','mechDisplacement',...
+    region: string 
+      region name
+    step: integer, list, or string  
+      defining the step as single integer, list of integersor or 'last' for laststep or
+      'all' for all steps 
+      
+    Returns
+    -------
+    out : ndarray
 
+    Example
+    -------
+    Extract data for single region
+    >>> P = get_result(f,'waterPressure',step='all')
+    """
+    from numpy import array, squeeze
+    h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
+    if step=='last':
+        steps=[last_h5_step(hdf5_file,multistep)]
+    elif step=='all' :
+        steps=h5_ms['ResultDescription/%s/StepNumbers'%(result)].value
+    elif type(step)==int :
+        steps=[step]
+    elif hasattr(step, '__iter__') :
+        steps=step
+    res = []
+    for step in steps:
+        h5_s = h5_ms['Step_%i'%step] # extract step
+        h5_res = h5_s[result] # extract result
+        if region==None :
+            if len(h5_res.keys())>1 :
+                raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step)+" Available regions: "+", ".join(h5_res.keys()))
+            else :
+                region = [k for k in h5_res.keys()][0]
+        h5_res_reg = h5_res[region] # extraxt region
+        res_type = list(h5_res_reg.keys())[0] # read result type (Nodes or Elements)
+        if 'Imag' in h5_res_reg[res_type].keys() :
+            res.append( h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value )
+        else :
+            res.append( h5_res_reg[res_type]['Real'].value )
+    return squeeze(array(res))
 
 def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     """
@@ -308,3 +335,10 @@ def get_centroids(hdf5_file,region=None) :
         nids = conn[I[It],:Nnodes] # node ids, only take used columns
         center[It,:] = mean(coord[nids-1,:],axis=1) # compute center as arithmetic mean
     return center
+
+if __name__ == "__main__":
+    import doctest
+    from h5py import File
+    # need to import some files here for testing
+#    h5f = File(/home/ftoth/projects/InfiniteMappingLayer/simulations/SloshingEV2D_InfiniteDepth/)
+    doctest.testmod()
