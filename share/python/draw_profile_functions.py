@@ -381,7 +381,7 @@ class BisecSpline:
     self.type = None
     self.angle = None
   
-  def __init__(self,x1,y1,z1,bend):
+  def __init__(self,x1,y1,z1,bend,force=None):
     self.x1 = x1
     self.y1 = y1
     self.z1 = z1
@@ -456,18 +456,20 @@ class BisecSpline:
     self.bicubic.append(cubic)  
     self.spline = bspline
     self.linear = lin
-    # to check if bicubic has under/overshooting when point p is much lower than point b
-    if p[1] >= b[1] + 1e-3:
-      self.type = "bicubic"
-      
-    # in case function composed of b-spline and cubic function has undershoot  
-    # in case b-spline has no undershoot (point p is not below bspline(x=0))
-    elif height > 0.5 + x1/2.0:  
-      self.type = "bspline"
-      
-    # in case we have undershooting for biqua AND for spline
+    
+    if force:
+      self.type = force
     else:
-      self.type = "linear"
+      # to check if bicubic has under/overshooting when point p is much lower than point b
+      if p[1] >= b[1] + 1e-3:
+        self.type = "bicubic"
+      # in case function composed of b-spline and cubic function has undershoot  
+      # in case b-spline has no undershoot (point p is not below bspline(x=0))
+      elif height > 0.5 + x1/2.0:  
+        self.type = "bspline"
+      # in case we have undershooting for biqua AND for spline
+      else:
+        self.type = "linear"
       
     if infoXml:
       infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle[0])) + '"/>\n')
@@ -604,19 +606,19 @@ class Profile:
     else: # 'spline' case
       if dir == 0:
         self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend)
+        self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.force_bisec)
         self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
         self.radius_left = args.x1 / 2.0
         self.radius_right = args.x1 / 2.0
       elif dir == 1:
         self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend)  
+        self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.force_bisec)  
         self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
         self.radius_left = args.y1 / 2.0
         self.radius_right = args.y1 / 2.0
       else: # dir == 2
         self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend)  
+        self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.force_bisec)  
         self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
         self.radius_left = args.z1 / 2.0
         self.radius_right = args.z1 / 2.0
@@ -1114,7 +1116,7 @@ def create_profiles_array(args,info,log):
         write_profile_to_array(array, profiles[i], i)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
-  
+        
   if args.target == '3dlines':
     plt.show()
   
