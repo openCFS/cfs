@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# import mesh_tool first because of h5py
+import mesh_tool
 import argparse
 from draw_profile_functions import *
-import mesh_tool
 import numpy as np
 import matviz_rot
 from matviz_vtk import *
-import vtk
 
 def calc_volume(array,infoXml):
   res, res, res = array.shape

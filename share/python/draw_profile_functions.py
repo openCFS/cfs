@@ -7,11 +7,14 @@ import math
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 from matviz_vtk import *
+import matplotlib
+matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
 from sympy import Symbol, symbols
 from meshpy.tet import MeshInfo, build
+from array import *
 
 res = 1
 res_surf_lines = 1
@@ -454,7 +457,7 @@ class BisecSpline:
     self.spline = bspline
     self.linear = lin
     # to check if bicubic has under/overshooting when point p is much lower than point b
-    if height >= b[1] + 1e-3:
+    if p[1] >= b[1] + 1e-3:
       self.type = "bicubic"
       
     # in case function composed of b-spline and cubic function has undershoot  
@@ -559,12 +562,17 @@ class BisecSpline:
     linear = self.eval_linear(x)
     
     cut = self.bicubic[0].coords_cut
+    
+    assert(self.type == 'bicubic' or self.type == 'bspline' or self.type == 'linear')
 
-    plt.plot(x,bicubic,label='bicubic',linewidth=5.0)
-    plt.plot(x,spline,label='spline',linewidth=5.0)
-    plt.plot(x,linear,label='linear',linewidth=5.0)
+    plt.ylim((0.5,1.0))
+    bc_label = 'bicubic*' if self.type == 'bicubic' else 'bicubic'
+    sp_label = 'bspline*' if self.type == 'bspline' else 'bspline'
+    lin_label = 'linear*' if self.type == 'linear' else 'linear' 
+    plt.plot(x,bicubic,label=bc_label,linewidth=5.0)
+    plt.plot(x,spline,label=sp_label,linewidth=5.0)
+    plt.plot(x,linear,label=lin_label,linewidth=5.0)
     plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15) 
-      
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
     plt.show()  
     
@@ -650,6 +658,7 @@ def create_profiles(args,infoXml=None):
       plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
       plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
     
+    plt.ylim((0.5,1.0))
     plt.legend(loc='upper left', shadow=True)
     plt.rcParams.update({'font.size': 18})
     #plt.ylim([0,0.5])
@@ -2139,12 +2148,9 @@ def read_vtk(filename):
   reader.Update()
   polydata = reader.GetOutput()
   points = vtk_to_numpy(polydata.GetPoints().GetData())
-  for p in points:
-    for n in p:
-      n = float(n)
   cells = vtk_to_numpy(polydata.GetPolys().GetData())
-  for c in cells:
-    c = int(c)
+  
+  points = points.tolist()
     
   print(points)
   print(cells) 
@@ -2182,6 +2188,6 @@ def surface_to_volume_mesh(ps,cs):
       print(str(i) + "," + str(p) + "\n")
   print("Point numbers in tetrahedra:")
   for i, t in enumerate(mesh.elements):
-      print(i + "," + t + "\n")
+      print(str(i) + "," + str(t) + "\n")
   mesh.write_vtk("test.vtk")
   
