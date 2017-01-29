@@ -382,9 +382,6 @@ namespace CoupledField{
                 "number of coordinate arrays: " << ncoords); 
     }
 
-    //WHY ?????????
-    dim_ = dim;
-
     //==================================================================
     // READ IN COORDINATES
     //==================================================================

@@ -153,7 +153,7 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
   coefScalar *= factor_;
-  std::cout << "Value: " << coefScalar << std::endl;
+  //std::cout << "Value: " << coefScalar << std::endl;
 }
 
 void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
