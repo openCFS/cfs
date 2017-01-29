@@ -176,6 +176,15 @@ OPTION(USE_PYTHON
   "Build our own Python for CFS++."
   ${USE_PYTHON_DEFAULT})
 
+# exteranl anaconda
+OPTION(USE_ANACONDA3
+  "Use anaconda3 from continuum analytics"
+  OFF)
+
+IF(USE_PYTHON AND USE_ANACONDA3)
+  message(FATAL_ERROR "cannot use python and anaconda at the same time")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------

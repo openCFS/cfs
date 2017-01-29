@@ -1,5 +1,6 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
+cfsdeps/anaconda3/External_anaconda3.cmake -text
 cfsdeps/ansys_custom/External_ANSYS_custom.cmake -text
 cfsdeps/ansys_custom/ansys_custom-build.cmake.in -text
 cfsdeps/ansys_custom/ansys_custom-install.cmake.in -text
