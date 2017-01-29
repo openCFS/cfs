@@ -213,8 +213,15 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
 
     Example
     -------
-    Extract data for single region
-    >>> P = get_result(f,'waterPressure',step='all')
+    Extract real data
+    >>> U = get_result(Plate3D,'mechDisplacement')
+    >>> U[-6:,:]
+    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+       [ -2.01311228e-05,   2.01311228e-05,   2.80932210e-05],
+       [ -4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+       [  4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+       [ -4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
+       [  4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
     """
     from numpy import array, squeeze
     h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
@@ -264,10 +271,18 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
 
     Example
     -------
-    Extract data for subregion 'EXCITATION'
-    >>> U = get_result(f,'mechDisplacement','SALMPLE')
-    >>> I = get_subregion_idx(f,'SAMPLE','EXCITATION')
-    >>> U_e = U[I]
+    Extract data for subregion 'side'
+    >>> U = get_result(Plate3D,'mechDisplacement','plate')
+    >>> I = get_subregion_idx(Plate3D,'plate','side')
+
+    # Of course, all displacements on the clamped side mst be zero
+    >>> U[I,:] # doctest: +ELLIPSIS
+    array([[ 0.,  0.,  0.],
+       [ 0.,  0.,  0.],
+       [ 0.,  0.,  0.],
+       ...
+       [ 0.,  0.,  0.],
+       [ 0.,  0.,  0.]])
     """
     from numpy import array, argwhere
     Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
@@ -290,6 +305,16 @@ def get_coordinates(hdf5_file,region=None) :
     Returns
     -------
     out : ndarray
+
+    Examples
+    --------
+    >>> X = get_coordinates(Plate3D)
+
+    # Show coordinates of nodes 2, 4, 6 (index shift)X[[1,3,5],:]
+    >>> X[[1,3,5],:]
+    array([[ 12. ,   7.2,   0. ],
+           [ 11.5,   4.8,   0. ],
+           [  0.5,   7.2,   0. ]])
     """
     if not region==None :
         I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'].value - 1
@@ -314,6 +339,15 @@ def get_centroids(hdf5_file,region=None) :
     -------
     out : ndarray
         first dimension sorted like elements in hdf5_file
+
+    Examples
+    --------
+    Get centroids for a single region result file
+    >>> C = get_centroids(Plate3D)
+    >>> C[0,:] # first element
+    array([ 11.75 ,   6.   ,   0.175])
+    >>> C[-1,:] # last element
+    array([ 9.35,  9.35,  0.35])
     """
     from numpy import sum, unique, argwhere, zeros, arange, mean
     # get connectivity and nodal coordinates
@@ -337,8 +371,18 @@ def get_centroids(hdf5_file,region=None) :
     return center
 
 if __name__ == "__main__":
-    import doctest
+
+    # for testing in the testsuite, this file is run with the TESTSUIT_DIR
+    # as working directory
+    # $ python hdf5_tools.py -v
+    # Thus, you must cd to the correct location for interactive testing.
+
+    #%% Load some files (paths relative to TESTSUIT_DIR)
     from h5py import File
-    # need to import some files here for testing
-#    h5f = File(/home/ftoth/projects/InfiniteMappingLayer/simulations/SloshingEV2D_InfiniteDepth/)
-    doctest.testmod()
+    # should load from TESTSUITE_DIR
+    Plate3D = File('TESTSUIT/Singlefield/Mechanics/Plate3D/Plate3D.h5ref','r')
+    dampedEV2D = File('TESTSUIT/Singlefield/Mechanics/dampedEV2D/dampedEV2D.h5ref','r')
+
+    # finally run doctest
+    import doctest
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
