@@ -87,6 +87,9 @@ PROJECT(CFS C CXX Fortran)
 SET(ENV{LC_MESSAGES} "en_EN")
 SET(ENV{LANG} C)
 
+# Include some standard macros
+include(CMakeDependentOption)
+
 #-----------------------------------------------------------------------------
 # Include some utility macros (for building ext. libs, etc...)
 #-----------------------------------------------------------------------------
@@ -537,6 +540,12 @@ ENDIF(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 OPTION(MATVIZ_TESTS
   "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# Enables tests of Python scripts via doctest
+#-----------------------------------------------------------------------------
+CMAKE_DEPENDENT_OPTION(PYTHON_TESTS "Add python tests" OFF
+                       "BUILD_TESTING" OFF) # set to off all the time
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.
