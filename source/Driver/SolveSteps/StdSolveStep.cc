@@ -1073,7 +1073,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
       // set iteration counter
       UInt iterationCounter=0;
-      Double oldIncError = 0.0;
 
       // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
       // P_current/E_current
@@ -2012,7 +2011,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     Double residualL2NormOpt = 1e15;
 
     for( UInt i=0; i<nrEtas; i++) {
-      std::cout << "Testing eta = " << eta[i] << std::endl;
+      //std::cout << "Testing eta = " << eta[i] << std::endl;
       actSol.Add( 1.0, solOld, eta[i], solIncrement);
 
       //store new solution
@@ -2070,7 +2069,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       }
     }
 
-    std::cout << "Optimal eta = " << etaOpt << std::endl;
+    //std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
     
     // Set new solution
