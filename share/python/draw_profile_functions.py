@@ -16,7 +16,8 @@ from sympy import Symbol, symbols
 try:
   from meshpy.tet import MeshInfo, build
 except:
-  print("Failed to load meshpy - need it for tetrahedralized mesh")  
+  print("Failed to load meshpy - need it for tetrahedralized mesh")
+from joblib import Parallel, delayed
 
 res = 1
 res_surf_lines = 1
@@ -1139,13 +1140,28 @@ def create_profiles_array(args,info,log):
       
 #     show_write_vtk(polydata,1000,"surface.vtp")
   else:
+#     arr0 = np.ones((res,res,res)) * (0)
+#     arr1 = np.ones((res,res,res)) * (0)
+#     arr2 = np.ones((res,res,res)) * (0)
+#     
+#     array = arr0 + arr1 + arr2
+
+    if args.target == "volume_mesh" or args.target == "volume_vtk":
+      for i in range(0,3):
+        map = create_profile_map(profiles[i], res)
+        out = Parallel(n_jobs=args.j)(delayed(write_profile_to_array_helper)(map,i,j) for j in range(0,res))
+        a = np.asarray(out)
+        a = np.swapaxes(a, 0, i)
+          
+        array = np.maximum(array,a)  
+        
     for i in range(0,3):
       if profiles[i] == None:
         continue
       if args.verbose == 'profile_map' or args.export == 'radius_maps':
         create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
-      if args.target == "volume_mesh" or args.target == "volume_vtk":
-        write_profile_to_array(array, profiles[i], i)
+#       if args.target == "volume_mesh" or args.target == "volume_vtk":
+#         write_profile_to_array(array, profiles[i], i,args.j)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
         
@@ -1220,31 +1236,34 @@ def calc_radius_for_quadrant(profile,x,rad):
     return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
 
 # rasterize profile functions
-def write_profile_to_array(array,profile,dir):
+def write_profile_to_array(array,profile,dir,nthreads):
   res = array.shape[0]
   assert(dir >=0 and dir <=2)
   
   map = create_profile_map(profile, res)
+  
+#   out = Parallel(n_jobs=nthreads)(delayed(write_profile_to_array_helper)(map,dir,i) for i in range(0,res))
+  
+def write_profile_to_array_helper(map,dir,i):
+  result = np.ones((res,res)) * (-1)
+  for j in range(0,res):
+    for k in range(0,res):
+      y = grid_to_cartesian_coords(j, res)
+      z = grid_to_cartesian_coords(k, res)
+      valx = (y-0.5)**2 + (z-0.5)**2
       
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        y = grid_to_cartesian_coords(j, res)
-        z = grid_to_cartesian_coords(k, res)
-        valx = (y-0.5)**2 + (z-0.5)**2
-        
-        phi = angle_to_center((z,y))
-        
-        p = map[int(phi/np.pi*180),i]
-        if (valx <= p*p):
-          if dir == 0:
-            array[i,j,k] = dir
-          if dir == 1:
-            array[j,i,k] = dir
-          if dir == 2:
-            array[k,j,i] = dir
+      phi = angle_to_center((z,y))
+      
+      p = map[int(phi/np.pi*180),i]
+      if (valx <= p*p):
+#         if dir == 0:
+          result[j,k] = dir
+#         if dir == 1:
+#           array[j,i,k] = dir
+#         if dir == 2:
+#           array[k,j,i] = dir
 
-
+  return result
 # find end node object in list with matching id
 def get_end_node_by_id(id,end_nodes):
   for node in end_nodes:
