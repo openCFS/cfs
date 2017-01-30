@@ -24,6 +24,7 @@ res_surf_lines = 1
 logger = None
 # file object for info xml
 infoXml = None
+interpolation = None
 
 class End_Node():
   coords = None
@@ -266,14 +267,14 @@ class Heaviside():
     # ymax
     h1 = self.height
     g0 = calc_tanh(self.beta, self.eta, 0)
-    g1 = calc_tanh(self.beta, self.eta, 0.5)
+    g1 = calc_tanh(self.beta, self.eta, 1.0)
     a = (h1-h0) / (g1 - g0)
     b = h0 - a * g0
-    return a * calc_tanh(self.beta, self.eta, x) + b
+    return a * calc_tanh(self.beta, self.eta, 2*x) + b
 
 # shifted tanh, returns values are between 0 and 1 for x \in [0,0.5]
 def calc_tanh(beta,eta,x):
-  return 1.0 - 1.0 / (np.exp(2.0*beta*(2*x-eta)) + 1)
+  return 1.0 - 1.0 / (np.exp(2.0*beta*(x-eta)) + 1)
    
 def profileCirc(x1,res):
   x = np.linspace(0, 1.0, res)
@@ -400,7 +401,7 @@ class BisecSpline:
     self.cubic = None
     self.spline = None
     self.linear = None
-    self.heavi = None
+    self.heaviside = None
     self.x1 = 0
     self.y1 = 0
     self.z1 = 0
@@ -683,9 +684,6 @@ class Profile:
       
 # return information on profiles 
 def create_profiles(args,infoXml=None):
-  global res, res_surf_lines 
-  res = args.res
-  res_surf_lines = args.res_surf_lines
   profiles = [None]*3 # x-,y-,z-part
   
   if not args.skip_x:
@@ -1026,11 +1024,14 @@ def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
 def create_profiles_array(args,info,log):
-  global res
+  global res, res_surf_lines, interpolation
+  res = args.res 
+  res_surf_lines = args.res_surf_lines
+  interpolation = args.interpolation
+
   logger = log
   infoXml = info
   
-  res = args.res
   array = np.ones((res,res,res)) * (-1)
   vec = None
   t = np.linspace(0, 1.0, args.res)
@@ -1166,10 +1167,24 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     
   for i,x in enumerate(np.arange(0,1.0,h)):
     for alpha in range(0,360):
-      map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
+#       map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
+      map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha),plot=True)
         
       if save:
         out.write(str(i) + " \t" + str(alpha) + " \t" + str(map[alpha,i]) + "\n")
+        
+#   plt.figure(figsize=(10,10))
+#   ax = plt.axes(polar=True)
+#   theta = np.linspace(0, 2*np.pi,360)
+#   plt.plot(theta,map[:,0],linewidth=5.0)
+#   plt.plot(theta,map[:,2],linewidth=5.0)
+#   plt.plot(theta,map[:,4],linewidth=5.0)
+#   plt.plot(theta,map[:,25],linewidth=5.0)
+#   plt.plot(theta,map[:,50],linewidth=5.0)
+#   plt.rcParams.update({'font.size': 18})
+#   plt.show()
+#       plt.plot(theta,map[:,res/4],linewidth=5.0)
+#       plt.plot(theta,map[:,res/2],linewidth=5.0)      
         
   if verbose == 'profile_map':
     ha.set_xlabel('X')
@@ -1207,19 +1222,65 @@ def plot_3dlines(profile,res,numLines,dir,ha):
 # @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
 # @param x: parameter for function evaluation
 # @param rad: radians for evaluation
-def calc_radius_for_quadrant(profile,x,rad):
+def calc_radius_for_quadrant(profile,x,rad,plot=None):
   assert(rad >= 0 and rad <= np.pi/2.0)
   
   funcs = profile.functions
   
   phi = funcs[1].angle
+  
+  fact = 0
+  
   assert(phi >= 0 and phi <= np.pi/2.0)
-  if rad <= phi:
-    return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
-  else : # rad <= np.pi/2.0
-    fact = (rad-phi) / (np.pi/2.0-phi)
-    return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
-
+  # interpolation is global variable
+  assert(interpolation == "linear" or interpolation == "heaviside")
+  if interpolation == "linear":
+    if rad <= phi:
+      return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
+    else : # rad <= np.pi/2.0
+      fact = (rad-phi) / (np.pi/2.0-phi)
+      return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
+  else: #heaviside
+    # get beta and eta for heaviside function from bisec
+    beta = funcs[1].heaviside.beta
+    eta = funcs[1].heaviside.eta
+    a = 0
+    c = 0
+    val = 0
+    # factor for stretch/compress tanh
+    fact = 4.0/pi
+    if rad <= phi:
+      assert(abs(calc_tanh(beta, eta, phi) - calc_tanh(beta, eta, 0)) > 1e-3)
+      # a = (r_bisec - r_0) / (g(phi) - g(0); g is calc_tanh(...)
+      a = (funcs[1].eval(x) - funcs[0].eval(x)) / (calc_tanh(beta, eta, fact*phi) - calc_tanh(beta, eta, 0))
+      # c = r0 - a * g(0)
+      c = funcs[0].eval(x) - a * calc_tanh(beta, eta, rad)
+      val = a * calc_tanh(beta, eta, fact*rad) + c
+#       if plot and x >= 0.2:
+#         plt.gcf().clear()
+#         t = np.linspace(0, pi/2.0, 100)
+#         plt.xlim([0,pi/2.0])
+#         plt.plot(t,a * calc_tanh(beta, eta, fact*(t-pi/4.0))+c)
+#         plt.show()
+    else:
+      # a = (r_90 - r_bisec) / (g(90) - g(bisec); g is calc_tanh(...)
+      a = (funcs[2].eval(x) - funcs[1].eval(x)) / (calc_tanh(beta, eta, pi/2.0-pi/4.0) - calc_tanh(beta, eta, fact*(phi-pi/4.0)))
+      # c = r_bisec - a * g(bisec)
+      c = funcs[1].eval(x) - a * calc_tanh(beta, eta, fact*(phi-pi/4.0))
+      
+       
+#       if plot and x >= 0.2:
+#         plt.gcf().clear()
+#         t = np.linspace(0, pi/2.0, 100)
+#         plt.xlim([0,pi/2.0])
+#         plt.plot(t,a * calc_tanh(beta, eta, fact*(t-pi/4.0))+c)
+#         plt.show()
+        
+      val = a * calc_tanh(beta, eta, fact*(rad-pi/4.0)) + c
+#     if not (val >= -1e-3 and val <= 1.0 +1e-3):
+#       print("val:",val)  
+#     assert(val >= -1e-3 and val <= 1.1)
+    return val - 0.5
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]

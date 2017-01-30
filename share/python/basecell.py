@@ -163,6 +163,7 @@ parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bi
 parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
 parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
+parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
 
 args = parser.parse_args()
 
