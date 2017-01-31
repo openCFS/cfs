@@ -109,6 +109,10 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
       // local function performance
       this->boundValue_ = pn->Get("value")->MathParse<double>();
+      LOG_DBG(conditions) << "C: " << type.ToString(type_) << " p=" << penalty << " os=" << objective_scaling_ << " msv=" << manual_scaling_value
+                          << " bv=" << boundValue_ << " -> " << (boundValue_ * manual_scaling_value);
+      if(!objective_scaling_)
+        this->boundValue_ *= manual_scaling_value;
     }
 
     if((boundValue_ == ALPHA_PLUS_SLACK_VALUE && bound_ == UPPER_BOUND) || (boundValue_ == ALPHA_MINUS_SLACK_VALUE && bound_ == LOWER_BOUND)) {
@@ -838,6 +842,10 @@ void Condition::ToInfo(PtrParamNode in)
 
     in->Get("design")->SetValue(DesignElement::type.ToString(design_));
 
+  if(objective_scaling_)
+    in->Get("scaling")->SetValue("objective");
+  else if(manual_scaling_value != 1.0)
+    in->Get("scaling")->SetValue(manual_scaling_value);
 
   // if(delta_logging_ignored_)
   //  in->Get("delta_logging")->SetWarning("no value given");
