@@ -213,6 +213,7 @@ def read_file(filename, profile):
       curr.valid.append(True)    
       
   else:
+    # might be too much when not the whole domain is design (e.g. lbm with boundary)
     nx, ny, nz = read_mesh_info(filename, silent=True)
     assert(nx == ny)  
       
@@ -221,11 +222,22 @@ def read_file(filename, profile):
     query = '//set[last()]/shapeParamElement' 
     sett = root.xpath(query)
 
+    # check for full mesh and be tolerant against lbm meshes. 
+    # we don't known if profiles are written
+    nshapes = int(len(sett)/nx + .5)
+    shape_elems = nx+1 # default case
+    if nshapes > len(sett)/nx: 
+      # apparently we have the lbm case
+      assert(len(sett)/nshapes == int(len(sett)/nshapes))
+      shape_elems = int(len(sett)/nshapes)
+      print('assume not the full domain is design: ' + str(nshapes) + ' shapes with ' + str(shape_elems) + ' (' + str(nx+1) + ') elements')   
+  
+      
     curr = None
     for el in sett:
       nr = int(el.get('nr'))
       v =  float(el.get('design'))
-      if nr == 0 or nr % (nx + 1) == 0:
+      if nr == 0 or nr % (shape_elems) == 0:
         dof = 0 if el.get('dof') == 'x' else 1
         node = el.get('type') == 'node' or el.get('type') == None
         if node: 

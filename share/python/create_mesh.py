@@ -40,7 +40,7 @@ parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for q
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
 parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d','msfem_two_load','two_load', 'validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct'], required = True)
-parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
+parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet', 'low_in_high_out'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)

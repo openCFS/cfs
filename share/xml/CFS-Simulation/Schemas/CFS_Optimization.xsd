@@ -296,6 +296,9 @@
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
           
+          <!-- typically for globalized functions, e.g. parameter -->
+          <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
+          
           <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
           <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
           
@@ -447,11 +450,10 @@
               <xsd:union memberTypes="slack_bounds xsd:float xsd:token"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
-          
-          
           <!-- some constraints (slope constraint, penalized volume) have a parameter -->
           <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
-          <!-- one can scale value and gradient by a constant or link to the objective scaling -->
+          <!-- one can scale value and gradient by a constant or link to the objective scaling with "objective". 
+              The bound value shall not be scaled, also the outout ist not scaled, only the optimizer gets scaled values -->
           <xsd:attribute name="scaling" use="optional" type="xsd:token" default="1.0" />
           <!-- optional to give the type - default is equal -->
           <xsd:attribute name="bound" use="optional">

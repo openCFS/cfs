@@ -250,7 +250,8 @@ protected:
   const ShapeParamElement* GetProfile(const ShapeParamElement* node) const { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
   ShapeParamElement* GetProfile(const ShapeParamElement* node) { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
 
-  /** do we use a fixed profile? Then opt_shape_param_ smaller shape_param_ */
+
+  /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
 
   /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)

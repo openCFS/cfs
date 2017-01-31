@@ -88,7 +88,11 @@ void EvaluateOnly::SolveProblem()
     {
       Condition* g = optimization->constraints.view->Get(c);
       v = EvalConstraint(g, false, false);
-      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v; // snopt index in brackets
+
+      double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+
+      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v * scaling; // snopt index in brackets
+
       if(!g->IsObservation()) // not for observation stuff
       {
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
@@ -97,7 +101,7 @@ void EvaluateOnly::SolveProblem()
         for(unsigned int i = 0; i < pattern.GetSize(); i++) {
           BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
           LOG_DBG2(eval) << "SP: grad g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " i=" << i
-                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
+                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i] * scaling;
         }
       }
     }
