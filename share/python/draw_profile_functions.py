@@ -840,7 +840,7 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
   while abs(u-l) > 1e-4:
     midpoint = 0.5 * (l + u)
     # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
-    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi)[0], phi, 0.5)
+    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi), phi, 0.5)
     # direction of axes of plane normal to profile.direction
     # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
     dir1, dir2 =  give_normal_plane_axes(profile.direction)
@@ -1095,25 +1095,20 @@ def create_profiles_array(args,info,log):
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
           
     # ha is 3dplot object
-    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
-    print("number of points:",id)
+#     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
 #     plt.show()
 
-    fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
-    fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
+#     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
     
-    print("number of cells:",cells.GetNumberOfCells())
-    global tris
-    
-    tris = []
     for i in range(cells.GetNumberOfCells()):
       idList = vtk.vtkIdList()
       cells.GetNextCell(idList)
     
-    ps, cs = read_vtk("surface.vtp")
-    surface_to_volume_mesh(ps,cs)
+#     ps, cs = read_vtk("surface.vtp")
+#     surface_to_volume_mesh(ps,cs)
 
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
@@ -2245,7 +2240,10 @@ def calc_radius_heaviside(funcs,phi,x,rad):
   if rad <= phi:
     alpha = 1.0/phi * rad # scale section between 0 and 1
     v1 = a+c*calc_tanh(beta, eta, alpha)
+    print("a1:",a,"c1:",c)
+    c = 1.0 / (calc_tanh(beta, 1-eta, 1) - calc_tanh(beta, 1-eta, 0)) 
     a = - c * calc_tanh(beta, 1-eta, 0)
+    print("a2:",a,"c2:",c)
     v2 = a+c*calc_tanh(beta, 1-eta, 1-alpha)
     assert(v1 >= -eps and v1 <= 1.0 + eps)
     assert(v2 >= -eps and v2 <= 1.0 + eps)
@@ -2256,6 +2254,7 @@ def calc_radius_heaviside(funcs,phi,x,rad):
   else:
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
     v2 = a+c*calc_tanh(beta, eta, 1-alpha)
+    c = 1.0 / (calc_tanh(beta, 1-eta, 1) - calc_tanh(beta, 1-eta, 0))
     a = - c * calc_tanh(beta, 1-eta, 0) # recalculate a to make sure (tanh(0) = 0
     v1 = a+c*calc_tanh(beta, 1-eta, alpha) 
     

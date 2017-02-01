@@ -937,4 +937,4 @@ def write_stl(polydata,save=None):
   stlWriter.SetInputData(polydata)
   stlWriter.Write()
   
-  print("saved polydata to file" + fName)  
+  print("saved polydata to file " + fName)  
