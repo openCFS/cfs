@@ -1331,10 +1331,6 @@ def linsolve_3x3(A,b):
 # triangle quality is measured by the aspect ratio and whether triangle contains an end node
 # we penalize the quality if triangle contains a neighbor end node             
 def calc_triangle_quality(node1,end_nodes_1,node2,end_nodes_2,node3,end_nodes_3):
-  neighbors_1 = give_neighbor_end_nodes(node1, end_nodes_1)
-  neighbors_2 = give_neighbor_end_nodes(node2, end_nodes_2)
-  neighbors_3 = give_neighbor_end_nodes(node3, end_nodes_3)
-
   ratio = 1
   
   # in case we test a triangle where one of the 3 points appears two times
@@ -2217,6 +2213,9 @@ def calc_radius_linear(funcs,phi,x,rad):
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
     return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x)
 
+def close(x,ref,eps=1e-6):
+  return abs(x-ref) < eps
+
 # helper function for calc_radius_for_quadrant
 # return heaviside interpolation between principal spline and bisec
 # see calc_radius_linear for params
@@ -2232,6 +2231,9 @@ def calc_radius_heaviside(funcs,phi,x,rad):
   assert(calc_tanh(beta, eta, 0) >= 0)
   c = 1.0 / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
   a = - c * calc_tanh(beta, eta, 0)
+#   print(beta,eta)
+#   print(a,c)
+#   sys.exit()
   if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
     print(a+c*calc_tanh(beta, eta, 0))
   assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
@@ -2239,30 +2241,20 @@ def calc_radius_heaviside(funcs,phi,x,rad):
     
   if rad <= phi:
     alpha = 1.0/phi * rad # scale section between 0 and 1
-    v1 = a+c*calc_tanh(beta, eta, alpha)
-    print("a1:",a,"c1:",c)
-    c = 1.0 / (calc_tanh(beta, 1-eta, 1) - calc_tanh(beta, 1-eta, 0)) 
-    a = - c * calc_tanh(beta, 1-eta, 0)
-    print("a2:",a,"c2:",c)
-    v2 = a+c*calc_tanh(beta, 1-eta, 1-alpha)
-    assert(v1 >= -eps and v1 <= 1.0 + eps)
-    assert(v2 >= -eps and v2 <= 1.0 + eps)
-    assert(v2+v1 >= 0.5-eps)
+    scale = a+c*calc_tanh(beta, eta, 1-alpha)
+    assert(close(a+c*calc_tanh(beta, eta, 0),0))
+    assert(close(a+c*calc_tanh(beta, eta, 1),1))
+    assert(scale >= -eps and scale <= 1.0 + eps)
     assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
     
-    return v2 * funcs[0].eval(x) + v1 * funcs[1].eval(x)
+    return scale * funcs[0].eval(x) + (1-scale) * funcs[1].eval(x)
   else:
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
-    v2 = a+c*calc_tanh(beta, eta, 1-alpha)
-    c = 1.0 / (calc_tanh(beta, 1-eta, 1) - calc_tanh(beta, 1-eta, 0))
-    a = - c * calc_tanh(beta, 1-eta, 0) # recalculate a to make sure (tanh(0) = 0
-    v1 = a+c*calc_tanh(beta, 1-eta, alpha) 
+    scale = a+c*calc_tanh(beta, eta, alpha)
     
-    assert(v1 >= -1e-6 and v1 <= 1.0 + 1e-6)
-    assert(v2 >= -1e-6 and v2 <= 1.0 + 1e-6)
-    assert(v2+v1 >= 0.5-eps)
+    assert(scale >= -eps and scale <= 1.0 + eps)
     assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
-    return v2 * funcs[1].eval(x) + v1 * funcs[2].eval(x)
+    return (1-scale) * funcs[1].eval(x) + scale * funcs[2].eval(x)
 
 # helper function for calc_radius_for_quadrant
 # return heaviside interpolation between principal spline and bisec
