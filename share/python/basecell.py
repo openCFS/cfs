@@ -147,14 +147,13 @@ parser.add_argument('--y1', help="first stiffness for profile of bar in y-direct
 parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 <= y2 <= 1", type=float)
 parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 <= z1 <= 1", type=float)
 parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 <= z2 <= 1", type=float)
-parser.add_argument('--profile', help="type of profile functions", choices=["linear","circular","spline"], required=True)
 parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
-parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map"], default='off')
+parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation"], default="off")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
@@ -192,17 +191,23 @@ else:
     args.z2 = args.z1
     
 val = args.x1
-if args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val:
-  mesh_name = "basecell_" + args.profile + "_stiff_" + str(args.x1) + "_bend_" + str(args.bend) + "_" + str(args.res)
-else: 
-  mesh_name = "basecell_" + args.profile + "_stiff_" + str(args.x1) + "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2) + "_bend_" + str(args.bend) + "_" + str(args.res)
 
-mesh_name = mesh_name if args.save == None else args.save
-
-# if args.target == "surface_mesh" or args.target == "3dlines":
-#   if not args.res_surf_lines:
-#     print("Error: resolution of lines on surface required!")
-#     sys.exit(1)
+meshName = None
+if args.save is None: # set default gid mesh name
+  if args.force_bisec:
+    meshName = "basecell_interp_" + args.interpolation + "_force_" + args.force_bisec
+  else:
+    meshName = "basecell_interp_" + args.interpolation
+    
+  assert(meshName is not None)
+  meshName += "_stiff_" + str(args.x1)
+  
+  if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
+    meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
+  
+  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)  
+else:
+  meshName = args.save  
 
 infoXml = None
 
@@ -212,7 +217,7 @@ if args.to_info_xml:
   for i in range(1, len(sys.argv)):
     cmd += ' ' + sys.argv[i] 
   
-  infoXmlName = mesh_name + ".info.xml"
+  infoXmlName = meshName + ".info.xml"
   infoXml = open(infoXmlName,"w") 
   infoXml.write('<?xml version="1.0"?>\n\n')
   infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
@@ -222,7 +227,7 @@ if args.to_info_xml:
 log = None 
 
 if args.logging:
-  log = open(mesh_name+".log","w")
+  log = open(meshName+".log","w")
   
 # sanity checks
 if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
@@ -232,7 +237,7 @@ if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
 if args.target == 'volume_mesh':   
-  file = mesh_name + '.mesh'
+  file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
   mesh_tool.write_gid_mesh(mesh, file)

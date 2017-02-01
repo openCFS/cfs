@@ -439,7 +439,7 @@ class BisecSpline:
     p = right.coords_cut
   
     assert(p[0] <= 0.5 and p[1] >= 0.5)
-    height = distance_to_center(p) + 0.5
+    height = p[1]#distance_to_center(p) + 0.5
   
     self.angle = angle_to_center(p)
     
@@ -486,14 +486,12 @@ class BisecSpline:
     
     #### case 4: heaviside --> heavi###########
     self.heaviside = Heaviside(beta, eta, x1, height[0])
-#     print("f(0.5):",self.heaviside.eval(0.5))
-#     print("bicubic(0.5):",self.eval_bicubic(0.5))
-#     print("bspline(0.5):",self.eval_spline(0.5))
     
     if force:
       self.type = force
     else:
       # to check if bicubic has under/overshooting when point p is much lower than point b
+      
       if p[1] >= b[1] + 1e-3:
         self.type = "bicubic"
       # in case function composed of b-spline and cubic function has undershoot  
@@ -553,6 +551,7 @@ class BisecSpline:
          val = left.eval(1-i)
       
       res.append(val)
+      
     return res
   
   def eval_linear(self,x):
@@ -572,14 +571,22 @@ class BisecSpline:
     return res
   
   def eval(self,x):
+    ret = None
     if self.type == "bicubic":
-      return self.eval_bicubic(x)
+      ret =  self.eval_bicubic(x)
     elif self.type == "bspline":
-      return self.eval_spline(x)
+      ret = self.eval_spline(x)
     elif self.type == "heaviside":
-      return self.eval_heaviside(x)
+      ret = self.eval_heaviside(x)
     else: #linear case
-      return self.eval_linear(x)
+      ret = self.eval_linear(x)
+    
+    if type(ret) == np.float64:
+      return float(ret)
+    elif len(ret) == 1:
+      return float(ret[0])
+    else:
+      return ret
     
   def get_type(self):
     return self.type
@@ -635,11 +642,9 @@ class BisecSpline:
 # @return vector with Profile or list of vectors
 class Profile:
   def __init__(self, args, dir):
-    assert(args.profile == "linear" or args.profile == "spline")
     assert (dir == 0 or dir == 1 or dir == 2)
     self.bisec_angle = -1
     self.direction = dir
-    self.type = args.profile
     # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
     self.functions = [None] * 3
     # depending on profile, store the radii of the two boundary circles
@@ -650,31 +655,26 @@ class Profile:
     if infoXml:  
       infoXml.write('  <profile dir="' + str(dir) + '">\n')
       
-    if self.type == "linear":
-      self.functions[0] = Linear_1D(args.x1, args.x2)
-      self.functions[1] = self.splines[0]
-      self.functions[2] = self.splines[0]
-    else: # 'spline' case
-      if dir == 0:
-        self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-        self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
-        self.radius_left = args.x1 / 2.0
-        self.radius_right = args.x1 / 2.0
-      elif dir == 1:
-        self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
-        self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
-        self.radius_left = args.y1 / 2.0
-        self.radius_right = args.y1 / 2.0
-      else: # dir == 2
-        self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-        self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
-        self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
-        self.radius_left = args.z1 / 2.0
-        self.radius_right = args.z1 / 2.0
-        
-      self.bisec_angle = self.functions[1].angle
+    if dir == 0:
+      self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
+      self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
+      self.radius_left = args.x1 / 2.0
+      self.radius_right = args.x1 / 2.0
+    elif dir == 1:
+      self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
+      self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
+      self.radius_left = args.y1 / 2.0
+      self.radius_right = args.y1 / 2.0
+    else: # dir == 2
+      self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
+      self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
+      self.radius_left = args.z1 / 2.0
+      self.radius_right = args.z1 / 2.0
+      
+    self.bisec_angle = self.functions[1].angle
     
     if infoXml:  
       infoXml.write('  </profile>\n\n')
@@ -838,12 +838,8 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
   midpoint_node = np.zeros(3)
   while abs(u-l) > 1e-4:
     midpoint = 0.5 * (l + u)
-#     print "midpoint: ", midpoint
-#     print "coords_grad_1: ", profile.functions[0].calc_coords_grad_1()
-#     print "phi: ", degrees(phi), " radius: ", calc_radius_for_quadrant(profile, midpoint, phi)[0]
     # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
     plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi)[0], phi, 0.5)
-#     print "plane_coordinates: ", plane_coordinates
     # direction of axes of plane normal to profile.direction
     # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
     dir1, dir2 =  give_normal_plane_axes(profile.direction)
@@ -853,22 +849,16 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
     midpoint_node[dir1] = plane_coordinates[1]
     midpoint_node[dir2] = plane_coordinates[0]
      
-#     print "midpoint_node: ", midpoint_node
-    
     otherDir1 = otherProfile1.direction
     otherDir2 = otherProfile2.direction
     
     # midpoint is inner, take interval from [lower,midpoint]
     if contains_point(midpoint_node, otherProfile1) or contains_point(midpoint_node, otherProfile2):
-#       print "inner"
       u = midpoint
     else:
-#       print "outer"
     # midpoint is on surface, take interval from [midpoint,upper]
       l = midpoint
       
-#     print "continue with interval [", l, u, "], length:", abs(u-l)
-    
   return midpoint_node
   
 # creates triangles between end nodes of same profile where
@@ -1140,16 +1130,24 @@ def create_profiles_array(args,info,log):
       
 #     show_write_vtk(polydata,1000,"surface.vtp")
   else:
-
     for i in range(0,3):
       if profiles[i] == None:
         continue
-      if args.verbose == 'profile_map' or args.export == 'radius_maps':
+      if args.verbose == 'profile_map' or args.export == 'radius_maps' or args.verbose == "polar_plot":
         create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
+      if args.verbose == 'interpolation':
+        y = []
+        rad = np.linspace(0,pi/2.0,100)
+        for r in rad:
+          y.append(calc_radius_for_quadrant(profiles[i], 0.5, r))
+        plt.gcf().clear()
+        plt.plot(rad,y,label=args.interpolation+" x=0.5",linewidth=5.0)
+        plt.show()
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+        
         
   if args.target == '3dlines':
     plt.show()
@@ -1167,24 +1165,20 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     
   for i,x in enumerate(np.arange(0,1.0,h)):
     for alpha in range(0,360):
-#       map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
-      map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha),plot=True)
+      map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
         
       if save:
         out.write(str(i) + " \t" + str(alpha) + " \t" + str(map[alpha,i]) + "\n")
         
-#   plt.figure(figsize=(10,10))
-#   ax = plt.axes(polar=True)
-#   theta = np.linspace(0, 2*np.pi,360)
-#   plt.plot(theta,map[:,0],linewidth=5.0)
-#   plt.plot(theta,map[:,2],linewidth=5.0)
-#   plt.plot(theta,map[:,4],linewidth=5.0)
-#   plt.plot(theta,map[:,25],linewidth=5.0)
-#   plt.plot(theta,map[:,50],linewidth=5.0)
-#   plt.rcParams.update({'font.size': 18})
-#   plt.show()
-#       plt.plot(theta,map[:,res/4],linewidth=5.0)
-#       plt.plot(theta,map[:,res/2],linewidth=5.0)      
+  if verbose == "polar_plot":
+    plt.gcf().clear()
+    ax = plt.axes(polar=True)
+    theta = np.linspace(0, 2.0*np.pi,360)
+    plt.plot(theta,map[:,0],linewidth=5.0)
+    plt.plot(theta,map[:,int(res/4)],linewidth=5.0)
+    plt.plot(theta,map[:,int(res/2)],linewidth=5.0)
+    plt.rcParams.update({'font.size': 18})
+    plt.show()
         
   if verbose == 'profile_map':
     ha.set_xlabel('X')
@@ -1222,65 +1216,21 @@ def plot_3dlines(profile,res,numLines,dir,ha):
 # @param profile: contains three profile functions (for 0, phi (bisec) and 90 degree)
 # @param x: parameter for function evaluation
 # @param rad: radians for evaluation
-def calc_radius_for_quadrant(profile,x,rad,plot=None):
+def calc_radius_for_quadrant(profile,x,rad):
   assert(rad >= 0 and rad <= np.pi/2.0)
-  
   funcs = profile.functions
-  
-  phi = funcs[1].angle
-  
-  fact = 0
-  
+  phi = float(funcs[1].angle)  # bisec angle
   assert(phi >= 0 and phi <= np.pi/2.0)
+  val = None
   # interpolation is global variable
   assert(interpolation == "linear" or interpolation == "heaviside")
   if interpolation == "linear":
-    if rad <= phi:
-      return  (1 - 1.0/phi * rad) * funcs[0].eval(x) + 1.0/phi * rad * funcs[1].eval(x) - 0.5
-    else : # rad <= np.pi/2.0
-      fact = (rad-phi) / (np.pi/2.0-phi)
-      return  (1-fact) * funcs[1].eval(x) + fact * funcs[2].eval(x) - 0.5
+    val = calc_radius_linear(funcs,phi,x,rad)
   else: #heaviside
-    # get beta and eta for heaviside function from bisec
-    beta = funcs[1].heaviside.beta
-    eta = funcs[1].heaviside.eta
-    a = 0
-    c = 0
-    val = 0
-    # factor for stretch/compress tanh
-    fact = 4.0/pi
-    if rad <= phi:
-      assert(abs(calc_tanh(beta, eta, phi) - calc_tanh(beta, eta, 0)) > 1e-3)
-      # a = (r_bisec - r_0) / (g(phi) - g(0); g is calc_tanh(...)
-      a = (funcs[1].eval(x) - funcs[0].eval(x)) / (calc_tanh(beta, eta, fact*phi) - calc_tanh(beta, eta, 0))
-      # c = r0 - a * g(0)
-      c = funcs[0].eval(x) - a * calc_tanh(beta, eta, rad)
-      val = a * calc_tanh(beta, eta, fact*rad) + c
-#       if plot and x >= 0.2:
-#         plt.gcf().clear()
-#         t = np.linspace(0, pi/2.0, 100)
-#         plt.xlim([0,pi/2.0])
-#         plt.plot(t,a * calc_tanh(beta, eta, fact*(t-pi/4.0))+c)
-#         plt.show()
-    else:
-      # a = (r_90 - r_bisec) / (g(90) - g(bisec); g is calc_tanh(...)
-      a = (funcs[2].eval(x) - funcs[1].eval(x)) / (calc_tanh(beta, eta, pi/2.0-pi/4.0) - calc_tanh(beta, eta, fact*(phi-pi/4.0)))
-      # c = r_bisec - a * g(bisec)
-      c = funcs[1].eval(x) - a * calc_tanh(beta, eta, fact*(phi-pi/4.0))
-      
-       
-#       if plot and x >= 0.2:
-#         plt.gcf().clear()
-#         t = np.linspace(0, pi/2.0, 100)
-#         plt.xlim([0,pi/2.0])
-#         plt.plot(t,a * calc_tanh(beta, eta, fact*(t-pi/4.0))+c)
-#         plt.show()
-        
-      val = a * calc_tanh(beta, eta, fact*(rad-pi/4.0)) + c
-#     if not (val >= -1e-3 and val <= 1.0 +1e-3):
-#       print("val:",val)  
-#     assert(val >= -1e-3 and val <= 1.1)
-    return val - 0.5
+    val = calc_radius_heaviside(funcs,phi,x,rad)
+  
+  assert(val is not None)
+  return val 
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
@@ -2255,3 +2205,51 @@ def surface_to_volume_mesh(ps,cs):
   for i, t in enumerate(mesh.elements):
       print(str(i) + "," + str(t) + "\n")
   mesh.write_vtk("test.vtk")
+
+# helper function for calc_radius_for_quadrant
+# return linear interpolation between principal spline and bisec
+# @param funcs: array with 3 entries: spline1, bisec, spline2
+# @param rad: angle in radians
+# @param x: cartesian x-coordinate
+def calc_radius_linear(funcs,phi,x,rad):
+  assert(phi >= 0 and phi <= np.pi/2.0)
+  if rad <= phi:
+    alpha = 1.0/phi * rad # scale section between 0 and 1
+    return  (1 - alpha) * funcs[0].eval(x) + alpha * funcs[1].eval(x) - 0.5
+  else : # rad <= np.pi/2.0
+    alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
+    return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x) - 0.5
+
+# helper function for calc_radius_for_quadrant
+# return heaviside interpolation between principal spline and bisec
+# see calc_radius_linear for params
+def calc_radius_heaviside(funcs,phi,x,rad):
+  # get beta and eta for heaviside function from bisec
+  beta = funcs[1].heaviside.beta
+  eta = funcs[1].heaviside.eta
+  
+  # a + c * tanh(...) in [0,1]
+  assert(calc_tanh(beta, eta, 1) <= 1)
+  assert(calc_tanh(beta, eta, 0) >= 0)
+  c = 1.0 / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
+  a = - c * calc_tanh(beta, eta, 0)
+  if abs(a+c*calc_tanh(beta, eta, 0)) > 1e-6:
+    print(a,c)
+    print(a+c*calc_tanh(beta, eta, 0))
+  assert(abs(a+c*calc_tanh(beta, eta, 0)) < 1e-6) 
+  assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-1e-6)
+  
+  if rad <= phi:
+    alpha = 1.0/phi * rad # scale section between 0 and 1
+    v1 = a+c*calc_tanh(beta, eta, alpha)
+    v2 = a+c*calc_tanh(beta, eta, 1-alpha)
+    assert(v1 >= -1e-6 and v1 <= 1.0 + 1e-6)
+    assert(v2 >= -1e-6 and v2 <= 1.0 + 1e-6)
+    return v2 * funcs[0].eval(x) + v1 * funcs[1].eval(x)  - 0.5
+  else:
+    alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
+    v1 = a+c*calc_tanh(beta, eta, alpha)
+    v2 = a+c*calc_tanh(beta, eta, 1-alpha)
+    assert(v1 >= -1e-6 and v1 <= 1.0 + 1e-6)
+    assert(v2 >= -1e-6 and v2 <= 1.0 + 1e-6)
+    return v2 * funcs[1].eval(x) + v1 * funcs[2].eval(x) - 0.5
