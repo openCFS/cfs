@@ -71,10 +71,6 @@ class Marching_Triangle():
     self.vertices = vertices
     self.edge.append(edge_node_1)
     self.edge.append(edge_node_2)
-#     if len(self.next_node) > 0:
-#       print self.next_node[0]
-#     assert(len(self.next_node) == 0)
-#     self.next_node.append(edge_node_2)
     self.next_node = edge_node_2
     
   def __str__(self):
@@ -130,7 +126,9 @@ class Cubic_spline():
   def eval_x(self,x):
 #     assert( x.all() >= 0 and x.all() <= 1)
     # interpolate returns ndarray, need to convert it to float
-    return self.explicit(x)[()]
+    ret = self.explicit(x)[()]
+    
+    return ret
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
@@ -169,7 +167,8 @@ class Cubic_spline():
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
-    return self.eval_t(t1)
+    ret = self.eval_t(t1) # array of array with 1 elem, due to outer product
+    return (ret[0][0],ret[1][0])
   
   def calc_min(self):
     dC = self.calc_d_spline_d_t(u)
@@ -328,13 +327,8 @@ def contains_point(p,profile):
     z = p[0]
     
   phi = angle_to_center((x,z))
-#   print "(x,z): ",x,z, " angle:", degrees(phi)
   r = calc_radius_for_quadrant(profile, y, phi)
   val = (x-0.5)**2 + (z-0.5)**2
-  
-#   print "p: ", p, " angle: ", phi, " radius: ", r
-  
-#   print "radius: ",r," val:",val
   
   if (val - r*r <= 1e-3):
     return True
@@ -384,12 +378,17 @@ class PrincipleSpline():
       return self.eval_elem(x)
     
     # in case x is a list    
-    res = []
+    ret = []
     
     for i in x:
-      res.append(self.eval_elem(i))
-
-    return res
+      ret.append(self.eval_elem(i))
+    
+    if type(ret) == np.float64:
+      return float(ret)
+    elif len(ret) == 1:
+      return float(ret[0])
+    else:
+      return ret
   
   def calc_coords_grad_1(self):
     return self.spline.calc_coords_grad_1()
@@ -453,7 +452,7 @@ class BisecSpline:
         [1, rx, rx**2, rx**3],
         [0, 1,  2*rx, 3*rx**2]
         ]) 
-    rhs = np.array([ly[0], 1.0, height[0], 0])
+    rhs = np.array([ly, 1.0, height, 0])
     
     sol = np.linalg.solve(A, rhs)
     
@@ -462,7 +461,7 @@ class BisecSpline:
     if infoXml:
       infoXml.write('        <polynomial order="cubic" a0="' + str(sol[0]) + '" a1="' + str(sol[1]) + '" a2="' + str(sol[3]) +'"/>\n')
       infoXml.write('      </bicubic>\n')
-      infoXml.write('      <bspline rad1 = "' + str(x1) + '" rad2="' + str(height[0]) + '" bend="' + str(bend) + '">\n')
+      infoXml.write('      <bspline rad1 = "' + str(x1) + '" rad2="' + str(height) + '" bend="' + str(bend) + '">\n')
     
     #### case 2: b-spline --> bsp #############
     # if b with grad gb (approx 1) is too high for p such that the curve has a maximum within b and p we need to fallback to a b-spline from a to p
@@ -485,14 +484,16 @@ class BisecSpline:
     self.linear = lin
     
     #### case 4: heaviside --> heavi###########
-    self.heaviside = Heaviside(beta, eta, x1, height[0])
+    self.heaviside = Heaviside(beta, eta, x1, height)
     
     if force:
       self.type = force
     else:
       # to check if bicubic has under/overshooting when point p is much lower than point b
-      
-      if p[1] >= b[1] + 1e-3:
+      # sample points and check for maximum value
+      t = np.linspace(0, 1, 100)
+      samples = self.eval_bicubic(t)
+      if max(samples) < p[1]:
         self.type = "bicubic"
       # in case function composed of b-spline and cubic function has undershoot  
       # in case b-spline has no undershoot (point p is not below bspline(x=0))
@@ -1137,11 +1138,11 @@ def create_profiles_array(args,info,log):
         create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
       if args.verbose == 'interpolation':
         y = []
-        rad = np.linspace(0,pi/2.0,100)
+        rad = np.linspace(0,pi/2.0,500)
         for r in rad:
           y.append(calc_radius_for_quadrant(profiles[i], 0.5, r))
         plt.gcf().clear()
-        plt.plot(rad,y,label=args.interpolation+" x=0.5",linewidth=5.0)
+        plt.plot(rad,y,linewidth=5.0)
         plt.show()
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         write_profile_to_array(array, profiles[i], i)
@@ -1230,7 +1231,8 @@ def calc_radius_for_quadrant(profile,x,rad):
     val = calc_radius_heaviside(funcs,phi,x,rad)
   
   assert(val is not None)
-  return val 
+#   assert(val >= 0.5)
+  return val - 0.5
 # rasterize profile functions
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
@@ -2215,10 +2217,10 @@ def calc_radius_linear(funcs,phi,x,rad):
   assert(phi >= 0 and phi <= np.pi/2.0)
   if rad <= phi:
     alpha = 1.0/phi * rad # scale section between 0 and 1
-    return  (1 - alpha) * funcs[0].eval(x) + alpha * funcs[1].eval(x) - 0.5
+    return  (1 - alpha) * funcs[0].eval(x) + alpha * funcs[1].eval(x)
   else : # rad <= np.pi/2.0
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
-    return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x) - 0.5
+    return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x)
 
 # helper function for calc_radius_for_quadrant
 # return heaviside interpolation between principal spline and bisec
@@ -2227,29 +2229,70 @@ def calc_radius_heaviside(funcs,phi,x,rad):
   # get beta and eta for heaviside function from bisec
   beta = funcs[1].heaviside.beta
   eta = funcs[1].heaviside.eta
-  
+    
+  eps = 1e-5 #for numerical comparison
+    
   # a + c * tanh(...) in [0,1]
   assert(calc_tanh(beta, eta, 1) <= 1)
   assert(calc_tanh(beta, eta, 0) >= 0)
   c = 1.0 / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
   a = - c * calc_tanh(beta, eta, 0)
-  if abs(a+c*calc_tanh(beta, eta, 0)) > 1e-6:
-    print(a,c)
+  if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
     print(a+c*calc_tanh(beta, eta, 0))
-  assert(abs(a+c*calc_tanh(beta, eta, 0)) < 1e-6) 
-  assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-1e-6)
-  
+  assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
+  assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-eps)
+    
   if rad <= phi:
     alpha = 1.0/phi * rad # scale section between 0 and 1
     v1 = a+c*calc_tanh(beta, eta, alpha)
-    v2 = a+c*calc_tanh(beta, eta, 1-alpha)
-    assert(v1 >= -1e-6 and v1 <= 1.0 + 1e-6)
-    assert(v2 >= -1e-6 and v2 <= 1.0 + 1e-6)
-    return v2 * funcs[0].eval(x) + v1 * funcs[1].eval(x)  - 0.5
+    a = - c * calc_tanh(beta, 1-eta, 0)
+    v2 = a+c*calc_tanh(beta, 1-eta, 1-alpha)
+    assert(v1 >= -eps and v1 <= 1.0 + eps)
+    assert(v2 >= -eps and v2 <= 1.0 + eps)
+    assert(v2+v1 >= 0.5-eps)
+    assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
+    
+    return v2 * funcs[0].eval(x) + v1 * funcs[1].eval(x)
   else:
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
-    v1 = a+c*calc_tanh(beta, eta, alpha)
     v2 = a+c*calc_tanh(beta, eta, 1-alpha)
+    a = - c * calc_tanh(beta, 1-eta, 0) # recalculate a to make sure (tanh(0) = 0
+    v1 = a+c*calc_tanh(beta, 1-eta, alpha) 
+    
     assert(v1 >= -1e-6 and v1 <= 1.0 + 1e-6)
     assert(v2 >= -1e-6 and v2 <= 1.0 + 1e-6)
-    return v2 * funcs[1].eval(x) + v1 * funcs[2].eval(x) - 0.5
+    assert(v2+v1 >= 0.5-eps)
+    assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
+    return v2 * funcs[1].eval(x) + v1 * funcs[2].eval(x)
+
+# helper function for calc_radius_for_quadrant
+# return heaviside interpolation between principal spline and bisec
+# see calc_radius_linear for params
+# def calc_radius_heaviside(funcs,phi,x,rad):
+#   # get beta and eta for heaviside function from bisec
+#   beta = funcs[1].heaviside.beta
+#   eta = funcs[1].heaviside.eta
+#   a = 0
+#   c = 0
+#   val = 0
+#   # factor for stretch/compress tanh
+#   fact = 1.0/phi
+#   if rad <= phi:
+#     assert(abs(calc_tanh(beta, eta, phi) - calc_tanh(beta, eta, 0)) > 1e-3)
+#     # a = (r_bisec - r_0) / (g(1) - g(0); g is calc_tanh(...)
+#     a = (funcs[1].eval(x) - funcs[0].eval(x)) / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
+#     # c = r0 - a * g(0)
+#     c = funcs[0].eval(x) - a * calc_tanh(beta, eta, 0)
+#     val = a * calc_tanh(beta, eta, fact*rad) + c
+#  
+#   else:
+#     # here we need 1-eta to achieve mirrored midpoint of heaviside
+#     # a = (r_90 - r_bisec) / (g(90) - g(bisec); g is calc_tanh(...)
+#     a = (funcs[2].eval(x) - funcs[1].eval(x)) / (calc_tanh(beta, 1-eta, 1) - calc_tanh(beta, 1-eta, 0))
+#     # c = r_bisec - a * g(bisec)
+#     c = funcs[1].eval(x) - a * calc_tanh(beta, 1-eta, 0)
+#       
+#     val = a * calc_tanh(beta, 1-eta, fact*(rad-pi/4.0)) + c
+#     val = 0.5
+#   assert(val >= -1e-3 and val <= 1.1)
+#   return val
