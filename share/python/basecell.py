@@ -113,7 +113,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array = create_profiles_array(args, infoXml,log)
+  array = generate_basecell(args, infoXml,log)
   
   if args.target.startswith("volume"):
     calc_volume(array,infoXml)
