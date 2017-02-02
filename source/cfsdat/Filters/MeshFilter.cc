@@ -21,11 +21,15 @@ namespace CFSDat{
 MeshFilter::MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                       :BaseMeshFilterType(numWorkers,config,resMan){
 
-  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
-  std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
-  filtResNames.insert(outRes);
-  upResNames.insert(inRes);
-
+  // Aeroacoustic-Filters choose their input and output results independently because
+  // there we might have two inputs (i.e. velocity and vorticity)
+  if (params_-> Get("type")->As<std::string>() != "AeroacousticSource_Lighthill" &&
+      params_-> Get("type")->As<std::string>() != "AeroacousticSource_LambVector"){
+        std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
+        std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
+        filtResNames.insert(outRes);
+        upResNames.insert(inRes);
+  }
 
   ParamNodeList srcList =  params_->Get("regions")->Get("sourceRegions")->GetList("region");
   for(UInt iP = 0; iP < srcList.GetSize(); ++iP){

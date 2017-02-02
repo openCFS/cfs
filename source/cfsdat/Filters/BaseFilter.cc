@@ -40,7 +40,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   else if (filtNode->GetName() == "substantialDeriv") {
     newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
   }
-  else if ((filtNode->GetName() == "interpolation") || (filtNode->GetName() == "differentiation")) {
+  else if ((filtNode->GetName() == "interpolation") ||
+           (filtNode->GetName() == "differentiation") ||
+           (filtNode->GetName() == "aeroacoustic") ) {
     newPtr = BaseMeshFilterType::Generate(filtNode,resMana);
   }
   else if (filtNode->GetName() == "binaryOperation") {

@@ -14,12 +14,12 @@
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
-  <xsd:include schemaLocation="CFSDat_DifferentiationType.xsd"/>
+  <xsd:include schemaLocation="CFSDat_AeroacousticType.xsd"/>
   
   <!-- ******************************************************************** -->
   <!-- Data type for field-differentiation -->
   <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_Differentiation">
+  <xsd:complexType name="DT_Aeroacoustic">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
@@ -31,12 +31,17 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="singleResult">
+          <xsd:element name="ResultList">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="inputQuantity">
+                <xsd:element name="velocity">
                   <xsd:complexType>
                     <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="vorticity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
                   </xsd:complexType>
                 </xsd:element>
                 <xsd:element name="outputQuantity">
@@ -76,7 +81,18 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="type" use="required" type="DT_DerivativeType"/>
+        <xsd:attribute name="type" use="required" type="DT_AeroacousticType">
+          <xsd:annotation>
+            <xsd:documentation>
+              Lambvector L = density(Vorticity x U) <br/>
+              Lighthill  T = L + GRAD(0.5 U.U) <br/>
+              Gradient  GRAD(U) = {U,x ; U,y ; U,z} <br/>
+              Divergence  DIV(U) = ux,x + uy,y + uz,z <br/>
+              Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y} <br/>
+              Set the density as option in the scheme tag.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
           <xsd:annotation>
             <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
