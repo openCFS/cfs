@@ -47,7 +47,8 @@ class End_Node():
     self.neighbors = neighbors
     
   def __str__(self):
-    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
+    return str(self.id) + "   " + str(self.coords[0]) + " " + str(self.coords[1]) + " " + str(self.coords[2]) 
+#    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
   
 class Marching_Triangle():
   # describes active edge (by two points) where we append next triangle
@@ -1014,7 +1015,7 @@ def add_triangle(id1,id2,id3,cells):
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
-def create_profiles_array(args,info,log):
+def generate_basecell(args,info,log):
   global res, res_surf_lines, interpolation
   res = args.res 
   res_surf_lines = args.res_surf_lines
@@ -1076,12 +1077,18 @@ def create_profiles_array(args,info,log):
     end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
-     
+    
     # creates triangles between end nodes of same profile where
     # we have e.g. a valley with 1 or 2 nodes
     postprocess_end_nodes(end_nodes_1,nodes_ids_1,cells)
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
+    
+#     out_points = open("points.txt","w")
+#     out_points.write("#id \t coordinates\n")
+#     for n in end_nodes_1+end_nodes_2+end_nodes_3:
+#       out_points.write(str(n) + "\n")
+#     out_points.close()
     
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
