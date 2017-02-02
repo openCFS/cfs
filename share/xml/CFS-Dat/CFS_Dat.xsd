@@ -21,6 +21,7 @@
   <!--   Includes from cfsdat -->
   <!-- ******************************************************************* -->  
   <xsd:include schemaLocation="Schemas/CFSDat_Differentiation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_Aeroacoustic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_DatMeshInput.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_DatMeshOutput.xsd"/>
@@ -40,7 +41,8 @@
       <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
       <xsd:element name="interpolation" type="DT_Interpolation"/>
       <xsd:element name="differentiation" type="DT_Differentiation"/>
-      <xsd:element name="binaryOperation"         type="DT_BinOpFilt">
+      <xsd:element name="aeroacoustic" type="DT_Aeroacoustic"/>
+      <xsd:element name="binaryOperation" type="DT_BinOpFilt">
         <xsd:annotation>
           <xsd:documentation>
             This filter combines two given results according to the specified operation.

@@ -1322,6 +1322,8 @@ share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
 share/scripts/winver.bat -text
 share/xml/CFS-Dat/CFS_Dat.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_Aeroacoustic.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_AeroacousticType.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_BaseFilter.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_BinOpFilt.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DatMeshInput.xsd -text

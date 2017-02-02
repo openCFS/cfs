@@ -58,8 +58,21 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
+  std::string res1Name;
+  uuids::uuid res1Id;
+
+  std::string res2Name;
+  uuids::uuid res2Id;
+
+
+
   virtual void AdaptFilterResults();
 
+/*
+  void FillScatteredDataVec(StdVector< Vector<Double> >& scatteredData,
+                            CF::Vector<Double>& vec,
+                            const Vector<Double>& inVec);
+*/
 
   void CalcGradUScalarU(Vector<Double>& retVec,
                 const Vector<Double> inVec);
@@ -98,20 +111,23 @@ private:
 
   std::vector<DifferentiationStruct> derivData_;
 
-  // Coordinates of input data
+  //! Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
-  // Coordinates of target data
+  //! Coordinates of target data
   CF::StdVector< CF::Vector<double> > targetCoords_;
 
-  // Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
+  //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
   UInt inDim_;
 
-  // Density, if not specified in xml-scheme it is automatically set to one
+  //! Density, if not specified in xml-scheme it is automatically set to one
   Double density_;
 
-  // String if the full Lighthill or only the Lamb-vector is computed
+  //! String if the full Lighthill or only the Lamb-vector is computed
   std::string Form_;
+
+  //! Boolean if an extern vorticity-input is provided of if we have to compute it
+  bool externVorticity_;
 
 };
 
