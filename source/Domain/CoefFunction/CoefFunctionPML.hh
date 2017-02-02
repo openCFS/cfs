@@ -124,10 +124,11 @@ public:
   }
   // The factor is the derivative of the mapping function
   Double ComputeFactor(Double pos, Double thickness){
-    Double value = constFactor*thickness;
-    Double post = tan(pos/value);
-    value *= (1.0/(post*post+1.0) );
-    return value;
+    Double z = pos/thickness;
+    //Double x = DampFactor*tan(z*M_PI/2.0);
+    //return 2.0*DampFactor/(M_PI*(DampFactor*DampFactor+x*x));
+    Double c = cos(z/constFactor);
+    return thickness*constFactor*c*c/DampFactor; // same but possibly faster
   }
 
 };
@@ -140,10 +141,9 @@ public:
   }
 
   Double ComputeFactor(Double pos, Double thickness){
-    Double value = constFactor*thickness;
-    Double post = ((pos/thickness)/(1.0-(pos/thickness)) );
-    value *= 1.0/((1.0+post)*(1.0+post));
-    return value;
+    Double z = pos/thickness; // coordinate in layer
+    Double x = z*DampFactor/(1.0 - z); // x-coordinate
+    return thickness*DampFactor/((x+DampFactor)*(x+DampFactor)); // dz/dx=eta(x)=eta(x(z))
   }
 
 };
@@ -156,10 +156,8 @@ public:
   }
 
   Double ComputeFactor(Double pos, Double thickness){
-    Double value = constFactor*thickness;
-    Double post = 1.0 - exp(-(pos/thickness));
-    value *= exp(-post);
-    return value;
+    Double z = pos/thickness; // local coordinate in layer [0,1]
+    return thickness*(1-z)/DampFactor;
   }
 
 };
