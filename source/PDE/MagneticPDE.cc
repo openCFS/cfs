@@ -1512,6 +1512,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }
     resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
 
+
     if( analysistype_ != HARMONIC ) {
     	// === MAXWELL FORCE DENSITY ===
     	shared_ptr<ResultInfo> mfd(new ResultInfo);

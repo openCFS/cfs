@@ -746,7 +746,7 @@ namespace CoupledField {
   {
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
-    StdVector<std::string> postProcNames, outDestNames, neighborRegions;
+    StdVector<std::string> postProcNames, outDestNames, neighborRegions, writeAsHistResult;
     UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
@@ -950,16 +950,16 @@ namespace CoupledField {
                                         saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[iRegion], writeResult,
-                                        isHistory[candidate->definedOn] );
+										isHistory[candidate->definedOn] );
           }
         }
-
 
         // ========== Look for defineType node/elemList/coilList (history) ==========
 
         std::string entityTypeName;
         StdVector<std::string> histNames;
         neighborRegions.Clear();
+        writeAsHistResult.Clear();
 
         PtrParamNode histNode;
         ParamNodeList histEntities;
@@ -1014,6 +1014,7 @@ namespace CoupledField {
             postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
+            writeAsHistResult.Push_back( histEntities[i]->Get("writeAsHistResult")->As<std::string>() );
           }
         }
 
@@ -1057,6 +1058,7 @@ namespace CoupledField {
             // extract all output destinations and determine bool flag for writeResult
             SplitStringList( outDestNames[i], actOutDest, ',' );
             bool writeResult = (writeResults[i] == "yes"  ? true : false );
+            bool writeAsHistoryResult = ( writeAsHistResult[i] == "yes"  ? true : false );
 
             // try to get result functor
             shared_ptr<ResultFunctor> fnc;
@@ -1065,12 +1067,15 @@ namespace CoupledField {
               EXCEPTION( "No result functor defined for results of type '"
                   << quantity << "'");
             }
+
+//            if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY )
+//            	writeToHistFile = false;
+
             fnc = resultFunctors_[candidate->resultType];
-            
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
-                                        actOutDest,
-                                        postProcNames[i], writeResult, true );
+                                        actOutDest, postProcNames[i],
+										writeResult, writeAsHistoryResult);
 
           }
         }
