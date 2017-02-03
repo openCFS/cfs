@@ -1196,6 +1196,7 @@
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
     <xsd:attribute name="outputIds" type="xsd:token" default=""/>
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
 
 
@@ -1210,6 +1211,7 @@
         <xsd:attribute name="postProcId" type="xsd:token" default=""/>
         <xsd:attribute name="outputIds" type="xsd:token" default=""/>
         <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+        <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -1225,6 +1227,7 @@
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
     <xsd:attribute name="outputIds" type="xsd:token" default=""/>
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -1237,6 +1240,7 @@
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
     <xsd:attribute name="outputIds" type="xsd:token" default=""/>
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -1250,6 +1254,7 @@
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
     <xsd:attribute name="outputIds" type="xsd:token" default=""/>
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -1262,6 +1267,7 @@
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
     <xsd:attribute name="outputIds" type="xsd:token" default=""/>
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="writeAsHistResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
 
   <!-- ***************************************************** -->

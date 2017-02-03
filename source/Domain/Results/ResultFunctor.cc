@@ -362,7 +362,6 @@ template<class TYPE> ResultFunctorIntegrate<TYPE>::~ResultFunctorIntegrate() {
   
 }
   
-
 template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
