@@ -46,7 +46,19 @@ public:
 
   StdVector<Condition*> constr;
 
-  StdVector<double> filter_outer_grad;
+  /** volume of the structure */
+  double volume;
+
+  /** volume constraint bound */
+  double volume_bound;
+
+  /** value of the compliance */
+  double compliance;
+
+  /** constraint value and gradient of the outer function filtering_gaps*/
+  double filtering_gaps;
+  StdVector<double> filtering_gap_grad;
+  double filtering_gaps_bound;
 
   /** the cfs design variable */
   Vector<double> x_outer;
@@ -239,11 +251,6 @@ public:
   /** bounds */
   double lower;
   double upper;
-
-  /** function value of the outer function */
-  double outer_val;
-
-  /**
 
   /** shall this function be approximated */
   bool approximate;

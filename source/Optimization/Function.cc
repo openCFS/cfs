@@ -648,6 +648,7 @@ bool Function::ForDensityFiltering() const {
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
+    case FILTERING_GAP:
       return false;
 
     case MULTI_OBJECTIVE:

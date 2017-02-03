@@ -1270,7 +1270,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="result" minOccurs="0" maxOccurs="12">
+            <xsd:element name="result" minOccurs="0" maxOccurs="15">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -1288,6 +1288,9 @@
                       <xsd:enumeration value="optResult_10"/>
                       <xsd:enumeration value="optResult_11"/>
                       <xsd:enumeration value="optResult_12"/>
+                      <xsd:enumeration value="optResult_13"/>
+                      <xsd:enumeration value="optResult_14"/>
+                      <xsd:enumeration value="optResult_15"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
