@@ -1737,6 +1737,7 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
   for node in candidates:
     if node.id == vert1.id or node.id == vert2.id:
       continue
+    # if not direct neighbor; take care of modulo res as i = 0 and i = res-1 are also neighbors!
     if node.dir == vert1.dir and (abs(node.i - vert1.i) > 1 and not abs(node.i - vert1.i) == res-1 or abs(node.j - vert1.j) > 1 and not abs(node.j - vert1.j) == res-1):
       continue
     if node.dir == vert2.dir and (abs(node.i - vert2.i) > 1 and not abs(node.i - vert2.i) == res-1 or abs(node.j - vert2.j) > 1 and not abs(node.j - vert2.j) == res-1):
