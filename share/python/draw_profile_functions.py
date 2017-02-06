@@ -1325,7 +1325,8 @@ def triangle_contains_any_node(vertices):
           logger.write("line through node " + str(n[1]) + " intersects  with triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")\n")
         return True    
   
-  return False 
+  return False
+
 # applying Cramer's rule
 # assume A is a numpy array, b a list
 def linsolve_3x3(A,b):
@@ -1748,6 +1749,11 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
       continue
     if triangle_contains_any_node([node,vert1,vert2]):
       continue
+    # if all three nodes are already connected to other triangles
+    if vertices_already_connected(triangles,[vert1,vert2,node]):
+      if logger:
+        logger.write("already connected: " + str(vert1.id) + "," + str(vert2.id) + "," + str(node.id) + "\n")
+      continue
     if len(triangles) > 0:
       # FIXME remove
       duplicate = False
@@ -1789,34 +1795,29 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
     active_edge = triangles[-1].edge
     a = active_edge[0]
     b = active_edge[1]
+    if logger:
+      logger.write("active edge: " + str(a.id) + "," + str(b.id) + "\n")
     next = give_best_next_neighbor(triangles,alternatives, a, b, quality_bound)
     if next is not None:
+      tri = triangles[-1]
       # next is good, so it is not a candidate anymore
-      triangles[-1].other_candidates = [v for v in triangles[-1].other_candidates if v.id != next.id]  
-      triangles[-1].edge[0] = a if next.dir!=a.dir else b
-      assert(triangles[-1].edge[0].dir != next.dir) 
-      triangles[-1].edge[1] = next
+      tri.other_candidates = [v for v in tri.other_candidates if v.id != next.id]
+      # reset all information with new next node  
+      tri.edge[0] = a if next.dir!=a.dir else b
+      assert(tri.edge[0].dir != next.dir) 
+      tri.edge[1] = next
+      tri.next = next
+      tri.vertices[2] = next
       if logger:
-        logger.write("set active edge to (" + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + ")\n")
+        best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
+        logger.write("set new triangle " + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + " with ratio " + str(best_ratio) + "\n")
+        logger.write("set active edge to (" + str(tri.edge[0].id) + "," + str(triangles[-1].edge[1].id) + ")\n")
 #         logger.write("check triangle " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with " + str(next.id) + "\n")
       return True
     else:
       # best neighbor not found, so candidates are invalid
       triangles[-1].other_candidates = []
   return False  
-#   else:
-#     # get best neighbor from list with alternatives
-#     next_cand = give_best_next_neighbor(alternatives, triangles[-1].edge[0], triangles[-1].edge[1])
-#     if next_cand:
-#       # remove chosen next node from alternatives
-#       alternatives = [v for v in alternatives if v.id != next_cand.id]
-#     
-# #     remove_connection_to_node(del_node,)
-#   # we need to revert the active edge as we're going on step back but want to keep info 
-#   # on already checked and not checked neighbor candidates
-#   # remove connection to previous next node
-#   
-#   check_next_triangle_with_cand(next_cand,triangles, end_nodes_1, end_nodes_2, initial_edge,alternatives)
 
 def add_good_triangle(triangles, a, b, next_cands, next):
 # decide whether a or b is member based on triangle ratios
@@ -1826,7 +1827,8 @@ def add_good_triangle(triangles, a, b, next_cands, next):
   logger.write("next:" + str(next.id) + "\n")
   triangles.append(Marching_Triangle([a, b, next], edge_0, next, alternatives))
   if logger:
-    logger.write("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + "\n")
+    best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
+    logger.write("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio) + "\n")
     logger.write("number of triangles: " + str(len(triangles)) + "\n")
     logger.write("alternatives: ")
     if alternatives is not None:
@@ -1841,6 +1843,9 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
   a = active_edge[0]
   b = active_edge[1]
   
+#   if a.id == 1807 and b.id == 35:
+#     return False
+  
   if logger:
     logger.write("\na: " + str(a.id) + " connections: " + str(a.connections) + "\n")
     logger.write("b: " + str(b.id) + " connections: " + str(b.connections) + "\n")
@@ -1851,14 +1856,6 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
     add_good_triangle(triangles, a, b, next_cands, next)
     return True
   else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
-#     if logger:
-#       logger.write("bad triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "\n") 
-#       logger.write("alternatives: ")
-#       if alternatives is not None:
-#         for alt in alternatives:
-#           logger.write(str(alt.id) + " ")
-#       logger.write("\n")
-           
     # dummy, will be removed in handle_bad_triangle    
     triangles.append(Marching_Triangle([a,b,b],a,b,[]))   
     # returns False if no alternatives left at all  
@@ -1894,7 +1891,8 @@ def pop_triangles(triangles):
   if triangles[-1].edge[0] == triangles[-1].next:
     triangles[-1].edge[0] = [v for v in triangles[-1].vertices if v.id != triangles[-1].next.id and v.id != triangles[-1].edge[1].id][0]
   else: #triangles[-1].edge[1] == triangles[-1].next
-    triangles[-1].edge[1] = [v for v in triangles[-1].vertices if v.id != triangles[-1].next.id and v.id != triangles[-1].edge[0].id][0]  
+    triangles[-1].edge[1] = [v for v in triangles[-1].vertices if v.id != triangles[-1].next.id and v.id != triangles[-1].edge[0].id][0]
+      
   if logger:
     logger.write("previous triangle: " + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + "\n")
     logger.write("set edge to " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + "\n")
@@ -1902,6 +1900,7 @@ def pop_triangles(triangles):
     for cand in triangles[-1].other_candidates:
       logger.write(str(cand.id) + " ")
     logger.write("\n")
+    
   return True 
 def dump_end_nodes(list):
   logger.write("dump end nodes list \n")
@@ -2084,9 +2083,8 @@ def start_triangulation(start,next,end_nodes,tree,cells):
 
   add_good_triangle(triangles, start, next, [], other)
   
-  quality_bound = 10  
+  quality_bound = 5  
   end = False
-  
   while not end: 
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
@@ -2095,7 +2093,10 @@ def start_triangulation(start,next,end_nodes,tree,cells):
     # check if we have just created a triangle where new active edge is 
     # identical to active edge of very first triangle --> we are finished!
     if failed:
-      assert(len(triangles) == 1)
+#       assert(len(triangles) == 1)
+      # in this case, we want to output the so far valid triangles for debugging purposes
+      if len(triangles) > 1:
+        break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
       print("increased quality_bound to",quality_bound)
@@ -2210,3 +2211,27 @@ def build_tree(end_nodes):
     points[idx] = n.coords
   # build tree
   return spatial.cKDTree(points)#
+
+# are all three vertices of a triangle already connected in other triangkes
+def vertices_already_connected(triangles,vertices):
+#   # if one/two of the vertices form the very first edge, make an exception
+#   if (len(triangles) > 1):
+#     first_edge = triangles[0].edge
+#     if vertices[0] in first_edge or vertices[1] in first_edge:
+#       return False
+  
+  # skip first triangle, so that we are able to close the triangulation 
+  if vertex_alrerady_connected(triangles[1:],vertices[0]) and vertex_alrerady_connected(triangles[1:],vertices[1]) and vertex_alrerady_connected(triangles[1:],vertices[2]):
+    return True
+  else:
+    return False
+
+# check if a given end node is already a vertex of an existing triangle
+def vertex_alrerady_connected(triangles,end_node):
+  for tri in triangles:
+    for v in tri.vertices:
+      if end_node == v:
+        return True
+  
+  # if not match found
+  return False      
