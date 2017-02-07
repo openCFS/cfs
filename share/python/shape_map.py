@@ -23,14 +23,14 @@ try:
 except:
   print('could not import matviz_vtk, hope you do not need it: ' + sys.exc_info()[0])
 
-def create_figure(res):
+def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
   
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
-  ax.set_xlim(0.0, 1.0)
-  ax.set_ylim(0.0, 1.0)
+  ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
+  ax.set_ylim(min(0,minimal[1]), max(1,maximal[1]))
   return fig, ax
 
 def dump_shapes(shapes):
@@ -450,8 +450,18 @@ def import_from_image(filename, resample, repair):
   return shapes
     
 # creates a matplotlib figure     
-def plot_data(res, shapes):
-  fig, sub = create_figure(res)
+def plot_data(res, shapes, unit):
+  # find extreme bounds to also visualize negative node positions
+  minimal = [0.0]*2
+  maximal = [1.0]*2
+  if not unit:
+    minimal = [1e9]*2
+    maximal = [-1e9]*2
+    for shape in shapes:
+      minimal[shape.dof] = min(minimal[shape.dof], min(shape.val))
+      maximal[shape.dof] = max(maximal[shape.dof], max(shape.val))
+  
+  fig, sub = create_figure(res, minimal, maximal)
   
   for shape in shapes:
     n = len(shape.el)
@@ -573,6 +583,7 @@ if __name__ == '__main__':
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
+  parser.add_argument('--unit_bound', help="enforce the visualization on a unit square", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   args = parser.parse_args()
@@ -599,7 +610,7 @@ if __name__ == '__main__':
     if not args.noshow:
       show_vtk(polydata,800,show_edges=True) # show edges
   else:
-    fig, sub = plot_data(800, shapes)
+    fig, sub = plot_data(800, shapes, args.unit_bound)
     if args.save:
       fig.savefig(args.save)  
     if not args.noshow:

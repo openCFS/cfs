@@ -829,10 +829,15 @@ void Condition::ToInfo(PtrParamNode in)
       else if(boundValue_ == ALPHA_PLUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha+slack");
       else
-        in->Get("bound_value")->SetValue(boundValue_);
+        // FIXME: does not handle objective_scaling. Also the scaling shall not be encoded in the bound value :(
+        in->Get("bound_value")->SetValue(boundValue_ / manual_scaling_value);
     }
     in->Get("bound")->SetValue(bound.ToString(bound_));
 
+    if(objective_scaling_)
+      in->Get("scaling")->SetValue("objective");
+    else if(manual_scaling_value != 1.0)
+      in->Get("scaling")->SetValue(manual_scaling_value);
   }
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
@@ -842,10 +847,6 @@ void Condition::ToInfo(PtrParamNode in)
 
     in->Get("design")->SetValue(DesignElement::type.ToString(design_));
 
-  if(objective_scaling_)
-    in->Get("scaling")->SetValue("objective");
-  else if(manual_scaling_value != 1.0)
-    in->Get("scaling")->SetValue(manual_scaling_value);
 
   // if(delta_logging_ignored_)
   //  in->Get("delta_logging")->SetWarning("no value given");
