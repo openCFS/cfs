@@ -49,6 +49,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_ADD:
     case OP_SUB:
     case OP_MULT:
+    case OP_MULT_COMP:
     case OP_MULT_CONJ:
     case OP_MULT_VOIGT_TENSOR_VEC:
     case OP_MULT_VOIGT_TENSOR_VEC_CONJ:
@@ -157,6 +158,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_ADD:
            case OP_SUB:
            case OP_CROSS:
+           case OP_MULT_COMP:
            case OP_CROSS_AXI:
              dim = CoefFunction::VECTOR;
              break;
@@ -1044,16 +1046,22 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
 
     // switch depending on operation type
     // === OP_ADD / OP_SUB ===
-    if( op_ == OP_ADD || op_ == OP_SUB ) {
+    if( op_ == OP_ADD || op_ == OP_SUB || op_ == OP_MULT_COMP ) {
+      CoefXpr::OpType op;
+      if (op_ == OP_ADD || op_ == OP_SUB) {
+    	  op = op_;
+      } else {
+    	  op = OP_MULT;
+      }
       if( !isComplex_ ) {
         for( UInt i = 0; i < numEntries; ++ i ) {
-          CoefXpr::ApplyBinaryFunc( real[i], aR[i], bR[i], op_ );
+          CoefXpr::ApplyBinaryFunc( real[i], aR[i], bR[i], op);
           imag[i] = "0.0";
         }
       } else {
         for( UInt i = 0; i < numEntries; ++ i ) {
           CoefXpr::ApplyBinaryFunc( real[i], imag[i], aR[i], bR[i],
-                                    aI[i], bI[i], op_ );
+                                    aI[i], bI[i], op );
         }
       }
     }
@@ -1351,9 +1359,10 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       }
       
       
-    } else {
+    }
+    else {
       EXCEPTION( "The only allowed (vector,vector)->vector operations "
-                << "are OP_ADD, OP_SUB and OP_CROSS" );
+                << "are OP_ADD, OP_SUB, OP_MULT_COMP and OP_CROSS" );
     }
   } else if( a_->GetDimType() == CoefFunction::SCALAR  &&
               b_->GetDimType() == CoefFunction::VECTOR ) {

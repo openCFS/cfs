@@ -89,6 +89,14 @@ namespace CoupledField{
 
     //! true for modeling surface gravity waves
     bool isSurfaceGravityWave_;
+
+    //! stores transformList entries in pair (first scalar, second vector)
+    //std::map<std::string, DampingType> transformList_;
+    std::map<RegionIdType, shared_ptr< std::pair<PtrCoefFct,PtrCoefFct> > > transformFctList_;
+
+
+    PtrCoefFct g_ ;
+    PtrCoefFct Cdeep_;
   };
 
 }
