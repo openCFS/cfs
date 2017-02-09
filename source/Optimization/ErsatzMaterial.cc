@@ -1729,9 +1729,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   {
     // this replaces and enhances calculation of volume, it is used by regularization
     // when not assuming a regular grid, computation of Volume is not as simple
-    // we also consider working only on a given region, when used as constrain
+    // we also consider working only on a given region, when used as constraint
     // use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
-    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
+    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physical value!
     Grid* grid = domain->GetGrid();
     Function* f = Function::GetFunction(c, g);
     SubTensorType stt = f->ctxt->stt;
