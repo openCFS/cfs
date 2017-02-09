@@ -71,25 +71,20 @@ bool Node2CellInterpolator::Run(){
   // for every element in the target mesh
   for(UInt i=0;i < interpolData_.size();++i){
     InpolationStruct& aStru = interpolData_[i];
-
     curE = aStru.trgElemNum;
 
     //Sum up the contributions from all nodes of element curE
     StdVector<Double> curval;
+    StdVector<UInt> sEqn;
     downMap->GetEquation(eqns,curE,ExtendedResultInfo::ELEMENT);
     curval.Resize(eqns.GetSize(), 0.0);
-    UInt dim = eqns.GetSize(); //dimension of input data (scalar, 2vector, 3vector)
+
+    //UInt dim = eqns.GetSize(); //dimension of input data (scalar, 2vector, 3vector)
     for(UInt aNode =0;aNode < aStru.tNNum.GetSize(); ++aNode){
       for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        UInt curN = aStru.tNNum[aNode]-1; //-1 because nodes start with 1 and not with zero
-        curval[aDof] += inVec[dim * curN +aDof];
+        returnVec[eqns[aDof]] += inVec[aStru.srcEqn[eqns.GetSize()*aNode + aDof]] / aStru.tNNum.GetSize();
       }
     }
-
-    //Divide by the number of nodes (calculate the average)
-    for(UInt aDof=0; aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] = curval[aDof] / aStru.tNNum.GetSize();
-      }
   }
 
   resultManager_->ActivateResult(filterResIds[0]);
@@ -106,10 +101,6 @@ bool Node2CellInterpolator::Run(){
 
 
 void Node2CellInterpolator::PrepareCalculation(){
-  //1. Get list of target elements
-  //2. For every target element get number of nodes
-
-
   std::cout << "\t ---> Node2CellInterpolator preparing for interpolation" << std::endl;
 
   //in this filter we only have one upstream result
@@ -118,10 +109,7 @@ void Node2CellInterpolator::PrepareCalculation(){
   // input (source) grid and output (target) grid are the same!
   Grid* inGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
 
-  //lets declare some variables and estimate the memory
   std::vector<UInt> allTrgElems;
-
-  CF::StdVector<const CF::Elem*> srcElements;
 
   StdVector<UInt> curElems;
 
@@ -137,22 +125,27 @@ void Node2CellInterpolator::PrepareCalculation(){
 
 
   std::cout << "\t\t 2/2 Generating interpolation info ..." << std::endl;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
   interpolData_.reserve(allTrgElems.size());
   StdVector<UInt> tempNodeNums;
+  StdVector<UInt> sEqn;
   for(UInt aMatch = 0;aMatch < allTrgElems.size();++aMatch){
       InpolationStruct newStruct;
       //get nodenumbers of containing src-element
       inGrid->GetElemNodes(tempNodeNums, allTrgElems[aMatch]);
-      //std::cout << "tempNodeNums" <<tempNodeNums<< std::endl;
       newStruct.trgElemNum = allTrgElems[aMatch];
-      //std::cout << "allTrgElems[aMatch]" <<allTrgElems[aMatch]<< std::endl;
       newStruct.tNNum.Resize(tempNodeNums.GetSize());
       newStruct.tNNum = tempNodeNums;
+      for(UInt n = 0; n < tempNodeNums.GetSize(); ++n){
+        upMap->GetEquation(sEqn, tempNodeNums[n], ExtendedResultInfo::NODE);
+        for(UInt d = 0; d < sEqn.GetSize(); ++d){
+          newStruct.srcEqn.Push_back(sEqn[d]);
+        }
+      }
       interpolData_.push_back(newStruct);
   }
 
   allTrgElems.clear();
-
 
   std::cout << "\t\t Interpolation prepared!" << std::endl;
 }

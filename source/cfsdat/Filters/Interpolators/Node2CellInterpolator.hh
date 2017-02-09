@@ -28,9 +28,11 @@ class Node2CellInterpolator : public MeshFilter{
 public:
   struct InpolationStruct{
     CF::StdVector<UInt> tNNum; //target node numbers
+    CF::StdVector<UInt> srcEqn; //source equations (nodes of target-element)
     UInt trgElemNum;
     InpolationStruct() : trgElemNum(0){
       tNNum.Resize(1);
+      srcEqn.Resize(0);
     }
   };
 
