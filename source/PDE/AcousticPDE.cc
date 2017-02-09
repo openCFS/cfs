@@ -1918,9 +1918,10 @@ namespace CoupledField{
     }
     
     
-    shared_ptr<ResultInfo> vel, velNormal, intensity, intensNormal, power, pres;
+    shared_ptr<ResultInfo> vel, velNormal, intensity, surfIntensity, intensNormal,
+	                       power, pres;
     PtrCoefFct intensFct, velFct, velFctPW;
-    shared_ptr<CoefFunctionSurf> sNormIntens, velFctNormal, sNormIntensPW;
+    shared_ptr<CoefFunctionSurf> sNormIntens, sIntens, velFctNormal, sNormIntensPW;
     shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
     shared_ptr<ResultFunctor> powerFct;
     
@@ -1959,6 +1960,14 @@ namespace CoupledField{
       intensity->entryType = ResultInfo::VECTOR;
       intensity->definedOn = ResultInfo::ELEMENT;
       
+      // === ACOU_SURFINTENSITY ===
+      surfIntensity.reset(new ResultInfo);
+      surfIntensity->resultType = ACOU_SURFINTENSITY;
+      surfIntensity->dofNames = vecDofNames;
+      surfIntensity->unit = "W/m^2";
+      surfIntensity->entryType = ResultInfo::VECTOR;
+      surfIntensity->definedOn = ResultInfo::SURF_ELEM;
+
       // === ACOU_NORMAL_INTENSITY ===
       intensNormal.reset(new ResultInfo);
       intensNormal->resultType = ACOU_NORMAL_INTENSITY;
@@ -2003,6 +2012,10 @@ namespace CoupledField{
           CoefFunction::Generate( mp_, part,
                                  CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
       DefineFieldResult(intensFct, intensity);
+
+      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
+      DefineFieldResult(sIntens, surfIntensity);
+      surfCoefFcts_[sIntens] = intensFct;
       
       // === ACOU_NORMAL_INTENSITY ===
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
@@ -2061,7 +2074,12 @@ namespace CoupledField{
       intensFct = 
           CoefFunction::Generate( mp_, part,
                                  CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
+
       DefineFieldResult(intensFct, intensity);
+
+      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
+      DefineFieldResult(sIntens, surfIntensity);
+      surfCoefFcts_[sIntens] = intensFct;
 
       // === ACOU_NORMAL_INTENSITY ===
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
