@@ -729,6 +729,7 @@
                 <xsd:attribute name="pmax_filt" type="xsd:float" default="0.05" use="optional"/>
                 <!-- convergence tolerance for sgp algorithm -->
                 <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional"/>
+                <xsd:attribute name="volume_tolerance" default="1e-3" type="xsd:float" use="optional"/>
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
                 <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>    
                 <xsd:attribute name="tau" default="0." type="xsd:float" use="optional"/>    
