@@ -244,7 +244,7 @@ void FEBasedInterpolator::AdaptFilterResults(){
   }
   //require defined on elems
   if(inInfo->definedOn != ExtendedResultInfo::NODE){
-    EXCEPTION("FEBased interpolation can only handle element results");
+    EXCEPTION("FEBased interpolation can only handle node results - If you have Element results use Element2Node filter infront of this filter!");
   }
   //got the upstream result validated?
   if(!inInfo->isValid){

@@ -40,9 +40,12 @@ public:
     std::string outResult = params_->Get("outputQuantity")->Get("resultName")->As<std::string>();
     std::string gradInResult = params_->Get("presGrad")->Get("resultName")->As<std::string>();
     std::string timeInResult = params_->Get("pressure")->Get("resultName")->As<std::string>();
+    std::string meanFlowInResult = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
     filtResNames.insert(outResult);
     upResNames.insert(gradInResult);
     upResNames.insert(timeInResult);
+    upResNames.insert(meanFlowInResult);
+    hasMeanFlow_ = false;
   }
 
   virtual ~RotatingSubstDt(){
@@ -72,11 +75,15 @@ private:
 
   uuids::uuid gradId_;
 
+  uuids::uuid meanFlowId_;
+
   uuids::uuid timeId_;
 
   UInt gradDim_;
 
   Double dt_;
+
+  bool hasMeanFlow_;
 
 };
 
