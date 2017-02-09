@@ -259,7 +259,16 @@ void DivergenceDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec
         derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
       }
       }else{
-        EXCEPTION("3D-values and 2D-mesh!");
+        WARN("DivergenceDifferentiator.cc : Treat 3D values as 2D values, due to a 2D mesh!")
+        derivVec.Resize(numNN,2);
+        if (l2Distances[i] == 0) {
+          derivVec[i][0] = 0.0;
+          derivVec[i][1] = 0.0;
+        }else{
+          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
+          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
+        }
+//        EXCEPTION("3D-values and 2D-mesh!");
         /*
         //case of 2D mesh and 3D values
         vals.Resize(numNN,3);

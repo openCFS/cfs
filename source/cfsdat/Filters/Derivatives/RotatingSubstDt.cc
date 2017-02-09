@@ -8,7 +8,7 @@
  *       \brief    <Description>
  *
  *       \date     Nov 1, 2015
- *       \author   ahueppe
+ *       \author   ahueppe, sschoder
  */
 //================================================================================================
 
@@ -30,6 +30,19 @@ ResultIdList RotatingSubstDt::SetUpstreamResults(){
     std::string gradInResult = params_->Get("presGrad")->Get("resultName")->As<std::string>();
     gradId_ = resultManager_->AddResult(gradInResult,this->filterTag_);
 
+    //second a single meanflow input
+    hasMeanFlow_ = false;
+    if(params_->Has("meanFlow")){
+    	hasMeanFlow_ = true;
+        std::string meanFlowInResult = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
+        meanFlowId_ = resultManager_->AddResult(meanFlowInResult,this->filterTag_);
+
+        //copy the timeline from input result
+        resultManager_->SetTimeLine(meanFlowId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+        generated.Push_back(meanFlowId_);
+    }
+
+
     //now a time cached time result
     std::string timeInResult = params_->Get("pressure")->Get("resultName")->As<std::string>();
     //hardcode a fith order stencil
@@ -44,8 +57,10 @@ ResultIdList RotatingSubstDt::SetUpstreamResults(){
     //copy the timeline from input result
     resultManager_->SetTimeLine(timeId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
     resultManager_->SetTimeLine(gradId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+
     generated.Push_back(timeId_);
     generated.Push_back(gradId_);
+
   }
   return generated;
 }
@@ -62,7 +77,7 @@ void RotatingSubstDt::AdaptFilterResults(){
 
     //got the upstream result validated?
     if(!gradInfo->isValid){
-      EXCEPTION("Problem in filter pipeline detected. Time derivative input result \"" <<  gradInfo->resultName << "\" could not be provided.")
+      EXCEPTION("Problem in filter pipeline detected. Pressure gradient input result \"" <<  gradInfo->resultName << "\" could not be provided.")
     }
     if(!timeInfo->isValid){
       EXCEPTION("Problem in filter pipeline detected. Time derivative input result \"" <<  timeInfo->resultName << "\" could not be provided.")
@@ -84,6 +99,24 @@ void RotatingSubstDt::AdaptFilterResults(){
     if(gradInfo->definedOn != timeInfo->definedOn){
       EXCEPTION("Rotating time derivative filter needs both inputs on nodes or both inputs on elements.")
     }
+
+    if(hasMeanFlow_){
+    	ResultManager::ConstInfoPtr meanFlowInfo = resultManager_->GetExtInfo(meanFlowId_);
+        if(!meanFlowInfo->isValid){
+          EXCEPTION("Problem in filter pipeline detected. Mean flow input result \"" <<  gradInfo->resultName << "\" could not be provided.")
+        }
+        if(gradInfo->definedOn != timeInfo->definedOn ||
+        		gradInfo->definedOn != meanFlowInfo->definedOn ||
+				meanFlowInfo->definedOn != timeInfo->definedOn ){
+          EXCEPTION("Rotating time derivative filter either needs all inputs on nodes or on elements.")
+        }
+        if(gradInfo->dofNames.GetSize() != meanFlowInfo->dofNames.GetSize()){
+        	EXCEPTION("Input of the pressure gradient (Dimension: "<<gradInfo->dofNames.GetSize()<<
+        			" and the mean flow velocity (Dimension: "<< meanFlowInfo->dofNames.GetSize() <<
+					" have a different dimension.")
+        }
+    }
+
 
     //determine the timestep by subtracting first and second entry in timeline
     //test if we have enough steps
@@ -131,6 +164,10 @@ bool RotatingSubstDt::Run(){
     resultManager_->SetTimeValue(timeId_,aTF);
     resultManager_->ActivateResult(gradId_);
     resultManager_->ActivateResult(timeId_);
+    if(hasMeanFlow_){
+    	resultManager_->SetTimeValue(meanFlowId_,aTF);
+    	resultManager_->ActivateResult(meanFlowId_);
+    }
     resultManager_->DeactivateResult(*aIter);
   }
   //now we call for upstream data in each source
@@ -170,6 +207,15 @@ bool RotatingSubstDt::Run(){
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
     //now we add the substantial part
     UInt gIdx = 0;
+
+    Vector<Double> meanFlow;
+    if(hasMeanFlow_){
+      meanFlow.Resize(gradient.GetSize());
+      meanFlow = resultManager_->GetResultVector<Double>(meanFlowId_,eqnNums);
+    }
+
+
+
     EqnMapSimple& mapping = *resultManager_->GetResultAdapter(*aIter)->mapping.get();
     StdVector<UInt> aEqn(1);
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
@@ -182,6 +228,9 @@ bool RotatingSubstDt::Run(){
       for(UInt d =0;d<gradDim_;++d){
         gIdx = aEqn[0]*gradDim_+d;
         returnVec[aEqn[0]] += rotField_[aEnt][d]*gradient[gIdx];
+        if(hasMeanFlow_){
+        	returnVec[aEqn[0]] += meanFlow[gIdx]*gradient[gIdx];
+        }
       }
     }
     //now we loop over the entity equations

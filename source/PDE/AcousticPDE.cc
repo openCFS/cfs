@@ -538,7 +538,7 @@ namespace CoupledField{
         bool coefUpdateGeo;
         //we assume that mean flow is pure real
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             false, regionFlow, definedDofs, coefUpdateGeo );
+                             true, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
 
