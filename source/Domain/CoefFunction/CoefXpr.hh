@@ -116,6 +116,7 @@ public:
     OP_SUB,                   /*!< Binary - operation */
     OP_MULT,                  /*!< Binary * operation (scal-scal, scalar-vector)
                                    or inner product (vector-vector) */
+	OP_MULT_COMP,             /*!< component wise vector*vector */
     OP_MULT_CONJ,             /*!< Binary * operation (scal-scal, scalar-vector), conjugated */
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case) */
     OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated */
