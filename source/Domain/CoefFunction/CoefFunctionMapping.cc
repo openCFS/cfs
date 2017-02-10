@@ -47,10 +47,13 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Complex>& tensor,
 	  tensor.Init();
 	  Double locThick=0.0;
 	  Double position=0.0;
+	  Double sos;
+	  this->speedOfSound_->GetScalar(sos,lpm);
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
+        Double z = position/locThick;
 	    if(abs(locThick)>0.0){
-	    	Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+          Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
 	      tensor[i][i] = fac;
 	    }else{
 	      Complex one(1.0,0.0);
@@ -67,10 +70,13 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
+  Double sos;
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
+    Double z = position/locThick;
     if(abs(locThick)>0.0){
-      tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) ;
+      tensor[i][i] = locThick*this->dampFunction_->ComputeFactor(z,sos) ;
     }else{
       tensor[i][i] = 1.0;
     }
@@ -85,10 +91,13 @@ void CoefFunctionMapping<T>::GetVector(Vector<Complex>& vec,
 	vec.Init();
 	  Double locThick=0.0;
 	  Double position=0.0;
+	  Double sos;
+	  this->speedOfSound_->GetScalar(sos,lpm);
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
+        Double z = position/locThick;
 	    if(abs(locThick)>0.0){
-	    	Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+	    	Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
 	    	vec[i] = fac;
 	    }else{
 	      Complex one(1.0,0.0);
@@ -105,10 +114,13 @@ void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
   vec.Resize(this->dim_,0.0);
   Double locThick=0.0;
   Double position=0.0;
+  Double sos;
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
+    Double z = position/locThick;
     if(abs(locThick)>0.0){
-      vec[i] = this->dampFunction_->ComputeFactor(position,locThick);
+      vec[i] = locThick*this->dampFunction_->ComputeFactor(z,sos);
     }else{
       vec[i] = 1.0;
     }
@@ -122,10 +134,13 @@ void CoefFunctionMapping<T>::GetScalar(Complex& val,
   Double position=0.0;
   Complex one(1.0,0.0);
   val = one;
+  Double sos;
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
+    Double z = position/locThick;
     if(abs(locThick)>0.0){
-      Complex fac(this->dampFunction_->ComputeFactor(position,locThick),0.0);
+      Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
       val /= fac;
     }else{
       val *= one;
@@ -140,10 +155,13 @@ void CoefFunctionMapping<T>::GetScalar(Double& val,
   Double locThick=0.0;
   Double position=0.0;
   val = 1.0;
+  Double sos;
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
+    Double z = position/locThick;
     if(abs(locThick)>0.0){
-      val /= this->dampFunction_->ComputeFactor(position,locThick);
+      val /= (locThick*this->dampFunction_->ComputeFactor(z,sos));
     }else{
       val *= 1.0;
     }
