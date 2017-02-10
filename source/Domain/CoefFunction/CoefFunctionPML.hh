@@ -123,12 +123,13 @@ public:
     functionType = TANGENS;
   }
   // The factor is the derivative of the mapping function
-  Double ComputeFactor(Double pos, Double thickness){
-    Double z = pos/thickness;
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness;
     //Double x = DampFactor*tan(z*M_PI/2.0);
     //return 2.0*DampFactor/(M_PI*(DampFactor*DampFactor+x*x));
+    Double L = DampFactor*sos;
     Double c = cos(z/constFactor);
-    return thickness*constFactor*c*c/DampFactor; // same but possibly faster
+    return constFactor*c*c/L; // same but possibly faster
   }
 
 };
@@ -140,10 +141,11 @@ public:
     functionType = RATIONAL;
   }
 
-  Double ComputeFactor(Double pos, Double thickness){
-    Double z = pos/thickness; // coordinate in layer
-    Double x = z*DampFactor/(1.0 - z); // x-coordinate
-    return thickness*DampFactor/((x+DampFactor)*(x+DampFactor)); // dz/dx=eta(x)=eta(x(z))
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness; // coordinate in layer
+    Double L = DampFactor*sos;
+    Double x = z*L/(1.0 - z); // x-coordinate
+    return L/((x+L)*(x+L)); // dz/dx=eta(x)=eta(x(z))
   }
 
 };
@@ -155,9 +157,10 @@ public:
     functionType = EXPONENTIAL;
   }
 
-  Double ComputeFactor(Double pos, Double thickness){
-    Double z = pos/thickness; // local coordinate in layer [0,1]
-    return thickness*(1-z)/DampFactor;
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness; // local coordinate in layer [0,1]
+    Double L = DampFactor*sos;
+    return (1-z)/L;
   }
 
 };
