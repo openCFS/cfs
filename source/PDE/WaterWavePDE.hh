@@ -94,9 +94,14 @@ namespace CoupledField{
     //std::map<std::string, DampingType> transformList_;
     std::map<RegionIdType, shared_ptr< std::pair<PtrCoefFct,PtrCoefFct> > > transformFctList_;
 
-
+    //! acceleration of gravity
     PtrCoefFct g_ ;
+
+    //! deep water wave speed
     PtrCoefFct Cdeep_;
+
+    //! deep water wave number
+    PtrCoefFct kdeep_;
   };
 
 }

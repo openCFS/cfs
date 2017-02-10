@@ -79,7 +79,8 @@ namespace CoupledField{
     PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
     //      PtrCoefFct gravityC0 =
     Cdeep_ = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, g_, omega, CoefXpr::OP_DIV));
-
+    PtrCoefFct omega2 = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_,omega,omega,CoefXpr::OP_MULT));
+    kdeep_ = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, omega2 , g_, CoefXpr::OP_DIV)); // omega^2/g
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> >
@@ -235,13 +236,16 @@ namespace CoupledField{
                     }
                     else if (transformType.at(actTransformId)==MAPPING) {
                         transNode = myParam_->Get("transformList")->GetByVal("mapping","id",actTransformId);
+                        PtrCoefFct sos = CoefFunction::Generate( mp_, Global::REAL, "1.0");
                         if(analysistype_ == HARMONIC){
-                            vec.reset(new CoefFunctionMapping<Complex>(transNode,Cdeep_,actSDList,regions_,true));
-                            scal.reset(new CoefFunctionMapping<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+                            PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+                            sos = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, one, kdeep_, CoefXpr::OP_DIV));
+                            vec.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,true));
+                            scal.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,false));
                         }
                         else {
-                            vec.reset(new CoefFunctionMapping<Double>(transNode,Cdeep_,actSDList,regions_,true));
-                            scal.reset(new CoefFunctionMapping<Double>(transNode,Cdeep_,actSDList,regions_,false));
+                            vec.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,true));
+                            scal.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,false));
                         }
                     }
                     else {
