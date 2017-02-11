@@ -234,7 +234,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       // =================================
       do {
         iterationCounter++;
-        std::cout << "Iter: " << iterationCounter << std::endl;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
           //add linear right hand side
@@ -659,7 +658,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){

@@ -512,10 +512,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           assemble_->AddBiLinearForm(nlContext);
 
           //check for damping
-//          if ( dampingList_[actRegion] == RAYLEIGH ) {
-//        	  RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-//        	  nlContext->SetSecDestMat(DAMPING, actDamp.beta );
-//          }
+          if ( dampingList_[actRegion] == RAYLEIGH ) {
+        	  RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+        	  nlContext->SetSecDestMat(DAMPING, actDamp.beta );
+          }
 
 
           // Important: Add bdb-integrator to global list, as we need them later
@@ -613,8 +613,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       BaseBDBInt *massInt = NULL;
 
-      if (harmonicPML)
-      {
+      if ( harmonicPML ) {
         // mass integrator in a PML region: density coefficient function is scaled by sx*sy*sz
         densCoeffScaled = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, densCoeff, coefPMLScal, CoefXpr::OP_MULT));
         if (dim_ == 2 && subType_ != "2.5d")
@@ -622,18 +621,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         else
           massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 3>(), densCoeffScaled, 1.0, updatedGeo_);
       }
-      else
-      {
+      else {
         // complex mass integrator due to complex bloch stiffness matrix
-        if (do_bloch)
-        {
+        if ( do_bloch )  {
           if (dim_ == 2 && subType_ != "2.5d")
             massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 2>(), densCoeff, 1.0);
           else
             massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 3>(), densCoeff, 1.0);
         }
-        else
-        {
+        else {
           if (dim_ == 2 && subType_ != "2.5d")
             massInt = new BBInt<>(new IdentityOperator<FeH1, 2, 2>(), densCoeff, 1.0);
           else
@@ -2131,7 +2127,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 	Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
 	GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
 
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0) );
+    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0, nlType) );
+
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
