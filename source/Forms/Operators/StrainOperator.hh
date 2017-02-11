@@ -13,28 +13,6 @@ namespace CoupledField{
 
   public:
 
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 3; 
-    //@}
-
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
     StrainOperator2D( bool useICModes = false )
@@ -47,6 +25,8 @@ namespace CoupledField{
        :  BaseBOperator(other),
           useICModes_(other.useICModes_) {
     }
+
+
 
     //! \copydoc BaseBOperator::Clone()
     virtual StrainOperator2D * Clone(){
@@ -71,6 +51,29 @@ namespace CoupledField{
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
+
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 2;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 3;
+    //@}
 
     // ===============
     //  QUERY METHODS
@@ -205,28 +208,6 @@ namespace CoupledField{
 
   public:
 
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 4; 
-    //@}
-
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
     StrainOperatorAxi( bool useICModes = false )
@@ -245,7 +226,7 @@ namespace CoupledField{
     }
 
     //! Destructor
-    ~StrainOperatorAxi(){
+    virtual ~StrainOperatorAxi(){
 
     }
 
@@ -262,6 +243,28 @@ namespace CoupledField{
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 2;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 4;
+    //@}
 
     // ===============
     //  QUERY METHODS
@@ -432,6 +435,44 @@ namespace CoupledField{
 
   public:
 
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    StrainOperator3D( bool useICModes = false)
+    :  useICModes_(useICModes) {
+     this->name_ = "StrainOperator3D";
+    }
+
+    //! Copy constructor
+    StrainOperator3D(const StrainOperator3D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator3D * Clone(){
+      return new StrainOperator3D(*this);
+    }
+
+    //! Destructor
+    virtual ~StrainOperator3D(){
+
+    }
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                          const LocPointMapped& lp,
+                          BaseFE* ptFe );
+
+    //! Calculate transposed operator matrix
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                    const LocPointMapped& lp,
+                                    BaseFE* ptFe );
+
+    using BaseBOperator::CalcOpMat;
+
+    using BaseBOperator::CalcOpMatTransposed;
+
     // ------------------
     //  STATIC CONSTANTS
     // ------------------
@@ -453,44 +494,6 @@ namespace CoupledField{
     //! Dimension of the related material
     static const UInt DIM_D_MAT = 6;
     //@}
-
-    //! Constructor
-    //! \param useIcModes Use incompatible modes shape functions
-    StrainOperator3D( bool useICModes = false)
-    :  useICModes_(useICModes) {
-     this->name_ = "StrainOperator3D";
-    }
-
-    //! Copy constructor
-    StrainOperator3D(const StrainOperator3D & other)
-       : BaseBOperator(other),
-         useICModes_(other.useICModes_){
-      this->name_ = other.name_;
-    }
-
-    //! \copydoc BaseBOperator::Clone()
-    virtual StrainOperator3D * Clone(){
-      return new StrainOperator3D(*this);
-    }
-
-    //! Destructor
-    ~StrainOperator3D(){
-
-    }
-
-    //! Calculate operator matrix
-    virtual void CalcOpMat(Matrix<Double> & bMat,
-                          const LocPointMapped& lp,
-                          BaseFE* ptFe );
-
-    //! Calculate transposed operator matrix
-    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                    const LocPointMapped& lp,
-                                    BaseFE* ptFe );
-
-    using BaseBOperator::CalcOpMat;
-
-    using BaseBOperator::CalcOpMatTransposed;
 
     // ===============
     //  QUERY METHODS
@@ -681,7 +684,7 @@ namespace CoupledField{
     }
 
     //! Destructor
-    ~StrainOperator2p5D(){
+    virtual ~StrainOperator2p5D(){
 
     }
 
@@ -983,7 +986,7 @@ namespace CoupledField{
      }
 
      //! Destructor
-     ~StrainOperatorBloch3D(){ }
+     virtual ~StrainOperatorBloch3D(){ }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
@@ -2150,22 +2153,23 @@ namespace CoupledField{
            nlCoef_.Resize(4);
        }
 
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperator2D * Clone(){
+         return new NonLinStrainOperator2D(*this);
+       }
+
        //! Destructor
        virtual ~NonLinStrainOperator2D() {}
 
        //! Calculate operator matrix
-       virtual void CalcOpMat(Matrix<Double> & bMat,
+       void CalcOpMat(Matrix<Double> & bMat,
            const LocPointMapped& lp,
            BaseFE* ptFe );
 
        //! Calculate transposed operator matrix
-       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+       void CalcOpMatTransposed(Matrix<Double> & bMat,
            const LocPointMapped& lp,
            BaseFE* ptFe );
-
-       using BaseBOperator::CalcOpMat;
-
-       using BaseBOperator::CalcOpMatTransposed;
 
        //! Displacement CoefFunction
        shared_ptr< FeFunction<Double> > dispCoef_;
@@ -2185,9 +2189,6 @@ namespace CoupledField{
                                                    const LocPointMapped &lp,
                                                    BaseFE *ptFE)
    {
- //    std::cerr << "NonLinStrainOperator2D::CalcOpMat\n";
-     //    << "element " << lp.ptEl->elemNum << std::endl;
-     
      // get global derivatives of shape functions
      FE *fe = static_cast<FE*>(ptFE);
      fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
@@ -2195,7 +2196,6 @@ namespace CoupledField{
      
      // get displacement for all nodes of current element
      dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
- //    std::cerr << "element solution: " << elemDisp_.ToString() << std::endl;
      
      // compute nonlinear coefficients for strain tensor
      nlCoef_.Init();
@@ -2254,9 +2254,6 @@ namespace CoupledField{
        const LocPointMapped &lp,
        BaseFE *ptFE)
    {
- //    std::cerr << "NonLinStrainOperator2D::CalcOpMatTransposed\n";
-     //    << "element " << lp.ptEl->elemNum << std::endl;
-       
      // get global derivatives of shape functions
      FE *fe = static_cast<FE*>(ptFE);
      fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
@@ -2342,6 +2339,11 @@ namespace CoupledField{
            nlCoef_.Resize(5);
        }
 
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperatorAxi * Clone(){
+         return new NonLinStrainOperatorAxi(*this);
+       }
+
        //! Destructor
        virtual ~NonLinStrainOperatorAxi() {}
 
@@ -2354,10 +2356,6 @@ namespace CoupledField{
        virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
            const LocPointMapped& lp, 
            BaseFE* ptFe );
-
-       using BaseBOperator::CalcOpMat;
-
-       using BaseBOperator::CalcOpMatTransposed;
 
        //! Displacement CoefFunction
        shared_ptr< FeFunction<Double> > dispCoef_;
@@ -2389,17 +2387,17 @@ namespace CoupledField{
      fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
      
      // get global coordinates of integration point
-     if (lp.lp.coord.GetSize() == 0) {
+     if (ipCoord_.GetSize() == 0) {
        lp.shapeMap->Local2Global(ipCoord_, lp.lp);
      }
-     
+
      // get global derivatives of shape functions
      fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
      UInt numFncs = this->xiDx_.GetNumRows();
      
      // get displacement for all nodes of current element
      dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
-     
+
      // compute nonlinear coefficients for strain tensor
      nlCoef_.Init();
      
@@ -2425,7 +2423,7 @@ namespace CoupledField{
        nlCoef_[4] += shFncAtIp_[iFunc] * elemDisp_[iFunc*this->DIM_DOF  ];
      }
      nlCoef_[4] /= ipCoord_[0] * ipCoord_[0];
-     
+
      // compute nonlinear part of linear strain-displacement
      // transformation matrix B_L1
      bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
@@ -2468,7 +2466,7 @@ namespace CoupledField{
      fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
      
      // get global coordinates of integration point
-     if (lp.lp.coord.GetSize() == 0) {
+     if (ipCoord_.GetSize() == 0) {
        lp.shapeMap->Local2Global(ipCoord_, lp.lp);
      }
      
@@ -2559,6 +2557,11 @@ namespace CoupledField{
            nlCoef_.Resize(3, 3);
        }
 
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperator3D * Clone(){
+         return new NonLinStrainOperator3D(*this);
+       }
+
        //! Destructor
        virtual ~NonLinStrainOperator3D() {}
 
@@ -2572,10 +2575,6 @@ namespace CoupledField{
            const LocPointMapped& lp, 
            BaseFE* ptFe );
 
-       using BaseBOperator::CalcOpMat;
-
-       using BaseBOperator::CalcOpMatTransposed;
-
        //! Displacement CoefFunction
        shared_ptr< FeFunction<Double> > dispCoef_;
        
@@ -2587,12 +2586,6 @@ namespace CoupledField{
 
        //! Cached matrix for spatial derivatives
        Matrix<Double> xiDx_;
-       
-       //! Values of shape functions at integration point
-       Vector<Double> shFncAtIp_;
-       
-       //! Global coordinates of integration point
-       Vector<Double> ipCoord_;
    };
 
    template<class FE, class TYPE>
@@ -2608,7 +2601,7 @@ namespace CoupledField{
      
      // get displacement for all nodes of current element
      dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
-     
+
      // compute nonlinear coefficients for strain tensor
      nlCoef_.Init();
      

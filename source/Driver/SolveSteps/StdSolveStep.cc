@@ -234,16 +234,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       // =================================
       do {
         iterationCounter++;
+        std::cout << "Iter: " << iterationCounter << std::endl;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
+          //add linear right hand side
+          algsys_->InitRHS(RhsLinVal_);
 
           // if the RHS depends on the nonlinearity, we have to re-assemble it
           if( assemble_->IsRhsSolDependent()) {
-            algsys_->InitRHS();
-            SetLinRHS(loadFactor);
-          } else {
-            // set linear part of RHS
-            algsys_->InitRHS(RhsLinVal_);
+            assemble_->AssembleNonLinRHS();
           }
 
           // setup the matrices
@@ -279,6 +278,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         algsys_->GetSolutionVal( solInc, setIDBC );
 
 
+        //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" || iterationCounter == 1) {
@@ -290,14 +290,10 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           solVec_ = actSol;
 
           //=================compute residual norm
-
+          algsys_->InitRHS(RhsLinVal_);
           // if the RHS depends on the nonlinearity, we have to re-assemble it
           if( assemble_->IsRhsSolDependent()) {
-            algsys_->InitRHS();
-            SetLinRHS(loadFactor);
-          } else {
-            // set linear part of RHS
-            algsys_->InitRHS(RhsLinVal_);
+            assemble_->AssembleNonLinRHS();
           }
 
           // setup the matrices
@@ -649,14 +645,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         iterationCounter++;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
-          // if the RHS depends on the nonlinearity, we have to re-assemble it
-          if( assemble_->IsRhsSolDependent()) {
-            algsys_->InitRHS();
-            SetLinRHS(loadFactor);
-          } else {
-            // set linear part of RHS
-            algsys_->InitRHS(RhsLinVal_);
-          }
+        	//add linear right hand side
+        	algsys_->InitRHS(RhsLinVal_);
+
+        	// if the RHS depends on the nonlinearity, we have to re-assemble it
+        	if( assemble_->IsRhsSolDependent() ) {
+        		assemble_->AssembleNonLinRHS();
+        	}
 
           // setup the matrices
           isNewton = false;
@@ -725,18 +720,16 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           stageSol.Add(1.0, solInc);
           solVec_  = stageSol;
 
+          //=================compute residual norm
+          algsys_->InitRHS(RhsLinVal_);
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent()) {
+        	  assemble_->AssembleNonLinRHS();
+          }
+
           // setup the matrices with new solution
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
-
-          // if the RHS depends on the nonlinearity, we have to re-assemble it
-          if( assemble_->IsRhsSolDependent()) {
-            algsys_->InitRHS();
-            SetLinRHS(loadFactor);
-          } else {
-            // set linear part of RHS
-            algsys_->InitRHS(RhsLinVal_);
-          }
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -1931,12 +1924,14 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     Double RhsLinL2Norm;
 
-    // to incorporate loads+
-    if(nonlin){
-      assemble_->AssembleNonLinRHS();
-    } else {
-      assemble_->AssembleLinRHS();
-    }
+    //incorporate loads
+    assemble_->AssembleLinRHS();
+//    if(nonlin){
+//      assemble_->AssembleNonLinRHS();
+//    }
+//    else {
+//      assemble_->AssembleLinRHS();
+//    }
 
     //Set special RHS Values
     PDE_.SetRhsValues();
