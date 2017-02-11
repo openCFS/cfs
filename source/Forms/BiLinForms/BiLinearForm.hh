@@ -144,7 +144,9 @@ class BiLinearForm : public CfsCopyable{
       }
 
       //! \copydoc BiLinearForm::IsSolDependent
-      virtual void SetSolDependent() {;}
+      virtual void SetSolDependent(bool depend) {
+    	  isSolDependent_ = depend;
+      }
 
     protected:
 
@@ -159,6 +161,9 @@ class BiLinearForm : public CfsCopyable{
 
       //! is the (bi)linear part of the Newton tangential matrix
       bool isNewtonBilinearForm_;
+
+      //!depends on the solution
+      bool isSolDependent_;
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace1_;

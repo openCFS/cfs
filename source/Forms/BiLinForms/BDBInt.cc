@@ -41,6 +41,7 @@ namespace CoupledField{
       bOperator_ = bOp;
       dData_ = dData;
       factor_ = factor;
+      isSolDependent_ = dData->GetDependency() == CoefFunction::SOLUTION;
   }
 
   //! Destructor
@@ -97,7 +98,7 @@ namespace CoupledField{
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
-      
+
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());

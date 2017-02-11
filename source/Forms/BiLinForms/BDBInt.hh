@@ -247,7 +247,7 @@ public:
       
       //! \copydoc BiLinearForm::IsSolDependent
       virtual bool IsSolDependent() {
-        return dData_->GetDependency() == CoefFunction::SOLUTION;
+        return isSolDependent_;
       }
 
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {

@@ -372,12 +372,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // ====================================================================
       //  Standard Linear Stiffness
       // ====================================================================
-      if( !nonLin_ )
-      {
-        if (dampingList_[actRegion] == PML)
-        {
-          if (analysistype_ == HARMONIC)
-          {
+      if( !nonLin_ ) {
+        if (dampingList_[actRegion] == PML) {
+          if (analysistype_ == HARMONIC) {
             harmonicPML = true;
             std::string dampId;
             curRegNode->GetValue("dampingId", dampId);
@@ -455,7 +452,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         stiffInt->SetFeSpace( mySpace);
         
         BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
-        
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
         
@@ -470,110 +466,101 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
+        std::cout << "Add Lin BDB" << std::endl;
         
       }
       
       // ====================================================================
       //  Geometric Nonlinear Stiffness
       // ====================================================================
-      if ( nonLinTypes.Find(GEOMETRIC) != -1 ) {
-        BaseBDBInt *piolaInt = NULL, *nlBInt = NULL;
-        LinearForm *linRhsInt = NULL, *nlRhsInt = NULL;
-        
-        PtrCoefFct stiffCoeff;
-        if( isComplex ) {
-          stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
-        }
-        else {
-          stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
-        }
-        regionStiffness_[actRegion] = stiffCoeff;
-        
-        PtrCoefFct piolaTensor(
-            new CoefFunction2ndPiolaTensor(tensorType_, stiffCoeff, myFct));
-        
-        if (subType_ == "axi") {
-          nlBInt = new BDBInt<Double>(
-              new NonLinStrainOperatorAxi<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
-          piolaInt = new BDBInt<Double>(
-              new PiolaStressOperatorAxi<FeH1>(false), piolaTensor, 1.0, false);
-          linRhsInt = new BUIntegrator<Double>(
-              new StrainOperatorAxi<FeH1, Double>(false), -1.0, piolaTensor);
-          nlRhsInt = new BUIntegrator<Double>(
-              new NonLinStrainOperatorAxi<FeH1, Double>(myFct), -1.0, piolaTensor);
-        }
-        else if (subType_ == "planeStrain" || subType_ == "planeStress") {
-          nlBInt = new BDBInt<Double>(
-              new NonLinStrainOperator2D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
-          piolaInt = new BDBInt<Double>(
-              new PiolaStressOperator<FeH1, 2>(false), piolaTensor, 1.0, false);
-          linRhsInt = new BUIntegrator<Double>(
-              new StrainOperator2D<FeH1, Double>(false), -1.0, piolaTensor);
-          nlRhsInt = new BUIntegrator<Double>(
-              new NonLinStrainOperator2D<FeH1, Double>(myFct), -1.0, piolaTensor);
-        }
-        else if (subType_ =="3d") {
-          nlBInt = new BDBInt<Double>(
-              new NonLinStrainOperator3D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
-          piolaInt = new BDBInt<Double>(
-              new PiolaStressOperator<FeH1, 3>(false), piolaTensor, 1.0, false);
-          linRhsInt = new BUIntegrator<Double>(
-              new StrainOperator3D<FeH1, Double>(false), -1.0, piolaTensor);
-          nlRhsInt = new BUIntegrator<Double>(
-              new NonLinStrainOperator3D<FeH1, Double>(myFct), -1.0, piolaTensor);
-        }
-        else {
-          assert(false);
-        }
-        
-        nlBInt->SetNewtonBilinearForm();
-        piolaInt->SetNewtonBilinearForm();
-        
-        nlBInt->SetSolDependent();
-        piolaInt->SetSolDependent();
-        nlRhsInt->SetSolDependent();
-        
-        nlBInt->SetFeSpace(mySpace);
-        piolaInt->SetFeSpace(mySpace);
-        linRhsInt->SetFeSpace(mySpace);
-        nlRhsInt->SetFeSpace(mySpace);
-        
-        nlBInt->SetName("NonLinearStrainInt");
-        piolaInt->SetName("NonLinearPiolaInt");
-        linRhsInt->SetName("LinearInternalForceInt");
-        nlRhsInt->SetName("NonLinearInternalForceInt");
-        
-        BiLinFormContext *nlContext = new BiLinFormContext(nlBInt, STIFFNESS);
-        nlContext->SetEntities(actSDList, actSDList);
-        nlContext->SetFeFunctions(myFct, myFct);
-        assemble_->AddBiLinearForm(nlContext);
+      else if ( nonLinTypes.Find(GEOMETRIC) != -1 ) {
+    	  //nonlinear (overall) stiffness matrix
+    	  BaseBDBInt *nlBInt = NULL;
+    	  PtrCoefFct stiffCoeff;
+    	  if( isComplex ) {
+    		  stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+    	  }
+    	  else {
+    		  stiffCoeff = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
+    	  }
+    	  regionStiffness_[actRegion] = stiffCoeff;
 
-        //check for damping
-        if ( dampingList_[actRegion] == RAYLEIGH ) {
-          RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-          nlContext->SetSecDestMat(DAMPING, actDamp.beta );
-        }
-  
-        // Important: Add bdb-integrator to global list, as we need them later
-        // for calculation of postprocessing results.
-        bdbInts_[actRegion] = nlBInt;
+    	  if (subType_ == "axi") {
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperatorAxi<FeH1, Double>(myFct),
+    				  	                                            stiffCoeff, 1.0, false);
+    	  }
+    	  else if (subType_ == "planeStrain" || subType_ == "planeStress") {
+    		  std::cout << "Add NonLinStrainOperator2D" << std::endl;
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator2D<FeH1, Double>(myFct),
+    				  	  	  	  	  	  	                       stiffCoeff, 1.0, false);
+    	  }
+    	  else if (subType_ =="3d") {
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator3D<FeH1, Double>(myFct),
+    				                                               stiffCoeff, 1.0, false);
+    	  }
+    	  else {
+    		  assert(false);
+    	  }
+
+    	  nlBInt->SetSolDependent(true);
+          nlBInt->SetFeSpace(mySpace);
+          nlBInt->SetName("NonLinearStrainInt");
+
+          BiLinFormContext *nlContext = new BiLinFormContext(nlBInt, STIFFNESS);
+          nlContext->SetEntities(actSDList, actSDList);
+          nlContext->SetFeFunctions(myFct, myFct);
+          assemble_->AddBiLinearForm(nlContext);
+
+          //check for damping
+//          if ( dampingList_[actRegion] == RAYLEIGH ) {
+//        	  RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+//        	  nlContext->SetSecDestMat(DAMPING, actDamp.beta );
+//          }
+
+
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results.
+          bdbInts_[actRegion] = nlBInt;
+
+          if( nonLinMethod_ == NEWTON ) {
+        	  //here we define the tangent matrix
+        	  BaseBDBInt *piolaInt = NULL;
+
+        	  PtrCoefFct piolaTensor(new CoefFunction2ndPiolaTensor(tensorType_,
+        			                                                stiffCoeff, myFct));
         
-        BiLinFormContext *piolaContext = new BiLinFormContext(piolaInt, STIFFNESS);
-        piolaContext->SetEntities(actSDList, actSDList);
-        piolaContext->SetFeFunctions(myFct, myFct);
-        assemble_->AddBiLinearForm(piolaContext);
-        
-        LinearFormContext *linRhsContext = new LinearFormContext(linRhsInt);
-        linRhsContext->SetEntities(actSDList);
-        linRhsContext->SetFeFunction(myFct);
-        assemble_->AddLinearForm(linRhsContext);
-        
-        LinearFormContext *nlRhsContext = new LinearFormContext(nlRhsInt);
-        nlRhsContext->SetEntities(actSDList);
-        nlRhsContext->SetFeFunction(myFct);
-        assemble_->AddLinearForm(nlRhsContext);
+        	  if (subType_ == "axi") {
+        		  piolaInt = new BDBInt<Double>(new PiolaStressOperatorAxi<FeH1>(false),
+        				                        piolaTensor, 1.0, false);
+        	  }
+        	  else if (subType_ == "planeStrain" || subType_ == "planeStress") {
+        		  piolaInt = new BDBInt<Double>(new PiolaStressOperator<FeH1, 2>(false),
+        				                        piolaTensor, 1.0, false);
+        	  }
+        	  else if (subType_ =="3d") {
+        		  piolaInt = new BDBInt<Double>(new PiolaStressOperator<FeH1, 3>(false),
+        				  	                    piolaTensor, 1.0, false);
+        	  }
+        	  else {
+        		  assert(false);
+        	  }
+
+        	  //very important: ist the tangent stiffness matrix
+        	  piolaInt->SetNewtonBilinearForm();
+
+        	  piolaInt->SetSolDependent(true);
+        	  piolaInt->SetFeSpace(mySpace);
+        	  piolaInt->SetName("NonLinearPiolaInt");
+
+        	  BiLinFormContext *piolaContext = new BiLinFormContext(piolaInt, STIFFNESS);
+        	  piolaContext->SetEntities(actSDList, actSDList);
+        	  piolaContext->SetFeFunctions(myFct, myFct);
+        	  assemble_->AddBiLinearForm(piolaContext);
+          }
       }
 
+
+      //prestressing
       PtrParamNode preStressNode;
       PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
       if(bcNode){
