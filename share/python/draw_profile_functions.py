@@ -1129,7 +1129,7 @@ def generate_basecell(args,info,log):
 #     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
 #     plt.show()
 
-    fix_profile_intersection_gaps(end_nodes_1+end_nodes_2+end_nodes_3, cells)
+    fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
     
@@ -1843,7 +1843,7 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 1807 and b.id == 35:
+#   if a.id == 90 and b.id == 2970:
 #     return False
   
   if logger:
@@ -1913,16 +1913,30 @@ def dump_end_nodes(list):
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
 # in the neighborhood of the two edge vertices              
-def fix_profile_intersection_gaps(end_nodes,cells):
-  # start from x profile and 0 degree and take first end node you can find
-  nodes = [v for v in end_nodes if v.i == 0]
+def fix_profile_intersection_gaps(profiles,end_nodes,cells):
+  # find profiles with biggest radius
+  start_dir = 0
+  start_radius = 0
+  for p in profiles:
+    if p.radius_left > start_radius:
+      start_dir = p.direction
+      start_radius = p.radius_left
+  
+  # save all valid created triangles
+  # we need to store it to make sure no triangle is defined more than once
+  triangles_history = []    
+  # start from profile with biggest radius
+  nodes = [v for v in end_nodes if v.dir == start_dir]
+  if logger:
+    for n in nodes:
+      logger.write(str(n) + "\n")
   assert(nodes)
   tree = build_tree(end_nodes)
   for n in nodes:
     start_node = n
     
     next = give_next_neighbor_in_other_profile(tree,start_node,end_nodes)
-  
+    
 #     other_cands = give_next_n_end_nodes(start_node,this_end_nodes+other_end_nodes,10)
 #     other = other_cands[1]
     if logger:
@@ -1930,8 +1944,12 @@ def fix_profile_intersection_gaps(end_nodes,cells):
       logger.write("start: " + str(start_node.id) + " " + str(start_node.coords) + "\n")
       logger.write("next: " + str(next.id) + " " + str(next.coords) + "\n")
       logger.flush()
-    start_triangulation(start_node,next,end_nodes,tree,cells)  
-    break
+      
+    if not start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells):
+      print("skip " + str(n.id) + "\n")
+    else:
+      print("started triangulation with " + str(n.id) + "\n")
+        
 # generate points on the bounding circle (left and right) of a profile
 # radius is the current radius of a circle where we already have the boundary points
 # step is the step size we use to reduce the radius 
@@ -2068,17 +2086,31 @@ def list_contains_end_nodes(list,node):
 # all three nodes must be of type End_Node
 # next_node is on same 'circle/direction' as start_node
 # other_node is on other 'circle/direction' as start_node
-def start_triangulation(start,next,end_nodes,tree,cells):
+# @param history: list of triangles that we don't want to modify anymore,
+# need this list to make sure no triangle is defined more than once
+# @param start: starting node
+# @param next: node that lies on other profile than start
+# @param end_nodes: list with all end_nodes
+# @param kd-tree: needed for neigborhood search
+# @param cells: vtk list storing all valid triangles
+def start_triangulation(history,start,next,end_nodes,tree,cells):
   triangles = [] # saves all triangles found by marching
   initial_edge = [start,next]
   
   other_cands = give_next_end_nodes_in_ball(tree, start, end_nodes)
   other = give_best_next_neighbor(triangles,other_cands,start,next,100)
   
+  # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
+  for tri in history:
+    if tri.is_triangle(start,next,other):
+      logger.write("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
+      logger.flush()
+      return False
+
   assert(other is not None)
   
   if logger: 
-    logger.write("\nstarting with " + str(start.id) + " dir = " + str(start.dir) + " other_dir= " + str(next.dir) + "\n")
+#     logger.write("\nstarting with " + str(start.id) + " dir = " + str(start.dir) + " other_dir= " + str(next.dir) + "\n")
     logger.write("other: " + str(other) + "\n")
 
   add_good_triangle(triangles, start, next, [], other)
@@ -2104,12 +2136,15 @@ def start_triangulation(start,next,end_nodes,tree,cells):
       edge = triangles[-1].edge
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         if logger:
-          logger.write("filled \n")
+          logger.write("filled \n\n")
         end = True
       # else: simply check next triangle    
+  
   for triangle in triangles:
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+  
+  history += triangles
     
 def read_vtk(filename):
   reader = vtk.vtkXMLPolyDataReader()
@@ -2176,9 +2211,6 @@ def calc_radius_heaviside(funcs,phi,x,rad):
   assert(calc_tanh(beta, eta, 0) >= 0)
   c = 1.0 / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
   a = - c * calc_tanh(beta, eta, 0)
-#   print(beta,eta)
-#   print(a,c)
-#   sys.exit()
   if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
     print(a+c*calc_tanh(beta, eta, 0))
   assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
@@ -2215,13 +2247,17 @@ def build_tree(end_nodes):
 # are all three vertices of a triangle already connected in other triangkes
 def vertices_already_connected(triangles,vertices):
 #   # if one/two of the vertices form the very first edge, make an exception
-#   if (len(triangles) > 1):
-#     first_edge = triangles[0].edge
-#     if vertices[0] in first_edge or vertices[1] in first_edge:
-#       return False
+  if (len(triangles) > 10):
+    first_verts = triangles[0].vertices
+    first_edge = triangles[0].edge
+    other_edge = [v for v in first_verts if v != first_edge[1]]
+    assert(len(other_edge) == 2)
+    
+    if vertices[0] in other_edge or vertices[1] in other_edge or vertices[2] in other_edge:
+      return False
   
   # skip first triangle, so that we are able to close the triangulation 
-  if vertex_alrerady_connected(triangles[1:],vertices[0]) and vertex_alrerady_connected(triangles[1:],vertices[1]) and vertex_alrerady_connected(triangles[1:],vertices[2]):
+  if vertex_alrerady_connected(triangles,vertices[0]) and vertex_alrerady_connected(triangles,vertices[1]) and vertex_alrerady_connected(triangles,vertices[2]):
     return True
   else:
     return False
@@ -2231,6 +2267,8 @@ def vertex_alrerady_connected(triangles,end_node):
   for tri in triangles:
     for v in tri.vertices:
       if end_node == v:
+#         if logger:
+#           logger.write("node " + str(end_node.id) + " already connected with " + str(tri.vertices[0]) + "," + str(tri.vertices[1]) + "," + str(tri.vertices[2]) + "\n")
         return True
   
   # if not match found
