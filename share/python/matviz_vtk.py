@@ -1,5 +1,5 @@
 import vtk
-from vtk.util.colors import *
+#from vtk.util.colors import *
 from numpy import *
 from matviz_rot import *
 import scipy.interpolate as ip 

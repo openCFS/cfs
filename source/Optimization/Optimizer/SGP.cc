@@ -349,7 +349,7 @@ void SGP::SolveProblem()
         } else if (configuration == FOMO) {
           obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppeni,theta_outer,1.);
         } else if (configuration == FMO) {
-          obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppen_vol,1.);
+          obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppeni,1.);
         } else {
           throw "SGP configuration not known!";
         }
@@ -362,7 +362,7 @@ void SGP::SolveProblem()
 
         // Create output for bisection iterations
         if (volume > 0) {
-          output_str += " volume: "+std::to_string(volume/(n_elem*ppeni)) + " ppeni: "+ std::to_string(ppeni);
+          output_str += " volume: "+std::to_string(volume/(ppeni)) + " ppeni: "+ std::to_string(ppeni);
         } else if (volume_observe > 0) {
           output_str += " volume: "+std::to_string(volume_observe);
         }
@@ -377,10 +377,10 @@ void SGP::SolveProblem()
 
         // Update strategy for penalty term of volume constraint
         if(penal_vol && volume > 0) {
-          if (abs(volume/(n_elem*ppeni)-volume_bound) < volume_tolerance) {
+          if (abs(volume/(ppeni)-volume_bound) < volume_tolerance) {
             penal_vol = false;
           } else {
-            if (volume/(n_elem*ppeni)-volume_bound > 0) {
+            if (volume/(ppeni)-volume_bound > 0) {
               pmini = ppeni;
               ppeni = 0.5 * (pmaxi + ppeni);
             } else {
@@ -474,7 +474,7 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
         {
           //int ind = k*obj->outer_grad.GetSize() + i;
           obj_right += ppen_filt * constr_val[k];
-        } else if (configuration == FMO && constr[k]->GetType() == Condition::VOLUME) {
+        } else if ((configuration == FMO || configuration == FOMO) && constr[k]->GetType() == Condition::VOLUME) {
           obj_right += ppen_vol * constr_val[k] * n_elem;
         }
       }
@@ -488,7 +488,7 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
         if (constr[k]->GetType() == Condition::FILTERING_GAP)
         {
           obj_left += ppen_filt * constr_val[k];
-        } else if (configuration == FMO && constr[k]->GetType() == Condition::VOLUME) {
+        } else if ((configuration == FMO || configuration == FOMO) && constr[k]->GetType() == Condition::VOLUME) {
           obj_left += ppen_vol * constr_val[k] * n_elem;
         }
       }
@@ -518,7 +518,7 @@ void SGP::UpdateToCurrentStep(bool inner)
 
     optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
     EvalGradObjective(n, x_outer.GetPointer(), true, obj->outer_grad);
-    LOG_DBG3(sgp) << "FP:UTCP obj=" << obj->ToString() << " compliance=" << compliance << " grad=" << obj->outer_grad.ToString();
+    LOG_DBG3(sgp) << "FP:UTCP obj=" << obj->ToString() << " compliance=" << compliance << " compliance_grad=" << obj->outer_grad.ToString();
   }
 
   // Update constraints and constraint gradients
@@ -548,7 +548,7 @@ void SGP::UpdateToCurrentStep(bool inner)
           EvalGradConstraint(g, 0, true, true, volume_grad);
           if (!constr[i]->IsObservation()) {
             for (unsigned int j=0; j < obj->outer_grad.GetSize(); j++) {
-              obj->outer_grad[j] += ppen_vol * volume_grad[j] * n_elem;
+              obj->outer_grad[j] += ppen_vol * volume_grad[j];// * n_elem;
             }
           }
         }
@@ -574,7 +574,7 @@ void SGP::UpdateToCurrentStep(bool inner)
     // Add non-physical constraint to merit functions
     if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL) {
       if (!constr[i]->IsObservation()) {
-        volume = ppen_vol * constr[i]->GetValue()*n_elem;
+        volume = ppen_vol * constr[i]->GetValue(); //*n_elem;
       } else {
         volume_observe = constr[i]->GetValue();
         volume = 0.;
@@ -743,14 +743,14 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
   Vector<double> p(2);
   //designMaterial->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
   if (!only_update_outer) {
-    if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP) {
-      dens = space->FindDesign(DesignElement::DENSITY);
+    if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP || configuration == FOMO) {
       rot = space->FindDesign(DesignElement::ROTANGLE);
+      if (configuration == FOMO_TOP)
+        dens = space->FindDesign(DesignElement::DENSITY);
     } else if (configuration == STIFF1_STIFF2) {
       s1 = space->FindDesign(DesignElement::STIFF1);
       s2 = space->FindDesign(DesignElement::STIFF2);
       rot = space->FindDesign(DesignElement::ROTANGLE);
-
     }
   }
   unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
@@ -793,13 +793,6 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
     } else if (configuration == FMO) {
       E_outer[i] = E_inner[i];
     }
-
-//    x_outer[mech11*n_elem+i] = E_outer[i][0][0];
-//    x_outer[mech12*n_elem+i] = E_outer[i][0][1];
-//    x_outer[mech13*n_elem+i] = E_outer[i][0][2];
-//    x_outer[mech22*n_elem+i] = E_outer[i][1][1];
-//    x_outer[mech23*n_elem+i] = E_outer[i][1][2];
-//    x_outer[mech33*n_elem+i] = E_outer[i][2][2];
     LOG_DBG3(sgp) << "A:E_outer["<< i << "]= "<< E_outer[i].ToString();
   }
   // write tensor to design in order to apply filter
@@ -1314,7 +1307,7 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector
     rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
     rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
 
-    result =  1./(Vloc - L[0][0] - L[1][1] - L[2][2]) * (ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(Vloc-rho1-rho2))+ ppen * Vloc;
+    result =  1./(Vloc - L[0][0] - L[1][1] - L[2][2]) * (ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(Vloc-rho1-rho2));//+ ppen * Vloc;
     break;
   }
   default:
