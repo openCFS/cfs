@@ -49,13 +49,16 @@ bool OutputFilter::Run(){
     (*srcIter)->Run();
   }
 
-  // Filter Start value offset
+/*  // Filter Start value offset
   //determine global step value map
   PtrParamNode stepNode = params_->GetParent()->Get("stepValueDefinition");
   UInt start = 1;
   if(stepNode->Has("startStop")){
     start = stepNode->Get("startStop")->Get("startStep")->Get("value")->As<UInt>();
-  }
+    if(aStepIter_->first == start){
+      std::cout<<aStepIter_->first<<std::endl;
+    }
+  }*/
 
   //lets write results if they are valid
   rIter = upResIds.Begin();
@@ -67,7 +70,7 @@ bool OutputFilter::Run(){
         StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
         CF::StdVector<UInt> eqnVec;
 
-        outFile_->BeginStep(aStepIter_->first + start,aStepIter_->second);
+        outFile_->BeginStep(aStepIter_->first,aStepIter_->second);
 
         if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
           Vector<Complex> & fullVec = resultManager_->GetResultVector<Complex>(*rIter,eqnVec);
