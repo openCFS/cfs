@@ -35,7 +35,7 @@
                 <xsd:sequence>
                   <xsd:element name="startStep">
                     <xsd:complexType>
-                      <xsd:attribute name="value" type="xsd:int" use="required"/>
+                      <xsd:attribute name="value" type="xsd:int" default="1"/>
                     </xsd:complexType>
                   </xsd:element>
                   <xsd:element name="numSteps">
