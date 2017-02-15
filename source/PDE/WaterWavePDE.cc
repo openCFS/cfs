@@ -447,25 +447,17 @@ namespace CoupledField{
 
   void WaterWavePDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(waterWavepde) << "Defining rhs load integrators for WaterWave PDE";
-    
     // Get FESpace and FeFunction of mechanical displacement
     shared_ptr<BaseFeFunction> myFct = feFunctions_[WATER_PRESSURE];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
     StdVector<std::string> empty;
     LinearForm * lin = NULL;
 
     // obtain density
-//    shared_ptr<CoefFunctionMulti> densFct  = matCoefs_[ELEM_DENSITY];
-//    shared_ptr<CoefFunctionSurf> surfDens(new CoefFunctionSurf(false));
-//    surfDens->SetVolumeCoefs( densFct->GetRegionCoefs() );
     PtrCoefFct surfDens = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
-    // In the case of acou-mech coupling we have to multiply the
-    // integrators by -densiy
-    Double scalFactor = 1.0;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
     bool coefUpdateGeo;
@@ -473,34 +465,54 @@ namespace CoupledField{
     // ===========================
     //  general surface load
     // ===========================
-    ReadRhsExcitation( "surfaceLoad", empty, ResultInfo::SCALAR, isComplex_,
-                       ent, coef,coefUpdateGeo );
-
+    StdVector<std::string> volumeRegions;
+    ReadRhsExcitation( "surfaceLoad", empty, ResultInfo::SCALAR, isComplex_, ent, coef,coefUpdateGeo,volumeRegions);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-
+      LOG_TRACE(waterWavepde) << "  surface region number "<< i+1;
       // ensure that list contains only surface elements
       EntityIterator it = ent[i]->GetIterator();
-      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-      if( elemDim != (dim_-1) ) {
-        EXCEPTION("surfaceLoad can only be defined on surface elements");
+      for ( it.Begin(); !it.IsEnd(); it++)  {
+          // check dimension
+          UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+          if( elemDim != (dim_-1) ) {
+              EXCEPTION("surfaceLoad can only be defined on surface elements");
+          }
+          //TODO: one should get the bounding volume element for each surface element and get the transform from there!
       }
-
       PtrCoefFct exValue;
-      if ( isMechCoupled_ == true ) {
-        scalFactor = -1.0;
-        exValue =
-            CoefFunction::Generate( mp_, part,
-                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
-      } else {
-        exValue = coef[i];
+      // check for volume region, if defined get transorm
+      std::string volRegName = volumeRegions[i];
+      PtrCoefFct mapFact;
+      if (!(volRegName=="")) {
+          LOG_TRACE(waterWavepde) << "  -> volume region: '"<< volRegName <<"'";
+          RegionIdType actRegion = ptGrid_->GetRegionId(volRegName);
+          // if we have a transform defined on the region we need to use scaled operators
+          if(transformFctList_[actRegion]){
+              PtrCoefFct mapFact = transformFctList_[actRegion]->first;
+              LOG_TRACE(waterWavepde) << "  -> volumeRegion has transform";
+              if (mapFact->IsComplex() && coef[i]->IsComplex()) { // PML
+                  LOG_TRACE(waterWavepde) << "  -> complex";
+                  exValue = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, coef[i], mapFact, CoefXpr::OP_MULT ) );
+              } else { // MAPPING
+                  LOG_TRACE(waterWavepde) << "  -> real";
+                  exValue = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, coef[i], mapFact, CoefXpr::OP_MULT ) );
+              }
+          }
+          else {
+              EXCEPTION("volumeRegion has no transform defined");
+          }
       }
+      else {
+          exValue = coef[i]; //mapFact = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      }
+      // define integrators
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
-                                                scalFactor, exValue, volRegions, coefUpdateGeo);
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
-                                               scalFactor, exValue, volRegions, coefUpdateGeo);
+                                               1.0, exValue, volRegions, coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
@@ -511,14 +523,14 @@ namespace CoupledField{
                                                1.0, exValue , volRegions, coefUpdateGeo);
         }
       }
-
       lin->SetName("SurfaceLoadIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
-    } // general surface load
+    }
+
 
     // =====================================
     //  rhsValues
