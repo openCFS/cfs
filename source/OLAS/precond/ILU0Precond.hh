@@ -38,13 +38,6 @@ namespace CoupledField {
     using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Apply;
     using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Setup;
 
-    //!
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-    //!
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-    //!
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     //! Constructor (for use in GenerateStdPrecondObject)
     ILU0Precond( const StdMatrix &mat, PtrParamNode precondNode,
 		 PtrParamNode olasInfo );
@@ -98,7 +91,7 @@ namespace CoupledField {
     UInt dim_;
     
     //! nonzero entries
-    T_Mtype *ilu_data_;
+    T *ilu_data_;
     
     //! row pointer
     UInt *ilu_rptr_;

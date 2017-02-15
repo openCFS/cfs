@@ -2128,8 +2128,8 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
     # TUHH cell optimization
     mesh = create_mesh_for_aux_cells(nodes,elem,offset)
   elif type == "lufo_bracket":
-    print 'len support '+str(len(supports))
-    print ' len forces '+str(len(forces))
+    print('len support '+str(len(supports)))
+    print(' len forces '+str(len(forces)))
     mesh = create_mesh_for_lufo_bracket(meshfile,nodes,elem,offset,forces,[], supports)
   else:
     print("Error: No correct type was selected! options: apod6, cell_opt, lufo_bracket")

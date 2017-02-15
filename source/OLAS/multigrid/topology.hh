@@ -41,14 +41,6 @@ template <typename T>
 class Topology
 {
     public:
-
-        //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename AssocType<T>::T_Mtype T_Mtype;
-        //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename AssocType<T>::T_Vtype T_Vtype;
-        //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename AssocType<T>::T_Stype T_Stype;
-
         //! enumeration constants for the array <code>CoarseIndex_</code>.
         //! <b>Note</b> that <code>CoarseIndex_</code> does not contain the
         //! constant <code>COARSE</code> for coarse nodes, but their index

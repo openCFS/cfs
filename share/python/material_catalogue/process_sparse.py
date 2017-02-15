@@ -12,7 +12,7 @@ for i in range(steps+1):
   for j in range(steps+1):
     if i == 0 and j == 0:
       continue
-    print 'process_image.py --sparsemesh ' + str(i)+ '-'+str(j)+'.mesh' + ' --threshold 1e-8 --rhomin 1e-8 --densfile ' + str(i)+ '-'+str(j)+'_msfem.dens.xml ' + str(i)+ '-'+str(j)+'_msfem0_x.h5'
+    print('process_image.py --sparsemesh ' + str(i)+ '-'+str(j)+'.mesh' + ' --threshold 1e-8 --rhomin 1e-8 --densfile ' + str(i)+ '-'+str(j)+'_msfem.dens.xml ' + str(i)+ '-'+str(j)+'_msfem0_x.h5')
     #os.system('process_image.py --sparsemesh ' + str(i)+ '-'+str(j)+'.mesh' + ' --threshold 1e-8 --rhomin 1e-8 --densfile '+ str(i)+ '-'+str(j)+'_msfem.dens.xml '+ str(i)+ '-'+str(j)+'_msfem0_x.h5')
 # write jobfile
 jobfile = open(args.output, "w")

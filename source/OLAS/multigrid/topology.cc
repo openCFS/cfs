@@ -194,7 +194,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // pointers for direct matrix access
     const Integer *const pRow = matrix.GetRowPointer();
     const Integer *const pCol = matrix.GetColPointer();
-    const T_Mtype *const pDat = matrix.GetDataPointer();
+    const T *const pDat = matrix.GetDataPointer();
 
     /////////////////////////////////
     // prepare some data structures
@@ -249,7 +249,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
             Error( "matrix is singular", __FILE__, __LINE__ );
         }
         // get diagonal entry
-        T_Mtype diag       = pDat[pRow[i]],
+        T diag       = pDat[pRow[i]],
                 maxOffdiag = 0, // maximal offdiagonal entry (abs. value)
                 sumOffdiag = 0, // sum of offdiagonal entries (abs. values)
                 Aij        = 0; // an arbitrary temporary matrix entry

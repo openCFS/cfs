@@ -3,6 +3,7 @@
 #include "OLAS/algsys/IDBC_Handler.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <boost/type_traits/is_complex.hpp>
 
 DECLARE_LOG(idbcElim)
 DEFINE_LOG(idbcElim, "idbcElim")
@@ -80,16 +81,7 @@ namespace CoupledField {
     // ----------------------------------------------------
 
     // Determine entry type from template parameter
-    BaseMatrix::EntryType eType = BaseMatrix::NOENTRYTYPE;
-    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
-      eType = BaseMatrix::DOUBLE;
-    }
-    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
-      eType = BaseMatrix::COMPLEX;
-    }
-    else {
-      EXCEPTION( "Internal template error! No swearing please!" );
-    }
+    BaseMatrix::EntryType eType = boost::is_complex<T>() ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE;
 
     // SBMMATRIX case:
     SBM_Matrix *sbmMat = NULL;

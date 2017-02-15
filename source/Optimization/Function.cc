@@ -2457,8 +2457,8 @@ double Function::Local::Identifier::CalcSlope() const {
 
 
 double Function::Local::Identifier::CalcOverhang(const Local* local) const {
-  double a1 = GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
-  double w1 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
+  // double a1 = GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
+  // double w1 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
 
   double mine = element->GetDesign(DesignElement::SMART);
   assert(this->neighbor.GetSize() == 1);
