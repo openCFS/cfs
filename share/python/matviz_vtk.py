@@ -927,3 +927,14 @@ def calc_cross_elem_vol_3D(s1,s2,s3):
     else:
       vol += 0.
   return vol/len(s1[:,0])
+
+# writes polydata to file in STL format
+# @param save filename or none
+def write_stl(polydata,save=None):
+  stlWriter =  vtk.vtkSTLWriter()
+  fName = save if save else 'surface.stl'
+  stlWriter.SetFileName(fName)
+  stlWriter.SetInputData(polydata)
+  stlWriter.Write()
+  
+  print("saved polydata to file " + fName)  
