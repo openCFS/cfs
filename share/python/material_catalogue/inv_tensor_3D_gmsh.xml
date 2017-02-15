@@ -4,7 +4,6 @@
 
 <fileFormats>
     <output>
-      <gid directory="." />
       <hdf5 directory="." />
     </output>
     <materialData file="mat.xml" format="xml"/>

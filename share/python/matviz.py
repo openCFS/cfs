@@ -5,7 +5,6 @@ from matviz_2d  import *
 from matviz_streamline import *
 from hdf5_tools import *
 from mesh_tool import *
-from two_scale_tools import *
 import argparse
 import sys
 import os

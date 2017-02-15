@@ -15,7 +15,6 @@ SET(MATVEC_SRCS
     CRS_Matrix.cc
     Diag_Matrix.cc
     SCRS_Matrix.cc
-    TypeDefs.cc
     Vector.cc
     VBR_Matrix.cc
     Matrix.cc
