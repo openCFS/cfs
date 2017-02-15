@@ -32,15 +32,6 @@ namespace CoupledField {
     using BNPrecond<SSORPrecond<T>,CRS_Matrix<T>,T>::Apply;
     using BNPrecond<SSORPrecond<T>,CRS_Matrix<T>,T>::Setup;
 
-    //! Typename of matrix entries (=T)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-
-    //! Tiny vector of the same dimension as matrix block
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-
-    //! Scalar of the same primitive data type as matrix
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     //! Matrix class associated with this preconditioner
     typedef CRS_Matrix<T> MyMatrixClass;
 
@@ -100,7 +91,7 @@ namespace CoupledField {
     };
  
     //! Array containing inverses of diagonal entries of system matrix
-    T_Mtype *diagInv_;
+    T *diagInv_;
 
     //! Number of unknowns in linear system
 

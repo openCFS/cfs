@@ -564,28 +564,6 @@ template<typename T> class ElemStoreSol;
 
     //@}
 
-    // =======================================================================
-    // MISCELLANEOUS METHODS
-    // =======================================================================
-
-    //! \name Miscellaneous methods
-    //@{
-
-    //! Query tag for matrix entries compatible with vector
-    std::string GetTagM() {
-      return AssocType<T>::tagM;
-    }
-
-    //! Query tag for vector entries compatible with vector
-    std::string GetTagV() {
-      return AssocType<T>::tagV;
-    }
-
-    //! Query tag for scalar entries compatible with vector
-    std::string GetTagS() {
-      return AssocType<T>::tagS;
-    }
-
   protected:
 
     //! 0-based array storing the vector entries.

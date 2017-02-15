@@ -54,7 +54,7 @@ namespace CoupledField {
 
     UInt i;
     UInt j;
-    T_Vtype sum;
+    T sum;
 
     // Query relaxation parameter
     Double omega = 1.7;
