@@ -359,6 +359,15 @@ namespace CoupledField
       regionNames[i] = regionData[i].name;
   }
 
+  RegionIdType Grid::GetRegionId(const std::string name ){
+      for(UInt i = 0; i < regionData.GetSize(); i++) {
+          if(regionData[i].name == name) {
+              return regionData[i].id;
+          }
+      }
+      EXCEPTION( "No Region found with name '" << name << "'" ) ;
+      return -1;
+  }
 
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
     volRegions = volRegionIds_;
