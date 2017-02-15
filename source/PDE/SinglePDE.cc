@@ -2436,6 +2436,29 @@ namespace CoupledField {
     } // loop: elements
   }
 
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  bool isComplex,
+                                  StdVector<shared_ptr<EntityList> >& entities,
+                                  StdVector<PtrCoefFct>& coef,
+                                  bool& updateGeo,
+                                  StdVector<std::string>& volumeRegions){
+      // get nodes
+      ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+
+      // read the Volume Region from each node
+      volumeRegions.Resize(elems.GetSize());
+      for( UInt i = 0; i < elems.GetSize(); ++i ) {
+          PtrParamNode xml = elems[i];
+          std::string volRegName;
+          xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
+          volumeRegions[i] = volRegName;
+      }
+      // read the rest
+      ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
+  }
+
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
                                        PtrParamNode valueNode,
                                        const StdVector<std::string>& compNames,

@@ -161,6 +161,15 @@ namespace CoupledField
                             bool& updateGeo,
                             PtrParamNode input = PtrParamNode());
 
+    void ReadRhsExcitation( const std::string& elemName,
+                                const StdVector<std::string>& compNames,
+                                ResultInfo::EntryType type,
+                                bool isComplex,
+                                StdVector<shared_ptr<EntityList> >& entities,
+                                StdVector<PtrCoefFct>& coef,
+                                bool& updateGeo,
+                                StdVector<std::string>& volumeRegions);
+
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
