@@ -1323,6 +1323,7 @@ def triangle_contains_any_node(vertices):
       if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
         if logger:
           logger.write("line through node " + str(n[1]) + " intersects  with triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")\n")
+          logger.write("k: " + str(sol[0]) + " l:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]) +"\n")
         return True    
   
   return False
@@ -1749,6 +1750,9 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
       continue
     if triangle_contains_any_node([node,vert1,vert2]):
       continue
+    # make sure that we don't duplicate connections
+    if node.id in vert1.connections or node.id in vert2.connections:
+      continue
     # if all three nodes are already connected to other triangles
     if vertices_already_connected(triangles,[vert1,vert2,node]):
       if logger:
@@ -1820,14 +1824,20 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
   return False  
 
 def add_good_triangle(triangles, a, b, next_cands, next):
+  # add connections
+  a.connections.add(next.id)
+  b.connections.add(next.id)
+  next.connections.add(a.id)
+  next.connections.add(b.id)
+  
 # decide whether a or b is member based on triangle ratios
 # and not profile directions as a.dir might be equal b.dir
   edge_0 = a if a.dir != next.dir else b
   alternatives = [v for v in next_cands if v.id != next.id]
-  logger.write("next:" + str(next.id) + "\n")
   triangles.append(Marching_Triangle([a, b, next], edge_0, next, alternatives))
   if logger:
     best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
+    logger.write("next:" + str(next.id) + "\n")
     logger.write("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio) + "\n")
     logger.write("number of triangles: " + str(len(triangles)) + "\n")
     logger.write("alternatives: ")
@@ -1885,6 +1895,9 @@ def pop_triangles(triangles):
       logger.write("remove triangle: " + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + "\n")
     triangles.pop()
     
+    # update connections 
+    update_connections(triangles, vertices)
+    
   if len(triangles) == 1:
     return False
   vertices = triangles[-1].vertices
@@ -1940,13 +1953,17 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
 #     other_cands = give_next_n_end_nodes(start_node,this_end_nodes+other_end_nodes,10)
 #     other = other_cands[1]
     if logger:
-      logger.write("starting with " + str(start_node.id) + "," + str(next.id) + "\n")
+      logger.write("\nstarting with " + str(start_node.id) + "," + str(next.id) + "\n")
       logger.write("start: " + str(start_node.id) + " " + str(start_node.coords) + "\n")
       logger.write("next: " + str(next.id) + " " + str(next.coords) + "\n")
       logger.flush()
       
     if not start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells):
       print("skip " + str(n.id) + "\n")
+      logger.write("skip " + str(n.id) + "\n")
+      print("size of history: " + str(len(triangles_history)))
+#       if n.id == 1172:
+#         return
     else:
       print("started triangulation with " + str(n.id) + "\n")
         
@@ -2102,7 +2119,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
-    if tri.is_triangle(start,next,other):
+    if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other)):
       logger.write("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
       logger.flush()
       return False
@@ -2131,6 +2148,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
+      if logger:
+        logger.write("increased quality_bound to" + str(quality_bound) + "\n")
       print("increased quality_bound to",quality_bound)
     else:
       edge = triangles[-1].edge
@@ -2145,7 +2164,9 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
   
   history += triangles
-    
+  
+  # 
+  return True  
 def read_vtk(filename):
   reader = vtk.vtkXMLPolyDataReader()
   reader.SetFileName(filename)
@@ -2272,4 +2293,21 @@ def vertex_alrerady_connected(triangles,end_node):
         return True
   
   # if not match found
-  return False      
+  return False
+
+# remove connections to vertices (array with 2 nodes ids)
+def update_connections(triangles,vertices):
+  vertices[0].connections = set([v for v in vertices[0].connections if not (v==vertices[1].id or v==vertices[2].id)])
+  vertices[1].connections = set([v for v in vertices[1].connections if not (v==vertices[0].id or v==vertices[2].id)])
+  vertices[2].connections = set([v for v in vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id)])
+  
+#   print "removed connection from ", vertices[0].id, " to ", vertices[1].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[1].id, " to ", vertices[0].id, " and ", vertices[2].id
+#   print "removed connection from ", vertices[2].id, " to ", vertices[0].id, " and ", vertices[1].id
+#   
+  # remove connections to previous triangle vertices
+  triangles[-1].edge[0].connections = set([v for v in triangles[-1].edge[0].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].edge[1].connections = set([v for v in triangles[-1].edge[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[0].connections = set([v for v in triangles[-1].vertices[0].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[1].connections = set([v for v in triangles[-1].vertices[1].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])
+  triangles[-1].vertices[2].connections = set([v for v in triangles[-1].vertices[2].connections if not (v==vertices[0].id or v==vertices[1].id or v==vertices[2].id)])      
