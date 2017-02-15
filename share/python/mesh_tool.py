@@ -13,7 +13,6 @@ import scipy.spatial
 #from matviz_vtk import *
 
 
-
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
 
@@ -215,7 +214,7 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
   bt_counter = min(bottom_c,top_c)
   bf_counter = min(back_c,front_c)
   
-#   print "left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c 
+  print("left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c) 
   
   left_c = 0
   right_c = 0
@@ -244,7 +243,7 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
       front.append(i)
       front_c +=1 
       
-#  print "left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c    
+  print("left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c)    
   
   mesh.bc = []
   #add boundary nodes    
@@ -494,7 +493,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
-      print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
+#       print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
       if map[dnn[n]] != -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
@@ -1105,37 +1104,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
 
-#   mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
-#   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
-# 
-#   side = (("bottom", []))
-#   mesh.bc.append(side)
-#   for z in range(0, nnz):
-#     for x in range(0, nnx):
-#       side[1].append((z * nny) * nnx + x)
-# 
-#   side = (("top", []))
-#   mesh.bc.append(side)
-#   for z in range(0, nnz):
-#     for x in range(0, nnx):
-#       side[1].append((z * nny + ny) * nnx + x)
-# 
-#   
-#   # back and front as it appears with paraview
-#   mesh.bc.append(("back", range(0, (nx + 1) * (ny + 1))))
-#   mesh.bc.append(("front", range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1))))
-# 
-# 
-#   mesh.bc.append(("left_bottom_back", [0]))
-#   mesh.bc.append(("right_bottom_back", [nx]))
-#   mesh.bc.append(("left_top_back", [nnx * ny]))
-#   mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-#   mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-#   mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-#   mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-#   mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
-  mesh = name_bc_nodes(mesh)
-  
   if type == "validation_test":
     # create four support pins on bottom face
     side = (("support", []))
@@ -1628,7 +1596,7 @@ def create_mesh_from_gmsh(meshfile,type):
       num_node = int(item[0])
     #add nodes
     elif count > 5 and count <= num_node + 5:
-      nodes.append([int(item[0]),float(item[1]),float(item[2]),float(item[3])])
+      nodes.append([float(item[1]),float(item[2]),float(item[3])])
     elif count > num_node + 5 and count <= num_node + 7:
       #skip lines
       count += 1 
@@ -1669,7 +1637,7 @@ def create_mesh_from_gmsh(meshfile,type):
   if type == "apod6":
     mesh = create_mesh_for_apod6(meshfile,nodes,elem)
   elif type == "aux_cells" or type == "base_cell":
-    mesh = create_mesh_for_aux_cells(meshfile,nodes,elem)
+    mesh = create_mesh_for_aux_cells(meshfile,nodes,elem,1)
   else:
     print("Error: No correct type was selected! options: apod6, aux_cells")
   write_gid_mesh(mesh, meshfile+".mesh") 
@@ -2196,7 +2164,7 @@ def voxelize_mesh_from_optistruct(filename,res):
   
   meshNew = convert_to_sparse_mesh(meshNew)
   
-  add_nodes_for_periodic_bc(meshNew)
+  meshNew = add_nodes_for_periodic_bc(meshNew)
   
   validate_periodicity(meshNew)
   
@@ -2565,7 +2533,6 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
   # create_mesh
   mesh = Mesh()
   mesh.nodes = all_nodes
-
   
   min_diam_x = 1000000. 
   min_diam_y = 1000000. 
@@ -2579,11 +2546,12 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
       count = 0
       for k in range (len(e.nodes)):
         # determine the min_diam and max_diam of an element  
-        if count + 1 == len(e.nodes):
+        if count + 1 >= len(e.nodes):
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[0]][1]))
           min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[0]][2]))
         else:
+          assert(count + 1 < len(e.nodes))
           min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[count+1]][0]))
           min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[count+1]][1]))
           min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[count+1]][2]))
@@ -2597,7 +2565,7 @@ def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = [],offset = 0
       elif len(e.nodes) == 8:
         e.type = HEXA8
       mesh.elements.append(e)
-  
+      
   mesh = convert_to_sparse_mesh(mesh)
   
   mi_x, mi_y, mi_z, ma_x, ma_y, ma_z = calc_min_max_coords(mesh)
@@ -2635,10 +2603,10 @@ def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,
       for x in range(nx):
         e = Element()
         e.type = HEXA8
-        if (array[x][y][z] > 0.0 and not singRegion):
+        if (array[x][y][z] >= 0.0 and not singRegion):
           e.region = "mech" + str(int(array[x][y][z]))
           count += 1
-        elif (array[x][y][z] > 0.0 and singRegion):
+        elif (array[x][y][z] >= 0.0 and singRegion):
           e.region = "mech"
           count += 1
         else:
@@ -2647,8 +2615,9 @@ def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,
         ll = nnx*nny*z + nnx*y + x
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
         mesh.elements.append(e)
-    
-  mesh = name_bc_nodes(mesh)
+  
+  mesh = convert_to_sparse_mesh(mesh)  
+  mesh = add_nodes_for_periodic_bc(mesh)
   
   return mesh
 
