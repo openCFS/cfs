@@ -1,10 +1,7 @@
 #!/usr/bin/python
 import platform
-if platform.system() == 'Darwin':
-  from PIL import Image, ImageDraw
-else:
-  import Image, ImageDraw
-import libxml2
+from PIL import Image, ImageDraw
+import lxml
 import sys, bz2, os
 from scipy import ndimage
 import numpy as np
@@ -281,12 +278,14 @@ if dim == 2:
   else:
     outfile = str(folder) + '/jobs'
     print("computing with " + str(steps) + " steps!")
-    os.mkdir(str(folder) + "/")
+    if not os.path.exists(str(folder) + ''):
+      os.mkdir(str(folder) + "/")
     os.system('cp mat.xml ' + str(folder) + '/')
 if dim == 3:
   outfile = str(folder) + '/jobs'
   print("computing with " + str(steps) + " steps!")
-  os.mkdir(str(folder) + '')
+  if not os.path.exists(str(folder) + ''):
+    os.mkdir(str(folder) + '')
   os.system('cp mat.xml ' + str(folder) + '/')
   
 print(outfile)
@@ -371,9 +370,8 @@ if dim == 2:
         # creating cfs .xml files for msfem cell problems using triangle 2D elements
         if args.triangle_msfem:
           # create xml file for cfs
-          doc = libxml2.parseFile("triangle_msfem.xml")
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+          doc = lxml.etree.parse("triangle_msfem.xml", lxml.etree.XMLParser(remove_comments=True))
+          #err  = doc.xpath("//orthotropy/@err")[0] 
           val = []
           for i in range(6):
             val.append("0.")
@@ -392,20 +390,20 @@ if dim == 2:
             val[index2] = func[index]
             if i % 2 == 0:
               # degree of freedom x
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
             else:
               # degree of fredom y
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
             val[index1] = "0."
             val[index2] = "0."
             if i % 2 != 0:
@@ -418,7 +416,7 @@ if dim == 2:
             if i % 2 == 0:         
               doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
-	          doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
@@ -432,9 +430,7 @@ if dim == 2:
         else:
           # MSFEM for 2D quadrileteral elements 
           # create xml file for cfs solving MSFEM cell problems
-          doc = libxml2.parseFile("compliance_plain.xml")
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+          doc = lxml.etree.parse("compliance_plain.xml", lxml.etree.XMLParser(remove_comments=True))
           val = []
           for i in range(8):
             val.append("0.")
@@ -454,24 +450,24 @@ if dim == 2:
             val[index2] = func[index]
             if i % 2 == 0:
               # degree of freedom x
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', val[3])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', val[3])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', str(0.))
             else:
               # degree of fredom y
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', val[3])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', val[3])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', str(0.))
             val[index1] = "0."
             val[index2] = "0."
             if i % 2 != 0:
@@ -484,7 +480,7 @@ if dim == 2:
             if i % 2 == 0:         
               doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
-	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             # sparse is not working currently
             if args.sparse_msfem:
               mesh = str(x) + "-" + str(y) + '.mesh'
@@ -725,10 +721,8 @@ elif dim == 3:
           os.system('cp inv_tensor_3D.xml ' + str(folder) + '/' + problem + '.xml')
           file = str(folder) + '/' + problem + '.xml'
           if os.path.isfile(file):      
-            doc = libxml2.parseFile(file)
-            xml = doc.xpathNewContext()
-            xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
-            replace(xml, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
+            doc = lxml.etree.parse(file, lxml.etree.XMLParser(remove_comments=True))
+            replace(doc, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
             doc.saveFile(file)
         else:
           if args.gmsh:             
