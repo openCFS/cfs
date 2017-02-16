@@ -72,6 +72,9 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
    // if ApplyPhysicalDesign() returns true, coefMat is already set
    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), coefMat, &lpm))
      orgMat->GetTensor(coefMat, lpm);
+   //if (coefMat.GetNumCols() > 0) {
+     //assert(design->TestTensorPosDef<T>(coefMat, &lpm , shared_from_this()->GetMaterialDerivative()));
+   //}
    break;
  case ORG:
    orgMat->GetTensor(coefMat, lpm);

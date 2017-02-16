@@ -5,6 +5,8 @@ from matviz_vtk import *
 from matviz_unstructured_mesh import *
 from matviz_2d  import *
 from matviz_streamline import *
+from hdf5_tools import *
+from mesh_tool import *
 import argparse
 import sys
 import os
