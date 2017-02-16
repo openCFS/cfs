@@ -734,7 +734,19 @@ elif dim == 3:
             os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
             jobfile.write('cfs.rel ' + problem + ' \n')
           elif args.shape == "ortho_bc":
-            # Starte Ngocs Skript zur Mesh Erzeugung
+            os.system('cp inv_tensor_3D_ortho_bc.xml ' + str(folder) + '/' + problem + '.xml')
+            # basecell script can only handle values 0< x < 1, therefore change x,y,z appropriately
+            x1 = x
+            y1 = y
+            z1 = z
+            x1 = 1e-5*steps if x == 0 else x1
+            y1 = 1e-5*steps if y == 0 else y1
+            z1 = 1e-5*steps if z == 0 else z1
+            x1 = 0.9999*steps if x == steps else x1
+            y1 = 0.9999*steps if y == steps else y1
+            z1 = 0.9999*steps if z == steps else z1 
+            #print("x1 = "+str(x1) + ", x1_cell = "+ str(float(x1)/float(steps)))
+            os.system("../basecell.py --res "+str(args.res)+" --x1 "+str(float(x1)/float(steps))+" --y1 " +str(float(y1)/float(steps))+ " --z1 "+str(float(z1)/float(steps))+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --bend 0.5 --save "+str(folder) + "/"+problem)
             jobfile.write('cfs.rel ' + problem + ' \n')
         print(problem + ' is done')
         if args.design:
