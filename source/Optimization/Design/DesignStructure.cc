@@ -305,7 +305,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
 
-
   timer->Stop();
 }
 
