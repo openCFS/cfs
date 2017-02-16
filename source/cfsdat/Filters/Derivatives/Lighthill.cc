@@ -25,31 +25,38 @@
 namespace CFSDat{
 
 Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-:MeshFilter(numWorkers,config,resMan){
+:AeroacousticBase(numWorkers,config,resMan){
 
 #ifndef USE_CGAL
     EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif
 
   this->filtStreamType_ = FIFO_FILTER;
-  inDim_ = 0;
+
 
     std::cout<<("============================================================ \n"
-        "Make sure you set the ''density='' in the xml-scheme correctly, \n"
-        "otherwise it is chosen to be 1.0 !! \n"
-        "============================================================")<<std::endl;
+                "Make sure you set the ''density='' in the xml-scheme correctly, \n"
+                "otherwise it is chosen to be 1.0 !! \n"
+                "============================================================")<<std::endl;
 
     density_ = config->Get("scheme")->Get("density")->As<Double>();
 
+    // ( LambVectorLighthill || LighthillSourceVector || LighthillSourceTerm )
     Form_ = config->Get("type")->As<std::string>();
+
+    data_.dim = trgGrid_->GetDim();
+
+    if(data_.dim == 3) EXCEPTION("SourceTerm-implementation for 3D not yet finished  !!!")
+
 
     if(config->Get("ResultList")->Get("vorticity")->Has("resultName") == false){
        std::cout<<"Vorticity is computed by CFSDat...Curl(u)"<<std::endl;
        externVorticity_ = false;
+       data_.externVorticity = false;
      }else{
        externVorticity_ = true;
+       data_.externVorticity = true;
      }
-
 
     std::string outRes = params_->Get("ResultList")->Get("outputQuantity")->Get("resultName")->As<std::string>();
     filtResNames.insert(outRes);
@@ -87,10 +94,11 @@ bool Lighthill::Run(){
 
   Double aTF = resultManager_->GetStepValue(filterResIds[0]);
 
+
   resultManager_->SetTimeValue(upResIds[0],aTF);
   resultManager_->ActivateResult(upResIds[0]);
 
-
+  // Activate extern vorticity-input, if provided
   if(externVorticity_ == true){
     resultManager_->SetTimeValue(upResIds[1],aTF);
     resultManager_->ActivateResult(upResIds[1]);
@@ -104,139 +112,68 @@ bool Lighthill::Run(){
   }
 
 
+  //**************************** Setup-Phase **********************************
+
+
+  // upMap stores the equation-information of the INPUT-DATA on the entities defined in
+  // AdaptFilterResults(). Since our convention is to provide the filter with node results, the equations are
+  // defined on nodes and the dimension is 2 for 2D and 3 for 3D
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upResIds[0])->mapping;
+
+  // downMap stores the equation-information of the OUTPUT-DATA on the entities defined in
+  // AdaptFilterResults(), this means:
+  //! -) AeroacousticSource_LambVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
+  //!    -) externVorticity == true: NODE-RESULTS
+  //!    -) externVorticity == false: ELEMENT-RESULTS
+  //! -) AeroacousticSource_LighthillSourceVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
+  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
+  //! -) AeroacousticSource_LighthillSourceTerm (only 2D yet): physically it's a scalar but due to the
+  //!                                                          result-managing it is vector valued with the scalar
+  //!                                                          quantity in x-direction. to extract it and get a real
+  //!                                                          scalar value, use the filter PostLighthillSourceTerm
+  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+
+
   CF::StdVector<UInt> eqnNums;
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the wanted quantity
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   returnVec.Init();
 
   // vector, containing the source data values
   // We can have two inputs... velocity and vorticity BUT we assume that both are defined on the same mesh !!
-  Vector<Double>& inVecVelocity = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-//std::cout<<"inVecVelocity1"<<inVecVelocity<<std::endl;
+  data_.U = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
 
-  Vector<Double> inVecVorticity;
-  if(externVorticity_ == true){
-    Vector<Double>& vort = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
-    inVecVorticity = vort;
-//std::cout<<"inVecVorticity"<<vort<<std::endl;
+
+  UInt dim = data_.dim;
+  if( dim == 2 && data_.U.GetSize() != dim  * sourceCoords_.GetSize()){
+    // 2D case
+    std::cout<<"Length of velocity-input vector:"<<data_.U.GetSize()<<"\t Length of sourceCoords:"<<sourceCoords_.GetSize()<<std::endl;
+    EXCEPTION("Velocity input result vector is probably not 2D, at least it another length than number of source coordinates times dimension");
+  }
+  if( dim == 2 && data_.U.GetSize() != dim * sourceCoords_.GetSize()){
+    //3D case
+    std::cout<<"Length of velocity-input vector:"<<data_.U.GetSize()<<"\t Length of sourceCoords:"<<sourceCoords_.GetSize()<<std::endl;
+    EXCEPTION("Velocity input result vector is probably not 3D, at least it another length than number of source coordinates times dimension");
   }
 
-  UInt dim;
-  // get the dimension
-  if(inVecVelocity.GetSize() == sourceCoords_.GetSize()){
-    dim=1;
-    }else{
-          if(inVecVelocity.GetSize() == 2 * sourceCoords_.GetSize()){
-            dim=2;
-           }else{
-              if(inVecVelocity.GetSize() == 3 * sourceCoords_.GetSize()){
-                dim=3;
-              }else{
-                EXCEPTION("Incorrect Input Data!")
-              }
-          }
-    }
+
+  //**************************** Specialization-Phase **********************************
+  Vector<Double> tempRetVec;
+  if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
+  if(Form_ == "AeroacousticSource_LighthillSourceVector"){LighthillSourceVector(tempRetVec);}
+  if(Form_ == "AeroacousticSource_LighthillSourceTerm"){LighthillSourceTerm(tempRetVec, upMap);}
 
 
-
-  /**********************************************************
-   * Lighthill-source terms to be computed:
-   * Div(Grad(1/2 u*u)) + rho * Div(Curl(u) x u)
-   * in our case we collect the terms the following way:
-   * Div{Grad(1/2 u*u) + rho * (Curl(u) x u)}
-   * in this filter we compute everything but the divergence
-   * therefore the elemResult output must be interpolated to nodes
-   * and then we can apply the divergence filter to obtain the final
-   * source-terms
-   ***********************************************************/
-
-  /**********************************************************
-   * Check if the whole Lighthill source or only the Lamb-vector
-   * has to be computed
-   ***********************************************************/
-  Vector<Double> GradOfScalar;
-  if(Form_ == "AeroacousticSource_Lighthill"){
-  //Grad(1/2 u*u)
-  CalcGradUScalarU(GradOfScalar, inVecVelocity);
-  GradOfScalar.ScalarMult(0.5);
-  }
-
-  // Vorticity
-  Vector<Double> CurlU;
-  if( externVorticity_ == false){
-    //Curl(u)
-    CalcCurlU(CurlU, inVecVelocity);
-  }
-  else{
-    //BRING inVecVorticity in the same form as CurlU
-    CurlU.Resize(3 * sourceCoords_.GetSize(), 0.0);
-    switch(dim){
-    case 1:
-      EXCEPTION("Curl of a scalar field?");
-      break;
-    case 2:
-      // here we get a "scalar"-valued result from a CFD simulation and have to bring it in vector-form
-      // only z-components of the vector will be filled
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        //CurlU[2 * i]      = 0.0;       // x-component
-        //CurlU[2 * i + 1]  = 0.0;   // y-component
-        CurlU[3 * i + 2]  = inVecVorticity[i];   // z-component
-       }
-      break;
-    case 3:
-      EXCEPTION("Not yet implemented");
-      break;
-    }
-  }
-
-  // *************** to be adapted *********************
-  //u in inVecVelocity is defined on nodes but when multiplying it
-  //to differentiated results (which are elemResults) we
-  //need to restrict them to elem centroids
-  Vector<Double> interpolateU;
-  if (Form_ == "AeroacousticSource_LambVector" && externVorticity_ == true){
-    //BRING inVecVorticity in the same form as interpolateU
-    interpolateU.Resize(3 * sourceCoords_.GetSize(), 0.0);
-    switch(dim){
-    case 1:
-      EXCEPTION("Curl of a scalar field?");
-      break;
-    case 2:
-      // here we get a "scalar"-valued result from a CFD simulation and have to bring it in vector-form
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        interpolateU[3 * i]      = inVecVelocity[ 2 * i]; //inVecVelocity is 2D   // x-component
-        interpolateU[3 * i + 1]  = inVecVelocity[ 2 * i +1];   // y-component
-        interpolateU[3 * i + 2]  = 0.0;   // z-component
-       }
-      break;
-    case 3:
-      EXCEPTION("Not yet implemented");
-      break;
-    }
-
+  // Check if the temporary result vector tempResVec has the same/correct size as the
+  // provided returnVec
+  if(tempRetVec.GetSize() != returnVec.GetSize()){
+    std::cout<<"size of computed result-vector:"<<tempRetVec.GetSize()<<std::endl;
+    std::cout<<"size of provided result-vector:"<<returnVec.GetSize()<<std::endl;
+    EXCEPTION("Size of computed result-vector does not coincide with the provided result-vector ... this should not happen ... indicates an implementation-error!");
   }else{
-    EXCEPTION("this will we adapted soon")
-    //InterpolationNodeToCenter(interpolateU, inVecVelocity);
+    returnVec = tempRetVec;
   }
-
-
-  //Curl(u) x u
-  Vector<Double> OmegaCrossU;
-  OmegaVectorProductU(CurlU, interpolateU, OmegaCrossU);
-
-
-  if(Form_ != "AeroacousticSource_LambVector"){
-  //adding all up
-  returnVec = GradOfScalar+OmegaCrossU*density_;
-  }else{
-    returnVec = OmegaCrossU * density_;
-  }
-//std::cout<<interpolateU<<std::endl;
-//std::cout<<interpolateU.GetSize()<<std::endl;
-//std::cout<<CurlU<<std::endl;
-//std::cout<<CurlU.GetSize()<<std::endl;
-//std::cout<<returnVec<<std::endl;
-//std::cout<<returnVec.GetSize()<<std::endl;
 
   // Check filter mesh and output values
   if(true){
@@ -264,637 +201,232 @@ bool Lighthill::Run(){
 
 
 
+void Lighthill::LambVector(Vector<Double>& tempRetVec){
+  // Remember the output is defined on:
+  // -) NODE if an extern vorticity is provided
+  // -) ELEMENT if no extern vorticity is provided
+  // This means every downMap with filterResIds[0] gives you equations for
+  // nodes/elements and VECTOR-values!!!
 
-/*
-void Lighthill::FillScatteredDataVec(CF::StdVector< CF::Vector<Double> >& scatteredData,
-                                     CF::Vector<Double>& vec,
-                                     const Vector<Double>& inVec){
+  // fill scatteredData vector
+  CF::StdVector< Vector<Double> >  scatteredData;
+  Vector<Double> vec; //neglect vec, not used here
+  UInt t; //neglect dimension output, we have our own
+  scatteredData.Resize(derivDataNode_.size());
+  FillScatteredDataVec(scatteredData, vec, data_.U, sourceCoords_, t);
+  data_.scatteredData = scatteredData;
 
 
+  /**********************************************************
+   * To be computed:
+   * rho * (Curl(u) x u)
+   ***********************************************************/
 
-  // because of the input of CGAL
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVec.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    inDim_=0;
-    vec.Resize(1);
-    for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-      scatteredData[i].Resize(1);
-      scatteredData[i][0] = inVec[i];
-     }
+  // Term 2: rho * (Curl(u) x u)
+  Vector<Double> OmegaCrossU;
+  if( externVorticity_ == false){
+    // Calculate the curl internally
+    // here we have to use the derivative data of the element centroids derivDataElem_
+    tempRetVec.Resize(data_.dim * derivDataElem_.size());
+    Vector<Double> CurlU;
+    if(data_.dim == 2){
+      CalcCurlU_2D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
     }else{
-          if(inVec.GetSize() == 2 * sourceCoords_.GetSize()){
-            //case of two dimensional vector
-            inDim_=1;
-            vec.Resize(2);
-            for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-            scatteredData[i].Resize(2);
-            scatteredData[i][0] = inVec[2 * i]; // x-component
-            scatteredData[i][1] = inVec[2 * i + 1]; // y-component
-            }
-          }else{
-              if(inVec.GetSize() == 3 * sourceCoords_.GetSize()){
-                // case of three dimensional vector
-                inDim_=2;
-                vec.Resize(3);
-                for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-                scatteredData[i].Resize(3);
-                scatteredData[i][0] = inVec[3 * i]; // x-component
-                scatteredData[i][1] = inVec[3 * i + 1]; // y-component
-                scatteredData[i][2] = inVec[3 * i + 2]; // z-component
-                }
-              }else{
-                EXCEPTION("Incorrect Input Data!")
-              }
-          }
+      CalcCurlU_3D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
     }
 
+    // since the curlU is now defined on element centroids, we also have
+    // to restrict the velocity to element centroids (data_.Uelem)
+    data_.Uelem.Resize(data_.dim * derivDataElem_.size());
+    Node2Cell(data_.Uelem, filterResIds[0], data_.U, derivDataElem_);
 
-}
-*/
+    data_.Om = CurlU;
 
-
-
-void Lighthill::OmegaVectorProductU(const Vector<Double> Omega,
-                            const Vector<Double> U,
-                            Vector<Double>& retVec){
-
-  CF::StdVector< CF::Vector<Double> >  OmegaData;
-  OmegaData.Resize(derivData_.size());
-
-  CF::StdVector< CF::Vector<Double> >  UData;
-  UData.Resize(derivData_.size());
-
-  CF::StdVector< CF::Vector<Double> >  OmegaCrossU;
-  OmegaCrossU.Resize(derivData_.size());
-
-  retVec.Resize(3*derivData_.size());
-  retVec.Init();
-
-  // case of three dimensional vector
-  for(UInt i = 0; i < derivData_.size(); ++i){
-    OmegaData[i].Resize(3);
-    OmegaData[i][0] = Omega[3 * i]; // x-component
-    OmegaData[i][1] = Omega[3 * i + 1]; // y-component
-    OmegaData[i][2] = Omega[3 * i + 2]; // z-component
-    UData[i].Resize(3);
-    UData[i][0] = U[3 * i]; // x-component
-    UData[i][1] = U[3 * i + 1]; // y-component
-    UData[i][2] = U[3 * i + 2]; // z-component
-  }
-
-  //now we compute the cross product
-  for(UInt i = 0; i < derivData_.size(); ++i){
-    OmegaCrossU[i].Resize(3);
-    OmegaCrossU[i][0] = OmegaData[i][1] * UData[i][2] - OmegaData[i][2] * UData[i][1];
-    OmegaCrossU[i][1] = OmegaData[i][2] * UData[i][0] - OmegaData[i][0] * UData[i][2];
-    OmegaCrossU[i][2] = OmegaData[i][0] * UData[i][1] - OmegaData[i][1] * UData[i][0];
-  }
-
-  //bring in such a returnVec-form (x1,y1,z1,x2,y2,z2,...)
-  for (UInt i = 0; i < derivData_.size(); ++i){
-    retVec[3 * i] = OmegaCrossU[i][0];
-    retVec[3 * i + 1] = OmegaCrossU[i][1];
-    retVec[3 * i + 2] = OmegaCrossU[i][2];
-  }
-
-}
-
-
-
-void Lighthill::CalcGradUScalarU(Vector<Double>& retVec,
-                                  const Vector<Double> inVecVelocity){
-
-
-  //resize retVec to number of element-centroids of target
-  retVec.Resize(3.0 * derivData_.size());
-  retVec.Init();
-
-  // actually this is the gradient vector, but Matrix class has to be used, for matrix-vector product
-  CF::Matrix<Double> vec;
-  vec.Resize(3);
-  vec.Init();
-
-  // Now we want to get the gradient of u*u
-  // but first of all we need the scalar value u*u
-
-  // vector which we fill with the source values (scattered data values), in order to
-  // perform a nearest neighbour search
-  CF::StdVector< CF::Vector<Double> >  scatteredData;
-  scatteredData.Resize(sourceCoords_.GetSize());
-  if(inVecVelocity.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    EXCEPTION("not a vector value")
+    OmegaVectorProductU_2D(data_, derivDataElem_, OmegaCrossU);
   }else{
-    if(inVecVelocity.GetSize() == 2 * sourceCoords_.GetSize()){
-      //case of two dimensional vector
-      inDim_=0;
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        scatteredData[i].Resize(1);
-        scatteredData[i][0] = inVecVelocity[2 * i]*inVecVelocity[2 * i] + inVecVelocity[2 * i + 1]*inVecVelocity[2 * i + 1];
-      }
-    }else{
-      if(inVecVelocity.GetSize() == 3 * sourceCoords_.GetSize()){
-        // case of three dimensional vector
-        inDim_=0;
-        for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-          scatteredData[i].Resize(1);
-          scatteredData[i][0] = inVecVelocity[3 * i]*inVecVelocity[3 * i] + inVecVelocity[3 * i + 1]*inVecVelocity[3 * i + 1] + inVecVelocity[3 * i + 2]*inVecVelocity[3 * i + 2];
-        }
-      }else{
-        EXCEPTION("Inconsistency between input data and source coordinates!")
-      }
-    }
+    // use the provided vorticity
+    tempRetVec.Resize(data_.dim * derivDataNode_.size());
+    CF::StdVector<UInt> eqnNums;
+    data_.Om = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+    OmegaVectorProductU_2D(data_, derivDataNode_, OmegaCrossU);
   }
 
-  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-  KNNSearch Tree;
-  Tree.ReadScatteredData_Lighthill(sourceCoords_, inDim_, trgGrid_, scatteredData);
-
-  // nr. of nearest neighbours for the nodal RBF basis functions
-  UInt numNN = (trgGrid_->GetDim() == 2) ? 4 : 8 ;
-
-  // coordinate list of nearest neighbour points
-  CF::StdVector< Vector<Double> > neighbors;
-
-  // distances according to every nearest neighbour point
-  CF::StdVector< Double > l2dists;
-
-  // vector containing the values of each nearest neighbour point
-  CF::StdVector< Vector<Double> > vectors;
-
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
-  // loop over all elements
-  for(UInt i = 0; i < derivData_.size();++i){
-
-    DifferentiationStruct& aStru = derivData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
-
-    //get the global coordinates of element centroid
-    CF::Vector<Double> globalCoord;
-    trgGrid_->GetElemCentroid(globalCoord, curE->elemNum , false);
-
-    // at that point we can start obtaining the nearest neighbours for every aNode
-    Tree.KNN_CGAL_Differentiation(globalCoord, neighbors, l2dists, vectors, numNN);
-
-    // concerning radius factor alpha: we want to scale min(l2dists)/alpha~=1.5e-03
-    // this means alpha = min(l2dists) * 1.5e+03
-    // the first entry of l2dists is zero, if target and source node coincide, then we
-    // simply take the next entry, which must be != 0
-    Double alpha;
-    if( l2dists[0] == 0.0 ){
-      alpha = l2dists[1] * 1.5e+03;
-    }else{
-      alpha = l2dists[0] * 1.5e+03;
-    }
-
-    // build the local RBF interpolation matrix, based on the nearest neighbour source points
-    // build the local interpolation-value vector and solve the system ALoc*c=vector for
-    // the local RBF coefficients c
-    CalcLocGradDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
-
-    CF::StdVector<UInt> eqns;
-    //get the equation map for the nodes in eConn, in order to insert the
-    //interpolation in the correct position in the result vector
-    downMap->GetEquation(eqns,curE->elemNum,ExtendedResultInfo::ELEMENT);
-
-    //if scalar input values of scattered data->inDim_=0
-    //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-    for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
-      retVec[eqns[aDof]] = vec[0][aDof];
-    }
-  }//for all elements
+  tempRetVec = OmegaCrossU * density_;
 }
 
 
 
-void Lighthill::CalcCurlU(Vector<Double>& retVec,
-                         const Vector<Double> inVecVelocity){
 
-  //resize retVec to number of nodes of target
-  retVec.Resize(3.0 * derivData_.size());
-  retVec.Init();
+void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
+  // Remember the output is defined on ELEMENT and is VECTOR-valued!!
+  // This means every downMap with filterResIds[0] gives you equations for
+  // elements and VECTOR-values!!!
 
-  // vector which will be filled with the source values (scattered data values), in order to
-  // perform a nearest neighbour search
-  CF::StdVector< CF::Vector<Double> >  scatteredData;
-  scatteredData.Resize(sourceCoords_.GetSize());
+  tempRetVec.Resize(data_.dim * derivDataElem_.size()); //defined on elements
 
-  // actually this is the curl vector of the curl-operator, but Matrix class has to be used, for matrix-vector product
-  CF::Matrix<Double> vec;
-  vec.Resize(3);
 
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL and FLANN
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVecVelocity.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    EXCEPTION("Curl of a scalar field!");
+  // fill scatteredData vector
+  CF::StdVector< Vector<Double> >  scatteredData;
+  Vector<Double> vec; //neglect vec, not used here
+  UInt t; //neglect dimension output, we have our own
+  scatteredData.Resize(derivDataNode_.size());
+  FillScatteredDataVec(scatteredData, vec, data_.U, sourceCoords_, t);
+  data_.scatteredData = scatteredData;
+
+
+  /**********************************************************
+   * To be computed:
+   * Grad(1/2 u*u)  + rho * (Curl(u) x u)
+   * ### Term 1 ### + ##### Term 2  #####
+   ***********************************************************/
+
+  // Term 1: Grad(1/2 u*u)
+  Vector<Double> GradOfScalar;
+  CalcGradUScalarU(GradOfScalar, data_, derivDataElem_, sourceCoords_, filterResIds[0]);
+  GradOfScalar.ScalarMult(0.5);
+
+  // Term 2: rho * (Curl(u) x u)
+  Vector<Double> OmegaCrossU;
+  if( externVorticity_ == false){
+    // Calculate the curl internally
+    // here we have to use the derivative data of the element centroids derivDataElem_
+    Vector<Double> CurlU;
+    if(data_.dim == 2){
+      CalcCurlU_2D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
+    }else{
+      CalcCurlU_3D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
+    }
+
+    // since the curlU is now defined on element centroids, we also have
+    // to restrict the velocity to element centroids (data_.Uelem)
+    data_.Uelem.Resize(data_.dim * derivDataElem_.size());
+    Node2Cell(data_.Uelem, filterResIds[0], data_.U, derivDataElem_);
+
+    data_.Om = CurlU;
+
+    OmegaVectorProductU_2D(data_, derivDataElem_, OmegaCrossU);
   }else{
-    if(inVecVelocity.GetSize() == 2 * sourceCoords_.GetSize()){
-      //case of two dimensional vector
-      inDim_=1;
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        scatteredData[i].Resize(2);
-        scatteredData[i][0] = inVecVelocity[2 * i]; // x-component
-        scatteredData[i][1] = inVecVelocity[2 * i + 1]; // y-component
-        scatteredData[i][1] = 0.0;   // empty z-component
-      }
-    }else{
-      if(inVecVelocity.GetSize() == 3 * sourceCoords_.GetSize()){
-        // case of three dimensional vector
-        inDim_=2;
-        for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-          scatteredData[i].Resize(3);
-          scatteredData[i][0] = inVecVelocity[3 * i]; // x-component
-          scatteredData[i][1] = inVecVelocity[3 * i + 1]; // y-component
-          scatteredData[i][2] = inVecVelocity[3 * i + 2]; // z-component
-        }
-      }else{
-        EXCEPTION("Incorrect Input Data!")
-      }
-    }
+    // use the provided vorticity
+    CF::StdVector<UInt> eqnNums;
+    data_.Om = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+    OmegaVectorProductU_2D(data_, derivDataNode_, OmegaCrossU);
   }
 
-  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-  KNNSearch Tree;
-  Tree.ReadScatteredData_Lighthill(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
-  // nr. of nearest neighbours for the nodal RBF basis functions
-  UInt numNN = (trgGrid_->GetDim() == 2) ? 4 : 8 ;
-
-  // coordinate list of nearest neighbour points
-  CF::StdVector< Vector<Double> > neighbors;
-
-  // distances according to every nearest neighbour point
-  CF::StdVector< Double > l2dists;
-
-  // vector containing the values of each nearest neighbour point
-  CF::StdVector< Vector<Double> > vectors;
-
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
-
-  // loop over all elements and over every node of each element
-  for(UInt i = 0; i < derivData_.size();++i){
-    DifferentiationStruct& aStru = derivData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
-
-    //get the global coordinates of element centroid
-    CF::Vector<Double> globalCoord;
-    trgGrid_->GetElemCentroid(globalCoord, curE->elemNum , false);
-
-    for (UInt dof = 0; dof < inDim_ + 1; dof++){
-      vec[dof][0] = 0.0;
-    }
-
-    // at that point we can start obtaining the nearest neighbours for every aNode
-    Tree.KNN_CGAL_Differentiation(globalCoord, neighbors, l2dists, vectors, numNN);
-
-    // concerning radius factor alpha: we want to scale min(l2dists)/alpha~=1.5e-03
-    // this means alpha = min(l2dists) * 1.5e+03
-    // the first entry of l2dists is zero, if target and source node coincide, then we
-    // simply take the next entry, which must be != 0
-    Double alpha;
-    if( l2dists[0] == 0.0 ){
-      alpha = l2dists[1] * 1.5e+03;
-    }else{
-      alpha = l2dists[0] * 1.5e+03;
-    }
-
-    // build the local RBF interpolation matrix, based on the nearest neighbour source points
-    // build the local interpolation-value vector and solve the system ALoc*c=vector for
-    // the local RBF coefficients c
-    CalcLocCurlDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
-
-    CF::StdVector<UInt> eqns;
-    //get the equation map for the nodes in eConn, in order to insert the
-    //interpolation in the correct position in the result vector
-    downMap->GetEquation(eqns,curE->elemNum,ExtendedResultInfo::ELEMENT);
-
-    //if scalar input values of scattered data->inDim_=0
-    //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-    for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
-      retVec[eqns[aDof]] = vec[0][aDof];
-    }
-  }//for all elements
-}
-
-
-void Lighthill::InterpolationNodeToCenter(Vector<Double>& retVec, const Vector<Double> inVecVelocity){
-
-  //resize retVec to number of nodes of target
-  retVec.Resize(3.0 * derivData_.size());
-  retVec.Init();
-
-  CF::StdVector<UInt> eqnNums;
-
-  CF::StdVector< CF::Vector<Double> >  scatteredData;
-  scatteredData.Resize(sourceCoords_.GetSize());
-
-  UInt numNN = 15;
-  // vector containing the interpolated result for every trg node
-  // can be 1D for scalar values or 2D/3D for vector values
-  CF::Vector<Double> vec;
-
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL and FLANN
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVecVelocity.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    inDim_=0;
-    vec.Resize(1);
-    for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-      scatteredData[i].Resize(1);
-      scatteredData[i][0] = inVecVelocity[i];
-    }
+  // Term 1 + Term 2
+  if(externVorticity_ == true){
+    // OmegaCrossU is defined on nodes but GradOfScalar in defined on elements
+    // so we restrict OmegaCrossU also to elements
+    Vector<Double> OmegaCrossUNodes;
+    OmegaCrossUNodes.Resize(data_.dim * derivDataElem_.size());
+    Node2Cell(OmegaCrossUNodes, filterResIds[0], OmegaCrossU, derivDataElem_);
+    tempRetVec = GradOfScalar + OmegaCrossUNodes * density_;
   }else{
-    if(inVecVelocity.GetSize() == 2 * sourceCoords_.GetSize()){
-      //case of two dimensional vector
-      inDim_=1;
-      vec.Resize(2);
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        scatteredData[i].Resize(2);
-        scatteredData[i][0] = inVecVelocity[2 * i]; // x-component
-        scatteredData[i][1] = inVecVelocity[2 * i + 1]; // y-component
-      }
+    tempRetVec = GradOfScalar + OmegaCrossU * density_;
+  }
+}
+
+
+
+void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec, const str1::shared_ptr<EqnMapSimple>& upMap){
+  // Remember the output is defined on:
+  // -) ELEMENT no matter if externVorticity is provided
+  // This means every downMap with filterResIds[0] gives you equations for
+  // elements and VECTOR-values!!! To clarify...actually it's a scalar-quantity but
+  // we have to write it as a vector with the scalar quantity in x-direction and extract
+  // it afterwards with another filter PostLighthillSourceTerm
+
+  tempRetVec.Resize(data_.dim * derivDataElem_.size()); //defined on elements
+
+
+  // fill scatteredData vector
+  CF::StdVector< Vector<Double> >  scatteredData;
+  Vector<Double> vec; //neglect vec, not used here
+  UInt t; //neglect dimension output, we have our own
+  scatteredData.Resize(derivDataNode_.size());
+  FillScatteredDataVec(scatteredData, vec, data_.U, sourceCoords_, t);
+  data_.scatteredData = scatteredData;
+
+
+  /**********************************************************
+   * To be computed:
+   * Div( Grad(1/2 u*u)  + rho * (Curl(u) x u) )
+   * Div( ### Term 1 ### + ##### Term 2  ##### )
+   ***********************************************************/
+
+  // Term 1: Grad(1/2 u*u)
+  Vector<Double> GradOfScalar;
+  CalcGradUScalarU(GradOfScalar, data_, derivDataElem_, sourceCoords_, filterResIds[0]);
+  GradOfScalar.ScalarMult(0.5);
+
+  // Term 2: rho * (Curl(u) x u)
+  Vector<Double> OmegaCrossU;
+  if( externVorticity_ == false){
+    // Calculate the curl internally
+    // here we have to use the derivative data of the element centroids derivDataElem_
+    Vector<Double> CurlU;
+    if(data_.dim == 2){
+      CalcCurlU_2D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
     }else{
-      if(inVecVelocity.GetSize() == 3 * sourceCoords_.GetSize()){
-        // case of three dimensional vector
-        inDim_=2;
-        vec.Resize(3);
-        for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-          scatteredData[i].Resize(3);
-          scatteredData[i][0] = inVecVelocity[3 * i]; // x-component
-          scatteredData[i][1] = inVecVelocity[3 * i + 1]; // y-component
-          scatteredData[i][2] = inVecVelocity[3 * i + 2]; // z-component
-        }
-      }else{
-        EXCEPTION("Incorrect Input Data!")
-      }
-    }
-  }
-  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-  KNNSearch Tree;
-  Tree.ReadScatteredData_Lighthill(sourceCoords_, inDim_, trgGrid_, scatteredData);
-
-  // coordinate list of nearest neighbour points
-  CF::StdVector< Vector<Double> > neighbors;
-  // distances according to every nearest neighbour point
-  CF::StdVector< Double > l2dists;
-  // vector containing the values of each nearest neighbour point
-  CF::StdVector< Vector<Double> > vectors;
-
-  // loop over all elements and over every node of each element
-  for(UInt i = 0; i < derivData_.size();++i){
-
-    DifferentiationStruct& aStru = derivData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
-
-    //get the global coordinates of element centroid
-    CF::Vector<Double> globalCoord;
-    trgGrid_->GetElemCentroid(globalCoord, curE->elemNum , false);
-
-    for (UInt dof = 0; dof < inDim_ + 1; dof++){
-      vec[dof] = 0.0;
+      CalcCurlU_3D(CurlU, scatteredData, derivDataElem_, sourceCoords_, filterResIds[0], data_.dim);
     }
 
-    // at that point we can start obtaining the nearest neighbours for every aNode
-    Tree.KNN_CGAL_Differentiation(globalCoord, neighbors, l2dists, vectors, numNN);
+    // since the curlU is now defined on element centroids, we also have
+    // to restrict the velocity to element centroids (data_.Uelem)
+    data_.Uelem.Resize(data_.dim * derivDataElem_.size());
+    Node2Cell(data_.Uelem, filterResIds[0], data_.U, derivDataElem_);
+    data_.Om = CurlU;
 
-
-    Double dmin = l2dists[0];
-    Double dmax = dmin;
-    StdVector< Double >::iterator it, end;
-    it = l2dists.Begin();
-    end = l2dists.End();
-    for( ; it != end; ++it) {
-      Double dist = (*it);
-      dmin = dmin < dist ? dmin : dist;
-      dmax = dmax > dist ? dmax : dist;
-    }
-
-    // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-    // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-    // /Inverse_Distance_Weighted/Shepards_Method.htm
-    Vector<Double> sum(inDim_+1);
-    Double weights = 0.0;
-    // The point which is farthest away, should at least have a non-zero
-    // weight of 0.01. If we would choose R = dmax, it would not contribute
-    // at all.
-    Double R = 1.01 * dmax;
-    //interpolation exponent
-    Double p=4.0;
-    // report the N nearest neighbors and their distance
-    // This should sort all N points by increasing distance from origin
-    it = l2dists.Begin();
-    for(UInt j=0; it != end; ++it, j++) {
-      Double d = *it;
-      Double w;
-      if(d == 0){
-        w = 1.0;
-      }else{
-        w = std::pow((R-d)/(R*d), p);
-      }
-      weights += w;
-
-      for(UInt dof=0; dof < inDim_ + 1; dof++)
-      {
-        sum[dof] += vectors[j][dof] * w;
-      }
-    }
-
-    for(UInt dof=0; dof < inDim_ + 1; dof++)
-    {
-      vec[dof] = sum[dof] / weights;
-    }
-    CF::StdVector<UInt> eqns;
-    //get the equation map for the nodes in eConn, in order to insert the
-    //interpolation in the correct position in the result vector
-    downMap->GetEquation(eqns,curE->elemNum,ExtendedResultInfo::ELEMENT);
-
-    //if scalar input values of scattered data->inDim_=0
-    //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-    for(UInt aDof = 0; aDof < inDim_+1; aDof++){
-      retVec[eqns[aDof]] = vec[aDof];
-    }
-  }// for element
-}
-
-
-void Lighthill::CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
-                                            const CF::Vector<Double>& globPoint,
-                                            const CF::StdVector< Vector<Double> >& neighbors,
-                                            const CF::StdVector< Double >& l2Distances,
-                                            const CF::StdVector< Vector<Double> >& vectors,
-                                            const UInt numNN,
-                                            const Double alpha){
-
-  CF::Matrix<Double> derivCoefVec;
-  derivCoefVec.Resize(numNN,1);
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim_ ){
-    case 0:
-      vals.Resize(numNN,1);
-      vals[i][0] = vectors[i][0];
-      if (trgGrid_->GetDim() == 2){
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 0.0;
-        }
-      }else{
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
-        }
-      }
-      break;
-    case 1:
-      EXCEPTION("Gradient of Vector not defined in this context!");
-      break;
-    case 2:
-      EXCEPTION("Gradient of Vector not defined in this context!");
-      break;
-    }
-  }
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  CF::Matrix<Double> temp;
-  //ALoc.Invert(invAloc);
-
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  vec = temp * derivCoefVec;
-
-}
-
-
-void Lighthill::CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
-                                            const CF::Vector<Double>& globPoint,
-                                            const CF::StdVector< Vector<Double> >& neighbors,
-                                            const CF::StdVector< Double >& l2Distances,
-                                            const CF::StdVector< Vector<Double> >& vectors,
-                                            const UInt numNN,
-                                            const Double alpha){
-
-  CF::Matrix<Double> derivCoefVec;
-  derivCoefVec.Resize(numNN,1);
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim_ ){
-    case 0:
-      EXCEPTION("Divergence of a scalar field!");
-      break;
-    case 1:
-      vals.Resize(numNN,2);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      if (trgGrid_->GetDim() == 2){
-        derivVec.Resize(numNN,2);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-        }
-      }else{
-        EXCEPTION("2D mesh and 3D-values!")
-      }
-      break;
-    case 2:
-      vals.Resize(numNN,3);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      vals[i][2] = vectors[i][2];
-      if (trgGrid_->GetDim() == 3){
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
-        }
-      }else{
-        EXCEPTION("3D mesh and 2D-values!")
-      }      break;
-    }
-  }
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  CF::Matrix<Double> temp;
-
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  CF::Matrix<Double> tempvec;
-  tempvec.Resize(1,inDim_+1);
-  tempvec = temp * derivCoefVec;
-
-  //now we have to combine the tempvec-entries in order to obtain the rotor
-  if(trgGrid_->GetDim() == 2){
-    vec[0][0] = 0.0;
-    vec[0][1] = 0.0;
-    vec[0][2] = tempvec[1][0] - tempvec[0][1];
+    OmegaVectorProductU_2D(data_, derivDataElem_, OmegaCrossU);
   }else{
-    vec[0][0] = tempvec[2][1] - tempvec[1][2];
-    vec[0][1] = tempvec[0][2] - tempvec[2][0];
-    vec[0][2] = tempvec[1][0] - tempvec[0][1];
+    // use the provided vorticity
+    CF::StdVector<UInt> eqnNums;
+    data_.Om = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+    OmegaVectorProductU_2D(data_, derivDataNode_, OmegaCrossU);
   }
 
+
+  // Term 1 + Term 2
+  Vector<Double> T;
+  if(externVorticity_ == true){
+    // OmegaCrossU is defined on nodes but GradOfScalar in defined on elements
+    // so we restrict OmegaCrossU also to elements
+    Vector<Double> OmegaCrossUNodes;
+    OmegaCrossUNodes.Resize(data_.dim * derivDataElem_.size());
+    Node2Cell(OmegaCrossUNodes, filterResIds[0], OmegaCrossU, derivDataElem_);
+    T = GradOfScalar + OmegaCrossUNodes * density_;
+  }else{
+    T = GradOfScalar + OmegaCrossU * density_;
+  }
+
+
+  // T is element result, to calculate the divergence we need NODE-results,
+  // this means we have to interpolate from elem -> node
+  //TODO Incorporate also other elem -> node interpolators (e.g. Cell2Node or RBF, ...)
+
+  //Prepare Interpolation
+  Vector<Double> tempV;
+  // fill scatteredData vector with T (LighthillSourceVector)
+  scatteredData.Clear(false);
+  vec.Clear(false);
+  scatteredData.Resize(derivDataElem_.size());
+
+  FillScatteredDataVec(scatteredData, vec, T, targetCoords_, t);
+
+
+  // Interpolation
+  tempV.Resize(data_.dim * derivDataNode_.size());
+  NearestNeighbourInterpolation(tempV, scatteredData, vec, upMap, targetCoords_, sourceCoords_, derivDataElem_, trgGrid_, t, 10, 5);
+
+  // now divergence
+  Vector<Double> test;
+  CalcDivergence2D(test, tempV, sourceCoords_, derivDataElem_);
+
+
+  tempRetVec = ScalarToTwoD(test);
+
 }
+
 
 
 void Lighthill::PrepareCalculation(){
@@ -972,7 +504,7 @@ void Lighthill::PrepareCalculation(){
       " source elements and "<< allTrgElems.GetSize() << " target elements" << std::endl;
 
 
-  std::cout << "\t\t 1/5 Obtaining source coordinates " << std::endl;
+  std::cout << "\t\t 1/4 Obtaining source coordinates " << std::endl;
   //here we also find out, if the input is defined on elements (-centroids) or nodes
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
   if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){
@@ -1003,25 +535,49 @@ void Lighthill::PrepareCalculation(){
 
 
   // Obtaining target coordinates
-  std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
-  // target (output) is solely defined on nodes
-  targetCoords_.Resize(allTrgNodes.GetSize());
-  //for(UInt nIter=0; nIter < allTrgNums.GetSize(); ++nIter){
-  for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
-    CF::Vector<Double> SCoord;
-    //trgGrid_->GetElemCentroid(SCoord, allTrgElemNums[nIter], true);
-    trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
-    if(trgGrid_->GetDim() == 2){
-      targetCoords_[nIter].Resize(2);
-      targetCoords_[nIter][0] = SCoord[0];
-      targetCoords_[nIter][1] = SCoord[1];
-    }else{
-      targetCoords_[nIter].Resize(3);
-      targetCoords_[nIter][0] = SCoord[0];
-      targetCoords_[nIter][1] = SCoord[1];
-      targetCoords_[nIter][2] = SCoord[2];
+  std::cout << "\t\t 2/4 Obtaining target coordinates" << std::endl;
+  // if Lamb-vector and extern-vorticity - then output is defined on nodes
+  // else output is defined on elements
+
+  if(Form_ == "AeroacousticSource_LambVector" && externVorticity_ == true){
+    // target (output) is solely defined on nodes
+    targetCoords_.Resize(allTrgNodes.GetSize());
+    //for(UInt nIter=0; nIter < allTrgNums.GetSize(); ++nIter){
+    for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
+      CF::Vector<Double> SCoord;
+      //trgGrid_->GetElemCentroid(SCoord, allTrgElemNums[nIter], true);
+      trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
+      if(trgGrid_->GetDim() == 2){
+        targetCoords_[nIter].Resize(2);
+        targetCoords_[nIter][0] = SCoord[0];
+        targetCoords_[nIter][1] = SCoord[1];
+      }else{
+        targetCoords_[nIter].Resize(3);
+        targetCoords_[nIter][0] = SCoord[0];
+        targetCoords_[nIter][1] = SCoord[1];
+        targetCoords_[nIter][2] = SCoord[2];
+      }
+    }
+  }else{
+    // target (output) is solely defined on elements
+    targetCoords_.Resize(allTrgElemNums.GetSize());
+    //for(UInt nIter=0; nIter < allTrgNums.GetSize(); ++nIter){
+    for(UInt nIter=0; nIter < allTrgElemNums.GetSize(); ++nIter){
+      CF::Vector<Double> SCoord;
+      trgGrid_->GetElemCentroid(SCoord, allTrgElemNums[nIter], true);
+      if(trgGrid_->GetDim() == 2){
+        targetCoords_[nIter].Resize(2);
+        targetCoords_[nIter][0] = SCoord[0];
+        targetCoords_[nIter][1] = SCoord[1];
+      }else{
+        targetCoords_[nIter].Resize(3);
+        targetCoords_[nIter][0] = SCoord[0];
+        targetCoords_[nIter][1] = SCoord[1];
+        targetCoords_[nIter][2] = SCoord[2];
+      }
     }
   }
+
 
   CF::StdVector< LocPoint > locPoints;
   StdVector<const CF::Elem*> tempElems;
@@ -1029,26 +585,48 @@ void Lighthill::PrepareCalculation(){
   trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, lists, 1e-6, 1e-3);
   //tempElems.Clear();
 
-  std::cout << "\t\t 3/5 Generating differentiation info ..." << std::endl;
-  derivData_.reserve(allTrgElems.GetSize());
+  std::cout << "\t\t 3/4 Generating differentiation info ..." << std::endl;
+  derivDataNode_.reserve(allTrgNodes.GetSize());
   for(UInt aMatch = 0;aMatch < allTrgNodes.GetSize();++aMatch){
     //if(tempElems[aMatch]!= NULL){
-      DifferentiationStruct newStruct;
+      QuantityStruct newStruct;
       //newStruct.localCoords = locPoints[aMatch].coord;
-      //newStruct.tENum = tempElems[aMatch]->elemNum;
-      derivData_.push_back(newStruct);
+      //newStruct.trgElemNum = tempElems[aMatch]->elemNum;
+      derivDataNode_.push_back(newStruct);
     //}
   }
 
-  std::cout << "\t\t 4/5 Clear generated temporary data storage ..." << std::endl;
+
+  StdVector<UInt> tempNodeNums;
+  StdVector<UInt> sEqn;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
+  derivDataElem_.reserve(tempElems.GetSize());
+  for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
+    if(tempElems[aMatch]!= NULL){
+      QuantityStruct newStruct;
+      newStruct.localCoords = locPoints[aMatch].coord;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
+      trgGrid_->GetElemNodes(tempNodeNums, tempElems[aMatch]->elemNum );
+      newStruct.tNNum.Resize(tempNodeNums.GetSize());
+      newStruct.tNNum = tempNodeNums;
+      for(UInt n = 0; n < tempNodeNums.GetSize(); ++n){
+        upMap->GetEquation(sEqn, tempNodeNums[n], ExtendedResultInfo::NODE);
+        for(UInt d = 0; d < sEqn.GetSize(); ++d){
+          newStruct.srcEqn.Push_back(sEqn[d]);
+        }
+      }
+      derivDataElem_.push_back(newStruct);
+    }
+  }
+
+
+  std::cout << "\t\t 4/4 Clear generated temporary data storage ..." << std::endl;
   allTrgElems.Clear(false);
   allSrcElems.Clear(false);
   allSrcNodes.Clear(false);
   allTrgElemNums.Clear(false);
   allTrgNodes.Clear(false);
 
-  //std::cout << "\t\t 5/5 Remap data to equation numbers ..." << std::endl;
-  //str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
 
   std::cout << "\t\t Differentiation prepared!" << std::endl;
 }
@@ -1058,10 +636,6 @@ ResultIdList Lighthill::SetUpstreamResults(){
   //we should only have one filter Result
   CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
   std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-
-  std::string outRes = params_->Get("ResultList")->Get("outputQuantity")->Get("resultName")->As<std::string>();
-  filtResNames.insert(outRes);
 
   //add velocity input result to manager
   this->res1Name = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
@@ -1088,13 +662,21 @@ void Lighthill::AdaptFilterResults(){
   if(!inInfo1->isValid){
     EXCEPTION("Could not validate required input result \"" << inInfo1->resultName << "\" from upstream filters.");
   }
+
   //we require mesh result input
   if(!inInfo1->isMeshResult){
-    EXCEPTION("Lighthill requires input to be defined on mesh");
+    EXCEPTION("Lighthill/Lamb filter requires input to be defined on mesh");
   }
 
+  //input must be node-based
+  if (resultManager_->GetDefOn(upResIds[0]) == ExtendedResultInfo::ELEMENT){
+    EXCEPTION("Lighthill/Lamb filter requires velocity to be defined on nodes!");
+  }
+
+  //This does not work because also if the upstream result is a scalar, we get x,y,z as dofnames
+  //std::cout<<"DOFNames"<<resultManager_->GetExtInfo(upResIds[0])->dofNames<<std::endl;
+
   if (externVorticity_ == true){
-    std::cout<<upResIds.GetSize()<<std::endl;
       ResultManager::ConstInfoPtr inInfo2 = resultManager_->GetExtInfo(upResIds[1]);
       if(!inInfo2->isValid){
         EXCEPTION("Could not validate required input result \"" << inInfo2->resultName << "\" from upstream filters.");
@@ -1103,22 +685,38 @@ void Lighthill::AdaptFilterResults(){
       if(!inInfo2->isMeshResult){
         EXCEPTION("Lighthill requires input to be defined on mesh");
       }
+      //input must be node-based
+      if (resultManager_->GetDefOn(upResIds[1]) == ExtendedResultInfo::ELEMENT){
+        EXCEPTION("Lighthill/Lamb filter requires vorticity to be defined on nodes!");
+      }
   }
 
 
   resultManager_->CopyResultData(upResIds[0],filterResIds[0]);
+
   //but now, we need to overwrite some things
   resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
 
+
   resultManager_->SetEntryType(filterResIds[0],ExtendedResultInfo::VECTOR);
   CF::StdVector<std::string> dofnames;
-  dofnames.Push_back("x");
-  dofnames.Push_back("y");
-  dofnames.Push_back("z");
-
+  if(trgGrid_->GetDim() == 2){
+    dofnames.Push_back("x");
+    dofnames.Push_back("y");
+  }else{
+    dofnames.Push_back("x");
+    dofnames.Push_back("y");
+    dofnames.Push_back("z");
+  }
   resultManager_->SetDofNames(filterResIds[0],dofnames);
 
-  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  // choose if we have element or node-results
+  if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  }else{
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::ELEMENT);
+  }
+
   resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
   resultManager_->SetMeshResult(filterResIds[0],true);
 

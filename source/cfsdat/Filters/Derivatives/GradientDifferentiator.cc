@@ -14,7 +14,6 @@
 
 
 #include "GradientDifferentiator.hh"
-#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
@@ -95,53 +94,10 @@ bool GradientDifferentiator::Run(){
   // actually this is the scalar value of the divergence, but Matrix class has to be used, for matrix-vector product
   CF::Matrix<Double> vec;
 
-  // local RBF interpolation coefficients vector (matrix only because
-  // of the following ALoc*coefVec multiplication)
-  CF::Matrix<Double> derivCoefVec;
-
 
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVec.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    inDim_=0;
-    vec.Resize(1);
-#pragma omp parallel for
-    for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-      scatteredData[i].Resize(1);
-      scatteredData[i][0] = inVec[i];
-     }
-  }else{
-        if(inVec.GetSize() == 2 * sourceCoords_.GetSize()){
-          //case of two dimensional vector
-          inDim_=1;
-          vec.Resize(2);
-#pragma omp parallel for shared(inVec)
-          for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-          scatteredData[i].Resize(2);
-          scatteredData[i][0] = inVec[2 * i]; // x-component
-          scatteredData[i][1] = inVec[2 * i + 1]; // y-component
-          }
-        }else{
-            if(inVec.GetSize() == 3 * sourceCoords_.GetSize()){
-              // case of three dimensional vector
-              inDim_=2;
-              vec.Resize(3);
-#pragma omp parallel for shared(inVec)
-              for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-              scatteredData[i].Resize(3);
-              scatteredData[i][0] = inVec[3 * i]; // x-component
-              scatteredData[i][1] = inVec[3 * i + 1]; // y-component
-              scatteredData[i][2] = inVec[3 * i + 2]; // z-component
-              }
-            }else{
-              EXCEPTION("Inconsistency between input data and source coordinates!")
-            }
-        }
-  }
+  FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_, inDim_);
 
 
   //now we can bring the scattered coordinates and data values into
@@ -156,8 +112,8 @@ bool GradientDifferentiator::Run(){
 // loop over all elements and over every node of each element
 for (UInt i = 0; i < derivData_.size();++i){
 
-    DifferentiationStruct& aStru = derivData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+  QuantityStruct& aStru = derivData_[i];
+    const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
 
     //get the global coordinates of element centroid
     CF::Vector<Double> globalCoord;
@@ -186,18 +142,20 @@ for (UInt i = 0; i < derivData_.size();++i){
           }
 
 
-          CalcLocRBFDerivativeCoefs(vec, derivCoefVec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
+          // now we calculate the local gradient
+          CalcLocGradient(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha, inDim_, trgGrid_);
 
-            CF::StdVector<UInt> eqns;
-            //get the equation map for the nodes in eConn, in order to insert the
-            //interpolation in the correct position in the result vector
-            downMap->GetEquation(eqns,curE->elemNum,ExtendedResultInfo::ELEMENT);
 
-            //if scalar input values of scattered data->inDim_=0
-            //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-            for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
-              returnVec[eqns[aDof]] = vec[0][aDof];
-            }
+          CF::StdVector<UInt> eqns;
+          //get the equation map for the nodes in eConn, in order to insert the
+          //interpolation in the correct position in the result vector
+          downMap->GetEquation(eqns,curE->elemNum,ExtendedResultInfo::ELEMENT);
+
+          //if scalar input values of scattered data->inDim_=0
+          //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
+          for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
+            returnVec[eqns[aDof]] = vec[0][aDof];
+          }
 
   }// for element
    //} //omp parallel
@@ -210,83 +168,6 @@ for (UInt i = 0; i < derivData_.size();++i){
 
   return true;
 }
-
-
-
-void GradientDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
-                                      CF::Matrix<Double> derivCoefVec,
-                                      CF::Vector<Double>& globPoint,
-                                      CF::StdVector< Vector<Double> >& neighbors,
-                                      CF::StdVector< Double >& l2Distances,
-                                      CF::StdVector< Vector<Double> >& vectors,
-                                      UInt numNN,
-                                      Double alpha){
-  derivCoefVec.Resize(numNN,1);
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim_ ){
-    case 0:
-      vals.Resize(numNN,1);
-      vals[i][0] = vectors[i][0];
-      if (trgGrid_->GetDim() == 2){
-      derivVec.Resize(numNN,2);
-      if (l2Distances[i] == 0) {
-        derivVec[i][0] = 0.0;
-        derivVec[i][1] = 0.0;
-      }else{
-        derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-        derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-      }
-      }else{
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
-        }
-      }
-      break;
-    case 1:
-      EXCEPTION("Gradient of Vector not defined in this context!");
-      break;
-    case 2:
-      EXCEPTION("Gradient of Vector not defined in this context!");
-      break;
-    }
- }
-
-
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  CF::Matrix<Double> temp;
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  vec = temp * derivCoefVec;
-
-
-}
-
 
 
 void GradientDifferentiator::PrepareCalculation(){
@@ -419,9 +300,9 @@ void GradientDifferentiator::PrepareCalculation(){
   derivData_.reserve(tempElems.GetSize());
   for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
     if(tempElems[aMatch]!= NULL){
-      DifferentiationStruct newStruct;
+      QuantityStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = tempElems[aMatch]->elemNum;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
       derivData_.push_back(newStruct);
     }
   }

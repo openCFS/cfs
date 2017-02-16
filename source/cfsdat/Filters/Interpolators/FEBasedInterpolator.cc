@@ -73,10 +73,10 @@ bool FEBasedInterpolator::Run(){
 
   for(UInt i=0;i < interpolData_.size();++i){
 
-    InpolationStruct& srcStru = interpolData_[i];
+    QuantityStruct& srcStru = interpolData_[i];
 
 
-    const Elem* srcE = srcGrid_->GetElem(srcStru.sENum);
+    const Elem* srcE = srcGrid_->GetElem(srcStru.srcElemNum);
     srcShape = srcGrid_->GetElemShapeMap(srcE,true);
 
     const CF::StdVector<UInt>& srcConn = srcE->connect;
@@ -90,7 +90,7 @@ bool FEBasedInterpolator::Run(){
     Double curval = 0.0;
     for(UInt aNode =0;aNode < srcConn.GetSize(); ++aNode){
       srcDownMap->GetEquation(srcEqns,srcConn[aNode],ExtendedResultInfo::NODE);
-      trgDownMap->GetEquation(trgEqns,srcStru.tNNum ,ExtendedResultInfo::NODE);
+      trgDownMap->GetEquation(trgEqns,srcStru.tNNum[aNode] ,ExtendedResultInfo::NODE);
       // Finite element based interpolation of a target node point on a src element
       curval  = srcShFnc[aNode];
 
@@ -200,9 +200,9 @@ void FEBasedInterpolator::PrepareCalculation(){
     interpolData_.reserve(allTrgNodes.GetSize());
     for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
       if(tempElems[aMatch]!= NULL){
-        InpolationStruct newStruct;
+        QuantityStruct newStruct;
         newStruct.localCoords = locPoints[aMatch].coord;
-        newStruct.sENum = tempElems[aMatch]->elemNum;
+        newStruct.srcElemNum = tempElems[aMatch]->elemNum;
         newStruct.tNNum = allTrgNodes[aMatch];
         interpolData_.push_back(newStruct);
       }

@@ -1338,6 +1338,7 @@ share/xml/CFS-Dat/Schemas/CFSDat_Interpolation.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_InterpolationType.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_NNScheme.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_NearestNeighbour.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_PostLighthill.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_ResultDef.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotDomain.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd -text
@@ -2278,6 +2279,8 @@ source/cfsdat/Filters/BaseFilter.cc -text
 source/cfsdat/Filters/BaseFilter.hh -text
 source/cfsdat/Filters/BaseMeshFilterType.cc -text
 source/cfsdat/Filters/BaseMeshFilterType.hh -text
+source/cfsdat/Filters/Derivatives/AeroacousticBase.cc -text
+source/cfsdat/Filters/Derivatives/AeroacousticBase.hh -text
 source/cfsdat/Filters/Derivatives/CurlDifferentiator.cc -text
 source/cfsdat/Filters/Derivatives/CurlDifferentiator.hh -text
 source/cfsdat/Filters/Derivatives/DivergenceDifferentiator.cc -text
@@ -2286,6 +2289,8 @@ source/cfsdat/Filters/Derivatives/GradientDifferentiator.cc -text
 source/cfsdat/Filters/Derivatives/GradientDifferentiator.hh -text
 source/cfsdat/Filters/Derivatives/Lighthill.cc -text
 source/cfsdat/Filters/Derivatives/Lighthill.hh -text
+source/cfsdat/Filters/Derivatives/PostLighthillSource.cc -text
+source/cfsdat/Filters/Derivatives/PostLighthillSource.hh -text
 source/cfsdat/Filters/Derivatives/RotatingSubstDt.cc -text
 source/cfsdat/Filters/Derivatives/RotatingSubstDt.hh -text
 source/cfsdat/Filters/Derivatives/TimeDerivFilter.cc -text

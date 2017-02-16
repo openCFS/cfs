@@ -15,34 +15,21 @@
 #pragma once
 
 
-#include <Filters/MeshFilter.hh>
+#include <Filters/Derivatives/AeroacousticBase.hh>
 #include "DataInOut/SimInput.hh"
 
 
 namespace CFSDat{
 
+/*********************************************************************************
+ * BEFORE IMPLEMENTING PLEASE READ INFORMATION AT AdaptFilterResults() down below
+ *********************************************************************************/
 
-
-class Lighthill : public MeshFilter{
+//! Class which provides methods to compute the Lamb- and LighthillSource-vector as well as
+//! the whole LighthillSource-term
+class Lighthill : public AeroacousticBase{
 
 public:
-  struct DifferentiationStruct{
-    CF::Vector<Double> localCoords;
-    UInt tENum;
-    UInt srcEqn;
-
-    DifferentiationStruct() : tENum(0),srcEqn(0){
-      localCoords.Resize(3);
-    }
-
-    bool operator < (const DifferentiationStruct& str) const
-    {
-        return (srcEqn < str.srcEqn);
-    }
-  };
-
-
-
 
   Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
@@ -58,6 +45,19 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
+
+  //! -) AeroacousticSource_LambVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
+  //!    -) externVorticity == true: NODE-RESULTS
+  //!    -) externVorticity == false: ELEMENT-RESULTS
+  //! -) AeroacousticSource_LighthillSourceVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
+  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
+  //! -) AeroacousticSource_LighthillSourceTerm (only 2D yet): physically it's a scalar but due to the
+  //!                                                          result-managing it is vector valued with the scalar
+  //!                                                          quantity in x-direction. to extract it and get a real
+  //!                                                          scalar value, use the filter PostLighthillSourceTerm
+  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
+  virtual void AdaptFilterResults();
+
   std::string res1Name;
   uuids::uuid res1Id;
 
@@ -65,60 +65,26 @@ protected:
   uuids::uuid res2Id;
 
 
-
-  virtual void AdaptFilterResults();
-
-/*
-  void FillScatteredDataVec(StdVector< Vector<Double> >& scatteredData,
-                            CF::Vector<Double>& vec,
-                            const Vector<Double>& inVec);
-*/
-
-  void CalcGradUScalarU(Vector<Double>& retVec,
-                const Vector<Double> inVec);
-
-
-  void CalcLocGradDerivativeCoefs(CF::Matrix<Double>& vec,
-                                 const CF::Vector<Double>& globPoint,
-                                 const CF::StdVector< Vector<Double> >& neighbors,
-                                 const CF::StdVector< Double >& l2Distances,
-                                 const CF::StdVector< Vector<Double> >& vectors,
-                                 const UInt numNN,
-                                 const Double alpha);
-
-  void CalcCurlU(Vector<Double>& retVec,
-                const Vector<Double> inVec);
-
-
-  void CalcLocCurlDerivativeCoefs(CF::Matrix<Double>& vec,
-                                    const CF::Vector<Double>& globPoint,
-                                    const CF::StdVector< Vector<Double> >& neighbors,
-                                    const CF::StdVector< Double >& l2Distances,
-                                    const CF::StdVector< Vector<Double> >& vectors,
-                                    const UInt numNN,
-                                    const Double alpha);
-
-  void InterpolationNodeToCenter(Vector<Double>& retVec,
-                            const Vector<Double> inVec);
-
-
-  void OmegaVectorProductU(const Vector<Double> Omega,
-                              const Vector<Double> U,
-                              Vector<Double>& retVec);
-
-
 private:
 
-  std::vector<DifferentiationStruct> derivData_;
+  void LambVector(Vector<Double>& tempRetVec);
+
+  void LighthillSourceVector(Vector<Double>& tempRetVec);
+
+  void LighthillSourceTerm(Vector<Double>& tempRetVec, const str1::shared_ptr<EqnMapSimple>& upMap);
+
+  //! data struct for node-values
+  std::vector<QuantityStruct> derivDataNode_;
+
+  //! data struct for element-values
+  std::vector<QuantityStruct> derivDataElem_;
+
 
   //! Coordinates of input data
   CF::StdVector< CF::Vector<double> > sourceCoords_;
 
   //! Coordinates of target data
   CF::StdVector< CF::Vector<double> > targetCoords_;
-
-  //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
-  UInt inDim_;
 
   //! Density, if not specified in xml-scheme it is automatically set to one
   Double density_;
@@ -128,6 +94,8 @@ private:
 
   //! Boolean if an extern vorticity-input is provided of if we have to compute it
   bool externVorticity_;
+
+  PhysicalEntity data_;
 
 };
 

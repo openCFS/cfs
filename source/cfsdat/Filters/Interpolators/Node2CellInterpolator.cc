@@ -14,7 +14,6 @@
 
 
 #include "Node2CellInterpolator.hh"
-#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include <algorithm>
 #include <vector>
@@ -56,36 +55,14 @@ bool Node2CellInterpolator::Run(){
     (*srcIter)->Run();
   }
 
+
+
   CF::StdVector<UInt> eqnNums;
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-  returnVec.Init();
 
+  Node2Cell(returnVec, filterResIds[0], inVec, interpolData_);
 
-  //current element
-  UInt curE;
-  CF::StdVector<UInt> eqns;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
-
-  // for every element in the target mesh
-  for(UInt i=0;i < interpolData_.size();++i){
-    InpolationStruct& aStru = interpolData_[i];
-    curE = aStru.trgElemNum;
-
-    //Sum up the contributions from all nodes of element curE
-    StdVector<Double> curval;
-    StdVector<UInt> sEqn;
-    downMap->GetEquation(eqns,curE,ExtendedResultInfo::ELEMENT);
-    curval.Resize(eqns.GetSize(), 0.0);
-
-    //UInt dim = eqns.GetSize(); //dimension of input data (scalar, 2vector, 3vector)
-    for(UInt aNode =0;aNode < aStru.tNNum.GetSize(); ++aNode){
-      for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] += inVec[aStru.srcEqn[eqns.GetSize()*aNode + aDof]] / aStru.tNNum.GetSize();
-      }
-    }
-  }
 
   resultManager_->ActivateResult(filterResIds[0]);
 
@@ -95,6 +72,7 @@ bool Node2CellInterpolator::Run(){
   }
   return true;
 }
+
 
 
 
@@ -130,7 +108,7 @@ void Node2CellInterpolator::PrepareCalculation(){
   StdVector<UInt> tempNodeNums;
   StdVector<UInt> sEqn;
   for(UInt aMatch = 0;aMatch < allTrgElems.size();++aMatch){
-      InpolationStruct newStruct;
+      QuantityStruct newStruct;
       //get nodenumbers of containing src-element
       inGrid->GetElemNodes(tempNodeNums, allTrgElems[aMatch]);
       newStruct.trgElemNum = allTrgElems[aMatch];

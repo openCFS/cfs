@@ -27,22 +27,6 @@ namespace CFSDat{
 //! during traversal, we just apply those loads
 class CentroidInterpolator : public MeshFilter{
 
-  struct InpolationStruct{
-    CF::Vector<Double> localCoords;
-    UInt tENum;
-    UInt srcEqn;
-    Double volume;
-
-    InpolationStruct() : tENum(0),srcEqn(0),volume(.0){
-      localCoords.Resize(3);
-    }
-
-    bool operator < (const InpolationStruct& str) const
-    {
-        return (srcEqn < str.srcEqn);
-    }
-  };
-
 public:
 
   CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
@@ -62,7 +46,7 @@ protected:
 private:
 
 
-  std::vector<InpolationStruct> interpolData_;
+  std::vector<QuantityStruct> interpolData_;
 
 };
 

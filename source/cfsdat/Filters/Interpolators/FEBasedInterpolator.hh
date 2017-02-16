@@ -28,20 +28,6 @@ namespace CFSDat{
 //! during traversal, we just apply those loads
 class FEBasedInterpolator : public MeshFilter{
 
-  struct InpolationStruct{
-    CF::Vector<Double> localCoords;
-    UInt sENum;
-    UInt tNNum;
-
-    InpolationStruct() : sENum(0),tNNum(0){
-      localCoords.Resize(3);
-    }
-
-    bool operator < (const InpolationStruct& str) const
-    {
-        return (tNNum < str.tNNum);
-    }
-  };
 
 public:
 
@@ -62,7 +48,7 @@ protected:
 private:
 
   //! Number of neighbor points to include in interpolation.
-  std::vector<InpolationStruct> interpolData_;
+  std::vector<QuantityStruct> interpolData_;
 
 
 };

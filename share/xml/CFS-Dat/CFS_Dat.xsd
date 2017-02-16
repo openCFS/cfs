@@ -29,6 +29,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_RotSubstantialTimeDeriv.xsd"/> 
   <xsd:include schemaLocation="Schemas/CFSDat_Interpolation.xsd"/>  
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_PostLighthill.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FftFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
 
@@ -42,6 +43,7 @@
       <xsd:element name="interpolation" type="DT_Interpolation"/>
       <xsd:element name="differentiation" type="DT_Differentiation"/>
       <xsd:element name="aeroacoustic" type="DT_Aeroacoustic"/>
+      <xsd:element name="postLighthill" type="DT_postLighthill"/>
       <xsd:element name="binaryOperation" type="DT_BinOpFilt">
         <xsd:annotation>
           <xsd:documentation>

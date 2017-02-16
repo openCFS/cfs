@@ -19,7 +19,8 @@
   
   <xsd:simpleType name="DT_AeroacousticType">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="AeroacousticSource_Lighthill"/>
+      <xsd:enumeration value="AeroacousticSource_LighthillSourceVector"/>
+      <xsd:enumeration value="AeroacousticSource_LighthillSourceTerm"></xsd:enumeration>
       <xsd:enumeration value="AeroacousticSource_LambVector"/>
     </xsd:restriction>
   </xsd:simpleType>
