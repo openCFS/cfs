@@ -185,6 +185,9 @@ public:
     return constraints_;
   }
 
+  /** searches for constraint */
+  bool HasConstraint(std::string& name, unsigned int dof) const;
+
   //! Get Load CoefFunctions
   const LoadCoefList GetLoadCoefFunctions(){
     return loadCoefs_;

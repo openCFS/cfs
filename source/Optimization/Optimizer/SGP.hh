@@ -46,6 +46,21 @@ public:
 
   StdVector<Condition*> constr;
 
+  /** volume of the structure */
+  double volume, volume_observe;
+
+  /** volume constraint bound */
+  double volume_bound;
+
+  /** value of the compliance */
+  double compliance;
+
+  /** constraint value and gradient of the outer function filtering_gaps*/
+  double filtering_gaps, filtering_gaps_observe;
+  StdVector<double> filtering_gap_grad;
+  StdVector<double> volume_grad;
+  double filtering_gaps_bound;
+
   /** the cfs design variable */
   Vector<double> x_outer;
 
@@ -68,14 +83,20 @@ public:
   /** convergence tolerance for outer iterations */
   double tolerance;
 
+  /** convergence tolerance for volume bisection */
+  double volume_tolerance;
+
   /** tau of model function in subsolve */
   double tau;
+
+  /** turn of finite differences derivative check*/
+  bool derivative_check;
 
   /** base material matrix */
   Matrix<double> E_0;
 
   // penalty parameter
-  double pmin,pmax,ppen,pmini,pmaxi,ppeni;
+  double pmin_vol,pmax_vol,ppen_vol,pmini,pmaxi,ppeni,pmin_filt,pmax_filt,ppen_filt;
 
   // counts outer iterations without any progress
   int worseCounter = 0;
@@ -127,7 +148,7 @@ protected:
   void SetConfiguration();
 
   /** kind of inner variables configuration */
-  typedef enum {NO_CONF= -1, DENSITY_ROTANGLE = 0, STIFF1_STIFF2 = 1, FOMO = 2, FMO = 3} Configuration;
+  typedef enum {NO_CONF= -1, DENSITY_ROTANGLE = 0, STIFF1_STIFF2 = 1, FOMO = 2, FMO = 3, FOMO_TOP = 4} Configuration;
 
   Configuration configuration = NO_CONF;
 private:
@@ -137,6 +158,9 @@ private:
 
   /** updates the design and the outer function values and gradients */
   void UpdateToCurrentStep(bool inner = false);
+
+  /** Performs a gradient check with central difference quotient for necessary derivatives */
+  StdVector<double> GradientCheck(double & max_grad_error);
 
   typedef struct
   {
@@ -170,6 +194,9 @@ private:
 
   /** create outer derivative from full design gradient */
   void GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double>  obj_grad);
+
+  /** helper function for derivative check, return only necessary gradient entries from design gradient */
+  void GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> obj_grad) ;
 
   /** assume the current design to be FMO tensors and output them */
   void DumpFMPTensors();
@@ -207,8 +234,14 @@ public:
   /** evaluate function according to the SGP approximation for density_rotangle configuration*/
   double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
 
-  /** evaluate functiong according to the SGP approximation, parameterization FOMO*/
-  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+  /** evaluate function according to the SGP approximation, parameterization FOMO_Top*/
+  double SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+
+  /** evaluate function according to the SGP approximation, parameterization FOMO*/
+  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double Vloc);
+
+  /** evaluate function according to the SGP approximation, parameterization FMO*/
+  double SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc);
 
   /** helper for logging
    * @param determinant @see GetCondition() */
@@ -229,11 +262,6 @@ public:
   double lower;
   double upper;
 
-  /** function value of the outer function */
-  double outer_val;
-
-  /**
-
   /** shall this function be approximated */
   bool approximate;
 
@@ -246,7 +274,9 @@ public:
 private:
 
   double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
-  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
+  double CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
+  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, double Vloc);
+  double CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
   void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta,Matrix<double> & tmp);

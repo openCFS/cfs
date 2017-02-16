@@ -198,9 +198,10 @@ namespace CoupledField
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
-        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
-         * Always creates the list, so use only rarely. */
-        StdVector<Function*> GetActiveFunctions() const;
+        /** Returns all functions. Does not blow up local constraints. Combines objective and constraints.
+         * Always creates the list, so use only rarely.
+         * @param only_active use only active constraints */
+        StdVector<Function*> GetFunctions(bool only_active) const;
 
         /** Our base ParamNode pointer, pointing to input <optimization> */
         PtrParamNode optParamNode;

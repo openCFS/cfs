@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from mesh_tool import *
+from special_mesh_tools import *
 import argparse
 
 # for inclusion_opverlapp finds inclusion_size for create_2d_mesh via bisection
@@ -136,6 +137,6 @@ if args.type == 'convert_optistruct':
 
 file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
 
-write_gid_mesh(mesh, file)
+write_gid_mesh(mesh, file,args.optistruct_scaling)
 print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 

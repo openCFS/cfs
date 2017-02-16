@@ -227,11 +227,11 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize();
+  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize() + constraints.observe.GetSize();
 
   for(unsigned int i = 0; i < total; i++)
   {
-    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.active[i - objectives.data.GetSize()]);
+    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.all[i - objectives.data.GetSize()]);
 
     std::string func = "'" + f->type.ToString(f->GetType()) + "'";
 
@@ -1532,6 +1532,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       result = CalcGreyness(g, derivative);
       break;
 
+      case Function::FILTERING_GAP:
+      result = CalcFilteringGap(g,derivative);
+      break;
+
       case Objective::STRESS:
       case Objective::STRESS_DENSITY:
       {
@@ -1725,9 +1729,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   {
     // this replaces and enhances calculation of volume, it is used by regularization
     // when not assuming a regular grid, computation of Volume is not as simple
-    // we also consider working only on a given region, when used as constrain
+    // we also consider working only on a given region, when used as constraint
     // use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
-    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
+    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physical value!
     Grid* grid = domain->GetGrid();
     Function* f = Function::GetFunction(c, g);
     SubTensorType stt = f->ctxt->stt;
@@ -2202,6 +2206,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // forward simulation!
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(StateSolution::RAW_VECTOR)));
     Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)));
+
+    // temporary vector for displacement used for squared_output
+    Vector<T> u_square(u.GetSize());
+
     assert(u.GetSize() == l.GetSize());
     LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
     LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
@@ -2211,11 +2219,21 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::OUTPUT:
       case Function::SQUARED_OUTPUT:
       {
-        // this is <l, u> which is for complex not really defined as it might be non-real
-        T inner = u.Inner(l);
+        T inner;
+        if (f->GetType() == Objective::SQUARED_OUTPUT) {
+          // this is <l, u o u>
+          for(unsigned int i = 0;i<u.GetSize();i++) {
+            u_square[i] = u[i] * u[i];
+            //l[i] *= l[i];
+          }
+          inner = u_square.Inner(l);
+        } else {
+          // this is <l, u> which is for complex not really defined as it might be non-real
+          inner = u.Inner(l);
+        }
         result = ((complex<double>) inner).real();
-        if (f->GetType() == Objective::SQUARED_OUTPUT)
-          result *= result;
+        //if (f->GetType() == Objective::SQUARED_OUTPUT)
+        //  result *= result;
         result *= excite.GetFactor(f);
         LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
@@ -3337,6 +3355,66 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
+  double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
+    /* Calculates squared difference between filtered and non-filtered tensor E*/
+    //TODO: asserts
+    //assert(g->GetDesignType() != )
+
+    double result = 0, grad = 0;
+    unsigned int n_elem = design->GetNumberOfElements();
+    unsigned int dtype = design->FindDesign(g->GetDesignType());
+    for(unsigned int i = 0; i < n_elem; i++)
+    {
+      DesignElement* de = dynamic_cast<DesignElement*>(design->GetDesignElement(dtype*n_elem+i));
+      if (!derivative) {
+        // (E_(ij) - filtered(E_ij))^2
+        double error = de->GetDesign(DesignElement::PLAIN)- de->GetDesign(DesignElement::SMART) ;
+        result += error * error;
+      } else {
+        // calculate derivative
+        // We filter over this element and the neighbors.
+        assert(de->simp != NULL);
+        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+        const Filter& f = de->simp->filter[fix];
+
+        assert(f.GetType() == Filter::DENSITY);
+        //assert(de == DesignElement::COST_GRADIENT || de == DesignElement::CONSTRAINT_GRADIENT);
+        //assert((g == NULL || (g->IsObjective() && de == DesignElement::COST_GRADIENT)) || (g == NULL || (!g->IsObjective() && de == DesignElement::CONSTRAINT_GRADIENT)) || (g == NULL || (g->IsObjective())));
+        // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
+        //assert(g == NULL || g->ForDensityFiltering());
+
+        // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
+        // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
+        // note, that the stored value is already v = d f/d P_i
+        grad = 0.0;
+        if(f.density_ == Filter::STANDARD)
+        {
+          for(int j = -1, nj = (int) f.neighborhood.GetSize(); j < nj; j++)
+          {
+            const Filter::NeighbourElement* ne = j == -1 ? NULL : &f.neighborhood[j];
+            const DesignElement* de_iter = j == -1 ? de : ne->neighbour;
+            double v = 2 * (de_iter->GetDesign(DesignElement::PLAIN)- de_iter->GetDesign(DesignElement::SMART));
+            double w = j == -1 ? f.weight : ne->weight;
+            double var = j == -1 ? 1.:0.;
+
+            if (de_iter->simp->filter[fix].weight_sum < 0.0)
+                de_iter->simp->filter[fix].weight_sum = de_iter->simp->filter[fix].CalcWeightSum(true);
+
+            double summand = v * (var -(w / de_iter->simp->filter[fix].weight_sum));
+            grad += summand;
+
+            // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+            //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+            //                << " summand=" << summand << " sum=" << sum;
+          }
+        }
+        design->data[dtype*n_elem+i].AddGradient(NULL, g, grad);
+      }
+      LOG_DBG2(em) << "GDFG: el=" << de->elem->elemNum << " de = "<< de->ToString() << " filtering_gap = "<< result <<" derivative ="<<derivative << " grad = "<< grad;
+    }
+    return result;
+  }
+
 
   double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   {
@@ -3491,7 +3569,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // We traverse all excitations and conditionally perform a context switch. Because of the context switch
     // we need to solve the adjoints within the same context
 
-    StdVector<Function*> funcs = GetActiveFunctions();
+    StdVector<Function*> funcs = GetFunctions(false);
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
@@ -3524,6 +3602,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
       {
         Function* f = funcs[fi];
+        assert(f != NULL);
         // some functions need the selection vector for function evaluation, e.g. output
         if(f->NeedsSelectionVector())
           ConstructSelection(excite, f, false);// don't change the rhs of the system but restore
