@@ -25,21 +25,6 @@ namespace CFSDat{
 //! during traversal, we just apply those loads
 class Cell2NodeInterpolator : public MeshFilter{
 
-  struct InpolationStruct{
-    CF::Vector<Double> localCoords;
-    UInt tENum;
-    UInt srcEqn;
-
-    InpolationStruct() : tENum(0),srcEqn(0){
-      localCoords.Resize(3);
-    }
-
-    bool operator < (const InpolationStruct& str) const
-    {
-        return (srcEqn < str.srcEqn);
-    }
-  };
-
 public:
 
   Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
@@ -56,13 +41,14 @@ protected:
 
   virtual void AdaptFilterResults();
 
+
+
 private:
 
 
-  std::vector<InpolationStruct> interpolData_;
+  std::vector<QuantityStruct> interpolData_;
   StdVector<UInt> nodeNeighbours_;
 
 };
 
 }
-//#endif /* SOURCE_CFSDAT_FILTERS_INTERPOLATORS_CELL2NODEINTERPOLATOR_HH_ */

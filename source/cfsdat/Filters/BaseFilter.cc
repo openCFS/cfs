@@ -20,6 +20,7 @@
 #include "Filters/Output/OutputFilter.hh"
 #include "Filters/Derivatives/RotatingSubstDt.hh"
 #include "Filters/Derivatives/TimeDerivFilter.hh"
+#include "Filters/Derivatives/PostLighthillSource.hh"
 #include "SignalProcessing/FftFilter.hh"
 #include <boost/tokenizer.hpp>
 #include <Filters/BaseMeshFilterType.hh>
@@ -39,6 +40,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   }
   else if (filtNode->GetName() == "substantialDeriv") {
     newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "postLighthill") {
+    newPtr = FilterPtr(new CFSDat::PostLighthillSource(0, filtNode, resMana));
   }
   else if ((filtNode->GetName() == "interpolation") ||
            (filtNode->GetName() == "differentiation") ||

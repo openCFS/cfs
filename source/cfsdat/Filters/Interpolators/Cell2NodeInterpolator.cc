@@ -14,7 +14,6 @@
 
 
 #include "Cell2NodeInterpolator.hh"
-#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 #include <algorithm>
@@ -57,39 +56,9 @@ bool Cell2NodeInterpolator::Run(){
   CF::StdVector<UInt> eqnNums;
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-  returnVec.Init();
 
-  //perform interpolation
+  Cell2Node(returnVec,filterResIds[0], inVec, interpolData_, nodeNeighbours_);
 
-  CF::Vector<Double> shFnc;
-  CF::StdVector<UInt> eqns;
-  CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
-  for(UInt i=0;i < interpolData_.size();++i){
-    InpolationStruct& aStru = interpolData_[i];
-
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
-    eShape = trgGrid_->GetElemShapeMap(curE,true);
-
-    const CF::StdVector<UInt>& eConn = curE->connect;
-
-    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-    //we assume scalar shape functions
-    shFnc.Resize(eConn.GetSize());
-    shFnc.Init();
-    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-
-    Double curval = 0.0;
-    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
-      downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-      curval  = eConn.GetSize() * shFnc[aNode]/nodeNeighbours_[eConn[aNode]];//* aStru.volume; // We just add up the values
-
-      for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqn+aDof];
-      }
-    }
-  }
 
   resultManager_->ActivateResult(filterResIds[0]);
 
@@ -100,6 +69,9 @@ bool Cell2NodeInterpolator::Run(){
 
   return true;
 }
+
+
+
 
 void Cell2NodeInterpolator::PrepareCalculation(){
   //1. Get Cell points from input
@@ -169,11 +141,11 @@ void Cell2NodeInterpolator::PrepareCalculation(){
   for(UInt aMatch = 0;aMatch < trgElements.GetSize();++aMatch){
     if(trgElements[aMatch]!= NULL){
       //obtain element volume
-      InpolationStruct newStruct;
+      QuantityStruct newStruct;
       shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.srcEqn = allSrcElems[aMatch];
-      newStruct.tENum = trgElements[aMatch]->elemNum;
+      newStruct.srcEqnSingle = allSrcElems[aMatch];
+      newStruct.trgElemNum = trgElements[aMatch]->elemNum;
       interpolData_.push_back(newStruct);
       ++foundCounter;
     }
@@ -192,13 +164,13 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
     CF::StdVector<UInt> sEqn;
   for(UInt i=0;i<interpolData_.size();++i){
-    upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
+    upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
-    interpolData_[i].srcEqn = sEqn[0];
+    interpolData_[i].srcEqnSingle = sEqn[0];
 
-    InpolationStruct& aStru = interpolData_[i];
+    QuantityStruct& aStru = interpolData_[i];
 
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
     const CF::StdVector<UInt>& eConn = curE->connect;
 
     StdVector<CoupledField::Elem *> neigbourElems;

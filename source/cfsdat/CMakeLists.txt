@@ -22,6 +22,8 @@ SET(CFSDAT_SRCS
   Filters/Derivatives/DivergenceDifferentiator.cc
   Filters/Derivatives/CurlDifferentiator.cc
   Filters/Derivatives/Lighthill.cc
+  Filters/Derivatives/AeroacousticBase.cc
+  Filters/Derivatives/PostLighthillSource.cc
   Filters/Interpolators/CentroidInterpolator.cc
   Filters/Interpolators/NearestNeighbourInterpolator.cc
   Filters/Interpolators/Cell2NodeInterpolator.cc

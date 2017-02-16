@@ -26,14 +26,6 @@ namespace CFSDat{
 class RBFInterpolator : public MeshFilter{
 
 public:
-  struct InpolationStruct{
-    CF::Vector<Double> localCoords; //target local coordinates
-    UInt tENum; //target element number
-
-    InpolationStruct() : tENum(0){
-      localCoords.Resize(3);
-    }
-  };
 
   RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
@@ -52,18 +44,9 @@ protected:
   virtual void AdaptFilterResults();
 
 
-  // build the local RBF interpolation matrix, based on the nearest neighbour source points
-  // build the local interpolation-value vector and solve the system ALoc*c=vector for
-  // the local RBF coefficients c
-  void CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
-                       const CF::Vector<Double>& globPoint,
-                       const CF::StdVector< Vector<Double> >& neighbors,
-                       const CF::StdVector< Double >& l2Distances,
-                       const CF::StdVector< Vector<Double> >& vectors,
-                       const UInt numNN,
-                       const Double alpha);
-
 private:
+
+
     //! Coordinates of input data
     CF::StdVector< CF::Vector<double> > sourceCoords_;
 
@@ -77,7 +60,7 @@ private:
     Double p_;
 
     //! Vector containing target-informations
-    std::vector<InpolationStruct> interpolData_;
+    std::vector<QuantityStruct> interpolData_;
 
     //! if true, then all nodes on region "wall" will have 0.0 as return-vector entry
     bool noSlip_;

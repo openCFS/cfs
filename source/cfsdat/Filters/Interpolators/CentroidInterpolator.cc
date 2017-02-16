@@ -68,9 +68,9 @@ bool CentroidInterpolator::Run(){
   CF::shared_ptr<ElemShapeMap> eShape;
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
   for(UInt i=0;i < interpolData_.size();++i){
-    InpolationStruct& aStru = interpolData_[i];
+    QuantityStruct& aStru = interpolData_[i];
 
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
     eShape = trgGrid_->GetElemShapeMap(curE,true);
 
     const CF::StdVector<UInt>& eConn = curE->connect;
@@ -85,7 +85,7 @@ bool CentroidInterpolator::Run(){
       downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
       curval  = shFnc[aNode] * aStru.volume;
       for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqn+aDof];
+        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqnSingle+aDof];
       }
     }
   }
@@ -169,12 +169,12 @@ void CentroidInterpolator::PrepareCalculation(){
   for(UInt aMatch = 0;aMatch < trgElements.GetSize();++aMatch){
     if(trgElements[aMatch]!= NULL){
       //obtain element volume
-      InpolationStruct newStruct;
+      QuantityStruct newStruct;
       shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
       newStruct.volume = eShape->CalcVolume();
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.srcEqn = allSrcElems[aMatch];
-      newStruct.tENum = trgElements[aMatch]->elemNum;
+      newStruct.srcEqnSingle = allSrcElems[aMatch];
+      newStruct.trgElemNum = trgElements[aMatch]->elemNum;
       interpolData_.push_back(newStruct);
       ++foundCounter;
     }
@@ -192,9 +192,9 @@ void CentroidInterpolator::PrepareCalculation(){
   str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
   CF::StdVector<UInt> sEqn;
   for(UInt i=0;i<interpolData_.size();++i){
-    upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
+    upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
-    interpolData_[i].srcEqn = sEqn[0];
+    interpolData_[i].srcEqnSingle = sEqn[0];
   }
 
   std::cout << "\t\t 6/6 Sort Data according to eqn numbers ..." << std::endl;

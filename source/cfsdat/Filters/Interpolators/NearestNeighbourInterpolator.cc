@@ -101,10 +101,10 @@ bool NearestNeighbourInterpolator::Run(){
 
   // Bring the input data into the correct form for CGAL nearest
   // neighbour search
-  this->FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_);
+  FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_, inDim_);
 
   // Perform actual interpolation algorithm
-  this->Interpolation(returnVec, scatteredData, vec, downMap, sourceCoords_, targetCoords_, interpolDataTrg_, trgGrid_);
+  NearestNeighbourInterpolation(returnVec, scatteredData, vec, downMap, sourceCoords_, targetCoords_, interpolDataTrg_, trgGrid_, inDim_, numNeighbors_, p_);
 
 
   resultManager_->ActivateResult(filterResIds[0]);
@@ -137,193 +137,9 @@ bool NearestNeighbourInterpolator::Run(){
 }
 
 
-void NearestNeighbourInterpolator::FillScatteredDataVec(CF::StdVector< CF::Vector<Double> >& scatteredData,
-                          CF::Vector<Double>& vec,
-                          const Vector<Double>& inVec,
-                          const CF::StdVector< CF::Vector<double> >& coords){
 
 
 
-  // because of the input of CGAL
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVec.GetSize() == coords.GetSize()){
-    //this is the case of scalar scattered values
-    inDim_=0;
-    vec.Resize(1);
-#pragma omp parallel for
-    for(UInt i = 0; i < coords.GetSize(); ++i){
-      scatteredData[i].Resize(1);
-      scatteredData[i][0] = inVec[i];
-     }
-    }else{
-          if(inVec.GetSize() == 2 * coords.GetSize()){
-            //case of two dimensional vector
-            inDim_=1;
-            vec.Resize(2);
-#pragma omp parallel for
-            for(UInt i = 0; i < coords.GetSize() ; ++i){
-            scatteredData[i].Resize(2);
-            scatteredData[i][0] = inVec[2 * i]; // x-component
-            scatteredData[i][1] = inVec[2 * i + 1]; // y-component
-            }
-          }else{
-              if(inVec.GetSize() == 3 * coords.GetSize()){
-                // case of three dimensional vector
-                inDim_=2;
-                vec.Resize(3);
-#pragma omp parallel for
-                for(UInt i = 0; i < coords.GetSize(); ++i){
-                scatteredData[i].Resize(3);
-                scatteredData[i][0] = inVec[3 * i]; // x-component
-                scatteredData[i][1] = inVec[3 * i + 1]; // y-component
-                scatteredData[i][2] = inVec[3 * i + 2]; // z-component
-                }
-              }else{
-                EXCEPTION("Incorrect Input Data!")
-              }
-          }
-    }
-
-
-}
-
-
-
-void NearestNeighbourInterpolator::Interpolation(Vector<Double>& returnVec,
-                                        const CF::StdVector< CF::Vector<Double> >&  scatteredData,
-                                        CF::Vector<Double>& vec,
-                                        const str1::shared_ptr<EqnMapSimple>& downMap,
-                                        const CF::StdVector< CF::Vector<double> >& srcCoords,
-                                        const CF::StdVector< CF::Vector<double> >& trgCoords,
-                                        std::vector<InterpolationStruct>& interpolationData,
-                                        Grid* grid){
-
-    // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-	  KNNSearch Tree;
-	  Tree.ReadScatteredData_Interpolation(srcCoords, inDim_, grid, scatteredData);
-
-	  CF::StdVector<bool> nodeCheck;
-	  nodeCheck.Resize(grid->GetNumNodes(ALL_REGIONS));
-	  nodeCheck.Init(false);
-
-	  // loop over all elements and over every node of each element
-	  for(UInt i=0;i < interpolationData.size();++i){
-	    UInt nodeIter = 0;
-	    InterpolationStruct& aStru = interpolationData[i];
-	    const Elem* curE = grid->GetElem(aStru.tENum);
-	    CF::shared_ptr<ElemShapeMap> eShape = grid->GetElemShapeMap(curE,true);
-	    //eConn gives us the node numbers of current element curE
-	    const CF::StdVector<UInt>& eConn = curE->connect;
-	    //std::cout<<"curE"<<curE<<std::endl;
-	    //std::cout<<"eConn"<<eConn<<std::endl;
-
-	    //get the global coordinates of the nodes of element curE
-	    CF::Matrix<Double> globalCoords;
-	    grid->GetElemNodesCoord(globalCoords, eConn, true);
-	    //std::cout<<"globalCoords"<<globalCoords<<std::endl;
-	    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-	    CF::Vector<Double> shFnc;
-	    shFnc.Resize(eConn.GetSize());
-	    shFnc.Init();
-
-	    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-
-	    //loop over every node of element curE and perform interpolation
-	    //BUT only if the interpolation for this certain node has not been
-	    //carried out before. Therefore we use a std::search in which we
-	    //search, if the current node has been used before
-	    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
-	      //extract the global point of node aNode
-	      CF::Vector<Double> globPoint;
-	      globalCoords.GetCol(globPoint, aNode);
-
-	      //that is the mentioned search, to find out if the node has already been used
-	      //eConn[aNode]-1 because nodeNumbers of eConn start with 1 and not with 0 !!
-	      if(nodeCheck[eConn[aNode]-1] == false){
-	        //add aNode to the "already-computed-list"
-	        nodeCheck[eConn[aNode]-1] = true;
-
-	        // coordinate list of nearest neighbour points
-	        CF::StdVector< Vector<Double> > neighbors;
-	        // distances according to every nearest neighbour point
-	        CF::StdVector< Double > l2dists;
-	        // vector containing the values of each nearest neighbour point
-	        CF::StdVector< Vector<Double> > vectors;
-
-	        for (UInt dof = 0; dof < inDim_ + 1; dof++){
-	          vec[dof] = 0.0;
-	        }
-
-	        // at that point we can start obtaining the nearest neighbours for every aNode
-	        Tree.KNN_CGAL_Interpolation(globPoint, neighbors, l2dists, vectors, numNeighbors_);
-
-	          Double dmin = l2dists[0];
-	          Double dmax = dmin;
-	          StdVector< Double >::iterator it, end;
-	          it = l2dists.Begin();
-	          end = l2dists.End();
-	          for( ; it != end; ++it) {
-	            Double dist = (*it);
-	            dmin = dmin < dist ? dmin : dist;
-	            dmax = dmax > dist ? dmax : dist;
-	          }
-
-	            // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-	            // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-	            // /Inverse_Distance_Weighted/Shepards_Method.htm
-	            Vector<Double> sum(inDim_+1);
-	            Double weights = 0.0;
-	            // The point which is farthest away, should at least have a non-zero
-	            // weight of 0.01. If we would choose R = dmax, it would not contribute
-	            // at all.
-	            Double R = 1.01 * dmax;
-
-	            // report the N nearest neighbors and their distance
-	            // This should sort all N points by increasing distance from origin
-	            it = l2dists.Begin();
-	            for(UInt j=0; it != end; ++it, j++) {
-	              Double d = *it;
-	              Double w;
-	              if(d == 0){
-	               w = 1.0;
-	              }else{
-	               w = std::pow((R-d)/(R*d), p_);
-	              }
-	              weights += w;
-
-	              for(UInt dof=0; dof < inDim_ + 1; dof++)
-	              {
-	                sum[dof] += vectors[j][dof] * w;
-	              }
-	            }
-
-	            for(UInt dof=0; dof < inDim_ + 1; dof++)
-	            {
-	              vec[dof] = sum[dof] / weights;
-	            }
-	            CF::StdVector<UInt> eqns;
-	            eqns.Init(0);
-	            //get the equation map for the nodes in eConn, in order to insert the
-	            //interpolation in the correct position in the result vector
-	            //downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-	            downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-	            //if scalar input values of scattered data->inDim_=0
-	            //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-	            //std::cout<<"eConn[aNode]"<<eConn[aNode]<<std::endl;
-	            //std::cout<<"eConn"<<eConn<<std::endl;
-	            //std::cout<<"eqns"<<eqns<<std::endl;
-	            //std::cout<<"returnVec.GetSize()"<<returnVec.GetSize()<<std::endl;
-	            for(UInt aDof = 0; aDof < inDim_+1; aDof++){
-	              returnVec[eqns[aDof]] = vec[aDof];
-	            }
-	            //iterator for the already computed nodes
-	            nodeIter++;
-
-	        }// if nodeMatch == false
-	    }// for aNode
-	  }// for element
-
-}
 
 
 void NearestNeighbourInterpolator::CheckFilterResults(Vector<Double>& origVec,
@@ -602,9 +418,9 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
   interpolDataTrg_.reserve(allTrgElems.GetSize());
   for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
     if(tempElems[aMatch]!= NULL){
-      InterpolationStruct newStruct;
+      QuantityStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = tempElems[aMatch]->elemNum;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
       interpolDataTrg_.push_back(newStruct);
     }
   }
@@ -617,9 +433,9 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
   interpolDataSrc_.reserve(allSrcElems.GetSize());
   for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
     if(tempElems[aMatch]!= NULL){
-      InterpolationStruct newStruct;
+      QuantityStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = tempElems[aMatch]->elemNum;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
       interpolDataSrc_.push_back(newStruct);
     }
   }

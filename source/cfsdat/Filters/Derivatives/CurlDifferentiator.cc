@@ -14,7 +14,6 @@
 
 
 #include <Filters/Derivatives/CurlDifferentiator.hh>
-#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
@@ -33,7 +32,7 @@ CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config,
 
 
   this->filtStreamType_ = FIFO_FILTER;
-  inDim_ = 0;
+  inDim_ = trgGrid_->GetDim() - 1; //-1 on purpose
 
 }
 
@@ -99,38 +98,11 @@ bool CurlDifferentiator::Run(){
 
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL and FLANN
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVec.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    EXCEPTION("Divergence of a scalar field!");
-  }else{
-    if(inVec.GetSize() == 2 * sourceCoords_.GetSize()){
-      //case of two dimensional vector
-      inDim_=1;
-#pragma omp parallel for shared(inVec)
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        scatteredData[i].Resize(2);
-        scatteredData[i][0] = inVec[2 * i]; // x-component
-        scatteredData[i][1] = inVec[2 * i + 1]; // y-component
-      }
-    }else{
-      if(inVec.GetSize() == 3 * sourceCoords_.GetSize()){
-        // case of three dimensional vector
-        inDim_=2;
-#pragma omp parallel for shared(inVec)
-        for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-          scatteredData[i].Resize(3);
-          scatteredData[i][0] = inVec[3 * i]; // x-component
-          scatteredData[i][1] = inVec[3 * i + 1]; // y-component
-          scatteredData[i][2] = inVec[3 * i + 2]; // z-component
-        }
-      }else{
-        EXCEPTION("Incorrect Input Data!")
-      }
-    }
-  }
+
+  FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_, inDim_);
+
+
+
 
 
   // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
@@ -138,11 +110,13 @@ bool CurlDifferentiator::Run(){
   Tree.ReadScatteredData_Curl(sourceCoords_, inDim_, trgGrid_, scatteredData);
 
 
+
+
   // loop over all elements and over every node of each element
   for(UInt i = 0; i < derivData_.size();++i){
 
-    DifferentiationStruct& aStru = derivData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    QuantityStruct& aStru = derivData_[i];
+    const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
 
     //get the global coordinates of element centroid
     CF::Vector<Double> globalCoord;
@@ -166,9 +140,8 @@ bool CurlDifferentiator::Run(){
       alpha = l2dists[0] * 1.5e+03;
     }
 
-    // now we have to calculate the local RBF interpolation matrix with the nn nodes
-    // and also do the inversion
-    CalcLocRBFDerivativeCoefs(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha);
+    // now we calculate the local curl
+    CalcLocCurl(vec, globalCoord, neighbors, l2dists, vectors, numNN, alpha, inDim_, trgGrid_);
 
     CF::StdVector<UInt> eqns;
     //get the equation map for the nodes in eConn, in order to insert the
@@ -196,101 +169,6 @@ bool CurlDifferentiator::Run(){
 
 
 
-void CurlDifferentiator::CalcLocRBFDerivativeCoefs(CF::Matrix<Double>& vec,
-                                                  const CF::Vector<Double>& globPoint,
-                                                  const CF::StdVector< Vector<Double> >& neighbors,
-                                                  const  CF::StdVector< Double >& l2Distances,
-                                                  const  CF::StdVector< Vector<Double> >& vectors,
-                                                  const  UInt numNN,
-                                                  const  Double alpha){
-  CF::Matrix<Double> derivCoefVec;
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim_ ){
-    case 0:
-      //should already be caught
-      EXCEPTION("Curl of a scalar field!");
-      break;
-    case 1:
-      vals.Resize(numNN,2);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      if (trgGrid_->GetDim() == 2){
-        derivVec.Resize(numNN,2);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-        }
-      }else{
-        EXCEPTION("2D mesh and 3D-values!")
-      }
-      break;
-    case 2:
-      vals.Resize(numNN,3);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      vals[i][2] = vectors[i][2];
-      if (trgGrid_->GetDim() == 3){
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
-        }
-      }else{
-        EXCEPTION("3D mesh and 2D-values!")
-      }      break;
-    }
-  }
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  CF::Matrix<Double> temp;
-
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  CF::Matrix<Double> tempvec;
-  tempvec.Resize(1,inDim_+1);
-  tempvec = temp * derivCoefVec;
-
-  //now we have to combine the tempvec-entries in order to obtain the rotor
-  if(trgGrid_->GetDim() == 2){
-    vec[0][0] = 0.0;
-    vec[0][1] = 0.0;
-    vec[0][2] = tempvec[1][0] - tempvec[0][1];
-  }else{
-    vec[0][0] = tempvec[2][1] - tempvec[1][2];
-    vec[0][1] = tempvec[0][2] - tempvec[2][0];
-    vec[0][2] = tempvec[1][0] - tempvec[0][1];
-  }
-
-
-
-
-}
 
 
 
@@ -424,9 +302,9 @@ void CurlDifferentiator::PrepareCalculation(){
   derivData_.reserve(tempElems.GetSize());
   for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
     if(tempElems[aMatch]!= NULL){
-      DifferentiationStruct newStruct;
+      QuantityStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = tempElems[aMatch]->elemNum;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
       derivData_.push_back(newStruct);
     }
   }
@@ -479,6 +357,11 @@ void CurlDifferentiator::AdaptFilterResults(){
     EXCEPTION("Problem in filter pipeline detected. Differentiator input result \"" <<  inInfo->resultName << "\" could not be provided.")
   }
 
+  //input must be node-based
+  if (resultManager_->GetDefOn(upResIds[0]) == ExtendedResultInfo::ELEMENT){
+    EXCEPTION("Curl filter requires velocity to be defined on nodes!");
+  }
+
 
   resultManager_->CopyResultData(upResIds[0],filterResIds[0]);
   //but now, we need to overwrite some things
@@ -486,10 +369,16 @@ void CurlDifferentiator::AdaptFilterResults(){
 
   resultManager_->SetEntryType(filterResIds[0],ExtendedResultInfo::VECTOR);
 
+  // if we have a 2D-mesh, the output will be a scalar value (per definition, then all
+  // differentiation- and aeroacoustic-filters are conistent)
   CF::StdVector<std::string> dofnames;
-  dofnames.Push_back("x");
-  dofnames.Push_back("y");
-  dofnames.Push_back("z");
+  if(trgGrid_->GetDim() == 2){
+    dofnames.Push_back("x");
+  }else{
+    dofnames.Push_back("x");
+    dofnames.Push_back("y");
+    dofnames.Push_back("z");
+  }
   resultManager_->SetDofNames(filterResIds[0],dofnames);
 
   //after this filter we have element values on different regions

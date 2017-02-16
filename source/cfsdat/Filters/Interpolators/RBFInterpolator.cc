@@ -14,9 +14,7 @@
 
 
 #include "RBFInterpolator.hh"
-#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
-#include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
 #include <vector>
 #include <math.h>
@@ -33,13 +31,6 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
 
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
-
-
-  // Read value and phase and generate scalar coefficient function
- // std::string value, phase;
- // value = myParam_->Get("source")->Get("value")->As<std::string>();
- // srcVal_ = CoefFunction::Generate(mParser_, type, value, phase);
-
 
 }
 
@@ -85,221 +76,22 @@ bool RBFInterpolator::Run(){
   CF::StdVector< CF::Vector<Double> >  scatteredData;
   scatteredData.Resize(sourceCoords_.GetSize());
 
-  // find out the dimension of the mesh (2D, 3D) and assign the appropriate number of nearest neighbours
-  // nr. of nearest neighbours for the nodal RBF basis functions
-  UInt numNN = (trgGrid_->GetDim() == 2) ? 13 : 18 ;
-  //nr. of nearest neighbours needed for the weight-calculation (must be smaller than numNN !!)
-  UInt numNW = (trgGrid_->GetDim() == 3) ? 10 : 7 ;
 
   // vector containing the interpolated result for every trg node
   // can be 1D for scalar values or 2D/3D for vector values
   CF::Vector<Double> vec;
-  CF::Vector<Double> R_k;
+
 
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
 
-  // Checking if input is scalar- or vector-type. This needs to be done
-  // because of the input of CGAL
-  // Maybe there is a more efficient way to deal with this issue?!
-  if(inVec.GetSize() == sourceCoords_.GetSize()){
-    //this is the case of scalar scattered values
-    inDim_=0;
-    vec.Resize(1);
-    R_k.Resize(1);
-#pragma omp parallel for
-    for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-      scatteredData[i].Resize(1);
-      scatteredData[i][0] = inVec[i];
-    }
-  }else{
-    if(inVec.GetSize() == 2 * sourceCoords_.GetSize()){
-      //case of two dimensional vector
-      inDim_=1;
-      vec.Resize(2);
-      R_k.Resize(2);
-#pragma omp parallel for
-      for(UInt i = 0; i < sourceCoords_.GetSize() ; ++i){
-        scatteredData[i].Resize(2);
-        scatteredData[i][0] = inVec[2 * i]; // x-component
-        scatteredData[i][1] = inVec[2 * i + 1]; // y-component
-      }
-    }else{
-      if(inVec.GetSize() == 3 * sourceCoords_.GetSize()){
-        // case of three dimensional vector
-        inDim_=2;
-        vec.Resize(3);
-        R_k.Resize(3);
-#pragma omp parallel for
-        for(UInt i = 0; i < sourceCoords_.GetSize(); ++i){
-          scatteredData[i].Resize(3);
-          scatteredData[i][0] = inVec[3 * i]; // x-component
-          scatteredData[i][1] = inVec[3 * i + 1]; // y-component
-          scatteredData[i][2] = inVec[3 * i + 2]; // z-component
-        }
-      }else{
-std::cout<<"\t\t Size of input-vector:"<<inVec.GetSize()<<std::endl;
-std::cout<<"\t\t Number of source-points:"<<sourceCoords_.GetSize()<<std::endl;
-        EXCEPTION("Incorrect Input Data!")
-      }
-    }
-  }
 
-  // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-  KNNSearch Tree;
-  Tree.ReadScatteredData_Interpolation(sourceCoords_, inDim_, trgGrid_, scatteredData);
+  FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_, inDim_);
+
+  // Perform actual interpolation algorithm
+  RBFInterpolation(returnVec, scatteredData, vec, downMap, sourceCoords_, targetCoords_, interpolData_, trgGrid_, inDim_, p_, noSlip_);
 
 
 
-  CF::StdVector<bool> nodeCheck;
-  nodeCheck.Resize(trgGrid_->GetNumNodes(ALL_REGIONS));
-  nodeCheck.Init(false);
-
-  /* We want to automatically set velocity at a certain region named "wall"
-   * to be zero (no-slip-condition). If tag <noSlipWall/> is set in xml-scheme,
-   * we  skip the computation of wall-nodes so the value is zero because
-   * returnVec was initialized with 0.0
-   */
-  if(noSlip_ == true){
-    CF::StdVector<UInt> wallNodes;
-    trgGrid_->GetNodesByName(wallNodes, "wall");
-
-    CoupledField::StdVector<unsigned int>::iterator nIter = wallNodes.Begin();
-    //std::set<uint>::iterator nIter = wallNodes.Begin();
-    for(;nIter != wallNodes.End(); ++nIter){
-      // -1 because nodeNumbers start with 1
-      nodeCheck[*nIter - 1] = true;
-    }
-  }
-
-
-  // loop over all elements and over every node of each element
-  for(UInt i=0;i < interpolData_.size();++i){
-
-    InpolationStruct& aStru = interpolData_[i];
-    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
-    CF::shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(curE,true);
-    //eConn gives us the node numbers of current element curE
-    const CF::StdVector<UInt>& eConn = curE->connect;
-
-    //get the global coordinates of the nodes of element curE
-    CF::Matrix<Double> globalCoords;
-    trgGrid_->GetElemNodesCoord(globalCoords, eConn, true);
-    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-    CF::Vector<Double> shFnc;
-    shFnc.Resize(eConn.GetSize());
-    shFnc.Init();
-
-    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-
-    //loop over every node of element curE and perform interpolation
-    //BUT only if the interpolation for this certain node has not been
-    //carried out before. Therefore we use a std::search in which we
-    //search, if the current node has been used before
-    for(UInt aNode = 0;aNode < eConn.GetSize(); ++aNode){
-
-      //extract the global point of node aNode
-      CF::Vector<Double> globPoint;
-      globalCoords.GetCol(globPoint, aNode);
-
-      //that is the mentioned search, to find out if the node has already been used
-      //eConn[aNode]-1 because nodeNumbers of eConn start with 1 and not with 0 !!
-      if(nodeCheck[eConn[aNode]-1] == false){
-        //add aNode to the "already-computed-list"
-        nodeCheck[eConn[aNode]-1] = true;
-
-        // coordinate list of nearest neighbour points
-        CF::StdVector< Vector<Double> > neighbors;
-        // distances according to every nearest neighbour point
-        CF::StdVector< Double > l2dists;
-        // vector containing the values of each nearest neighbour point
-        CF::StdVector< Vector<Double> > vectors;
-
-        for (UInt dof = 0; dof < inDim_ + 1; dof++){
-          vec[dof] = 0.0;
-        }
-
-        // at that point we can start obtaining the nearest neighbours for every aNode
-        Tree.KNN_CGAL_Interpolation(globPoint, neighbors, l2dists, vectors, numNN);
-
-        // concerning radius factor alpha: we want to scale min(l2dists)/alpha~=1.5e-03
-        // this means alpha = min(l2dists) * 1.5e+03
-        // the first entry of l2dists is zero, if target and source node coincide, then we
-        // simply take the next entry, which must be != 0
-        Double alpha;
-        if( l2dists[0] == 0.0 ){
-          alpha = l2dists[1] * 1.5e+03;
-        }else{
-          alpha = l2dists[0] * 1.5e+03;
-        }
-
-        // local RBF interpolation coefficients vector (matrix only because
-        // of the following ALoc*coefVec multiplication)
-        CF::Matrix<Double> coefVec;
-        CalcLocRBFCoefs(coefVec, globPoint, neighbors, l2dists, vectors, numNN, alpha);
-
-        Double r_k;
-        Double W_k_bar;
-        Double temp;
-        Double r_Wk = l2dists[numNW]; //influence radius of the weight function
-        Double W_denom = 0.0;
-        //now we can perform the computation of the weight function
-        for (UInt srcIter = 0; srcIter < numNN; ++srcIter){
-          r_Wk = l2dists[numNW]; //influence radius of the weight function
-          W_denom = 0.0;
-          for (UInt k = 0; k < numNN; ++k){
-            r_k = l2dists[k];
-            temp = (r_Wk - r_k);
-            if (temp < 0.0){temp = 0.0;}
-            if (r_k == 0.0){
-              W_denom += 0.0;
-            }else{
-              W_denom += pow(temp / (r_Wk * r_k), Double(p_));
-            }
-          }
-          r_k = l2dists[srcIter];
-          temp = (r_Wk - r_k);
-          if (temp < 0.0){temp = 0.0;}
-          if (r_k == 0.0){
-            W_k_bar = 1.0 / W_denom;
-          }else{
-            W_k_bar = pow(temp / (r_Wk * r_k), Double(p_)) / W_denom;
-          }
-
-          //RBF evaluation
-          //just a clear-up of of R_k
-          for (UInt dof = 0; dof < inDim_ + 1; dof++){
-            R_k[dof] = 0.0;
-          }
-
-          for(UInt dof=0; dof < inDim_ + 1; dof++){
-            for (UInt m = 0; m < numNN; ++m){
-              R_k[dof] += coefVec[m][dof] * pow(1.0 - l2dists[m]/alpha, 2.0);
-            }
-          }
-
-          for(UInt dof=0; dof < inDim_ + 1; dof++){
-            vec[dof] += R_k[dof] * W_k_bar;
-          }
-        }
-
-        CF::StdVector<UInt> eqns;
-        //get the equation map for the nodes in eConn, in order to insert the
-        //interpolation in the correct position in the result vector
-        downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-
-
-        //if scalar input values of scattered data->inDim_=0
-        //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-        for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
-          returnVec[eqns[aDof]] = vec[aDof];
-        }
-      }// if nodeMatch == false
-
-
-    }// for aNode
-
-  }// for element
-  //}// pragma parallel
   resultManager_->ActivateResult(filterResIds[0]);
 
 
@@ -313,57 +105,6 @@ std::cout<<"\t\t Number of source-points:"<<sourceCoords_.GetSize()<<std::endl;
 }
 
 
-
-void RBFInterpolator::CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
-    const CF::Vector<Double>& globPoint,
-    const CF::StdVector< Vector<Double> >& neighbors,
-    const CF::StdVector< Double >& l2Distances,
-    const CF::StdVector< Vector<Double> >& vectors,
-    const UInt numNN,
-    const Double alpha){
-
-  coefVec.Resize(numNN,1);
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-
-
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim_ ){
-    case 0:
-      vals.Resize(numNN,1);
-      vals[i][0] = vectors[i][0];
-      break;
-    case 1:
-      vals.Resize(numNN,2);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      break;
-    case 2:
-      vals.Resize(numNN,3);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      vals[i][2] = vectors[i][2];
-      break;
-    }
-  }
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  coefVec = ALoc * vals;
-}
 
 
 void RBFInterpolator::PrepareCalculation(){
@@ -511,9 +252,9 @@ void RBFInterpolator::PrepareCalculation(){
   interpolData_.reserve(allTrgElems.GetSize());
   for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
     if(tempElems[aMatch]!= NULL){
-      InpolationStruct newStruct;
+      QuantityStruct newStruct;
       newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.tENum = tempElems[aMatch]->elemNum;
+      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
       interpolData_.push_back(newStruct);
     }
   }

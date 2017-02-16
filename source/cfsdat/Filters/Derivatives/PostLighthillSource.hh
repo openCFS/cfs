@@ -4,50 +4,45 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     Node2CellInterpolator.hh
+ *       \file     PostLighthillSource.hh
  *       \brief    <Description>
  *
- *       \date     Jan 3, 2017
+ *       \date     Feb 16, 2017
  *       \author   kroppert
  */
 //================================================================================================
 
 #pragma once
 
-
-#include "DataInOut/SimInput.hh"
-#include <Filters/MeshFilter.hh>
-
+#include "cfsdat/Filters/BaseFilter.hh"
 
 namespace CFSDat{
 
+//! Simple filter to extract the physically scalar acoustic-source-term from the
+//! 2D storage format. We just have to extract the x-component, because the source
+//! term filter writes on the x-component (y is zero)
 
-class Node2CellInterpolator : public MeshFilter{
+class PostLighthillSource : public BaseFilter{
 
 public:
+  PostLighthillSource(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  Node2CellInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
-
-  virtual ~Node2CellInterpolator();
+  virtual ~PostLighthillSource();
 
   virtual bool Run();
 
 
-
 protected:
-
-  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-
 private:
 
-    //! Vector containing target-informations
-    std::vector<QuantityStruct> interpolData_;
 
 };
+
+
 
 }
