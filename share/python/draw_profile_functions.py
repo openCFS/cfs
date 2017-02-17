@@ -1048,11 +1048,14 @@ def generate_basecell(args,info,log):
   
   profiles = create_profiles(args,infoXml)
   
-  hf = plt.figure()
-  ha = hf.add_subplot(111, projection='3d')
-  ha.set_xlabel('X')
-  ha.set_ylabel('Y')
-  ha.set_zlabel('Z')
+  hf = None
+  
+  if args.verbose:
+    hf = plt.figure()
+    ha = hf.add_subplot(111, projection='3d')
+    ha.set_xlabel('X')
+    ha.set_ylabel('Y')
+    ha.set_zlabel('Z')
   
   assert(len(profiles) == 3)
   
