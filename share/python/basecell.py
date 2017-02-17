@@ -141,12 +141,12 @@ parser.add_argument("--res", help="x-discretization of length 1m", type=int, req
 parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
 # for profile functions
 parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
-parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 <= x1 <= 1", type=float)
-parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 <= x2 <= 1", type=float)
-parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 <= y1 <= 1", type=float)
-parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 <= y2 <= 1", type=float)
-parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 <= z1 <= 1", type=float)
-parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 <= z2 <= 1", type=float)
+parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 < x1 < 1", type=float)
+parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 < x2 < 1", type=float)
+parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 < y1 < 1", type=float)
+parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 < y2 < 1", type=float)
+parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
+parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
 parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
 parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
@@ -163,6 +163,7 @@ parser.add_argument('--beta', help="steepness of heaviside function", type=float
 parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
+
 
 args = parser.parse_args()
 

@@ -20,6 +20,9 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
   if type == 'rel_node_bound':
     var_name = '-rnb_'      
   old_problem = short_problem + var_name + old_var_str  
+  if type == 'alphaSlackQuotient':
+    var_name = '-asq'
+
   var_problem = short_problem + var_name + new_var_str  
     
   # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
@@ -51,6 +54,8 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
       query = '//cfs:shapeMap/@relative_profile_bound'
     if type == 'rel_node_bound': 
       query = '//cfs:shapeMap/@relative_node_bound'
+    if type == 'alphaSlackQuotient':
+      query = '//cfs:constraint[@type="alphaSlackQuotient"]/@value'
     assert(query <> None)
 
     r = replace(xml, query, str(var), unique = False)
@@ -75,16 +80,16 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
   if show:
     execute("show_density.py " + var_problem + ".density.xml --save " + var_problem + ".png")
 
-  return
+  return var_problem
 
 
 parser = argparse.ArgumentParser(description='Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py')
 parser.add_argument('problem', help="the problem xml without extension where e.g. '-beta_x' will be added")
 parser.add_argument('-m', "--mesh", help="the mesh file with extension", required=True)
 parser.add_argument('-x', '--initial', help="optional density.xml for initial design (with extension)")
-parser.add_argument('--var', help="on which variable continuation shall be perfomed on. beta for filter or shape map", choices=['beta', 'curvature', 'rel_profile_bound', 'rel_node_bound'], default='beta')
+parser.add_argument('--var', help="on which variable continuation shall be perfomed on. beta for filter or shape map", choices=['beta', 'curvature', 'rel_profile_bound', 'rel_node_bound','alphaSlackQuotient'], default='beta')
 parser.add_argument('--start', help="initial variable", type=float, default=1)
-parser.add_argument('--max', help="maxmum variable which will be calculated", type=float, default=64)
+parser.add_argument('--end', help="last variable which will be calculated", type=float, default=64)
 parser.add_argument('--inc', help="variable increment b += inc*b. inc=1 doubles", type=float, default=1.0)
 parser.add_argument('--range', help='alternative to start, max, inc i like --range "0.01, 0.05, 0.1" or even "0.1, 0.1, 0.1"!')
 parser.add_argument('--executable', help="what to call for cfs", default='cfs_rel')
@@ -108,13 +113,35 @@ if args.range:
   for i in range(len(vals)):
     ri = i if len(vals) <> len(set(vals)) else -1  
     continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
-  
 else:
   old = -1  
   var = args.start
   i = 0
   dig = 1 if args.var == 'beta' else 2
-  while var <= args.max:
+  if args.var == 'alphaSlackQuotient':
+    # decrease initial value until end value is reached, restart with smaller inc step if optimizer didn't converge
+    inc = args.inc
+    success = args.initial
+    old = -1
+    dig = 6
+    while var >= args.end:
+      var_problem = continuation(success, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe)
+      infoXmlName = var_problem + ".info.xml"
+      if os.path.exists(infoXmlName):
+        doc_info = libxml2.parseFile(infoXmlName)
+        xml_info = doc_info.xpathNewContext()
+        conv  = xpath(xml_info, "//break/@converged")
+      else:
+        print infoXmlName + " does not exist."
+      #old = digits(var, dig)
+      #if conv == 'yes':
+      success = var_problem + ".density.xml"
+      #  inc *= 1.5
+      var -= inc
+      #else:
+      #  inc /= 2.
+      #  var += inc     
+  while var <= args.end:
    continuation(args.initial, cmt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
    old = digits(var, dig)
    var += var * args.inc

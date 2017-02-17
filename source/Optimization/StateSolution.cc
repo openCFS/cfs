@@ -89,6 +89,9 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
     for(unsigned int i = 0; i < em->constraints.active.GetSize(); i++)
       if(em->constraints.active[i]->IsAdjointBased())
         size++;
+    for(unsigned int i = 0; i < em->constraints.observe.GetSize(); i++)
+      if(em->constraints.observe[i]->IsAdjointBased())
+        size++;
 
     size *= em->GetMultipleExcitation()->excitations.GetSize();
 
