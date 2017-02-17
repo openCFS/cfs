@@ -45,11 +45,13 @@ if args.big: #and args.penalization and args.design:
 elif args.qsub:
   os.chdir(str(pwd)+'/'+str(folder))
   fobj = open("jobs")
+  jobfile = open("qsub_jobs", "w")
   for line in fobj:
     problem = str(line).split()
     out = generate_qsub_script("../qsub_template.sh", line, problem[1] + '.sh', silent = True)
-    print(out)
+    jobfile.write(out+"\n")
   fobj.close()
+  jobfile.close()
   os.chdir(str(pwd))
   #execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+design+ penalization)
 else:
