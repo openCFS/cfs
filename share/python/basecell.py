@@ -126,11 +126,13 @@ def create_mesh_with_profiles(args,infoXml,log):
     mesh_tool.validate_periodicity(mesh)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
-    save = "volume.vtp" if not args.save else args.save
-    if not save.endswith('.vtp'):
-      save += ".vtp"
-    visualize_structure(array,args.single_region,args.show,save)
-    
+    if args.save_vtp:
+      save = "volume.vtp" if not args.save else args.save
+      if not save.endswith('.vtp'):
+        save += ".vtp"
+      visualize_structure(array,args.single_region,args.show,save)
+    else:
+      visualize_structure(array,args.single_region,args.show,False)
   if infoXml != None:
     infoXml.write('</basecell>')  
   
@@ -156,6 +158,7 @@ parser.add_argument('--single_region', help="create mesh with only one region", 
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation"], default="off")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
+parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
 parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
 parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
