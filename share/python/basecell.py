@@ -93,19 +93,19 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   mesh = None
   
-    # calculating radii in relation to given stiffnesses x1,x2,y1,...
-  args.x1 = calc_radius(args.x1)
-  infoStr = '  <radii rx1="' + str(args.x1) + '" '
-  args.x2 = calc_radius(args.x2)
-  infoStr += ' rx2="' + str(args.x2) + '" '
-  args.y1 = calc_radius(args.y1)
-  infoStr += ' ry1="' + str(args.y1) + '" '
-  args.y2 = calc_radius(args.y2)
-  infoStr += ' ry2="' + str(args.y2) + '" '
-  args.z1 = calc_radius(args.z1)
-  infoStr += ' rz1="' + str(args.z1) + '" '
-  args.z2 = calc_radius(args.z2)
-  infoStr += ' rz2="' + str(args.z2) + '"'
+#     # calculating radii in relation to given stiffnesses x1,x2,y1,...
+#   args.x1 = calc_radius(args.x1)
+#   infoStr = '  <radii rx1="' + str(args.x1) + '" '
+#   args.x2 = calc_radius(args.x2)
+#   infoStr += ' rx2="' + str(args.x2) + '" '
+#   args.y1 = calc_radius(args.y1)
+#   infoStr += ' ry1="' + str(args.y1) + '" '
+#   args.y2 = calc_radius(args.y2)
+#   infoStr += ' ry2="' + str(args.y2) + '" '
+#   args.z1 = calc_radius(args.z1)
+#   infoStr += ' rz1="' + str(args.z1) + '" '
+#   args.z2 = calc_radius(args.z2)
+#   infoStr += ' rz2="' + str(args.z2) + '"'
   
   if infoXml is not None:
     assert(infoStr)
