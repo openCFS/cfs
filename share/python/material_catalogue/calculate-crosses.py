@@ -746,7 +746,7 @@ elif dim == 3:
             y1 = 0.9999*steps if y == steps else y1
             z1 = 0.9999*steps if z == steps else z1 
             #print("x1 = "+str(x1) + ", x1_cell = "+ str(float(x1)/float(steps)))
-            os.system("../basecell.py --res "+str(args.res)+" --x1 "+str(float(x1)/float(steps))+" --y1 " +str(float(y1)/float(steps))+ " --z1 "+str(float(z1)/float(steps))+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --bend 0.5 --save "+str(folder) + "/"+problem)
+            os.system("basecell.py --res "+str(args.res)+" --x1 "+str(float(x1)/float(steps))+" --y1 " +str(float(y1)/float(steps))+ " --z1 "+str(float(z1)/float(steps))+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --bend 0.5 --save "+str(folder) + "/"+problem)
             jobfile.write('cfs.rel ' + problem + ' \n')
         print(problem + ' is done')
         if args.design:
