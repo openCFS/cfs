@@ -24,8 +24,15 @@ if not args.xml.endswith(".xml"):
 assert(os.path.exists(xml))
 assert(os.path.exists("qsub_template.sh"))  
 assert(os.path.exists("mat.xml"))
+assert(steps > 0)
 
-jobfile = open("qsub_jobs", "w")
+jobfile = open("qsub_jobs.sh", "w")
+jobfile.write("#!/bin/bash\n")
+
+folder = "shell_scripts"
+if os.path.exists(folder):
+  os.system("rm -r -f " + folder)
+os.mkdir(folder)
 
 for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
   for j,y1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
@@ -39,16 +46,16 @@ for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
       
       y = y1
       if j == 0:
-        y1 = 1e-3
+        y = 1e-3
       elif j == steps + 1:
-        y1 = 0.99
+        y = 0.99
         
       z = z1
       if k == 0:
         z = 1e-3
       elif k == steps + 1:
-        z = 0.99  
-        
+        z = 0.99
+      
       problem = str(i) + "-" + str(j) + "-" + str(k)
       mesh = problem + ".mesh"
       
@@ -56,7 +63,7 @@ for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
       cmd += "; cfs_rel -m " + mesh + " -p " + xml + " " + problem
       cmd += "&& rm " + mesh  
       
-      out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, problem + '.sh', silent = True)
+      out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, folder+"/"+problem+'.sh', silent = True)
       jobfile.write(out+"\n")
       
 jobfile.close()      
