@@ -5,8 +5,8 @@ import sympy.solvers
 from sympy import Symbol, symbols
 import sys
 import math
-import vtk
 try:
+  import vtk
   from vtk.util.numpy_support import vtk_to_numpy
   from matviz_vtk import *
 except:
