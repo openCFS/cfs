@@ -29,10 +29,15 @@ assert(steps > 0)
 jobfile = open("qsub_jobs.sh", "w")
 jobfile.write("#!/bin/bash\n")
 
-folder = "shell_scripts"
-if os.path.exists(folder):
-  os.system("rm -r -f " + folder)
-os.mkdir(folder)
+script_folder = "shell_scripts"
+if os.path.exists(script_folder):
+  os.system("rm -r -f " + script_folder)
+os.mkdir(script_folder)
+
+out_folder = "output"
+if os.path.exists(out_folder):
+  os.system("rm -r -f " + out_folder)
+os.mkdir(out_folder)
 
 for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
   for j,y1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
@@ -60,7 +65,7 @@ for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
       mesh = problem + ".mesh"
       
       cmd = "basecell.py --res " + str(args.res) + " --x1 " + str(x) + " --y1 " + str(y) + " --z1 " + str(z)+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --save " + problem
-      cmd += "; cfs_rel -m " + mesh + " -p " + xml + " " + problem
+      cmd += "; cfs_rel -m " + mesh + " -p " + xml + " " + out_folder + "/" + problem
       cmd += "&& rm " + mesh  
       
       out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, folder+"/"+problem+'.sh', silent = True)

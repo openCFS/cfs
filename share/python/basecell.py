@@ -126,12 +126,12 @@ def create_mesh_with_profiles(args,infoXml,log):
     mesh_tool.validate_periodicity(mesh)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
-    if args.save_vtp:
+    if args.save_vtp and args.show:
       save = "volume.vtp" if not args.save else args.save
       if not save.endswith('.vtp'):
         save += ".vtp"
       visualize_structure(array,args.single_region,args.show,save)
-    else:
+    elif args.show:
       visualize_structure(array,args.single_region,args.show,False)
   if infoXml != None:
     infoXml.write('</basecell>')  
