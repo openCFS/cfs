@@ -26,7 +26,7 @@ assert(os.path.exists("qsub_template.sh"))
 assert(os.path.exists("mat.xml"))
 assert(steps > 0)
 
-jobfile = open("qsub_jobs.sh", "w")
+jobfile = open("submit_jobs.sh", "w")
 jobfile.write("#!/bin/bash\n")
 
 script_folder = "shell_scripts"
@@ -34,10 +34,7 @@ if os.path.exists(script_folder):
   os.system("rm -r -f " + script_folder)
 os.mkdir(script_folder)
 
-out_folder = "output"
-if os.path.exists(out_folder):
-  os.system("rm -r -f " + out_folder)
-os.mkdir(out_folder)
+cwd = os.getcwd()
 
 for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
   for j,y1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
@@ -65,10 +62,11 @@ for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
       mesh = problem + ".mesh"
       
       cmd = "basecell.py --res " + str(args.res) + " --x1 " + str(x) + " --y1 " + str(y) + " --z1 " + str(z)+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --save " + problem
-      cmd += "; cfs_rel -m " + mesh + " -p " + xml + " " + out_folder + "/" + problem
+      cmd += "; cfs_rel -m " + mesh + " -p " + cwd + "/" + xml + " " + problem
       cmd += "&& rm " + mesh  
       
-      out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, folder+"/"+problem+'.sh', silent = True)
+      out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, cwd+"/"+script_folder+"/"+problem+'.sh', silent = True)
       jobfile.write(out+"\n")
       
-jobfile.close()      
+jobfile.close()
+os.system("chmod 755 submit_jobs.sh")      

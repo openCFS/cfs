@@ -1050,7 +1050,7 @@ def generate_basecell(args,info,log):
   
   hf = None
   
-  if args.verbose:
+  if args.verbose != "off":
     hf = plt.figure()
     ha = hf.add_subplot(111, projection='3d')
     ha.set_xlabel('X')
