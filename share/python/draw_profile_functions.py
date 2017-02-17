@@ -6,15 +6,17 @@ from sympy import Symbol, symbols
 import sys
 import math
 import vtk
-from vtk.util.numpy_support import vtk_to_numpy
-from matviz_vtk import *
+try:
+  from vtk.util.numpy_support import vtk_to_numpy
+  from matviz_vtk import *
+except:
+  print("WARNING: failed to load vtk!")  
+
 import matplotlib
 matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate, spatial
-
-
 
 try:
   from meshpy.tet import MeshInfo, build
