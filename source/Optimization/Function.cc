@@ -437,6 +437,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case REL_SLACK_BANDGAP:
   case ALPHA_SLACK_QUOTIENT:
   case EXPRESSION:
+  case FILTERING_GAP:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -647,6 +648,7 @@ bool Function::ForDensityFiltering() const {
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
+    case FILTERING_GAP:
       return false;
 
     case MULTI_OBJECTIVE:
@@ -691,6 +693,7 @@ bool Function::ForSensitivityFiltering() const {
   case HEAT_ENEGRY:
   case EIGENFREQUENCY:
   case BANDGAP:
+  case FILTERING_GAP:
     return true;
 
   case VOLUME:

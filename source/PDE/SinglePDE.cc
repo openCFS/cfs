@@ -2067,6 +2067,7 @@ namespace CoupledField {
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
+        actBc->name = name;
         if( masterDof.empty() ) {
           actBc->masterDof = 0;
         } else {

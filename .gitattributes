@@ -1287,8 +1287,10 @@ share/python/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/python/material_catalogue/inv_tensor.xml -text
 share/python/material_catalogue/inv_tensor_3D.xml -text
 share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
+share/python/material_catalogue/inv_tensor_3D_ortho_bc.xml -text
 share/python/material_catalogue/mat.xml -text
 share/python/material_catalogue/process_sparse.py -text
+share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
 share/python/matviz_2d.py -text
 share/python/matviz_rot.py -text
@@ -1313,10 +1315,10 @@ share/python/process_image.py -text
 share/python/shape_map.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
+share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/streamviz.py -text
 share/python/test.py -text
-share/python/two_scale_tools.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text

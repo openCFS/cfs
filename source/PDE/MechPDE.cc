@@ -671,8 +671,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         return;
 
       // fetch parameter node specifying spring
-      ParamNodeList springNodes =
-          bcNode->GetList("concentratedElem");
+      ParamNodeList springNodes = bcNode->GetList("concentratedElem");
 
       // Iterate over all springs
       std::string name, dofName;
@@ -688,16 +687,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
         UInt dof = results_[0]->GetDofIndex( dofName );
 
-        shared_ptr<EntityList> nodes = 
-            ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
+        shared_ptr<EntityList> nodes = ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
         UInt numNodes = nodes->GetSize();
 
         // Ensure, that only lists with 1 or 2 nodes are present
         if( numNodes > 2 ) {
-          WARN( "Concentrated mechanical element on '" 
-                 << name << "' is omitted, as it consists of more than "
-                 << "2 nodes!"; );
-          continue;
+          if(myFct->HasConstraint(name,dof)) {
+            numNodes = 1; // is technically reduced to one node
+          } else {
+            WARN( "Concentrated mechanical element on '"  << name << "' is omitted, as it consists of more than " << "2 nodes!"; );
+            continue;
+          }
         }
 
         StdVector<FEMatrixType> matrices;
@@ -716,10 +716,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
               continue;
             }
             
-            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt( dim_, vals[i], dof,
-                                                                   mp_ );
-            BiLinFormContext * intCtx =
-                new BiLinFormContext( myInt, matrices[i] );
+            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt(dim_, vals[i], dof, mp_);
+            BiLinFormContext * intCtx = new BiLinFormContext(myInt, matrices[i]);
             intCtx->SetEntities( nodes, nodes );
             intCtx->SetFeFunctions( myFct, myFct );
             

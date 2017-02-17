@@ -139,7 +139,7 @@
         <isotropic>
           <real>
             <elasticityModulus>1<!-- real value = 116 Gpa--></elasticityModulus>
-            <poissonNumber> 0.34 </poissonNumber>
+            <poissonNumber> 0.32 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>
