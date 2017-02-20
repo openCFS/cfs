@@ -391,13 +391,19 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
-  Function::type.Add(Function::ALPHA_SLACK_QUOTIENT, "alphaSlackQuotient");
+  Function::type.Add(Function::SLACK_FNCT, "slackFunction");
   Function::type.Add(Function::BANDGAP, "bandgap");
-  Function::type.Add(Function::REL_SLACK_BANDGAP, "relSlackBandGap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+
+  Function::slackFnct.SetName("Function::SlackFnct");
+  Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
+  Function::slackFnct.Add(Function::ALPHA_SLACK_QUOTIENT, "a/s");
+  Function::slackFnct.Add(Function::REL_BANDGAP, "(2*s)/(a-s)");
+  Function::slackFnct.Add(Function::NORM_BANDGAP, "(2*s)/a");
+  Function::slackFnct.Add(Function::ALPHA_MINUS_SLACK, "a-s");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");

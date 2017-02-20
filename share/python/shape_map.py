@@ -587,6 +587,11 @@ if __name__ == '__main__':
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   args = parser.parse_args()
+  
+  if not os.path.exists(args.input):
+    print("error: cannot find '" + args.input + "'")
+    os.sys.exit()
+  
   shapes = []
   if args.input.endswith('.xml') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.profile)
