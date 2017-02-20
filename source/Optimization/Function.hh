@@ -63,9 +63,8 @@ class Function
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
-      ALPHA_SLACK_QUOTIENT,      /*!< quotient of the two slack variables alpha and slack */
+      SLACK_FNCT,                /*!< Indicates a formula of alpha and slack given in the attribute "function" and type of SlackFunciton */
       BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
-      REL_SLACK_BANDGAP,         /*!< relative band gap formulation (alpha + slack - (alpha - slack))/(alpha - slack) = 2*slack/(alpha-slack) based on 'alpha+/-slack' eigenfrequency bounds */
 
       // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
@@ -158,6 +157,17 @@ class Function
 
     void SetType(Type type) {type_ = type;}
 
+    typedef enum {
+      NO_FUNCTION,               /*!< indicates we have not SLACK_FNCT function Type */
+      ALPHA_SLACK_QUOTIENT,      /*!< quotient of the two slack variables alpha and slack: a/s */
+      REL_BANDGAP,               /*!< relative band gap formulation 2*s/(a-s) based on 'alpha+/-slack' eigenfrequency bounds */
+      NORM_BANDGAP,              /*!< normalized band gap (2*s/a) */
+      ALPHA_MINUS_SLACK          /*!< slack variable distance a-s */
+    } SlackFnct;
+
+    static Enum<SlackFnct> slackFnct;
+
+    SlackFnct GetSlackFnct() const { return slackFnct_; }
 
     /** The real label might be an extended type string. E.g. by "access_".
      * Check if better use this than type.ToString(GetType()).
@@ -459,7 +469,7 @@ class Function
 
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
         double CalcOverhang(const Local* local) const;
-        double CalcOverhangGradient(int neigh_idx) const { assert(false); return -1; };
+        double CalcOverhangGradient(int neigh_idx) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
@@ -735,6 +745,9 @@ class Function
 
     /** The actual kind of cost function. */
     Type type_;
+
+    /** The slack function type */
+    SlackFnct slackFnct_ = NO_FUNCTION;
 
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;

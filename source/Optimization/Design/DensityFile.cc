@@ -44,14 +44,14 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   this->last_set_iter = -2;
 
   name_ = export_pn->Get("file")->As<string>();
-  if(name_ == "[problem]") name_ = progOpts->GetSimName() + ".density.xml";
+  if(name_ == "[problem]")
+    name_ = progOpts->GetSimName() + ".density.xml";
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
   // append .bz2 if compress=true and not already file ends with it
-  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2")){
+  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2"))
     name_ = name_ + ".bz2";
-  }
 }
 
 
