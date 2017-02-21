@@ -3135,14 +3135,14 @@ namespace CoupledField {
     } else {
       Vector<Double> n(dim_), n1(dim_), n2(dim_), n3(dim_), p1(dim_), p2(dim_), p3(dim_);
       StdVector<Vector<Double> > normals;
-      Double radicand;
       for( UInt i=0; i < points.GetSize()/3.0; i++ )
       {
-        int j = 1;
         // Calculate the normal of each plane. If the normal is zero the
         // three points lie on a straight line. We then replace the
         // second point.
-        while (true) {
+        Double radicand = 0;
+        UInt j = 2;
+        while( radicand < 1e-8 && j < namedNodes_[i].GetSize()-1 ) {
           p = points[3*i+1] - points[3*i];
           q = points[3*i+2] - points[3*i];
           // normal vector
@@ -3153,13 +3153,16 @@ namespace CoupledField {
           LOG_DBG3(gridcfs) << "CGV: p=" << p.ToString() << " q=" << q.ToString();
 	  
           radicand = pow(n[0],2) + pow(n[1],2) + pow(n[2],2);
-          if (std::abs(radicand) > 1e-8) {
-            break;
-          }
+
           GetNodeCoordinate(points[3*i+1], namedNodes_[i][j], false);
           j++;
         }
-        assert(radicand > 0);
+        if (radicand < 1e-8) {
+          EXCEPTION("Could not calculate normal of bounding plane. The nodes of "
+                    << namedNodeNames_[i] << " seem to lie on a straight line "
+                    << "and thus do not define a plane.");
+        }
+        // Normalize normal
         n = n / sqrt( radicand );
         normals.Push_back(n);
       }
