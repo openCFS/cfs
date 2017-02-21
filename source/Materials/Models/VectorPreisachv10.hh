@@ -664,7 +664,7 @@ public:
   virtual ~VectorPreisachv10();
 
   //! this function gets called from outside and calculates the output of the Preisach operator
-  virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true){
+  virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true){
     EXCEPTION("Not implemented in base class");
   }
 
@@ -731,7 +731,7 @@ public:
   ~VectorPreisachv10_MatrixApproach();
 
   //! this function gets called from outside and calculates the output of the Preisach operator
-  Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true);
+  Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
 
   void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
 
@@ -762,7 +762,7 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     virtual ~VectorPreisachv10_ListApproach();
 
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
 
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
 
@@ -771,7 +771,7 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     /*
      * for version 10 -> revised model
      */
-    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList);
+    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList,bool overwriteDirection=true);
     UInt Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry);
     Double clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta = -1,bool isRotState = false);
     void getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, bool lastRotListEntryv10);

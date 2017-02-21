@@ -579,15 +579,18 @@ namespace CoupledField {
 
   }
 
-
-  void AlgebraicSys::AddIDBCToRHS() {
-    LOG_TRACE(algSys) << "Add IDBC to RHS ";
-
-    idbcHandler_->AddIDBCToRHS( rhs_ );
+  void AlgebraicSys::SetOldDirichletValues() {
+    idbcHandler_->ToString();
+    idbcHandler_->SetOldDirichletValues();
   }
 
+  void AlgebraicSys::AddIDBCToRHS(bool deltaIDBC) {
+    LOG_TRACE(algSys) << "Add IDBC to RHS ";
 
-  void AlgebraicSys::Solve(bool setIDBC) {
+    idbcHandler_->AddIDBCToRHS( rhs_, deltaIDBC );
+  }
+
+  void AlgebraicSys::Solve(bool setIDBC, bool deltaIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
 
@@ -655,7 +658,7 @@ namespace CoupledField {
     // we should insert the Dirichlet values into it
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
         usingPenalty_ ) {
-      idbcHandler_->SetDofsToIDBC( effSol_ );
+      idbcHandler_->SetDofsToIDBC( effSol_, deltaIDBC );
       (*cla) << " Inserted Dirichlet values into initial guess"
           << std::endl;
     }
@@ -668,7 +671,7 @@ namespace CoupledField {
     // Note: It is mandatory to incorporate the IDBC values to the
     // complete RHS.
     if ( setIDBC ) 
-      idbcHandler_->AddIDBCToRHS( rhs_ );
+      idbcHandler_->AddIDBCToRHS( rhs_, deltaIDBC );
 
 
 
@@ -744,7 +747,7 @@ namespace CoupledField {
 
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
-      idbcHandler_->RemoveIDBCFromRHS( rhs_ );
+      idbcHandler_->RemoveIDBCFromRHS( rhs_, deltaIDBC );
 
     // Check that solution went fine, if not issue a warning
     if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
@@ -2467,8 +2470,7 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void AlgebraicSys::
-  ConstructEffectiveMatrix( const FeFctIdType fctId, 
+  void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
                             const std::map<FEMatrixType,Double> &matFactors ) {
 
     LOG_TRACE(algSys) << "Constructing effective system matrix for feFunction "
@@ -2555,9 +2557,62 @@ namespace CoupledField {
     }
   }
 
+  void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
+    // resize solVec to match number of functions
+    solVec.Resize( numFcts_);
+
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) {
+
+      // call specialized GetSolutionVal method
+      ClearIDBCFromSolutionVal(solVec(i), i);
+    }
+  }
+
+  void AlgebraicSys::ClearIDBCFromSolutionVal( SingleVector& ptSol,const FeFctIdType fctId){
+    LOG_TRACE(algSys) << "Clearing IDBC nodes from solution values of fct " << fctId;
+
+    // get all (blockId,index)-combinations for the current fctId
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( fctId, blockNums, indices);
+    UInt size = blockNums.GetSize();
+
+    if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+      Double entry = 0.0;
+
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
+        // if index number is larger the lastFree dof, set value in vector to 0
+        // i.e. overwrite IDBC values; otherwise, do nothing (normal nodes shall be preserved!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
+          retVec[i] = entry;
+        }
+      }
+    }
+    else
+    {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
+      Complex entry = 0.0;
+
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
+        // if index number is larger the lastFree dof, set value in vector to 0
+        // i.e. overwrite IDBC values; otherwise, do nothing (normal nodes shall be preserved!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
+          retVec[i] = entry;
+        }
+      }
+    }
+  }
+
   void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
                                      const FeFctIdType fctId,
-                                     bool setIDBC) {
+                                     bool setIDBC, bool deltaIDBC) {
 
     LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
 
@@ -2590,7 +2645,7 @@ namespace CoupledField {
         if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
         {
           if ( setIDBC ) 
-            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
           else 
             entry = 0.0;
         }
@@ -2613,7 +2668,7 @@ namespace CoupledField {
         // (just if setIDBC is true!)
         if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
           if ( setIDBC) 
-            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
           else 
             entry = 0.0;
         } else {
@@ -2623,9 +2678,8 @@ namespace CoupledField {
       }
     }
   }
-
   
-  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC ) {
+  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     
     // resize solVec to match number of functions
     solVec.Resize( numFcts_);
@@ -2634,7 +2688,7 @@ namespace CoupledField {
     for(UInt i = 0; i < numFcts_; ++i ) {
     
       // call specialized GetSolutionVal method
-      GetSolutionVal(solVec(i), i, setIDBC);
+      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
     }
   }
   

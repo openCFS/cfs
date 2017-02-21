@@ -137,11 +137,14 @@ namespace CoupledField
        * 1. calculate delta_phi based on (10) Sutor2015
        * Note: original formula uses 2*abs(xVal) due to normalization to range [-0.5,0.5] instead of [-1,1];
        * xVal not normalized yet
+       *
+       * angularDistance_ in deg
        */
       xVal /= Xsaturated_;
       delta_phi = angularDistance_ * (1 - abs(xVal));
 
-      //std::cout << "e_u_old: " << e_u_old.ToString() << std::endl;
+      std::cout << "e_u_input: " << e_u_new.ToString() << std::endl;
+      std::cout << "e_u_old: " << e_u_old.ToString() << std::endl;
       //std::cout << "delta_phi: " << delta_phi << std::endl;
 
       /*
@@ -150,14 +153,37 @@ namespace CoupledField
        * Note2: delta_phi is in degree, so alpha has to be in degree, too
        */
       Double tmp = e_u_old.Inner(e_u_new);
+      /*
+       * due to rounding errors, the scalar product of two vectors of lenght 1
+       * can be larger than 1 -> cut down to avoid NaN
+       */
+      if(tmp > 1.0){
+        tmp = 1.0;
+      } else if (tmp < -1.0){
+        tmp = -1.0;
+      }
       alpha = std::acos(tmp)*180/M_PI;
 
-      //std::cout << "alpha: " << alpha << std::endl;
+      std::cout << "alpha: " << alpha << std::endl;
+
+      /*
+       * NEW: 15.2.2017
+       * If alpha (the angle between new and old state is  close to zero,
+       * we do not have to rotate at all as the rotation states are nearly the same)
+       */
+      // take much larger tolerance here (should we really go up to 1e-15°?!)
+      Double angleTol = 1e-4;
+      if(abs(alpha) < angleTol){
+        /*
+         * take new state
+         */
+        return e_u_new;
+      }
 
       /*
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
-      if(delta_phi < tol_){
+      if(delta_phi < angleTol){
         //std::cout << "delta_phi <= tol: full rotation will be performed towards e_u_new" <<std::endl;
         /*
          * no resistance to rotation
@@ -166,7 +192,7 @@ namespace CoupledField
       } else if(delta_phi >= alpha) {
         //std::cout << "delta_phi >= alpha: no rotation will be performed; e_u_old is kept" <<std::endl;
         /*
-         * e_u_old is already close enough
+         * e_u_old is already closer than the resistance angle delta_phi that should remain
          */
         return e_u_old;
       } else {
@@ -442,7 +468,7 @@ namespace CoupledField
     }
   }
 
-  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite){
+  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, bool overwriteDirection){
 
     Matrix<Double> switchingStatesSingleElemBAK;
     Matrix<Double> rotationStateXSingleElemBAK;
@@ -484,7 +510,9 @@ namespace CoupledField
     /*
      * Update rotation states
      */
-    UpdateRotationStates(X_thres, xVal, e_u, idElem);
+    if(overwriteDirection){
+      UpdateRotationStates(X_thres, xVal, e_u, idElem);
+    }
 
     /*
      * Update switching states
@@ -699,7 +727,7 @@ namespace CoupledField
     //lastXpar_[idElem] = 0.0;
   }
 
-  void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList){
+  void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection){
     /*
      * function for updating the global rotation list with an entry pair xThres,e_u
      * furthermore, the magnitude xVal of the original input vector u_in is passed to update the switching lists
@@ -780,196 +808,200 @@ namespace CoupledField
 //    }
 
     int cntInner = 0;
-    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
-      cntInner++;
-      curVal = listIt->getVal();
 
-      /*
-       * check if new input value (xThres) is larger than curVal
-       */
-      if((xThres >= curVal)&&(posFound == false)){
-        posFound = true;
+    if(overwriteDirection){
 
-        if(xThres == curVal){
-          /*
-           * here we do not need to insert a new entry as the area
-           * defined by xThres and nextEntry->getVal does not change
-           * -> simply overwrite the rotation state
-           */
-          needsInsert = false;
-        } else {
-          /*
-           * in that case, we would have to insert a new entry
-           * however, we should check the rotation state of the previous entry first
-           * -> if that rotation state is equal to e_u, the new entry would only define a
-           * subarea with same rotation state
-           * -> such subareas can be simplified (i.e. merged) later, but it is no bad idea to prohibit such
-           * unnecessary inclusions
-           *
-           * Note: we still have to overwrite the rotation state of all following entries
-           */
-          if(listIt != listStart){
-            listIt--;
-            prevState = listIt->getVecReference();
-            listIt++;
+      for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+        cntInner++;
+        curVal = listIt->getVal();
 
-            Double tol = 1e-15;
+        /*
+         * check if new input value (xThres) is larger than curVal
+         */
+        if((xThres >= curVal)&&(posFound == false)){
+          posFound = true;
 
+          if(xThres == curVal){
+            /*
+             * here we do not need to insert a new entry as the area
+             * defined by xThres and nextEntry->getVal does not change
+             * -> simply overwrite the rotation state
+             */
             needsInsert = false;
-            /*
-             * check if previous state has the same (or nearly) the same rotation state
-             * in that case, we do not have to insert this entry, as it would be merged with
-             * the previous one later one
-             */
-            for(UInt i = 0; i< e_u.GetSize();i++){
-              if(abs(e_u[i]-prevState[i])>tol){
-                needsInsert = true;
-                break;
-              }
-            }
           } else {
+            /*
+             * in that case, we would have to insert a new entry
+             * however, we should check the rotation state of the previous entry first
+             * -> if that rotation state is equal to e_u, the new entry would only define a
+             * subarea with same rotation state
+             * -> such subareas can be simplified (i.e. merged) later, but it is no bad idea to prohibit such
+             * unnecessary inclusions
+             *
+             * Note: we still have to overwrite the rotation state of all following entries
+             */
+            if(listIt != listStart){
+              listIt--;
+              prevState = listIt->getVecReference();
+              listIt++;
+
+              Double tol = 1e-15;
+
+              needsInsert = false;
+              /*
+               * check if previous state has the same (or nearly) the same rotation state
+               * in that case, we do not have to insert this entry, as it would be merged with
+               * the previous one later one
+               */
+              for(UInt i = 0; i< e_u.GetSize();i++){
+                if(abs(e_u[i]-prevState[i])>tol){
+                  needsInsert = true;
+                  break;
+                }
+              }
+            } else {
+              needsInsert = true;
+            }
+
+            if(needsInsert == true){
+              /*
+               * mark position for later
+               * Note that the function list::insert adds the new entry before position listIt
+               * (i.e. if listIt = list.end() it will be inserted before the end)
+               */
+              //std::cout << "Mark current position" << std::endl;
+              //std::cout << "Current entry: " << listIt->getVecReference().ToString() << std::endl;
+              insertPos = listIt;
+              //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
+
+              // ???
+  //            if(insertPos == globRotList_[idElem].end()){
+  //
+  //            }
+
+              //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
+              /*
+               * the new rotation area will be between xThresh and curVal
+               */
+              lowerBound = curVal;
+            }
+          }
+        } // xThres >= curVal
+        if(posFound == true){
+          /*
+           * we already have found a suitable position, i.e. all following entries would be
+           * overwritten by the new entry; as we want to keep the switching list, we simply overwrite
+           * the rotation state
+           * (if the rotation state is already e_u, the flag rotHasChanged_ is not set to true!)
+           */
+
+          if(classical_){
+            listIt->setVec(e_u);
+          } else {
+            /*
+             * here we do not set the state to e_u directly but rotate it towards e_u;
+             * Note that each previously stored rotation state gets rotated to a different e_phi!
+             */
+            //std::cout << "Overwrite current rotation state " << cntInner << std::endl;
+            e_u_old = listIt->getVecReference();
+            e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
+            std::cout << "New rotation state " << e_phi.ToString() << std::endl;
+            listIt->setVec(e_phi);
+          }
+        }
+      } // loop
+
+      if(posFound == false){
+        /*
+         * no suitable position was found (i.e. the current input is the smallest so far)
+         * -> append to end of the list, but only if the previous entry does not have the same rotation state
+         * (in that case we would create two adjacent areas with same rotation state; would be no big deal as
+         * we later call the simplify list function, but this saves some unnecessary computations)
+         */
+        prevState = listEnd->getVecReference();
+
+        Double tol = 1e-15;
+
+        needsInsert = false;
+
+        for(UInt i = 0; i< e_u.GetSize();i++){
+          if(abs(e_u[i]-prevState[i])>tol){
             needsInsert = true;
-          }
-
-          if(needsInsert == true){
             /*
-             * mark position for later
-             * Note that the function list::insert adds the new entry before position listIt
-             * (i.e. if listIt = list.end() it will be inserted before the end)
+             * insert pos will already be pointing to the end of the list in this case (see definition above)
              */
-            //std::cout << "Mark current position" << std::endl;
-            //std::cout << "Current entry: " << listIt->getVecReference().ToString() << std::endl;
-            insertPos = listIt;
-            //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
-
-            // ???
-//            if(insertPos == globRotList_[idElem].end()){
-//
-//            }
-
-            //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
-            /*
-             * the new rotation area will be between xThresh and curVal
-             */
-            lowerBound = curVal;
+            break;
           }
         }
-      } // xThres >= curVal
-      if(posFound == true){
+      }
+
+      /*
+       * finally, if we still need to insert an element -> do it
+       *
+       *  Note that the function list::insert adds the new entry before position listIt
+       * (i.e. if listIt = list.end() it will be inserted before the end)
+       */
+      if(needsInsert == true){
         /*
-         * we already have found a suitable position, i.e. all following entries would be
-         * overwritten by the new entry; as we want to keep the switching list, we simply overwrite
-         * the rotation state
-         * (if the rotation state is already e_u, the flag rotHasChanged_ is not set to true!)
+         * Important notes:
+         * 1. new entries inherit the switching list from the entry, which they (partially) overlay
+         *    this is the entry prior to insertPos (if any!); otherwise the new list will be empty
+         * 2. the previous entry (if any) gets a new lower bound (the current xThres)
+         * 3. for Sutor2015: rotation state of new entry has to be created from rotating the direction of the (partially)
+         *    overlaid entry towards the current direction
          */
 
-        if(classical_){
-          listIt->setVec(e_u);
+        std::list<ListEntryv10> newList = std::list<ListEntryv10>();
+        Double lastXpar = 0.0;
+        UInt startCnt;
+        bool wasWipedOut;
+        if(insertPos != listStart){
+          /*
+           * get previous entry
+           */
+          insertPos--;
+          newList = insertPos->getListCopy();
+          lastXpar = insertPos->getLastLocalXpar();
+          /*
+           * e_u_old is the rotation state which will rotate towards e_u_new
+           */
+          e_u_old = insertPos->getVecReference();
+
+          /*
+           * as we inherit the switching list, we also inherit the wiped out property and the value of startCnt
+           */
+          wasWipedOut = insertPos->wasListWipedOut();
+          startCnt = insertPos->getStartCnt();
+          /*
+           * due to the new entry, the previous one will be reduced in size
+           * -> set lowerVal of that element (this will also set the flag isChanged_ of the element to true)
+           */
+          insertPos->setLowerVal(xThres);
+          insertPos++;
         } else {
+          if(classical_){
+            /*
+             * add minimum of value 0 -> the same as in initialize_globalRotationList
+             * No dummy anymore!
+             */
+            newList.push_back(ListEntryv10(0,true,false));
+            wasWipedOut = false;
+            startCnt = 0;
+          }
           /*
-           * here we do not set the state to e_u directly but rotate it towards e_u;
-           * Note that each previously stored rotation state gets rotated to a different e_phi!
+           * new previous rotation state available; e_u_old = 0-vector
            */
-          //std::cout << "Overwrite current rotation state " << cntInner << std::endl;
-          e_u_old = listIt->getVecReference();
-          e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
-          //std::cout << "New rotation state " << e_phi.ToString() << std::endl;
-          listIt->setVec(e_phi);
+          e_u_old = Vector<Double>(dim_);
         }
+
+        /*
+         * Important: do not forget to insert rotated from evaluateNewRotationDirection instead of e_u!
+         * As we insert at the end of the list, we overwrite (at least partially) the last rotentry
+         * -> needed rotation direction of partially overlapped rotation state -> see above
+         */
+        e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
+
+        usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
       }
-    } // loop
-
-    if(posFound == false){
-      /*
-       * no suitable position was found (i.e. the current input is the smallest so far)
-       * -> append to end of the list, but only if the previous entry does not have the same rotation state
-       * (in that case we would create two adjacent areas with same rotation state; would be no big deal as
-       * we later call the simplify list function, but this saves some unnecessary computations)
-       */
-      prevState = listEnd->getVecReference();
-
-      Double tol = 1e-15;
-
-      needsInsert = false;
-
-      for(UInt i = 0; i< e_u.GetSize();i++){
-        if(abs(e_u[i]-prevState[i])>tol){
-          needsInsert = true;
-          /*
-           * insert pos will already be pointing to the end of the list in this case (see definition above)
-           */
-          break;
-        }
-      }
-    }
-
-    /*
-     * finally, if we still need to insert an element -> do it
-     *
-     *  Note that the function list::insert adds the new entry before position listIt
-     * (i.e. if listIt = list.end() it will be inserted before the end)
-     */
-    if(needsInsert == true){
-      /*
-       * Important notes:
-       * 1. new entries inherit the switching list from the entry, which they (partially) overlay
-       *    this is the entry prior to insertPos (if any!); otherwise the new list will be empty
-       * 2. the previous entry (if any) gets a new lower bound (the current xThres)
-       * 3. for Sutor2015: rotation state of new entry has to be created from rotating the direction of the (partially)
-       *    overlaid entry towards the current direction
-       */
-
-      std::list<ListEntryv10> newList = std::list<ListEntryv10>();
-      Double lastXpar = 0.0;
-      UInt startCnt;
-      bool wasWipedOut;
-      if(insertPos != listStart){
-        /*
-         * get previous entry
-         */
-        insertPos--;
-        newList = insertPos->getListCopy();
-        lastXpar = insertPos->getLastLocalXpar();
-        /*
-         * e_u_old is the rotation state which will rotate towards e_u_new
-         */
-        e_u_old = insertPos->getVecReference();
-
-        /*
-         * as we inherit the switching list, we also inherit the wiped out property and the value of startCnt
-         */
-        wasWipedOut = insertPos->wasListWipedOut();
-        startCnt = insertPos->getStartCnt();
-        /*
-         * due to the new entry, the previous one will be reduced in size
-         * -> set lowerVal of that element (this will also set the flag isChanged_ of the element to true)
-         */
-        insertPos->setLowerVal(xThres);
-        insertPos++;
-      } else {
-        if(classical_){
-          /*
-           * add minimum of value 0 -> the same as in initialize_globalRotationList
-           * No dummy anymore!
-           */
-          newList.push_back(ListEntryv10(0,true,false));
-          wasWipedOut = false;
-          startCnt = 0;
-        }
-        /*
-         * new previous rotation state available; e_u_old = 0-vector
-         */
-        e_u_old = Vector<Double>(dim_);
-      }
-
-      /*
-       * Important: do not forget to insert rotated from evaluateNewRotationDirection instead of e_u!
-       * As we insert at the end of the list, we overwrite (at least partially) the last rotentry
-       * -> needed rotation direction of partially overlapped rotation state -> see above
-       */
-      e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
-
-      usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
     }
 
     /*
@@ -1568,7 +1600,7 @@ namespace CoupledField
     return 0;
   }
 
-  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite){
+  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,bool overwriteDirection){
     /*
      * Determine the current rotational threshold
      */
@@ -1577,6 +1609,22 @@ namespace CoupledField
       X_thres = std::pow((u_in.NormL2()/Xsaturated_),rotationalResistance_);
     } else {
       X_thres = u_in.NormL2()*(rotationalResistance_/Xsaturated_);
+    }
+
+    std::cout << "X_thres: " << X_thres << std::endl;
+
+    Double resolutionTol = 1e-8;
+    if(X_thres < -resolutionTol){
+      std::cout << "X_thres < " << resolutionTol << std::endl;
+      std::cout << "Will set X_thres to 0, i.e. only change in switching state" << std::endl;
+      X_thres = 0.0;
+
+      //std::cout << "No change to hysteresis operator perfomred; will return old value" << std::endl;
+      //return preisachSum_[idElem];
+    }
+
+    if(overwriteDirection == false){
+      X_thres = 0.0;
     }
 
     /*
@@ -1591,11 +1639,19 @@ namespace CoupledField
       e_u.Init(0.0);
     }
 
+    std::cout << "u_in: " << u_in.ToString() << std::endl;
+    std::cout << "e_u: " << e_u.ToString() << std::endl;
+
+
+
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
      */
-    lastEu_[idElem] = e_u;
 
+
+    //if(overwriteDirection){
+      lastEu_[idElem] = e_u;
+    //}
     /*
      * Storage for return values
      */
@@ -1629,7 +1685,8 @@ namespace CoupledField
        * work on std data structure
        */
       //std::cout << "Work on permanent storage" << std::endl;
-      Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem]);
+      //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
+      Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
 
       /*
        * Evaluate_GlobalRotationList checks for each element if it was changed or not and
@@ -1653,7 +1710,9 @@ namespace CoupledField
       /*
        * then perform all updates on that temporal list only
        */
-      Update_GlobalRotationList(X_thres, xVal, e_u, tmpList);
+      std::cout << "Working only on temporal storage! " << std::endl;
+      Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
+      //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection);
 
       Evaluate_GlobalRotationList(tmpList, retVec);
 

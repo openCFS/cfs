@@ -344,28 +344,81 @@ namespace CoupledField {
   // **********
   // Hysteresis
   // **********
-  void StdPDE::LockHysteresis(){
+  void StdPDE::SetPreviousHystVals(bool setNextToLastTS_too){
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
         std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
         for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          it->second->setOverwrite(false);
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->SetPreviousHystVals(setNextToLastTS_too);
         }
      }
   }
 
-  void StdPDE::UnlockHysteresis(){
+  void StdPDE::LockUnlockHystMemory(bool locked){
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
         std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
         for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          it->second->setOverwrite(true);
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->setOverwrite(!locked);
         }
-      }
+     }
+  }
+
+
+  void StdPDE::LockUnlockHystDirection(bool locked){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->setOverwriteDirection(!locked);
+        }
+     }
+  }
+
+  void StdPDE::UseNextToLastTSForDeltaMat(bool useNextToLastTS){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If active = true, deltaComputation shall be true
+           */
+          it->second->setUseNextToLastTS(useNextToLastTS);
+        }
+     }
+  }
+
+
+  void StdPDE::ActivateDeactivateDeltaMat(bool active){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If active = true, deltaComputation shall be true
+           */
+          it->second->setDeltaComputation(active);
+        }
+     }
   }
 
 } // end of namespace
