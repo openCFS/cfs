@@ -229,6 +229,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::SetDestRegions(shared_ptr<RegionLis
   this->destRegionNames_ = ss.str();
 }
 
+
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   //first obtain the node coordinates of the source regions
@@ -236,38 +237,40 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   StdVector<LocPoint> localCoords;
   StdVector<const Elem*> foundElements;
 
-  StdVector<UInt> allNodes, nodeNums;
+  StdVector<UInt> nodeNums;
   std::set<std::string>::iterator regIt = this->srcRegions_.begin(),
                                   endIt = this->srcRegions_.end();
   if (this->srcRegions_.size() == 1) {
     RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-    this->srcGrid_->GetNodesByRegion(allNodes, aReg);
-  }
-  else {
-    UInt numRegNodes = 0; 
-    StdVector<UInt> curNodes;
+    this->srcGrid_->GetNodesByRegion(nodeNums, aReg);
+  } else {
+    const UInt maxNumNode = this->srcGrid_->GetNumNodes();
+    std::vector<bool> usedNum(maxNumNode,false);
     while (regIt != endIt){
       RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-      this->srcGrid_->GetNodesByRegion(curNodes, aReg);
-      numRegNodes = curNodes.GetSize();
-      allNodes.Reserve(allNodes.GetSize() + numRegNodes);
-      for (UInt i=0; i<numRegNodes; ++i) {
-        if (allNodes.Find(curNodes[i]) == -1) {
-          allNodes.Push_back(curNodes[i]);
-        }
+      nodeNums.Clear();
+      this->srcGrid_->GetNodesByRegion(nodeNums, aReg);
+      const UInt regionNodeNum = nodeNums.GetSize();
+      for (UInt i = 0; i < regionNodeNum; i++) {
+        usedNum[nodeNums[i]] = true;
       }
       ++regIt;
     }
+    nodeNums.Clear();
+    for (UInt i = 0; i <= maxNumNode; i++) {
+      if (usedNum[i]) {
+        nodeNums.Push_back(i);
+      }
+    }
   }
 
-  UInt numNodes = allNodes.GetSize();
+  UInt numNodes = nodeNums.GetSize();
   UInt srcDim = this->srcGrid_->GetDim();
   UInt destDim = destGrid_->GetDim();
   nodeGlobCoords.Reserve(numNodes);
-  nodeNums.Reserve(numNodes);
   Vector<Double> aCoord;
   for (UInt i=0; i<numNodes; ++i) {
-    this->srcGrid_->GetNodeCoordinate(aCoord, allNodes[i]);
+    this->srcGrid_->GetNodeCoordinate(aCoord, nodeNums[i]);
     if (srcDim > destDim) {
       if (abs(aCoord[2]-xyPlaneAtZ_) > zTol_) {
         continue;
@@ -275,9 +278,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
       aCoord.Resize(destDim);
     }
     nodeGlobCoords.Push_back(aCoord);
-    nodeNums.Push_back(allNodes[i]);
   }
-  numNodes = nodeNums.GetSize();
   if (numNodes == 0) {
     EXCEPTION("There are no nodes for interpolation at z = " << xyPlaneAtZ_
               << " m +/- " << zTol_ << " m.");
@@ -306,7 +307,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
       ++elemCounter;
     }
     else {
-      LOG_DBG3(coeffunctiongridnodalinterp) << "Node #" << allNodes[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
+      LOG_DBG3(coeffunctiongridnodalinterp) << "Node #" << nodeNums[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
       LOG_DBG3(coeffunctiongridnodalinterp)<< "Local Coordinate is: " << localCoords[i] << std::endl << std::endl;
     }
   }
@@ -350,6 +351,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
 }
+
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::PrintNodesToCSV(const StdVector<const Elem*>& foundElements,

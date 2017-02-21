@@ -45,7 +45,6 @@ public:
                      CoupledField::UInt eqnPerEnt = 1, bool isOneBased = true);
 
   virtual ~EqnMapSimple(){
-    delete entityEquations_;
   }
 
   void AddRegion(CoupledField::RegionIdType region){
@@ -57,18 +56,41 @@ public:
   virtual CoupledField::UInt GetNumEquations(){
     return numEqns_;
   }
+  
+  virtual CoupledField::UInt GetNumEntities() {
+    return numEqns_ / eqnPerEnt_;
+  }
+  
+  virtual CoupledField::UInt GetNumEqnPerEnt() {
+    return eqnPerEnt_;
+  }
+  
+  CF::ResultInfo::EntityUnknownType GetMapType() {
+    return mapType_;
+  }
+  
+  bool Equals(EqnMapSimple& other) {
+    if ((ptGrid_ != other.ptGrid_) || (mapType_ != other.mapType_)
+      || (regions_ != other.regions_) || (zeroOne_/eqnPerEnt_) != (other.zeroOne_/other.eqnPerEnt_)) {
+      return false;
+    }
+    return true;
+  }
 
   virtual void GetEquation(CF::StdVector<UInt> & eqns,
                            const UInt globalEntNum,
                            CF::ResultInfo::EntityUnknownType type) const;
 
+  virtual CoupledField::UInt GetEntityIndex(const UInt globalEntNum) const;
+                           
   void GetRegionEquations(CF::StdVector<UInt> & eqns, CF::RegionIdType region) const;
 
   void GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<UInt> & globalEntNumbers) const;
-
+  
+  
 protected:
-  //! equation indices, 0 indicates "not mapped"
-  UInt* entityEquations_;
+  //! equation indices
+  CF::StdVector<CF::UInt> entityEquations_;
 
   //! Array of regions managed by the eqnMap
   CF::StdVector<CF::RegionIdType> regions_;

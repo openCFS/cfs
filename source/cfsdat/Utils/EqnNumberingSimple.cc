@@ -24,7 +24,6 @@ EqnMapSimple::EqnMapSimple(CF::ResultInfo::EntityUnknownType type,
              : mapType_(type),eqnPerEnt_(eqnPerEnt),numEqns_(0),
                maxNumEqns_(0),zeroOne_(0),isFinalized_(false){
 
- entityEquations_ = NULL;
  ptGrid_ = myGrid;
  //obtain maximum number of entities of given type in Grid
  CF::UInt numEntries = 0;
@@ -40,7 +39,7 @@ EqnMapSimple::EqnMapSimple(CF::ResultInfo::EntityUnknownType type,
  zeroOne_ = (isOneBased)? 1 : 0;
 
  maxNumEqns_ = numEntries;
- entityEquations_ = new CF::UInt[numEntries];
+ entityEquations_.Resize(numEntries);
  for(CF::UInt i=0;i<numEntries;i++){
    entityEquations_[i] = 0;
  }
@@ -56,7 +55,8 @@ void EqnMapSimple::Finalize(){
   CF::UInt numRegions = regions_.GetSize();
   boost::shared_ptr<CF::EntityList> currentList;
   CF::StdVector<CF::UInt> regEntities;
-
+  
+  std::vector<bool> setEntity(maxNumEqns_, false);
   for(CF::UInt aReg = 0; aReg < numRegions; aReg++){
 
     std::string regName = ptGrid_->GetRegion().ToString(regions_[aReg]);
@@ -68,15 +68,16 @@ void EqnMapSimple::Finalize(){
 
     for(CF::UInt i=0 ; i < regEntities.GetSize() ; i++){
       CF::UInt aENum = regEntities[i];
-      if(entityEquations_[aENum-zeroOne_]==0){
+      if(!setEntity[aENum-zeroOne_]){
+        setEntity[aENum-zeroOne_] = true;
         entityEquations_[aENum-zeroOne_] = numEqns_;
         numEqns_+=eqnPerEnt_;
       }
     }
   }
   isFinalized_ = true;
-
 }
+
 
 void EqnMapSimple::GetEquation(CF::StdVector<CF::UInt> & eqns,
                                const CF::UInt globalEntNum,
@@ -94,6 +95,14 @@ void EqnMapSimple::GetEquation(CF::StdVector<CF::UInt> & eqns,
     eqns[aDof] = start+aDof;
   }
 
+}
+
+CF::UInt EqnMapSimple::GetEntityIndex(const CF::UInt globalEntNum) const {
+  // Some mild security checks
+  if(globalEntNum > maxNumEqns_){
+    CF::Exception("Requested equation number for an invalid entity number (Exceeds maximum)");
+  }
+  return entityEquations_[globalEntNum-zeroOne_] / eqnPerEnt_;
 }
 
 void EqnMapSimple::GetRegionEquations(CF::StdVector<CF::UInt> & eqns, CF::RegionIdType region) const {
