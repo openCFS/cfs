@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     NearesNeighbourInterpolator.hh
+ *       \file     NearestNeighbourInterpolator.cc
  *       \brief    <Description>
  *
  *       \date     Aug 8, 2016
@@ -20,6 +20,19 @@
 #include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
 #include <vector>
+
+// cgal copy and paste stuff for association of points to CF::UInt from
+// http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
+//
+// later on this should be refactored into KNNSearch.hh and KNNSearch.cc
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/basic.h>
+#include <CGAL/Search_traits_3.h>
+#include <CGAL/Search_traits_adapter.h>
+#include <CGAL/point_generators_3.h>
+#include <CGAL/Orthogonal_k_neighbor_search.h>
+#include <boost/iterator/zip_iterator.hpp>
+#include <utility>
 
 // check if Intel MKL is available
 #include <def_use_blas.hh>
@@ -38,7 +51,6 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
 #endif
 
   this->filtStreamType_ = FIFO_FILTER;
-  inDim_ = 0;
 
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
   numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
@@ -85,28 +97,73 @@ bool NearestNeighbourInterpolator::Run(){
 
   // vector, containing the source data values
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  
+  // TODO matrix interpolation here
 
-  // vector which will be filled with the source values (scattered data values), in order to
-  // perform a nearest neighbour search
-  CF::StdVector< CF::Vector<Double> >  scatteredData;
-  scatteredData.Resize(sourceCoords_.GetSize());
-
-
-  // vector containing the interpolated result for every trg node
-  // can be 1D for scalar values or 2D/3D for vector values
-  CF::Vector<Double> vec;
-
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(filterResIds[0])->mapping;  // Checking if input is scalar- or vector-type. This needs to be done
-
-
-  // Bring the input data into the correct form for CGAL nearest
-  // neighbour search
-  FillScatteredDataVec(scatteredData, vec, inVec, sourceCoords_, inDim_);
-
-  // Perform actual interpolation algorithm
-  NearestNeighbourInterpolation(returnVec, scatteredData, vec, downMap, sourceCoords_, targetCoords_, interpolDataTrg_, trgGrid_, inDim_, numNeighbors_, p_);
-
-
+  Matrix& matrix = matrices_[matrixIndex_];
+  const UInt maxNumTrgEntities = matrix.numTargets;
+  StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
+  StdVector<CF::UInt>& targetSource = matrix.targetSource;
+  StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt_);
+  if (numNeighbors_ > 1) {
+    if (numEquPerEnt_ == 1) {
+      #pragma omp parallel for
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::Double sum = 0.0;
+        const CF::UInt jEnd = targetSourceIndex[i + 1];
+        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+          sum += targetSourceFactor[j] * inVec[targetSource[j]];
+        }
+        returnVec[i] = sum;
+      }
+    } else {
+      #pragma omp parallel for
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt targetIndex = i * numEquPerEnt_;
+        for (UInt k = 0; k < numEquPerEnt_; k++) {
+          returnVec[targetIndex + k] = 0.0;
+        }
+        const CF::UInt jEnd = targetSourceIndex[i + 1];
+        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+          CF::Double factor = targetSourceFactor[j];
+          CF::UInt sourceIndex = targetSource[j] * numEquPerEnt_;
+          for (UInt k = 0; k < numEquPerEnt_; k++) {
+            returnVec[targetIndex + k] += factor * inVec[sourceIndex + k];
+          }
+        }
+      }
+    }
+  } else {
+    if (numEquPerEnt_ == 1) {
+      #pragma omp parallel for
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt sourceIndex = targetSourceIndex[i];
+        if (sourceIndex != UnusedEntityNumber) {
+          returnVec[i] = inVec[sourceIndex];
+        } else {
+          returnVec[i] = 0.0;
+        }
+      }
+    } else {
+      #pragma omp parallel for
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt targetIndex = i * numEquPerEnt_;
+        CF::UInt sourceIndex = targetSourceIndex[i];
+        if (sourceIndex != UnusedEntityNumber) {
+          sourceIndex *= numEquPerEnt_;
+          for (UInt k = 0; k < numEquPerEnt_; k++) {
+            returnVec[targetIndex + k] = inVec[sourceIndex + k];
+          }
+        } else {
+          for (UInt k = 0; k < numEquPerEnt_; k++) {
+            returnVec[targetIndex + k] = 0.0;
+          }
+        }
+      }
+    }
+  }
+  
   resultManager_->ActivateResult(filterResIds[0]);
 
 
@@ -261,196 +318,225 @@ std::cout<<"correlation=" << cor[1][0] <<std::endl;
 
 }
 
+bool NearestNeighbourInterpolator::CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator) {
+  return (otherInterpolator->numNeighbors_ == numNeighbors_) && (otherInterpolator->p_ == p_)
+    && (otherInterpolator->inGrid_ == inGrid_) && (otherInterpolator->trgGrid_ == trgGrid_)
+    && (otherInterpolator->srcRegions_ == srcRegions_) && (otherInterpolator->trgRegions_ == trgRegions_)
+    && (otherInterpolator->scrMap_->Equals(*scrMap_)) && (otherInterpolator->trgMap_->Equals(*trgMap_));
+}
+
+CF::UInt NearestNeighbourInterpolator::CountUsedEntities(StdVector<CF::UInt>& entities) {
+  const CF::UInt size = entities.GetSize();
+  CF::UInt numEntities = 0;
+#pragma omp parallel for reduction(+:numEntities)
+  for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
+    if (entities[inEnt] != UnusedEntityNumber) {
+      numEntities++;
+    }
+  }
+  return numEntities;
+}
+
+void NearestNeighbourInterpolator::GetUsedMappedEntities(str1::shared_ptr<EqnMapSimple>& map, StdVector<CF::UInt>& entities, std::set<std::string>& regions, Grid* grid) {
+  bool useElems = map->GetMapType() == ExtendedResultInfo::ELEMENT;
+  
+  const CF::UInt maxNumEntities = map->GetNumEntities();
+  entities.Clear();
+  entities.Resize(maxNumEntities, UnusedEntityNumber);
+  
+  std::set<std::string>::iterator sRegIter = regions.begin();
+  for(;sRegIter != regions.end();++sRegIter){
+    StdVector<CF::UInt> regEntities;
+    if (useElems) {
+      grid->GetElemNumsByName(regEntities,*sRegIter);
+    } else {
+      grid->GetNodesByName(regEntities, *sRegIter);
+    }
+    const UInt size = regEntities.GetSize();
+#pragma omp parallel for
+    for (UInt eIter = 0; eIter < size; ++eIter) {
+      CF::UInt entityNumber = regEntities[eIter];
+      entities[map->GetEntityIndex(entityNumber)] = entityNumber;
+    }
+  }
+}
+
+// cgal copy and paste stuff for association of points to CF::UInt from
+// http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
+//
+// later on this should be refactored into KNNSearch.hh and KNNSearch.cc
+typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
+typedef Kernel::Point_3 Point_3;
+typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
+
+//definition of the property map
+struct My_point_property_map{
+  typedef Point_3 value_type;
+  typedef const value_type& reference;
+  typedef const Point_and_int& key_type;
+  typedef boost::readable_property_map_tag category;
+};
+
+//get function for the property map
+My_point_property_map::reference 
+get(My_point_property_map,My_point_property_map::key_type p)
+{return boost::get<0>(p);}
+
+
+typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
+typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
+typedef CGAL::Search_traits_adapter<Point_and_int,My_point_property_map,Traits_base>    Traits;
+
+
+typedef CGAL::Orthogonal_k_neighbor_search<Traits>                      K_neighbor_search;
+typedef K_neighbor_search::Tree                                         Tree;
+typedef K_neighbor_search::Distance                                     Distance;
+
+CF::StdVector<NearestNeighbourInterpolator*> NearestNeighbourInterpolator::interpolators_;
+CF::StdVector<NearestNeighbourInterpolator::Matrix> NearestNeighbourInterpolator::matrices_;
 
 
 void NearestNeighbourInterpolator::PrepareCalculation(){
-  //1. Get get the source coordinates and the values, defined on those coordinates (Source...Src)
-  //2. Get the target coordinates (trg)
-  //3. Store for each trg element local Coordinates, elem number, volume, ...
-  //4. Small clean-up
-
-
   std::cout << "\t ---> NearesNeighbourInterpolator preparing for interpolation" << std::endl;
-
-  //in this filter we only have one upstream result
+  
+  std::cout << "\t\t 1/4 Obtaining source entities " << std::endl;
   uuids::uuid upRes = upResIds[0];
-
-  inGrid_  = resultManager_->GetExtInfo(upRes)->ptGrid;
-
-  // store from source grid: element-numbers, elements itself and nodes
-  StdVector<const CF::Elem*> allSrcElems;
-  StdVector<CF::UInt> allSrcElemNums;
-  StdVector<CF::UInt> allSrcNodes;
-  StdVector<shared_ptr<EntityList> > listsSrc;
-  //loop over source regions and add element numbers and nodes to vector
-  std::set<std::string>::iterator sRegIter = srcRegions_.begin();
-  for(;sRegIter != srcRegions_.end();++sRegIter){
-    StdVector<CF::UInt> curElemNums;
-    StdVector<CF::UInt> nodeList;
-    inGrid_->GetElemNumsByName(curElemNums,*sRegIter);
-    inGrid_->GetNodesByName(nodeList, *sRegIter);
-    //insert the element numbers into the allSrcElemNums list
-    //unfortunately we have to loop over all entries, because in StdVector,
-    //only single entries can be "pushed back"
-    for (UInt eIter = 0; eIter < curElemNums.GetSize(); ++eIter){
-      allSrcElemNums.Push_back(curElemNums[eIter]);
-
-      const CF::Elem* curElem;
-      curElem = inGrid_->GetElem(curElemNums[eIter]);
-      allSrcElems.Push_back(curElem);
-    }
-
-    //do the same for the nodes
-    for (UInt nIter = 0; nIter < nodeList.GetSize(); ++nIter){
-      allSrcNodes.Push_back(nodeList[nIter]);
-    }
-    RegionIdType aReg = inGrid_->GetRegion().Parse(*sRegIter);
-    shared_ptr<ElemList> newList(new ElemList(inGrid_));
-    newList->SetRegion(aReg);
-    listsSrc.Push_back(newList);
-  }
-
-
-  //loop over target regions and add element numbers to vector and also nodes
-  StdVector<const CF::Elem*> allTrgElems;
-  StdVector<CF::UInt> allTrgNodes;
-  StdVector<shared_ptr<EntityList> > listsTrg;
-  std::set<std::string>::iterator tRegIter = trgRegions_.begin();
-  for(;tRegIter != trgRegions_.end();++tRegIter){
-    StdVector<UInt> curElemNums;
-    StdVector<UInt> nodeList;
-
-    trgGrid_->GetElemNumsByName(curElemNums,*tRegIter);
-    trgGrid_->GetNodesByName(nodeList, *tRegIter);
-    //insert the element numbers and elements into the allTrgElems list
-    //unfortunately we have to loop over all entries, because in StdVector,
-    //only single entries can be "pushed back"
-    for (UInt eIter = 0; eIter < curElemNums.GetSize(); ++eIter){
-      const CF::Elem* curElem;
-      curElem = trgGrid_->GetElem(curElemNums[eIter]);
-      allTrgElems.Push_back(curElem);
-    }
-    //do the same for the nodes
-    for (UInt nIter = 0; nIter < nodeList.GetSize(); ++nIter){
-      allTrgNodes.Push_back(nodeList[nIter]);
-    }
-    RegionIdType aReg = trgGrid_->GetRegion().Parse(*tRegIter);
-    shared_ptr<ElemList> newList(new ElemList(trgGrid_));
-    newList->SetRegion(aReg);
-    listsTrg.Push_back(newList);
-  }
-
-  std::cout << "\t\t\t Interpolator is dealing with " << allSrcElemNums.GetSize() <<
-               " source elements and "<< allTrgElems.GetSize() << " target elements" << std::endl;
-
-
-
-
-  std::cout << "\t\t 1/5 Obtaining source coordinates " << std::endl;
-  //here we also find out, if the input is defined on elements (-centroids) or nodes
+  inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
-  if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){
-    //case of centroid-values
-    sourceCoords_.Resize(allSrcElemNums.GetSize());
-    for(UInt i=0;i<allSrcElemNums.GetSize();++i){
-      CF::Vector<Double> cCoord;
-      inGrid_->GetElemCentroid(cCoord,allSrcElemNums[i],true);
-      if(trgGrid_->GetDim() == 2){
-        sourceCoords_[i].Resize(2);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-      }else{
-        sourceCoords_[i].Resize(3);
-        sourceCoords_[i][0] = cCoord[0];
-        sourceCoords_[i][1] = cCoord[1];
-        sourceCoords_[i][2] = cCoord[2];
-      }
+  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
+  bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
+  
+  const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
+  StdVector<CF::UInt> globSrcEntity;
+  GetUsedMappedEntities(scrMap_, globSrcEntity, srcRegions_, inGrid_);
+  const CF::UInt numSrcEntities = CountUsedEntities(globSrcEntity);
+  if (numSrcEntities < numNeighbors_) {
+    numNeighbors_ = numSrcEntities;
+  }
+  
+  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  // checking, if interpolation matrix need to be created
+  for (UInt i = 0; i < interpolators_.GetSize(); i++) {
+    
+    if (CreatesEqualMatrix(interpolators_[i])) {
+      matrixIndex_ = i;
+      std::cout << "\t\t Interpolation matrix already prepared! Skipping further steps!" << std::endl;
+      return;
     }
-  }else{
-    //that's the case, if the source values are defined on src-nodes
-    sourceCoords_.Resize(allSrcNodes.GetSize());
-    for(UInt nIter=0; nIter < allSrcNodes.GetSize(); ++nIter){
-        CF::Vector<Double> nCoord;
-        //inGrid->GetNodeCoordinate3D(nCoord, srcNodes[nIter]);
-        inGrid_->GetNodeCoordinate3D(nCoord, allSrcNodes[nIter]);
-        if(trgGrid_->GetDim() == 2){
-          sourceCoords_[nIter].Resize(2);
-          sourceCoords_[nIter][0] = nCoord[0];
-          sourceCoords_[nIter][1] = nCoord[1];
-        }else{
-          sourceCoords_[nIter].Resize(3);
-          sourceCoords_[nIter][0] = nCoord[0];
-          sourceCoords_[nIter][1] = nCoord[1];
-          sourceCoords_[nIter][2] = nCoord[2];
+  }
+  interpolators_.Push_back(this);
+  matrixIndex_ = matrices_.GetSize();
+  matrices_.Resize(matrixIndex_ + 1);
+  Matrix& matrix = matrices_[matrixIndex_];
+  
+  std::cout << "\t\t 2/4 Obtaining target entities " << std::endl;
+  
+  const CF::UInt maxNumTrgEntities = trgMap_->GetNumEntities();
+  StdVector<CF::UInt> globTrgEntity;
+  GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, trgGrid_);
+  const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
+    
+  std::cout << "\t\t\t Interpolator is dealing with " << numSrcEntities <<
+               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
+               
+  std::cout << "\t\t 3/4 Creating search tree " << std::endl;
+  std::vector<Point_3> points;
+  std::vector<CF::UInt> indices;  
+  for(CF::UInt srcEnt = 0; srcEnt < maxNumSrcEntities; srcEnt++) {
+    CF::UInt globEntityNumber = globSrcEntity[srcEnt];
+    if (globEntityNumber != UnusedEntityNumber) {
+      CF::Vector<Double> pCoord;
+      if (inElems) {
+        inGrid_->GetElemCentroid(pCoord,globEntityNumber,true);
+      } else {
+        inGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      }
+      Point_3 point(pCoord[0],pCoord[1],pCoord[2]);
+      points.push_back(point);
+      indices.push_back(srcEnt);
+    }
+  }
+  Tree tree(boost::make_zip_iterator(boost::make_tuple( points.begin(),indices.begin() )),
+            boost::make_zip_iterator(boost::make_tuple( points.end(),indices.end() ) )
+  );
+  
+  std::cout << "\t\t 4/4 Creating interpolation matrix " << std::endl;
+  matrix.numTargets = maxNumTrgEntities;
+  StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
+  StdVector<CF::UInt>& targetSource = matrix.targetSource;
+  StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
+  
+  // creating target -> source indices
+  targetSourceIndex.Resize(maxNumTrgEntities + 1);
+  CF::UInt index = 0;
+  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    targetSourceIndex[trgEnt] = index;
+    if (globTrgEntity[trgEnt] != UnusedEntityNumber) {
+      index += numNeighbors_;
+    }
+  }
+  targetSourceIndex[maxNumTrgEntities] = index;
+  
+  // creating target -> source factors and filling source indices
+  if (numNeighbors_ > 1) {
+    targetSource.Resize(index);
+    targetSourceFactor.Resize(index);
+  }
+  #pragma omp parallel for
+  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    CF::UInt globEntityNumber = globTrgEntity[trgEnt];
+    if (globEntityNumber != UnusedEntityNumber) {
+      CF::Vector<Double> pCoord;
+      trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
+      Distance tr_dist;
+      K_neighbor_search search(tree, query, numNeighbors_);
+      if (numNeighbors_ > 1) {
+        const CF::UInt ITrgSrcIndex = targetSourceIndex[trgEnt];
+        CF::UInt* srcIndices = &targetSource[ITrgSrcIndex];
+        CF::Double* srcFactors = &targetSourceFactor[ITrgSrcIndex];
+        CF::UInt i = 0;
+        CF::Double dmax = 0.0;
+        for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++, i++) {
+          srcIndices[i] = boost::get<1>(it->first);
+          CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
+          srcFactors[i] = distance;
+          if (distance > dmax) {
+            dmax = distance;
+          }
         }
+        // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
+        // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
+        // /Inverse_Distance_Weighted/Shepards_Method.htm
+        const CF::Double R = 1.01 * dmax;
+        CF::Double weights = 0.0;
+        // The point which is farthest away, should at least have a non-zero
+        // weight of 0.01. If we would choose R = dmax, it would not contribute
+        // at all.
+        for (i = 0; i < numNeighbors_; i++) {
+          Double w;
+          if(srcFactors[i] == 0){
+            w = 1.0;
+          } else {
+            w = std::pow((R-srcFactors[i])/(R*srcFactors[i]), p_);
+          }
+          srcFactors[i] = w;
+          weights += w;
+        }
+        for (i = 0; i < numNeighbors_; i++) {
+          srcFactors[i] /= weights;
+        }
+      } else {
+        targetSourceIndex[trgEnt] = boost::get<1>(search.begin()->first);
       }
-  }
-
-
-  std::cout << "\t\t 2/5 Obtaining target coordinates" << std::endl;
-
-  // target (output) is solely defined on nodes
-  targetCoords_.Resize(allTrgNodes.GetSize());
-  for(UInt nIter=0; nIter < allTrgNodes.GetSize(); ++nIter){
-      CF::Vector<Double> SCoord;
-      trgGrid_->GetNodeCoordinate3D(SCoord, allTrgNodes[nIter]);
-      if(trgGrid_->GetDim() == 2){
-        targetCoords_[nIter].Resize(2);
-        targetCoords_[nIter][0] = SCoord[0];
-        targetCoords_[nIter][1] = SCoord[1];
-      }else{
-        targetCoords_[nIter].Resize(3);
-        targetCoords_[nIter][0] = SCoord[0];
-        targetCoords_[nIter][1] = SCoord[1];
-        targetCoords_[nIter][2] = SCoord[2];
+    } else {
+      if (numNeighbors_ == 1) {
+        targetSourceIndex[trgEnt] = UnusedEntityNumber;
       }
     }
-
-  CF::StdVector< LocPoint > locPoints;
-  StdVector<const CF::Elem*> tempElems;
-  //mapping of global point targetCoords_ to local locPoints
-  trgGrid_->GetElemsAtGlobalCoords(targetCoords_,locPoints, tempElems, listsTrg, 1e-6, 1e-3);
-
-
-  std::cout << "\t\t 3/5 Generating interpolation info ..." << std::endl;
-
-  // Fill struct for forward-interpolation
-  interpolDataTrg_.reserve(allTrgElems.GetSize());
-  for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
-    if(tempElems[aMatch]!= NULL){
-      QuantityStruct newStruct;
-      newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
-      interpolDataTrg_.push_back(newStruct);
-    }
   }
-
-
-  tempElems.Clear(false);
-  // Fill struct for backward-interpolation
-  //mapping of global point targetCoords_ to local locPoints
-  inGrid_->GetElemsAtGlobalCoords(sourceCoords_,locPoints, tempElems, listsSrc, 1e-6, 1e-3);
-  interpolDataSrc_.reserve(allSrcElems.GetSize());
-  for(UInt aMatch = 0;aMatch < tempElems.GetSize();++aMatch){
-    if(tempElems[aMatch]!= NULL){
-      QuantityStruct newStruct;
-      newStruct.localCoords = locPoints[aMatch].coord;
-      newStruct.trgElemNum = tempElems[aMatch]->elemNum;
-      interpolDataSrc_.push_back(newStruct);
-    }
-  }
-
-  std::cout << "\t\t 4/5 Clear generated temporary data storage ..." << std::endl;
-  allTrgElems.Clear(false);
-  allSrcElemNums.Clear(false);
-  allSrcNodes.Clear(false);
-  allTrgNodes.Clear(false);
-  tempElems.Clear(false);
-
-  std::cout << "\t\t 5/5 Remap data to equation numbers ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
-
-
+  
   std::cout << "\t\t Interpolation prepared!" << std::endl;
 }
 

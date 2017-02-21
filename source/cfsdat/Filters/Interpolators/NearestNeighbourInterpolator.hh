@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     NearesNeighbourInterpolator.hh
+ *       \file     NearestNeighbourInterpolator.hh
  *       \brief    <Description>
  *
  *       \date     Aug 8, 2016
@@ -19,6 +19,8 @@
 #include <cfsdat/Utils/Point.hh>
 #include <Filters/MeshFilter.hh>
 
+#include <limits>
+
 
 
 namespace CFSDat{
@@ -27,7 +29,18 @@ namespace CFSDat{
 //! for neighbour search
 
 class NearestNeighbourInterpolator : public MeshFilter{
-
+  
+  //! Entity number for unused indices in in- and output results
+  static const CF::UInt UnusedEntityNumber = UINT_MAX;
+  
+  //! struct containing an interpolation matrix, which may be applied to scalars and vector
+  struct Matrix {
+    CF::UInt numTargets;
+    StdVector<CF::UInt> targetSourceIndex;
+    StdVector<CF::UInt> targetSource;
+    StdVector<CF::Double> targetSourceFactor;
+  };
+  
 public:
 
   NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
@@ -37,6 +50,10 @@ public:
   virtual bool Run();
 
 protected:
+  
+  CF::UInt CountUsedEntities(StdVector<CF::UInt>& entities);
+  
+  void GetUsedMappedEntities(str1::shared_ptr<EqnMapSimple>& map, StdVector<CF::UInt>& entities, std::set<std::string>& regions, Grid* grid);
 
   virtual void PrepareCalculation();
 
@@ -44,9 +61,7 @@ protected:
 
   virtual void AdaptFilterResults();
 
-  //! Read scattered data
-  void ReadScatteredData(CF::StdVector< CF::Vector<Double> > elemCentroids, CF::StdVector< CF::Vector<Double> > scatteredData);
-
+  bool CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator);
 
 private:
 
@@ -63,37 +78,37 @@ private:
                           Vector<Double>& newVec);
 
 
-  //! Unfortunately we need the coordinates in such a "hardcoded" way, because of the CGAL-nearest neighbour search
-  //! Coordinates of input data
-  CF::StdVector< CF::Vector<double> > sourceCoords_;
-
-  //! Coordinates of target data
-  CF::StdVector< CF::Vector<double> > targetCoords_;
-
-  //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
-  UInt inDim_;
-
   //! Number of neighbor points to include in interpolation.
   UInt numNeighbors_;
 
   //! Exponent for calculation of interpolation weight function.
-  Double p_;
+  UInt p_;
+  
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
+  
+  //! Entity map used for source values
+  str1::shared_ptr<EqnMapSimple> scrMap_;
 
+  //! Entity map used for target values
+  str1::shared_ptr<EqnMapSimple> trgMap_;
+  
   //! Boolean, which stores the binary input from xml-file, if we
   //! perform a mesh-check. If mesh-check is set in xml-> mCheck = true
   bool mCheck_;
 
-  //! primary vector of struct for interpolation from Src->Trg
-  //! forward interpolation
-  std::vector<QuantityStruct> interpolDataTrg_;
-
-  //! vector for the mesh-check, for interpolation from Trg->Src
-  //! reversed forward interpolation
-  std::vector<QuantityStruct> interpolDataSrc_;
-
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter
   Grid* inGrid_;
+  
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
+  
+  //! contains pointers to every interpolator which created a matrix
+  static CF::StdVector<NearestNeighbourInterpolator*> interpolators_;
+  
+  //! contains the matrices createb by the Interpolators from interpolators_
+  static CF::StdVector<Matrix> matrices_;
 
 };
 
