@@ -231,7 +231,7 @@ def cartesian_to_grid_coords(x,res):
 
 def grid_to_cartesian_coords(i,res):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return i * h + h / 2.0
+  return i * h
 
 # @param offset: value added to converted cartesian
 def polar_to_cartesian(radius,radians,offset):
@@ -601,7 +601,7 @@ class BisecSpline:
     else: #linear case
       ret = self.eval_linear(x)
     
-    if type(ret) == np.float64:
+    if type(ret) == np.float64 or type(ret) == float:
       return float(ret)
     elif len(ret) == 1:
       return float(ret[0])
@@ -716,7 +716,7 @@ def create_profiles(args,infoXml=None):
     profiles[2] = Profile(args,2)
     x = np.linspace(0, 1.0, args.res)
     
-  if args.verbose == "all_profiles":
+  if args.verbose == "all_splines" or args.verbose == "all_profiles":
     plt.gcf().clear()
     plt.gcf().subplots_adjust(bottom=0.15)
     x = np.linspace(0, 1.0, 1000)
@@ -725,7 +725,8 @@ def create_profiles(args,infoXml=None):
       if profile == None:
         continue
       plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
-      plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle[0]))
+      if args.verbose == "all_profiles":
+        plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle))
       plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
     
     plt.ylim((0.5,1.0))
@@ -737,6 +738,7 @@ def create_profiles(args,infoXml=None):
 #     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
 
     plt.show()
+  
   
   return profiles
 
