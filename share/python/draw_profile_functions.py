@@ -166,7 +166,7 @@ class Cubic_spline():
     elif  sol[1] > 0 and sol[1] <= 1:
       t = sol[1]
     else:
-      print("No t found where dx/dy = 1")
+      print("No t found where dx/dy = 1 ",sol)
     
     # conversion from t as sympy.Float to regular Python float necessary  
     self.t_1 = float(t)
@@ -1177,7 +1177,9 @@ def generate_basecell(args,info,log):
         plt.plot(rad,y,linewidth=5.0)
         plt.show()
       if args.target == "volume_mesh" or args.target == "volume_vtk":
-        write_profile_to_array(array, profiles[i], i)
+        # if basecell is symmetric, calculate only 1/8 and mirror the rest
+        symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False 
+        write_profile_to_array(array, profiles[i], i, symmetric)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
         
@@ -1263,18 +1265,22 @@ def calc_radius_for_quadrant(profile,x,rad):
     val = calc_radius_heaviside(funcs,phi,x,rad)
   
   assert(val is not None)
-#   assert(val >= 0.5)
   return val - 0.5
+
 # rasterize profile functions
-def write_profile_to_array(array,profile,dir):
+# if basecell is symmetric, rasterize only 1/8 of structure
+# and mirror the rest
+def write_profile_to_array(array,profile,dir,symmetric):
   res = array.shape[0]
   assert(dir >=0 and dir <=2)
   
   map = create_profile_map(profile, res)
   
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
+  bound = res if not symmetric else int(res/2)
+  
+  for i in range(0,bound):
+    for j in range(0,bound):
+      for k in range(0,bound):
         y = grid_to_cartesian_coords(j, res)
         z = grid_to_cartesian_coords(k, res)
         valx = (y-0.5)**2 + (z-0.5)**2
@@ -1290,6 +1296,15 @@ def write_profile_to_array(array,profile,dir):
           if dir == 2:
             array[k,j,i] = dir
   
+  if symmetric:
+    # mirror octant
+    array[0:bound,0:bound,bound:res] = array[0:bound,0:bound,0:bound][:,:,::-1]
+    array[0:bound,bound:res,0:bound] = array[0:bound,0:bound,0:bound][:,::-1,:]
+    array[0:bound,bound:res,bound:res] = array[0:bound,0:bound,0:bound][:,::-1,::-1]
+    array[bound:res,0:bound,0:bound] = array[0:bound,0:bound,0:bound][::-1,:,:]
+    array[bound:res,0:bound,bound:res] = array[0:bound,0:bound,0:bound][::-1,:,::-1]
+    array[bound:res,bound:res,0:bound] = array[0:bound,0:bound,0:bound][::-1,::-1,:]
+    array[bound:res,bound:res,bound:res] = array[0:bound,0:bound,0:bound][::-1,::-1,::-1] 
   
 # find end node object in list with matching id
 def get_end_node_by_id(id,end_nodes):
