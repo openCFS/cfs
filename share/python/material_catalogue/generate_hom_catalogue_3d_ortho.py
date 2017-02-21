@@ -36,34 +36,37 @@ os.mkdir(script_folder)
 
 cwd = os.getcwd()
 
-for i,x1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
+for i,x1 in enumerate(np.arange(0.0,1.1,1.0/float(steps))):
   for j,y1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
     for k,z1 in enumerate(np.arange(0,1.1,1.0/float(steps))):
       # basecell.py only take values 0 < x < 1, thus project values at interval boundary
       x = x1
       if i == 0:
         x = 1e-3
-      elif i == steps + 1:
+      elif i == steps:
         x = 0.99
       
       y = y1
       if j == 0:
         y = 1e-3
-      elif j == steps + 1:
+      elif j == steps:
         y = 0.99
         
       z = z1
       if k == 0:
         z = 1e-3
-      elif k == steps + 1:
+      elif k == steps:
         z = 0.99
       
       problem = str(i) + "-" + str(j) + "-" + str(k)
       mesh = problem + ".mesh"
       
       cmd = "basecell.py --res " + str(args.res) + " --x1 " + str(x) + " --y1 " + str(y) + " --z1 " + str(z)+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --save " + problem
-      cmd += "; cfs_rel -m " + mesh + " -p " + cwd + "/" + xml + " " + problem
+      cmd += "; cfs_rel -d -m " + mesh + " -p " + cwd + "/" + xml + " " + problem
       cmd += "&& rm " + mesh  
+      
+      if os.path.exists(problem):
+        continue
       
       out = cfs_utils.generate_qsub_script("qsub_template.sh", cmd, cwd+"/"+script_folder+"/"+problem+'.sh', silent = True)
       jobfile.write(out+"\n")
