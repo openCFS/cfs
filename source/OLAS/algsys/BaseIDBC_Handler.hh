@@ -61,7 +61,12 @@ namespace CoupledField {
     //!       values from previous calls, since the method will not eliminate
     //!       them.
     //! \param rhs vector with right-hand side entries
-    virtual void AddIDBCToRHS( SBM_Vector *rhs ) = 0;
+    //!         deltaIDBC: if true, add idbc_values - oldIdbc_values
+    virtual void AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC = false ) = 0;
+
+    virtual void SetOldDirichletValues(){};
+
+    virtual void ToString(){};
 
     //! Remove inhomogeneous Dirichlet BCs from right hand side
 
@@ -74,7 +79,7 @@ namespace CoupledField {
     //!       values from previous calls, since the method cannot eliminate
     //!       them.
     //! \param rhs vector with right-hand side entries
-    virtual void RemoveIDBCFromRHS( SBM_Vector *rhs ) = 0;
+    virtual void RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC = false ) = 0;
     //@{
     //! Set value for a Dirichlet boundary condition
 
@@ -106,13 +111,13 @@ namespace CoupledField {
     //! \param rowNum number of the row for the degree of freedom whose value
     //!               should be set
     //! \param val    inhomogeneous Dirichlet value
-    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Double &val ) {
+    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Double &val, bool deltaIDBC=false ) {
       EXCEPTION("BaseIDBC_Handler::GetIDBC: The derived class does " \
                 << "obviously not support the Double version of this " \
                 << "interface! So it is probably a Complex instance!");
     }
 
-    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Complex &val )  {
+    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Complex &val, bool deltaIDBC=false )  {
       EXCEPTION("BaseIDBC_Handler::GetIDBC: The derived class does " \
                 << "obviously not support the Complex version of this " \
                 << "interface! So it is probably a Double instance!");
@@ -288,7 +293,7 @@ namespace CoupledField {
     //! specified input vector by new values. These new values are taken to
     //! be the values specified via the inhomogeneous Dirichlet boundary
     //! condition that fixes the respective degrre of freedom.
-    virtual void SetDofsToIDBC( SBM_Vector *vec ) = 0;
+    virtual void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false ) = 0;
 
   };
 

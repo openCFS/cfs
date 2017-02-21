@@ -161,14 +161,6 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
-    /*
-     * for use in lineSearch: temporal values should not
-     * affect the memory of the hysteresis operator
-     * -> lock before perfroming lineSearch, then unlock afterwards
-     */
-    void LockHysteresis();
-    void UnlockHysteresis();
-
     bool IsHysteresis_Fixpoint()
     { return isHysteresisFixPoint_;};
 
@@ -187,9 +179,38 @@ namespace CoupledField {
       return feFunctions_[st]->GetResultInfo()->dofNames;
     }
 
-    virtual void FinalizeAfterIteration() {
-      EXCEPTION("FinalizeAfterIteration has to be implemented for specific PDE");
-    }
+    /*
+     * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
+     * the underlying CoefFunctionHyst
+     * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
+     * over the PDEs.
+     * As basically a PDEs that use Hysteresis will need the same set of functions, it
+     * makes sense to directly include them in the base class.
+     */
+    /*!
+     * SetPreviousHystVals -> store input and output values from last iteration
+     */
+    void SetPreviousHystVals(bool setNextToLastTS_too = false);
+    /*!
+     * LockUnlockHystMemory -> if locked, all changes to the Hysteresis operator are only
+     *                           done on temporary storage
+     */
+    void LockUnlockHystMemory(bool locked);
+
+    void UseNextToLastTSForDeltaMat(bool useNextToLastTS);
+
+    void LockUnlockHystDirection(bool locked);
+    /*!
+     * ActivateDeactivateDeltaMat -> if active, the getTensor function of CoefFunctionHyst
+     *                                 returns deltaOutput/deltaInput + std. mat tensor
+     *                                 as approximation of the material tensor
+     *                            -> if not active, getTensor returns only std. mat tensor
+     * Example electrostatics:
+     *  active: deltaMat = deltaP / deltaE + eps0
+     *  not active: deltaMat = eps0
+     *
+     */
+    void ActivateDeactivateDeltaMat(bool active);
 
     virtual void FinalizeAfterTimeStep() {
     	EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");

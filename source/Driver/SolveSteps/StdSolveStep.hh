@@ -87,11 +87,6 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
     void StepTransNonLinMaterial();
-
-    //! solves for one nonlinear transient step 
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis();
-    virtual void StepTransNonLinHysteresisTotal();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -130,6 +125,24 @@ namespace CoupledField
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     void GetEigenMode( UInt numMode );
     
+    //----------------------- HYSTERESIS -------------------------------------
+    //! solves for one nonlinear transient step
+    //! consideres hystreresis nonlinearities in direct coupled PDEs
+    virtual void StepTransNonLinHysteresis();
+    virtual void StepTransNonLinHysteresisTotal();
+    /*!
+     * Helper funciton for setting up the equation system during
+     *            StepTransNonLinHysteresis()
+     * Background: During the solve step, the matrices and the rhs have to be
+     *  assembled multiple times during linesearch, for the calculation of the
+     *  residual error and of course to get a system to be solved;
+     *  for simplification, encapsulate that sequence of function calls
+     *  in a separate function
+     */
+    virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
+    //! does a line search and returns the optimal residual norm
+    Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, bool trans=false);
     
     //----------------------- helpfull methods--------------------------------------
 

@@ -514,17 +514,28 @@ public:
   }
 
   //! Functions needed for Hystersis
-  virtual void SetPreviousHystVals() {
+  virtual void SetPreviousHystVals(bool setNextToLastTS_too = false) {
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  //! Functions needed for Hystersis
-  virtual void ResetPreviousHystVals() {
-    EXCEPTION("ResetPreviousHystVals not available");
+  //! function for Hysteresis operator to activate or deactivate computation of deltaMatrix
+  virtual void setDeltaComputation(bool deltaComputation_new){
+    EXCEPTION("setDeltaComputation not available");
+  }
+
+  //! function for Hysteresis operator to switch between using the
+  // value of the nextToLastTS or of the previousIteration
+  virtual void setUseNextToLastTS(bool useNextToLastTS_new){
+    EXCEPTION("setUseNextToLastTS not available");
   }
 
   //! function for Hysteresis operator to allow or disallow memory setting
   virtual void setOverwrite(bool overwrite){
+    EXCEPTION("setOverwrite not available");
+  }
+
+  //! function for Hysteresis operator to allow or disallow direction setting
+  virtual void setOverwriteDirection(bool overwrite){
     EXCEPTION("setOverwrite not available");
   }
 

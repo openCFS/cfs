@@ -30,7 +30,7 @@ namespace CoupledField
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
-    StringLenght_.Resize(numElem);
+    StringLength_.Resize(numElem);
 
     strings_     = new Vector<Double>[numElem];
     helpStrings_ = new Vector<Double>[numElem];
@@ -41,7 +41,7 @@ namespace CoupledField
       strings_[el].Resize(maxStringLength_);
       helpStrings_[el].Resize(maxStringLength_+1);
 
-      StringLenght_[el] = 1;
+      StringLength_[el] = 1;
       for ( UInt i=0; i<maxStringLength_; i++) {
         strings_[el][i] = 0.0;
       }
@@ -64,8 +64,20 @@ namespace CoupledField
   Double Preisach::computeValue(Double& Xin, Integer idx, bool overwrite) 
   {
 
+    /*
+     * What is this function used for?
+     * It does not update the list of minima and maxima but only evaluates
+     * the everett function using the current list checking three cases:
+     * a) new input wipes out complete list -> only one Everett pixel needed
+     * b) new input replaces the currently last entry of list
+     * c) new input attached to end of list
+     *
+     * What about cases in between?
+     * No memory set.
+     */
+
     Vector<Double> &stringEl = strings_[idx];
-    UInt& actLength = StringLenght_[idx];
+    UInt& actLength = StringLength_[idx];
 
     //normalize input
     Double newX, Yval;
@@ -118,7 +130,7 @@ namespace CoupledField
     Vector<Double> &stringEl     = strings_[idx];
     Vector<Double> &helpStringEl = helpStrings_[idx];
 
-    UInt& actLength = StringLenght_[idx];
+    UInt& actLength = StringLength_[idx];
     UInt stringLength = actLength;
 
     if ( abs(newX) > abs(abs(stringEl[0]) - eps_) || stringLength == 0 ) {

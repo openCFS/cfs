@@ -15,6 +15,7 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+//#include "MatVec/SingleVector.hh"
 
 
 namespace CoupledField {
@@ -50,8 +51,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     solVec_.SetSize( feFunctions_.size() );
     rhsVec_.SetSize( feFunctions_.size() );
     
-
-
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
     // UInt pos = 0;
@@ -72,7 +71,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     // creation and destruction.
     solVec_.SetOwnership(false);
     rhsVec_.SetOwnership(false);
-    
+
     // nonlinear parameters
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
@@ -275,7 +274,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc, setIDBC );
-
 
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
@@ -582,8 +580,84 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
 
   void StdSolveStep::StepTransNonLin() {
+    /*!
+     * Comments added to better understand what's going on. If you find any errors, please correct.
+     */
+    /*! Solve step for transient, nonlinear simulations using material non-linearities
+     *  Works for std fixpoint iteration as well as for Newton iteration.
+     *  Instead of computing the total value u_n+1^k+1 at time step n+1 and iteration k+1,
+     *  only the difference deltaU^k+1 = u_n+1^k+1 - u_n+1^k is computed.
+     *
+     *  This leads to the following iterative scheme (only fixpoint case described here)
+     *    n = time step counter; k = iteration counter
+     *    K(u) = nonlinear system matrix; f = rhs load
+     *    Known from last iteration: u_n+1^k
+     *    Aim: compute u_n+1^k+1 such that
+     *      a) u_n+1^k+1 - u_n+1^k = deltaU^k+1 < tol        -> small incremental error
+     *      b) K( u_n+1^k+1 )*u_n+1^k+1 - f     < tol        -> small residual error
+     *
+     *    Approach:
+     *    1. Build up system:
+     *      K( u_n+1^k )*u_n+1^k+1 = f
+     *    > K( u_n+1^k )*(u_n+1^k + deltaU^k+1) = f
+     *    > K( u_n+1^k )*deltaU^k+1 = f - K( u_n+1^k )*u_n+1^k
+     *
+     *    2. solve for solution increment deltaU^k+1
+     *
+     *    3. calculate new solution by updating the old one
+     *      u_n+1^k+1 = u_n+1^k + deltaU^k+1
+     *
+     *    4. check for incremental and residual error
+     *
+     *    5. continue if one of the errors is too large and the maximal number of iterations
+     *        has not been reached yet
+     *
+     *    Three possible implementations (I and II work well at least for the NLtrans magnetic example from
+     *      testsuite, III was not tested in that context)
+     *      I. u_n+1^0 = u_n
+     *         u_n+1^1 = deltaU^1
+     *         u_n+1^2 = deltaU^1 + deltaU^2
+     *
+     *         This is how it is implemented below. During the first iteration, we calculate
+     *         deltaU^1 between u_n and u_n+1^1, but we do NOT add deltaU^1 to u_n
+     *         to approximate u_n+1^1.
+     *         Instead we set u_n+1^1 = deltaU^1.
+     *         This leads to (completely) different evaluation points for the material curve and seems
+     *         a little bit odd at first. However, it converges to the same solution as II.
+     *
+     *      II. u_n+1^0 = u_n, but rhs will NOT be updated during first iteration
+     *         -> we solve not for deltaU^1 but for the whole vector u_n+1^1 during the first iteration
+     *         -> i.e. we perform one "total" step (like it is done in StepTransNonLinTotal())
+     *
+     *         K( u_n+1^0 )*u_n+1^1 = f
+     *         -> u_n+1^1 will thus contain u_n
+     *
+     *         u_n+1^2 = u_n + deltaU^1 + deltaU^2
+     *         -> all further iterations are standard delta-steps
+     *         -> compared to I. we do not evaluate the material tensor only with the summed up increments,
+     *            but with the increments added to the previous solution
+     *         -> tests showed, that I. and II. will converge to the same result, although the calculated steps
+     *            to come there are different
+     *
+     *      III. u_n+1^0 = u_n
+     *         u_n+1^1 = u_n + deltaU^1
+     *         u_n+1^2 = u_n + deltaU^1 + deltaU^2
+     *         ...
+     *         -> solution from old time step is the basis for the new solution and will be kept
+     *         -> seems to me the most natural way but it has the problem when the system is solved
+     *            for the first time during each time step. To incorporate changing inhomogeneous Dirichlet
+     *            Boundary Conditions (IDBC) into the result vector, we would have to replace the IDBC values
+     *            from the last time step with the ones from the new time step. A simple addition would lead
+     *            to wrong results here
+     *         -> Added function ClearIDBCFromSolutionVal to set all IDBC nodes to 0
+     *            -> call this function with the OLD solution before solving the system
+     *            -> the old solution will have 0 at IDBC nodes so that the new solution can simply be added
+     *
+     *
+     *
+     *
+     */
 
-    //std::cout << "in StepTransNonLin" << std::endl;
     LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLin";
     bool performOneMoreStep;
     bool isNewton = false;
@@ -658,6 +732,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -665,6 +740,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
             }
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
+
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
@@ -700,9 +776,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           setIDBC = true;
 
         algsys_->Solve(setIDBC);
+        // if setIDBC is true, solInc will contain the inhom. Dirichlet values
         algsys_->GetSolutionVal(solInc, setIDBC );
-
-        //std::cout << solInc.ToString(1,',') << std::endl;
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
@@ -715,7 +790,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           //to incooperate the inhomog. Dirichlet BCs we need a full
           //step for the first iteration
 
+          /*
+           * note: stageSol was initialized to 0.0, so
+           *      during the iterations, stageSol will be the sum of all solultion increments but will NOT
+           *      contain the old solution itself
+           */
           stageSol.Add(1.0, solInc);
+
           solVec_  = stageSol;
 
           //=================compute residual norm
@@ -835,6 +916,10 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     //update stage
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      /*
+       * here we finally compute the new solution vector
+       *  solution_new = solution_old + stage_solutions
+       */
       fncIt->second->GetTimeScheme()->FinishStep();
     }
   }
@@ -996,16 +1081,337 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     }
   }
 
+  void StdSolveStep::ConfigureSystemForHysteresis(UInt stage, bool trans, bool firstTime){
+    /*!
+     * Important note: The following system will assemble the rhs and lhs
+     * of the equation system as needed for StepTransNonLinHysteresis().
+     *
+     * Both lhs and rhs will depend on the current solution as well as on the
+     * previous solution (from the previous iteration).
+     *
+     * The current solution is thereby taken from the class variable
+     *  solVec_
+     * that is linked to the solution storage in the PDEs.
+     *
+     * The previous solution is stored by CoefFunctionHyst that is stored by
+     * the PDEs. To set the previous values, call the function
+     *  PDE_.SetPreviousHystVals()
+     *
+     */
+
+    /*
+     * System to be configured (here at the example of electrostatics)
+     *    div([eps0 + deltaP^k/deltaE^k]*deltaE^k+1) = f_n+1 - div(eps0*E_n+1^k) - div(P_n+1^k)
+     */
+    /*
+     *    a,1) build up rhs
+     *      algsys_->InitRHS(RhsLinVal_)             -> f_n+1
+     *      assemble_->AssembleNonLinRHS()           -> -div(P_n+1^k), has to be set as a rhs-term in elecPDE!
+     *
+     *      PDE_->ActivateDeactivateDeltaMat(false)  -> tell CoefFncHyst to return only eps0 as material tensor
+     *
+     *      assemble_->AssembleMatrices(false)       -> build up system matrix with eps0 as material relation
+     *      solVec_.ScalarMult(-1.0);
+     *      algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+     *      algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
+     *      solVec_.ScalarMult(-1.0);
+     *                                               -> -div(eps0*E_n+1^k)
+     */
+
+//    std::cout << "RHS at begin of ConfigureSystemForHysteresis: " << std::endl;
+    SBM_Vector actRHS_TMP(BaseMatrix::DOUBLE);
+//    algsys_->GetRHSVal( actRHS_TMP );
+//    std::cout << actRHS_TMP.ToString() << std::endl;
+
+    //std::cout << "Setup Lin RHS" << std::endl;
+
+    algsys_->InitRHS(rhsVec_);
+
+//    std::cout << "RHS after InitRHS: " << std::endl;
+//    algsys_->GetRHSVal( actRHS_TMP );
+//    std::cout << actRHS_TMP.ToString() << std::endl;
+
+    //std::cout << "Setup NonLin RHS" << std::endl;
+
+    assemble_->AssembleNonLinRHS();
+
+    std::cout << "RHS after AssembleNonLinRHS: " << std::endl;
+    algsys_->GetRHSVal( actRHS_TMP );
+    std::cout << actRHS_TMP.ToString() << std::endl;
+
+    //std::cout << "Deactivate Delta Computation" << std::endl;
+    PDE_.ActivateDeactivateDeltaMat(false);
+
+    /*
+     * Note: we do not assemble Newton parts at all, as we do not have information about the
+     * derivative of the HysteresisOperator
+     */
+
+    //std::cout << "Assemble Matrices" << std::endl;
+    assemble_->AssembleMatrices(false);
+
+//    std::cout << "solVec_ before updating rhs" << std::endl;
+//    std::cout << solVec_.ToString() << std::endl;
+
+    std::cout << "solVec_: " << solVec_.ToString() << std::endl;
+    solVec_.ScalarMult(-1.0);
+    //std::cout << "Update RHS" << std::endl;
+    algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+    std::cout << "RHS after Update RHS with sol 1: " << std::endl;
+    algsys_->GetRHSVal( actRHS_TMP );
+    std::cout << actRHS_TMP.ToString() << std::endl;
+
+    if(trans){
+      algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
+    }
+    std::cout << "RHS after Update RHS with sol 2: " << std::endl;
+    algsys_->GetRHSVal( actRHS_TMP );
+    std::cout << actRHS_TMP.ToString() << std::endl;
+    solVec_.ScalarMult(-1.0);
+
+    if(trans){
+
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+      std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+      std::map<FEMatrixType,Integer>::iterator matIt;
+      UInt pos = 0;
+      //now update RHS according to time stepping
+      //TODO: find out for which matrices this updating has to be done, i.e.
+      //      do we need the temporary matrices (with eps0) or the ones we finally solve (with eps0+delta)
+      for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+
+        if(matIt->second < 0)
+          continue;
+        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+          fncIt->second->GetTimeScheme()->ComputeStageRHS(stage,matIt->second,stageRHS_.GetPointer(pos));
+        }
+        algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+      }
+
+//      std::cout << "RHS after Update RHS with stageRHS: " << std::endl;
+//      algsys_->GetRHSVal( actRHS_TMP );
+//      std::cout << actRHS_TMP.ToString() << std::endl;
+
+    }
+
+    /*    a,2) build up lhs
+     *      PDE_->ActivateDeactivateDeltaMat(true)   -> tell CoefFncHyst to return only eps0+deltaP^k/deltaE^k
+     *                                                    as material tensor
+     *      assemble_->AssembleMatrices(false)       -> rebuild up system matrix with eps0+deltaP^k/deltaE^k
+     *                                                    as material relation
+     */
+    //std::cout << "Activate Delta Computation" << std::endl;
+    if(firstTime){
+      PDE_.UseNextToLastTSForDeltaMat(true);
+    } else {
+      PDE_.UseNextToLastTSForDeltaMat(false);
+    }
+
+    //if(!firstTime){
+    /*
+     * use always deltaMatrix (also for first iteration), but for first iteration
+     * we use the nextToLast value instead of the last iteration value
+     */
+      PDE_.ActivateDeactivateDeltaMat(true);
+    //}
+
+    //std::cout << "Re-Assemble Matrices" << std::endl;
+    assemble_->AssembleMatrices(false);
+
+  }
+
+  Double StdSolveStep::LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                                    Double& etaLineSearch, bool trans)  {
+
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    solOld = actSol;
+    const UInt nrEtas = 9;
+    Double eta[nrEtas] = {1.0,0.316,0.1,0.0316,0.01,0.00316,0.001,0.000316,0.0001};
+
+   // const UInt nrEtas = 10;
+    //Double eta[nrEtas] = {1.0,-1.0,0.316,-0.316,0.1,-0.1,0.0316,-0.0316,0.01,-0.01};
+
+    //const Double eta[nrEtas] = {0.01,0.1,1,0.025,0.25,0.05,0.5}; //, 0.5, 0.25, 0.125, 0.1};
+    /*
+     * sort in a descending way as 1.0 is the most commonly used eta
+     */
+    //const UInt nrEtas = 7;
+    //const Double eta[nrEtas] = {1.0,0.5,0.25,0.1,0.05,0.025,0.01};
+
+    bool assumeQuadratic = true;
+
+        // initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    Double residualL2NormOpt = 1e15;
+
+    for( UInt i=0; i<nrEtas; i++) {
+      actSol.Add( 1.0, solOld, eta[i], solIncrement);
+
+      //store (temporary) new solution
+      //NOTE: solVec_ is pointing to the actual solution, i.e. setting this
+      //      value will overwrite the computed solution
+      solVec_ = actSol;
+
+      /*
+       * Configure system
+       */
+      ConfigureSystemForHysteresis(0,trans);
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      SBM_Vector actRHS(BaseMatrix::DOUBLE);
+      algsys_->GetRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = actRHS.NormL2();
+
+      std::cout << "Current eta: " << eta[i] << std::endl;
+      std::cout << "Temporal solution during line-search" << std::endl;
+      std::cout << solVec_.ToString() << std::endl;
+      std::cout << "Current residual error: " << residualL2Norm << std::endl;
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      } else {
+        if(assumeQuadratic){
+          /*
+           * here we assume that the residual follows a quadratic curve
+           * i.e. we only have one minimum which is the global minimum;
+           * in that case, if the residual increases between two iterations,
+           * we can assume that we passed the minimum already and stop
+           */
+          break;
+        }
+      }
+    }
+
+    etaLineSearch = etaOpt;
+
+    // Set new solution
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+
+    return residualL2NormOpt;
+  }
 
   void StdSolveStep::StepTransNonLinHysteresis() {
     /*
      * Idea: for deltaMaterial Hysteresis, use base code of StepTransNonLin() as it also uses
      *       incremental stepping
+     *       However, it is adapted as described below
+     */
+    /*! Basic idea shown for electrostatics (D = flux density, E = electric field, P = polarization
+     *      eps0 = permittivity of vacuum, n = time step counter, k = iteration counter, f = rhs load vector):
+     *
+     *    D_n+1 = D_n + deltaD
+     *          = eps0*E_n + P_n + esp0*deltaE + deltaP
+     *          = (eps0 + P_n/E_n)*E_n + (eps0 + deltaP/deltaE)*deltaE
+     *          = eps(E_n)*E_n + eps(deltaE)*deltaE
+     *
+     *   > Note that unlike the normal nonlinear case, we have two different
+     *     "eps" here due to the different splitting approach;
+     *     for comparison
+     *        a) nonlin,nonhyst (see StepTransNonLin()):
+     *                D_n+1 = eps(E_n+1)*E_n+1
+     *                      = eps(E_n+1)*(deltaE + E_n)
+     *                      ~ eps(E_n)*(deltaE + E_n)
+     *        b) nonlin,hyst:
+     *                D_n+1 = eps(E_n)*E_n + eps(deltaE)*deltaE
+     *
+     *
+     *  Solution strategy:
+     *    0. Initialize D_0^0, E_0^0, P_0^0, E_0^-1,P_0^-1
+     *
+     *    1. At beginning of time step n+1 retrieve initial values
+     *        E_n+1^0 = E_n^kfinal     -> stored as actSol (in fact potential is stored, but E derives directly from it)
+     *        E_n+1^-1 = E_n^kfinal-1  -> stored in CoefFncHyst as previousHystValue
+     *        deltaE^0 = E_n+1^0 - E_n+1^-1
+     *        P_n+1^0 = HystOperator(E_n+1^0)
+     *        P_n+1^-1 = HystOperator(E_n+1^-1)
+     *        deltaP^0 = P_n+1^0 - P_n+1^-1
+     *
+     *    2. Compute E_n+1^k+1
+     *    a) build up system using actSol E_n+1^k and previousSol E_n+1^k-1
+     *
+     *        div(D_n+1^k+1) = f_n+1
+     *     >  div(deltaD^k+1 + D_n+1^k) = f_n+1
+     *     >  div(deltaD^k+1) = f_n+1 - div(D_n+1^k)
+     *     >  div([eps0 + deltaP^k/deltaE^k]*deltaE^k+1) = f_n+1 - div(eps0*E_n+1^k + P_n+1^k)
+     *     >  div([eps0 + deltaP^k/deltaE^k]*deltaE^k+1) = f_n+1 - div(eps0*E_n+1^k) - div(P_n+1^k)
+     *
+     *    a,1) build up rhs
+     *      algsys_->InitRHS(RhsLinVal_)             -> f_n+1
+     *      assemble_->AssembleNonLinRHS()           -> div(P_n+1^k), has to be set as a rhs-term in elecPDE!
+     *
+     *      PDE_->ActivateDeactivateDeltaMat(false)  -> tell CoefFncHyst to return only eps0 as material tensor
+     *
+     *      assemble_->AssembleMatrices(false)       -> build up system matrix with eps0 as material relation
+     *      solVec_.ScalarMult(-1.0);
+     *      algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
+     *      algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
+     *      solVec_.ScalarMult(-1.0);
+     *           -> div(eps0*E_n+1^k)
+     *
+     *    a,2) build up lhs
+     *      PDE_->ActivateDeactivateDeltaMat(true)   -> tell CoefFncHyst to return only eps0+deltaP^k/deltaE^k
+     *                                                    as material tensor
+     *      assemble_->AssembleMatrices(false)       -> rebuild up system matrix with eps0+deltaP^k/deltaE^k
+     *                                                    as material relation
+     *
+     *    b) store E_n+1^k as old solution by calling SetPreviousHystVals (overwriting E_n+1^k-1)
+     *       -> after the solution of the system, it will be too late to call this function!
+     *       -> Reason: SetPreviousHystVals will use the CURRENT solution as input to the hysteresis
+     *                  operator and store it together with the output as previousHystValues
+     *                  -> has to be called as long as E_n+1^k is still the CURRENT solution!
+     *
+     *    c) solve system
+     *
+     *    c,1) if k = 1 (first iteration)
+     *
+     *        call ClearIDBCFromSolutionVal to remove the inhom. Dirichlet values from old solution
+     *          -> without calling this function, we would add up the IDBC values from all time steps
+     *          -> see comment at start of StepTransNonLin(), implementation III
+     *
+     *        set IDBC=true then solve system -> solution will have current IDBC values
+     *
+     *        add new solution (increment) to old solution
+     *
+     *    c,2) if k > 1
+     *
+     *        set IDBC=false then solve system -> solution will have 0 at IDBC nodes
+     *
+     *        add new solution (increment) to old solution
+     *
+     *    3. Use linesearch to fine optimal stepping value eta (except for first iteration where
+     *        we need a stepping of 1 to get correct IDBC values)
+     *
+     *        E_n+1^k+1 = E_n+1^k + eta*deltaE^k+1
+     *
+     *    4. Check for convergence
+     *
+     *        div([eps0 + deltaP^k+1/deltaE^k+1]*deltaE^k+1) = f_n+1 - div(eps0*E_n+1^k+1) - div(P_n+1^k+1)
+     *
+     *    5. If convergence = true
+     *        PDE_->ActivateDeactivateDeltaMat(false)
+     *          -> tell CoefFncHyst to return only eps0 as material tensor
+     *          -> this is done for the calculation of D_n+1^kfinal which is done
+     *              at the end of the timestep; if we would have the delta computation activated,
+     *              D would be calculated using a wrong eps;
+     *              Note that we have to add the value of P to D in elecPDE!
+     *
+     *
+     *  Note: The splitted computation approach, i.e. having deltaP/deltaE on lhs and eps0 E + P on rhs,
+     *        instead of using deltaP/deltaE or P/E on rhs is the following:
+     *
+     *    a) using deltaP/deltaE simply is not correct from the mathematical side
+     *    b) using P/E has the issue that it cannot handle remanence; even if E is not 0
+     *        but only close, the value of P/E will be enormous and most probably lead to bad behavior
+     *
      */
 
     LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLinHysteresis";
     bool performOneMoreStep;
-    bool isNewton = false;
 
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
@@ -1015,6 +1421,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+    if ( numStages > 1 ){
+      /*
+       * maybe it is quite easy to enable multiple stages, maybe it does not work;
+       * feel free to find out
+       */
+       EXCEPTION("StepTransNonLinHysteresis: just one stage time-stepping allowed");
+    }
 
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
     std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
@@ -1027,347 +1440,336 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
     }
 
-    for(UInt i=0;i<numStages;i++){
-      //do initialization
-      rhsVec_.Init();
-      LOG_DBG(stdsolvestep) << "StepTransNonLinHysteresis: Stage: " << i ;
+    //do initialization
+    rhsVec_.Init();
 
-      //we obtain a reference to the stage vectors of the scheme
-      SBM_Vector stageSol;
-      stageSol.Resize(feFunctions_.size());
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
-        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
+    LOG_DBG(stdsolvestep) << "StepTransNonLinHysteresis: Stage: " << 0 ;
+
+    //we obtain a reference to the stage vectors of the scheme
+    SBM_Vector stageSol;
+    stageSol.Resize(feFunctions_.size());
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+      stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(0),pos);
+      fncIt->second->GetTimeScheme()->InitStage(0,actTime_,PDE_.GetDomain());
+    }
+    stageSol.SetOwnership(false);
+
+    /*
+     * During the later computations, we will add all incremental solutions to
+     * stageSol; unlike the case of StepTransNonLin, we add the results to the
+     * current solution instead of only gathering the increments.
+     * Note that we initialize stageSol with actSol in StepTransNonLin, too, but
+     * there, we will Init stageSol with 0.0 during the first iteration
+     */
+    stageSol = actSol;
+
+    /*
+     * at this point, stageSol, actSol and solVec_ all have the same value!
+     * Note that solVec_ is pointing to the results which are stored in the PDEs
+     * i.e. changes done to this vector will update the actual solution which
+     * is handeled by the PDEs itself!
+     */
+
+    // setup right hand side
+    Double loadFactor = 1.0;
+    Double RhsLinL2Norm = SetLinRHS(loadFactor);
+
+    // set iteration counter
+    UInt iterationCounter=0;
+    //Double oldIncError = 0.0;
+
+
+
+    do {
+      iterationCounter++;
+
+      LOG_DBG(stdsolvestep) << "StepTransNonLinHysteresis: Iteration: " << iterationCounter ;
+      std::cout << "StepTransNonLinHysteresis: Iteration: " << iterationCounter << std::endl;
+
+//      std::cout << "RHS at begin of iteration: " << std::endl;
+//      SBM_Vector actRHS_TMP(BaseMatrix::DOUBLE);
+//      algsys_->GetRHSVal( actRHS_TMP );
+//      std::cout << actRHS_TMP.ToString() << std::endl;
+//
+
+      if( iterationCounter == 1){
+        /*
+         * During the first iteration, we need an initial setup of the algebraic system.
+         * Otherwise, we would have nothing to solve.
+         * Note that we rebuild the system later on when we compute the residual.
+         * This is the reason, why we do not have to build it at the beginning of all
+         * further iterations (we simply resuse the system from the residual computation).
+         */
+        PDE_.LockUnlockHystDirection(false);
+        //PDE_.LockUnlockHystDirection(true);
+
+        bool firstTime = true;
+        //bool firstTime = false;
+        ConfigureSystemForHysteresis(0,true,firstTime);
+      } else {
+        //PDE_.LockUnlockHystDirection(true);
       }
-      stageSol.SetOwnership(false);
+      /*
+       *    b) store E_n+1^k as old solution by calling SetPreviousHystVals (overwriting E_n+1^k-1)
+       *       -> after the solution of the system, it will be too late to call this function!
+       *       -> Reason: SetPreviousHystVals will use the CURRENT solution as input to the hysteresis
+       *                  operator and store it together with the output as previousHystValues
+       *                  -> has to be called as long as E_n+1^k is still the CURRENT solution!
+       */
 
+      bool setNextToLastTS_too = false;
+      if(iterationCounter == 1){
+        /*
+         * During the first iteration, we store the current input (=solution of last timestep)
+         * for the next timestep as value nextToLastTS (after all it will be the next to last
+         * vector then)
+         */
+        setNextToLastTS_too = true;
+      }
+      PDE_.SetPreviousHystVals(setNextToLastTS_too);
 
-      //initialize solution vector for each stage
-      if ( i > 0 )
-        actSol = stageSol;
-      else{
-        //special case of incremental non-linearity, we set the stage vector to the solution vector
-        stageSol = actSol;
+      // set system matrix to zero initially, as ConstructEffectiveMatrix only
+      // sums up the contributions
+      matrix_factor_.clear();
+      algsys_->InitMatrix(SYSTEM);
+      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+        FeFctIdType fctId = fncIt->second->GetFctId();
+        fncIt->second->GetTimeScheme()->AddMatFactors(0,matrices,matrix_factor_[fctId]);
+        algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+      }
+      // setup the matrices to compute correct error norms
+
+      PDE_.SetBCs();
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
+
+      // just set inh. Dirichlet BCs for the first iteration
+      bool setIDBC = false;
+      bool deltaIDBC = false;
+      if ( iterationCounter == 1 && couplingIter_ == 0 ){
+        /*
+         * Clear IDBC values from current solution (as we want to replace them
+         * with the new ones)
+         * Remember: stageSol holds the same value as solVec_
+         */
+      // std::cout << "Solution before removing idbc values" << std::endl;
+      //  std::cout << stageSol.ToString() << std::endl;
+      //  algsys_->ClearIDBCFromSolutionVal(stageSol);
+        // WRONG! It does not help to erase the IDBC values from the old solution
+        //        Instead, we have to remove the old IDBC values from the new IDBC
+        //        values to have delta IDBC values
+        //      -> we can do this (or at least try to do this) by storing the effect
+        //        of the old IDBC values on the rhs and subtract this from the
+        //        current rhs (algsys will add the NEW IDBC values via the rhs, too
+        // > do this at the beginning of the timestep!
+      //  std::cout << "Solution after removing idbc values" << std::endl;
+      //  std::cout << stageSol.ToString() << std::endl;
+
+        deltaIDBC = true;
+        setIDBC = true;
       }
 
       /*
-       * Note: solVec_ stores pointer to FeFunctions_ which itself store the results
-       *       -> although assemble and algsys never access this variable, its value influences
-       *          the algebraic system as assemble (and algsys?) access the FeFunctions to retrieve
-       *          the results needed for the computation of material non-linearities for example
+       * solve system; if IDBC=true, the values of the IDBC nodes are set in solInc
+       *
+       * ATTENTION - POSSIBLE HUGE ERROR - SOURCE:
+       *  we must not set the original IDBC values but the delta to the previous
+       *  time step!
+       *  we set up the system such that we only solve for the delta (i.e. we
+       *  subtract the old solution via the rhs); this will gives us an update
+       *  for all inner nodes BUT ONLY if we solve with a delta of the IDBC
+       *  values; if we simply set the IDBC values of the new time step, that
+       *  will be seen as the delta values at the IDBC nodes;
+       *  as long as we do not have other loadings (i.e. f = 0) the resulting
+       *  value for sol_inc will simply be the full solution
+       *  (-> as we subtracted nothing from the rhs for f = 0 and assuming that
+       *  the old solution also satisfied this, i.e. divD = 0, we simply solve
+       *  for divD_inc = 0; the resulting solution will of course satisfy that
+       *  condition but for the original IDBC value, so that D_inc is in fact
+       *  D_new; that is ok as we simply can take the new solution then; BUT
+       *  if we have a rhs load, than the results won't match!
+       *  we would solve for
+       *  divD_new = delta_f
+       *  two solutions:
+       *  1. do not subtract old solution during first iteration, i.e.
+       *    solve divD_new = f in first step, then update
+       *  2. subtract old solution during first iteration, but then we also
+       *    have to subtract the old idbc values!l
+       *
+       *
+       *
        */
-      solVec_  = actSol;
+      algsys_->Solve(setIDBC,deltaIDBC);
+      algsys_->GetSolutionVal(solInc, setIDBC, deltaIDBC );
 
-      // setup right hand side
-      Double loadFactor = 1.0;
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+      Double residualL2Norm = 0.0;
+      Double etaLineSearch  = 1.0;
 
-      // set iteration counter
-      UInt iterationCounter=0;
+      /*
+       * In StepTransNonLin, we would set stageSol to 0 now, but here, we don't!
+       * -> as we have eliminated the old IDBC values from solVec_ we can simply add
+       * the solution increment to it
+       */
+//        if ( iterationCounter == 1 && couplingIter_ == 0 )
+//          stageSol.Init();
+      std::cout << "Old solVec_ " << solVec_.ToString() << std::endl;
+      std::cout << "Solution increment solInc " << solInc.ToString() << std::endl;
 
-      // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
-      // P_current/E_current
-      //PDE_.FinalizeAfterTimeStep();
-
-      do {
-        iterationCounter++;
-
-        std::cout << "############# ITERATION " << iterationCounter << "############" << std::endl;
+      if ( lineSearch_ == "none" || iterationCounter == 1) {
+        //to incooperate the inhomog. Dirichlet BCs we need a full
+        //step for the first iteration
+        /*
+         * Note: as we erased the old IDBC values from stageSol, we can
+         * simply add the increment to it without risk of adding up the
+         * IDBC values from multiple time steps.
+         */
+        stageSol.Add(1.0, solInc);
+        solVec_  = stageSol;
+      } else {
+        /*
+         * lock hysteresis operator to ensure that the tested lineSearch steps do not
+         * disturb the memory of the operator
+         */
+        std::cout << "StdSolveStep: locking hysteresis!" << std::endl;
+        PDE_.LockUnlockHystMemory(true);
 
         /*
-         * in StepTransNonLin, we perform the setup step at multiple points of this loop
-         * 1. the first time is at the beginning of the loop but only for two cases:
-         *      - first overall iteration:
-         *          The assembly during first iteration is clear, as we do not have any system to solve yet
-         *
-         *      - no lineSearch activated:
-         *          The question is why not also for the case without lineSearch?
-         *          The reason is, that we later on update the whole system with the new solution in
-         *          order to calculate the residual, in that sense, it would be unnecessary to update
-         *          it with the same values a second time.
-         *          In case of lineSearch, we set up the system and calculate the residual in the lineSearch
-         *          function, again after the solution was computed. However, we try different step width
-         *          in the lineSearch function and first after testing all possible steps, we calculate the
-         *          real new solution. Only if the chosen stepwidth is the last in the list of possibilities,
-         *          the algebraic system will be updated with the correct value at the end of the do loop.
-         *          We have now two possibilities:
-         *            a) directly update the system with the new found solution
-         *            b) update system with new found solution at the beginning of the next iteration
-         *          Clearly, option b) was chosen for StepTransNonLin. For this function, however, option
-         *          a) was taken for the following reason:
-         *            If a solution was found and, thus, no new iteration is needed, the solution and the
-         *            last assembled equation system do not fit. This is not problem as we would update it
-         *            either way during the next timestep, but in order to check if the solution has changed
-         *            since last time, it would be nice if the system was updated with the correct solution.
-         *            In that case, the assemble function would be called twice with the same solution vector,
-         *            once at the end of the last iteration and a second time during the first iteration of
-         *            the nex timestep. The hysteresis operator could thus see, that the same input was used
-         *            and reuse the old values, whereas it would need to recompute it if the last evaluation
-         *            was performed with a temporal solution during the lineSearch algorithm.
-         *            In fact this first reason is already considered by the fact, that the update during
-         *            the lineSearch only use a temporal copy of the hysteresis operator to not destroy
-         *            the memory with temporal inputs.
-         *            A second reason is simply, that both the version with lineSearch and the one without
-         *            will have an updated system at the end.
+         * here we have to use LineSearchHyst instead of LineSearch
+         * -> to build up the correct system, we have to call
+         * ActivateDeactivateDeltaMat in order to build up the different
+         * types of system matrices for rhs and lhs
          */
-
-       // option b) if ( lineSearch_ != "none" || iterationCounter == 1) {
-        if ( iterationCounter == 1) {
-          /*
-           * Setup system for the initial iteration (otherwise we could not solve nothing)
-           */
-
-          // set linear part of RHS
-          algsys_->InitRHS(RhsLinVal_);
-
-          // set nonlinear part of RHS (if any)
-          /*
-           * this is not included in StepTransNonLin()
-           * -> does it not work or is it simply not needed there?
-           */
-          assemble_->AssembleNonLinRHS();
-
-          // setup the matrices
-          isNewton = false;
-          assemble_->AssembleMatrices(isNewton);
-
-          //now update RHS according to time stepping
-          for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-
-            if(matIt->second < 0)
-              continue;
-            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
-            }
-            algsys_->UpdateRHS(matIt->first,stageRHS_,true);
-          }
-          //substract from RHS the term K*sol
-          solVec_.ScalarMult(-1.0);
-          algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
-          algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
-          solVec_.ScalarMult(-1.0);
-
-          /*
-           * Now we should have the system (neglecting M and C-Matrices):
-           * K(old_solution) * solution_increment = f_lin + f_nonlin(old_solution) - K(old_solution) * old_solution
-           * which is equal to
-           * K(old_solution) * (old_solution + solution_increment)  = f_lin + f_nonlin(old_solution)
-           * which is equal to
-           * K(old_solution) * new_solution = f_lin + f_nonlin(old_solution)
-           */
-        }
-
-        //now assemble the Newton bilinear forms
+        residualL2Norm = LineSearchHyst(solInc, stageSol, etaLineSearch,true);
+        solVec_  = stageSol;
         /*
-         * this is not needed for the hysteresis case, as we do not have the derivative
-         * of the Hysteresis operator;
-         * it might be of interest, if some regions have hysteresis and other regions have
-         * 'simple' nonlinearities, which allow a treatment with Newtons methods.
-         * The big question is, if such a combination will work at all.
+         * unlock afterwards
          */
-//        isNewton = true;
-//        assemble_->AssembleMatrices(isNewton);
+        std::cout << "StdSolveStep: UN-locking hysteresis!" << std::endl;
+        PDE_.LockUnlockHystMemory(false);
+      }
 
-        matrix_factor_.clear();
+      /*
+       * now we have the update solution
+       * we now build up the system for the next iteration
+       * (we have to do it here, as we do not know the residualError for the case of
+       * LineSearch=none)
+       */
+      std::cout << "New solVec_ " << solVec_.ToString() << std::endl;
 
-        // set system matrix to zero initially, as ConstructEffectiveMatrix only
-        // sums up the contributions
-        algsys_->InitMatrix(SYSTEM);
-        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
-          FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()
-            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
-        }
-        // setup the matrices to compute correct error norms
+      /*
+       * Convergence problems, when solution tends to 0
+       * Possible reason:
+       *  If solution increment ~ -old solution, the difference (new solution)
+       *  is close to zero but due to floating point arithmetics not exactly.
+       *  Instead, some entries of the new solution might be 1e-5, others -3e-4
+       *  and so on. These differences occur also if the new solution is not
+       *  close to zero, so that in both cases the input and output difference
+       *  of the hysteresis operator (used to compute the delta matrix) will
+       *  be similar. However, if the new solution is close to zero and more or
+       *  less only consists of the named fluctuations around 0, the rotation
+       *  direction of the vector Preisach operator is changed so that the resulting
+       *  deltaMatrices strongly differ between adjacent elements. This can lead
+       *  to an increase in error during the next iteration.
+       *  It is not so clear however why the effect is so strong. If input is close
+       *  to zero, it should only reorientate a very small part of the vector hyst.
+       *  operator.
+       */
 
-        PDE_.SetBCs();
-        algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver();
 
-        // just set inh. Dirichlet BCs for the first iteration
+
+      /*
+       * later setups of the system do not need the old IDBC values on the rhs (as we do not
+       * have the new ones there either)
+       */
+      // std::cout << "Reconfigure system with new solution " << std::endl;
+      //PDE_.LockUnlockHystDirection(false);
+      ConfigureSystemForHysteresis(0,true,false);
+
+      if ( lineSearch_ == "none" || iterationCounter == 1) {
         /*
-         * I do not fully understand this by now.
-         * Why do we set inh. DBC only during the first iteration?
+         * this part is only for the case that we did not perform a linesearch
+         * in that case, we have to evaluate the residual which otherwise is
+         * done during linesearch
          */
-        bool setIDBC = false;
-        if ( iterationCounter == 1 && couplingIter_ == 0 )
-          setIDBC = true;
-
-        algsys_->Solve(setIDBC);
-        algsys_->GetSolutionVal(solInc, setIDBC );
-
-        //std::cout << solInc.ToString(1,',') << std::endl;
-
-        Double residualL2Norm = 0.0;
-        Double etaLineSearch  = 1.0;
-
-        //necessary due to inh. Dirichlet BCs!!
-        /*
-         * Why?
-         */
-        if ( iterationCounter == 1 && couplingIter_ == 0 )
-          stageSol.Init();
-
-        if ( lineSearch_ == "none" || iterationCounter == 1) {
-          //to incooperate the inhomog. Dirichlet BCs we need a full
-          //step for the first iteration
-          /*
-           * Why?
-           */
-
-          stageSol.Add(1.0, solInc);
-          solVec_  = stageSol;
-        } else {
-          /*
-           * lock hysteresis operator to ensure that the tested lineSearch steps do not
-           * disturb the memory of the operator
-           */
-          PDE_.LockHysteresis();
-
-          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
-          solVec_  = stageSol;
-          /*
-           * unlock afterwards
-           */
-
-          PDE_.UnlockHysteresis();
-        }
-
-        /*
-         * according to the previously stated option a) we update the algebraic system
-         * with the correct next solution at this point (also for the lineSearch case
-         * (in StepTransNonLin, the following lines follow only in the
-         * if ( lineSearch_ == "none" || iterationCounter == 1) {
-         * case
-         */
-
-        // setup the matrices with new solution
-        /*
-         * As stated previously, by setting solVec_ to the new solution (by updating the old solution
-         * with the solution increment), the results are also set in the corresponding feFunctions,
-         * such that assemble and algsys can access it.
-         */
-        isNewton = false;
-        assemble_->AssembleMatrices(isNewton);
-
-        // set linear part of RHS
-        algsys_->InitRHS(RhsLinVal_);
-        /*
-         * again, this is not included in StepTransNonLin()
-         * -> does it not work or is it simply not needed there?
-         */
-        assemble_->AssembleNonLinRHS();
-
-        //now update RHS according to time stepping
-        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-          //std::cout << "Matrix: " << matIt->first << std::endl;
-          if(matIt->second < 0)
-            continue;
-          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
-          }
-          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
-        }
-
-        //substract from RHS the term K*sol
-        solVec_.ScalarMult(-1.0);
-        algsys_->UpdateRHS(STIFFNESS,solVec_,true);
-        algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
-        solVec_.ScalarMult(-1.0);
-
-        if ( lineSearch_ == "none" || iterationCounter == 1) {
-          /*
-           * this part is only for the case that we did not perform a linesearch
-           * in that case, we have to evaluate the residual which otherwise is
-           * done during linesearch
-           */
-          //get RHS vector
-          SBM_Vector actRHS(BaseMatrix::DOUBLE);
-          algsys_->GetRHSVal( actRHS );
-
-          // calculation of residual error =======================================
-          residualL2Norm = actRHS.NormL2();
-        }
-//        else {
-//           //solVec_  = stageSol;
-//          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
-//          solVec_  = stageSol;
-//        }
+        //get RHS vector
+        SBM_Vector actRHS(BaseMatrix::DOUBLE);
+        algsys_->GetRHSVal( actRHS );
 
         // calculation of residual error =======================================
-        Double residualErr;
-        if ( RhsLinL2Norm > 1.0 )
-          residualErr = residualL2Norm / RhsLinL2Norm;
-        else
-          residualErr = residualL2Norm;
+        residualL2Norm = actRHS.NormL2();
+      }
 
-        // calculate incremental error ========================================
-        Double incrementalErr;
-        Double solIncrL2Norm = solInc.NormL2();
-        Double actSolL2Norm  = stageSol.NormL2();
+      // calculation of residual error =======================================
+      Double residualErr;
+      if ( RhsLinL2Norm > 1.0 ){
+        residualErr = residualL2Norm / RhsLinL2Norm;
+      } else {
+        residualErr = residualL2Norm;
+      }
 
-        if ( actSolL2Norm)
-          incrementalErr = solIncrL2Norm / actSolL2Norm;
-        else {
-          incrementalErr = solIncrL2Norm;
-          //WARN("Zero solution vector!! ");
+      // calculate incremental error ========================================
+      Double incrementalErr;
+      //TODO: we should have eta*solInc.NormL2() as we do not perform full steps in general
+      //Double solIncrL2Norm = solInc.NormL2();
+      Double solIncrL2Norm = etaLineSearch*solInc.NormL2();
+      Double actSolL2Norm  = stageSol.NormL2();
+
+      std::cout << "UsedEta: " << etaLineSearch << std::endl;
+//      std::cout << "Norm of incremental: " << etaLineSearch*solIncrL2Norm << std::endl;
+//      std::cout << "Norm of new solution: " << actSolL2Norm << std::endl;
+
+
+      if ( actSolL2Norm > 1.0 ){
+        incrementalErr = solIncrL2Norm / actSolL2Norm;
+      } else {
+        incrementalErr = solIncrL2Norm;
+      }
+
+      //Double incStopCritABS_ = 1e-2;
+      //Double incrementalErrABS = solIncrL2Norm;
+      std::cout << "incrementalErr_abs: " << solIncrL2Norm << std::endl;
+      std::cout << "incrementalErr_rel: " << incrementalErr << std::endl;
+      std::cout << "residualErr: " << residualErr << std::endl;
+
+      // output of norms and data
+      if ( nonLinLogging_ == true ) {
+        // get current step
+        UInt actStep = PDE_.GetSolveStep()->GetActStep();
+
+        if (PDE_.IsIterCoupled()) {
+          WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        } else {
+          //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+          WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
         }
+        // write norm to file
+        logFile_ <<  iterationCounter << "\t"
+            << residualErr << "\t"
+            << incrementalErr << "\t"
+            << etaLineSearch << std::endl;
+      }
 
-        std::cout << "incrementalErr: " << incrementalErr << std::endl;
-        std::cout << "residualErr: " << residualErr << std::endl;
+      // boolean variable, holds condition if another iteration step is necessary
+      //performOneMoreStep =
+      //  (incrementalErr > incStopCrit_) || (incrementalErrABS > incStopCritABS_) || (residualErr > residualStopCrit_);
+
+      performOneMoreStep =
+              (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
 
-//        if(incrementalErr > oldIncError){
-//          std::cout << "Error increased since last iteration; do a reset of deltaMat" << std::endl;
-//          // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
-//          // P_current/E_current
-//          PDE_.FinalizeAfterTimeStep();
-//        } else {
-//          std::cout << "Error decreased since last iteration; continue as normal" << std::endl;
-//          // FinalizeAfterIteration sets old hysteresis values so that deltaP and deltaE can be computed
-//          PDE_.FinalizeAfterIteration();
-//        }
-//
-//        oldIncError = incrementalErr;
-//
+     // if (performOneMoreStep){
+        //PDE_.FinalizeAfterIteration();
+     // }
 
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          // get current step
-          UInt actStep = PDE_.GetSolveStep()->GetActStep();
-
-          if (PDE_.IsIterCoupled()) {
-            WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          } else {
-                WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          }
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-              << residualErr << "\t"
-              << incrementalErr << "\t"
-              << etaLineSearch << std::endl;
-        }
-
-        // boolean variable, holds condition if another iteration step is necessary
-        performOneMoreStep =
-          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-
-       // if (performOneMoreStep){
-          PDE_.FinalizeAfterIteration();
-       // }
-
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
-                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-                  << "' at iteration '" << iterationCounter
-                  << "'.\n ==> incremental error: " << incrementalErr
-                  << "\n ==> residual error: " << residualErr);
-        }
-      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-
-    } //stages
+      if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+        EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+                << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                << "' at iteration '" << iterationCounter
+                << "'.\n ==> incremental error: " << incrementalErr
+                << "\n ==> residual error: " << residualErr);
+      }
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
     limitFeFctIt = feFunctions_.find(solutionLimit_);
@@ -1397,10 +1799,427 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       fncIt->second->GetTimeScheme()->FinishStep();
     }
 
-    //PDE_.FinalizeAfterTimeStep();
-    //PDE_.FinalizeAfterIteration();
+    /*
+     * At the end of the time step, we have to deactivate deltaMat computation
+     * (e.g. for electrostatics, we have to set eps=eps0 as D is computed via
+     * D = eps0*E + P
+     */
+    PDE_.ActivateDeactivateDeltaMat(false);
+
+    /*
+     * Store IDBC values from the current time step in form of its rhs representation
+     * (i.e. the effect that it will have on the rhs)
+     */
+    algsys_->SetOldDirichletValues();
+
   }
   
+// old backup
+//  void StdSolveStep::StepTransNonLinHysteresis() {
+//    /*
+//     * Idea: for deltaMaterial Hysteresis, use base code of StepTransNonLin() as it also uses
+//     *       incremental stepping
+//     */
+//
+//    LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLinHysteresis";
+//    bool performOneMoreStep;
+//    bool isNewton = false;
+//
+//    SBM_Vector solInc(BaseMatrix::DOUBLE);
+//
+//    //get actual solution
+//    SBM_Vector  actSol(BaseMatrix::DOUBLE);
+//    actSol = solVec_;
+//
+//    //obtain the number of stages
+//    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+//
+//    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+//    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+//    std::map<FEMatrixType,Integer>::iterator matIt;
+//
+//    UInt pos = 0;
+//
+//    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 );
+//    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+//      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+//    }
+//
+//    for(UInt i=0;i<numStages;i++){
+//      //do initialization
+//      rhsVec_.Init();
+//      LOG_DBG(stdsolvestep) << "StepTransNonLinHysteresis: Stage: " << i ;
+//
+//      //we obtain a reference to the stage vectors of the scheme
+//      SBM_Vector stageSol;
+//      stageSol.Resize(feFunctions_.size());
+//      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+//        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+//        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
+//      }
+//      stageSol.SetOwnership(false);
+//
+//
+//      //initialize solution vector for each stage
+//      if ( i > 0 )
+//        actSol = stageSol;
+//      else{
+//        //special case of incremental non-linearity, we set the stage vector to the solution vector
+//        stageSol = actSol;
+//      }
+//
+//      /*
+//       * Note: solVec_ stores pointer to FeFunctions_ which itself store the results
+//       *       -> although assemble and algsys never access this variable, its value influences
+//       *          the algebraic system as assemble (and algsys?) access the FeFunctions to retrieve
+//       *          the results needed for the computation of material non-linearities for example
+//       */
+//      solVec_  = actSol;
+//
+//      // setup right hand side
+//      Double loadFactor = 1.0;
+//      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+//
+//      // set iteration counter
+//      UInt iterationCounter=0;
+//      Double oldIncError = 0.0;
+//
+//      // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
+//      // P_current/E_current
+//      //PDE_.FinalizeAfterTimeStep();
+//
+//      do {
+//        iterationCounter++;
+//
+//        std::cout << "############# ITERATION " << iterationCounter << "############" << std::endl;
+//
+//        /*
+//         * in StepTransNonLin, we perform the setup step at multiple points of this loop
+//         * 1. the first time is at the beginning of the loop but only for two cases:
+//         *      - first overall iteration:
+//         *          The assembly during first iteration is clear, as we do not have any system to solve yet
+//         *
+//         *      - no lineSearch activated:
+//         *          The question is why not also for the case without lineSearch?
+//         *          The reason is, that we later on update the whole system with the new solution in
+//         *          order to calculate the residual, in that sense, it would be unnecessary to update
+//         *          it with the same values a second time.
+//         *          In case of lineSearch, we set up the system and calculate the residual in the lineSearch
+//         *          function, again after the solution was computed. However, we try different step width
+//         *          in the lineSearch function and first after testing all possible steps, we calculate the
+//         *          real new solution. Only if the chosen stepwidth is the last in the list of possibilities,
+//         *          the algebraic system will be updated with the correct value at the end of the do loop.
+//         *          We have now two possibilities:
+//         *            a) directly update the system with the new found solution
+//         *            b) update system with new found solution at the beginning of the next iteration
+//         *          Clearly, option b) was chosen for StepTransNonLin. For this function, however, option
+//         *          a) was taken for the following reason:
+//         *            If a solution was found and, thus, no new iteration is needed, the solution and the
+//         *            last assembled equation system do not fit. This is not problem as we would update it
+//         *            either way during the next timestep, but in order to check if the solution has changed
+//         *            since last time, it would be nice if the system was updated with the correct solution.
+//         *            In that case, the assemble function would be called twice with the same solution vector,
+//         *            once at the end of the last iteration and a second time during the first iteration of
+//         *            the nex timestep. The hysteresis operator could thus see, that the same input was used
+//         *            and reuse the old values, whereas it would need to recompute it if the last evaluation
+//         *            was performed with a temporal solution during the lineSearch algorithm.
+//         *            In fact this first reason is already considered by the fact, that the update during
+//         *            the lineSearch only use a temporal copy of the hysteresis operator to not destroy
+//         *            the memory with temporal inputs.
+//         *            A second reason is simply, that both the version with lineSearch and the one without
+//         *            will have an updated system at the end.
+//         */
+//
+//       // option b) if ( lineSearch_ != "none" || iterationCounter == 1) {
+//        if ( iterationCounter == 1) {
+//          /*
+//           * Setup system for the initial iteration (otherwise we could not solve nothing)
+//           */
+//
+//          // set linear part of RHS
+//          algsys_->InitRHS(RhsLinVal_);
+//
+//          // set nonlinear part of RHS (if any)
+//          /*
+//           * this is not included in StepTransNonLin()
+//           * -> does it not work or is it simply not needed there?
+//           */
+//          assemble_->AssembleNonLinRHS();
+//
+//          // setup the matrices
+//          isNewton = false;
+//          assemble_->AssembleMatrices(isNewton);
+//
+//          //now update RHS according to time stepping
+//          for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+//
+//            if(matIt->second < 0)
+//              continue;
+//            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+//              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+//            }
+//            algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+//          }
+//          //substract from RHS the term K*sol
+//          solVec_.ScalarMult(-1.0);
+//          algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
+//          algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
+//          solVec_.ScalarMult(-1.0);
+//
+//          /*
+//           * Now we should have the system (neglecting M and C-Matrices):
+//           * K(old_solution) * solution_increment = f_lin + f_nonlin(old_solution) - K(old_solution) * old_solution
+//           * which is equal to
+//           * K(old_solution) * (old_solution + solution_increment)  = f_lin + f_nonlin(old_solution)
+//           * which is equal to
+//           * K(old_solution) * new_solution = f_lin + f_nonlin(old_solution)
+//           */
+//        }
+//
+//        //now assemble the Newton bilinear forms
+//        /*
+//         * this is not needed for the hysteresis case, as we do not have the derivative
+//         * of the Hysteresis operator;
+//         * it might be of interest, if some regions have hysteresis and other regions have
+//         * 'simple' nonlinearities, which allow a treatment with Newtons methods.
+//         * The big question is, if such a combination will work at all.
+//         */
+////        isNewton = true;
+////        assemble_->AssembleMatrices(isNewton);
+//
+//        matrix_factor_.clear();
+//
+//        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+//        // sums up the contributions
+//        algsys_->InitMatrix(SYSTEM);
+//        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+//          FeFctIdType fctId = fncIt->second->GetFctId();
+//          fncIt->second->GetTimeScheme()
+//            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+//          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+//        }
+//        // setup the matrices to compute correct error norms
+//
+//        PDE_.SetBCs();
+//        algsys_->BuildInDirichlet();
+//        algsys_->SetupPrecond();
+//        algsys_->SetupSolver();
+//
+//        // just set inh. Dirichlet BCs for the first iteration
+//        /*
+//         * I do not fully understand this by now.
+//         * Why do we set inh. DBC only during the first iteration?
+//         */
+//        bool setIDBC = false;
+//        if ( iterationCounter == 1 && couplingIter_ == 0 )
+//          setIDBC = true;
+//
+//        algsys_->Solve(setIDBC);
+//        algsys_->GetSolutionVal(solInc, setIDBC );
+//
+//        //std::cout << solInc.ToString(1,',') << std::endl;
+//
+//        Double residualL2Norm = 0.0;
+//        Double etaLineSearch  = 1.0;
+//
+//        //necessary due to inh. Dirichlet BCs!!
+//        /*
+//         * Why?
+//         */
+//        if ( iterationCounter == 1 && couplingIter_ == 0 )
+//          stageSol.Init();
+//
+//        if ( lineSearch_ == "none" || iterationCounter == 1) {
+//          //to incooperate the inhomog. Dirichlet BCs we need a full
+//          //step for the first iteration
+//          /*
+//           * Why?
+//           */
+//
+//          stageSol.Add(1.0, solInc);
+//          solVec_  = stageSol;
+//        } else {
+//          /*
+//           * lock hysteresis operator to ensure that the tested lineSearch steps do not
+//           * disturb the memory of the operator
+//           */
+//          PDE_.LockHysteresis();
+//
+//          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
+//          solVec_  = stageSol;
+//          /*
+//           * unlock afterwards
+//           */
+//
+//          PDE_.UnlockHysteresis();
+//        }
+//
+//        /*
+//         * according to the previously stated option a) we update the algebraic system
+//         * with the correct next solution at this point (also for the lineSearch case
+//         * (in StepTransNonLin, the following lines follow only in the
+//         * if ( lineSearch_ == "none" || iterationCounter == 1) {
+//         * case
+//         */
+//
+//        // setup the matrices with new solution
+//        /*
+//         * As stated previously, by setting solVec_ to the new solution (by updating the old solution
+//         * with the solution increment), the results are also set in the corresponding feFunctions,
+//         * such that assemble and algsys can access it.
+//         */
+//        isNewton = false;
+//        assemble_->AssembleMatrices(isNewton);
+//
+//        // set linear part of RHS
+//        algsys_->InitRHS(RhsLinVal_);
+//        /*
+//         * again, this is not included in StepTransNonLin()
+//         * -> does it not work or is it simply not needed there?
+//         */
+//        assemble_->AssembleNonLinRHS();
+//
+//        //now update RHS according to time stepping
+//        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+//          //std::cout << "Matrix: " << matIt->first << std::endl;
+//          if(matIt->second < 0)
+//            continue;
+//          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+//            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+//          }
+//          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+//        }
+//
+//        //substract from RHS the term K*sol
+//        solVec_.ScalarMult(-1.0);
+//        algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+//        algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
+//        solVec_.ScalarMult(-1.0);
+//
+//        if ( lineSearch_ == "none" || iterationCounter == 1) {
+//          /*
+//           * this part is only for the case that we did not perform a linesearch
+//           * in that case, we have to evaluate the residual which otherwise is
+//           * done during linesearch
+//           */
+//          //get RHS vector
+//          SBM_Vector actRHS(BaseMatrix::DOUBLE);
+//          algsys_->GetRHSVal( actRHS );
+//
+//          // calculation of residual error =======================================
+//          residualL2Norm = actRHS.NormL2();
+//        }
+////        else {
+////           //solVec_  = stageSol;
+////          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
+////          solVec_  = stageSol;
+////        }
+//
+//        // calculation of residual error =======================================
+//        Double residualErr;
+//        if ( RhsLinL2Norm > 1.0 )
+//          residualErr = residualL2Norm / RhsLinL2Norm;
+//        else
+//          residualErr = residualL2Norm;
+//
+//        // calculate incremental error ========================================
+//        Double incrementalErr;
+//        Double solIncrL2Norm = solInc.NormL2();
+//        Double actSolL2Norm  = stageSol.NormL2();
+//
+//        if ( actSolL2Norm)
+//          incrementalErr = solIncrL2Norm / actSolL2Norm;
+//        else {
+//          incrementalErr = solIncrL2Norm;
+//          //WARN("Zero solution vector!! ");
+//        }
+//
+//        std::cout << "incrementalErr: " << incrementalErr << std::endl;
+//        std::cout << "residualErr: " << residualErr << std::endl;
+//
+//
+////        if(incrementalErr > oldIncError){
+////          std::cout << "Error increased since last iteration; do a reset of deltaMat" << std::endl;
+////          // FinalizeAfterTimestep sets old hysteresis values to 0 so that deltaP and deltaE is basically
+////          // P_current/E_current
+////          PDE_.FinalizeAfterTimeStep();
+////        } else {
+////          std::cout << "Error decreased since last iteration; continue as normal" << std::endl;
+////          // FinalizeAfterIteration sets old hysteresis values so that deltaP and deltaE can be computed
+////          PDE_.FinalizeAfterIteration();
+////        }
+////
+////        oldIncError = incrementalErr;
+////
+//
+//        // output of norms and data
+//        if ( nonLinLogging_ == true ) {
+//          // get current step
+//          UInt actStep = PDE_.GetSolveStep()->GetActStep();
+//
+//          if (PDE_.IsIterCoupled()) {
+//            WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+//          } else {
+//                WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+//          }
+//          // write norm to file
+//          logFile_ <<  iterationCounter << "\t"
+//              << residualErr << "\t"
+//              << incrementalErr << "\t"
+//              << etaLineSearch << std::endl;
+//        }
+//
+//        // boolean variable, holds condition if another iteration step is necessary
+//        performOneMoreStep =
+//          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+//
+//       // if (performOneMoreStep){
+//          PDE_.FinalizeAfterIteration();
+//       // }
+//
+//        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+//          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+//                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+//                  << "' at iteration '" << iterationCounter
+//                  << "'.\n ==> incremental error: " << incrementalErr
+//                  << "\n ==> residual error: " << residualErr);
+//        }
+//      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+//
+//    } //stages
+//
+//    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
+//    limitFeFctIt = feFunctions_.find(solutionLimit_);
+//    if (limitFeFctIt != feFunctions_.end() ) {
+//      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+//        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
+//          //const SingleVector * subv = solVec_.GetPointer(pos);
+//          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(pos)));
+//          for (UInt j=0; j < dsubVec.GetSize(); j++) {
+//            if (dsubVec[j] >= maxValidValue_) {
+//              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ <<
+//                      "' is larger than the allowed maximum limit set in the XML: "
+//                      << maxValidValue_);
+//            }
+//            if (dsubVec[j] <= minValidValue_) {
+//              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ <<
+//                      "' is smaller than the allowed minimum limit set in the XML: "
+//                      << minValidValue_);
+//            }
+//          }
+//        }
+//      }
+//    }
+//
+//    //update stage
+//    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+//      fncIt->second->GetTimeScheme()->FinishStep();
+//    }
+//
+//    //PDE_.FinalizeAfterTimeStep();
+//    //PDE_.FinalizeAfterIteration();
+//  }
+
   void StdSolveStep::StepTransNonLinHysteresisTotal() {
 
    bool performOneMoreStep;
@@ -1571,14 +2390,14 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
        // before performing linesearch, make hysteresis operator read only,
        // i.e. do not store the effects of temporal input vectors (as they are
        // used by the linsearch function to test which eta is the best)
-       PDE_.LockHysteresis();
+       //PDE_.LockHysteresis();
 
        residualErr = LineSearch(diffSol,stageSol,etaLineSearch,true);
        std::cout << "Used etaLineSearch: " << etaLineSearch << std::endl;
        std::cout << "Old solution: " << oldSol.ToString() << std::endl;
        std::cout << "New solution: " << stageSol.ToString() << std::endl;
 
-       PDE_.UnlockHysteresis();
+       //PDE_.UnlockHysteresis();
        // Why is residualErr = incrementalErr?
        //Double residualErr = incrementalErr;
 
@@ -1922,14 +2741,12 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     Double RhsLinL2Norm;
 
-    //incorporate loads
-    assemble_->AssembleLinRHS();
-//    if(nonlin){
-//      assemble_->AssembleNonLinRHS();
-//    }
-//    else {
-//      assemble_->AssembleLinRHS();
-//    }
+    // to incorporate loads+
+    if(nonlin){
+      assemble_->AssembleNonLinRHS();
+    } else {
+      assemble_->AssembleLinRHS();
+    }
 
     //Set special RHS Values
     PDE_.SetRhsValues();

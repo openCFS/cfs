@@ -84,7 +84,6 @@ namespace CoupledField
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
-    void FinalizeAfterIteration();
     void FinalizeAfterTimeStep();
 
 

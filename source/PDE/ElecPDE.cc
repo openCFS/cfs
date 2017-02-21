@@ -732,7 +732,11 @@ namespace CoupledField {
      *     of \eps_0 E + P; therewith, conditions for D would be set wrong
      */
     //check for hysteresis
-    if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
+    /*
+     * NEW: we have to put P on the rhs also for deltaMaterial stepping!
+     * -> see StdSolveStep::StepTransNonLinHysteresis for details
+     */
+    if ( isHysteresis_ && isHysteresisFixPoint_) {
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -766,98 +770,6 @@ namespace CoupledField {
                                              (factor),it->second,  coefUpdateGeo, fullevaluation);
           }
         }
-
-/*
-        //NOTE: 
-        //If this is read correctly, we assume an integrator of the form - \int_\Omega \varphi \nabla \cdot \vec{P} d\Omega
-        //This cannot be acchieved with the code below as it really defines 
-        // -\int_\Omega \nabla \cdot \varphi \cdot \vec{P} d\Omega which does not make sense.
-        //The operator in BUInt is supposed to work only on the test function.
-        //Two possible ways to come around this:
-        // 1. Integrate by parts and replace DivOperator by GradientOperator for the scalar test
-        //    function, keeping in mind the boundary term.
-        // 2. Modify the coefFunction (Material?) to return the divergence directly and
-        //    set an identity operator on the scalar test function.
-
-         for possibility two, a test with the following can be a solution
-        it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
-        if(isComplex_) {
-          if( dim_ == 2 ) {
-          // we need -factor as we put +divP to the rhs
-            lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                           Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
-         ...... and so on
-
-         But make sure, that the result is as expected. The SetDerivativeOperation is only
-         implemented in some CoefFunctions...
-
-
- * see comment above: cannot work
-        if(isComplex_) {
-          if( dim_ == 2 ) {
-          // we need -factor as we put +divP to the rhs
-            lin = new BUIntegrator<Complex>( new DivOperator<FeH1,2,Complex>(),
-                                           Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
-          } else {
-            lin = new BUIntegrator<Complex>( new DivOperator<FeH1,3,Complex>(),
-                                            Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
-          }
-        } else  {
-          if( dim_ == 2 ) {
-            // we need -factor as we put +divP to the rhs
-            lin = new BUIntegrator<Double>( new DivOperator<FeH1,2,Double>(),
-                                            (-1*factor),it->second,  coefUpdateGeo, fullevaluation);
-          } else {
-            lin = new BUIntegrator<Double>( new DivOperator<FeH1,3,Double>(),
-                                             (-1*factor),it->second,  coefUpdateGeo, fullevaluation);
-          }
-        }
-
-
-         * NEW:
-         * 1. use identity operator (as we do not want to have the derivative of the test function)
-         * 2. set it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE); to
-         *      use div(P) instead of P
-         *
-         *      -> does not work as the coefFunction is not analytic
-         *      Further attemps to calculate divP failed, too as coefFunction has no conection to
-         *      the FE-Space; i.e. we cannot use the divergence operator on it
-         *
-         * Last chance:
-         *  apply integration by parts, i.e. instead of using
-         *    - int varphi div(P)
-         *  we use
-         *    int nabla varphi P   -  surfint varphi P
-         *
-         *  to do so, we have to get access to the surface regions connected to the
-         *  actual region and add integrators on these surface regions, too;
-         *  open questions:
-         *    1. how to do that
-         *    2. what about jumps in the material parameter (D_n1 = D_n2; E_t1 = E_t2; what about P?);
-         *        do we have to consider this? how is this done for E?
-
-
-
-         * new: coefFncHyst has the posibility to calculate the divergence (or at least to approximate it)
-         * to do so, it has to have a connection to this pde first
-
-        it->second->SetLinkedPDE(this);
-
-         * the next step is to mark the coefFnc with a specialType so that it returns the divergence
-         * this call will also set the dimension type from vector to scalar (so that the BUIntegrator gets
-         * calls the right function
-
-        std::cout << "Polarization dimension: " << it->second->GetDimType() << std::endl;
-        it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
-        std::cout << "div(Polarization) dimension: " << it->second->GetDimType() << std::endl;
-
-        if(isComplex_) {
-          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                           Complex(-1*factor), it->second,coefUpdateGeo, fullevaluation);
-        } else  {
-          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-                                          -1*factor, it->second,coefUpdateGeo, fullevaluation);
-        }*/
 
         lin->SetName("rhs_polarization");
         lin->SetSolDependent();
@@ -1180,34 +1092,23 @@ namespace CoupledField {
 	  feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
 
-  void ElecPDE::FinalizeAfterIteration() {
-
-    //check for hysteresis
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-      //set current values to previous values for hysteresis operator
-      //needed for the next time step
-      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-        it->second->SetPreviousHystVals();
-      }
-    }
-  }
-
-
   void ElecPDE::FinalizeAfterTimeStep() {
 
 	  //check for hysteresis
-	  if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-		  //set current values to previous values for hysteresis operator
-		  //needed for the next time step
-		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-			  //it->second->SetPreviousHystVals();
-		    it->second->ResetPreviousHystVals();
-		  }
-	  }
+    /*
+     * NEW Jan 2017: Do not use this in combination with StdSolveStep::StepTransNonLinHyst
+     * -> the PreviousHystValues have to be set during the iterations, not at the end of the timestep!
+     */
+
+//	  if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+//		  //set current values to previous values for hysteresis operator
+//		  //needed for the next time step
+//		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+//		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+//		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+//			  it->second->SetPreviousHystVals();
+//		  }
+//	  }
   }
 
   void ElecPDE::ReadSpecialBCs( ) 
@@ -1370,6 +1271,19 @@ namespace CoupledField {
     DefineFieldResult( eFunc, ef );
     stiffFormCoefs_.insert(eFunc);
     
+    // === ELECTRIC POLARIZATION ===
+    if ( isHysteresis_){
+     hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+     shared_ptr<ResultInfo> elecP ( new ResultInfo );
+     elecP->resultType = ELEC_POLARIZATION;
+     elecP->SetVectorDOFs(dim_, isaxi_, is2p5);
+     elecP->unit = "C/m^2";
+     elecP->definedOn = ResultInfo::ELEMENT;
+     elecP->entryType = ResultInfo::VECTOR;
+     DefineFieldResult( hysteresisCoefs_, elecP );
+     availResults_.insert( elecP );
+    }
+
     // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_FLUX_DENSITY;
@@ -1383,19 +1297,21 @@ namespace CoupledField {
     } else {
       fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
     }
-    DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
-
     if ( isHysteresis_){
-	   hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-	   shared_ptr<ResultInfo> elecP ( new ResultInfo );
-	   elecP->resultType = ELEC_POLARIZATION;
-	   elecP->SetVectorDOFs(dim_, isaxi_, is2p5);
-	   elecP->unit = "C/m^2";
-	   elecP->definedOn = ResultInfo::ELEMENT;
-	   elecP->entryType = ResultInfo::VECTOR;
-	   DefineFieldResult( hysteresisCoefs_, elecP );
-	   availResults_.insert( elecP );
+      /*
+       * in case of hysteresis, fluxFunc will only contain the value eps0*E
+       * -> we have to add polarization afterwards
+       */
+      PtrCoefFct combinedFlux;
+      if( isComplex_ ) {
+        combinedFlux = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,fluxFunc,hysteresisCoefs_,CoefXpr::OP_ADD));
+      } else {
+        combinedFlux = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,fluxFunc,hysteresisCoefs_,CoefXpr::OP_ADD));
+      }
+      DefineFieldResult( combinedFlux, flux );
+    } else {
+      DefineFieldResult( fluxFunc, flux );
     }
 
     // === ELECTRIC SURFACE CHARGE DENSITY ===
