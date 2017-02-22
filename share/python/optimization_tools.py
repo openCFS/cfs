@@ -1149,7 +1149,26 @@ def add_ghost_cells(data, reproduce = False):
 
   return result
   
+
+# read properties from an bloch mode optimization
+# returns a dictionary with the most relevant properteis
+def read_bloch_properties(xml):
+  iter = xml.xpath("//iteration[last()]")[0]
   
+  for ev in range(1,30):
+    if 'ev_'+ str(ev) + '_max' in iter.attrib and 'ev_'+ str(ev+1) + '_min' in iter.attrib:  
+      lower = float(iter.attrib['ev_'+ str(ev) + '_max'])
+      upper = float(iter.attrib['ev_'+ str(ev+1) + '_min'])
+      assert(lower > 0)
+      
+      norm = (upper-lower) / (lower + .5*(upper-lower))
+      rel  = (upper-lower) / lower
+
+      dict = {'iter' : int(iter.get('number')), 'lower' : lower, 'upper' : upper, 'ev' : ev, 'norm' : norm, 'rel' : rel}
+      return dict 
+      
+  raise RuntimeError("no ev_(i)_max and ev_(i+i)_min pair found")
+
     
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11

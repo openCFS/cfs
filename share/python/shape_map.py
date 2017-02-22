@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 try:
   from matviz_vtk import *
 except:
-  print('could not import matviz_vtk, hope you do not need it: ' + sys.exc_info()[0])
+  print('could not import matviz_vtk, hope you do not need it: ' + str(sys.exc_info()[0]))
 
 def create_figure(res, minimal, maximal):
 
