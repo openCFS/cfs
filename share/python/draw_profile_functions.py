@@ -1111,18 +1111,6 @@ def generate_basecell(args,info,log):
     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
     
-#     end_nodes_points = np.ones((len(end_nodes_1+end_nodes_2+end_nodes_3),3))
-#     for i,node in enumerate(end_nodes_1+end_nodes_2+end_nodes_3):
-#       end_nodes_points[i] = node.coords
-#     # build kd-tree
-#     3d_tree = spatial.cKDTree(end_nodes_points)
-    
-#     out_points = open("points.txt","w")
-#     out_points.write("#id \t coordinates\n")
-#     for n in end_nodes_1+end_nodes_2+end_nodes_3:
-#       out_points.write(str(n) + "\n")
-#     out_points.close()
-    
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
     for i,line in enumerate(nodes_1):
@@ -1310,14 +1298,6 @@ def write_profile_to_array(array,profile,dir,symmetric):
     array[bound:res,bound:res,0:bound] = array[0:bound,0:bound,0:bound][::-1,::-1,:]
     array[bound:res,bound:res,bound:res] = array[0:bound,0:bound,0:bound][::-1,::-1,::-1] 
   
-# find end node object in list with matching id
-def get_end_node_by_id(id,end_nodes):
-  for node in end_nodes:
-    if node.id == id:
-      return node
-  
-  return None
-
 # find end node object in list with matching grid coordinates
 def get_end_node_by_grid_coords(i,j,end_nodes):
   for idx,node in enumerate(end_nodes):
@@ -1330,29 +1310,40 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 # for each end node, check if any of its neighbors is contained in triangle
 # spanned by these 3 end nodes    
 def triangle_contains_any_node(vertices):
-  center = (0.5,0.5,0.5)
   for vertice in vertices:
     for n in vertice.neighbors:
       # if we are one of the vertices skip
       if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
         continue
     
-      b = center - vertices[0].coords
-      right1 = vertices[1].coords-vertices[0].coords
-      right2 = vertices[2].coords-vertices[0].coords
-      right3 = center-n[0]
-      A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
-      
-      sol = linsolve_3x3(A,b)
-      
-      # sol[0] -> k, sol[0] -> l, sol[0] -> s
-      if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
-        log("line through node " + str(n[1]) + " intersects  with triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id))
-        log("k: " + str(sol[0]) + " l:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]))
+      if triangle_contains_point((vertices[0].coords,vertices[1].coords,vertices[2].coords),n[0]):
         return True    
   
   return False
 
+# check if projection of point onto triangle plane lies within triangle
+# @param vertices(coordinates) defining the triangle
+# @param point(coordinates) for testing
+# @param origin of basecell, typically (0.5,0.5,0.5)
+# basic idea: express location of point via barycentric coordinates (using vertices)
+# if barycentric coordinates(k,l) >= 0 and sum <= 1, triangle contains point 
+def triangle_contains_point(vertices,point,origin=(0.5,0.5,0.5)):
+  b = origin - vertices[0]
+  right1 = vertices[1]-vertices[0]
+  right2 = vertices[2]-vertices[0]
+  right3 = np.array(origin)-point[0]
+  A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
+  
+  sol = linsolve_3x3(A,b)
+  
+  # sol[0] -> k, sol[1] -> l, sol[2] -> s
+  if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
+    log("line through node " + str(n[1]) + " intersects  with triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id))
+    log("k: " + str(sol[0]) + " l:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]))
+    return True
+  else:
+    return False
+  
 # applying Cramer's rule
 # assume A is a numpy array, b a list
 def linsolve_3x3(A,b):
@@ -1418,66 +1409,6 @@ def find_closest_point(ref_node,next_node,end_nodes):
   
   log("closest node to id=" + str(ref_node.id) + ": id=" + str(min_node.id))
   return min_node,min_distance 
-
-def find_three_closest_points(ref_node,next_node,end_nodes):
-  
-  # iterate over all end nodes in list and compare distances to 'ref' node
-  min_distance_1 = 1e6
-  min_node_1 = None
-  min_distance_2 = 1e6
-  min_node_2 = None
-  min_distance_3 = 1e6
-  min_node_3 = None
-  for node in end_nodes:
-    
-    if node.id == ref_node.id or node.id == next_node.id or node.coords[2] <= 0.5+1e-3:
-      continue
-    
-    dist = calc_distance(ref_coords, node.coords)
-    if dist < min_distance_1:
-      min_distance_2 = min_distance_1
-      min_node_2 = min_node_1
-     
-      min_distance_1 = dist
-      min_node_1 = node
-    elif dist < min_distance_2:
-      min_distance_3 = min_distance_2
-      min_node_3 = min_node_2
-     
-      min_distance_2 = dist
-      min_node_2 = node
-    elif dist < min_distance_3:
-      min_distance_3 = dist
-      min_node_3 = node
-     
-  return (min_node_1,min_distance_1),(min_node_2,min_distance_2),(min_node_3,min_distance_3)
-
-# calculates midpoint on line between p1 and p2
-def calc_midpoint(p1,p2):
-  return 0.5*np.asarray([p1[0]+p2[0],p1[1]+p2[1],p1[2]+p2[2]])
-
-def give_neighbor_end_nodes(node,end_nodes):
-  # find first triangle
-  candidates = []
-  left_line = node.i-1 if node.i > 0 else len(end_nodes)-1
-  right_line = node.i+1 if node.i < len(end_nodes)-1 else 0
-  
-  candidates.append((node.i,node.j-1)) # previous node on line
-  candidates.append((node.i,node.j+1))
-  candidates.append((left_line,node.j))
-  candidates.append((left_line,node.j-1))
-  candidates.append((left_line,node.j+1))
-  candidates.append((right_line,node.j))
-  candidates.append((right_line,node.j-1))
-  candidates.append((right_line,node.j+1))
-  
-  res = []
-  for test in candidates:
-    nexts = [v for v in end_nodes if v.i == test[0] and v.j == test[1]]
-    if nexts:
-      res.append(nexts[0])
-      
-  return res
 
 # returns list with end nodes in neighborhood with certain radius
 # search for neighborhood is performed via kd-tree query  
@@ -1563,7 +1494,9 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
       continue
     if node.id == vert1.id or node.id == vert2.id:
       continue
-    if triangle_contains_any_node([node,vert1,vert2]):
+#     if triangle_contains_any_node([node,vert1,vert2]):
+#       continue
+    if triangle_overlap_others(triangles,(vert1.coords,vert2.coords,node.coords)):
       continue
     # if all three nodes are already connected to other triangles
     if vertices_already_connected(triangles,[vert1,vert2,node]):
@@ -1653,6 +1586,9 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
   
 #   if a.id == 90 and b.id == 2970:
 #     return False
+
+  log("\na: " + str(a.id))
+  log("b: " + str(b.id))
   
   next_cands = give_next_end_nodes_in_ball(tree, a, end_nodes)
   next = give_best_next_neighbor(triangles,next_cands,a,b,quality_bound)
@@ -2050,4 +1986,52 @@ def vertex_alrerady_connected(triangles,end_node):
         return True
   
   # if not match found
+  return False
+
+# calculates barycenter/centroid of a triangle
+# @param coordinates of the three vertices defining that triangle
+def calc_triangle_barycenter(vert1,vert2,vert3):
+  return 1.0/3.0 * (np.array(vert1)+np.array(vert2)+np.array(vert3))
+
+# returns 3 points
+# 1st point lies on median between triangle's barycenter and vert1 and distance from vert1 to that point is eps
+# 2nd point lies on median between triangle's barycenter and vert2 and distance from vert1 to that point is eps
+# 3rd point lies on median between triangle's barycenter and vert3 and distance from vert1 to that point is eps
+def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
+  centroid = calc_triangle_barycenter(vert1, vert2, vert3)
+  
+  # directional vector from vert1 to centroid 
+  d1 = centroid - vert1 
+  p1 = vert1 + eps * d1
+  # directional vector from vert2 to centroid
+  d2 = centroid - vert2 
+  p2 = vert2 + eps * d2
+  # directional vector from vert3 to centroid
+  d3 = centroid - vert3 
+  p3 = vert3 + eps * d3
+  
+  return p1,p2,p3
+
+# check if triangle defined by its 3 vertices overlaps with
+# other triangles in list
+# @param list of triangles that are o.k. so far
+# @param vertices(coordinates) defining triangle that we want to check
+# a triangle overlaps a second one if three of its inner points,
+# projected on plane of second triangle, lie inside second triangle
+# the three inner points are chosen such that they lie on the
+# three medians of the triangle and are close to the three vertices
+# (distance controlled by eps)
+def triangle_overlap_others(triangles,vertices):
+  assert(len(vertices) == 3)
+  # points for testing
+  sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0], vertices[1], vertices[2])
+  for tri in triangles:
+    # extract coordinates of triangle's vertices
+    v = []
+    for vert in tri.vertices:
+      v.append(vert.coords)
+    if triangle_contains_point(v,sample1) or triangle_contains_point(v,sample2) or triangle_contains_point(v,sample3):
+      return True
+    
+  # no overlapping found  
   return False
