@@ -143,8 +143,9 @@ void SnOpt::Init()
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   LOG_DBG3(snopt) << "I lb=" << xlow.ToString();
   LOG_DBG3(snopt) << "I ub=" << xupp.ToString();
-  LOG_DBG3(snopt) << "I nF=" << nF << " Flow=" << Flow[1] << " Fupp=" << Fupp[1];
-  
+  LOG_DBG3(snopt) << "I: nF=" << nF;
+  LOG_DBG3(snopt) << "I: Flow=" << Flow.ToString(); // the fist value is nonsense!
+  LOG_DBG3(snopt) << "I: Fupp=" << Fupp.ToString();
   //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
     //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
   gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
