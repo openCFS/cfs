@@ -1355,9 +1355,13 @@ def triangle_contains_point(vertices,point):
   
   sol = linsolve_3x3(mat,rhs)
   # sol[0] -> s, sol[1] -> t, sol[2] -> d
-  print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
-  if sol[0] >= 0.0 and sol[1] >= 0.0 and sol[0]+sol[1] <= 1.0:
-    print("projected point inside triangle")
+#   print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
+  if sol[0] > 0.0 and sol[1] > 0.0 and sol[0]+sol[1] < 1.0:
+    log("projected point inside triangle!")
+    log("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]))
+    return True
+  else:
+    return False
   
 # applying Cramer's rule
 # assume A is a numpy array, b a list
@@ -1860,8 +1864,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
-      log("increased quality_bound to" + str(quality_bound))
-      print("increased quality_bound to",quality_bound)
+      log("increased quality_bound to " + str(quality_bound))
+      print("increased quality_bound to ",quality_bound)
     else:
       edge = triangles[-1].edge
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
@@ -2041,7 +2045,8 @@ def triangle_overlap_others(triangles,vertices):
   assert(len(vertices) == 3)
   # points for testing
   sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0].coords, vertices[1].coords, vertices[2].coords,eps=0.1)
-  for tri in triangles:
+  # don't check last triangle as it might be the one we want to modify
+  for tri in triangles[:-1]:
     # extract coordinates of triangle's vertices
     v = []
     log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
