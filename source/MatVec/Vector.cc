@@ -451,7 +451,7 @@ namespace CoupledField {
   {
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
-      EXCEPTION( "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
+      EXCEPTION( "Vector<>::SetVectorEntry: "
                << "Detected index error:"
                << "\n index = " << i
                << "\n size  = " << size_ );

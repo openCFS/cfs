@@ -203,6 +203,9 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   double avg_radius = 0;
   double avg_neighbours = 0;
 
+  // avoids multiple filter radius warning
+  bool done = true;
+
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
 
@@ -293,11 +296,14 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
     avg_radius += radius;
     avg_neighbours += neighbors.GetSize();
+    if(done && neighbors.GetSize() > 1000) {
+      in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
+      done = false;
+    }
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
   WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
-
 
   timer->Stop();
 }

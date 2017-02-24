@@ -35,28 +35,16 @@ class Jacobi : public Smoother<T>
 
         //! \name type definitions
         
-        //@{
-        // on some systems you need these type definitions, although
-        // the types are already defined in the base class Smoother,
-        // on some systems you don't, even if you use identical compilers
-        //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename AssocType<T>::T_Mtype T_Mtype;
-        //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename AssocType<T>::T_Vtype T_Vtype;
-        //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename AssocType<T>::T_Stype T_Stype;
-        //@}
-
         Jacobi();
         ~Jacobi();
 
         //@{
         //! get value of damping parameter \f$\omega\f$
-        T_Stype& GetOmega() { return Omega_; }
-        const T_Stype& GetOmega() const { return Omega_; }
+        T& GetOmega() { return Omega_; }
+        const T& GetOmega() const { return Omega_; }
 
         //! set value of the damping parameter \f$\omega\f$
-        void SetOmega( const T_Stype& omega ) {
+        void SetOmega( const T& omega ) {
             Omega_ = omega;
         }
         //@}
@@ -108,10 +96,10 @@ class Jacobi : public Smoother<T>
 
     protected:
 
-        T_Mtype    *DiagonalInverse_; //!< array with inverse diagonal entries
+        T    *DiagonalInverse_; //!< array with inverse diagonal entries
         Vector<T>   auxVec_;          //!< auxiliary vector for the iteration step
         Integer     Size_;            //!< size of the LES
-        T_Stype     Omega_;           //!< damping factor
+        T           Omega_;           //!< damping factor
         const bool *PenaltyFlags_;
 };
 

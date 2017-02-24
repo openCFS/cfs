@@ -109,6 +109,7 @@ class Function
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
+      FILTERING_GAP,             /* !< sum of the difference between filtered and non-filtered design */
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOM_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */

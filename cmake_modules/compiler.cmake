@@ -92,7 +92,7 @@ IF(OPENMP_FOUND)
   # The USE_OPENMP option triggers the usage of OpenMP versions of external
   # libraries and the compilation of CFS++ with OpenMP compiler switches.
   #-----------------------------------------------------------------------------
-  SET(USE_OPENMP "${USE_OPENMP_DEFAULT}" CACHE BOOL "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++, Clang 3.7 is not mature yet.")
+  SET(USE_OPENMP "${USE_OPENMP_DEFAULT}" CACHE BOOL "Enable support for OpenMP. Needs GCC >= 4.8, Intel C++ or Clang >= 3.8.")
   
   #-----------------------------------------------------------------------------
   # Check if compiler has OpenMP support. GCC >= 4.2 has.
@@ -178,7 +178,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression ")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})

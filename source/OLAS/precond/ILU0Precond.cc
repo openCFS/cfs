@@ -54,7 +54,7 @@ void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 
 
   UInt i, j;
-  T_Mtype sum;
+  T sum;
 
   // Step 1: Solve L * u~ = f by forward substitution
   for ( i = 0; i < size_; i++ ) {
@@ -97,7 +97,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
   // Get the data of the matrix. Note that we use only CRS here
   const UInt *a_rptr = mat.GetRowPointer();
   const UInt *a_cidx = mat.GetColPointer();
-  const T_Mtype *a_val  = mat.GetDataPointer();
+  const T    *a_val  = mat.GetDataPointer();
 
   // How large is the matrix to be factored?
   UInt a_nnz  = mat.GetNnz();
@@ -105,7 +105,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
   UInt a_size = mat.GetNumRows();
 
   // Allocate memory for the ILU entries
-  NEWARRAY( ilu_data_, T_Mtype, a_nnz );
+  NEWARRAY( ilu_data_, T, a_nnz );
   NEWARRAY( ilu_cidx_, UInt, a_nnz );
 
   //set ilu-matrix structure according to system matrx
@@ -140,7 +140,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
   // now perform the actual factorization
 
   UInt i,j,k, j1, j2, jj, jw, jrow;
-  T_Mtype  tl;
+  T  tl;
 
   //get help array and set it to zero;
   Integer *help;

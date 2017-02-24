@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+# sometimes h5py must be import first
+from hdf5_tools import *
 from matviz_vtk import *
 from matviz_unstructured_mesh import *
 from matviz_2d  import *
 from matviz_streamline import *
 from hdf5_tools import *
 from mesh_tool import *
-from two_scale_tools import *
 import argparse
 import sys
 import os
@@ -168,7 +169,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   
   min, max = find_corners(centers)
   
-  coords = (centers, min, max, elem_dim)  
+  coords = (centers, min, max, elem_dim)
   
   # perform 2D and 3D from file
   if h5_read or dim_2D:
@@ -464,6 +465,7 @@ centers = []
 dim_2D = None
 h5_read = None
 infoXml_read = None
+elem_dim = None
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml"):
   h5_read = False
@@ -482,7 +484,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
     assert(args.input.endswith(".info.xml"))
     xml = open_xml(args.input)
     dim = xpath(xml, "//domain/@dimensions")
-    matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real")
+    matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
     res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
     res = np.asarray(res)            # convert list to array
     if dim == '2':

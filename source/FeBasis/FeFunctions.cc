@@ -220,6 +220,15 @@ DECLARE_LOG(fefunc)
     return false;
   }
 
+  bool BaseFeFunction::HasConstraint(std::string& name, unsigned int dof) const {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++) {
+      if(constraints_[i]->name == name && constraints_[i]->masterDof == dof)
+        return true;
+    }
+    return false;
+  }
+
+
   UInt BaseFeFunction::GetVecSize() const {
     assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );
     return result_->dofNames.GetSize();

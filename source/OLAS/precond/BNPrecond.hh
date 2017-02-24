@@ -20,10 +20,6 @@ namespace CoupledField {
     using BasePrecond::Apply;
     using BasePrecond::Setup;
 
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     typedef T_storage AssocMatrixType;
     typedef Vector<T> AssocVectorType;
 

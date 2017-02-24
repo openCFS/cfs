@@ -512,7 +512,7 @@ private:
 
 
 /** This is a add-on to DesignElement and contains all data specific for SIMP,
- * this is especiall the filtering stuff */
+ * this is especially the filtering stuff */
 class SIMPElement
 {
 public:

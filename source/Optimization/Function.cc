@@ -474,6 +474,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BANDGAP: // similar to bloch=extremal
   case SLACK_FNCT:
   case EXPRESSION:
+  case FILTERING_GAP:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -709,6 +710,7 @@ bool Function::ForDensityFiltering() const {
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
+    case FILTERING_GAP:
       return false;
 
     case MULTI_OBJECTIVE:
@@ -753,6 +755,7 @@ bool Function::ForSensitivityFiltering() const {
   case HEAT_ENEGRY:
   case EIGENFREQUENCY:
   case BANDGAP:
+  case FILTERING_GAP:
     return true;
 
   case VOLUME:
@@ -2511,7 +2514,8 @@ double Function::Local::Identifier::CalcSlope() const {
 }
 
 
-double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
+double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const
+{
   assert(neigh_idx == -1 || neigh_idx == 0);
   // we have the cases sign=1, sign=-1, NO_SIGN. NO_SIGN is handled as sign=-1
   LOG_DBG3(func) << "L:I:CSG de=" << element->GetIndex() << " ni=" << neigh_idx << " sign=";
@@ -2520,7 +2524,6 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
     return sign == -1 ? -1.0 : 1.0;
   else
     return sign == -1 ? 1.0 : -1.0;
-
 }
 
 double Function::Local::Identifier::CalcOverhang(const Local* local) const
