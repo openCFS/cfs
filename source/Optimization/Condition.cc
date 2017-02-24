@@ -750,7 +750,7 @@ string Condition::ToString() const
     os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
-  if(type_ == OUTPUT && !output_forms.IsEmpty())
+  if((type_ == OUTPUT || type_ == SQUARED_OUTPUT) && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
@@ -1222,7 +1222,6 @@ void ConditionContainer::Read(ParamNodeList pn_list)
         }
       }
     }
-
     // General constraint (Non displacement constraint case)
     if (!displacement_constr)
       Condition::AddCondition(pn, act ? active : observe);

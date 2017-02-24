@@ -4,13 +4,13 @@
 
 <fileFormats>
     <output>
-      <hdf5 directory="." />
+<!--       <hdf5 directory="." /> -->
     </output>
     <materialData file="mat.xml" format="xml"/>
   </fileFormats>
 
   <domain geometryType="3d">
-    <regionList> <region name="mech" material="99lines"/> </regionList>
+    <regionList> <region name="mech" material="scaled_titanium"/> </regionList>
     <!-- nodeList>
       <nodes name="center"> <coord x="0.0" y="0.0"/> </nodes>
    </nodeList -->
@@ -40,9 +40,9 @@
         </bcsAndLoads>
         
         <storeResults>
-          <nodeResult type="mechDisplacement">  <allRegions/> </nodeResult>
-          <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult>
-          <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult>
+<!--           <nodeResult type="mechDisplacement">  <allRegions/> </nodeResult> -->
+<!--           <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult> -->
+<!--           <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult> -->
         </storeResults>
       </mechanic>
     </pdeList>
@@ -51,7 +51,7 @@
   <system>
   <solutionStrategy>
     <standard >
-      <exportLinSys stiffness="true" />
+<!--       <exportLinSys stiffness="true" /> -->
           </standard>
          </solutionStrategy >
          <solverList>

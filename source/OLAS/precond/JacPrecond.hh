@@ -32,11 +32,6 @@ namespace CoupledField {
     using BNPrecond<JacPrecond<T_storage,T>,T_storage,T>::Apply;
     using BNPrecond<JacPrecond<T_storage,T>,T_storage,T>::Setup;
 
-    ///
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     //! Constructor
 
     //! This constructor takes as input a system matrix from which the problem
@@ -80,7 +75,7 @@ namespace CoupledField {
     };
 
     //! Array containing inverses of diagonal entries of system matrix
-    T_Mtype *diagInv_;
+    T *diagInv_;
 
     //! Dimension of system matrix and thus length of diagInv_
     UInt size_;
@@ -92,7 +87,7 @@ namespace CoupledField {
   // =======================================
 
   //! Helper class implementing the block related part
-    template<class T_Stype>
+    template<class T>
     class BlockJacPrecondImpl {
     public:
       //! Constructor
@@ -107,8 +102,7 @@ namespace CoupledField {
       ~BlockJacPrecondImpl();
 
       //! Scales the residual with the inverse diagonal of system matrix
-      void Apply(  const Vector<T_Stype> &r,
-                   Vector<T_Stype> &z );
+      void Apply(  const Vector<T> &r, Vector<T> &z );
 
       //! Triggers setup of the Jacobi Preconditioner
 
@@ -124,7 +118,7 @@ namespace CoupledField {
       UInt numRows_;
 
       //! Vector containing matrices with factorization
-      StdVector<Matrix<T_Stype> > factors_;
+      StdVector<Matrix<T> > factors_;
     };
     
   //! Block Jacobi Preconditioner
@@ -142,11 +136,6 @@ namespace CoupledField {
 
     using BNPrecond<BlockJacPrecond<T_storage,T>,T_storage,T>::Apply;
     using BNPrecond<BlockJacPrecond<T_storage,T>,T_storage,T>::Setup;
-
-    ///
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-    typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor
 

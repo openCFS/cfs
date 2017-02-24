@@ -142,13 +142,14 @@ void SnOpt::Init()
   // init Jacobian(s)
   initJacobians();
 
-  LOG_DBG(snopt) << "I: get_bounds_info";
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
+
   LOG_DBG3(snopt) << "I: lb=" << xlow.ToString();
   LOG_DBG3(snopt) << "I: ub=" << xupp.ToString();
   LOG_DBG3(snopt) << "I: nF=" << nF;
   LOG_DBG3(snopt) << "I: Flow=" << Flow.ToString(); // the fist value is nonsense!
   LOG_DBG3(snopt) << "I: Fupp=" << Fupp.ToString();
+
   gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
 }
 

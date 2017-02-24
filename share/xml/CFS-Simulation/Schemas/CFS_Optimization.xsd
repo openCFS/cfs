@@ -352,6 +352,7 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="volume"/>
                 <xsd:enumeration value="penalizedVolume"/>
+                <xsd:enumeration value="filteringGap"/>
                 <xsd:enumeration value="gap"/>
                 <xsd:enumeration value="compliance"/>
                 <xsd:enumeration value="conjugateCompliance"/>
@@ -740,15 +741,18 @@
                 </xsd:element> 
                </xsd:sequence>
                 <!-- penalty parameter bounds -->  
-                <xsd:attribute name="pmin" type="xsd:float" default="0.05" use="optional"/>
-                <xsd:attribute name="pmax" type="xsd:float" default="0.05" use="optional"/>
-               
+                <xsd:attribute name="pmin_vol" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmax_vol" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmin_filt" type="xsd:float" default="0.05" use="optional"/>
+                <xsd:attribute name="pmax_filt" type="xsd:float" default="0.05" use="optional"/>
                 <!-- convergence tolerance for sgp algorithm -->
                 <xsd:attribute name="tolerance" default="1e-6" type="xsd:float" use="optional"/>
+                <xsd:attribute name="volume_tolerance" default="1e-3" type="xsd:float" use="optional"/>
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
                 <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>    
                 <xsd:attribute name="tau" default="0." type="xsd:float" use="optional"/>    
-                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>           
+                <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>  
+                <xsd:attribute name="derivative_check" default="false" type="xsd:boolean" use="optional"/>           
                            
               </xsd:complexType>
             </xsd:element>
@@ -1285,7 +1289,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="result" minOccurs="0" maxOccurs="12">
+            <xsd:element name="result" minOccurs="0" maxOccurs="15">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -1303,6 +1307,9 @@
                       <xsd:enumeration value="optResult_10"/>
                       <xsd:enumeration value="optResult_11"/>
                       <xsd:enumeration value="optResult_12"/>
+                      <xsd:enumeration value="optResult_13"/>
+                      <xsd:enumeration value="optResult_14"/>
+                      <xsd:enumeration value="optResult_15"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1654,6 +1661,7 @@
       <xsd:enumeration value="youngsModulusE2"/>
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>
+      <xsd:enumeration value="filteringGap"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="tychonoff"/>
       <xsd:enumeration value="temperature"/>
@@ -1870,6 +1878,7 @@
       <!-- detail for constraintGradient in SIMP -->
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>
+      <xsd:enumeration value="filteringGap"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="compliance"/>
       <xsd:enumeration value="greyness"/>
