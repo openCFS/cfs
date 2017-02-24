@@ -813,9 +813,6 @@ void Condition::ToInfo(PtrParamNode in)
 {
   Function::ToInfo(in);
 
-  in->Get("name")->SetValue(ToString());
-
-
   if(IsActive())
   {
     if(type_ != HOM_TRACKING)
