@@ -1554,14 +1554,16 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
     # removes triangles as long as we don't have candidates for these triangles
     if not pop_triangles(triangles):
       return False
-    alternatives = triangles[-1].other_candidates
-    active_edge = triangles[-1].edge
+    
+    # take out last triangle as we have to modify it
+    tri = triangles.pop()
+    alternatives = tri.other_candidates
+    active_edge = tri.edge
     a = active_edge[0]
     b = active_edge[1]
     log("active edge: " + str(a.id) + "," + str(b.id))
     next = give_best_next_neighbor(triangles,alternatives, a, b, quality_bound)
     if next is not None:
-      tri = triangles[-1]
       # next is good, so it is not a candidate anymore
       tri.other_candidates = [v for v in tri.other_candidates if v.id != next.id]
       # reset all information with new next node  
@@ -1572,9 +1574,11 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
       tri.vertices[2] = next
       best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
       log("set new triangle " + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + " with ratio " + str(best_ratio))
-      log("set active edge to (" + str(tri.edge[0].id) + "," + str(triangles[-1].edge[1].id) + ")")
+      log("set active edge to (" + str(tri.edge[0].id) + "," + str(tri.edge[1].id) + ")")
+      triangles.append(tri)
       return True
     else:
+      triangles.append(tri)
       # best neighbor not found, so candidates are invalid
       triangles[-1].other_candidates = []
   return False  
@@ -2046,7 +2050,7 @@ def triangle_overlap_others(triangles,vertices):
   # points for testing
   sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0].coords, vertices[1].coords, vertices[2].coords,eps=0.1)
   # don't check last triangle as it might be the one we want to modify
-  for tri in triangles[:-1]:
+  for tri in triangles:
     # extract coordinates of triangle's vertices
     v = []
     log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
