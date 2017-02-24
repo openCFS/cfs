@@ -1127,7 +1127,7 @@ def generate_basecell(args,info,log):
 #     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
 #     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
 #     plt.show()
-
+#     dump_end_nodes(end_nodes_1+end_nodes_2+end_nodes_3) 
     fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_1, end_nodes_3, cells)
 #     fix_profile_intersection_gaps(end_nodes_2, end_nodes_3, cells)
@@ -1324,25 +1324,40 @@ def triangle_contains_any_node(vertices):
 # check if projection of point onto triangle plane lies within triangle
 # @param vertices(coordinates) defining the triangle
 # @param point(coordinates) for testing
-# @param origin of basecell, typically (0.5,0.5,0.5)
 # basic idea: express location of point via barycentric coordinates (using vertices)
-# if barycentric coordinates(k,l) >= 0 and sum <= 1, triangle contains point 
-def triangle_contains_point(vertices,point,origin=(0.5,0.5,0.5)):
-  b = origin - vertices[0]
-  right1 = vertices[1]-vertices[0]
-  right2 = vertices[2]-vertices[0]
-  right3 = np.array(origin)-point[0]
-  A = np.transpose(np.asarray((right1,right2,right3), dtype=float))
+# if barycentric coordinates(s,t) >= 0 and sum <= 1, triangle contains point
+# calculation of barycentric coordinates:
+# - define line going from origin to point in parametric form
+# - define plane spanned by triangle's vertices
+# intersect line and plane to find projection (and parameters)  
+def triangle_contains_point(vertices,point):
+  origin=np.array((0.5,0.5,0.5))
+  # line equation from origin to point in parametric form                             
+  # P = origin + k * d
+  # plane equation in parametric form
+  # P = A + s*u + t*v
+
+  # setting line equation equals plane equation in order 
+  # to find parameters for projected point onto plane
+  # origin - A = s*u + t*v - k*d
   
-  sol = linsolve_3x3(A,b)
+  A = np.array(vertices[0])
+  B = np.array(vertices[1])
+  C = np.array(vertices[2])
   
-  # sol[0] -> k, sol[1] -> l, sol[2] -> s
-  if sol[0] >= 0 and sol[1] >= 0 and sol[0]+sol[1] <= 1:
-    log("line through node " + str(n[1]) + " intersects  with triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id))
-    log("k: " + str(sol[0]) + " l:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]))
-    return True
-  else:
-    return False
+  u = B - A
+  v = C - A
+  d = point - origin
+  
+  # intersect line and plane to find projected point (and respective parameters)
+  mat = np.transpose(np.asarray((u,v,-d), dtype=float))
+  rhs = origin - A 
+  
+  sol = linsolve_3x3(mat,rhs)
+  # sol[0] -> s, sol[1] -> t, sol[2] -> d
+  print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
+  if sol[0] >= 0.0 and sol[1] >= 0.0 and sol[0]+sol[1] <= 1.0:
+    print("projected point inside triangle")
   
 # applying Cramer's rule
 # assume A is a numpy array, b a list
@@ -1351,6 +1366,8 @@ def linsolve_3x3(A,b):
   res = [None] * 3
   
   det = np.linalg.det(A)
+  
+  assert(det > 0.0 or det < 0.0)
   
   A1 = np.zeros((3,3))
   A1[:,0] = b 
@@ -1383,8 +1400,6 @@ def calc_triangle_ratio(v1,v2,v3):
   d2 = calc_distance(v1, v3) # b
   d3 = calc_distance(v2, v3) # c
   
-#   inradius = 0.5* np.sqrt((d2+d3-d1)*(d3+d1-d2)*(d1+d2-d3) / (d1+d2+d3))
-#   exradius = d1*d2*d3/np.sqrt((d1+d2+d3)*(d2+d3-d1)*(d3+d1-d2)*(d1+d2-d3))
   
   aspect_ratio = d1*d2*d3 / ( (d2+d3-d1) * (d1-d2+d3) * (d1+d2-d3))
   
@@ -1496,7 +1511,7 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
       continue
 #     if triangle_contains_any_node([node,vert1,vert2]):
 #       continue
-    if triangle_overlap_others(triangles,(vert1.coords,vert2.coords,node.coords)):
+    if triangle_overlap_others(triangles,(vert1,vert2,node)):
       continue
     # if all three nodes are already connected to other triangles
     if vertices_already_connected(triangles,[vert1,vert2,node]):
@@ -1669,7 +1684,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     if not start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells):
       print("skip " + str(n.id) + "\n")
       log("skip " + str(n.id))
-      print("size of history: " + str(len(triangles_history)))
+#       print("size of history: " + str(len(triangles_history)))
 #       if n.id == 1172:
 #         return
     else:
@@ -1999,6 +2014,7 @@ def calc_triangle_barycenter(vert1,vert2,vert3):
 # 3rd point lies on median between triangle's barycenter and vert3 and distance from vert1 to that point is eps
 def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
   centroid = calc_triangle_barycenter(vert1, vert2, vert3)
+  log("barycenter:" + str(centroid))
   
   # directional vector from vert1 to centroid 
   d1 = centroid - vert1 
@@ -2015,7 +2031,7 @@ def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
 # check if triangle defined by its 3 vertices overlaps with
 # other triangles in list
 # @param list of triangles that are o.k. so far
-# @param vertices(coordinates) defining triangle that we want to check
+# @param vertices(end nodes) defining triangle that we want to check
 # a triangle overlaps a second one if three of its inner points,
 # projected on plane of second triangle, lie inside second triangle
 # the three inner points are chosen such that they lie on the
@@ -2024,14 +2040,25 @@ def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
 def triangle_overlap_others(triangles,vertices):
   assert(len(vertices) == 3)
   # points for testing
-  sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0], vertices[1], vertices[2])
+  sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0].coords, vertices[1].coords, vertices[2].coords,eps=0.1)
   for tri in triangles:
     # extract coordinates of triangle's vertices
     v = []
+    log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
     for vert in tri.vertices:
       v.append(vert.coords)
+      log(str(vert.id) + ",", linebreak=False)
+    
+    log(") with sample1=" + str(sample1) + " , sample2=" + str(sample2) + ", sample3=" + str(sample3))  
     if triangle_contains_point(v,sample1) or triangle_contains_point(v,sample2) or triangle_contains_point(v,sample3):
       return True
     
   # no overlapping found  
   return False
+
+def dump_end_nodes(list):
+  out = open("end_nodes.txt","w")
+  for n in list:
+    out.write(str(n) + "\n")
+  
+  out.close()
