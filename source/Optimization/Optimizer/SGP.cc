@@ -22,6 +22,7 @@ using std::max;
 using std::min;
 using std::abs;
 using std::string;
+using boost::lexical_cast;
 
 SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimization::SGP_SOLVER)
 {
@@ -339,7 +340,7 @@ void SGP::SolveProblem()
       bool penal_vol = true;
       std::string output_str = "";
       while (ki < bisect && penal_vol) {
-        output_str = "s-iteration: "+std::to_string(ki)+" compliance: "+std::to_string(compliance)+ " merit: "+std::to_string(merit)+" pmaxi: " + std::to_string(pmaxi)+" pmini: "+std::to_string(pmini);
+        output_str = "s-iteration: " + lexical_cast<string>(ki) + " compliance: " + lexical_cast<string>(compliance) + " merit: " + lexical_cast<string>(merit) + " pmaxi: " + lexical_cast<string>(pmaxi) + " pmini: " + lexical_cast<string>(pmini);
         if (configuration == DENSITY_ROTANGLE) {
           obj->SubSolve_Density_Rotangle(SGPApproximation::FUNC,df,ppeni,rho_outer,theta_outer);
         } else if (configuration == STIFF1_STIFF2) {
@@ -362,16 +363,16 @@ void SGP::SolveProblem()
 
         // Create output for bisection iterations
         if (volume > 0) {
-          output_str += " volume: "+std::to_string(volume/(ppeni)) + " ppeni: "+ std::to_string(ppeni);
+          output_str += " volume: " + lexical_cast<string>(volume/(ppeni)) + " ppeni: " + lexical_cast<string>(ppeni);
         } else if (volume_observe > 0) {
-          output_str += " volume: "+std::to_string(volume_observe);
+          output_str += " volume: " + lexical_cast<string>(volume_observe);
         }
         if (filtering_gaps > 0 && filtering_gaps_observe == 0) {
-          output_str += " filtering_gaps: "+std::to_string(filtering_gaps/ppen_filt) + " pmax_filt: " + std::to_string(pmax_filt) + " pmin_filt: " + std::to_string(pmin_filt) +  " ppen_filt: "+ std::to_string(ppen_filt);
+          output_str += " filtering_gaps: " + lexical_cast<string>(filtering_gaps/ppen_filt) + " pmax_filt: " + lexical_cast<string>(pmax_filt) + " pmin_filt: " + lexical_cast<string>(pmin_filt) +  " ppen_filt: " + lexical_cast<string>(ppen_filt);
         } else if (filtering_gaps > 0 && filtering_gaps_observe > 0) {
-          output_str += " filtering_gaps: "+std::to_string(filtering_gaps/ppen_filt) + " pmax_filt: " + std::to_string(pmax_filt) + " pmin_filt: " + std::to_string(pmin_filt) +  " ppen_filt: "+ std::to_string(ppen_filt) + " filtering_gaps_observe = " + std::to_string(filtering_gaps_observe);
+          output_str += " filtering_gaps: " + lexical_cast<string>(filtering_gaps/ppen_filt) + " pmax_filt: " + lexical_cast<string>(pmax_filt) + " pmin_filt: " + lexical_cast<string>(pmin_filt) +  " ppen_filt: "+ lexical_cast<string>(ppen_filt) + " filtering_gaps_observe = " + lexical_cast<string>(filtering_gaps_observe);
         } else if (filtering_gaps_observe > 0) {
-          output_str += " filtering_gaps_observe: "+std::to_string(filtering_gaps_observe);
+          output_str += " filtering_gaps_observe: "+lexical_cast<string>(filtering_gaps_observe);
         }
         std::cout<<output_str<<std::endl;
 
