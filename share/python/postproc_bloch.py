@@ -47,7 +47,6 @@ for f in input:
       os.sys.exit(1)
     
 if args.sort:
-  print(results[-1])
-  sorted = sorted(results, key=lambda x: x['norm'], reverse=False)
-  for gap in sorted:
+  sort = sorted(results, key=lambda x: x['norm'], reverse=False)
+  for gap in sort:
     print('iter: {:3}'.format(gap['iter']) + ' norm: {:4.2f}'.format(gap['norm']) + ' rel: {:5.2f}'.format(gap['rel']) + ' {:7.1f}'.format(gap['lower']) + ' ->{:7.1f}'.format(gap['upper']) + ' ' + str(gap['ev']) + '->' + str(gap['ev']+1) + ' \t' + gap['problem'])

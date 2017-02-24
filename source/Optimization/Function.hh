@@ -270,6 +270,15 @@ class Function
     /** Is this a linear function? E.g. SnOpt can handle them more efficiently */
     bool IsLinear() const { return linear_; }
 
+    /** Snopt allows to set lower and upper bounds for functions. We make use of it for linear sparse abs() functions like SLOPE or CURVATURE.
+     * Then we also need a NEXT or PREV_NEXT locality. When we do not make use of the double bounds (as for scpip or evaluate) we need a
+     * NEXT_REVERSE or PREV_NEXT_REVERSE locality. Here we indicate if the function is meant for double bound. This is not the case for
+     * vertical OVERHANG constraints (but for horizontal). Technically this is not restricted to local sparse functions but we do not consider it
+     * for general functions.
+     * True means, that the function is meant for double bounds AND there is no reverse locality. false if not local, other function, ... */
+    bool IsDoubleBounded() const;
+
+
     /** Is this a local function type */
     static bool IsLocal(Type t);
 

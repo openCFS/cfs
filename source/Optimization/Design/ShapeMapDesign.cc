@@ -726,6 +726,8 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
     throw Exception("Configuration error: cannot have local constraint of shape map design 'profile' when this design is fixed.");
 
+  assert(locality == Function::Local::NEXT || locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT || locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE);
+
   // a lot copy&paste from Function::SetupVirtualElementMap()
   bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
   // next is always true!
@@ -811,15 +813,19 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
   if(IsProfileFixed())
     throw Exception("Configuration error: cannot have local constraint of 'shape_map' when 'profile' is fixed.");
 
+  assert(locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE);
+
   // a lot copy&paste from SetupVirtualShapeElementMap()
-  bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
+  bool prev = locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT;
   // next is always true!
-  bool two_signs = locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE;
+  bool two_signs = locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE;
 
   int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
   int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
 
   vem.Reserve(num_node_shape_params_ * 2 * (two_signs ? 2 : 1)); // common for node and profile
+
+  StdVector<BaseDesignElement*> buddies; // to be reused temporay vector
 
   assert(f->GetDesignType() == DesignElement::SHAPE_MAP);
   assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
@@ -846,17 +852,24 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
       BaseDesignElement* prev_de = prev ? opt_shape_param_[e == node.start_opt ? node.end_opt-1 : e-1].elem : NULL; // if not prev take last
       BaseDesignElement* next_de =        opt_shape_param_[e == node.end_opt-1 ? node.start_opt : e+1].elem; // we next cannot be next we take first (only if periodic)
 
-      vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_1));
-      if(two_signs)
-        vem.Push_back(Function::Local::Identifier(bde, prev_de, next_de, sign_2));
-
-      // add the profile for the nodes
+      // the profile for the nodes
       BaseDesignElement* bde_pr = opt_shape_param_[prof.start_opt + (bde->GetOptIndex() - node.start_opt)].elem;
       BaseDesignElement* prev_pr = prev_de != NULL ? opt_shape_param_[prof.start_opt + (prev_de->GetOptIndex() - node.start_opt)].elem : NULL;
       BaseDesignElement* next_pr = next_de != NULL ? opt_shape_param_[prof.start_opt + (next_de->GetOptIndex() - node.start_opt)].elem : NULL;
-      vem.Push_back(Function::Local::Identifier(bde, prev_pr, next_pr, sign_1));
+
+      buddies.Clear(true); // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
+      buddies.Push_back(bde_pr);
+      if(prev_de && prev_pr) {
+        buddies.Push_back(prev_de);
+        buddies.Push_back(prev_pr);
+      }
+      buddies.Push_back(next_de);
+      buddies.Push_back(next_pr);
+
+      vem.Push_back(Function::Local::Identifier(bde, buddies, sign_1));
       if(two_signs)
-        vem.Push_back(Function::Local::Identifier(bde, prev_pr, next_pr, sign_2));
+        vem.Push_back(Function::Local::Identifier(bde, buddies, sign_2));
+
 
       LOG_DBG(SMD) << "SVMSEM s=" << s << " n=" << n << " prev_opt_node=" << (prev_de != NULL ? (int) prev_de->GetOptIndex() : -1) << " node =" << e
                                                      << " next_opt_node=" << (next_de != NULL ? (int) next_de->GetOptIndex() : -1)

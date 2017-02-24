@@ -181,7 +181,7 @@ void Optimization::PostInitSecond()
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetName());
+    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->GetName());
     if(f->GetType() == Function::BANDGAP) {
       log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
@@ -1156,7 +1156,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    iteration->Get(f->ToString())->SetValue(f->GetValue());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum

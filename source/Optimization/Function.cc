@@ -340,6 +340,12 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
+
+  if(type_ == SLACK_FNCT)
+    info->Get("function")->SetValue(slackFnct.ToString(slackFnct_));
+
+  info->Get("name")->SetValue(ToString());
+
   if(Optimization::context->IsComplex() && omega_omega_) // reduce output
     info->Get("omega_omega")->SetValue(omega_omega_);
   // we check for valid occurrence of parameter in the constructor
@@ -365,7 +371,22 @@ void Function::ToInfo(PtrParamNode info) {
 string Function::ToString() const
 {
   if(type_ == SLACK_FNCT)
-    return slackFnct.ToString(slackFnct_);
+  {
+    switch(slackFnct_)
+    {
+    case NORM_BANDGAP:
+      return "sf_2s_by_a";
+    case REL_BANDGAP:
+      return "sf_2s_by_a-s";
+    case ALPHA_SLACK_QUOTIENT:
+      return "sf_a_by_s";
+    case ALPHA_MINUS_SLACK:
+      return "sf_a-s";
+    case NO_FUNCTION:
+      assert(false);
+      return "no_funct";
+    }
+  }
 
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
@@ -599,6 +620,31 @@ bool Function::IsHomogenization() const {
   default:
     return false;
   }
+}
+
+bool Function::IsDoubleBounded() const
+{
+  // read the documentation in the header :)
+  switch(type_)
+  {
+  case SLOPE:
+  case CURVATURE:
+  case OVERHANG:
+  case SHAPE_INF:
+    {
+      Local::Locality loc = local->GetLocality();
+      // there might be more cases, the important stuff ist, that it is not reverse because this means two constraints for lower and upper
+      if(loc == Local::NEXT || loc == Local::PREV_NEXT || loc == Local::MULT_DESIGNS_NEXT || loc == Local::MULT_DESIGNS_PREV_NEXT ||
+         loc == Local::SHAPE)
+        return true;
+      else
+        return false;
+    }
+  default:
+    return false;
+  }
+  assert(false);
+  return false;
 }
 
 bool Function::IsLocal(Type t) {
@@ -1079,7 +1125,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case OVERHANG:
     if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
-    locality_ = MULT_DESIGNS_NEXT;
+    locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
     break;
 
   case GLOBAL_SLOPE:
@@ -1238,7 +1284,7 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_, phase_);
+      smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_, phase_);
     else
       SetupMultDesignsVirtualElementMap(func_);
     break;
@@ -2456,6 +2502,7 @@ double Function::Local::Identifier::CalcSlope() const {
   assert(this->neighbor.GetSize() == 1);
   double other = neighbor[0]->GetDesign(DesignElement::SMART);
 
+  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH); // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt
   double s = this->sign == -1 ? -1.0 : 1.0;
 
   LOG_DBG3(func) << "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
@@ -2464,41 +2511,65 @@ double Function::Local::Identifier::CalcSlope() const {
 }
 
 
-double Function::Local::Identifier::CalcOverhang(const Local* local) const {
-  //double a1 = GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
-  //double w1 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
-
-
-  for(unsigned int i = 0; i < neighbor.GetSize(); i++)
-    LOG_DBG3(func) << "L:I:CO de=" << element->GetIndex() << " e=" << element->ToString() << " n" << i << "=" << neighbor[i]->ToString();
-
-  //assert(neighbor.GetSize() = )
-  //double a0 = neighbor[0]->GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
-  //double w0 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
-
-
-  double mine = element->GetDesign(DesignElement::SMART);
-  assert(this->neighbor.GetSize() == 1);
-  double other = neighbor[0]->GetDesign(DesignElement::SMART);
-
-  double s = this->sign == -1 ? -1.0 : 1.0;
-
-  //LOG_DBG3(func) << "L:I:CO de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
-  //               << " sign=" << sign << " slope -> " << (s * (mine - other));
-  return s * (mine - other);
-}
-
-double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx) const {
-  return -1;
-}
-
 double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
   assert(neigh_idx == -1 || neigh_idx == 0);
   // we have the cases sign=1, sign=-1, NO_SIGN. NO_SIGN is handled as sign=-1
+  LOG_DBG3(func) << "L:I:CSG de=" << element->GetIndex() << " ni=" << neigh_idx << " sign=";
+
   if (neigh_idx == -1)
     return sign == -1 ? -1.0 : 1.0;
   else
     return sign == -1 ? 1.0 : -1.0;
+
+}
+
+double Function::Local::Identifier::CalcOverhang(const Local* local) const
+{
+  // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
+  //assert(this->sign == 1); // the other stuff is not considered yet
+  assert(neighbor.GetSize() == 3);
+  assert(element->GetType() == DesignElement::NODE);
+  assert(neighbor[0]->GetType() == DesignElement::PROFILE);
+  assert(neighbor[1]->GetType() == DesignElement::NODE);
+  assert(neighbor[2]->GetType() == DesignElement::PROFILE);
+
+  double a = element->GetPlainDesignValue(); // this
+  double w = neighbor[0]->GetPlainDesignValue();
+  double an = neighbor[1]->GetPlainDesignValue(); // next
+  double wn = neighbor[2]->GetPlainDesignValue();
+
+  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH); // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt
+  // sign = 1: (an+wn) - (a+w) <= c^*
+  // sign = -1: (a+w) - (an+wn) <= c^*
+  double res = (sign == -1 ? -1.0 : 1.0) * ((an+wn) - (a+w));
+
+  LOG_DBG3(func) << "L:I:CO d=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn
+                 << " sign=" << sign << " -> " << res;
+  return res;
+}
+
+double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx) const
+{
+  assert(neighbor.GetSize() == 3);
+  assert(element->GetType() == DesignElement::NODE);        // a
+  assert(neighbor[0]->GetType() == DesignElement::PROFILE); // w
+  assert(neighbor[1]->GetType() == DesignElement::NODE);    // an
+  assert(neighbor[2]->GetType() == DesignElement::PROFILE); // wn
+
+  //assert(this->sign == 1); // the other stuff is not considered yet
+  // (an+wn) - (a+w) <= c^*
+  switch(neigh_idx)
+  {
+  case -1:
+  case 0:
+    return sign == -1 ? 1.0 : -1.0;
+  case 1:
+  case 2:
+    return sign == -1 ? -1.0 : 1.0;
+  default:
+    assert(false);
+    return -1.0;
+  }
 }
 
 double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
