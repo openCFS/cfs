@@ -26,8 +26,8 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DENABLE_HDF5:BOOL=ON
-  -DENABLE_LEGACY:BOOL=ON
+  -DCGNS_ENABLE_HDF5:BOOL=ON
+  -DCGNS_ENABLE_LEGACY:BOOL=ON
   -DENABLE_64BIT:BOOL=OFF
   -DENABLE_TESTS:BOOL=OFF
   -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
@@ -113,8 +113,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/${CGNS_GZ}"
-  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/${CGNS_GZ}"
+  "https://github.com/CGNS/CGNS/archive/${CGNS_GZ}"
   "${CGNS_URL}/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
