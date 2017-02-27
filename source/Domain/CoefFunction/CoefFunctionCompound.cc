@@ -665,11 +665,11 @@ RegisterCoefFct( const std::string& name,
 void CoefFunctionCompound<Complex>::
 UpdateXpr( const LocPointMapped& lpm ) {
   
-#ifdef USE_OPENMP
-  if(omp_get_num_threads() == 1 && NUM_CFS_THREADS>1){
-    WARN("Calling from serial region. May be dangerous")
-  }
-#endif
+//#ifdef USE_OPENMP
+//  if(omp_get_num_threads() == 1 && NUM_CFS_THREADS>1){
+//    WARN("Calling from serial region. May be dangerous")
+//  }
+//#endif
 
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
