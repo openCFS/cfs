@@ -576,22 +576,33 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    // handle as in IPOPT 
-    g_l[i] = g_u[i] = g->GetBoundValue();
-    
+
+    // this is the equal case
+    g_u[i] = g->GetBoundValue();
+    g_l[i] = g_u[i];
+
     // Snopt alone is able to handle bounding boxes for constraints. This needs to
     // be reflected when the number of constraints is determined. Here Function::Local::Local()
     // only when we have NO box constraints we need NEXT_AND_REVERSE
-    // FIXME can this be removed?
-    if((g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT) ||
-       (g->GetType() == Condition::CURVATURE && g->GetLocal()->GetLocality() == Function::Local::PREV_NEXT) ||
-        g->GetType() == Condition::SHAPE_INF)
-      g_l[i] *= -1.0;
+    if(g->IsDoubleBounded() && g->GetBound() != Condition::EQUAL) {// checks the locality!!
+      // the snopt solver was necessary to set to a non-REVERSE locality. This check needs to be done when the number of constraints is to
+      // be determined.
+      assert(type_ == Optimization::SNOPT_SOLVER);
+      g_u[i] =  g->GetBoundValue();
+      g_l[i] = -g->GetBoundValue();
+    }
     else
     {
-      if(g->GetBound() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
-      if(g->GetBound() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
+      if(g->GetBound() == Condition::LOWER_BOUND) {
+        g_u[i] = GetInfBound();
+        g_l[i] = g->GetBoundValue();
+      }
+      if(g->GetBound() == Condition::UPPER_BOUND) {
+        g_u[i] = g->GetBoundValue();
+        g_l[i] = -GetInfBound();
+      }
     }
+    LOG_DBG2(optimizer) << "BO::GB i=" << i << " g=" << g->ToString() << " bv=" << g->GetBoundValue() << " DB=" << g->IsDoubleBounded() << " l=" << g_l[i] << " u=" << g_u[i];
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   

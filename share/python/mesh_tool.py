@@ -493,7 +493,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
-#       print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
+      print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
       if map[dnn[n]] != -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
@@ -1196,12 +1196,6 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
     mesh.ne.append(('inlet', list(range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx))))
     mesh.ne.append(('inlet', list(range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx))))
     mesh.ne.append(('outlet', list(range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx))))
-  elif case == 'two_inlet_two_outlet':
-    inletLength = 0.15 * ny
-    mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) ))
-    mesh.ne.append(('inlet',list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx)) ))
   elif case == 'two_inlet_two_outlet': 
     inletLength = 0.15 * ny 
     mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) )) 
@@ -1214,6 +1208,13 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
   elif case == "diffuser":
     mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))
     mesh.ne.append(('outlet',list(range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx))))
+  elif case == "low_in_high_out":
+    mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
+    mesh.ne.append(('outlet', list(range(int(0.7 * nx * ny - 1 + eps), int(0.9 * nx * ny - 1 + eps), nx))))
+  else:
+    print("unkwnon lbm case '" + case + "'")
+    sys.exit(-1)
+      
   return mesh
 
 def create_backstep(x_res, y_res, z_res): 

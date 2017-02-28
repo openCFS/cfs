@@ -166,6 +166,14 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }
 
+void ShapeMapDesign::CheckPlausibility()
+{
+  assert(opt_ != NULL);
+  if(  (opt_->constraints.Has(Function::VOLUME) && opt_->constraints.Get(Function::VOLUME)->IsLinear())
+    || (opt_->objectives.Has(Function::VOLUME) && opt_->objectives.Get(Function::VOLUME)->IsLinear()))
+      throw Exception("Set 'volume' function to non-linear with shape mapping");
+}
+
 /* <shapeMap beta="2">
     <node dof="x" lower="0" upper=".5" initial=".25"/>
     <profile lower=".01" upper=".1" initial=".1"/>
@@ -458,7 +466,7 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   }
   else
   {
-    assert(f->GetDesignType() == BaseDesignElement::NODE || f->GetDesignType() == BaseDesignElement::PROFILE);
+    assert(f->GetDesignType() == BaseDesignElement::NODE || f->GetDesignType() == BaseDesignElement::PROFILE || f->GetDesignType() == BaseDesignElement::SHAPE_MAP);
     // uses opt_index_!
     StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
     LOG_DBG2(SMD) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
@@ -528,7 +536,10 @@ int ShapeMapDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   if(idx >= 0)
     return idx;
 
-  assert(dt == DesignElement::NODE || dt == DesignElement::PROFILE);
+  assert(dt == DesignElement::NODE || dt == DesignElement::PROFILE || dt == DesignElement::SHAPE_MAP);
+
+  if(dt == DesignElement::SHAPE_MAP)
+    dt = DesignElement::NODE; // return the node index
 
   for(unsigned int i = 0; i < shape_.GetSize(); i++)
     if(Convert(shape_[i].type) == dt)
@@ -693,10 +704,12 @@ unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f, bool opt) const
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
 unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
 {
+  // NODE, PROFILE or SHAPE_MAP!
+  BaseDesignElement::Type dt = f->GetDesignType();
+  assert(dt == BaseDesignElement::DEFAULT || dt == BaseDesignElement::DENSITY || BaseDesignElement::IsShapeMapType(dt));
   assert(2 * num_node_shapes_ == (int) shape_.GetSize()); // end of profile
-  if(f->GetDesignType() == BaseDesignElement::NODE)
+  if(dt == BaseDesignElement::NODE)
     return num_node_shapes_;
-  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE);
   assert(shape_[shape_.GetSize() / 2].type == PROFILE);
   assert(!shape_[shape_.GetSize() / 2].fixed);
   return opt && IsProfileFixed() ? shape_.GetSize() / 2 : shape_.GetSize();
@@ -712,6 +725,8 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   // we assume fixed only for profile
   if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
     throw Exception("Configuration error: cannot have local constraint of shape map design 'profile' when this design is fixed.");
+
+  assert(locality == Function::Local::NEXT || locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT || locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE);
 
   // a lot copy&paste from Function::SetupVirtualElementMap()
   bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
@@ -787,6 +802,98 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   LOG_DBG(SMD) << "SVSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
 }
 
+void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality, Function::Local::Phase ph)
+{
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+  assert(!f->GetLocal()->periodic);
+  // we assume fixed only for profile
+  if(IsProfileFixed())
+    throw Exception("Configuration error: cannot have local constraint of 'shape_map' when 'profile' is fixed.");
+
+  assert(locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE);
+
+  // a lot copy&paste from SetupVirtualShapeElementMap()
+  bool prev = locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT;
+  // next is always true!
+  bool two_signs = locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE;
+
+  int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
+
+  // in principle other functions are also possible but these two are for either vertical or horizontal structures.
+  assert(f->GetType() == Function::OVERHANG_HOR || f->GetType() == Function::OVERHANG_VERT);
+  assert(f->GetDesignType() == DesignElement::SHAPE_MAP);
+  int dof = f->GetType() == Function::OVERHANG_HOR ? Dof("y") : Dof("x");
+  StdVector<ShapeParam*> shapes = FindShape(NODE, dof);
+  assert(num_node_shapes_ >= (int) shapes.GetSize());
+    assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
+
+  if(shapes.IsEmpty())
+    throw Exception("There are no shape variables for function '" + f->ToString() + "'");
+
+  vem.Reserve(shapes.GetSize() * 2 * (two_signs ? 2 : 1)); // common for node and profile
+
+  StdVector<BaseDesignElement*> buddies; // to be reused temporary vector
+
+  // traverse nodes only and the the corresponding profiles implicitly
+  // do
+  for(unsigned int si = 0; si < shapes.GetSize(); si++)
+  {
+    unsigned int s = shapes[si]->idx;
+    const ShapeParam& node = shape_[s];
+    const ShapeParam& prof  = shape_[s + num_node_shapes_];
+    // don't deal with the complicated stuff!
+    assert(!node.fixed);
+    assert(!prof.fixed);
+    assert(!node.sym_induced);
+    assert(!node.ShallMapHalfShape());
+    assert((node.dof == 0 && f->GetType() == Function::OVERHANG_VERT) || (node.dof == 1 && f->GetType() == Function::OVERHANG_HOR));
+      // LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_param << " ep=" << shape.end_param << " so=" << shape.start_opt << " eo=" << shape.end_opt;
+
+    // skip the last element as we want only 'full' elements with next when we are not periodic
+    for(int e = node.start_opt + (prev ? 1 : 0), n = node.end_opt - 1; e < n; e++) // we always assume 'next'
+    {
+      BaseDesignElement* bde = opt_shape_param_[e].elem;
+      assert(bde->GetType() == DesignElement::NODE);
+
+      // note that opt_shape_param can be a fragmented variant of shape_param which is an issue with the index which needs to consecutive in opt_shape_param
+      BaseDesignElement* prev_de = prev ? opt_shape_param_[e == node.start_opt ? node.end_opt-1 : e-1].elem : NULL; // if not prev take last
+      BaseDesignElement* next_de =        opt_shape_param_[e == node.end_opt-1 ? node.start_opt : e+1].elem; // we next cannot be next we take first (only if periodic)
+
+      // the profile for the nodes
+      BaseDesignElement* bde_pr = opt_shape_param_[prof.start_opt + (bde->GetOptIndex() - node.start_opt)].elem;
+      BaseDesignElement* prev_pr = prev_de != NULL ? opt_shape_param_[prof.start_opt + (prev_de->GetOptIndex() - node.start_opt)].elem : NULL;
+      BaseDesignElement* next_pr = next_de != NULL ? opt_shape_param_[prof.start_opt + (next_de->GetOptIndex() - node.start_opt)].elem : NULL;
+
+      buddies.Clear(true); // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
+      buddies.Push_back(bde_pr);
+      if(prev_de && prev_pr) {
+        buddies.Push_back(prev_de);
+        buddies.Push_back(prev_pr);
+      }
+      buddies.Push_back(next_de);
+      buddies.Push_back(next_pr);
+
+      vem.Push_back(Function::Local::Identifier(bde, buddies, sign_1));
+      if(two_signs)
+        vem.Push_back(Function::Local::Identifier(bde, buddies, sign_2));
+
+
+      LOG_DBG(SMD) << "SVMSEM s=" << s << " n=" << n << " prev_opt_node=" << (prev_de != NULL ? (int) prev_de->GetOptIndex() : -1) << " node =" << e
+                                                     << " next_opt_node=" << (next_de != NULL ? (int) next_de->GetOptIndex() : -1)
+                                                     << " prev_opt_prof=" << (prev_pr != NULL ? (int) prev_pr->GetOptIndex() : -1) << " prof =" << bde_pr->GetOptIndex()
+                                                     << " next_opt_prof=" << (next_pr != NULL ? (int) next_pr->GetOptIndex() : -1);
+
+    }
+  }
+
+  LOG_DBG(SMD) << "SVMSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
+}
+
+
 
 void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
 {
@@ -820,9 +927,6 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
   LOG_DBG(SMD) << "SCVSEM f=" << f->ToString() << " loc=" << locality << " -> vem=" << vem.GetSize();
 }
-
-
-
 
 
 void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
@@ -1339,6 +1443,12 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)
 {
+  if(domain->GetOptimization() != NULL)
+  {
+    opt_ = domain->GetOptimization();
+    CheckPlausibility(); // throws exception
+  }
+
   // full_data is only used for internal optimizers to have a consecutive design array
   full_data.Clear(false); // release memory
   full_data.Reserve(GetNumberOfVariables()); // shape param + aux
@@ -1358,8 +1468,6 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
     LOG_DBG2(SMD) << "PI i=" << i << " idx=" << opt_shape_param_[i].elem->GetIndex() << " #o=" << objectives << " #c=" << constraints << " -> " << opt_shape_param_[i].sym->ToString();
   }
 
-  if(domain->GetOptimization() != NULL)
-    opt_ = domain->GetOptimization();
 }
 
 StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int dof)

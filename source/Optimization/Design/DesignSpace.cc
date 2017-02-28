@@ -553,6 +553,9 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
   double dens = CalcAverageDensityAtNode(nodeId,false);
+  // with shape mapping density might be slightly larger one for tanh_sum or much larger with sum
+  assert(dens < 1.01);
+  dens = std::min(1.0, dens); // not very smooth but otherwise we open hell :(
 
   if (derivative)
     return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);

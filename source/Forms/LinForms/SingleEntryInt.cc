@@ -55,7 +55,7 @@ namespace CoupledField {
     // we use just a dummy local point, as we assume constant
     // expression coefficient function
     LocPointMapped lpm;
-    std::cout << "val_->GetDimType(): " << CoefFunction::CoefDimType_.ToString(val_->GetDimType()) << std::endl;
+    // std::cout << "val_->GetDimType(): " << CoefFunction::CoefDimType_.ToString(val_->GetDimType()) << std::endl;
     if( val_->GetDimType() == CoefFunction::SCALAR) {
       elemVec.Resize(1);
       val_->GetScalar(elemVec[0], lpm);
