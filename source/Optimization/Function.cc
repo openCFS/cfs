@@ -175,7 +175,8 @@ Function::Function(PtrParamNode pn) {
         break;
     break;
 
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
     if(!BaseDesignElement::IsShapeMapType(design_))
       throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
@@ -439,7 +440,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -630,7 +632,8 @@ bool Function::IsDoubleBounded() const
   {
   case SLOPE:
   case CURVATURE:
-  case OVERHANG:
+  case OVERHANG_HOR:  // abs of the lower parts only: |(a_j-w_j) - (a_i-w_j)| >= c^*   (j=i+1)
+  // !! OVERHANG_VERT is NOT double bounded  : (a_j+w_j) - (a_i+w_i) <= c^* and (a_i+w_i) - (a_j+w_j) <= c^*
   case SHAPE_INF:
     {
       Local::Locality loc = local->GetLocality();
@@ -656,7 +659,8 @@ bool Function::IsLocal(Type t) {
   case JUMP:
   case BUMP:
   case CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case PERIODIC:
   case DESIGN:
   case SUM_MODULI:
@@ -776,7 +780,8 @@ bool Function::ForSensitivityFiltering() const {
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -889,8 +894,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       space->RegisterPseudoDesignRegion(region, design_, &elements);
     }
   }
-
-//  assert(elements.GetSize() == elements.Capacity());
+  // empty elements for shape mapping!
+  //  assert(elements.GetSize() == elements.Capacity());
 }
 
 void Function::SetDenseSparsityPattern(DesignSpace* space) {
@@ -944,7 +949,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -1125,7 +1131,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
     if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
@@ -1252,7 +1259,7 @@ void Function::Local::PostInit()
   Function::Type ftype = func_->GetType();
   string fname = Function::type.ToString(ftype);
 
-  // this is actually pure constructor work, just extracted to handle func_tion size
+  // this is actually pure constructor work, just extracted to handle function size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
   assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
 
@@ -1303,7 +1310,7 @@ void Function::Local::PostInit()
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupCyclicVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
-      throw Exception("the local func_tion '" + func_->ToString() + "' is only mapping");
+      throw Exception("the local function '" + func_->ToString() + "' is only mapping");
    break;
 
 
@@ -1316,7 +1323,7 @@ void Function::Local::PostInit()
   }
 
   if (virtual_elem_map.GetSize() == 0)
-    throw Exception("mesh too small for locality of func_tion '" + fname + "' or wrong design attribute");
+    throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
@@ -2152,8 +2159,9 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
       fv = CalcCurvature();
     break;
 
-  case OVERHANG:
-    fv = CalcOverhang(local);
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
+    fv = CalcOverhang(f->type_);
     break;
 
   case SUM_MODULI:
@@ -2352,8 +2360,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
         gv = CalcCurvatureGradient(n);
       break;
 
-    case OVERHANG:
-      gv = CalcOverhangGradient(n);
+    case OVERHANG_VERT:
+    case OVERHANG_HOR:
+      gv = CalcOverhangGradient(n, g->type_);
       break;
 
     case STRESS:
@@ -2526,7 +2535,7 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const
     return sign == -1 ? 1.0 : -1.0;
 }
 
-double Function::Local::Identifier::CalcOverhang(const Local* local) const
+double Function::Local::Identifier::CalcOverhang(Function::Type ft) const
 {
   // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
   //assert(this->sign == 1); // the other stuff is not considered yet
@@ -2541,17 +2550,29 @@ double Function::Local::Identifier::CalcOverhang(const Local* local) const
   double an = neighbor[1]->GetPlainDesignValue(); // next
   double wn = neighbor[2]->GetPlainDesignValue();
 
-  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH); // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt
-  // sign = 1: (an+wn) - (a+w) <= c^*
-  // sign = -1: (a+w) - (an+wn) <= c^*
-  double res = (sign == -1 ? -1.0 : 1.0) * ((an+wn) - (a+w));
+  assert(ft == OVERHANG_VERT || ft == OVERHANG_HOR);
 
-  LOG_DBG3(func) << "L:I:CO d=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn
-                 << " sign=" << sign << " -> " << res;
+  // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt. The BOTH case is the positive case. See BaseOptimizer::GetBounds() and Function::IsDoubleBounded()
+  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH);
+
+  // we may have BOTH for OVERHANG_HOR but we need explicit (locality = REVERSE) signs for OVERHANG_VERT
+  assert(!(sign == BOTH && ft != OVERHANG_VERT));
+
+  double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
+
+  double res = -1.0;
+
+  if(ft == OVERHANG_HOR)
+    res = s * ((an-wn) - (a-w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
+  else
+    res = s == 1 ? ((an+wn) - (a+w)) : ((a-w) - (an-wn)); // the right part is checked for right overhang only, the left part for a left overhang only
+
+  LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
+                 << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn << " -> " << res;
   return res;
 }
 
-double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx) const
+double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function::Type ft) const
 {
   assert(neighbor.GetSize() == 3);
   assert(element->GetType() == DesignElement::NODE);        // a
@@ -2559,16 +2580,28 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx) const
   assert(neighbor[1]->GetType() == DesignElement::NODE);    // an
   assert(neighbor[2]->GetType() == DesignElement::PROFILE); // wn
 
-  //assert(this->sign == 1); // the other stuff is not considered yet
-  // (an+wn) - (a+w) <= c^*
+  //assert(this->sign == 1); // the other stuff is not considered yet. n = i+1
+  // OVERHANG_HOR:  |(an-wn) - (a-w)| >= c^*
+  // OVERHANG_VERT: ((an+wn) - (a+w)) <= c^* and ((a-w) - (an-wn)) <= c^*
+  assert(sign == 1 || sign == -1 || sign == BOTH);
+  double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
+  // var        a    w   an  wn
+  // hor_s=1   -1   +1   +1  -1
+  // hor_s=-1  +1   -1   -1  +1
+  // vert_s=1  -1   -1   +1  +1
+  // vert_s=-1 +1   -1   -1  +1
+
   switch(neigh_idx)
   {
-  case -1:
-  case 0:
-    return sign == -1 ? 1.0 : -1.0;
-  case 1:
-  case 2:
-    return sign == -1 ? -1.0 : 1.0;
+  case -1: // a
+    // same for hor and vert
+    return -1 * s;
+  case 0:  // w
+    return (ft == OVERHANG_HOR && s == 1.0) ? 1.0 : -1.0;
+  case 1: // an
+     return s;
+  case 2: // wn
+    return (ft == OVERHANG_HOR && s == 1.0) ? -1.0 : 1.0;
   default:
     assert(false);
     return -1.0;

@@ -381,8 +381,10 @@
                 <!-- slope of slope = second derivate. Meant for shape mapping node and profile -->
                 <xsd:enumeration value="curvature"/>
                 <xsd:enumeration value="globalCurvature"/>
-                <!-- the overhap constraint is specific for shape mapping with nodes and profiles -->
-                <xsd:enumeration value="overhang"/>
+                <!-- the overhap constraint is specific for shape mapping with nodes and profiles. For vertical (dof=x) structures the bound is greater than value -->
+                <xsd:enumeration value="overhang_vert"/>
+                <!-- For horizontal (dof=y) structures the bound is smaller than the value -->
+                <xsd:enumeration value="overhang_hor"/>
                 <!-- local constraint right minus left. Meant for shape mapping -->
                 <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->

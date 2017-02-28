@@ -1576,7 +1576,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::JUMP:
       case Function::BUMP:
       case Function::CURVATURE:
-      case Function::OVERHANG:
+      case Function::OVERHANG_VERT:
+      case Function::OVERHANG_HOR:
       case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:
