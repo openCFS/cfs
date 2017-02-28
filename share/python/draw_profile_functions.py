@@ -1315,7 +1315,8 @@ def triangle_contains_any_node(vertices):
       # if we are one of the vertices skip
       if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
         continue
-    
+      
+#       log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + " contains node " + str(n[1]))
       if triangle_contains_point((vertices[0].coords,vertices[1].coords,vertices[2].coords),n[0]):
         return True    
   
@@ -1513,8 +1514,8 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
       continue
     if node.id == vert1.id or node.id == vert2.id:
       continue
-#     if triangle_contains_any_node([node,vert1,vert2]):
-#       continue
+    if triangle_contains_any_node([node,vert1,vert2]):
+      continue
     if triangle_overlap_others(triangles,(vert1,vert2,node)):
       continue
     # if all three nodes are already connected to other triangles
@@ -1554,14 +1555,13 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
     # removes triangles as long as we don't have candidates for these triangles
     if not pop_triangles(triangles):
       return False
-    
-    # take out last triangle as we have to modify it
-    tri = triangles.pop()
+
+    tri = triangles[-1] 
     alternatives = tri.other_candidates
-    active_edge = tri.edge
-    a = active_edge[0]
-    b = active_edge[1]
+    a = tri.edge[0]
+    b = tri.edge[1]
     log("active edge: " + str(a.id) + "," + str(b.id))
+    tri.next = None
     next = give_best_next_neighbor(triangles,alternatives, a, b, quality_bound)
     if next is not None:
       # next is good, so it is not a candidate anymore
@@ -1607,8 +1607,9 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 90 and b.id == 2970:
-#     return False
+  if a.id == 993 and b.id == 12113:
+    print("here")
+    return False
 
   log("\na: " + str(a.id))
   log("b: " + str(b.id))
@@ -1680,6 +1681,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     log(str(n))
   assert(nodes)
   tree = build_tree(end_nodes)
+  count = 0
   for n in nodes:
     start_node = n
     
@@ -1688,8 +1690,13 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     log("\nstarting with " + str(start_node.id) + "," + str(next.id))
     log("start: " + str(start_node.id) + " " + str(start_node.coords))
     log("next: " + str(next.id) + " " + str(next.coords))
-      
-    if not start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells):
+    
+    out1, out2 = start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells)
+    if out2:
+      count += 1
+#       if count == 2:
+#         break   
+    if not out1:
       print("skip " + str(n.id) + "\n")
       log("skip " + str(n.id))
 #       print("size of history: " + str(len(triangles_history)))
@@ -1771,7 +1778,6 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
 # for this, we need to add additional points on smaller circles within starting circle
 # we need nodes_ids to determine ids of points on starting circle 
 def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
-  global res, res_surf_lines, logger
   radius = profile.radius_left
   arc_length = radius * radians(360.0/np.size(nodes_ids,0))
   previous_points_left, previous_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
@@ -1782,6 +1788,8 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   triangles = []
   step = 4.0/res
   tmp_res = 0
+  
+  history = []
   
   # create points on circles lying in the same plane as original circle
   while len(previous_points_left) > 1 and len(previous_points_right) > 1:
@@ -1798,12 +1806,11 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
 #         log("start_node" + str(start_node.id))
 #         log("next" + str(next.id))
 #         log("other" + str(other.id))
-      start_triangulation(start_node, next, other,lists[0],lists[1],cells)
+      start_triangulation(history,start_node, next, other,lists[0],lists[1],cells)
              
     previous_points_left = points_left
     previous_points_right = points_right
       
-    
   return id
     
 def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
@@ -1842,9 +1849,9 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
-    if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other)):
+    if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other),True):
       log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
-      return False
+      return False, False
 
   assert(other is not None)
   
@@ -1854,6 +1861,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   
   quality_bound = 5  
   end = False
+  stop = False
   while not end: 
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
@@ -1865,6 +1873,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
 #       assert(len(triangles) == 1)
       # in this case, we want to output the so far valid triangles for debugging purposes
       if len(triangles) > 1:
+        stop = True
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
@@ -1875,6 +1884,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         log("filled")
         end = True
+        stop = True
+#         break
       # else: simply check next triangle    
   
   for triangle in triangles:
@@ -1884,7 +1895,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   history += triangles
   
   # 
-  return True  
+  return True, stop  
 def read_vtk(filename):
   reader = vtk.vtkXMLPolyDataReader()
   reader.SetFileName(filename)
@@ -1983,10 +1994,15 @@ def build_tree(end_nodes):
   # build tree
   return spatial.cKDTree(points)#
 
-# are all three vertices of a triangle already connected in other triangkes
-def vertices_already_connected(triangles,vertices):
-#   # if one/two of the vertices form the very first edge, make an exception
-  if (len(triangles) > 10):
+# are all three vertices of a triangle already connected in other triangles
+# @param list of all triangles created so far
+# @param vertices of the triangle we want to test
+# @param first triangle indicates whether the tested vertices should form
+# a first triangle of the gaps. If so, don't make an exception  
+def vertices_already_connected(triangles,vertices,first_triangle=False):
+  # if one/two of the vertices form the very first edge, make an exception
+  # this exception doesn't hold if we are checking the first triangle!
+  if (len(triangles) > 10) and not first_triangle:
     first_verts = triangles[0].vertices
     first_edge = triangles[0].edge
     other_edge = [v for v in first_verts if v != first_edge[1]]
@@ -1995,7 +2011,10 @@ def vertices_already_connected(triangles,vertices):
     if vertices[0] in other_edge or vertices[1] in other_edge or vertices[2] in other_edge:
       return False
   
-  # skip first triangle, so that we are able to close the triangulation 
+  # skip first triangle, so that we are able to close the triangulation
+  log("vertex " + str(vertices[0].id) + " already connected? " + str(vertex_alrerady_connected(triangles,vertices[0])))
+  log("vertex " + str(vertices[1].id) + " already connected? " + str(vertex_alrerady_connected(triangles,vertices[1])))
+  log("vertex " + str(vertices[2].id) + " already connected? " + str(vertex_alrerady_connected(triangles,vertices[2]))) 
   if vertex_alrerady_connected(triangles,vertices[0]) and vertex_alrerady_connected(triangles,vertices[1]) and vertex_alrerady_connected(triangles,vertices[2]):
     return True
   else:
@@ -2022,7 +2041,6 @@ def calc_triangle_barycenter(vert1,vert2,vert3):
 # 3rd point lies on median between triangle's barycenter and vert3 and distance from vert1 to that point is eps
 def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
   centroid = calc_triangle_barycenter(vert1, vert2, vert3)
-  log("barycenter:" + str(centroid))
   
   # directional vector from vert1 to centroid 
   d1 = centroid - vert1 
@@ -2051,14 +2069,18 @@ def triangle_overlap_others(triangles,vertices):
   sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0].coords, vertices[1].coords, vertices[2].coords,eps=0.1)
   # don't check last triangle as it might be the one we want to modify
   for tri in triangles:
+    if tri.next is None:
+#       print("skip overlap check for (" + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + ") and (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")")
+      log("skip overlap check for (" + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + ") and (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")")
+      continue
     # extract coordinates of triangle's vertices
     v = []
-    log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
+#     log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
     for vert in tri.vertices:
       v.append(vert.coords)
-      log(str(vert.id) + ",", linebreak=False)
+#       log(str(vert.id) + ",", linebreak=False)
     
-    log(") with sample1=" + str(sample1) + " , sample2=" + str(sample2) + ", sample3=" + str(sample3))  
+#     log(") with sample1=" + str(sample1) + " , sample2=" + str(sample2) + ", sample3=" + str(sample3))  
     if triangle_contains_point(v,sample1) or triangle_contains_point(v,sample2) or triangle_contains_point(v,sample3):
       return True
     
