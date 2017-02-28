@@ -121,7 +121,8 @@ class Function
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala'). Multiplies slope with prev and with next */
       CURVATURE,                 /*!< Second derivative (prev, this, next) timing h=1 */
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
-      OVERHANG,                  /*!< Overhang constraint for shape mapping for additive manufacturing */
+      OVERHANG_VERT,             /*!< Overhang constraint for vertical (dof=x) shape mapping structures for additive manufacturing.  */
+      OVERHANG_HOR,              /*!< Overhang constraint for horizontal (dof=y) shape mapping structures for additive manufacturing */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -478,8 +479,8 @@ class Function
         double CalcSlopeGradient(int neigh_idx) const;
 
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
-        double CalcOverhang(const Local* local) const;
-        double CalcOverhangGradient(int neigh_idx) const;
+        double CalcOverhang(Function::Type ft) const;
+        double CalcOverhangGradient(int neigh_idx, Function::Type ft) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;

@@ -823,15 +823,26 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
   int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
   int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
 
-  vem.Reserve(num_node_shape_params_ * 2 * (two_signs ? 2 : 1)); // common for node and profile
-
-  StdVector<BaseDesignElement*> buddies; // to be reused temporay vector
-
+  // in principle other functions are also possible but these two are for either vertical or horizontal structures.
+  assert(f->GetType() == Function::OVERHANG_HOR || f->GetType() == Function::OVERHANG_VERT);
   assert(f->GetDesignType() == DesignElement::SHAPE_MAP);
-  assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
+  int dof = f->GetType() == Function::OVERHANG_HOR ? Dof("y") : Dof("x");
+  StdVector<ShapeParam*> shapes = FindShape(NODE, dof);
+  assert(num_node_shapes_ >= (int) shapes.GetSize());
+    assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
+
+  if(shapes.IsEmpty())
+    throw Exception("There are no shape variables for function '" + f->ToString() + "'");
+
+  vem.Reserve(shapes.GetSize() * 2 * (two_signs ? 2 : 1)); // common for node and profile
+
+  StdVector<BaseDesignElement*> buddies; // to be reused temporary vector
+
   // traverse nodes only and the the corresponding profiles implicitly
-  for(unsigned int s = 0; s < (unsigned int) num_node_shapes_; s++)
+  // do
+  for(unsigned int si = 0; si < shapes.GetSize(); si++)
   {
+    unsigned int s = shapes[si]->idx;
     const ShapeParam& node = shape_[s];
     const ShapeParam& prof  = shape_[s + num_node_shapes_];
     // don't deal with the complicated stuff!
@@ -839,7 +850,7 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
     assert(!prof.fixed);
     assert(!node.sym_induced);
     assert(!node.ShallMapHalfShape());
-
+    assert((node.dof == 0 && f->GetType() == Function::OVERHANG_VERT) || (node.dof == 1 && f->GetType() == Function::OVERHANG_HOR));
       // LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_param << " ep=" << shape.end_param << " so=" << shape.start_opt << " eo=" << shape.end_opt;
 
     // skip the last element as we want only 'full' elements with next when we are not periodic
