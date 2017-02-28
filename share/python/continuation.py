@@ -83,7 +83,7 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
   return var_problem
 
 
-parser = argparse.ArgumentParser(description='Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py')
+parser = argparse.ArgumentParser(description='Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py. See also warmstart.py')
 parser.add_argument('problem', help="the problem xml without extension where e.g. '-beta_x' will be added")
 parser.add_argument('-m', "--mesh", help="the mesh file with extension", required=True)
 parser.add_argument('-x', '--initial', help="optional density.xml for initial design (with extension)")

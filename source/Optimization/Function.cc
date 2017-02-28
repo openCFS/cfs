@@ -42,6 +42,7 @@ DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::SlackFnct> Function::slackFnct;
 Enum<Function::Access> Function::access;
 Enum<Function::StressType> Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
@@ -70,8 +71,6 @@ Function::Function(PtrParamNode pn) {
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
   this->pn = pn;
 
-  this->type_ = type.Parse(pn->Get("type")->As<string>());
-
   this->access_ = pn->Has("access") ? access.Parse(pn->Get("access")->As<string>()) : Function::DEFAULT;
 
   if (pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
@@ -86,6 +85,16 @@ Function::Function(PtrParamNode pn) {
   //  throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
+
+  this->type_ = type.Parse(pn->Get("type")->As<string>());
+
+  slackFnct_ = slackFnct.Parse(pn->Get("function")->As<string>());
+
+  if(type_ == SLACK_FNCT && slackFnct_ == NO_FUNCTION)
+    EXCEPTION("a function 'slackFunction' requires the attribute 'function' to be set");
+
+  if(type_ != SLACK_FNCT && slackFnct_ != NO_FUNCTION)
+    preInfo_->SetWarning("providing 'function' " + slackFnct.ToString(slackFnct_) + " names only sense for type " + type.ToString(SLACK_FNCT));
 
   if(type_ == BANDGAP)
   {
@@ -164,6 +173,12 @@ Function::Function(PtrParamNode pn) {
     if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL && design_ != DesignElement::ALL_DESIGNS)
           throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
         break;
+    break;
+
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
+    if(!BaseDesignElement::IsShapeMapType(design_))
+      throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
 
   default:
@@ -326,6 +341,12 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
+
+  if(type_ == SLACK_FNCT)
+    info->Get("function")->SetValue(slackFnct.ToString(slackFnct_));
+
+  info->Get("name")->SetValue(ToString());
+
   if(Optimization::context->IsComplex() && omega_omega_) // reduce output
     info->Get("omega_omega")->SetValue(omega_omega_);
   // we check for valid occurrence of parameter in the constructor
@@ -350,11 +371,29 @@ void Function::ToInfo(PtrParamNode info) {
 
 string Function::ToString() const
 {
+  if(type_ == SLACK_FNCT)
+  {
+    switch(slackFnct_)
+    {
+    case NORM_BANDGAP:
+      return "sf_2s_by_a";
+    case REL_BANDGAP:
+      return "sf_2s_by_a-s";
+    case ALPHA_SLACK_QUOTIENT:
+      return "sf_a_by_s";
+    case ALPHA_MINUS_SLACK:
+      return "sf_a-s";
+    case NO_FUNCTION:
+      assert(false);
+      return "no_funct";
+    }
+  }
+
   // optional for oscillation
-  if (local != NULL && local->GetPhase() != Local::BOTH)
+  if(local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
-  if (IsPhysical())
+  if(IsPhysical())
     return "physical_ " + type.ToString(type_);
 
   return type.ToString(type_);
@@ -401,7 +440,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -434,8 +474,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
-  case REL_SLACK_BANDGAP:
-  case ALPHA_SLACK_QUOTIENT:
+  case SLACK_FNCT:
   case EXPRESSION:
   case FILTERING_GAP:
     assert(excite_index < 0);
@@ -586,6 +625,32 @@ bool Function::IsHomogenization() const {
   }
 }
 
+bool Function::IsDoubleBounded() const
+{
+  // read the documentation in the header :)
+  switch(type_)
+  {
+  case SLOPE:
+  case CURVATURE:
+  case OVERHANG_HOR:  // abs of the lower parts only: |(a_j-w_j) - (a_i-w_j)| >= c^*   (j=i+1)
+  // !! OVERHANG_VERT is NOT double bounded  : (a_j+w_j) - (a_i+w_i) <= c^* and (a_i+w_i) - (a_j+w_j) <= c^*
+  case SHAPE_INF:
+    {
+      Local::Locality loc = local->GetLocality();
+      // there might be more cases, the important stuff ist, that it is not reverse because this means two constraints for lower and upper
+      if(loc == Local::NEXT || loc == Local::PREV_NEXT || loc == Local::MULT_DESIGNS_NEXT || loc == Local::MULT_DESIGNS_PREV_NEXT ||
+         loc == Local::SHAPE)
+        return true;
+      else
+        return false;
+    }
+  default:
+    return false;
+  }
+  assert(false);
+  return false;
+}
+
 bool Function::IsLocal(Type t) {
   switch (t) {
   case SLOPE:
@@ -594,7 +659,8 @@ bool Function::IsLocal(Type t) {
   case JUMP:
   case BUMP:
   case CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case PERIODIC:
   case DESIGN:
   case SUM_MODULI:
@@ -636,7 +702,7 @@ bool Function::ForDensityFiltering() const {
     switch (type_)
     {
     case SLACK:
-    case ALPHA_SLACK_QUOTIENT:
+    case SLACK_FNCT:
     case SHAPE_INF:
     case MULTIMATERIAL_SUM:
     case SUM_MODULI:
@@ -714,7 +780,8 @@ bool Function::ForSensitivityFiltering() const {
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case DESIGN:
   case GLOBAL_DESIGN:
   case PERIODIC:
@@ -742,9 +809,8 @@ bool Function::ForSensitivityFiltering() const {
   case TRACE_MAPPING:
   case MULTIMATERIAL_SUM:
   case SLACK:
-  case REL_SLACK_BANDGAP:
   case TEMP_TRACKING_AT_INTERFACE:
-  case ALPHA_SLACK_QUOTIENT:
+  case SLACK_FNCT:
   case EXPRESSION:
   case SHAPE_INF:
     return false;
@@ -828,8 +894,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       space->RegisterPseudoDesignRegion(region, design_, &elements);
     }
   }
-
-//  assert(elements.GetSize() == elements.Capacity());
+  // empty elements for shape mapping!
+  //  assert(elements.GetSize() == elements.Capacity());
 }
 
 void Function::SetDenseSparsityPattern(DesignSpace* space) {
@@ -883,7 +949,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case CURVATURE:
   case GLOBAL_CURVATURE:
-  case OVERHANG:
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
   case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -919,24 +986,22 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
     break;
 
   case PENALIZED_VOLUME:
-    for (unsigned int i = 0; i < space->transfer.GetSize(); i++)
-      if (space->transfer[i].IsPenalized())
+    for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
+      if(space->transfer[i].IsPenalized())
         preInfo_->SetWarning("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
+
   case SLACK:
-    if (!space->HasSlackVariable())
+    if(!space->HasSlackVariable())
       throw Exception("'slack' as objective function requires 'slack' design");
     break;
-
-  case ALPHA_SLACK_QUOTIENT:
-    if (!space->HasSlackVariable() || !space->HasAlphaVariable())
-      throw Exception("'alphaSlackQuotient' as function requires 'slack' and 'alpha' design");
-    break;
-
 
   default: // do nothing
     break;
   }
+
+  if(slackFnct_ != NO_FUNCTION && (!space->HasSlackVariable() || !space->HasAlphaVariable()))
+    throw Exception("for slackFunction '" + slackFnct.ToString(slackFnct_) + "' designs 'slack' and 'alpha' are required");
 
   // don't define the elements here, it is specific for objective and conditions
 }
@@ -1050,13 +1115,12 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   switch (ftype) {
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
-        locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
-        if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE)
-          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
-        break;
+    if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
+    break;
 
   case SLOPE:
-  case OVERHANG:
     if(user == DEFAULT && snopt)
       locality_ = NEXT;
     if(user == DEFAULT && !snopt)
@@ -1065,6 +1129,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
       throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
     if(locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    break;
+
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
+    if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
     break;
 
   case GLOBAL_SLOPE:
@@ -1188,7 +1259,7 @@ void Function::Local::PostInit()
   Function::Type ftype = func_->GetType();
   string fname = Function::type.ToString(ftype);
 
-  // this is actually pure constructor work, just extracted to handle func_tion size
+  // this is actually pure constructor work, just extracted to handle function size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
   assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
 
@@ -1222,7 +1293,10 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_PREV_NEXT:
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
-    SetupMultDesignsVirtualElementMap(func_);
+    if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
+      smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_, phase_);
+    else
+      SetupMultDesignsVirtualElementMap(func_);
     break;
 
   case NEXT_DIAG:
@@ -1236,7 +1310,7 @@ void Function::Local::PostInit()
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
       smd->SetupCyclicVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
-      throw Exception("the local func_tion '" + func_->ToString() + "' is only mapping");
+      throw Exception("the local function '" + func_->ToString() + "' is only mapping");
    break;
 
 
@@ -1249,7 +1323,7 @@ void Function::Local::PostInit()
   }
 
   if (virtual_elem_map.GetSize() == 0)
-    throw Exception("mesh too small for locality of func_tion '" + fname + "' or wrong design attribute");
+    throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
@@ -1727,22 +1801,15 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
   bool prev    = locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == MULT_DESIGNS_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE;
-  assert(two_signs);
- // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
-     // assume ph is set correctly and Phase is in sync with the signs
-  //int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
-  //int sign_2 = ph != BOTH ? (int) ph : -1;
 
-    int sign_1 =  two_signs ? 1 : Identifier::NO_SIGN;
-    int sign_2 =  -1;
+  int sign_1 =  two_signs ? 1 : Identifier::NO_SIGN;
+  int sign_2 =  -1;
 
   element_dimension_ = 1.0* (two_signs ? 2 : 1);
 
   UInt elems = space->GetNumberOfElements();
 
   virtual_elem_map.Reserve(element_dimension_ * elems);
-
-
 
   // the neighbors are the design elements for the same FE-element but with other designs
   // one is not a neighbor of oneself
@@ -1755,33 +1822,34 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
   case ROTATIONAL_MATRIX_2:
     assert(space->design.GetSize() >= 4);
     if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
-          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
-       if((space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE))
-         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
+      throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+    if((space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE))
+      throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
     //assert(space->design.GetSize() >= 4);
     //des_idx.Push_back(space->FindDesign(DesignElement::G11));
-       if (space->design[0].design == DesignElement::G11)
-       {
-           des_idx.Push_back(space->FindDesign(DesignElement::G12));
-           des_idx.Push_back(space->FindDesign(DesignElement::G21));
-           des_idx.Push_back(space->FindDesign(DesignElement::G22));
-       }
-       else if (space->design[0].design == DesignElement::ROTANGLE)
-       {
-                   des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
-                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
-                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
-       }
-  break;
+    if (space->design[0].design == DesignElement::G11)
+    {
+      des_idx.Push_back(space->FindDesign(DesignElement::G12));
+      des_idx.Push_back(space->FindDesign(DesignElement::G21));
+      des_idx.Push_back(space->FindDesign(DesignElement::G22));
+    }
+    else if (space->design[0].design == DesignElement::ROTANGLE)
+    {
+      des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
+      des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
+      des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
+    }
+    break;
 
   default:
     // all designs but the first one
     des_idx.Reserve(space->design.GetSize()-1);
-    for(unsigned int i = 1; i < space->design.GetSize(); i++) des_idx.Push_back(i);
+    for(unsigned int i = 1; i < space->design.GetSize(); i++)
+      des_idx.Push_back(i);
     break;
   }
 
-//  LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
+  // LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
   for(unsigned int e = 0; e < elems; e++)
   {
@@ -1790,26 +1858,28 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
 
     //Check that the elements has full neighbours
     //if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
-            VicinityElement* ve = de->vicinity;
+    VicinityElement* ve = de->vicinity;
 
-            // do we have a full neighborhood? All or none as in the original slope paper
-            bool full = true;
-            if(prev)
-            {
-              if(ve->design[VicinityElement::X_N] == NULL) full = false;
-              if(ve->design[VicinityElement::Y_N] == NULL) full = false;
-              if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
-            }
-            if(next)
-            {
-              if(ve->design[VicinityElement::X_P] == NULL) full = false;
-              if(ve->design[VicinityElement::Y_P] == NULL) full = false;
-              if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
-            }
+    // do we have a full neighborhood? All or none as in the original slope paper
+    bool full = true;
+    if(prev)
+    {
+      if(ve->design[VicinityElement::X_N] == NULL)
+        full = false;
+      if(ve->design[VicinityElement::Y_N] == NULL)
+        full = false;
+      if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL)
+        full = false;
+    }
+    if(next)
+    {
+      if(ve->design[VicinityElement::X_P] == NULL) full = false;
+      if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+      if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
+    }
 
     //if this is the case, we can add the identifiers
-
-    if (full)
+    if(full)
     {
       neighbours.Resize(0);
 
@@ -1823,9 +1893,8 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
         DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
 
         if (prev)
-        {
           neighbours.Push_back(prev_de);
-        }
+
         neighbours.Push_back(next_de);
       }
 
@@ -1840,26 +1909,23 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
         VicinityElement* veother = other->vicinity;
 
         for(int a = 0; a < dim; a++)
-             {
-               DesignElement* prev_other = prev ? veother->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
-               DesignElement* next_other = veother->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+        {
+          DesignElement* prev_other = prev ? veother->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+          DesignElement* next_other = veother->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
 
-               if (prev)
-               {
-                 neighbours.Push_back(prev_other);
-               }
-               neighbours.Push_back(next_other);
-             }
+          if (prev)
+            neighbours.Push_back(prev_other);
 
+          neighbours.Push_back(next_other);
+        }
 
         LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
-                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+                       << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
       }
 
       virtual_elem_map.Push_back(Identifier(de, neighbours, sign_1));
       if(two_signs)
-         virtual_elem_map.Push_back(Identifier(de, neighbours, sign_2));
-
+        virtual_elem_map.Push_back(Identifier(de, neighbours, sign_2));
     }
   }
 }
@@ -2093,9 +2159,9 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
       fv = CalcCurvature();
     break;
 
-  case OVERHANG:
-    assert(false);
-    fv = -1.0; // CalcOverhang();
+  case OVERHANG_VERT:
+  case OVERHANG_HOR:
+    fv = CalcOverhang(f->type_);
     break;
 
   case SUM_MODULI:
@@ -2294,9 +2360,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
         gv = CalcCurvatureGradient(n);
       break;
 
-    case OVERHANG:
-      assert(false);
-      gv = -1.0; // CalcOverhangGradient();
+    case OVERHANG_VERT:
+    case OVERHANG_HOR:
+      gv = CalcOverhangGradient(n, g->type_);
       break;
 
     case STRESS:
@@ -2448,6 +2514,7 @@ double Function::Local::Identifier::CalcSlope() const {
   assert(this->neighbor.GetSize() == 1);
   double other = neighbor[0]->GetDesign(DesignElement::SMART);
 
+  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH); // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt
   double s = this->sign == -1 ? -1.0 : 1.0;
 
   LOG_DBG3(func) << "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
@@ -2456,28 +2523,89 @@ double Function::Local::Identifier::CalcSlope() const {
 }
 
 
-double Function::Local::Identifier::CalcOverhang(const Local* local) const {
-  // double a1 = GetDesign(DesignElement::NODE, local, DesignElement::PLAIN, false);
-  // double w1 = GetDesign(DesignElement::PROFILE, local, DesignElement::PLAIN, false);
-
-  double mine = element->GetDesign(DesignElement::SMART);
-  assert(this->neighbor.GetSize() == 1);
-  double other = neighbor[0]->GetDesign(DesignElement::SMART);
-
-  double s = this->sign == -1 ? -1.0 : 1.0;
-
-  LOG_DBG3(func) << "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
-                 << " sign=" << sign << " slope -> " << (s * (mine - other));
-  return s * (mine - other);
-}
-
-double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
+double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const
+{
   assert(neigh_idx == -1 || neigh_idx == 0);
   // we have the cases sign=1, sign=-1, NO_SIGN. NO_SIGN is handled as sign=-1
+  LOG_DBG3(func) << "L:I:CSG de=" << element->GetIndex() << " ni=" << neigh_idx << " sign=";
+
   if (neigh_idx == -1)
     return sign == -1 ? -1.0 : 1.0;
   else
     return sign == -1 ? 1.0 : -1.0;
+}
+
+double Function::Local::Identifier::CalcOverhang(Function::Type ft) const
+{
+  // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
+  //assert(this->sign == 1); // the other stuff is not considered yet
+  assert(neighbor.GetSize() == 3);
+  assert(element->GetType() == DesignElement::NODE);
+  assert(neighbor[0]->GetType() == DesignElement::PROFILE);
+  assert(neighbor[1]->GetType() == DesignElement::NODE);
+  assert(neighbor[2]->GetType() == DesignElement::PROFILE);
+
+  double a = element->GetPlainDesignValue(); // this
+  double w = neighbor[0]->GetPlainDesignValue();
+  double an = neighbor[1]->GetPlainDesignValue(); // next
+  double wn = neighbor[2]->GetPlainDesignValue();
+
+  assert(ft == OVERHANG_VERT || ft == OVERHANG_HOR);
+
+  // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt. The BOTH case is the positive case. See BaseOptimizer::GetBounds() and Function::IsDoubleBounded()
+  assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH);
+
+  // we may have BOTH for OVERHANG_HOR but we need explicit (locality = REVERSE) signs for OVERHANG_VERT
+  assert(!(sign == BOTH && ft != OVERHANG_VERT));
+
+  double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
+
+  double res = -1.0;
+
+  if(ft == OVERHANG_HOR)
+    res = s * ((an-wn) - (a-w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
+  else
+    res = s == 1 ? ((an+wn) - (a+w)) : ((a-w) - (an-wn)); // the right part is checked for right overhang only, the left part for a left overhang only
+
+  LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
+                 << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn << " -> " << res;
+  return res;
+}
+
+double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function::Type ft) const
+{
+  assert(neighbor.GetSize() == 3);
+  assert(element->GetType() == DesignElement::NODE);        // a
+  assert(neighbor[0]->GetType() == DesignElement::PROFILE); // w
+  assert(neighbor[1]->GetType() == DesignElement::NODE);    // an
+  assert(neighbor[2]->GetType() == DesignElement::PROFILE); // wn
+
+  //assert(this->sign == 1); // the other stuff is not considered yet. n = i+1
+  // OVERHANG_HOR:  |(an-wn) - (a-w)| >= c^*
+  // OVERHANG_VERT: ((an+wn) - (a+w)) <= c^* and ((a-w) - (an-wn)) <= c^*
+  assert(sign == 1 || sign == -1 || sign == BOTH);
+  double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
+  // var        a    w   an  wn
+  // hor_s=1   -1   +1   +1  -1
+  // hor_s=-1  +1   -1   -1  +1
+  // vert_s=1  -1   -1   +1  +1
+  // vert_s=-1 +1   -1   -1  +1
+
+  switch(neigh_idx)
+  {
+  case -1: // a
+    // same for hor and vert
+    return -1 * s;
+  case 0:  // w
+    return (ft == OVERHANG_HOR && s == 1.0) ? 1.0 : -1.0;
+  case 1: // an
+     return s;
+  case 2: // wn
+    return (ft == OVERHANG_HOR && s == 1.0) ? -1.0 : 1.0;
+  default:
+    assert(false);
+    return -1.0;
+  }
 }
 
 double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const

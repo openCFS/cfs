@@ -2,8 +2,7 @@
 import glob
 import sys
 import argparse
-from cfs_utils import *
-from concurrent.futures._base import _create_and_install_waiters
+from optimization_tools import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='*', help="selection of the info.xml files to process (with wildcards), default is all")
@@ -25,16 +24,9 @@ for f in input:
     label = problem if not running else problem + "_running"     
   
     if args.sort:
-      iter = xml.xpath("//iteration[last()]")[0]
-
-      for ev in range(1,30):
-        if 'ev_'+ str(ev) + '_max' in iter.attrib and 'ev_'+ str(ev+1) + '_min' in iter.attrib:  
-          lower = float(iter.attrib['ev_'+ str(ev) + '_max'])
-          upper = float(iter.attrib['ev_'+ str(ev+1) + '_min'])
-          assert(lower > 0)
-          results.append((problem, (upper-lower) / (lower + .5*(upper-lower)), lower, upper, ev))
-          break # no need to loop further
-          
+      dict = read_bloch_properties(xml)
+      dict['problem'] = problem
+      results.append(dict)
     else:        
       if args.fast and not running and os.path.exists(label + ".2d.png") and os.path.exists(label + ".tiled.png") and os.path.exists(label + ".bloch.png"):
         continue
@@ -43,6 +35,8 @@ for f in input:
       execute("gnuplot -c " + problem + ".plot")
       execute("show_density.py " + problem + ".density.xml --save " + label + ".2d.png")
       execute("show_density.py " + problem + ".density.xml --tile 3 --save " + label + ".tiled.png")
+  except KeyboardInterrupt:
+    os.sys.exit(1)
   except RuntimeError as re:
    print('caught RuntimeError working with ' + problem + ': ' + str(re))
    if not args.failsafe:
@@ -53,9 +47,6 @@ for f in input:
       os.sys.exit(1)
     
 if args.sort:
-  sorted = sorted(results, key=lambda x: x[1], reverse=False)
-  for gap in sorted:
-    lower = gap[2]
-    upper = gap[3]
-    rel = (upper-lower) / lower
-    print('norm: {:4.2f}'.format(gap[1]) + ' rel: {:5.2f}'.format(rel) + ' {:7.1f}'.format(gap[2]) + ' ->{:7.1f}'.format(gap[3]) + ' ' + str(gap[4]) + '->' + str(gap[4]+1) + ' \t' + gap[0])
+  sort = sorted(results, key=lambda x: x['norm'], reverse=False)
+  for gap in sort:
+    print('iter: {:3}'.format(gap['iter']) + ' norm: {:4.2f}'.format(gap['norm']) + ' rel: {:5.2f}'.format(gap['rel']) + ' {:7.1f}'.format(gap['lower']) + ' ->{:7.1f}'.format(gap['upper']) + ' ' + str(gap['ev']) + '->' + str(gap['ev']+1) + ' \t' + gap['problem'])

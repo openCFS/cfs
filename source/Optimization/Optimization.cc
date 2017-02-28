@@ -181,7 +181,7 @@ void Optimization::PostInitSecond()
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetName());
+    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->GetName());
     if(f->GetType() == Function::BANDGAP) {
       log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
@@ -363,7 +363,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::CURVATURE, "curvature");
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
-  Function::type.Add(Function::OVERHANG, "overhang");
+  Function::type.Add(Function::OVERHANG_VERT, "overhang_vert");
+  Function::type.Add(Function::OVERHANG_HOR, "overhang_hor");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
@@ -392,13 +393,19 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
-  Function::type.Add(Function::ALPHA_SLACK_QUOTIENT, "alphaSlackQuotient");
+  Function::type.Add(Function::SLACK_FNCT, "slackFunction");
   Function::type.Add(Function::BANDGAP, "bandgap");
-  Function::type.Add(Function::REL_SLACK_BANDGAP, "relSlackBandGap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+
+  Function::slackFnct.SetName("Function::SlackFnct");
+  Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
+  Function::slackFnct.Add(Function::ALPHA_SLACK_QUOTIENT, "a/s");
+  Function::slackFnct.Add(Function::REL_BANDGAP, "(2*s)/(a-s)");
+  Function::slackFnct.Add(Function::NORM_BANDGAP, "(2*s)/a");
+  Function::slackFnct.Add(Function::ALPHA_MINUS_SLACK, "a-s");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");
@@ -1162,7 +1169,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    iteration->Get(f->ToString())->SetValue(f->GetValue());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum

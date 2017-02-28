@@ -79,6 +79,9 @@ public:
    * @param phase just given to assert() it is BOTH  */
   void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
 
+  /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
+  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
+
   /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
   void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
@@ -215,6 +218,9 @@ protected:
    * @param start_end indicate the first and last element to enable check for clamped */
   void CreateShapeVariable(const ShapeParam* param, int free, bool start_end);
 
+  /** some sanity checks, e.g. volume shall not be linear */
+  void CheckPlausibility();
+
   /** helper for debugging */
   void DumpMap();
 
@@ -250,7 +256,8 @@ protected:
   const ShapeParamElement* GetProfile(const ShapeParamElement* node) const { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
   ShapeParamElement* GetProfile(const ShapeParamElement* node) { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
 
-  /** do we use a fixed profile? Then opt_shape_param_ smaller shape_param_ */
+
+  /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
 
   /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
