@@ -1537,7 +1537,7 @@ def give_next_end_node_on_circle(node,end_nodes,max_i):
     return node
   
   # find direct neighbors
-  next = [v for v in end_nodes if v.i == (node.i+1)%max_i and v.j == node.j]
+  next = [v for v in end_nodes if v.i == (node.i+1)%(max_i+1) and v.j == node.j]
   
   assert(len(next) == 1)
  
@@ -1545,7 +1545,7 @@ def give_next_end_node_on_circle(node,end_nodes,max_i):
 
 def give_best_next_end_node_on_circle(outer_node,inner_node,outer_end_nodes,inner_end_nodes):
   max_i_outer = get_max_grid_coords(outer_end_nodes)
-  max_i_inner = get_max_grid_coords(inner_end_nodes)
+  max_i_inner = get_max_grid_coords(inner_end_nodes) 
   log("max_i_outer:" + str(max_i_outer))
   log("max_i_inner:" + str(max_i_inner))
   
