@@ -4,6 +4,7 @@
 #include <stdio.h>      /* printf */
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <boost/tokenizer.hpp>
 #include <fstream>
@@ -526,10 +527,13 @@ int main(int argc, char * argv[]) {
     char_separator<char> sep("\t");
     while(!(fin.eof())) {
       getline(fin, zeile, '\n');
-      tokenizer tok(zeile,sep);
+      istringstream ss(zeile);
+      string value;
       count2 = 0;
-      for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
-        data[count1][count2] = atof((*beg).c_str());
+      //for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
+      while(getline(ss,value,'\t')) {
+        double nr = atof(value.c_str());//atof((*beg).c_str());
+        data[count1][count2] = nr;
         count2++;
       }
       count1++;
