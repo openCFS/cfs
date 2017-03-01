@@ -104,7 +104,8 @@ namespace CoupledField
     void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
         StdVector<double>& values, GradientType grtype = ALL);
 
-    /** Provide Upper and Lower bounds to the optimizer */
+    /** Provide Upper and Lower bounds to the optimizer.
+     * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
     /** If the actual optimizer is able to handle active sets return here the total number of active

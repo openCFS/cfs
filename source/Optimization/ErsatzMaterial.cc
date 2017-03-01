@@ -94,6 +94,7 @@ ErsatzMaterial::ErsatzMaterial() :
   structure_ = NULL;
   densityFile = NULL;
   bitensor_ = false;
+  trackingFunc_ = NULL;
 
   interfaceDrivenGradCalc_ = false;
 
@@ -1575,7 +1576,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::JUMP:
       case Function::BUMP:
       case Function::CURVATURE:
-      case Function::OVERHANG:
+      case Function::OVERHANG_VERT:
+      case Function::OVERHANG_HOR:
       case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:
@@ -1702,11 +1704,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::BANDGAP:
         result = CalcBandGap(excite, f, derivative);
         break;
-      case Function::ALPHA_SLACK_QUOTIENT:
-        result = CalcAlphaSlackQuotient(f, derivative);
-        break;
-      case Function::REL_SLACK_BANDGAP:
-        result = CalcRelSlackBandGap(f, derivative);
+
+      case Function::SLACK_FNCT:
+        result = CalcSlackFunction(f, derivative);
         break;
 
       case Function::EXPRESSION:
@@ -2638,40 +2638,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   }
 
 
-  double ErsatzMaterial::CalcRelSlackBandGap(Function* f, bool derivative)
-  {
-    assert(f->ctxt->DoBloch());
-    assert(f->GetType() == Function::REL_SLACK_BANDGAP);
-    if(!design->HasAlphaVariable() || !design->HasSlackVariable())
-      throw Exception("Function " + f->ToString() + " is based on the slack variables 'slack' and 'alpha' which were not contained in the design.");
-
-    double a = design->GetAlphaVariable();
-    double s = design->GetSlackVariable();
-
-    if(IsNoise(a) && IsNoise(s))
-      optInfoNode->SetWarning("'alpha' and 'slack' are both close to zero. Best adjust your bounds to avoid division by zero.");
-
-    assert(std::abs(a-s) > 1e-8);
-
-    double result = 0.0;
-
-    if(!derivative)
-      result = 2*s/(a-s);
-    else
-    {
-      AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
-      assert(ad != NULL);
-
-      double da = -2*s / ((a-s)*(a-s));
-      double ds = 2*s / ((a-s)*(a-s)) + 2/(a-s);
-
-      ad->GetAlphaDesign()->AddGradient(f, da);
-      ad->GetSlackDesign()->AddGradient(f, ds);
-    }
-
-    return result;
-  }
-
   double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
@@ -2729,35 +2695,91 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return res;
   }
 
-  double ErsatzMaterial::CalcAlphaSlackQuotient(Function* f, bool derivative) {
-        assert(f->GetType() == Function::ALPHA_SLACK_QUOTIENT);
-        if(!design->HasAlphaVariable() || !design->HasSlackVariable())
-          throw Exception("Function " + f->ToString() + " is based on the slack variables 'slack' and 'alpha' which were not contained in the design.");
+  double ErsatzMaterial::CalcSlackFunction(Function* f, bool derivative)
+  {
+    assert(f->GetType() == Function::SLACK_FNCT);
+    assert(f->GetSlackFnct() != Function::NO_FUNCTION);
+    assert(design->HasAlphaVariable() && design->HasSlackVariable()); // shall be checked already
 
-        double a = design->GetAlphaVariable();
-        double s = design->GetSlackVariable();
+    double a = design->GetAlphaVariable();
+    double s = design->GetSlackVariable();
 
+    double result = 0.0;
+
+    if(!derivative)
+    {
+      switch(f->GetSlackFnct())
+      {
+      case Function::ALPHA_SLACK_QUOTIENT:
         if(IsNoise(a) && IsNoise(s))
           optInfoNode->SetWarning("'alpha' and 'slack' are both close to zero. Best adjust your bounds to avoid division by zero.");
+        result = a / s;
+        break;
 
-        double result = 0.0;
+      case Function::REL_BANDGAP:
+        if(IsNoise(a-s))
+          optInfoNode->SetWarning("denominator of '" + Function::slackFnct.ToString(Function::REL_BANDGAP) + "' is close to zero. Adjust bounds or use " + Function::slackFnct.ToString(Function::NORM_BANDGAP));
+        assert(std::abs(a-s) > 1e-8);
+        result = (2*s)/(a-s);
+        break;
 
-        if(!derivative)
-          result = a / s;
-        else
-        {
-          AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
-          assert(ad != NULL);
+      case Function::NORM_BANDGAP:
+        if(IsNoise(a))
+          optInfoNode->SetWarning("'alpha' is close to zero for function " + Function::slackFnct.ToString(Function::NORM_BANDGAP));
+        assert(std::abs(a) > 1e-8);
+        result = (2*s)/a;
+        break;
 
-          double da = 1/s ;
-          double ds = -a/(s*s);
+      case Function::ALPHA_MINUS_SLACK:
+        result = a-s;
+        break;
 
-          ad->GetAlphaDesign()->AddGradient(f, da);
-          ad->GetSlackDesign()->AddGradient(f, ds);
-        }
-
-        return result;
+      case Function::NO_FUNCTION:
+        assert(false);
+        break;
       }
+    }
+    else // derivative case
+    {
+      AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
+      assert(ad != NULL);
+
+      double da = 0;
+      double ds = 0;
+
+      switch(f->GetSlackFnct())
+      {
+      case Function::ALPHA_SLACK_QUOTIENT:
+        da = 1/s ;
+        ds = -a/(s*s);
+        break;
+
+      case Function::REL_BANDGAP:
+        da = -2*s / ((a-s)*(a-s));
+        ds = 2*s / ((a-s)*(a-s)) + 2/(a-s);
+        break;
+
+      case Function::NORM_BANDGAP:
+        da = -2*s / (a*a);
+        ds = 2/a;
+        break;
+
+      case Function::ALPHA_MINUS_SLACK:
+        da = 1;
+        ds = -1;
+        break;
+
+      case Function::NO_FUNCTION:
+        assert(false);
+        break;
+      }
+
+      ad->GetAlphaDesign()->AddGradient(f, da);
+      ad->GetSlackDesign()->AddGradient(f, ds);
+    }
+
+    return result;
+  }
 
 
   double ErsatzMaterial::CalcStateTrackingAtNode(int node)
@@ -2779,12 +2801,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
     shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
-    Vector<double> load(1);
+    Vector<double> load(1); // scalar
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
 
     double trackVal = trackingFunc_->GetParameter();
     double factor = 0.0;
     trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+
+    LOG_DBG3(em) << "CSTAN node=" << node << " u=" << stateSol[0];
+    assert(stateSol[0] >= 0);
+    assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal));
+    assert(factor > 0);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
   }

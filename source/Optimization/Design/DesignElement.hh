@@ -157,7 +157,10 @@ public:
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
      * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-    typedef enum { UNITY = -10, NO_DERIVATIVE = -9, NO_MULTIMATERIAL = -8, MECH_TRACE = -7, MECH_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
+    typedef enum { UNITY = -11, NO_DERIVATIVE = -10, NO_MULTIMATERIAL = -9,
+                   SHAPE_MAP = -8, // NODE or PROFILE
+                   MECH_TRACE = -7, // MECH_11, MECH_22, MECH_33
+                   MECH_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, SLACK, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
@@ -182,7 +185,7 @@ public:
 
   /** checks if the type is a shape mapping type. Then there is a counterpart with the same name in ShapeMapDesign::Type
    * @see ShapeMapDesign::Convert() */
-  static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE; }
+  static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }

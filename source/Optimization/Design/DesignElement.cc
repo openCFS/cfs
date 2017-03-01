@@ -749,6 +749,7 @@ void DesignElement::SetEnums()
   type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
+  type.Add(SHAPE_MAP, "shape_map");
   type.Add(MECH_TRACE, "mech_trace");
   type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");

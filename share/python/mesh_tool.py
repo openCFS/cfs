@@ -493,7 +493,7 @@ def convert_to_sparse_mesh(dense):
     dnn = bc[1]  # dense nodes
     nodes = []
     for n in range(len(dnn)):
-#       print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
+      print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
       if map[dnn[n]] != -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
@@ -1003,7 +1003,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "validation_test")
+  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz")
 
   nx = x_res  
    
@@ -1019,6 +1019,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     width = 3.0 
     height = 2.0 
     depth = 2.0 
+  elif type == "traegerblz":
+    nz = x_res
+    ny = int(nz)
+    nx = int(nz/30.*125.) 
+    width = 125.0 
+    height = 30.0 
+    depth = 30.0 
   elif type == "validation_test":
     ny = nx 
     nz = nx 
@@ -1093,9 +1100,14 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
           second += 1
         elif type == "validation_test" and (y < int(0.1*ny) or y >= int(0.9*ny)):
           second += 1
-          e.region = "non-design" if not threshold or e.density > threshold else 'void'       
+          e.region = "non-design" if not threshold or e.density > threshold else 'void'    
+        elif type == "traegerblz" and (z < 2./30.0001*nz ):
+          e.region = "aluminium"
+        elif type == "traegerblz" and ((z >= 2./30.0001*nz) and (x*dx < 24.9999)):
+          e.region = "void"            
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
+          mech_count = mech_count + 1
           # assign nodes 
           # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
         ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
@@ -1103,6 +1115,15 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
+    
+  if type == "traegerblz":
+    mesh = name_bc_nodes(mesh)
+    side = (("top_mech", []))
+    mesh.bc.append(side)
+    for z in range(0, nnz):
+      for x in range(0, nnx):
+        if (z*dz <= 2.0000001) or (x*dx >= 24.9999):
+          side[1].append((z * nny + ny) * nnx + x)
 
   if type == "validation_test":
     # create four support pins on bottom face
@@ -1196,12 +1217,6 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
     mesh.ne.append(('inlet', list(range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx))))
     mesh.ne.append(('inlet', list(range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx))))
     mesh.ne.append(('outlet', list(range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx))))
-  elif case == 'two_inlet_two_outlet':
-    inletLength = 0.15 * ny
-    mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) ))
-    mesh.ne.append(('inlet',list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx)) ))
   elif case == 'two_inlet_two_outlet': 
     inletLength = 0.15 * ny 
     mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) )) 
@@ -1214,6 +1229,13 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
   elif case == "diffuser":
     mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))
     mesh.ne.append(('outlet',list(range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx))))
+  elif case == "low_in_high_out":
+    mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
+    mesh.ne.append(('outlet', list(range(int(0.7 * nx * ny - 1 + eps), int(0.9 * nx * ny - 1 + eps), nx))))
+  else:
+    print("unkwnon lbm case '" + case + "'")
+    sys.exit(-1)
+      
   return mesh
 
 def create_backstep(x_res, y_res, z_res): 

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <boost/lexical_cast.hpp>
 #include <stddef.h>
 #include <algorithm>
 #include <iostream>
@@ -28,6 +29,7 @@ namespace CoupledField
 
 using std::endl;
 using std::cout;
+using std::string;
 
 /** global pointer to the snopt class to be used by the callback function */
 SnOpt* static_snopt = NULL;
@@ -131,6 +133,7 @@ void SnOpt::Init()
 
   F.Resize(nF, 0.0);
   // make all arrays one larger such that there exist a pointer when there are no constraints.
+  // snopt always needs at least one nonlinear constraint
   Flow.Resize(nF + 1, -GetInfBound());
   Fupp.Resize(nF + 1,  GetInfBound());
   Fmul.Resize(nF + 1, 0.0);
@@ -139,14 +142,14 @@ void SnOpt::Init()
   // init Jacobian(s)
   initJacobians();
 
-  LOG_DBG(snopt) << "I: get_bounds_info";
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
-  LOG_DBG3(snopt) << "I lb=" << xlow.ToString();
-  LOG_DBG3(snopt) << "I ub=" << xupp.ToString();
-  LOG_DBG3(snopt) << "I nF=" << nF << " Flow=" << Flow[1] << " Fupp=" << Fupp[1];
-  
-  //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
-    //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
+
+  LOG_DBG3(snopt) << "I: lb=" << xlow.ToString();
+  LOG_DBG3(snopt) << "I: ub=" << xupp.ToString();
+  LOG_DBG3(snopt) << "I: nF=" << nF;
+  LOG_DBG3(snopt) << "I: Flow=" << Flow.ToString(); // the fist value is nonsense!
+  LOG_DBG3(snopt) << "I: Fupp=" << Fupp.ToString();
+
   gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
 }
 
@@ -299,10 +302,8 @@ void SnOpt::InfoXMLOutput()
   // this is the break node used by all optimizers
   PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
   summary->Get("break/converged")->SetValue(INFO == 1 || INFO == 3 ? "yes" : "no");
-  summary->Get("problem")->SetValue("SNOPT: " +exitstring);
-
-  // the old and not compatible stuff. Now common for iTop
-  //info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/string")->SetValue(exitstring);
+  summary->Get("problem")->SetValue("SNOPT: " + exitstring);
+  summary->Get("snopt_exit")->SetValue(INFO);
 }
 
 int SnOpt::Callback(integer* Status, const integer n,
