@@ -259,7 +259,7 @@ void OptimalityCondition::CalcNextFramedIteration()
    while(abs(err) > err_eps_  && lambda_iters_ < max_lambda_iters_);
   
    if(lambda_iters_ >= max_lambda_iters_)
-     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
+     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << std::endl;
 }
 
 void OptimalityCondition::CalcNextFumbleIteration()

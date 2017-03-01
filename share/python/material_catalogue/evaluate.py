@@ -330,13 +330,13 @@ if dim == 2:
         infoxml = str(folder) + "/" + problem + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
-          doc = libxml2.parseFile(infoxml)
-          xml = doc.xpathNewContext()
+          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+          #xml = doc.xpathNewContext()
           # complex values!  
           print(infoxml + ' -> ')
-          tensortext = xpath(xml, "//homogenizedTensor/tensor/real")	
-          print(infoxml + ' -> ' + tensortext)	
-          ts = tensortext.split()
+          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")	
+          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements	
+          ts = np.asarray(res)            # convert list to array
           out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + ts[0] + ' ' + ts[1] + ' ' + ts[4] + ' ' + ts[8] + '\n')
           if x != y:
             out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
@@ -382,14 +382,15 @@ elif dim == 3:
         infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
-          doc = libxml2.parseFile(infoxml)
-          xml = doc.xpathNewContext()
+          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+          #xml = doc.xpathNewContext()
           # complex values!  
           print(infoxml + ' -> ')
-          tensortext = xpath(xml, "//homogenizedTensor/tensor/real")  
-          print(infoxml + ' -> ' + tensortext)  
-          ts = tensortext.split()
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ts[0] + ' ' + ts[1] + ' ' + ts[2] + ' ' + ts[7] + ' ' + ts[8] + ' ' + ts[14] + ' ' + ts[21] + ' ' + ts[28] + ' ' + ts[35] + '\n')
+          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
+          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
+          ts = np.asarray(res)
+          print(infoxml + ' -> '+ str(ts))
+          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
           # if x != y:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
         else:

@@ -522,18 +522,15 @@ int main(int argc, char * argv[]) {
       ncol = 2 + 6 + 1;
     }
     vector<vector<double> > data(m*n*o,vector<double>(ncol,0.));
+    vector<double> row(ncol);
     int count1 = 0;
     int count2 = 0;
-    char_separator<char> sep("\t");
     while(!(fin.eof())) {
       getline(fin, zeile, '\n');
       istringstream ss(zeile);
-      string value;
-      count2 = 0;
-      //for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
-      while(getline(ss,value,'\t')) {
-        double nr = atof(value.c_str());//atof((*beg).c_str());
-        data[count1][count2] = nr;
+      count2=0;
+      for (double d; ss >> d; ) {
+        data[count1][count2] = d;
         count2++;
       }
       count1++;
