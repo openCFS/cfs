@@ -467,6 +467,7 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       break;
 
     case BaseSolver::LIS:
+      ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 
