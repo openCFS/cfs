@@ -1276,6 +1276,9 @@ share/python/monotone-plot.dat.py -text
 share/python/nas-tool-gid-to-nas.py -text
 share/python/nas-tool-nas2msh.py -text
 share/python/nas-tool-voidmesh.py -text
+share/python/nrfcommon.py -text
+share/python/nrfreader.py -text
+share/python/nrfwriter.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
