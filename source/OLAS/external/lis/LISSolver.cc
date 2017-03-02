@@ -481,7 +481,7 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
 
       PtrParamNode curNode;
       Double fill = 0;
-      UInt restart = 1;
+      Double prec_omega = 1;
       Double alpha = 1.0;
       UInt m = 3;
       Double drop = 0.05;
@@ -495,9 +495,9 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
         solstream << " -ilu_fill "<< fill;
         break;
       case SSOR:;
-        restart = 1;
-        sol[1]->GetValue("restart",restart,ParamNode::PASS);
-        solstream << " -ssor_w "<< restart;
+        prec_omega = 1;
+        sol[1]->GetValue("omega",prec_omega,ParamNode::PASS);
+        solstream << " -ssor_w "<< prec_omega;
         break;
       case HYBRID:
         EXCEPTION("Hybrid preconditioner not supported right now...")
