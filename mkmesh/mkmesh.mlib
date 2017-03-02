@@ -1,0 +1,322 @@
+! For more information see also
+! http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
+!=======================================
+! INIT method - initializes this script
+!=======================================
+INIT                              
+/NOPR                             ! Issuing this command with no arguments suppresses the interpreted data input print out.
+jninit_=0                         ! jninit_ ---> JN = Job Name; INIT = initialize
+fuowel_=0                         ! fuowel_ ---> FUO = ...; WEL = Write ELements 
+fuownbc_=0                        ! fuownbc_ ---> FUO = ...; WNBC = Write Node Boundary Conditions
+fuowsn_=0                         ! fuowsn_ ---> FUO = ...; WSN = Write Saved Nodes
+fuowse_=0                         ! fuowse_ ---> FUO = ...; WSE = Write Saved Elements
+*abbr,setelems,*use,setelems      ! *ABBR - Defines an abbreviation; *USE - Executes a macro file.
+*abbr,welems,*use,welems
+*abbr,wregelem,*use,wregelem
+*abbr,wnodes,*use,wnodes
+*abbr,wnodbc,*use,wnodbc
+*abbr,wsavnod,*use,wsavnod
+*abbr,wsavelem,*use,wsavelem
+*abbr,mkmesh,*use,mkmesh
+*abbr,mkhdf5,*use,mkhdf5
+/GOPR                             ! Reactivates suppressed print out (by \NOPR).
+/EOF                              ! Exits the file being read.
+!===========================================
+! SETELEMS method - sets element parameters
+!===========================================
+SETELEMS
+/NOPR
+! enter the model creation preprocessor.
+/prep7
+! ET - Defines a local element type from the element library.
+et,100,200,0        ! because type,0 uses default which is 1 
+et,101,200,1
+et,2,200,2
+et,3,200,3
+et,4,200,4
+et,5,200,5
+et,6,200,6
+et,7,200,7
+et,8,200,8
+et,9,200,9
+et,10,200,10
+et,11,200,11
+! initialize element type number
+type_=1000
+! initialize element type name
+typestr_='unknown'
+! initialize element order
+order_='unknown'
+! check the give element type string
+*if,strsub(arg1,1,strleng(arg1)),eq,'2d-line',then
+  type_=100
+  typestr_='2d-line'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'3d-line',then
+  type_=2
+  typestr_='3d-line'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'triangle',then
+  type_=4
+  typestr_='triangle'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'quadr',then
+  type_=6
+  typestr_='quadr'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'tetra',then
+  type_=8
+  typestr_='tetra'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'brick',then
+  type_=10
+  typestr_='brick'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'pyramid',then ! type is changed in mkmesh script
+  type_=10
+  typestr_='pyramid'
+*elseif,strsub(arg1,1,strleng(arg1)),eq,'wedge',then   ! type is changed in mkmesh script
+  type_=10
+  typestr_='wedge'
+*else
+  ! set element type number type_=1001 and write error mesage
+  *MSG,ERROR,
+Wrong element type specified!%/&
+Valid types are:%/&
+'2d-line', '3d-line', 'triangle', 'quadr', 'tetra', 'brick', 'pyramid', 'wedge'
+type_=1001
+*endif !*ENDIF - Ends an if-then-else.
+! check element order (1. or 2.) and increase type number with 1 if "quad".
+*if,strsub(arg2,1,strleng(arg2)),eq,'quad',then
+  type_=type_ + 1
+  order_='quad'
+*else
+  order_='linear'
+*endif
+! check if element type number is less than 1000 (1001 - see mesage from above).
+*if,type_,lt,1000,then
+  type,type_
+*endif
+*MSG,NOTE,typestr_,order_
+%C elements with %C order selected.  ! %C relates to the both variables from the previous line
+/GOPR
+/EOF
+!=============================================================
+! WELEMS method - writes elements to "jobname_.elements"-file
+!=============================================================
+WELEMS
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam ! *GET - Retrieves a value and stores it as a scalar parameter or part of an array parameter.
+  jninit_=1
+*endif
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WELEMS: Argument arg1($elemname) starts with a number. Have you forgotten to use single quotes?"; ans_sendcommand "arg1=chrval(-11111)"; }
+! check if the "jname_.elements" file exists
+*if,fuowel_,eq,0,then
+  *cfopen,jname_,elements ! *CFOPEN = Opens a "command" file (jname_.elements). 
+  fuowel_=1
+*else
+  *cfopen,jname_,elements,,append
+*endif
+! write data to a file in a formatted sequence. arg1 = the name given in the *.in file
+!*cfwrite,arg1
+*vwrite,arg1
+! takes the string(arg1)
+[%C]
+! Closes the "command" file.
+*cfclose
+! write elements to a file.
+ewrite,jname_,elements,,1,long
+/GOPR
+/EOF
+!==================================================================
+! WREGELEM method - writes reg elements to "jobname_.regelem"-file
+!==================================================================
+WREGELEM
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WREGELEM: Argument arg1($elemname) starts with a number. Have you forgotten to use single quotes?"; ans_sendcommand "arg1=chrval(-11111)";}
+! check if the "jname_.regelem" file exists
+*if,fuowel_,eq,0,then
+  *cfopen,jname_,regelem
+  fuowel_=1
+*else
+  *cfopen,jname_,regelem,,append
+*endif
+*vwrite,arg1
+[%C]
+*cfclose
+nsle
+nwrite,jname_,regelem,,1,long
+/GOPR
+/EOF
+!=======================================================
+! WNODES method - writes nodes to "jobname_.nodes"-file
+!=======================================================
+WNODES
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+nwrite,jname_,nodes
+/GOPR
+/EOF
+!===========================================================================
+! WNODBC method - writes node boundary conditions to "jobname_.nodebc"-file
+!===========================================================================
+WNODBC
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {^[0-9]} $nodename] != 0 } {ans_senderror 3 "WNODBC: Argument arg1($nodename) starts with a number. Have you forgotten to use single quotes?"; ans_sendcommand "arg1=chrval(-11111)";}
+! check if the "jname_.nodebc" file exists
+*if,fuownbc_,eq,0,then
+  *cfopen,jname_,nodebc
+  fuownbc_=1
+*else
+  *cfopen,jname_,nodebc,,append
+*endif
+!*cfwrite,arg1
+*vwrite,arg1
+[%C]
+*cfclose
+nwrite,jname_,nodebc,,1
+/GOPR
+/EOF
+!================================================================
+! WSAVNOD method - writes save nodes to "jobname_.savenode"-file
+!================================================================
+WSAVNOD
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {^[0-9]} $nodename] != 0 } {ans_senderror 3 "WSAVNOD: Argument arg1($nodename) starts with a number. Have you forgotten to use single quotes?"; ans_sendcommand "arg1=chrval(-11111)";}
+! check if the "jname_.savenode" file exists
+*if,fuowsn_,eq,0,then
+  *cfopen,jname_,savenode
+  fuowsn_=1
+*else
+  *cfopen,jname_,savenode,,append
+*endif
+!*cfwrite,arg1
+*vwrite,arg1
+[%C]
+*cfclose
+nwrite,jname_,savenode,,1
+/GOPR
+/EOF
+!====================================================================
+! WSAVELEM method - writes save elements to "jobname_.saveelem"-file
+!====================================================================
+WSAVELEM
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WSAVELEM: Argument arg1($elemname) starts with a number. Have you forgotten to use single quotes?"; ans_sendcommand "arg1=chrval(-11111)";}
+! check if the "jname_.saveelem" file exists
+*if,fuowse_,eq,0,then
+  *cfopen,jname_,saveelem
+  fuowse_=1
+*else
+  *cfopen,jname_,saveelem,,append
+*endif
+!*cfwrite,arg1
+*vwrite,arg1
+[%C]
+*cfclose
+ewrite,jname_,saveelem,,1,long
+/GOPR
+/EOF
+!=============================================================================================
+! MKMESH method - writes the mesh as "jobname_.mesh"-file using the mkmesh awk script.
+! For more information see http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
+!=============================================================================================
+MKMESH
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+! check if elements are degenerated and set the "degensw_" switch
+*if,strsub(arg1,1,strleng(arg1)),eq,'degen',then 
+  degensw_='-D'                                  
+*else
+  degensw_=''
+*endif
+! pass "mkmesh degensw_ jname_" command string to the operating system.
+/syp,mkmesh,degensw_,jname_
+/GOPR
+/EOF
+!============================================================================================
+! MKHDF5 method - writes the mesh as "jobname_.h5"-file. Requires cplreader to be installed!
+! For more information see http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
+!============================================================================================
+MKHDF5 
+/NOPR
+! check if job name is initialized
+*if,jninit_,eq,0,then
+  *get,jname_,active,,jobnam
+  jninit_=1
+*endif
+! check if element are degenerated and set switch.
+*if,strsub(arg1,1,strleng(arg1)),eq,'degen',then
+  degensw_='1'
+*else
+  degensw_='0'
+*endif
+! check if cplreader "has to be strict" and set switch.
+*if,strsub(arg2,1,strleng(arg2)),eq,'tolerant',then
+  strictsw_='0'
+*else
+  strictsw_='1'
+*endif
+! check if cplreader has to delete temporary files and set switch. 
+*if,strsub(arg3,1,strleng(arg3)),eq,'nodeltemp',then
+  deltempsw_='0'
+*else
+  deltempsw_='1'
+*endif
+! check if verbose and set switch
+*if,strsub(arg3,1,strleng(arg3)),eq,'verbose',then
+  verbosesw_='1'
+*else
+  verbosesw_='0'
+*endif
+! dataset type to be read from cplreader
+typesw_='ANSYS'
+! set name of dataset as well as of the directory containing the dataset
+~tcl,'set jname [string trim [ans_getvalue PARM,jname_,VALUE]]'
+! set type switch: Specifies the type of dataset to be read from cplreader
+~tcl,'set typesw [string trim [ans_getvalue PARM,typesw_,VALUE]]'
+! get degenerated element switch
+~tcl,'set degensw [string trim [ans_getvalue PARM,degensw_,VALUE]]'
+! get strict switch: If "True" cplreader will complain about holes in the node list and connectivity.
+~tcl,'set strictsw [string trim [ans_getvalue PARM,strictsw_,VALUE]]'
+! get verbose switch: If "True" lots of helpful information will be output in the shell.
+~tcl,'set verbosesw [string trim [ans_getvalue PARM,verbosesw_,VALUE]]'
+! get "Delete temporary files" switch
+~tcl,'set deltempsw [string trim [ans_getvalue PARM,deltempsw_,VALUE]]'
+! execute the command line in the { }-brackets
+~tcl,'set status [catch {exec cplreader --type $typesw --name $jname --degen $degensw --strict $strictsw --verbose $verbosesw --deltemp $deltempsw --segfault 0 --justmesh 1 2> ${jname}_mkhdf5.out} results]'
+!~tcl,'puts ###$status###'
+~tcl,'puts $results'
+! If an error occurs --> Write "*_mkhdf5.out" log file, otherwise write "*.h5" mesh file.
+~tcl,'if {$status != 0} {ans_senderror 3 "MKHDF5: Please check the contents of ${jname}_mkhdf5.out"; file delete ${jname}.h5; } else {file delete ${jname}_mkhdf5.out;}'
+/GOPR
+/EOF
