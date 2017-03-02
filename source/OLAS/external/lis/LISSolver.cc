@@ -109,20 +109,25 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   Integer err=0;
 
   //we create the matrix...
-  if(firstSetup_){
+//  if(firstSetup_){    // Somehow after the first call the matrix assembled by CFS isn't updated anymore in LIS if we have this in here. As we do everything with pointers, setting everything again shouldn't be too costly either
     err = lis_matrix_create(0,&A_); CHKERR(err);
-  }
+//  }
   if(stype == BaseMatrix::SPARSE_SYM){
-    // convert SCRS Matrix to CRS Matrix
-    const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(stdmat);
+    //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
+    //ok we need to think about the matrix conversion a smart way would be nice...
+    EXCEPTION("LIS solver cannot yet handle SCRS matrices.");
+  }
+  if (etype == BaseMatrix::DOUBLE) {
+    // symmetric or non-symmetric real case
+    // in symmetric case convert scrs matrix to crs matrix
+    const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
 
-    CRS_Matrix<Double> crs = CRS_Matrix<Double>(scrs);
     if(crs.GetNumCols() != crs.GetNumRows()){
-      EXCEPTION("LIS solver only tested for quadratic matrices");
+      EXCEPTION("IS solver only tested for quadratic matrices");
     }
     //gather info
-    UInt nnz = scrs.GetNnz();
-    UInt dim = scrs.GetNumRows();
+    UInt nnz = crs.GetNnz();
+    UInt dim = crs.GetNumRows();
 
     Integer * rowPtr = (Integer *)crs.GetRowPointer();
     Integer * colPtr = (Integer *)crs.GetColPointer();
@@ -138,106 +143,58 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     }
     ownMatrixA_ = false;
   } else {
-    if (etype == BaseMatrix::DOUBLE) {
-      // symmetric or non-symmetric real case
-      // in symmetric case convert scrs matrix to crs matrix
-      const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
 
-      if(crs.GetNumCols() != crs.GetNumRows()){
-        EXCEPTION("IS solver only tested for quadratic matrices");
-      }
-      //gather info
-      UInt nnz = crs.GetNnz();
-      UInt dim = crs.GetNumRows();
+    // non-symmetric complex case
+    const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
 
-      Integer * rowPtr = (Integer *)crs.GetRowPointer();
-      Integer * colPtr = (Integer *)crs.GetColPointer();
-      Double * dataPtr = const_cast<Double*>(crs.GetDataPointer());
-
-      /*std::cout<<"rowPtr = ";
-      for (int i = 0; i <= (int) crs.GetNumRows(); i++) {
-        std::cout<<rowPtr[i]<<", ";
-      }
-      std::cout<<std::endl;
-
-      std::cout<<"colPtr = ";
-      for (int i = 0; i < (int) crs.GetNnz(); i++) {
-        std::cout<<colPtr[i]<<", ";
-      }
-      std::cout<<std::endl;
-
-      std::cout<<"dataPtr = ";
-      for (int i = 0; i < (int) crs.GetNnz(); i++) {
-        std::cout<<dataPtr[i]<<", ";
-      }
-      std::cout<<std::endl;*/
-
-      err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
-      err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
-      err = lis_matrix_assemble(A_); CHKERR(err);
-
-      // Create RHS vector only the first time, assuming that dimensions will not change
-      if(firstSetup_ ){//|| b_->n != dim){
-        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      }
-      ownMatrixA_ = false;
-    } else {
-      if (stype != BaseMatrix::SPARSE_SYM) {
-        EXCEPTION("LIS solver cannot yet handle complex SCRS matrices.");
-      }
-
-      // non-symmteric complex case
-      const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
-
-      if(crs.GetNumCols() != crs.GetNumRows()){
-        EXCEPTION("IS solver only tested for quadratic matrices");
-      }
-
-      //gather info
-      UInt dim = crs.GetNumRows();
-
-      Integer * rowPtr = (Integer *)crs.GetRowPointer();
-      Integer * colPtr = (Integer *)crs.GetColPointer();
-      Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
-
-      err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
-      
-      for(UInt row=0; row<dim; row++) {
-        for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
-#if 0	  
-          LIS_INT i=row*2;
-          LIS_INT j=colPtr[col]*2;
-#endif	  
-          LIS_INT i=row;
-          LIS_INT j=colPtr[col];
-          Complex val=dataPtr[col];
-#if 0	  
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-          if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,i+1,  j,-val.imag(),A_);
-          if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,  i,j+1, val.imag(),A_);
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+1,j+1, val.real(),A_);
-#endif	  
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-          if(val.imag())
-          {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
-          }
-          else
-          {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
-          }
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
-        }
-      }
-      err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
-      err = lis_matrix_assemble(A_); CHKERR(err);
-      if(firstSetup_ ){//|| b_->n != dim){
-        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      }
-      ownMatrixA_ = true;
+    if(crs.GetNumCols() != crs.GetNumRows()){
+      EXCEPTION("IS solver only tested for quadratic matrices");
     }
+
+    //gather info
+    UInt dim = crs.GetNumRows();
+
+    Integer * rowPtr = (Integer *)crs.GetRowPointer();
+    Integer * colPtr = (Integer *)crs.GetColPointer();
+    Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
+
+    err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
+
+    for(UInt row=0; row<dim; row++) {
+      for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
+/* #if 0
+        LIS_INT i=row*2;
+        LIS_INT j=colPtr[col]*2;
+#endif */
+        LIS_INT i=row;
+        LIS_INT j=colPtr[col];
+        Complex val=dataPtr[col];
+/* #if 0
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
+        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,i+1,  j,-val.imag(),A_);
+        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,  i,j+1, val.imag(),A_);
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+1,j+1, val.real(),A_);
+#endif */
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
+        if(val.imag())
+        {
+          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
+          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
+        }
+        else
+        {
+          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
+          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
+        }
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
+      }
+    }
+    err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
+    err = lis_matrix_assemble(A_); CHKERR(err);
+    if(firstSetup_ ){//|| b_->n != dim){
+      err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+    }
+    ownMatrixA_ = true;
   }
   if(firstSetup_){
     err = lis_vector_duplicate(b_,&x_); CHKERR(err);
