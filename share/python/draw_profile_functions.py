@@ -112,7 +112,6 @@ class Cubic_spline():
     C = self.eval_t(t)
     self.explicit = interpolate.interp1d(C[0,:],C[1,:])
     
-    global infoXml
     if infoXml is not None:
       infoXml.write('      <controlPolygon>\n')
       cp = self.CP
@@ -371,7 +370,6 @@ class PrincipleSpline():
     rx = 0.5 - x1/2.0 # radius for center (0,1)
     ry = 0.5 - y1/2.0 # radius for center (0,1)
     
-    global infoXml
     if infoXml is not None:
       infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
     
@@ -440,7 +438,6 @@ class BisecSpline:
     assert(bend <= 1 and bend >= 0)
     self.type = None
     
-    global infoXml
     if infoXml:
       infoXml.write('    <bisectionFunction>\n')
       infoXml.write('      <bicubic>\n')
@@ -528,7 +525,7 @@ class BisecSpline:
         self.type = "linear"
       
     if infoXml:
-      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle[0])) + '"/>\n')
+      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle)) + '"/>\n')
       infoXml.write('    </bisectionFunction>\n\n')  
       
   def get_coords_cut(self):
@@ -676,7 +673,6 @@ class Profile:
     self.radius_left = 0
     self.radius_right = 0
 
-    global infoXml    
     if infoXml:  
       infoXml.write('  <profile dir="' + str(dir) + '">\n')
       
@@ -1039,6 +1035,7 @@ def generate_basecell(args,info,log):
   interpolation = args.interpolation
   
   logger = log
+  global infoXml
   infoXml = info
   
   array = np.ones((res,res,res)) * (-1)
@@ -1139,10 +1136,12 @@ def generate_basecell(args,info,log):
     
     if args.show:
       show_vtk(polydata, 1000, [], True)
-      
-    write_stl(polydata)  
-      
-    show_write_vtk(polydata,1000,"surface.vtp")
+    
+    stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"  
+    write_stl(polydata,stlName)  
+     
+    if args.save_vtp:  
+      show_write_vtk(polydata,1000,args.save+".vtp")
   else:
     for i in range(0,3):
       if profiles[i] == None:
@@ -1163,7 +1162,6 @@ def generate_basecell(args,info,log):
         write_profile_to_array(array, profiles[i], i, symmetric)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
-        
         
   if args.target == '3dlines':
     plt.show()
@@ -1404,7 +1402,9 @@ def calc_triangle_ratio(v1,v2,v3):
   assert(aspect_ratio >= 1)
   
   return aspect_ratio
-    
+
+# for a given end node, find another end node in 'end_nodes' list
+# which is the nearest (euclidean distance) one    
 def find_closest_point(ref_node,end_nodes):
   # iterate over all end nodes in list and compare distances to 'ref' node
   min_distance = 1e6
@@ -1510,15 +1510,6 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
     if vertices_already_connected(triangles,[vert1,vert2,node]):
       log("already connected: " + str(vert1.id) + "," + str(vert2.id) + "," + str(node.id))
       continue
-    if len(triangles) > 0:
-      # FIXME remove
-      duplicate = False
-      for tri in triangles: 
-        if tri.is_triangle(vert1,vert2,node):
-          duplicate = True
-          break
-      if duplicate:
-        continue  
     ratio = calc_triangle_ratio(vert1.coords, vert2.coords, node.coords)
     if ratio < best_ratio:
       best_ratio = ratio
@@ -1599,7 +1590,7 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
       best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
       log("set new triangle " + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + " with ratio " + str(best_ratio))
       log("set active edge to (" + str(tri.edge[0].id) + "," + str(tri.edge[1].id) + ")")
-      triangles.append(tri)
+#       triangles.append(tri)
       return True
     else:
       triangles.append(tri)
@@ -1705,7 +1696,6 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     log(str(n))
   assert(nodes)
   tree = build_tree(end_nodes)
-  count = 0
   for n in nodes:
     start_node = n
     
@@ -1715,16 +1705,17 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     log("start: " + str(start_node.id) + " " + str(start_node.coords))
     log("next: " + str(next.id) + " " + str(next.coords))
     
-    out1, out2 = start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells)
-    if out2:
-      count += 1
-#       if count == 2:
-#         break   
-    if not out1:
-      print("skip " + str(n.id) + "\n")
+    out = start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells)
+    if not out:
       log("skip " + str(n.id))
     else:
-      print("started triangulation with " + str(n.id) + "\n")
+      log("started triangulation with " + str(n.id))
+  
+  for tri in triangles_history:
+    verts = tri.vertices
+    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
+        
+  check_duplicated_triangles(triangles_history)    
         
 # generate points on the bounding circle (left and right) of a profile
 # radius is the current radius of a circle where we already have the boundary points
@@ -1810,8 +1801,6 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   step = 4.0/res
   tmp_res = 0
   
-  history = []
-  
   # create points on circles lying in the same plane as original circle
   while len(outer_points_left) > 1 and len(outer_points_right) > 1:
     radius -= step
@@ -1832,7 +1821,7 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
       next = give_next_end_node_on_inner_circle(start,lists[1])
       log("\nstart:" + str(start.id))
       log("next:" + str(next.id))
-      start_boundary_circle_triangulation(history,start,next,lists[0],lists[1],cells)
+      start_boundary_circle_triangulation(start,next,lists[0],lists[1],cells)
      
     outer_points_left = inner_points_left
     outer_points_right = inner_points_right
@@ -1874,14 +1863,13 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   initial_edge = [start,next]
   
   other_cands = give_next_end_nodes_in_ball(tree, start, end_nodes)
-  dump_end_nodes(end_nodes)
   other = give_best_next_neighbor(triangles,other_cands,start,next,100)
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
     if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other),True):
       log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
-      return False, False
+      return False
 
   assert(other is not None)
   
@@ -1891,8 +1879,6 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   
   quality_bound = 5  
   end = False
-  stop = False
-  dump_end_nodes(end_nodes)
   while not end and quality_bound < 30: 
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
@@ -1903,50 +1889,38 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     if failed:
       # in this case, we want to output the so far valid triangles for debugging purposes
       if len(triangles) > 1:
-        stop = True
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
       log("increased quality_bound to " + str(quality_bound))
-      print("increased quality_bound to ",quality_bound)
     else:
       edge = triangles[-1].edge
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         log("filled")
         end = True
-        stop = True
-#         break
-      # else: simply check next triangle    
   
   if quality_bound >= 30:
     Exception("Quality bound exceeded limit of 30!")
     
-  for triangle in triangles:
-    verts = triangle.vertices
-    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-  
   history += triangles
   
-  return True, stop  
+  return True  
 
+# connects points on an outer (larger radius) circle with 
+# points on an inner circle(smaller radius) by using triangles; 
 # similar to start_triangulation, but simpler as trianglulation
 # here is straightforward and we don't need to check quality bounds
-def start_boundary_circle_triangulation(history,start,next,outer_end_nodes,inner_end_nodes,cells):
+# @param first is first end node of triangulation and lies on outer circle
+# @param second is second end node of triangulation and lies on inner circle
+def start_boundary_circle_triangulation(first,second,outer_end_nodes,inner_end_nodes,cells):
   triangles = [] # saves all triangles found by marching
-  initial_edge = [start,next]
   
-  # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
-#   for tri in history:
-#     if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other),True):
-#       log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
-#       return False, False
-
   end = False
-  # we know that start lies on outer circle and next on inner circle
-  outer_dir = start.dir
-  inner_dir = next.dir
-  outer_node = start
-  inner_node = next
+  # we know that first lies on outer circle and next on inner circle
+  outer_dir = first.dir
+  inner_dir = second.dir
+  outer_node = first
+  inner_node = second
   count = 0
   while not end: 
     next = give_best_next_end_node_on_circle(outer_node, inner_node, outer_end_nodes, inner_end_nodes)
@@ -1956,7 +1930,7 @@ def start_boundary_circle_triangulation(history,start,next,outer_end_nodes,inner
     add_good_triangle(triangles, outer_node, inner_node, [], next)
     
     edge = triangles[-1].edge
-    if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
+    if len(triangles) > 2 and (edge[0].id == first.id and edge[1].id == second.id) or (edge[0].id == second.id and edge[1].id == first.id):
       log("filled")
       end = True
       
@@ -1968,8 +1942,6 @@ def start_boundary_circle_triangulation(history,start,next,outer_end_nodes,inner
   for triangle in triangles:
     verts = triangle.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-  
-  history += triangles
   
   return True
 
@@ -2178,3 +2150,12 @@ def dump_end_nodes(list):
     out.write(str(n) + "\n")
   
   out.close()
+
+  
+def check_duplicated_triangles(triangles):
+  for i,this in enumerate(triangles):
+    for j,other in enumerate(triangles):
+      if i == j:
+        continue
+      if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
+        raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")

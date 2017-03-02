@@ -11,6 +11,7 @@ import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
+import cfs_utils
 
 
 # writes a dense two region mesh
@@ -2528,3 +2529,18 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('mesh has ' + str(number) + "design and non-design elements")
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
+
+def create_volume_mesh_from_stl(stlName,write_vtk=False):
+  assert(stlName.endswith(".stl"))
+  # -p Tetrahedralizes a piececwise linear complex
+  # -k Outputs mesh to .vtk file for viewing by Paraview
+  command = "tetgen -pk" if write_vtk else "tetgen -p"
+  cfs_utils.execute(command + " " + stlName)
+  mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
+  
+  add_nodes_for_periodic_bc(mesh)
+  validate_periodicity(mesh)
+  
+  return mesh
+  
+  
