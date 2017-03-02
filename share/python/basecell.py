@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # import mesh_tool first because of h5py
 import mesh_tool
+import cfs_utils
 import argparse
 from draw_profile_functions import *
 import numpy as np
@@ -113,9 +114,10 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array = generate_basecell(args, infoXml,log)
+  array = generate_basecell(args,infoXml,log)
   
   if args.target.startswith("volume"):
+    assert(array is not None)
     calc_volume(array,infoXml)
   
     if args.z1 == 0.0 and args.z2 == 0.0:
@@ -124,6 +126,12 @@ def create_mesh_with_profiles(args,infoXml,log):
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.single_region)
       
     mesh_tool.validate_periodicity(mesh)
+  elif args.target.startswith("surface"):
+    stlName = args.save if args.save else "surface"
+    if not stlName.endswith(".stl"):
+      stlName += ".stl"
+      
+      mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     if args.save_vtp:
@@ -240,7 +248,7 @@ if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
 
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
-if args.target == 'volume_mesh':   
+if args.target == "volume_mesh" or args.target == "surface_mesh":   
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
