@@ -31,9 +31,7 @@ ResultIdList RotatingSubstDt::SetUpstreamResults(){
     gradId_ = resultManager_->AddResult(gradInResult,this->filterTag_);
 
     //second a single meanflow input
-    hasMeanFlow_ = false;
-    if(params_->Has("meanFlow")){
-    	hasMeanFlow_ = true;
+    if(hasMeanFlow_){
         std::string meanFlowInResult = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
         meanFlowId_ = resultManager_->AddResult(meanFlowInResult,this->filterTag_);
 
