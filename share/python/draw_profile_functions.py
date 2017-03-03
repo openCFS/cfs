@@ -317,18 +317,6 @@ def profileCirc(x1,res):
   
   return vec
 
-# def contains_point(id_x,y,z,map):
-#      
-#   valx = (y-0.5)**2 + (z-0.5)**2
-#   phi = angle_to_center((y,z))
-#    
-#   r = map[int(degrees(phi)),id_x]
-#      
-#   if (valx - r*r < 1e-3 ):
-#     return True
-#      
-#   return False
-
 # for a given profile and point p, check if p lies on or inside profile
 def contains_point(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)
@@ -792,7 +780,6 @@ def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId
         if contains_point(line[i-1], otherProfile1) or contains_point(line[i-1], otherProfile2):
           intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
           if calc_distance(p, intersect) < min_distance:
-#             print "omit ", p
             nodes_ids[numLine,i] = -1
             continue
 
@@ -1111,17 +1098,18 @@ def generate_basecell(args,info,log):
           points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
         if nodes_ids_3[i,j] >= 0:          
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
-    
+
+        
     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
-
-    fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
     
-    for i in range(cells.GetNumberOfCells()):
-      idList = vtk.vtkIdList()
-      cells.GetNextCell(idList)
+    if not args.skip_surface_gaps:  
+      fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
     
+#     for i in range(cells.GetNumberOfCells()):
+#       idList = vtk.vtkIdList()
+#       cells.GetNextCell(idList)
 #     ps, cs = read_vtk("surface.vtp")
 #     surface_to_volume_mesh(ps,cs)
 
@@ -1137,8 +1125,9 @@ def generate_basecell(args,info,log):
     if args.show:
       show_vtk(polydata, 1000, [], True)
     
-    stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"  
-    write_stl(polydata,stlName)  
+    if args.skip_surface_gaps:  
+      stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"  
+      write_stl(polydata,stlName)  
      
     if args.save_vtp:  
       show_write_vtk(polydata,1000,args.save+".vtp")
@@ -1534,20 +1523,29 @@ def give_next_end_node_on_circle(node,end_nodes,max_i):
  
   return next[0]
 
-def give_best_next_end_node_on_circle(outer_node,inner_node,outer_end_nodes,inner_end_nodes):
+def give_best_next_end_node_on_circle(triangles,outer_node,inner_node,outer_end_nodes,inner_end_nodes,first,second):
+    
   max_i_outer = get_max_grid_coords(outer_end_nodes)
   max_i_inner = get_max_grid_coords(inner_end_nodes) 
-  log("max_i_outer:" + str(max_i_outer))
-  log("max_i_inner:" + str(max_i_inner))
+#   log("max_i_outer:" + str(max_i_outer))
+#   log("max_i_inner:" + str(max_i_inner))
   
   next_outer = give_next_end_node_on_circle(outer_node,outer_end_nodes,max_i_outer)
   next_inner = give_next_end_node_on_circle(inner_node,inner_end_nodes,max_i_inner)
+  
+  if len(triangles) > 2:
+    if outer_node == first:
+      next_outer = first
+    if inner_node == second:
+      next_inner = second
+  
   log("next_outer:" + str(next_outer.id))
   log("next_inner:" + str(next_inner.id))
   
   rat_outer = calc_triangle_ratio(outer_node.coords,inner_node.coords,next_outer.coords)
   rat_inner = calc_triangle_ratio(outer_node.coords,inner_node.coords,next_inner.coords)
   
+    
   next = next_outer if rat_outer < rat_inner else next_inner
   log("next: " + str(next.id) + " ratio: " + str(min(rat_outer,rat_inner)))
   
@@ -1606,6 +1604,7 @@ def add_good_triangle(triangles, a, b, next_cands, next):
   alternatives = [v for v in next_cands if v.id != next.id]
   triangles.append(Marching_Triangle([a, b, next], edge_0, next, alternatives))
   best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
+  assert(best_ratio < 30)
   log("next:" + str(next.id))
   log("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio))
   log("number of triangles: " + str(len(triangles)))
@@ -1614,6 +1613,7 @@ def add_good_triangle(triangles, a, b, next_cands, next):
     for alt in alternatives:
       log(str(alt.id) + " ",linebreak=False)
   
+  log("")
   log("")
 
 def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None):
@@ -1798,7 +1798,7 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   inner_points_left = []
   inner_points_right = []
   triangles = []
-  step = 4.0/res
+  step = 2.0/res
   tmp_res = 0
   
   # create points on circles lying in the same plane as original circle
@@ -1917,14 +1917,19 @@ def start_boundary_circle_triangulation(first,second,outer_end_nodes,inner_end_n
   
   end = False
   # we know that first lies on outer circle and next on inner circle
-  outer_dir = first.dir
+  outer_dir = first.dir 
   inner_dir = second.dir
   outer_node = first
   inner_node = second
   count = 0
+  next = None # third vertex of triangle
   while not end: 
-    next = give_best_next_end_node_on_circle(outer_node, inner_node, outer_end_nodes, inner_end_nodes)
+    log("\nouter:" + str(outer_node.id))
+    log("inner:" + str(inner_node.id))
+    
+    next = give_best_next_end_node_on_circle(triangles,outer_node, inner_node, outer_end_nodes, inner_end_nodes,first,second)
     assert(next is not None)
+    log("next:" + str(next.id))
     # find node that is first vertex of next triangle
     # next is second vertex of next triangle
     add_good_triangle(triangles, outer_node, inner_node, [], next)
