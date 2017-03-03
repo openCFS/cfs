@@ -126,7 +126,7 @@ def create_mesh_with_profiles(args,infoXml,log):
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.single_region)
       
     mesh_tool.validate_periodicity(mesh)
-  elif args.target.startswith("surface"):
+  elif args.target.startswith("surface") and not args.skip_surface_gaps:
     stlName = args.save if args.save else "surface"
     if not stlName.endswith(".stl"):
       stlName += ".stl"
@@ -162,6 +162,7 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
+parser.add_argument('--skip_surface_gaps', help="show final structure in new window", action='store_true',default=False)
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
@@ -217,7 +218,8 @@ if args.save is None: # set default gid mesh name
   if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
     meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
   
-  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)  
+  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+  args.save = meshName  
 else:
   meshName = args.save  
 
@@ -248,7 +250,7 @@ if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
 
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
-if args.target == "volume_mesh" or args.target == "surface_mesh":   
+if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.skip_surface_gaps):   
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
