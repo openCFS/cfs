@@ -510,6 +510,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
     assert(values.InWindow(start + p));
   }
 
+  // apply flip_sign only when we normalize
   double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
   for(int p = 0; normalize && p < nnz; p++)
     values[start + p] *= flip_sign;

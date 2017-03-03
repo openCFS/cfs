@@ -88,7 +88,6 @@ parser.add_argument('--bound', help="only process results not below or upper the
 parser.add_argument('--verbose', help="additional information about skipped files", action='store_true')
 parser.add_argument('--info', help="only prints information about the status files", action='store_true')
 parser.add_argument('--no_recursive', help="skip printing information of forerunner results", action='store_true')
-parser.add_argument('--sort', help="sort info output by objective value", action='store_true')
 parser.add_argument('--qsub', help="generate qsub scripts, requires 'qsub_template.sh'", action='store_true')
 parser.add_argument('--failsafe', help="continue on read error with next file", action='store_true')
 args = parser.parse_args()
