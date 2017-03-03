@@ -11,6 +11,8 @@
 #include "MatVec/Vector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Exception.hh"
+#include "Domain/Domain.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 using boost::char_separator;
 using boost::tokenizer;
@@ -555,6 +557,23 @@ namespace CoupledField {
     assert(eps >= 0);
     assert(abs(x) + eps > 0);
     return x / std::sqrt(x*x + eps*eps);
+  }
+
+
+  double MathParse(const std::string& expr)
+  {
+    // obtain handle
+    MathParser* parser = domain->GetMathParser();
+    MathParser::HandleType handle = parser->GetNewHandle(false);
+
+    // Set expression and evaluate
+    parser->SetExpr(handle, expr);
+    double ret = parser->Eval(handle);
+
+    // release handle
+    parser->ReleaseHandle(handle);
+
+    return ret;
   }
 
 

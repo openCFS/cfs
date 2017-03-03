@@ -43,6 +43,19 @@ void EvaluateOnly::SolveProblem()
   // there is no time within this optimizer spent
   optimizer_timer_->Stop();
 
+  StdVector<double> xl(optimization->GetDesign()->GetNumberOfVariables());
+  StdVector<double> xu(xl.GetSize());
+  StdVector<double> gl(optimization->constraints.view->GetNumberOfActiveConstraints());
+  StdVector<double> gu(gl.GetSize());
+  GetBounds(xl.GetSize(), xl.GetPointer(), xu.GetPointer(), gl.GetSize(), gl.GetPointer(), gu.GetPointer());
+
+  for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
+  {
+    Condition* g = optimization->constraints.view->Get(i);
+    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
+  }
+  optimization->constraints.view->Done();
+
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = Optimization::context->GetHarmonicDriver();
   int end = optimization->context->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;

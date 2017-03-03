@@ -884,11 +884,12 @@ void Condition::ToInfo(PtrParamNode in)
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
     info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
+  // the bounds are essential as we have to flip sign!
   if(type_ == OVERHANG_HOR && bound_ != LOWER_BOUND)
-    info_->SetWarning("overhang constraints for horizontal structures restrict the lower boundary only and this boundary shall be steep enough -> 'lower_bound'");
+    throw Exception("overhang constraints for horizontal structures restrict the lower boundary only and this boundary shall be steep enough -> 'lower_bound'");
 
   if(type_ == OVERHANG_VERT && bound_ != UPPER_BOUND)
-    info_->SetWarning("overhang constraints for vertical structures restrict the left boundary for left overhangs and vice versa. -> 'upper_bound'");
+    throw Exception("overhang constraints for vertical structures restrict the left boundary for left overhangs and vice versa. -> 'upper_bound'");
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
