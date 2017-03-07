@@ -1485,7 +1485,7 @@ def give_next_neighbor_on_circle(tree,node,end_nodes):
   return next
 
 # from a list of candidates, choose the third triangle vertice such that the resulting triangle has the smallest aspect_ratio
-def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
+def give_best_next_neighbor(history,triangles,candidates, vert1, vert2, quality_bound):
   if len(candidates) == 1 and (candidates[0].id == vert1.id or candidates[0].id == vert2.id):
     return candidates[0]
   best_ratio = 1e9
@@ -1497,7 +1497,7 @@ def give_best_next_neighbor(triangles,candidates, vert1, vert2, quality_bound):
     log(str(alt.id) + " ",linebreak=False)  
   log("")
   
-  feasible_cands = give_feasible_candidates(triangles,candidates,vert1,vert2)
+  feasible_cands = give_feasible_candidates(history,triangles,candidates,vert1,vert2)
   
   for node in feasible_cands:
     ratio = calc_triangle_ratio(vert1.coords, vert2.coords, node.coords)
@@ -1562,7 +1562,7 @@ def give_next_end_node_on_inner_circle(outer_node,inner_end_nodes):
 # take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
 # corresponds to going one step backwards in algorithm
 # remove latest triangle and check second best candidate    
-def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
+def handle_bad_triangle(history,triangles,end_nodes,tree,quality_bound):
   next = None
   # if we don't have alternatives for neighbor end nodes
 #   if alternatives is None or len(alternatives) == 0:
@@ -1577,7 +1577,7 @@ def handle_bad_triangle(triangles,end_nodes,tree,quality_bound):
     b = tri.edge[1]
     log("active edge: " + str(a.id) + "," + str(b.id))
     tri.next = None
-    next = give_best_next_neighbor(triangles,alternatives, a, b, quality_bound)
+    next = give_best_next_neighbor(history,triangles,alternatives, a, b, quality_bound)
     if next is not None:
       # next is good, so it is not a candidate anymore
       tri.other_candidates = [v for v in tri.other_candidates if v.id != next.id]
@@ -1618,7 +1618,7 @@ def add_good_triangle(triangles, a, b, next_cands, next):
   log("")
   log("")
 
-def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None):
+def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_edge=None):
   # take active edge from last triangle
   active_edge = triangles[-1].edge
   a = active_edge[0]
@@ -1631,7 +1631,7 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
   log("b: " + str(b.id))
   
   next_cands = give_next_end_nodes_in_ball(tree, a, end_nodes)
-  next = give_best_next_neighbor(triangles,next_cands,a,b,quality_bound)
+  next = give_best_next_neighbor(history,triangles,next_cands,a,b,quality_bound)
   if next is not None:
     add_good_triangle(triangles, a, b, next_cands, next)
     return True
@@ -1639,7 +1639,7 @@ def check_next_triangle(triangles,end_nodes,tree,quality_bound,initial_edge=None
     # dummy, will be removed in handle_bad_triangle    
     triangles.append(Marching_Triangle([a,b,b],a,b,[]))   
     # returns False if no alternatives left at all  
-    return handle_bad_triangle(triangles,end_nodes,tree,quality_bound)
+    return handle_bad_triangle(history,triangles,end_nodes,tree,quality_bound)
       
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):
@@ -1698,6 +1698,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     log(str(n))
   assert(nodes)
   tree = build_tree(end_nodes)
+  count = 0
   for n in nodes:
     start_node = n
     
@@ -1712,9 +1713,12 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
       break
     if not out:
       log("skip " + str(n.id))
-    else:
-      log("started triangulation with " + str(n.id))
-  
+    
+    count += 1
+    print(count)
+#     if count == 20:
+#       break 
+    
   for tri in triangles_history:
     verts = tri.vertices
     add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
@@ -1867,12 +1871,13 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   initial_edge = [start,next]
   
   other_cands = give_next_end_nodes_in_ball(tree, start, end_nodes)
-  other = give_best_next_neighbor(triangles,other_cands,start,next,100)
+  other = give_best_next_neighbor(history,triangles,other_cands,start,next,100)
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
-    if tri.is_triangle(start,next,other) or vertices_already_connected(history, (start,next,other),True):
-      log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
+    if other is None or edge_already_connected(history, (start,next)):
+      #log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
+      log("edge (" + str(start.id) + "," + str(next.id) + ") already exists")
       return False, False
 
   assert(other is not None)
@@ -1888,7 +1893,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
     # - True: Reached the end
-    failed = not check_next_triangle(triangles, end_nodes, tree, quality_bound, initial_edge)
+    failed = not check_next_triangle(history,triangles, end_nodes, tree, quality_bound, initial_edge)
     # check if we have just created a triangle where new active edge is 
     # identical to active edge of very first triangle --> we are finished!
     if failed:
@@ -1910,11 +1915,14 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # this is the case when we have gaps going through all 3 profiles 
       # (e.g x1=y1=z1)
       # triangles[:-1]:don't compare edge with its own triangle
-      if len(triangles) > 2 and edge_already_connected(triangles[:-1],edge):
+      if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
         log("filled")
-        history += triangles
-        return False,True
-#         break 
+#         count += 1
+#         print("count",count)
+#         if count == 2:
+#           history += triangles
+#           return False,True
+        break 
       
   if quality_bound >= 30:
     Exception("Quality bound exceeded limit of 30!")
@@ -2103,6 +2111,8 @@ def vertices_already_connected(triangles,vertices,first_triangle=False):
 def vertex_already_connected(triangles,end_node):
   for tri in triangles:
     for v in tri.vertices:
+      assert(end_node is not None)
+      assert(v is not None)
       if end_node == v:
         return True
   
@@ -2188,8 +2198,8 @@ def check_duplicated_triangles(triangles):
     for j,other in enumerate(triangles):
       if i == j:
         continue
-#       if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
-#         raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
+      if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
+        raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
 
 # detects spikes that are formed by three end nodes and fill
 # them if triangle fulfills quality criterion
@@ -2199,7 +2209,7 @@ def fill_end_nodes_spikes(nodes_ids,cells,):
     right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
     left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
     
-def give_feasible_candidates(triangles,candidates, vert1, vert2):
+def give_feasible_candidates(history,triangles,candidates, vert1, vert2):
   cands = []
   for node in candidates:
     if node.id == vert1.id or node.id == vert2.id:
@@ -2215,7 +2225,7 @@ def give_feasible_candidates(triangles,candidates, vert1, vert2):
       continue
     if triangle_contains_any_node([node,vert1,vert2]):
       continue
-    if triangle_overlap_others(triangles,(vert1,vert2,node)):
+    if triangle_overlap_others(history+triangles,(vert1,vert2,node)):
       continue
     # if all three nodes are already connected to other triangles
 #     if vertices_already_connected(triangles,[vert1,vert2,node]):
