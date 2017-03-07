@@ -131,7 +131,7 @@ def create_mesh_with_profiles(args,infoXml,log):
     if not stlName.endswith(".stl"):
       stlName += ".stl"
       
-      mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
+#       mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     if args.save_vtp:
@@ -254,9 +254,9 @@ if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.s
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
-  mesh_tool.write_gid_mesh(mesh, file)
+#   mesh_tool.write_gid_mesh(mesh, file)
 
-  print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
+#   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
 ############## info xml scheme #####################
 # <basecell>
