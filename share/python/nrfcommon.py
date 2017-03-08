@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Dec 11 09:35:12 2015
-Last edited on Feb 25 2017
+Last edited on Mar 08 2017
 
 @author: martin, ivan lazarov, florian toth
+
+Use Python 2.*, because Python 3.* is currently buggier!
 """
 
 from __future__ import division, print_function
@@ -45,7 +47,7 @@ class ResultInfo():
     self._unknownStr2Int = {'Nodes': 1, 'Edges': 2, 'Faces': 3, 'Elements': 4,
                      'Regions': 7, 'ElementGroup': 8, 'NodeGroup': 9,
                      'Coils': 10, 'Unknowns': 11}
-    self._unknownInt2Str = {i: s for (s, i) in self._unknownStr2Int.iteritems()}
+    self._unknownInt2Str = {i: s for (s, i) in self._unknownStr2Int.items()}
     # "5" = surface elements, but ParaView PlugIn handles only "4" at the moment        
     self._unknownInt2Str[5] = 'Elements'  
     
@@ -61,12 +63,12 @@ class NrfCommon(object):
   _unknownStr2Int = {'Nodes': 1, 'Edges': 2, 'Faces': 3, 'Elements': 4,
                      'Regions': 7, 'ElementGroup': 8, 'NodeGroup': 9,
                      'Coils': 10, 'Unknowns': 11}
-  _unknownInt2Str = {i: s for (s, i) in _unknownStr2Int.iteritems()}
+  _unknownInt2Str = {i: s for (s, i) in _unknownStr2Int.items()}
   _unknownInt2Str[5] = 'Elements'
   
   _entryStr2Int = {'Unknown': 0, 'Scalar': 1, 'Vector': 3, 'Tensor': 6, 'String': 32}
   
-  _entryInt2Str = {i: s for (s, i) in _entryStr2Int.iteritems()}
+  _entryInt2Str = {i: s for (s, i) in _entryStr2Int.items()}
   NODES = 1
   EDGES = 2
   FACES = 3
@@ -1279,7 +1281,7 @@ class NrfCommon(object):
 
     
     # iterate over result regions as included in indexDict
-    for region, idxMap in indexDict.iteritems():
+    for region, idxMap in indexDict.items():
       # skip key with all index values      
       if region == 0:
         continue
@@ -1410,7 +1412,7 @@ class NrfCommon(object):
         print('INFO: step %g/%g' % (idx+1,nSteps))
         
       # iterate over result regions as included in indexDict
-      for region, idxMap in indexDict.iteritems():
+      for region, idxMap in indexDict.items():
         
         # skip key with all index values      
         if region == 0:

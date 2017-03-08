@@ -19,10 +19,12 @@
 #    Last Author:   $Author$
 #
 """
-Created on Thu Jan 17 17:10:33 2013
-Last edited on Feb 25 2017
+Created on Fri Dec 11 09:35:12 2015
+Last edited on Mar 08 2017
 
 @author: martin, ivan lazarov, florian toth
+
+Use Python 2.*, because Python 3.* is currently buggier!
 """
 
 from __future__ import division, print_function
@@ -45,13 +47,13 @@ class NrfReader(NrfCommon):
   _unknownStr2Int = {'Nodes': 1, 'Edges': 2, 'Faces': 3, 'Elements': 4,
                      'Regions': 7, 'ElementGroup': 8, 'NodeGroup': 9,
                      'Coils': 10, 'Unknowns': 11}
-  _unknownInt2Str = {i: s for (s, i) in _unknownStr2Int.iteritems()}
+  _unknownInt2Str = {i: s for (s, i) in _unknownStr2Int.items()}
   # "5" = surface elements, but ParaView PlugIn handles only "4" at the moment 
   _unknownInt2Str[5] = 'Elements'
   
   _entryStr2Int = {'Unknown': 0, 'Scalar': 1, 'Vector': 3, 'Tensor': 6, 'String': 32}
   
-  _entryInt2Str = {i: s for (s, i) in _entryStr2Int.iteritems()}
+  _entryInt2Str = {i: s for (s, i) in _entryStr2Int.items()}
   
   def __init__(self, fileName="", writeable = False, template=None,
                externalFiles=False):
@@ -532,7 +534,7 @@ class NrfReader(NrfCommon):
             raise RuntimeError('Cannot create new step %d without a step value.' % stepNum)
       elif stepValues is not None:
         # Only step values are given => try to find matching step numbers
-        revSteps = {(v, k) for (k, v) in availSteps.iteritems()}
+        revSteps = {(v, k) for (k, v) in availSteps.items()}
         for stepVal in stepValues:
           if stepVal in revSteps:
             steps[revSteps[stepVal]] = stepVal
