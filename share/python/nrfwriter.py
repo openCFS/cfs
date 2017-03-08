@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec 07 16:22:48 2015
-Last edited on Feb 25 2017
+Created on Fri Dec 11 09:35:12 2015
+Last edited on Mar 08 2017
 
-@author: martin, ivan lazarov
+@author: martin, ivan lazarov, florian toth
+
+Use Python 2.*, because Python 3.* is currently buggier!
 """
 
 from datetime import datetime
@@ -182,7 +184,7 @@ class NrfWriter(NrfCommon):
     else:
       self._mesh.attrs.create('Dimension', 2, dtype='uint32')
       
-    for k, v in self._elemAttrs.iteritems():
+    for k, v in self._elemAttrs.items():
       # summary entries      
       if isinstance(k, str):
         nElems = 0
