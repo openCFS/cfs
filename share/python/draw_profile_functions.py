@@ -1133,7 +1133,7 @@ def generate_basecell(args,info,log):
     if args.show:
       show_vtk(polydata, 1000, [], True)
     
-    if args.skip_surface_gaps:  
+    if not args.skip_surface_gaps:  
       stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"  
       write_stl(polydata,stlName)  
      
@@ -1435,11 +1435,6 @@ def give_next_end_nodes_in_ball(tree,node,end_nodes):
     candidates.append(end_nodes[i])
   
   assert(len(candidates) > 0)
-  for c in candidates:
-    assert(calc_distance(c.coords, node.coords) <= 6.1/res )
-    log(str(c.id) + " ",linebreak=False)
-    
-  log("")
   return candidates
 
 # returns nearest end node to 'node' which is on a different profile than 'node'
@@ -1609,13 +1604,6 @@ def add_good_triangle(triangles, a, b, next_cands, next):
   assert(best_ratio < 30)
   log("next:" + str(next.id))
   log("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio))
-  log("number of triangles: " + str(len(triangles)))
-  log("alternatives: ",linebreak=False)
-  if alternatives is not None:
-    for alt in alternatives:
-      log(str(alt.id) + " ",linebreak=False)
-  
-  log("")
   log("")
 
 def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_edge=None):
@@ -1626,6 +1614,10 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
   
 #   if a.id == 2042 and b.id == 520:
 #     return False
+  
+  # don't compare last element in triangles to avoid self-comparison
+  if edge_already_connected(history+triangles[:-1],active_edge):
+    return False
 
   log("\na: " + str(a.id))
   log("b: " + str(b.id))
@@ -1714,8 +1706,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
     if not out:
       log("skip " + str(n.id))
     
-    count += 1
-    print(count)
+#     count += 1
 #     if count == 20:
 #       break 
     
@@ -1875,7 +1866,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
-    if other is None or edge_already_connected(history, (start,next)):
+    #if other is None or edge_already_connected(history, (start,next)):
+    if other is None:
       #log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
       log("edge (" + str(start.id) + "," + str(next.id) + ") already exists")
       return False, False
@@ -1899,7 +1891,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     if failed:
       # in this case, we want to output the so far valid triangles for debugging purposes
       if len(triangles) > 1:
-        stop = True
+        stop = False
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
@@ -1995,9 +1987,6 @@ def read_vtk(filename):
     
   print(points)
   print(cells) 
-#   print("num points:", len(pp))
-#   print("num cells:", len(cc))
-#   print(cc)
 
   return points,cells
 
@@ -2081,44 +2070,6 @@ def build_tree(end_nodes):
   # build tree
   return spatial.cKDTree(points)#
 
-# are all three vertices of a triangle already connected in other triangles
-# @param list of all triangles created so far
-# @param vertices of the triangle we want to test
-# @param first triangle indicates whether the tested vertices should form
-# a first triangle of the gaps. If so, don't make an exception  
-def vertices_already_connected(triangles,vertices,first_triangle=False):
-  # if one/two of the vertices form the very first edge, make an exception
-  # this exception doesn't hold if we are checking the first triangle!
-  if (len(triangles) > 10) and not first_triangle:
-    first_verts = triangles[0].vertices
-    first_edge = triangles[0].edge
-    other_edge = [v for v in first_verts if v != first_edge[1]]
-    assert(len(other_edge) == 2)
-    
-    if vertices[0] in other_edge or vertices[1] in other_edge or vertices[2] in other_edge:
-      return False
-  
-  # skip first triangle, so that we are able to close the triangulation
-#   log("vertex " + str(vertices[0].id) + " already connected? " + str(vertex_already_connected(triangles,vertices[0])))
-#   log("vertex " + str(vertices[1].id) + " already connected? " + str(vertex_already_connected(triangles,vertices[1])))
-#   log("vertex " + str(vertices[2].id) + " already connected? " + str(vertex_already_connected(triangles,vertices[2]))) 
-  if vertex_already_connected(triangles,vertices[0]) and vertex_already_connected(triangles,vertices[1]) and vertex_already_connected(triangles,vertices[2]):
-    return True
-  else:
-    return False
-
-# check if a given end node is already a vertex of an existing triangle
-def vertex_already_connected(triangles,end_node):
-  for tri in triangles:
-    for v in tri.vertices:
-      assert(end_node is not None)
-      assert(v is not None)
-      if end_node == v:
-        return True
-  
-  # if not match found
-  return False
-
 # calculates barycenter/centroid of a triangle
 # @param coordinates of the three vertices defining that triangle
 def calc_triangle_barycenter(vert1,vert2,vert3):
@@ -2160,17 +2111,12 @@ def triangle_overlap_others(triangles,vertices):
   # don't check last triangle as it might be the one we want to modify
   for tri in triangles:
     if tri.next is None:
-#       print("skip overlap check for (" + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + ") and (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")")
       log("skip overlap check for (" + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + ") and (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")")
       continue
     
     # if triangles are too far away from each other, we don't care about overlapping projections
     bary2 = calc_triangle_barycenter(tri.vertices[0].coords, tri.vertices[1].coords, tri.vertices[2].coords)
     if (calc_distance(bary1, bary2) > 0.3):
-#       log("skip overlap test for triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
-#       for vert in tri.vertices:
-#         log(str(vert.id) + ",", linebreak=False)
-#       
 #       log("distance = " + str(calc_distance(bary1, bary2)))
       continue
     
@@ -2192,7 +2138,6 @@ def dump_end_nodes(list):
   
   out.close()
 
-  
 def check_duplicated_triangles(triangles):
   for i,this in enumerate(triangles):
     for j,other in enumerate(triangles):
@@ -2201,15 +2146,15 @@ def check_duplicated_triangles(triangles):
       if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
         raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
 
-# detects spikes that are formed by three end nodes and fill
-# them if triangle fulfills quality criterion
-def fill_end_nodes_spikes(nodes_ids,cells,):
-  for i in range(0,nodes_ids.shape[0]):
-    this_line = nodes_ids[i]
-    right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
-    left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
-    
-def give_feasible_candidates(history,triangles,candidates, vert1, vert2):
+# returns a list of end nodes that can form feasible triangles with vert1 and vert2
+# @param history is a list with Marching Triangles that should not be modified anymore
+# @param triangles is list with current Marchin Triangles that we are working on, 
+#        e.g. new triangles are added or bad ones are deleted
+# a candidate 'cand' is feasible when all following criteria are fulfilled:
+# - if cand is on same profile as vert1 or vert2, it must be a direct neighbor
+# - triangle defined by cand, vert1, vert2 must not already exist and must not overlap other already created triangles
+# - vert1, vert2 and cand must differ from each other (not the same id) 
+def give_feasible_candidates(history,triangles,candidates,vert1,vert2):
   cands = []
   for node in candidates:
     if node.id == vert1.id or node.id == vert2.id:
@@ -2223,14 +2168,8 @@ def give_feasible_candidates(history,triangles,candidates, vert1, vert2):
       continue
     if node.id == vert1.id or node.id == vert2.id:
       continue
-    if triangle_contains_any_node([node,vert1,vert2]):
-      continue
     if triangle_overlap_others(history+triangles,(vert1,vert2,node)):
       continue
-    # if all three nodes are already connected to other triangles
-#     if vertices_already_connected(triangles,[vert1,vert2,node]):
-#       log("already connected: " + str(vert1.id) + "," + str(vert2.id) + "," + str(node.id))
-#       continue
     # found a feasible candidate
     cands.append(node)
     log("feasible candidate for " + str(vert1.id) + "," + str(vert2.id) + ": " + str(node.id))
