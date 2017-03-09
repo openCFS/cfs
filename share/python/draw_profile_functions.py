@@ -1557,7 +1557,7 @@ def give_next_end_node_on_inner_circle(outer_node,inner_end_nodes):
 # take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
 # corresponds to going one step backwards in algorithm
 # remove latest triangle and check second best candidate    
-def handle_bad_triangle(history,triangles,end_nodes,tree,quality_bound):
+def handle_bad_triangle(history,triangles,quality_bound):
   next = None
   # if we don't have alternatives for neighbor end nodes
 #   if alternatives is None or len(alternatives) == 0:
@@ -1631,7 +1631,7 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
     # dummy, will be removed in handle_bad_triangle    
     triangles.append(Marching_Triangle([a,b,b],a,b,[]))   
     # returns False if no alternatives left at all  
-    return handle_bad_triangle(history,triangles,end_nodes,tree,quality_bound)
+    return handle_bad_triangle(history,triangles,quality_bound)
       
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):
@@ -2240,4 +2240,4 @@ def sort_end_nodes_list(profiles,end_nodes):
   
   assert(len(new_list) == len(end_nodes))
   
-  return new_list>>>>>>> .r15561
+  return new_list
