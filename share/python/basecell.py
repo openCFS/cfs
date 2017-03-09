@@ -254,7 +254,7 @@ if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.s
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
-#   mesh_tool.write_gid_mesh(mesh, file)
+  mesh_tool.write_gid_mesh(mesh, file)
 
 #   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
