@@ -131,7 +131,7 @@ def create_mesh_with_profiles(args,infoXml,log):
     if not stlName.endswith(".stl"):
       stlName += ".stl"
       
-#       mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
+      mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     if args.save_vtp:

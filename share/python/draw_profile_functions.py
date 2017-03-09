@@ -1684,7 +1684,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
   # we need to store it to make sure no triangle is defined more than once
   triangles_history = []    
   # start from profile with biggest radius
-  nodes = end_nodes
+  nodes = sort_end_nodes_list(profiles,end_nodes)
 #   nodes = [v for v in end_nodes if v.dir == start_dir]
   for n in nodes:
     log(str(n))
@@ -1881,7 +1881,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   quality_bound = 5  
   end = False
   stop = False
-  while not end and quality_bound < 30: 
+  while not end and quality_bound < 15: 
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
     # - True: Reached the end
@@ -1916,8 +1916,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
 #           return False,True
         break 
       
-  if quality_bound >= 30:
-    Exception("Quality bound exceeded limit of 30!")
+  if quality_bound >= 15:
+    raise Exception("Quality bound exceeded limit of 15!")
     
   history += triangles
   
@@ -2192,3 +2192,28 @@ def edge_already_connected(triangles,edge):
       return True
     
   return False
+
+# sort list of end nodes from profile direct with largest radius to smallest
+def sort_end_nodes_list(profiles,end_nodes):
+  # dont't sort if all radii are the same
+  if profiles[0].radius_left == profiles[1].radius_left and profiles[1].radius_left == profiles[2].radius_left:
+    return end_nodes
+
+  radii = [profiles[0].radius_left,profiles[1].radius_left,profiles[2].radius_left]
+  dirs = [profiles[0].direction,profiles[1].direction,profiles[2].direction]
+  
+  # sort directions depending on profile radii
+  sorted_dirs = np.array(dirs)[np.argsort(radii)][::-1]
+  
+  print(sorted_dirs)
+  new_list = []
+  
+  # append nodes in the order of sorted directions
+  for d in sorted_dirs:
+    for n in end_nodes:
+      if n.dir == d:
+        new_list.append(n)
+  
+  assert(len(new_list) == len(end_nodes))
+  
+  return new_list
