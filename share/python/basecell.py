@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # import mesh_tool first because of h5py
 import mesh_tool
+import cfs_utils
 import argparse
 from draw_profile_functions import *
 import numpy as np
@@ -93,19 +94,19 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   mesh = None
   
-    # calculating radii in relation to given stiffnesses x1,x2,y1,...
-  #args.x1 = calc_radius(args.x1)
-  #infoStr = '  <radii rx1="' + str(args.x1) + '" '
-  #args.x2 = calc_radius(args.x2)
-  #infoStr += ' rx2="' + str(args.x2) + '" '
-  #args.y1 = calc_radius(args.y1)
-  #infoStr += ' ry1="' + str(args.y1) + '" '
-  #args.y2 = calc_radius(args.y2)
-  #infoStr += ' ry2="' + str(args.y2) + '" '
-  #args.z1 = calc_radius(args.z1)
-  #infoStr += ' rz1="' + str(args.z1) + '" '
-  #args.z2 = calc_radius(args.z2)
-  #infoStr += ' rz2="' + str(args.z2) + '"'
+  # calculating radii in relation to given stiffnesses x1,x2,y1,...
+  args.x1 = calc_radius(args.x1)
+  infoStr = '  <radii rx1="' + str(args.x1) + '" '
+  args.x2 = calc_radius(args.x2)
+  infoStr += ' rx2="' + str(args.x2) + '" '
+  args.y1 = calc_radius(args.y1)
+  infoStr += ' ry1="' + str(args.y1) + '" '
+  args.y2 = calc_radius(args.y2)
+  infoStr += ' ry2="' + str(args.y2) + '" '
+  args.z1 = calc_radius(args.z1)
+  infoStr += ' rz1="' + str(args.z1) + '" '
+  args.z2 = calc_radius(args.z2)
+  infoStr += ' rz2="' + str(args.z2) + '"'
   
   if infoXml is not None:
     assert(infoStr)
@@ -113,9 +114,10 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array = generate_basecell(args, infoXml,log)
+  array = generate_basecell(args,infoXml,log)
   
   if args.target.startswith("volume"):
+    assert(array is not None)
     calc_volume(array,infoXml)
   
     if args.z1 == 0.0 and args.z2 == 0.0:
@@ -124,13 +126,21 @@ def create_mesh_with_profiles(args,infoXml,log):
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.single_region)
       
     mesh_tool.validate_periodicity(mesh)
+  elif args.target.startswith("surface") and not args.skip_surface_gaps:
+    stlName = args.save if args.save else "surface"
+    if not stlName.endswith(".stl"):
+      stlName += ".stl"
+      
+      mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
-    save = "volume.vtp" if not args.save else args.save
-    if not save.endswith('.vtp'):
-      save += ".vtp"
-    visualize_structure(array,args.single_region,args.show,save)
-    
+    if args.save_vtp:
+      save = "volume.vtp" if not args.save else args.save
+      if not save.endswith('.vtp'):
+        save += ".vtp"
+      visualize_structure(array,args.single_region,args.show,save)
+    elif args.show:
+      visualize_structure(array,args.single_region,args.show,False)
   if infoXml != None:
     infoXml.write('</basecell>')  
   
@@ -152,10 +162,12 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
+parser.add_argument('--skip_surface_gaps', help="show final structure in new window", action='store_true',default=False)
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
-parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation"], default="off")
+parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
+parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
 parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
 parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
@@ -206,7 +218,8 @@ if args.save is None: # set default gid mesh name
   if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
     meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
   
-  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)  
+  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+  args.save = meshName  
 else:
   meshName = args.save  
 
@@ -237,13 +250,13 @@ if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
 
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
-if args.target == 'volume_mesh':   
+if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.skip_surface_gaps):   
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
   mesh_tool.write_gid_mesh(mesh, file)
 
-  print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
+#   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
 ############## info xml scheme #####################
 # <basecell>
