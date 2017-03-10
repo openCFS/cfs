@@ -1,4 +1,4 @@
---# Ilupack is a closed source academic iterative solve by M. Bollhoefer, TU-Braunschweig
+# Ilupack is a closed source academic iterative solve by M. Bollhoefer, TU-Braunschweig
 # by special agreement we have the source available which must not be redistributed
 
 set(ilupack_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/ilupack")
@@ -13,8 +13,6 @@ STRING(REPLACE ";" "^" ILUPACK_AMD_LIBRARY "${AMD_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_BLAS_LIBRARY "${BLAS_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 
-MESSAGE("CFSDEPS_ILUPACK_C_FLAGS=${CFSDEPS_ILUPACK_C_FLAGS}")
-MESSAGE("CFSDEPS_Fortran_FLAGS=${CFSDEPS_Fortran_FLAGS}")
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
