@@ -87,9 +87,9 @@ def get_image(input, set, design, fill=0.0):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="the density.xml file to visualize or the files with saveall")
+parser.add_argument("input", nargs='*',  help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
-parser.add_argument('--saveall', help="uses input as filter (using wildcards like '*.density.xml' as input) and saves all files as png", action='store_true')
+parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
@@ -100,52 +100,53 @@ parser.add_argument('--fill', help="fill elements without density information wi
 
 args = parser.parse_args()
 
+input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
 if not args.saveall:
-  if not os.path.exists(args.input):  
-    print("file '" + args.input + "' not found")
+  if not os.path.exists(input[0]):
+    print("file '" + input[0] + "' not found")
     os.sys.exit()
 
 if args.info:
-  ids = read_set_ids(args.input)
-  print('number of sets in ' + args.input + ': ' + str(len(ids)))
-  if len(ids) > 0:
-    print("first set: '" + ids[0] + "'")
-  if len(ids) > 1:
-    print("last set: '" + ids[-1] + "'")
-
-  print_design_info(args.input, 'design', args.set)
-  print_design_info(args.input, 'physical', args.set)
+  for file in input:
+    ids = read_set_ids(file)
+    print('number of sets in ' + file + ': ' + str(len(ids)))
+    if len(ids) > 0:
+      print("first set: '" + ids[0] + "'")
+    if len(ids) > 1:
+      print("last set: '" + ids[-1] + "'")
+  
+    print_design_info(file, 'design', args.set)
+    print_design_info(file, 'physical', args.set)
   os.sys.exit()  
 
 if args.saveall:
-  files = glob.glob(args.input)
-  print("saveall with filter '" + args.input + "' finds " + str(len(files)) + " files")
-  for f in files:
-    print("read image '" + f + "'")
+  for f in input:
     img, den = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
+    print("save '" + base + ".png'")
     img.save(base + '.png')
 else:
-  img, den = get_image(args.input, args.set, args.design, args.fill)
+  for file in input:
+    img, den = get_image(file, args.set, args.design, args.fill)
   
-  if args.tile:
-      assert(img.size[0] == img.size[1]) # extend if you need  
-      img = img.resize((int(1000/args.tile), int(1000/args.tile)))
-      nx = img.size[0]
-      ny = img.size[1]
-      dat = numpy.array(img) 
-      tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
-      for i in range(args.tile):
-        for j in range(args.tile):
-          tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
-          if i > 0:
-            tiled[i*nx,:] = 0
-          if j > 0:  
-            tiled[:,j*nx] = 0
-      img = Image.fromarray(tiled)
-  if args.save:
-    print("saving image to file " + args.save)
-    img.save(args.save)
-  else:
-   img.show()
+    if args.tile:
+        assert(img.size[0] == img.size[1]) # extend if you need  
+        img = img.resize((int(1000/args.tile), int(1000/args.tile)))
+        nx = img.size[0]
+        ny = img.size[1]
+        dat = numpy.array(img) 
+        tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
+        for i in range(args.tile):
+          for j in range(args.tile):
+            tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
+            if i > 0:
+              tiled[i*nx,:] = 0
+            if j > 0:  
+              tiled[:,j*nx] = 0
+        img = Image.fromarray(tiled)
+    if args.save:
+      print("saving image to file " + args.save)
+      img.save(args.save)
+    else:
+     img.show()
               

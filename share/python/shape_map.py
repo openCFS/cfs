@@ -18,14 +18,19 @@ import argparse
 import copy
 from scipy.interpolate import interp1d
 
-def create_figure(res):
+try:
+  from matviz_vtk import *
+except:
+  print('could not import matviz_vtk, hope you do not need it: ' + str(sys.exc_info()[0]))
+
+def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
   
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
-  ax.set_xlim(0.0, 1.0)
-  ax.set_ylim(0.0, 1.0)
+  ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
+  ax.set_ylim(min(0,minimal[1]), max(1,maximal[1]))
   return fig, ax
 
 def dump_shapes(shapes):
@@ -103,6 +108,15 @@ class Shape:
     
     assert(c > 0)
     return s / c
+
+  # return the coordinates for both profile nodes
+  #@return x1,y1,x2,y2
+  def get_profiles(self, idx):
+    x,y = self.get_center(idx)
+    if self.dof == 0:
+       return x -.5 * self.profile[idx], y, x + .5 * self.profile[idx], y
+    else:    
+      return x, y -.5 * self.profile[idx], x, y + .5 * self.profile[idx]   
       
   # return the line coordinates for the profile
   #@param left (True) or right (False)
@@ -199,6 +213,7 @@ def read_file(filename, profile):
       curr.valid.append(True)    
       
   else:
+    # might be too much when not the whole domain is design (e.g. lbm with boundary)
     nx, ny, nz = read_mesh_info(filename, silent=True)
     assert(nx == ny)  
       
@@ -207,11 +222,22 @@ def read_file(filename, profile):
     query = '//set[last()]/shapeParamElement' 
     sett = root.xpath(query)
 
+    # check for full mesh and be tolerant against lbm meshes. 
+    # we don't known if profiles are written
+    nshapes = int(len(sett)/nx + .5)
+    shape_elems = nx+1 # default case
+    if nshapes > len(sett)/nx: 
+      # apparently we have the lbm case
+      assert(len(sett)/nshapes == int(len(sett)/nshapes))
+      shape_elems = int(len(sett)/nshapes)
+      print('assume not the full domain is design: ' + str(nshapes) + ' shapes with ' + str(shape_elems) + ' (' + str(nx+1) + ') elements')   
+  
+      
     curr = None
     for el in sett:
       nr = int(el.get('nr'))
       v =  float(el.get('design'))
-      if nr == 0 or nr % (nx + 1) == 0:
+      if nr == 0 or nr % (shape_elems) == 0:
         dof = 0 if el.get('dof') == 'x' else 1
         node = el.get('type') == 'node' or el.get('type') == None
         if node: 
@@ -422,9 +448,20 @@ def import_from_image(filename, resample, repair):
   if repair:       
     repair_shapes(shapes)       
   return shapes
-     
-def plot_data(res, shapes):
-  fig, sub = create_figure(res)
+    
+# creates a matplotlib figure     
+def plot_data(res, shapes, unit):
+  # find extreme bounds to also visualize negative node positions
+  minimal = [0.0]*2
+  maximal = [1.0]*2
+  if not unit:
+    minimal = [1e9]*2
+    maximal = [-1e9]*2
+    for shape in shapes:
+      minimal[shape.dof] = min(minimal[shape.dof], min(shape.val))
+      maximal[shape.dof] = max(maximal[shape.dof], max(shape.val))
+  
+  fig, sub = create_figure(res, minimal, maximal)
   
   for shape in shapes:
     n = len(shape.el)
@@ -444,6 +481,74 @@ def plot_data(res, shapes):
       sub.add_line(l)
       
   return fig, sub
+
+# create vtk polydata tesselation
+def create_vtk(shapes):
+  # create vtk cells and points
+  points = vtk.vtkPoints()
+  cells = vtk.vtkCellArray()
+  
+  for shape in shapes:
+    # we initialize the loop with the -1 values
+    cx,cy = shape.get_center(0)
+    last_center = points.InsertNextPoint(cx, cy, 0.0)
+  
+    # last (-1) 'left' and 'right' profile nodes
+    xl, yl, xr, yr = shape.get_profiles(0)
+    last_left = points.InsertNextPoint(xl, yl, 0.0)
+    last_right = points.InsertNextPoint(xr, yr, 0.0)
+  
+  
+    for i in range(1,len(shape.el)):
+      # this center node
+      cx,cy = shape.get_center(i)
+      this_center = points.InsertNextPoint(cx, cy, 0.0)
+  
+      # this 'left' and 'right' profile nodes
+      xl, yl, xr, yr = shape.get_profiles(i)
+      this_left = points.InsertNextPoint(xl, yl, 0.0)
+      this_right = points.InsertNextPoint(xr, yr, 0.0)
+    
+      # two quadrialterals:
+      # last_left--------this_left
+      #    |                 |
+      # last_center------this_center
+      #    |                 |
+      # last_right-------this_right
+      # we divide the quadrilaterals by triangles
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0, last_left)
+      tri.GetPointIds().SetId(1, last_center)
+      tri.GetPointIds().SetId(2, this_left)
+      cells.InsertNextCell(tri)
+  
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0, last_center)
+      tri.GetPointIds().SetId(1, this_center)
+      tri.GetPointIds().SetId(2, this_left)
+      cells.InsertNextCell(tri)
+  
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0, last_center)
+      tri.GetPointIds().SetId(1, last_right)
+      tri.GetPointIds().SetId(2, this_center)
+      cells.InsertNextCell(tri)
+  
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0, last_right)
+      tri.GetPointIds().SetId(1, this_right)
+      tri.GetPointIds().SetId(2, this_center)
+      cells.InsertNextCell(tri)
+  
+      last_center = this_center
+      last_left = this_left
+      last_right = this_right
+  
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    polydata.SetPolys(cells)
+
+  return polydata
 
 def export(shapes, filename, suppress_profile):
   out = open(filename, "w")
@@ -478,9 +583,15 @@ if __name__ == '__main__':
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
-  parser.add_argument('--save', help="save the image to the given name with the given format")
+  parser.add_argument('--unit_bound', help="enforce the visualization on a unit square", action='store_true')
+  parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   args = parser.parse_args()
+  
+  if not os.path.exists(args.input):
+    print("error: cannot find '" + args.input + "'")
+    os.sys.exit()
+  
   shapes = []
   if args.input.endswith('.xml') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.profile)
@@ -497,12 +608,19 @@ if __name__ == '__main__':
   if args.export:  
     export(shapes, args.export, args.suppress_profile)
 
-  fig, sub = plot_data(800, shapes)
-  if args.save:
-    fig.savefig(args.save)  
-  if not args.noshow:
-    fig.show()
-    input("Press Enter to terminate.")
+  # vtp generation exclusivly triggerd by saving an vtp file
+  if args.save and args.save.endswith('.vtp'):
+    polydata = create_vtk(shapes)
+    show_write_vtk(polydata,800,args.save)
+    if not args.noshow:
+      show_vtk(polydata,800,show_edges=True) # show edges
+  else:
+    fig, sub = plot_data(800, shapes, args.unit_bound)
+    if args.save:
+      fig.savefig(args.save)  
+    if not args.noshow:
+      fig.show()
+      input("Press Enter to terminate.")
 else:
   f = 'shape_map_mech_39.grad.plot'
   print(f)
