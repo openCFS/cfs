@@ -145,6 +145,7 @@
 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint" type="DT_MechCS"/>
+                <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
 

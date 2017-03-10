@@ -142,29 +142,8 @@ def last_h5_step(hdf5_file):
 
   return int(last[5:])
 
-def read_displacement(hdf5_file,nr,region = None):
-  if region is None:
-    u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/mech/Nodes/Real'].value
-  else:
-    # special case for debuggin apod6. Generalize if necessary
-    f = h5py.File(hdf5_file)
-    u = f['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/non-design/Nodes/Real'].value
-    non_des = f['/Mesh/Regions/non-design/Nodes'].value
-      
-    force_nodes = f['/Mesh/Groups/'+str(region)+'/Nodes'].value
-    u_max = -100000.
-    u_average = 0.
-    for i in range(len(force_nodes)):
-      j = force_nodes[i]
-      for k in range(len(non_des)):
-        if non_des[k] == j:
-          break
-      if u_max < u[k][1]:
-        u_max = u[k][1]
-      u_average += u[k][1]
-    u_average /= len(force_nodes)
-    print('u_max = ' + str(u_max))
-    print('u_average = '+ str(u_average))
+def read_displacement(hdf5_file,nr,region = 'mech'):
+  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/'+region+'/Nodes/Real'].value
   return u
 
 def read_density(hdf5_file):
