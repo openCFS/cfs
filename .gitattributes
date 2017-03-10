@@ -1289,6 +1289,7 @@ share/python/material_catalogue/inv_tensor_3D.xml -text
 share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/inv_tensor_3D_ortho_bc.xml -text
 share/python/material_catalogue/mat.xml -text
+share/python/material_catalogue/postprocess.py -text
 share/python/material_catalogue/process_sparse.py -text
 share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text

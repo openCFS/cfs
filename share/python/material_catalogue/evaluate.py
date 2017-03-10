@@ -179,6 +179,9 @@ elif dim == 3:
   filename = "detailed_stats_" + str(folder)
   out = open(filename, "w")
   out.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00    0.000000e+00 0.000000e+00 0.000000e+00\n')
+  filename = "detailed_stats_vol" + str(folder)
+  out_vol = open(filename, "w")
+  out_vol.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00\n')
   if args.big:
     joblist = ()
     # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
@@ -391,6 +394,11 @@ elif dim == 3:
           ts = np.asarray(res)
           print(infoxml + ' -> '+ str(ts))
           out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
+          vol = xpath(doc, "//domain/@structure_volume")
+          if vol != "cannot_determine":
+            vol = float(vol)
+            out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
+          
           # if x != y:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
         else:
@@ -411,6 +419,7 @@ elif dim == 3:
     if not args.design:
       x += 1
 out.close()
+out_vol.close()
 
 
 
