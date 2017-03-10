@@ -1088,14 +1088,6 @@ def generate_basecell(args,info,log):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
-    dump_end_nodes(end_nodes_1+end_nodes_2+end_nodes_3)
-    
-    # creates triangles between end nodes of same profile where
-    # we have e.g. a valley with 1 or 2 nodes
-#     postprocess_end_nodes(end_nodes_1,nodes_ids_1,cells)
-#     postprocess_end_nodes(end_nodes_2,nodes_ids_2,cells)
-#     postprocess_end_nodes(end_nodes_3,nodes_ids_3,cells)
-    
     points = vtk.vtkPoints()
     points.SetNumberOfPoints(id)
     for i,line in enumerate(nodes_1):
@@ -1289,22 +1281,6 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
       return node, idx
   
   return None, -1
-
-# vertices contains 3 end nodes that form a triangle
-# for each end node, check if any of its neighbors is contained in triangle
-# spanned by these 3 end nodes    
-def triangle_contains_any_node(vertices):
-  for vertice in vertices:
-    for n in vertice.neighbors:
-      # if we are one of the vertices skip
-      if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
-        continue
-      
-#       log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + " contains node " + str(n[1]))
-      if triangle_contains_point(vertices,n[0]):
-        return True    
-  
-  return False
 
 # check if projection of point onto triangle plane lies within triangle
 # @param vertices(coordinates) defining the triangle
@@ -1616,7 +1592,7 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
 #     return False
   
   # don't compare last element in triangles to avoid self-comparison
-  if edge_already_connected(history+triangles[:-1],active_edge):
+  if edge_already_connected(history+triangles[:-1],active_edge) and (initial_edge[0].id != a.id or initial_edge[1].id != b.id):
     return False
 
   log("\na: " + str(a.id))
@@ -1704,7 +1680,6 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
       break
     if not out:
       log("skip " + str(n.id))
-    
 #     count += 1
 #     if count == 20:
 #       break 
@@ -1880,7 +1855,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   quality_bound = 5  
   end = False
   stop = False
-  while not end and quality_bound < 15: 
+  while not end and quality_bound < 30: 
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
     # - True: Reached the end
@@ -1888,9 +1863,9 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     # check if we have just created a triangle where new active edge is 
     # identical to active edge of very first triangle --> we are finished!
     if failed:
-      # in this case, we want to output the so far valid triangles for debugging purposes
-      if len(triangles) > 1:
-        stop = False
+      # if check_next_triangle failed because we have reached an edge which was
+      # already part of previous triangulations, stop this triangulation
+      if edge_already_connected(history+triangles[:-1],(triangles[-1].edge)):
         break
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
@@ -1901,6 +1876,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         log("filled")
         end = True
+        
+        break
       # find out if we have reached an edge which is already part of another triangle
       # if this is the case, we are done for this given starting node
       # this is the case when we have gaps going through all 3 profiles 
@@ -1908,15 +1885,10 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # triangles[:-1]:don't compare edge with its own triangle
       if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
         log("filled")
-#         count += 1
-#         print("count",count)
-#         if count == 2:
-#           history += triangles
-#           return False,True
-        break 
+        break
       
-  if quality_bound >= 15:
-    raise Exception("Quality bound exceeded limit of 15!")
+  if quality_bound >= 30:
+    raise Exception("Quality bound exceeded limit of 30!")
     
   history += triangles
   
@@ -2215,29 +2187,4 @@ def sort_end_nodes_list(profiles,end_nodes):
    
   assert(len(new_list) == len(end_nodes)) 
    
-  return new_list
-  
-# sort list of end nodes from profile direct with largest radius to smallest
-def sort_end_nodes_list(profiles,end_nodes):
-  # dont't sort if all radii are the same
-  if profiles[0].radius_left == profiles[1].radius_left and profiles[1].radius_left == profiles[2].radius_left:
-    return end_nodes
-
-  radii = [profiles[0].radius_left,profiles[1].radius_left,profiles[2].radius_left]
-  dirs = [profiles[0].direction,profiles[1].direction,profiles[2].direction]
-  
-  # sort directions depending on profile radii
-  sorted_dirs = np.array(dirs)[np.argsort(radii)][::-1]
-  
-  print(sorted_dirs)
-  new_list = []
-  
-  # append nodes in the order of sorted directions
-  for d in sorted_dirs:
-    for n in end_nodes:
-      if n.dir == d:
-        new_list.append(n)
-  
-  assert(len(new_list) == len(end_nodes))
-  
   return new_list
