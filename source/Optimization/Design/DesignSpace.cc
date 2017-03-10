@@ -42,6 +42,9 @@ using namespace CoupledField;
 template <class TYPE> class Vector;
 
 using std::complex;
+using std::string;
+using boost::lexical_cast;
+
 // declare class specific logging stream
 DECLARE_LOG(designSpace)
 DEFINE_LOG(designSpace, "designSpace")
@@ -160,7 +163,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     for(unsigned int i = 0; i < tr_in.GetSize(); i++) {
       transform.Push_back(Transform(tr_in[i], this));
       transform.Last().index = i;
-      if(boost::lexical_cast<std::string>(i) != transform.Last().excitation_str)
+      if(lexical_cast<string>(i) != transform.Last().excitation_str)
         EXCEPTION("The " << (i+1) << ".transformation has excitation '" << transform.Last().excitation_str << "' but should have '" << i << "'");
     }
   }
@@ -550,6 +553,9 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
   double dens = CalcAverageDensityAtNode(nodeId,false);
+  // with shape mapping density might be slightly larger one for tanh_sum or much larger with sum
+  assert(dens < 1.01);
+  dens = std::min(1.0, dens); // not very smooth but otherwise we open hell :(
 
   if (derivative)
     return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
@@ -647,7 +653,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + "_"
                    + DesignElement::access.ToString(rd.access)
-                   + (rd.excitation >= 0 ? ("_ex_" + boost::lexical_cast<std::string>(rd.excitation)) : "");
+                   + (rd.excitation >= 0 ? ("_ex_" + lexical_cast<string>(rd.excitation)) : "");
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
@@ -685,7 +691,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     // two step check
     if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
     // second check
-    if(rd.excitation >= 0 && boost::lexical_cast<std::string>(rd.excitation) != excitation) continue;
+    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation) continue;
     // we are right.
     switch(rd.solutionType)
     {
@@ -879,7 +885,7 @@ bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm,
   if (direction == BaseDesignElement::NO_DERIVATIVE) {
     for (unsigned int i = 0; i < lp_w.GetSize();i++) {
       if (lp_w[i] < EPS) {
-        throw Exception("The material tensor of element '" + std::to_string(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
+        throw Exception("The material tensor of element '" + lexical_cast<string>(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
         return false;
       }
     }
