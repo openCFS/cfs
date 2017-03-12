@@ -733,6 +733,11 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
+  // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
+  if(eval_timer)
+    eval_timer->Stop();
+
   AnalysisID& id = context->driver->GetAnalysisId();
   id.iteration = currentIteration;
 
@@ -772,6 +777,9 @@ void Optimization::SolveStateProblem(Excitation* excite)
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
 
+  if(eval_timer)
+    eval_timer->Start();
+
   problemSolvedCounter++;
   problemWithinIteration++;
 }
@@ -791,31 +799,6 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   }
 }
 
-// only for transient and tracking
-void Optimization::SolveAdjointProblem(Excitation* excite, Function* f)
-{
-  // is obviously not called?!
-  // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
-  assert(false); // gcc debug needs this for linking but not icc and clang
-  /*
-  // FIXME BaseDriver* driver = domain->GetDriver();
-
-  AdjointParameters adjointParams(f, excite);
-
-  if(IsTransient()){
-    assert(false);
-   //    SinglePDE* mech = domain->GetSinglePDE("mechanic");
-    //mech->GetSolveStep()->ReInit();
-  }
-
-  // Do not store the results. This is adjoint.
-  if(!context->IsComplex())
-    assert(false);
-    // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
-  else
-    EXCEPTION("Harmonic adjoint not implemented!");
-    */
-}
 
 StdVector<Function*> Optimization::GetFunctions(bool only_active) const
 {
@@ -892,6 +875,10 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
 double Optimization::CalcObjective()
 {
+  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 
@@ -932,11 +919,19 @@ double Optimization::CalcObjective()
     }
   }
 
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
+
   return result;
 }
 
 void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
 {
+  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
+
   // reset the cost gradients in the design elements and sum them up in a weighted way
   // to perform multiple loads
   design->Reset(DesignElement::COST_GRADIENT);
@@ -964,10 +959,17 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
     if(progOpts->DoDetailedInfo())
       design->WriteGradientFile(); // if constraints are not calculated yet will be overwritten later with the good data for this iterations
   }
+
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
 }
 
 double Optimization::CalcConstraint(Condition* g)
 {
+  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
 
@@ -987,12 +989,20 @@ double Optimization::CalcConstraint(Condition* g)
     LOG_DBG2(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
   }
 
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
+
   g->SetValue(result);
   return result;
+
 }
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
+  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
@@ -1025,6 +1035,9 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(g);
   }
+
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
 }
 
 void Optimization::EvaluateSpecialResults()

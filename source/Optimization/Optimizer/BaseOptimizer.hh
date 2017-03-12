@@ -59,6 +59,21 @@ namespace CoupledField
 
     Optimization* optimization;
 
+    /** standard optimiers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
+     * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
+    boost::shared_ptr<Timer> GetOptimierTimer() { return optimizer_timer_; }
+
+    /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
+    boost::shared_ptr<Timer> GetRunnungEvalTimer();
+
+  protected:
+
+    /** This is the specific SolveProblem() implementation. */
+    virtual void SolveProblem() = 0;
+    
+    /** Call this in the optimizer constructor when you have manual_scaling. */
+    void PostInitScale(double manual_scaling, bool no_autoscale = false);
+
     /** Evaluates the objective. In the autoscale case checks for old value.
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.
      *        Do it also for the gradient!!
@@ -71,38 +86,28 @@ namespace CoupledField
      * @return true if within autoscale tolerance - false if restart necessary */
     bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
 
-    /** helper for EvalConstraints() assuming the design to be set
-     * @param normalize @see EvalConstraints() */
-    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize);
-
-    /** Helper vor EvalGradConstraint()
-     * Called directly by FeasPP
-     * @return nnz of constraint */
-    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values);
-
-    /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() const { return 1e19; }
-
-  protected:
-
-    /** This is the specific SolveProblem() implementation. */
-    virtual void SolveProblem() = 0;
-    
-    /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInitScale(double manual_scaling, bool no_autoscale = false);
-
-
     /** Evaluates the constraints or rather passes them on to the optimization
      * @param cfs_scale @see EvalObjective()
      * @param normalize transform to g <= 0 constraint. */
     void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g, bool normalize);
     
+    /** helper for EvalConstraints() assuming the design to be set
+     * @param normalize @see EvalConstraints()
+     * @param direct_call if false we don't touch timers as we assume to be called by  EvalConstraints() */
+    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true);
+
     /** Evaluates the constraint gradients
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
     void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
         StdVector<double>& values, GradientType grtype = ALL);
+
+    /** Helper vor EvalGradConstraint()
+     * Called directly by FeasPP
+     * @return nnz of constraint
+     * @param direct_call @see EvalConstraint() */
+    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call = true);
 
     /** Provide Upper and Lower bounds to the optimizer.
      * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */
@@ -113,6 +118,8 @@ namespace CoupledField
      * @return < 0 does not implement active sets, >= 0 the current active set */
     virtual int GetCurrenActiveSetSize() const { return -1; }
 
+    /** Return the infinty value (here for ipopt) */
+    virtual double GetInfBound() const { return 1e19; }
 
     /** Combines a design_in with an objective */
     struct DesignMemory
@@ -197,6 +204,10 @@ namespace CoupledField
     /** Determine the time spent in the external optimizer.
      * This is SolveProblem minus all evaluations */
     boost::shared_ptr<Timer> optimizer_timer_;
+    boost::shared_ptr<Timer> eval_obj_timer_;
+    boost::shared_ptr<Timer> eval_grad_obj_timer_;
+    boost::shared_ptr<Timer> eval_const_timer_;
+    boost::shared_ptr<Timer> eval_grad_const_timer_;
 
     /** this is the link to the general optimization where we can find autoscale. Is not NULL */
     PtrParamNode gen_opt_pn_;
