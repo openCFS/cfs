@@ -15,8 +15,6 @@ namespace CoupledField
 {
 
 class Optimization;
-class Timer;
-
 using std::string;
 
 /** Interface class to the SnOpt-Optimizer
@@ -220,9 +218,6 @@ private:
   
   /** filename of snopt output file */
   std::string outfilename;
-
-  /** Timer for SnOpt */ 
-  boost::shared_ptr<Timer> timer_;
 };
 
 } // end of namespace
