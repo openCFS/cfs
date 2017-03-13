@@ -234,7 +234,7 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunnungEvalTimer()
   if(eval_grad_const_timer_->IsRunning())
     return eval_grad_const_timer_;
   // Nothing is running when we no a direct eval constraint call
-  // std::cout << "BO:GRET -> NULL\n";
+  //std::cout << "BO:GRET -> NULL\n";
   return boost::shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
 }
 
@@ -321,7 +321,11 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
+  // we might come from another eval, then the optimizer is already stopped and we must not restart it
+  bool restart_timer = optimizer_timer_->IsRunning();
   optimizer_timer_->Stop();
+
+  assert(!GetRunnungEvalTimer()); // no currently running timer!
   eval_obj_timer_->Start();
 
   // set the design and see if it is a new one
@@ -368,7 +372,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
 
   eval_obj_timer_->Stop();
-  optimizer_timer_->Start();
+  if(restart_timer)
+    optimizer_timer_->Start();
 
   return ret;
 }
@@ -377,6 +382,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
 {
   // we need to take care about measurement! We don't want to count times double!
   assert(!optimizer_timer_->IsRunning());
+  // we eval objective next so there must not be anything running at the moment!
   assert(!eval_grad_obj_timer_->IsRunning());
   assert(!eval_grad_const_timer_->IsRunning());
   // The function has to be evaluated before the gradient can be computed
@@ -399,9 +405,10 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 {
   optimizer_timer_->Stop();
 
+  // might trigger EvalObjective so start timer afterwards
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
 
-  eval_grad_obj_timer_->Start(); // after SolveAdjointProblemsIfNeeded()
+  eval_grad_obj_timer_->Start();
 
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
@@ -530,9 +537,10 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
   optimizer_timer_->Stop();
 
+  // might trigger EvalObjective so start timer afterwards
   SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
 
-  eval_grad_const_timer_->Start(); // only after SolveAdjointProblemsIfNeeded() w
+  eval_grad_const_timer_->Start();
 
   // note, that we have dense gradients!
   // iterate over the gradients

@@ -733,6 +733,7 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
+  assert(!baseOptimizer_->GetOptimierTimer()->IsRunning());
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
   boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
   if(eval_timer)

@@ -27,6 +27,11 @@ namespace CoupledField
     
   public:
 
+    /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
+     * all other optimizers always need everything */
+    typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
+
+
     /** cass PostInit() afterwards!
      * @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
@@ -52,27 +57,6 @@ namespace CoupledField
     
     /** optionally adds some general information after initialization. */
     virtual void ToInfo(PtrParamNode pn) { };
-
-    /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
-     * all other optimizers always need everything */
-    typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
-
-    Optimization* optimization;
-
-    /** standard optimiers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
-     * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
-    boost::shared_ptr<Timer> GetOptimierTimer() { return optimizer_timer_; }
-
-    /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
-    boost::shared_ptr<Timer> GetRunnungEvalTimer();
-
-  protected:
-
-    /** This is the specific SolveProblem() implementation. */
-    virtual void SolveProblem() = 0;
-    
-    /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInitScale(double manual_scaling, bool no_autoscale = false);
 
     /** Evaluates the objective. In the autoscale case checks for old value.
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.
@@ -109,6 +93,28 @@ namespace CoupledField
      * @param direct_call @see EvalConstraint() */
     int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call = true);
 
+
+    /** Return the infinity value (here for ipopt) */
+    virtual double GetInfBound() const { return 1e19; }
+
+    Optimization* optimization;
+
+    /** standard optimiers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
+     * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
+    boost::shared_ptr<Timer> GetOptimierTimer() { return optimizer_timer_; }
+
+    /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
+    boost::shared_ptr<Timer> GetRunnungEvalTimer();
+
+  protected:
+
+    /** This is the specific SolveProblem() implementation. */
+    virtual void SolveProblem() = 0;
+
+    /** Call this in the optimizer constructor when you have manual_scaling. */
+    void PostInitScale(double manual_scaling, bool no_autoscale = false);
+
+
     /** Provide Upper and Lower bounds to the optimizer.
      * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
@@ -117,9 +123,6 @@ namespace CoupledField
      * constraints (including equality constraints which usually always active).
      * @return < 0 does not implement active sets, >= 0 the current active set */
     virtual int GetCurrenActiveSetSize() const { return -1; }
-
-    /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() const { return 1e19; }
 
     /** Combines a design_in with an objective */
     struct DesignMemory
