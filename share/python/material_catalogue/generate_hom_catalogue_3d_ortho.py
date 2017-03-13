@@ -61,7 +61,7 @@ for i,x1 in enumerate(np.arange(0.0,1.1,1.0/float(steps))):
       problem = str(i) + "-" + str(j) + "-" + str(k)
       mesh = problem + ".mesh"
       
-      cmd = "basecell.py --res " + str(args.res) + " --x1 " + str(x) + " --y1 " + str(y) + " --z1 " + str(z)+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --save " + problem
+      cmd = "basecell.py --res " + str(args.res) + " --x1 " + str(x) + " --y1 " + str(y) + " --z1 " + str(z)+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --save " + problem + " --stifness_as_radius"
       cmd += "; cfs_rel -d -m " + mesh + " -p " + cwd + "/" + xml + " " + problem
       cmd += "&& rm " + mesh  
       
