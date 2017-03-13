@@ -179,7 +179,7 @@ class Cubic_spline():
 #     plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
     plt.xlim((0,0.5))
     plt.ylim((0.5,1.0))
-    plt.show()
+#     plt.show()
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
@@ -447,6 +447,7 @@ class BisecSpline:
     p = right.coords_cut
   
     assert(p[0] <= 0.5 and p[1] >= 0.5)
+#     height = distance_to_center(p) + 0.5
     height = p[1]#distance_to_center(p) + 0.5
   
     self.angle = angle_to_center(p)
@@ -684,6 +685,8 @@ class Profile:
       self.radius_right = args.z1 / 2.0
       
     self.bisec_angle = self.functions[1].angle
+    
+    plt.show()
     
     if infoXml:  
       infoXml.write('  </profile>\n\n')
@@ -1039,7 +1042,7 @@ def generate_basecell(args,info,log):
   
   hf = None
   
-  if args.verbose != "off":
+  if args.verbose != "off" or args.target == "3dlines":
     hf = plt.figure()
     ha = hf.add_subplot(111, projection='3d')
     ha.set_xlabel('X')
@@ -1570,7 +1573,6 @@ def handle_bad_triangle(history,triangles,quality_bound):
   return False  
 
 def add_good_triangle(triangles, a, b, next_cands, next):
-  
 # decide whether a or b is member based on triangle ratios
 # and not profile directions as a.dir might be equal b.dir
   edge_0 = a if a.dir != next.dir else b
@@ -1855,7 +1857,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   quality_bound = 5  
   end = False
   stop = False
-  while not end and quality_bound < 30: 
+  #while not end and quality_bound < 30: 
+  while not end:
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
     # - True: Reached the end
@@ -1864,9 +1867,9 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     # identical to active edge of very first triangle --> we are finished!
     if failed:
       # for debugging
-      if len(triangles) > 1:
-        history += triangles
-        return False, True
+#       if len(triangles) > 1:
+#         history += triangles
+#         return False, True
       
       # if check_next_triangle failed because we have reached an edge which was
       # already part of previous triangulations, stop this triangulation
@@ -1875,6 +1878,8 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # Start again with more tolerant quality bound
       quality_bound *= 1.5
       log("increased quality_bound to " + str(quality_bound))
+      if quality_bound > 30:
+        print("Quality bound exceeded: ",quality_bound)
     else:
       edge = triangles[-1].edge
       # if we have reached the very first edge, we're done
@@ -1893,9 +1898,6 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
 #         print("here")
 #         return True, True
         break
-      
-      if quality_bound > 30:
-        print("Quality bound exceeded: ",quality_bound)
       
 #   if quality_bound >= 30:
 #     print(len(history))
@@ -2193,7 +2195,6 @@ def sort_end_nodes_list(profiles,end_nodes):
   # sort directions depending on profile radii 
   sorted_dirs = np.array(dirs)[np.argsort(radii)][::-1] 
    
-  print(sorted_dirs) 
   new_list = [] 
    
   # append nodes in the order of sorted directions 
