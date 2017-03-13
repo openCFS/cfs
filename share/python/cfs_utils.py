@@ -41,18 +41,21 @@ def replace(xml, path, value, unique = True):
     if len(res) > 1:
       raise RuntimeError(path + " has " + str(len(res)) + " hits")
   
-  # now we have to fake
+  # in the attribute case we have to fake
   idx = path.rfind('/@')
-  assert(idx > 0)
-  # query element
-  elem = xml.xpath(path[0:idx], namespaces = namespace(path))
-  for e in elem:
-    data = e.attrib[path[idx+2:]]
-    by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
-    e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')  
-
-  return len(elem)   
-
+  if idx > 0:
+      # query element
+      elem = xml.xpath(path[0:idx], namespaces = namespace(path))
+      for e in elem:
+        data = e.attrib[path[idx+2:]]
+        by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
+        e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')    
+      return len(elem)   
+  else:
+      for e in res:
+          e.text = value
+      return len(res)
+  
 ## removes the defined xml entity.
 def remove(xml, path, unique = True):
   res = xml.xpath(path, namespaces = namespace(path)) 
