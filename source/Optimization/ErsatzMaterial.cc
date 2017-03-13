@@ -3612,15 +3612,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
       if(context->DoLBM()) {
-        boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
-        assert(eval_timer);
-        eval_timer->Stop();
+        // in autoscale case we are still in the BaseOptimizer constructor
+        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+        if(eval_timer)
+          eval_timer->Stop();
 
         LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
         assert(lbmPde != NULL);
         lbmPde->Solve();
 
-        eval_timer->Start();
+        if(eval_timer)
+          eval_timer->Start();
       }
       else
         Optimization::SolveStateProblem(&excite); // this is true for all problem types
@@ -3838,8 +3840,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
-    assert(!baseOptimizer_->GetOptimierTimer()->IsRunning());
-    boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
+    assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
+    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
     if(eval_timer)
       eval_timer->Stop();
 
