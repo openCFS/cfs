@@ -686,6 +686,8 @@ class Profile:
       
     self.bisec_angle = self.functions[1].angle
     
+#     self.functions[0].spline.plot()
+#     self.functions[2].spline.plot()
     plt.show()
     
     if infoXml:  
