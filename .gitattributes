@@ -1211,6 +1211,7 @@ share/matlab/opt_design_change.m -text
 share/matlab/sbmread.m svneol=native#text/plain
 share/python/abaqus_reader.py -text
 share/python/adjustDesign.py -text
+share/python/analyze_opt.py -text
 share/python/angles-twoload.py -text
 share/python/base_structures_images.py -text
 share/python/basecell.py -text
@@ -1320,7 +1321,6 @@ share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/streamviz.py -text
 share/python/test.py -text
-share/python/warmstart.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text
