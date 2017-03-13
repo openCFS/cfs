@@ -166,7 +166,7 @@ ErsatzMaterial::ErsatzMaterial() :
       continue;
 
     if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
-      throw Exception("constraint " + g->ToString() + " operates on invalid design variable");
+      throw Exception("constraint '" + Function::type.ToString(g->GetType()) + "' operates on invalid design variable"); // ToString() may trigger too much within constructor
 
   }
 
