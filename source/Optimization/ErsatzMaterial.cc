@@ -3838,9 +3838,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
+    assert(!baseOptimizer_->GetOptimierTimer()->IsRunning());
     boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
-    assert(eval_timer);
-    eval_timer->Stop();
+    if(eval_timer)
+      eval_timer->Stop();
 
     excite->Apply(); // the context shall be already switched
     assert(excite->sequence == context->sequence);
@@ -3902,7 +3903,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       default:
       assert(false);
     }
-    eval_timer->Start();
+    if(eval_timer)
+      eval_timer->Start();
   }
 
   template<class T>
