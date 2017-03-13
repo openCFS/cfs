@@ -43,7 +43,7 @@ namespace CoupledField
                       BasePDE::AnalysisType analysis,
                       MathParser* mp,
                       PtrParamNode infoNode) 
-  : timer_(new Timer()) {
+  {
 
     // init general params
     algsys_ = algsys;
@@ -53,8 +53,9 @@ namespace CoupledField
     matrixUpdated_ = false;
     printProgressBar_ = false;
     info_ = infoNode;
-    
     lin_forms_given_ = false;
+
+    timer_ = boost::shared_ptr<Timer>(new Timer());
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones

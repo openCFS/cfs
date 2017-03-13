@@ -1040,9 +1040,6 @@ namespace CoupledField {
     //! Pointer to information ParamNode
     PtrParamNode myInfo_;
     
-    //! Timer object for measuring the time of matrix graph setup
-    shared_ptr<Timer> graphTimer_;
-    
     //! Flag indicating use of idbc elimination via Penalty approach
     bool usingPenalty_;
     

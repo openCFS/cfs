@@ -55,7 +55,7 @@
           </standard>
          </solutionStrategy >
          <solverList>
-         <pardiso/>
+         <ilupack/>
         </solverList>
       </system>
     </linearSystems>   
