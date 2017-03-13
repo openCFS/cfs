@@ -329,6 +329,8 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
 ENDIF() # close all CXX compiler specific blocks
 
 # common for all compilers
+# adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
+# this is different from adding gprof support by -pg wich adds changes the code to generate an output file
 IF(PROFILING)
  SET(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
 ENDIF()

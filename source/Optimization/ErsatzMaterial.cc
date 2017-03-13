@@ -48,6 +48,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/StressConstraint.hh"
@@ -87,7 +88,8 @@ Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
 ErsatzMaterial::ErsatzMaterial() :
   Optimization(),
-  dim(grid->GetDim())
+  dim(grid->GetDim()),
+  calc_u1ku2_timer_(new Timer("calc_U1KU2", true)) // sub-timer
 {
   /** We store here the solution */
   volume_fraction_ = 0.0;
@@ -378,10 +380,10 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-
-
   // make basic logging
   design->ToInfo(this);
+
+  optInfoNode->Get(ParamNode::SUMMARY)->Get("calcUKU/timer")->SetValue(calc_u1ku2_timer_);
 }
 
 
@@ -778,8 +780,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, App::Type app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
-//    LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
-//                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
+    calc_u1ku2_timer_->Start();
+    // LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+    //              << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
     // Note to perform "<f',u>" from <f',u> + <l,K'*u-f'> manually
     assert(u1.GetSize() != 0);
@@ -886,6 +889,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         if(res_idx != -1) de->specialResult[res_idx] = this_value;
       }
     }
+    calc_u1ku2_timer_->Stop();
     return sum;
   }
 
@@ -3608,9 +3612,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
       if(context->DoLBM()) {
+        boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
+        assert(eval_timer);
+        eval_timer->Stop();
+
         LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
         assert(lbmPde != NULL);
         lbmPde->Solve();
+
+        eval_timer->Start();
       }
       else
         Optimization::SolveStateProblem(&excite); // this is true for all problem types
@@ -3828,6 +3838,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
+    assert(!baseOptimizer_->GetOptimierTimer()->IsRunning());
+    boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
+    if(eval_timer)
+      eval_timer->Stop();
+
     excite->Apply(); // the context shall be already switched
     assert(excite->sequence == context->sequence);
     assert(context->pde != NULL);
@@ -3888,6 +3903,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       default:
       assert(false);
     }
+    if(eval_timer)
+      eval_timer->Start();
   }
 
   template<class T>

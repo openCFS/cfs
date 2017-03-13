@@ -131,6 +131,9 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
 void OptimalityCondition::SolveProblem()
 {
+  // we measure the optimizer in the loops only
+  optimizer_timer_->Stop();
+
   // solve the state problem first
   Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed
   optimization->SolveStateProblem();
@@ -143,27 +146,37 @@ void OptimalityCondition::SolveProblem()
   {
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
+
+
     optimization->SolveAdjointProblems();
+
+    eval_grad_obj_timer_->Start();
     optimization->CalcObjectiveGradient(NULL);
+    eval_grad_obj_timer_->Stop();
     
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
     
-    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
+    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
+      eval_grad_const_timer_->Start();
       optimization->CalcConstraintGradient(NULL);
+      eval_grad_const_timer_->Stop();
+    }
     
     // store iteration 0
     if(iter == 0)
     {
+      eval_obj_timer_->Start();
       optimization->CalcObjective();   // for output
+      eval_obj_timer_->Stop();
       // the gradients are (here only! )pointing to the next design vector, 
       // hence the gradients for iteration "0" and 1 are identical
       optimization->CommitIteration(); 
       iter++;
       continue; // redo gradients and start optimization
     }
-    
-    
+
+    optimizer_timer_->Start();
     // do a SIMP Optimality Condition step -> calc new design vector
     switch(type_)
     {
@@ -181,6 +194,7 @@ void OptimalityCondition::SolveProblem()
                      
     default: assert(false); 
     }
+    optimizer_timer_->Stop();
     
     // solve the state problem for the new design vector
     Optimization::context->pde->GetAssemble()->SetAllReassemble();
@@ -188,7 +202,10 @@ void OptimalityCondition::SolveProblem()
 
     // calc the objective for the logging in CommitIteration(),
     // for the optimality condition it is not required.
+
+    eval_obj_timer_->Start();
     optimization->CalcObjective();
+    eval_obj_timer_->Stop();
     
     // every state problem is an iteration 
     // The gradients "point" to this design vector. 
@@ -488,11 +505,16 @@ double OptimalityCondition::Evaluate(double lambda)
                   << " old= " << rho_e << " next=" << next << " lower=" << lower
                   << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }
-   
+   optimizer_timer_->Stop();
    // store the new values in the design variables
    optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
+   eval_const_timer_->Start();
    double vol = optimization->CalcConstraint(g);
+   eval_const_timer_->Stop();
+
+   optimizer_timer_->Start();
+
    double err = g->GetBoundValue() - vol;
    return err;
 }
