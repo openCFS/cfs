@@ -249,8 +249,7 @@ if args.logging:
   
 # sanity checks
 if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
-  print("error: need values for x1,x2 and y1,y2 and z1,z2!")
-  sys.exit(1)
+  raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")
 
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
