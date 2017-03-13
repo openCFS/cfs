@@ -2039,17 +2039,17 @@ def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
       
     elif inp[i][0:8].strip() == 'CTETRA':
       # read 3D tetra elements
-      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][16:24].strip()), int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip())])
     elif inp[i][0:8].strip() == 'CPENTA':
       # read 3D wedge elements
-      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip())])
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][16:24].strip()), int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip())])
     elif inp[i][0:8].strip() == 'CHEXA':
       # read 3D hexahedron elements
-      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip()),int(inp[i][8:16].strip()),int(inp[i][16:24].strip())])
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][16:24].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip()),int(inp[i][48:56].strip()),int(inp[i][56:64].strip()),int(inp[i][64:72].strip()),int(inp[i][8:16].strip()),int(inp[i][16:24].strip())])
       i += 1     
     elif inp[i][0:8].strip() == 'CTRIA3':
       # read 2D triangle elements
-      elem.append([int(inp[i][8:16].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip())])
+      elem.append([int(inp[i][8:16].strip()),int(inp[i][16:24].strip()),int(inp[i][24:32].strip()),int(inp[i][32:40].strip()),int(inp[i][40:48].strip())])
     elif inp[i][0:8].strip() == 'RBE2':
       support = []
       n = 0
@@ -2264,7 +2264,7 @@ def create_mesh_for_aux_cells(all_nodes = [], elements = [],offset = 0.):
   # insert elements
   for i in range(len(elements)):
       e = Element()
-      e.nodes = (elements[i][1:]) 
+      e.nodes = (elements[i][2:]) 
       for k in range(len(e.nodes)):
         e.nodes[k] -= offset
       count = 0
