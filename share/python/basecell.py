@@ -94,19 +94,20 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   mesh = None
   
-  # calculating radii in relation to given stiffnesses x1,x2,y1,...
-  args.x1 = calc_radius(args.x1)
-  infoStr = '  <radii rx1="' + str(args.x1) + '" '
-  args.x2 = calc_radius(args.x2)
-  infoStr += ' rx2="' + str(args.x2) + '" '
-  args.y1 = calc_radius(args.y1)
-  infoStr += ' ry1="' + str(args.y1) + '" '
-  args.y2 = calc_radius(args.y2)
-  infoStr += ' ry2="' + str(args.y2) + '" '
-  args.z1 = calc_radius(args.z1)
-  infoStr += ' rz1="' + str(args.z1) + '" '
-  args.z2 = calc_radius(args.z2)
-  infoStr += ' rz2="' + str(args.z2) + '"'
+  if not args.stiffness_as_radius:
+    # calculating radii in relation to given stiffnesses x1,x2,y1,...
+    args.x1 = calc_radius(args.x1)
+    infoStr = '  <radii rx1="' + str(args.x1) + '" '
+    args.x2 = calc_radius(args.x2)
+    infoStr += ' rx2="' + str(args.x2) + '" '
+    args.y1 = calc_radius(args.y1)
+    infoStr += ' ry1="' + str(args.y1) + '" '
+    args.y2 = calc_radius(args.y2)
+    infoStr += ' ry2="' + str(args.y2) + '" '
+    args.z1 = calc_radius(args.z1)
+    infoStr += ' rz1="' + str(args.z1) + '" '
+    args.z2 = calc_radius(args.z2)
+    infoStr += ' rz2="' + str(args.z2) + '"'
   
   if infoXml is not None:
     assert(infoStr)
@@ -175,7 +176,7 @@ parser.add_argument('--beta', help="steepness of heaviside function", type=float
 parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
-
+parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
 
 args = parser.parse_args()
 
@@ -211,6 +212,9 @@ if args.save is None: # set default gid mesh name
     meshName = "basecell_interp_" + args.interpolation + "_force_" + args.force_bisec
   else:
     meshName = "basecell_interp_" + args.interpolation
+    if args.interpolation == 'heaviside':
+      meshName += "_beta_" + str(args.beta) + "_eta_" + str(args.eta)
+      
     
   assert(meshName is not None)
   meshName += "_stiff_" + str(args.x1)
