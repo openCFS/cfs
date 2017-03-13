@@ -733,9 +733,9 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  assert(!baseOptimizer_->GetOptimierTimer()->IsRunning());
+  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning());
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_->GetRunnungEvalTimer();
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 
@@ -876,7 +876,7 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
 double Optimization::CalcObjective()
 {
-  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
     baseOptimizer_->GetOptimierTimer()->Stop();
 
@@ -928,7 +928,7 @@ double Optimization::CalcObjective()
 
 void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
 {
-  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
     baseOptimizer_->GetOptimierTimer()->Stop();
 
@@ -967,7 +967,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
 
 double Optimization::CalcConstraint(Condition* g)
 {
-  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
     baseOptimizer_->GetOptimierTimer()->Stop();
 
@@ -1000,7 +1000,7 @@ double Optimization::CalcConstraint(Condition* g)
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
-  bool pause_timer = baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
     baseOptimizer_->GetOptimierTimer()->Stop();
 
