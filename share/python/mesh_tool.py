@@ -2556,7 +2556,8 @@ def create_volume_mesh_from_stl(stlName,write_vtk=False):
   assert(stlName.endswith(".stl"))
   # -p Tetrahedralizes a piececwise linear complex
   # -k Outputs mesh to .vtk file for viewing by Paraview
-  command = "tetgen -pk" if write_vtk else "tetgen -p"
+  # -O3 optimization level 3
+  command = "tetgen -pk -O3" if write_vtk else "tetgen -p"
   cfs_utils.execute(command + " " + stlName)
   mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
   

@@ -1577,7 +1577,7 @@ def add_good_triangle(triangles, a, b, next_cands, next):
   alternatives = [v for v in next_cands if v.id != next.id]
   triangles.append(Marching_Triangle([a, b, next], edge_0, next, alternatives))
   best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
-  assert(best_ratio < 30)
+#   assert(best_ratio < 30)
   log("next:" + str(next.id))
   log("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio))
   log("")
@@ -1588,7 +1588,7 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
   a = active_edge[0]
   b = active_edge[1]
   
-#   if a.id == 2042 and b.id == 520:
+#   if a.id == 1386 and b.id == 2234:
 #     return False
   
   # don't compare last element in triangles to avoid self-comparison
@@ -1863,6 +1863,11 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
     # check if we have just created a triangle where new active edge is 
     # identical to active edge of very first triangle --> we are finished!
     if failed:
+      # for debugging
+      if len(triangles) > 1:
+        history += triangles
+        return False, True
+      
       # if check_next_triangle failed because we have reached an edge which was
       # already part of previous triangulations, stop this triangulation
       if edge_already_connected(history+triangles[:-1],(triangles[-1].edge)):
@@ -1876,7 +1881,6 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         log("filled")
         end = True
-        
         break
       # find out if we have reached an edge which is already part of another triangle
       # if this is the case, we are done for this given starting node
@@ -1885,10 +1889,20 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # triangles[:-1]:don't compare edge with its own triangle
       if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
         log("filled")
+#         history += triangles
+#         print("here")
+#         return True, True
         break
       
-  if quality_bound >= 30:
-    raise Exception("Quality bound exceeded limit of 30!")
+      if quality_bound > 30:
+        print("Quality bound exceeded: ",quality_bound)
+      
+#   if quality_bound >= 30:
+#     print(len(history))
+#     print(len(triangles))
+#     print("Quality bound exceeded limit of 30!")
+#     history += triangles
+#     return False,True
     
   history += triangles
   
@@ -2128,6 +2142,7 @@ def check_duplicated_triangles(triangles):
 def give_feasible_candidates(history,triangles,candidates,vert1,vert2):
   cands = []
   for node in candidates:
+    test_triangle = [vert1,vert2,node]
     if node.id == vert1.id or node.id == vert2.id:
       continue
     # if not direct neighbor; take care of modulo res as i = 0 and i = res-1 are also neighbors!
@@ -2139,7 +2154,9 @@ def give_feasible_candidates(history,triangles,candidates,vert1,vert2):
       continue
     if node.id == vert1.id or node.id == vert2.id:
       continue
-    if triangle_overlap_others(history+triangles,(vert1,vert2,node)):
+    if triangle_overlap_others(history+triangles,test_triangle):
+      continue
+    if triangle_contains_any_neighbors(test_triangle):
       continue
     # found a feasible candidate
     cands.append(node)
@@ -2188,3 +2205,20 @@ def sort_end_nodes_list(profiles,end_nodes):
   assert(len(new_list) == len(end_nodes)) 
    
   return new_list
+
+# vertices contains 3 end nodes that form a triangle
+# for each end node, check if any of its neighbors is contained in triangle
+# spanned by these 3 end nodes    
+def triangle_contains_any_neighbors(vertices):
+  for vertice in vertices:
+    for n in vertice.neighbors: # n[0] -> coords, n[1] -> id
+      # if we are one of the vertices skip
+      if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
+        continue
+      
+#       log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + " contains node " + str(n[1]))
+      if triangle_contains_point(vertices,n[0]):
+        log("triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(n[1]))
+        return True    
+  
+  return False
