@@ -710,7 +710,7 @@ class Profile:
     elif dir == 1:
       self.functions_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
       self.functions_left[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_left[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0, False)
+      self.functions_left[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
        
       self.functions_right[0] = PrincipleSpline(args.y2, args.x2, args.bend, 0, False)
       self.functions_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)  
@@ -725,7 +725,7 @@ class Profile:
        
       self.functions_right[0] = PrincipleSpline(args.z2, args.y2, args.bend, 0, False)
       self.functions_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_right[2] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0)
+      self.functions_right[2] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0,False)
        
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
@@ -759,32 +759,32 @@ def create_profiles(args,infoXml=None):
     x = np.linspace(0, 1.0, args.res)
     
   if args.verbose == "all_splines" or args.verbose == "all_profiles":
-#     plt.gcf().clear()
-    f, fig = plt.subplots(3, sharex=True, sharey=True)
-    plt.gcf().subplots_adjust(bottom=0.15)
+    f1 = plt.figure(1)
+    f1.suptitle("0 degree", fontsize=20)
+    f2 = plt.figure(2)
+    f2.suptitle("90 degree", fontsize=20)
     x = np.linspace(0, 1.0, 1000)
-    
+    count = 311 # need this for add_suplot
     for dir,profile in enumerate(profiles):
       if profile == None:
         continue
-      fig[dir].plot(x,profile.functions_left[0].eval(x),linewidth=5.0,label="0_left")
-      fig[dir].plot(x,profile.functions_right[0].eval(x),linewidth=5.0,label="0_right")
+      sub1 = f1.add_subplot(count)
+      sub1.plot(x,profile.functions_left[0].eval(x),linewidth=5.0,label="0_left")
+      sub1.plot(x,profile.functions_right[0].eval(x),linewidth=5.0,label="0_right")
+      sub1.set_ylim((0.5,1.0))
+      sub1.set_title("dir " + str(dir))
       if args.verbose == "all_profiles":
         plt.plot(x,profile.functions_left[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_left[1].angle))
         plt.plot(x,profile.functions_right[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_right[1].angle))
-#       fig[dir].plot(x,profile.functions_left[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_left")
-#       fig[dir].plot(x,profile.functions_right[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_right")
-      fig[dir].set_title("dir " + str(dir))
-     
-    for n in fig: 
-      n.set_ylim((0.5,1.0))
-      handles, labels = n.get_legend_handles_labels()
-      f.legend(handles, labels)
-    
-#     f.rcParams.update({'font.size': 18})  
-  #     plt.ylabel("radius",labelpad=20)
-  #     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
-
+      
+      sub2 = f2.add_subplot(count)
+      sub2.plot(x,profile.functions_left[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_left")
+      sub2.plot(x,profile.functions_right[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_right")
+      sub2.set_ylim((0.5,1.0))
+      sub2.set_title("dir " + str(dir))
+      
+      count +=1
+  
     plt.show()
   
   
