@@ -11,6 +11,7 @@ import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
+import cfs_utils
 
 
 # writes a dense two region mesh
@@ -1003,7 +1004,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "validation_test")
+  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz")
 
   nx = x_res  
    
@@ -1019,6 +1020,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     width = 3.0 
     height = 2.0 
     depth = 2.0 
+  elif type == "traegerblz":
+    nz = x_res
+    ny = int(nz)
+    nx = int(nz/30.*125.) 
+    width = 125.0 
+    height = 30.0 
+    depth = 30.0 
   elif type == "validation_test":
     ny = nx 
     nz = nx 
@@ -1093,9 +1101,14 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
           second += 1
         elif type == "validation_test" and (y < int(0.1*ny) or y >= int(0.9*ny)):
           second += 1
-          e.region = "non-design" if not threshold or e.density > threshold else 'void'       
+          e.region = "non-design" if not threshold or e.density > threshold else 'void'    
+        elif type == "traegerblz" and (z < 2./30.0001*nz ):
+          e.region = "aluminium"
+        elif type == "traegerblz" and ((z >= 2./30.0001*nz) and (x*dx < 24.9999)):
+          e.region = "void"            
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
+          mech_count = mech_count + 1
           # assign nodes 
           # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
         ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
@@ -1103,6 +1116,15 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
+    
+  if type == "traegerblz":
+    mesh = name_bc_nodes(mesh)
+    side = (("top_mech", []))
+    mesh.bc.append(side)
+    for z in range(0, nnz):
+      for x in range(0, nnx):
+        if (z*dz <= 2.0000001) or (x*dx >= 24.9999):
+          side[1].append((z * nny + ny) * nnx + x)
 
   if type == "validation_test":
     # create four support pins on bottom face
@@ -2529,3 +2551,18 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('mesh has ' + str(number) + "design and non-design elements")
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
+
+def create_volume_mesh_from_stl(stlName,write_vtk=False):
+  assert(stlName.endswith(".stl"))
+  # -p Tetrahedralizes a piececwise linear complex
+  # -k Outputs mesh to .vtk file for viewing by Paraview
+  command = "tetgen -pk" if write_vtk else "tetgen -p"
+  cfs_utils.execute(command + " " + stlName)
+  mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
+  
+  add_nodes_for_periodic_bc(mesh)
+  validate_periodicity(mesh)
+  
+  return mesh
+  
+  

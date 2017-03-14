@@ -617,8 +617,9 @@ if __name__ == '__main__':
   else:
     fig, sub = plot_data(800, shapes, not args.unbounded)
     if args.save:
-      fig.savefig(args.save)  
-    if not args.noshow:
+      print("write '" + args.save + "'")
+      fig.savefig(args.save)
+    elif not args.noshow:
       fig.show()
       input("Press Enter to terminate.")
 else:

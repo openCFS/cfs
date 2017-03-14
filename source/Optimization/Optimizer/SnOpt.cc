@@ -78,13 +78,10 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   nonlin_constraints(0),
   n_obj_grad(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
-  outfilename(""),
-  timer_(new Timer("snopt", true)) // sub-timer as we already have optimizer_timer_
+  outfilename("")
 {
   LOG_DBG(snopt) << "Initialize SnOpt";
   
-  info_->Get(ParamNode::SUMMARY)->Get("snopt/timer")->SetValue(timer_ );
-
   static_snopt = this;
   
   BaseOptimizer::PostInitScale(1.0);
@@ -214,8 +211,6 @@ void SnOpt::SolveProblem()
     assert(nA == 0);
   }
   
-  timer_->Start();
-  
   snopta_(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
@@ -228,8 +223,6 @@ void SnOpt::SolveProblem()
       &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw,
       npname, 8*nxname, 8*nFname, 8*lencw, 8*lencw
   );
-  
-  timer_->Stop();
   
   InfoXMLOutput();
   
@@ -311,9 +304,6 @@ int SnOpt::Callback(integer* Status, const integer n,
     integer* needG, integer* nG, doublereal* G,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
-  timer_->Stop();
-
-  
   // reorder design
   StdVector<double> x;
   x.Import(x_snopt, n);
@@ -382,8 +372,6 @@ int SnOpt::Callback(integer* Status, const integer n,
     // first snopt action and we do not want to loose the initial design in the output.
     perform_commit_iteration_ = true; // done on the next Callback() call
   }
-
-  timer_->Start();
 
   // flush the output
   cout << std::flush;
