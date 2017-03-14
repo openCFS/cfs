@@ -332,6 +332,7 @@ def profileCirc(x1,res):
 
 # for a given profile and point p, check if p lies on or inside profile
 def contains_point(p,profile):
+  print(p[1])
   assert(p[0] >= 0.0 and p[0] <= 1.0)
   assert(p[1] >= 0.0 and p[1] <= 1.0)
   assert(p[2] >= 0.0 and p[2] <= 1.0)
@@ -742,7 +743,8 @@ class Profile:
       infoXml.write('  </profile>\n\n')
   
     if args.verbose == "bisec":
-      self.functions[1].plot_all()
+      self.functions_left[1].plot_all()
+      self.functions_right[1].plot_all()
       
 # return information on profiles 
 def create_profiles(args,infoXml=None):
@@ -763,6 +765,10 @@ def create_profiles(args,infoXml=None):
     f1.suptitle("0 degree", fontsize=20)
     f2 = plt.figure(2)
     f2.suptitle("90 degree", fontsize=20)
+    f3 = None
+    if args.verbose == "all_profiles":
+      f3 = plt.figure(3)
+      f3.suptitle("bisec", fontsize=20)
     x = np.linspace(0, 1.0, 1000)
     count = 311 # need this for add_suplot
     for dir,profile in enumerate(profiles):
@@ -774,8 +780,9 @@ def create_profiles(args,infoXml=None):
       sub1.set_ylim((0.5,1.0))
       sub1.set_title("dir " + str(dir))
       if args.verbose == "all_profiles":
-        plt.plot(x,profile.functions_left[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_left[1].angle))
-        plt.plot(x,profile.functions_right[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_right[1].angle))
+        sub3 = f3.add_subplot(count)
+        sub3.plot(x,profile.functions_left[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_left[1].angle))
+        sub3.plot(x,profile.functions_right[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_right[1].angle))
       
       sub2 = f2.add_subplot(count)
       sub2.plot(x,profile.functions_left[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_left")
@@ -921,74 +928,6 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
       l = midpoint
       
   return midpoint_node
-  
-# creates triangles between end nodes of same profile where
-# we have e.g. a valley with 1 or 2 nodes
-# def postprocess_end_nodes(end_nodes,all_nodes_ids,cells):
-#   global tris
-#   delete_ids = []
-#   # a valley with one end node in between:
-#   # this node (i,j) the one after next node and (i,j+2)
-#   # and the left(right) next one (i-1,j+1) exists, but not next node
-#   for node in end_nodes:
-#     # don't check on the boundary
-#     if node.j > np.size(all_nodes_ids,1)-3 or node.i > np.size(all_nodes_ids,0) - 2:
-#        continue
-#     # check if the one after the next one exist
-#     # nn is node after next node 
-#     n = get_end_node_by_grid_coords(node.i, node.j+1, end_nodes)[0]
-#     n_inner = True if all_nodes_ids[node.i,node.j+1] >= 0 else False
-#     nn = get_end_node_by_grid_coords(node.i,node.j+2,end_nodes)[0]
-#     nn_inner = True if all_nodes_ids[node.i,node.j+2] >= 0 else False
-#     ln,ln_idx = get_end_node_by_grid_coords(node.i-1,node.j+1,end_nodes)
-#     rn,rn_idx = get_end_node_by_grid_coords(node.i+1,node.j+1,end_nodes)
-#     
-#     if nn and not (n or n_inner) and (ln or rn):
-#       # both can be none but if both or not none, something went wrong
-#       assert(bool(ln) is not bool(rn) or (ln == None and rn == None))
-#       
-#       # check which one is in the valley
-#       print("found a valley")
-#       next = ln if ln is not None else rn
-#       next_idx = ln_idx if ln is not None else rn_idx
-#       
-#       add_triangle(node.id, next.id, nn.id, cells)
-#         
-#       delete_ids.append(next.id)
-#       node.next = nn
-#       nn.next = node
-#       
-#       continue
-#     
-#     # check valleys that contains 2 end nodes
-#     # node after next next node (node after nn)
-#     nnn                   = get_end_node_by_grid_coords(node.i, node.j+3, end_nodes)[0]
-#     rn,rnn_idx   = get_end_node_by_grid_coords(node.i+1,node.j+1,end_nodes)
-#     rnn,rnn_idx = get_end_node_by_grid_coords(node.i+1,node.j+2,end_nodes)
-#     ln,ln_idx       = get_end_node_by_grid_coords(node.i-1,node.j+1,end_nodes)
-#     lnn, lnn_idx  = get_end_node_by_grid_coords(node.i-1,node.j+2,end_nodes)
-#     
-#     # next node the node after next node should not be of type end node
-#     if nnn and not (n or n_inner)  and not ( nn or nn_inner) and (ln and lnn or rn and rnn):
-#       print("found valley containing 2 nodes")
-#       # check which one is first in the valley
-#       next = ln if ln is not None else rn
-#       next_idx = ln_idx if ln is not None else rn_idx
-#       # check which one is first in the valley
-#       next_2 = lnn if lnn else rnn
-#       next_2_idx = lnn_idx if lnn else rnn_idx
-#       
-#       add_triangle(node.id, next.id,next_2.id, cells)
-#       add_triangle(node.id, next_2.id,nnn.id, cells)
-#         
-#       node.next = nnn
-#       nnn.next = node
-#       
-#       delete_ids.append(next.id)
-#       delete_ids.append(next_2.id)
-#       
-#   # remove all end nodes that were in valleys
-#   end_nodes[:] = [v for v in end_nodes if v.id not in delete_ids]
   
 # list is list of lists contains surface lines and all respective points
 # base used for setting right ids
@@ -1194,16 +1133,27 @@ def generate_basecell(args,info,log):
     for i in range(0,3):
       if profiles[i] == None:
         continue
-      if args.verbose == 'profile_map' or args.export == 'radius_maps' or args.verbose == "polar_plot":
-        create_profile_map(profiles[i], res, args.verbose,args.export == 'radius_maps', ha)
-      if args.verbose == 'interpolation':
-        y = []
+      if args.verbose == "profile_map" or args.export == "radius_maps" or args.verbose == "polar_plot":
+        create_profile_map(profiles[i], res, args.verbose,args.export == "radius_map", ha)
+      if args.verbose == "interpolation":
+        y1 = []
+        y2 = []
         rad = np.linspace(0,pi/2.0,500)
         for r in rad:
-          y.append(calc_radius_for_quadrant(profiles[i], 0.5, r))
+          y1.append(calc_radius_for_quadrant(profiles[i], 0.1, r))
+          y2.append(calc_radius_for_quadrant(profiles[i], 0.9, r))
+          
         plt.gcf().clear()
-        plt.plot(rad,y,linewidth=5.0)
+        fig = plt.figure(1)
+        sub1 = fig.add_subplot(211)
+        sub1.set_title("x=0.1")
+        sub1.plot(rad,y1,linewidth=5.0)
+        sub2 = fig.add_subplot(212)
+        sub2.set_title("x=0.9")
+        sub2.plot(rad,y2,linewidth=5.0)
+        
         plt.show()
+        
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         # if basecell is symmetric, calculate only 1/8 and mirror the rest
         symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False 
@@ -1279,8 +1229,11 @@ def plot_3dlines(profile,res,numLines,dir,ha):
 # @param x: parameter for function evaluation
 # @param rad: radians for evaluation
 def calc_radius_for_quadrant(profile,x,rad):
+  
   assert(rad >= 0 and rad <= np.pi/2.0)
-  funcs = profile.functions
+  funcs = profile.functions_left
+  if x > 0.5: # in case we are at right part of basecell
+    funcs = profile.functions_right
   phi = float(funcs[1].angle)  # bisec angle
   assert(phi >= 0 and phi <= np.pi/2.0)
   val = None
@@ -2091,7 +2044,7 @@ def calc_radius_heaviside(funcs,phi,x,rad):
     assert(close(a+c*calc_tanh(beta, eta, 0),0))
     assert(close(a+c*calc_tanh(beta, eta, 1),1))
     assert(scale >= -eps and scale <= 1.0 + eps)
-    assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
+#     assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
     
     return scale * funcs[0].eval(x) + (1-scale) * funcs[1].eval(x)
   else:
@@ -2099,7 +2052,7 @@ def calc_radius_heaviside(funcs,phi,x,rad):
     scale = a+c*calc_tanh(beta, eta, alpha)
     
     assert(scale >= -eps and scale <= 1.0 + eps)
-    assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
+#     assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
     return (1-scale) * funcs[1].eval(x) + scale * funcs[2].eval(x)
 
 # helper function for building a kd-tree
