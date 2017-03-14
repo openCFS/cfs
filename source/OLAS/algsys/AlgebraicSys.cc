@@ -115,9 +115,6 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
-    
-    // create timer object
-    graphTimer_ = boost::shared_ptr<Timer>(new Timer("graph", true)); // sub-timer
   }
 
 
@@ -931,10 +928,6 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Setup matrix graph for " << numFcts << " functions.";
     LOG_DBG(algSys) << "Use distinct graphs:" << useDistinctGraphs << std::endl;
     
-    
-    // start timer for graph setup
-    graphTimer_->Start();
-    
     distinctMatGraphs_ = useDistinctGraphs;
     
     // feFunction specific data
@@ -1525,8 +1518,6 @@ namespace CoupledField {
       } // loop functions
     } // loop blocks
     
-    // stop timer for graph setup
-    graphTimer_->Stop();
   }
 
 
@@ -3058,9 +3049,6 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Print matrix information";
     
     PtrParamNode setupNode = myInfo_->Get("setup");
-    
-    // add timer
-    setupNode->Get("graph/timer")->SetValue(graphTimer_);
     
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");

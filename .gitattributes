@@ -1243,6 +1243,7 @@ share/python/material_catalogue/compliance_plain.xml -text
 share/python/material_catalogue/create_hom_catalogue.py -text
 share/python/material_catalogue/create_msfem_catalogue.py -text
 share/python/material_catalogue/evaluate.py -text
+share/python/material_catalogue/generate_hom_catalogue_3d_ortho.py -text
 share/python/material_catalogue/interpolation2D/bicubic_coeff.m -text
 share/python/material_catalogue/interpolation2D/bicubic_deriv.m -text
 share/python/material_catalogue/interpolation2D/bicubic_int.m -text
