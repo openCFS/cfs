@@ -148,6 +148,7 @@ class Cubic_spline():
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
+#     return outer(3*(1-t)**2,self.CP[:,0]-self.CP[:,1]) + outer(6.0*t*(1-t), self.CP[:,1] - self.CP[:,2]) + outer(3*t**2 ,self.CP[:,2]-self.CP[:,3])
   
   def calc_param_grad_1(self):
     if self.t_1 is not None:
@@ -156,7 +157,7 @@ class Cubic_spline():
     u = Symbol('u')
     
     dC = self.calc_d_spline_d_t(u) # dC/dt
-    sol = sympy.solvers.solve(dC[0][1]-dC[0][0],u)
+    sol = sympy.solvers.solve(dC[0][1]-dC[0][0],u) # dx=dy
     t = -100
     if sol[0] > 0 and sol[0] <= 1:
       t = sol[0]
@@ -164,20 +165,32 @@ class Cubic_spline():
       t = sol[1]
     else:
       print("No t found where dx/dy = 1 ",sol)
-    
     # conversion from t as sympy.Float to regular Python float necessary  
     self.t_1 = float(t)
     return self.t_1
   
-  def plot(self):
-    t = np.linspace(0, 1, 100)
-    C = self.eval_t(t)
-    plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]))
-#     t1 = self.calc_param_grad_1()
-#     Ct = self.eval(t1)
-    plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
-#     plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
-    plt.xlim((0,0.5))
+  # left indicates if we are plotting spline for left branch of basecell bar
+  # if not left, then we're at right branch -> compute spline as left branch
+  # and mirror the result
+  def plot(self,left=True):
+    if left:
+      t = np.linspace(0, 1, 100)
+      C = self.eval_t(t)
+      plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15)
+      t1 = self.calc_param_grad_1()
+      Ct = self.eval_t(t1)
+      plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
+      plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
+    else:
+      t = np.linspace(0, 1, 100)
+      C = self.eval_t(t)
+      plt.plot(np.transpose(1-self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15)
+      t1 = self.calc_param_grad_1()
+      Ct = self.eval_t(t1)
+      plt.plot(1-np.transpose(C[0,:]),np.transpose(C[1,:]))
+      plt.plot(1-Ct[0],Ct[1],marker='o', markersize=15)
+    plt.xlim((0,1.0))
+      
     plt.ylim((0.5,1.0))
 #     plt.show()
     
@@ -352,17 +365,27 @@ class PrincipleSpline():
   
   spline = None
   angle = -1
-  coords_cut = None 
+  coords_cut = None
+  left = True 
   
-  def __init__(self, x1, y1, bend, angle=0):
+  def __init__(self, x1, y1, bend, angle=0, left_flag=True):
     rx = 0.5 - x1/2.0 # radius for center (0,1)
     ry = 0.5 - y1/2.0 # radius for center (0,1)
+    left = left_flag
     
     if infoXml is not None:
       infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
     
     self.angle = angle
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
+    
+    # in case we want a spline for x > 0.5 and radii x1 != x2 (basecell not symmetric)
+    if not left:
+      P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
+#       P = np.array([[1-ry,1],[1-ry,1-rx*bend],[1-ry*bend,1-rx],[1,1-rx]])
+#       P = P[::-1]
+#       plt.plot(P[:,0],P[:,1],marker='o', markersize=15)
+#       plt.show()
     self.spline = Cubic_spline(P)
     # coordinate where slope is 1
     self.coords_cut = self.calc_coords_grad_1()
@@ -657,7 +680,8 @@ class Profile:
     self.bisec_angle = -1
     self.direction = dir
     # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
-    self.functions = [None] * 3
+    self.functions_left = [None] * 3
+    self.functions_right = [None] * 3
     # depending on profile, store the radii of the two boundary circles
     self.radius_left = 0
     self.radius_right = 0
@@ -666,29 +690,50 @@ class Profile:
       infoXml.write('  <profile dir="' + str(dir) + '">\n')
       
     if dir == 0:
-      self.functions[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
-      self.functions[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.functions[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
-      self.radius_left = args.x1 / 2.0
-      self.radius_right = args.x1 / 2.0
-    elif dir == 1:
-      self.functions[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-      self.functions[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
-      self.radius_left = args.y1 / 2.0
-      self.radius_right = args.y1 / 2.0
-    else: # dir == 2
-      self.functions[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-      self.functions[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
-      self.radius_left = args.z1 / 2.0
-      self.radius_right = args.z1 / 2.0
+      self.functions_left[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
+      self.functions_left[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.functions_left[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
       
-    self.bisec_angle = self.functions[1].angle
+      self.functions_right[0] = PrincipleSpline(args.x2, args.y2, args.bend, 0, False)
+      self.functions_right[1] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.functions_right[2] = PrincipleSpline(args.x2, args.z2, args.bend, np.pi/2.0, False)
+      
+#       self.functions_left[0].spline.plot()
+#       self.functions_right[0].spline.plot(left=False)
+      plt.show()
+      
+      self.radius_left = args.x1 / 2.0
+      self.radius_right = args.x2 / 2.0
+    elif dir == 1:
+      self.functions_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0, False)
+      self.functions_left[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions_left[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0, False)
+      
+      self.functions_right[0] = PrincipleSpline(args.y2, args.x2, args.bend, 0, False)
+      self.functions_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions_right[2] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
+      
+      self.radius_left = args.y1 / 2.0
+      self.radius_right = args.y2 / 2.0
+    else: # dir == 2
+      self.functions_left[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
+      self.functions_left[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions_left[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
+      
+      self.functions_right[0] = PrincipleSpline(args.z2, args.y2, args.bend, 0)
+      self.functions_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)  
+      self.functions_right[2] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0)
+      
+      self.radius_left = args.z1 / 2.0
+      self.radius_right = args.z2 / 2.0
+      
+    self.bisec_angle_left = self.functions_left[1].angle
+    self.bisec_angle_right = self.functions_right[1].angle
     
-#     self.functions[0].spline.plot()
-#     self.functions[2].spline.plot()
-    plt.show()
+#     self.functions_left[0].spline.plot()
+#     self.functions_right[0].spline.plot()
+# #     self.functions[2].spline.plot()
+#     plt.show()
     
     if infoXml:  
       infoXml.write('  </profile>\n\n')
