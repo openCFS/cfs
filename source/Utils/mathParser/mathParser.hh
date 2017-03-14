@@ -164,7 +164,10 @@ namespace CoupledField {
     
     /** gives all variables and their values for a handle. This is part of the information given by Dump().
      * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle  */
-    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const;
+    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const noexcept;
+
+    /** creates a comma separated list of registered variables */
+    std::string GetRegisteredVariables(HandleType handle) const noexcept;
 
     /** reports the variables and value
      * @param handle nothing done for invalid handle */

@@ -583,7 +583,7 @@ if __name__ == '__main__':
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
-  parser.add_argument('--unit_bound', help="enforce the visualization on a unit square", action='store_true')
+  parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   args = parser.parse_args()
@@ -615,10 +615,11 @@ if __name__ == '__main__':
     if not args.noshow:
       show_vtk(polydata,800,show_edges=True) # show edges
   else:
-    fig, sub = plot_data(800, shapes, args.unit_bound)
+    fig, sub = plot_data(800, shapes, not args.unbounded)
     if args.save:
-      fig.savefig(args.save)  
-    if not args.noshow:
+      print("write '" + args.save + "'")
+      fig.savefig(args.save)
+    elif not args.noshow:
       fig.show()
       input("Press Enter to terminate.")
 else:

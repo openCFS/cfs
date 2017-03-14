@@ -318,6 +318,9 @@ namespace CoupledField {
     return prod;
   }
 
+  /** uses the global domain->GetMathParser() to evaluate an expression */
+  double MathParse(const std::string& expr);
+
 } // end of CoupledField
 
 #endif
