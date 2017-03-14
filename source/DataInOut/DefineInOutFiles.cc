@@ -437,8 +437,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "gmv")
     {
 #ifdef USE_GMV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, 
-                                                           infoNode, restart));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, infoNode, restart));
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -447,9 +446,9 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "hdf5")
     {
 #ifdef USE_HDF5
-      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode,
-                                                            infoNode, restart));
-      std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
+      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode, infoNode, restart));
+      if(!progOpts->IsQuiet())
+        std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
@@ -458,8 +457,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "rst")
     {
 #ifdef USE_ANSYSRST
-      out[actId] =
-      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode, infoNode, restart ) );
+      out[actId] = shared_ptr<SimOutput>( new SimOutputRST( simName, actNode, infoNode, restart ) );
 #else
       EXCEPTION( "No support for ANSYS RST output file format." );
 #endif
@@ -467,8 +465,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 
     if (actFormat == "text" || actFormat == "csv")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, 
-                                                            infoNode, restart));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, infoNode, restart));
     }
     
     if (actFormat == "info")
