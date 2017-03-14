@@ -397,7 +397,7 @@ class PrincipleSpline():
       elif x > self.coords_cut[0] and x < 0.5:
         val = self.coords_cut[1]
       else: #x >= 1- coord_cut[0]
-        val = 0
+        val = 0.5
         #raise Exception("Spline not defined for x=" + str(x))
     else:
       if x >= self.coords_cut[0]:
@@ -405,7 +405,7 @@ class PrincipleSpline():
       elif x < self.coords_cut[0] and x > 0.5:
         val = self.coords_cut[1]
       else:
-        val = 0    
+        val = 0.5    
     return val
   
   # wrapper function
