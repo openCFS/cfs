@@ -371,7 +371,7 @@ class PrincipleSpline():
   def __init__(self, x1, y1, bend, angle=0, left_flag=True):
     rx = 0.5 - x1/2.0 # radius for center (0,1)
     ry = 0.5 - y1/2.0 # radius for center (0,1)
-    left = left_flag
+    self.left = left_flag
     
     if infoXml is not None:
       infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
@@ -379,29 +379,32 @@ class PrincipleSpline():
     self.angle = angle
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
     
-    # in case we want a spline for x > 0.5 and radii x1 != x2 (basecell not symmetric)
-    if not left:
-      P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
-#       P = np.array([[1-ry,1],[1-ry,1-rx*bend],[1-ry*bend,1-rx],[1,1-rx]])
-#       P = P[::-1]
-#       plt.plot(P[:,0],P[:,1],marker='o', markersize=15)
-#       plt.show()
     self.spline = Cubic_spline(P)
     # coordinate where slope is 1
     self.coords_cut = self.calc_coords_grad_1()
+    if not self.left:
+      self.coords_cut = [1.0 - self.coords_cut[0],self.coords_cut[1]] 
     
     if infoXml is not None:
       infoXml.write('    </bspline>\n')
     
   # eval function in case x is one element, not a list  
   def eval_elem(self,x):
-    if x <= self.coords_cut[0]:
-      val = self.spline.eval_x(x)
-    elif x > self.coords_cut[0] and x < 1 - self.coords_cut[0]:
-      val = self.coords_cut[1]
-    else: #x >= 1- coord_cut[0]
-      val = self.spline.eval_x(1-x)
-    
+    if self.left:
+      if x <= self.coords_cut[0]:
+        val = self.spline.eval_x(x)
+      elif x > self.coords_cut[0] and x < 0.5:
+        val = self.coords_cut[1]
+      else: #x >= 1- coord_cut[0]
+        val = 0
+        #raise Exception("Spline not defined for x=" + str(x))
+    else:
+      if x >= self.coords_cut[0]:
+        val = self.spline.eval_x(1-x) # mirror left part to get right part
+      elif x < self.coords_cut[0] and x > 0.5:
+        val = self.coords_cut[1]
+      else:
+        val = 0    
     return val
   
   # wrapper function
@@ -700,35 +703,35 @@ class Profile:
       
 #       self.functions_left[0].spline.plot()
 #       self.functions_right[0].spline.plot(left=False)
-      plt.show()
-      
+#       plt.show()
+#       
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
     elif dir == 1:
-      self.functions_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0, False)
+      self.functions_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
       self.functions_left[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
       self.functions_left[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0, False)
-      
+       
       self.functions_right[0] = PrincipleSpline(args.y2, args.x2, args.bend, 0, False)
       self.functions_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)  
       self.functions_right[2] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
-      
+       
       self.radius_left = args.y1 / 2.0
       self.radius_right = args.y2 / 2.0
     else: # dir == 2
       self.functions_left[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
       self.functions_left[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
       self.functions_left[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
-      
-      self.functions_right[0] = PrincipleSpline(args.z2, args.y2, args.bend, 0)
+       
+      self.functions_right[0] = PrincipleSpline(args.z2, args.y2, args.bend, 0, False)
       self.functions_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)  
       self.functions_right[2] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0)
-      
+       
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
       
-    self.bisec_angle_left = self.functions_left[1].angle
-    self.bisec_angle_right = self.functions_right[1].angle
+#     self.bisec_angle_left = self.functions_left[1].angle
+#     self.bisec_angle_right = self.functions_right[1].angle
     
 #     self.functions_left[0].spline.plot()
 #     self.functions_right[0].spline.plot()
@@ -756,25 +759,31 @@ def create_profiles(args,infoXml=None):
     x = np.linspace(0, 1.0, args.res)
     
   if args.verbose == "all_splines" or args.verbose == "all_profiles":
-    plt.gcf().clear()
+#     plt.gcf().clear()
+    f, fig = plt.subplots(3, sharex=True, sharey=True)
     plt.gcf().subplots_adjust(bottom=0.15)
     x = np.linspace(0, 1.0, 1000)
     
     for dir,profile in enumerate(profiles):
       if profile == None:
         continue
-      plt.plot(x,profile.functions[0].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_0")
+      fig[dir].plot(x,profile.functions_left[0].eval(x),linewidth=5.0,label="0_left")
+      fig[dir].plot(x,profile.functions_right[0].eval(x),linewidth=5.0,label="0_right")
       if args.verbose == "all_profiles":
-        plt.plot(x,profile.functions[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions[1].angle))
-      plt.plot(x,profile.functions[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90")
+        plt.plot(x,profile.functions_left[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_left[1].angle))
+        plt.plot(x,profile.functions_right[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_right[1].angle))
+#       fig[dir].plot(x,profile.functions_left[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_left")
+#       fig[dir].plot(x,profile.functions_right[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_right")
+      fig[dir].set_title("dir " + str(dir))
+     
+    for n in fig: 
+      n.set_ylim((0.5,1.0))
+      handles, labels = n.get_legend_handles_labels()
+      f.legend(handles, labels)
     
-    plt.ylim((0.5,1.0))
-    plt.legend(loc='upper left', shadow=True)
-    plt.rcParams.update({'font.size': 18})
-    #plt.ylim([0,0.5])
-    plt.xlabel("x",labelpad=5)
-#     plt.ylabel("radius",labelpad=20)
-#     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
+#     f.rcParams.update({'font.size': 18})  
+  #     plt.ylabel("radius",labelpad=20)
+  #     plt.savefig("profile_functions_" + str(args.stiffness) + ".png")
 
     plt.show()
   
