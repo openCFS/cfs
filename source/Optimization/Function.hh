@@ -280,6 +280,8 @@ class Function
      * True means, that the function is meant for double bounds AND there is no reverse locality. false if not local, other function, ... */
     bool IsDoubleBounded() const;
 
+    /** is the local function intended for double bounded when the optimizer (snopt) supports it. Use with Local::IsReverse() */
+    static bool CouldDoubleBounded(Type type);
 
     /** Is this a local function type */
     static bool IsLocal(Type t);
@@ -378,6 +380,11 @@ class Function
       static Enum<Locality> locality;
 
       Locality GetLocality() const { return locality_; }
+
+      static bool IsReverse(Locality loc);
+
+      static bool RequiresEps(Function::Type type);
+      static bool RequiresBeta(Function::Type type);
 
       /** The phase for oscillation constraint only to define two constraints with different
        * feature sizes for material and void */
@@ -479,8 +486,8 @@ class Function
         double CalcSlopeGradient(int neigh_idx) const;
 
         /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
-        double CalcOverhang(Function::Type ft) const;
-        double CalcOverhangGradient(int neigh_idx, Function::Type ft) const;
+        double CalcOverhang(Function::Type ft, double eps) const;
+        double CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
