@@ -163,11 +163,12 @@ namespace CoupledField {
                      UInt numRows = 0, UInt numCols = 0 ); 
     
     /** gives all variables and their values for a handle. This is part of the information given by Dump().
-     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle  */
-    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const noexcept;
+     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle
+     * It would be nice to have a noexept but an icc bug forbids it :( https://software.intel.com/en-us/node/629136 */
+    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const; // icc bug prevents noexcept
 
     /** creates a comma separated list of registered variables */
-    std::string GetRegisteredVariables(HandleType handle) const noexcept;
+    std::string GetRegisteredVariables(HandleType handle) const; // icc bug prevents noexcept
 
     /** reports the variables and value
      * @param handle nothing done for invalid handle */
