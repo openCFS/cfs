@@ -290,11 +290,11 @@ namespace CoupledField{
       // for calculation of postprocessing results
       bdbInts_[actRegion] = stiffInt;
 
-      if(formulation_ == SPLIT_SCALAR){
+      //if(formulation_ == SPLIT_SCALAR){
         // initially, check for regularization factor
         Double regularizationFactor = 1e-6;
         // ============================
-        // Standard Mass Regularization Matrix
+        // Standard Mass Regularization Matrix K \approx K + regFac*M
         // ============================
         bool regulize = true;
         if ( regulize ) {
@@ -325,7 +325,7 @@ namespace CoupledField{
 
           assemble_->AddBiLinearForm( massContext );
         }
-      }
+      //} //if REGULARIZATION
 
     }
   }
@@ -443,7 +443,94 @@ namespace CoupledField{
       } // for
     }
 
+    // ===========================
+    //  NORMAL ACCELERATION (surface)
+    // ===========================
+    LOG_DBG(acousticsplitpde) << "Reading neumann bc";
 
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+
+    if( formulation_ == SPLIT_SCALAR ) {
+      ReadRhsExcitation( "normalVelocity", empty, ResultInfo::SCALAR, isComplex_,
+                            ent, coef, updatedGeo_ );
+      if(myParam_->Get("bcsAndLoads")->Has("tangentialVelocity")){
+        EXCEPTION("Tangential Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
+      }
+    }else{
+      ReadRhsExcitation( "tangentialVelocity", empty, ResultInfo::SCALAR, isComplex_,
+                            ent, coef, updatedGeo_ );
+      if(myParam_->Get("bcsAndLoads")->Has("normalVelocity")){
+        EXCEPTION("Normal Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
+      }
+
+    }
+
+    std::cout<<"tangentialVelocity"<<std::endl;
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("Neumann boundary can only be defined on surface elements");
+      }
+
+      PtrCoefFct exValue;
+      exValue = coef[i];
+
+      if( formulation_ == SPLIT_SCALAR ) {
+
+        exValue =
+            CoefFunction::Generate( mp_, part,
+                CoefXprBinOp(mp_, coef[i],val1, CoefXpr::OP_MULT) );
+
+        if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                Complex(factor), exValue, volRegions, updatedGeo_);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
+                factor, exValue, volRegions, updatedGeo_);
+          }
+        } else  {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                Complex(factor), exValue, volRegions, updatedGeo_);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,3,1>(),
+                factor, exValue , volRegions, updatedGeo_);
+          }
+        }
+      } else {
+        std::cout<<"tangentialVelocity"<<std::endl;
+
+        exValue =
+            CoefFunction::Generate( mp_, part,
+                CoefXprBinOp(mp_, coef[i],val1, CoefXpr::OP_MULT) );
+
+        if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                Complex(factor), exValue, volRegions, updatedGeo_);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
+                factor, exValue, volRegions, updatedGeo_);
+          }
+        } else  {
+          if(isComplex_) {
+            EXCEPTION( "Neumann boundary only implemented for scalar potential!")
+          }
+        }
+      }
+      lin->SetName("inhomNeumannBC");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    }
 
 
 

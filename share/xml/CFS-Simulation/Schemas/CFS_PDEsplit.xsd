@@ -90,7 +90,12 @@
                     <xsd:documentation>Sets potential to value (inhomog. Dirichlet b.c.)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                <!-- RHS Load Values-->
+                
+                <!-- Inhomogen Neumann boundaries-->
+                <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
+                <xsd:element name="tangentialVelocity" type="DT_BcInhomScalar"/>
+                <xsd:element name="tangentialVelocity3D" type="DT_BcInhomVector"/>
+                <!-- RHS Load Values -->
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
