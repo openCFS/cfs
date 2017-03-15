@@ -1323,6 +1323,10 @@ share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/streamviz.py -text
 share/python/test.py -text
+share/python/trelis/funcs.py -text
+share/python/trelis/nacsfilewriter.py -text
+share/python/trelis/nacsinterface.py -text
+share/python/trelis/widgets.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text
