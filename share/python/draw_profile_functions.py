@@ -394,7 +394,7 @@ class PrincipleSpline():
     if self.left:
       if x <= self.coords_cut[0]:
         val = self.spline.eval_x(x)
-      elif x > self.coords_cut[0] and x < 0.5:
+      elif x > self.coords_cut[0] and x <= 0.5:
         val = self.coords_cut[1]
       else: #x >= 1- coord_cut[0]
         val = 0.5
@@ -402,7 +402,7 @@ class PrincipleSpline():
     else:
       if x >= self.coords_cut[0]:
         val = self.spline.eval_x(1-x) # mirror left part to get right part
-      elif x < self.coords_cut[0] and x > 0.5:
+      elif x < self.coords_cut[0] and x >= 0.5:
         val = self.coords_cut[1]
       else:
         val = 0.5    
@@ -683,9 +683,10 @@ class Profile:
     assert (dir == 0 or dir == 1 or dir == 2)
     self.bisec_angle = -1
     self.direction = dir
-    # 0th entry: function for 0 degree; 1st entry: function for bisec; 2nd entry: function for 90 degree
-    self.functions_left = [None] * 3
-    self.functions_right = [None] * 3
+    self.splines_left = [None] * 4
+    self.bisec_left = [None] * 4
+    self.splines_right = [None] * 4
+    self.bisec_right = [None] * 4
     # depending on profile, store the radii of the two boundary circles
     self.radius_left = 0
     self.radius_right = 0
@@ -694,14 +695,26 @@ class Profile:
       infoXml.write('  <profile dir="' + str(dir) + '">\n')
       
     if dir == 0:
-      self.functions_left[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
-      self.functions_left[1] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.functions_left[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
+      self.splines_left[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
+      self.splines_left[1] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
+      self.splines_left[2] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi)
+      self.splines_left[3] = PrincipleSpline(args.x1, args.z2, args.bend, 1.5*np.pi)
       
-      self.functions_right[0] = PrincipleSpline(args.x2, args.y2, args.bend, 0, False)
-      self.functions_right[1] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.functions_right[2] = PrincipleSpline(args.x2, args.z2, args.bend, np.pi/2.0, False)
+      # 2nd and 3rd argument switchable 
+      self.bisec_left[0] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[2] = BisecSpline(args.x1, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[3] = BisecSpline(args.x1, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       
+      self.splines_right[0] = PrincipleSpline(args.x2, args.y1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.x2, args.z1, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.x2, args.y2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.x2, args.z2, args.bend, 1.5*np.pi, False)
+       
+      self.bisec_right[0] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
 #       self.functions_left[0].spline.plot()
 #       self.functions_right[0].spline.plot(left=False)
 #       plt.show()
@@ -709,25 +722,49 @@ class Profile:
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
     elif dir == 1:
-      self.functions_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
-      self.functions_left[1] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_left[2] = PrincipleSpline(args.y1, args.z1, args.bend, np.pi/2.0)
+      self.splines_left[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0)
+      self.splines_left[1] = PrincipleSpline(args.y1, args.z2, args.bend, np.pi/2.0)
+      self.splines_left[2] = PrincipleSpline(args.y1, args.x2, args.bend, np.pi)
+      self.splines_left[3] = PrincipleSpline(args.y1, args.z1, args.bend, 1.5*np.pi)
        
-      self.functions_right[0] = PrincipleSpline(args.y2, args.x2, args.bend, 0, False)
-      self.functions_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_right[2] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
+      self.bisec_left[0] = BisecSpline(args.y1, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[1] = BisecSpline(args.y1, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[2] = BisecSpline(args.y1, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[3] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      
+      self.splines_right[0] = PrincipleSpline(args.y2, args.x1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.y2, args.x2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.y2, args.z1, args.bend, 1.5*np.pi, False)
        
+      self.bisec_right[0] = BisecSpline(args.y2, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[2] = BisecSpline(args.y2, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[3] = BisecSpline(args.y2, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      
       self.radius_left = args.y1 / 2.0
       self.radius_right = args.y2 / 2.0
     else: # dir == 2
-      self.functions_left[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
-      self.functions_left[1] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_left[2] = PrincipleSpline(args.z1, args.x1, args.bend, np.pi/2.0)
+      self.splines_left[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0)
+      self.splines_left[1] = PrincipleSpline(args.z1, args.x2, args.bend, np.pi/2.0)
+      self.splines_left[2] = PrincipleSpline(args.z1, args.y2, args.bend, np.pi)
+      self.splines_left[3] = PrincipleSpline(args.z1, args.x1, args.bend, 1.5*np.pi)
        
-      self.functions_right[0] = PrincipleSpline(args.z2, args.y2, args.bend, 0, False)
-      self.functions_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)  
-      self.functions_right[2] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0,False)
+      self.bisec_left[0] = BisecSpline(args.z1, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[1] = BisecSpline(args.z1, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[2] = BisecSpline(args.z1, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_left[3] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      
+      self.splines_right[0] = PrincipleSpline(args.z2, args.y1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.z2, args.y2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.z2, args.x1, args.bend, 1.5*np.pi, False)
        
+      self.bisec_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[2] = BisecSpline(args.z2, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisec_right[3] = BisecSpline(args.z2, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
       
@@ -760,38 +797,34 @@ def create_profiles(args,infoXml=None):
     profiles[2] = Profile(args,2)
     x = np.linspace(0, 1.0, args.res)
     
-  if args.verbose == "all_splines" or args.verbose == "all_profiles":
-    f1 = plt.figure(1)
-    f1.suptitle("0 degree", fontsize=20)
-    f2 = plt.figure(2)
-    f2.suptitle("90 degree", fontsize=20)
-    f3 = None
-    if args.verbose == "all_profiles":
-      f3 = plt.figure(3)
-      f3.suptitle("bisec", fontsize=20)
+  if args.verbose == "all_splines" or args.verbose == "all_bisecs":
+    figs = []
+    for i in range(0,3):
+      f = plt.figure(i,figsize=(9, 15))
+      f.suptitle("dir "+str(i), fontsize=20)
+      figs.append(f)
+
     x = np.linspace(0, 1.0, 1000)
-    count = 311 # need this for add_suplot
+    
     for dir,profile in enumerate(profiles):
       if profile == None:
         continue
-      sub1 = f1.add_subplot(count)
-      sub1.plot(x,profile.functions_left[0].eval(x),linewidth=5.0,label="0_left")
-      sub1.plot(x,profile.functions_right[0].eval(x),linewidth=5.0,label="0_right")
-      sub1.set_ylim((0.5,1.0))
-      sub1.set_title("dir " + str(dir))
-      if args.verbose == "all_profiles":
-        sub3 = f3.add_subplot(count)
-        sub3.plot(x,profile.functions_left[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_left[1].angle))
-        sub3.plot(x,profile.functions_right[1].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_"+str(profile.functions_right[1].angle))
       
-      sub2 = f2.add_subplot(count)
-      sub2.plot(x,profile.functions_left[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_left")
-      sub2.plot(x,profile.functions_right[2].eval(x),linewidth=5.0,label="dir_"+str(dir+1)+"_90_right")
-      sub2.set_ylim((0.5,1.0))
-      sub2.set_title("dir " + str(dir))
+      count = 411 # need this for add_suplot
       
-      count +=1
-  
+      for i in range(0,4):
+        sub1 = figs[dir].add_subplot(count)
+        sub1.set_ylim((0.5,1.0))
+        if args.verbose == "all_splines":
+          sub1.set_title(str(degrees(profile.splines_left[i].angle)) + "°")
+          sub1.plot(x,profile.splines_left[i].eval(x),linewidth=5.0)
+          sub1.plot(x,profile.splines_right[i].eval(x),linewidth=5.0)
+        else: # all_bisecs
+          sub1.set_title(str(degrees(profile.bisec_left[i].angle)) + "°")
+          sub1.plot(x,profile.bisec_left[i].eval(x),linewidth=5.0)
+          sub1.plot(x,profile.bisec_right[i].eval(x),linewidth=5.0)
+        count += 1
+      
     plt.show()
   
   

@@ -165,7 +165,7 @@ parser.add_argument('--skip_z', help="don't show bar in z direction", action='st
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--skip_surface_gaps', help="show final structure in new window", action='store_true',default=False)
 parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
-parser.add_argument('--verbose', help="show spline plots",choices=["off","all_profiles","bisec","profile_map","polar_plot","interpolation","all_splines"], default="off")
+parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","bisec","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
@@ -223,6 +223,11 @@ if args.save is None: # set default gid mesh name
     meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
   
   meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+  
+  meshName += "_skip_x" if args.skip_x else ""
+  meshName += "_skip_y" if args.skip_y else ""
+  meshName += "_skip_z" if args.skip_z else ""
+  
   args.save = meshName  
 else:
   meshName = args.save  
