@@ -1179,7 +1179,7 @@
                        At the moment the profile applies to all nodes. Profile is mandatory.</xsd:documentation>
                      </xsd:annotation>
                      <xsd:complexType>
-                        <!-- lower, uppde and initial go together or fixed. all token are subjet to mathparser (for some 1/nx stuff)-->
+                        <!-- lower, upper and initial go together or fixed. all token are subjet to mathparser (for some 1/nx stuff or local xi/nx)-->
                         <xsd:attribute name="initial" type="xsd:token" use="optional"/>
                         <xsd:attribute name="lower" type="xsd:token" use="optional"/>
                         <xsd:attribute name="upper" type="xsd:token" use="optional"/>

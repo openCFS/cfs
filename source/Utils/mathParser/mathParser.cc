@@ -3,6 +3,8 @@
 #include <def_build_type_options.hh>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/exception/diagnostic_information.hpp>
+
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/Interpolate1D.hh"
@@ -340,23 +342,27 @@ namespace CoupledField {
   }
 
 
-  Double MathParser::Eval( HandleType handler ) {
-
+  Double MathParser::Eval( HandleType handler )
+  {
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
 
-#ifdef CHECK_INDEX
+    #ifdef CHECK_INDEX
     // Consistency check: Ensure, that only 1 entry is set
     if( myParser.GetNumResults() > 1 ) {
       WARN("More than one expression set! Returning just last one.");
     }
-#endif
+    #endif
     
     // Evaluate expression with error checking
-    Double ret = 0.0;
-    MATHPARSER_EXEC( ret = myParser.Eval() );
-
-    return ret;
+    try {
+      return myParser.Eval();
+    } catch(mu::Parser::exception_type &e) {
+      std::string msg = "MathParser error '" + e.GetMsg() + "' in formula '" + e.GetExpr() + "' with registered variables " + GetRegisteredVariables(GLOB_HANDLER);
+      if(handler != GLOB_HANDLER && GetRegisteredVariables(handler) != "")
+        msg += ", " + GetRegisteredVariables(handler);
+      throw Exception(msg);
+    }
   }
   
   void MathParser::EvalVector( HandleType handle, Vector<Double>& vec ) {
@@ -691,12 +697,28 @@ namespace CoupledField {
     return res;
   }
 
+  std::string MathParser::GetRegisteredVariables(HandleType handle) const
+  {
+    std::stringstream ss;
+
+    StdVector<std::pair<std::string, double> > list = GetRegisteredValues(handle);
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+    {
+      ss << list[i].first;
+      if(i < list.GetSize() -1)
+        ss << ", ";
+    }
+    return ss.str();
+  }
+
+
   void MathParser::ToInfo(PtrParamNode pn, HandleType handle) const
   {
     StdVector<std::pair<std::string, double> > res = GetRegisteredValues(handle);
     for(unsigned int i = 0; i < res.GetSize(); i++)
       pn->Get(res[i].first)->SetValue(res[i].second);
   }
+
 
   void MathParser::Dump( std::ostream& out) {
     

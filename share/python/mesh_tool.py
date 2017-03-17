@@ -1592,7 +1592,7 @@ def create_mesh_from_tetgen(meshfile, region):
     mesh.elements.append(e) 
   return mesh
   
-def create_mesh_from_gmsh(meshfile,type):
+def create_mesh_from_gmsh_special(meshfile,type):
   #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
   # read 3D tetrahedron gmsh mesh
   inp = open(meshfile+".msh").readlines()
@@ -1663,6 +1663,109 @@ def create_mesh_from_gmsh(meshfile,type):
     mesh = create_mesh_for_aux_cells(nodes,elem,1)
   else:
     print("Error: No correct type was selected! options: apod6, aux_cells")
+  write_gid_mesh(mesh, meshfile+".mesh") 
+  
+def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
+  #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
+  # read 3D tetrahedron gmsh mesh
+  inp = open(meshfile+".msh").readlines()
+  nodes = []
+  if regionnumbers != None:
+    regions = [[] for nums in regionnumbers]
+  else:
+    regions = []
+  if (surfaceBCnumbers != None):
+    bcs = [[] for nums in surfaceBCnumbers]
+  count = 1
+  num_node = 0
+  num_elem = 0
+  nodeListStart = -1
+  elemListStart = -1
+  for line in inp:
+    item = str.split(line)
+    # read and check header
+    if count == 2:
+      if float(item[0]) != 2.2:
+        print('Error: Gmsh format should be 2.2, result probably wrong')
+    # read starting line of nodes
+    if '$Nodes' in line:
+      nodeListStart = count+1
+    # read ending line of nodes
+    if '$Elements' in line:
+      elemListStart = count+1
+    # read number of nodes
+    if count == nodeListStart:
+      num_node = int(item[0])
+    # read nodes
+    elif count > nodeListStart and count <= (nodeListStart+num_node):
+      nodes.append([float(item[1]),float(item[2]),float(item[3])])
+    # read number of elements
+    elif count == elemListStart:
+      num_elem = int(item[0])
+    # add elements
+    elif count > elemListStart and count <= elemListStart+num_elem:
+      el = [int(item[0])]
+      for i in range(3+int(item[2]),len(item)):
+        el.append(int(item[i]))
+      # read 2D surface triangles (WARNING: unreliable, check results)
+      if int(item[1]) == 2:
+        for bcnum in range(len(surfaceBCnumbers)):
+          if int(item[3]) == surfaceBCnumbers[bcnum]:
+            for j in range(1,len(el)):
+              bcs[bcnum].append(el[j]) 
+      # read 3D elements
+      if int(item[1]) != 2:
+        if regionnumbers != None:
+          for region in range(len(regionnumbers)):
+            if int(item[3]) == regionnumbers[region]:
+              regions[region].append(el)
+        else:
+          regions.append(el)
+    count += 1  
+
+  # Create mesh  
+  # add nodes    
+  mesh = mesh_tool.Mesh()
+  mesh.nodes = nodes
+  
+  if regionnumbers == None:
+    regionnumbers = 'mech'
+  for j in range(len(regionnumbers)):
+    for i in range(len(regions[j])):
+      e = mesh_tool.Element()
+      e.nodes = (regions[j][i][1:])
+      for k in range (len(e.nodes)):
+        e.nodes[k] -= 1
+      e.density = 1.
+      e.region = str(regionnumbers[j])
+      if len(e.nodes) == 4:
+        e.type = TET4
+      elif len(e.nodes) == 6:
+        e.type = WEDGE6
+      elif len(e.nodes) == 8:
+        e.type = HEXA8
+      mesh.elements.append(e)
+      
+  for bcnum in range(len(surfaceBCnumbers)):
+    mesh.bc.append((str(surfaceBCnumbers[bcnum]), list(set(bcs[bcnum]))))
+  
+## Manually add simple boundary conditions 
+#  load = []
+#  support = []
+#  symmetric = []
+#  for i in range(len(nodes)):
+#    if nodes[i][1] < -2.9999999:
+#      support.append(i)
+#    elif nodes[i][1] > 31.9999999:
+#      load.append(i)
+#    if nodes[i][2] < 0.0000001:
+#      symmetric.append(i)
+#  print(len(load))
+#  print(len(support))
+#  mesh.bc.append(("load", load))
+#  mesh.bc.append(("support", support))
+#  mesh.bc.append(("symmetric", symmetric))
+
   write_gid_mesh(mesh, meshfile+".mesh") 
   
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
