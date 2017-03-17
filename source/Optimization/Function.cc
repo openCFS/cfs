@@ -186,13 +186,16 @@ Function::Function(PtrParamNode pn) {
   }
 
   // set linear, to be overwritten by xml below
-  switch (type_) {
-  case VOLUME: // the volume is not linear on heaviside densities
+  switch (type_)
+  {
+  case VOLUME: // the volume is not linear on heaviside densities and shape mapping
   case SLOPE:
   case SLACK:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
   case PERIODIC:
+  case CURVATURE:
+  case OVERHANG_VERT:
     linear_ = true;
     break;
 //  case TENSOR_TRACE:
@@ -625,30 +628,30 @@ bool Function::IsHomogenization() const {
   }
 }
 
-bool Function::IsDoubleBounded() const
+bool Function::CouldDoubleBounded(Type type)
 {
-  // read the documentation in the header :)
-  switch(type_)
+  switch(type)
   {
+  case SHAPE_INF:
+    assert(false);
+    // is it necessary to check for locality == Local::SHAPE?!
+    return true;
+
   case SLOPE:
   case CURVATURE:
-  case OVERHANG_HOR:  // abs of the lower parts only: |(a_j-w_j) - (a_i-w_j)| >= c^*   (j=i+1)
-  // !! OVERHANG_VERT is NOT double bounded  : (a_j+w_j) - (a_i+w_i) <= c^* and (a_i+w_i) - (a_j+w_j) <= c^*
-  case SHAPE_INF:
-    {
-      Local::Locality loc = local->GetLocality();
-      // there might be more cases, the important stuff ist, that it is not reverse because this means two constraints for lower and upper
-      if(loc == Local::NEXT || loc == Local::PREV_NEXT || loc == Local::MULT_DESIGNS_NEXT || loc == Local::MULT_DESIGNS_PREV_NEXT ||
-         loc == Local::SHAPE)
-        return true;
-      else
-        return false;
-    }
+    return true;
+
   default:
     return false;
   }
-  assert(false);
+  assert(false); // stupid compiler :(
   return false;
+}
+
+bool Function::IsDoubleBounded() const
+{
+  // could be extended to non-local functions!!
+  return CouldDoubleBounded(type_) && local != NULL && !Local::IsReverse(local->GetLocality());
 }
 
 bool Function::IsLocal(Type t) {
@@ -1035,7 +1038,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
-  bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is defaul
+  bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is default
   this->periodic = enable & domain->HasPerdiodicBC();
 
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
@@ -1090,17 +1093,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   }
 
   // check beta
-  if (ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION) {
-    if (pn == NULL || !pn->Has("beta"))
-      throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
-    if ((func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive())
-        && beta_ < 0)
+  if(RequiresBeta(ftype) && (pn == NULL || !pn->Has("beta")))
+    throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
+  if(RequiresBeta(ftype) && (func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive()) && beta_ < 0)
       throw Exception("'function '" + fname + "' allows beta=-1 only for condition in observe mode");
-  }
 
   // check eps
-  if ((ftype == MOLE || ftype == GLOBAL_MOLE)
-      && (pn == NULL || !pn->Has("eps")))
+  if(RequiresEps(ftype) && (pn == NULL || !pn->Has("eps")))
     throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
 
   // check phase
@@ -1110,7 +1109,9 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // set locality
   this->locality_ = pn != NULL && pn->Has("locality") ? locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
-  bool snopt = domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "snopt";
+
+  // this is our only double bounded optimizer
+  bool db_opt = domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch (ftype) {
   case ROTATIONAL_MATRIX_1:
@@ -1121,18 +1122,21 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
 
   case SLOPE:
-    if(user == DEFAULT && snopt)
-      locality_ = NEXT;
-    if(user == DEFAULT && !snopt)
-      locality_ = NEXT_AND_REVERSE;
-    if(!snopt && locality_ != NEXT_AND_REVERSE)
-      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+    if(user == DEFAULT)
+      locality_ = db_opt ? NEXT : NEXT_AND_REVERSE;
     if(locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
-  case OVERHANG_VERT:
+  // the horizontal overhang is | ... | >= c^* and because of the >= we cannot bound as with slopes but need to smooth abs
   case OVERHANG_HOR:
+    if(locality_ != MULT_DESIGNS_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_NEXT;
+    break;
+
+  // opposite to OVERHANG_VERT there is always reverse and no bounded stuff as in OVERHANG_HOR as in SLOPE
+  case OVERHANG_VERT:
     if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
@@ -1145,12 +1149,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
 
   case CURVATURE:
-    if(user == DEFAULT && snopt)
-      locality_ = PREV_NEXT;
-    if(user == DEFAULT && !snopt)
-      locality_ = PREV_NEXT_AND_REVERSE;
-    if(!snopt && locality_ != PREV_NEXT_AND_REVERSE)
-      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+    if(user == DEFAULT)
+      locality_ = db_opt ? PREV_NEXT : PREV_NEXT_AND_REVERSE;
     if (locality_ != PREV_NEXT && locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
@@ -1251,6 +1251,9 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
   }
 
+  if(CouldDoubleBounded(ftype) && !db_opt && !Function::Local::IsReverse(locality_))
+   throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+
 }
 
 void Function::Local::PostInit()
@@ -1294,7 +1297,7 @@ void Function::Local::PostInit()
   case MULT_DESIGNS_NEXT_AND_REVERSE:
   case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_, phase_);
+      smd->SetupVirtualMultiShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupMultDesignsVirtualElementMap(func_);
     break;
@@ -1316,7 +1319,7 @@ void Function::Local::PostInit()
 
   default:
     if(BaseDesignElement::IsShapeMapType(func_->GetDesignType()))
-      smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_, phase_);
+      smd->SetupVirtualShapeElementMap(func_, virtual_elem_map, locality_);
     else
       SetupVirtualElementMap(phase_);
     break;
@@ -1966,12 +1969,12 @@ void Function::Local::ToInfo(PtrParamNode in) {
     in->Get("normalize")->SetValue(normalize_);
     in->Get("power")->SetValue(power_);
   }
-  if(ft == OSCILLATION || ft == GLOBAL_OSCILLATION) {
+  if(RequiresBeta(ft)) {
     in->Get("beta")->SetValue(beta_);
     in->Get("phase")->SetValue(phase.ToString(phase_));
   }
 
-  if(ft == MOLE || ft == GLOBAL_MOLE)
+  if(RequiresEps(ft))
     in->Get("eps")->SetValue(eps_);
 
   // we simply handle periodic only in ShapeMapDesign, extend if you generalize!
@@ -1982,6 +1985,49 @@ void Function::Local::ToInfo(PtrParamNode in) {
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
 }
+
+bool Function::Local::IsReverse(Locality loc)
+{
+  switch(loc)
+  {
+  case NEXT_AND_REVERSE:
+  case PREV_NEXT_AND_REVERSE:
+  case DEG_45_STAR_AND_REVERSE:
+  case MULT_DESIGNS_NEXT_AND_REVERSE:
+  case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
+    return true;
+  default:
+    return false;
+  }
+  return false; // for the stupid compilers
+}
+
+bool Function::Local::RequiresEps(Type ft)
+{
+  switch(ft)
+  {
+  case MOLE:
+  case GLOBAL_MOLE:
+  case OVERHANG_HOR:
+    return true;
+  default:
+    return false;
+  }
+}
+
+
+bool Function::Local::RequiresBeta(Type ft)
+{
+  switch(ft)
+  {
+  case OSCILLATION:
+  case GLOBAL_OSCILLATION:
+    return true;
+  default:
+    return false;
+  }
+}
+
 
 Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
     PtrParamNode pn) {
@@ -2161,7 +2207,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
 
   case OVERHANG_VERT:
   case OVERHANG_HOR:
-    fv = CalcOverhang(f->type_);
+    fv = CalcOverhang(f->type_, local->eps_); // not GetEps() as we don't need it for VERT
     break;
 
   case SUM_MODULI:
@@ -2362,7 +2408,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case OVERHANG_VERT:
     case OVERHANG_HOR:
-      gv = CalcOverhangGradient(n, g->type_);
+      gv = CalcOverhangGradient(n, g->type_, local->eps_); // no GetEps()!
       break;
 
     case STRESS:
@@ -2535,7 +2581,7 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const
     return sign == -1 ? 1.0 : -1.0;
 }
 
-double Function::Local::Identifier::CalcOverhang(Function::Type ft) const
+double Function::Local::Identifier::CalcOverhang(Function::Type ft, double eps) const
 {
   // this(node)->elem is implicit, then this(profile), then prev(node) and prev(profile) if exist, then next(node) and next(profile)
   //assert(this->sign == 1); // the other stuff is not considered yet
@@ -2551,28 +2597,33 @@ double Function::Local::Identifier::CalcOverhang(Function::Type ft) const
   double wn = neighbor[2]->GetPlainDesignValue();
 
   assert(ft == OVERHANG_VERT || ft == OVERHANG_HOR);
+  assert(!(ft == OVERHANG_HOR && eps <= 0.0)); // hor needs eps
+  assert(!(ft == OVERHANG_HOR && sign != NO_SIGN)); // hor knows only one sign as it is real smooth abs() as >= cannot be double bounded
 
   // 1/-1 for reverse (not snopt) and BOTH (-1000) for snopt. The BOTH case is the positive case. See BaseOptimizer::GetBounds() and Function::IsDoubleBounded()
   assert(this->sign == 1 || this->sign == -1 || this->sign == BOTH);
-
-  // we may have BOTH for OVERHANG_HOR but we need explicit (locality = REVERSE) signs for OVERHANG_VERT
-  assert(!(sign == BOTH && ft != OVERHANG_VERT));
 
   double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
 
   double res = -1.0;
 
   if(ft == OVERHANG_HOR)
-    res = s * ((an-wn) - (a-w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
+  {
+    double tmp = ((an-.5*wn) - (a-.5*w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
+    res = SmoothAbs(tmp, eps);
+    LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn
+                   << " tmp=" << tmp << " eps=" << eps << " -> " << res;
+  }
   else
-    res = s == 1 ? ((an+wn) - (a+w)) : ((a-w) - (an-wn)); // the right part is checked for right overhang only, the left part for a left overhang only
-
-  LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
-                 << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn << " -> " << res;
+  {
+    res = s == 1 ? ((an+.5*wn) - (a+.5*w)) : ((a-.5*w) - (an-.5*wn)); // the right part is checked for right overhang only, the left part for a left overhang only
+    LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
+                   << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn << " -> " << res;
+  }
   return res;
 }
 
-double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function::Type ft) const
+double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const
 {
   assert(neighbor.GetSize() == 3);
   assert(element->GetType() == DesignElement::NODE);        // a
@@ -2580,32 +2631,46 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
   assert(neighbor[1]->GetType() == DesignElement::NODE);    // an
   assert(neighbor[2]->GetType() == DesignElement::PROFILE); // wn
 
+  assert(!(ft == OVERHANG_HOR && eps <= 0.0)); // hor needs eps
+  assert(!(ft == OVERHANG_HOR && sign != NO_SIGN)); // hor knows only one sign as it is real smooth abs() as >= cannot be double bounded
+
   //assert(this->sign == 1); // the other stuff is not considered yet. n = i+1
-  // OVERHANG_HOR:  |(an-wn) - (a-w)| >= c^*
-  // OVERHANG_VERT: ((an+wn) - (a+w)) <= c^* and ((a-w) - (an-wn)) <= c^*
-  assert(sign == 1 || sign == -1 || sign == BOTH);
+  // OVERHANG_HOR:  |(an-.5*wn) - (a-.5*w)| >= c^* // real smoothed abs required!! no double signs
+  // OVERHANG_VERT: ((an+.5*wn) - (a+.5*w)) <= c^* and ((a-.5*w) - (an-.5*wn)) <= c^*
+  assert(sign == 1 || sign == -1 || sign == BOTH || sign == NO_SIGN);
   double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
   // var        a    w   an  wn
-  // hor_s=1   -1   +1   +1  -1
-  // hor_s=-1  +1   -1   -1  +1
-  // vert_s=1  -1   -1   +1  +1
-  // vert_s=-1 +1   -1   -1  +1
+  // hor_s=1   -1   +.5  +1  -.5
+  // vert_s=1  -1   -.5  +1  +.5
+  // vert_s=-1 +1   -.5  -1  +.5
 
+  // for the horizontal case, df is the factor for DerivSmoothAbs()
+  double df = 0.0;
   switch(neigh_idx)
   {
   case -1: // a
     // same for hor and vert
-    return -1 * s;
+    df = -1 * s;
+    break;
   case 0:  // w
-    return (ft == OVERHANG_HOR && s == 1.0) ? 1.0 : -1.0;
+    df = (ft == OVERHANG_HOR) ? .5 : -.5;
+    break;
   case 1: // an
-     return s;
+     df = s;
+     break;
   case 2: // wn
-    return (ft == OVERHANG_HOR && s == 1.0) ? -1.0 : 1.0;
+    df = (ft == OVERHANG_HOR) ? -.5 : .5;
+    break;
   default:
-    assert(false);
-    return -1.0;
+    break;
   }
+  assert(df != 0.0);
+
+  if(ft == OVERHANG_HOR)
+    // we have to flip sign because we are lower bound
+    return -1 * df * DerivSmoothAbs(CalcOverhang(ft, eps), eps);
+  else
+    return df;
 }
 
 double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
@@ -2817,21 +2882,21 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps) 
     res = DerivSmoothAbs(tmp1.Last() - tmp1[0], eps)
         - DerivSmoothAbs(tmp1[1] - tmp1[0], eps);
     LOG_DBG3(func)<< "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
-    << " DA(" << tmp1.Last() << "-" << tmp1[0] << ") - DA(" << tmp1[1] << "-" << tmp1[0] << ") -> " << res;
+                  << " DA(" << tmp1.Last() << "-" << tmp1[0] << ") - DA(" << tmp1[1] << "-" << tmp1[0] << ") -> " << res;
 
   }
   else if(idx == (int) tmp1.GetSize() - 1)
   {
     res = DerivSmoothAbs(tmp1.Last() - tmp1[idx-1], eps) - DerivSmoothAbs(tmp1.Last() - tmp1[0], eps);
     LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
-    << " DA(" << tmp1.Last() << "-" << tmp1[idx-1] << ") - DA(" << tmp1.Last() << "-" << tmp1[0] << ") -> " << res;
+                   << " DA(" << tmp1.Last() << "-" << tmp1[idx-1] << ") - DA(" << tmp1.Last() << "-" << tmp1[0] << ") -> " << res;
 
   }
   else
   {
     res = DerivSmoothAbs(tmp1[idx] - tmp1[idx-1], eps) - DerivSmoothAbs(tmp1[idx+1] - tmp1[idx], eps);
     LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
-    << " DA(" << tmp1[idx] << "-" << tmp1[idx-1] << ") - DA(" << tmp1[idx+1] << "-" << tmp1[idx] << ") -> " << res;
+                   << " DA(" << tmp1[idx] << "-" << tmp1[idx-1] << ") - DA(" << tmp1[idx+1] << "-" << tmp1[idx] << ") -> " << res;
   }
 
   return res;

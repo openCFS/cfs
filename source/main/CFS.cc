@@ -41,6 +41,8 @@
 
 using namespace CoupledField;
 using namespace std;
+using namespace boost::posix_time;
+using namespace boost::gregorian;
 
 
 #ifdef __MINGW32__
@@ -230,7 +232,8 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
+    if(!progOpts->IsQuiet())
+      cout << endl; // conditional empty line
     
     cout << ">> Total time: wall clock: '";
     
@@ -250,6 +253,9 @@ int CFS::Run()
     {
       cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
+    if(progOpts->IsQuiet())
+      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
+
     
     cout << endl << endl;
       
@@ -323,9 +329,8 @@ void CFS::SolveProblem()
  // Solves the driver or optimization problem
  domain->SolveProblem();
  
- using namespace boost::posix_time;
- using namespace boost::gregorian;
- cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
+ if(!progOpts->IsQuiet())
+   cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
 
 
@@ -357,8 +362,9 @@ void CFS::ReadXMLFile()
   // Generate parameter handler and pass address to global pointer
   string xmlFile = progOpts->GetParamFileStr();
 
-  // Write information to command line
-  cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
+  // Conditionally write information to command line
+  if(!progOpts->IsQuiet())
+    cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();

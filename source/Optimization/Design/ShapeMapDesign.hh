@@ -75,12 +75,11 @@ public:
 
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
-   * @param locality just given to assert() it is PREV_AND_NEXT
-   * @param phase just given to assert() it is BOTH  */
-  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
+   * @param locality just given to assert() it is PREV_AND_NEXT */
+  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
-  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
+  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
   /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
   void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
@@ -136,9 +135,9 @@ public:
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -1;
     int dof = -1; // x =0, y = 1, z = 2,
-    double lower = -1.0;
-    double upper = -1.0;
-    double value = -1.0; // initial or fixed
+    std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
+    std::string upper; //
+    std::string value; // initial or fixed
 
     /** if >= 0 this is the relative bound for the first and last element */
     double clamp = -1.0;

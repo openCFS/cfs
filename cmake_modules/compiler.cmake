@@ -104,7 +104,6 @@ IF(OPENMP_FOUND)
     # sets to -qopenmp for icc and -fopenmp for gcc
   ENDIF()
 ENDIF()
-
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
@@ -169,7 +168,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58 
     # we must not set this to CFS_SUPRESSIONS because these also become CMAKE_C_FLAGS and then the following happens:
     # CheckFortranRuntime.cmake (CFS) ->  FortranCInterface.cmake (system) -> Detect.cmake (system) -> try_compile(FortranCInterface_COMPILED
-    # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option ‘-Wplacement-new=0’ is valid for C++ but not for C"
+    # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option *** is valid for C++ but not for C"
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new -Wno-address") 
   ENDIF()
@@ -264,7 +263,7 @@ ELSEIF(MSVC)
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc and the c++-compiler is icpcp?!
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -274,13 +273,13 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     # however it works without a flag, mabye the intel compiler checks the stdlib.
     # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
     # It's anoying that intel depends on the system stdlib :(
-    SET(CFS_CXX_FLAGS "-g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c+11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
     # see above with -std=c++11
-    SET(CFS_CXX_FLAGS "-w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c+11 -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
   

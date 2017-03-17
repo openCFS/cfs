@@ -602,6 +602,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
     assert(values.InWindow(start + p));
   }
 
+  // apply flip_sign only when we normalize
   double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
   for(int p = 0; normalize && p < nnz; p++)
     values[start + p] *= flip_sign;
@@ -619,6 +620,7 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
 {
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
 
+  bool restart_timer = optimizer_timer_->IsRunning();
   optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
@@ -660,5 +662,6 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   
-  optimizer_timer_->Start();
+  if(restart_timer)
+    optimizer_timer_->Start();
 }
