@@ -196,10 +196,10 @@ namespace CoupledField{
     //    how the local x' and y' axes are defined, because in a 'global'
     //    polar coordinate system we assume, that the y-axi is aligned
     //    with the axial axis and that the x-axis is aligned with the
-    //    radial axis (where phi=0°).
+    //    radial axis (where phi=0).
     //    Therefore we can calculate the 'local' cartesian axes as follows:
     //    x': difference of 'rAxis-origin' and normalized
-    //    y': rotation of x-axis by 90°
+    //    y': rotation of x-axis by 90
 
     // Vector<Double> temp;
 //     temp = rAxis_- origin_;

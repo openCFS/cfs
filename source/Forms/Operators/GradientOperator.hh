@@ -34,7 +34,7 @@ namespace CoupledField{
     static const UInt DIM_SPACE = D; // n=2,3
 
     // Gradient normal: n x m, DIM_SPACE x DIM_DOF
-    // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise für Gradient
+    // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise fuer Gradient
 
     //! Dimension of the finite element
     static const UInt DIM_ELEM = D; // Dimension von Referenzelement

@@ -376,7 +376,7 @@ MARK_AS_ADVANCED(MKL_PARDISO_LIB)
 MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
-# TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+# TODO: fuer libmkl_intel_lp64.a libmkl_gf_lp64.a fuer gnu einsetzen.
 ELSE(NOT CMAKE_CROSSCOMPILING)
   IF(APPLE)
     # At the moment we just hard code the paths to MKL.    
