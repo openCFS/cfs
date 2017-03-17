@@ -3131,7 +3131,7 @@ namespace CoupledField {
 
   void SinglePDE::DefineFeFunctions(){
     //This is the default creation of spaces
-    //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
+    //idee: die PDE gibt zum attribute formulation die passenden space zurueck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);

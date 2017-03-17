@@ -35,7 +35,7 @@
    *       public available. </li>
    *   <li>From IPOPT I use the interface as template and took the example implementation.
    *       It is open source and they ask to give the following reference:  
-   *       A. Wächter and L. T. Biegler, 
+   *       A. Waechter and L. T. Biegler, 
    *       On the Implementation of a Primal-Dual Interior Point Filter Line Search Algorithm 
    *       for Large-Scale Nonlinear Programming, Mathematical Programming 106(1), pp. 25-57, 2006</li>
    *   <li>SCPIPBase.hh/cc, SCPIP_HS071.hh/cc and scpip30.hh is written by Fabian Wein,
