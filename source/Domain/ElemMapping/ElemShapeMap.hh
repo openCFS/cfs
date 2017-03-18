@@ -158,6 +158,11 @@ namespace CoupledField {
     //! element, in case it was initialized with only the volume information;
     void SetSurfInfo( const std::set<RegionIdType>& volRegions );
 
+    //! This method allows to set information specific to a surface
+    //! element, in case it was initialized with only the volume information;
+    //! It considers the correct volume
+    void SetSurfInfoWithNeighbor(const std::set<RegionIdType>& myRegions,
+    	                         const RegionIdType volRegid);
 
     //! Specialized version for NMG points
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,

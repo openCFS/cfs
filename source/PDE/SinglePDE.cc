@@ -886,8 +886,9 @@ namespace CoupledField {
 
             // fetch entry with neighboring regions
             for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-              neighborRegions.Push_back( regionNodes[i]->
-                                         Get("neighborRegion")->As<std::string>() );
+            	std::string str = regionNodes[i]->Get("neighborRegion")->As<std::string>();
+            	if ( str != "" )
+            		neighborRegions.Push_back( str );
             }
           }
 
@@ -945,6 +946,12 @@ namespace CoupledField {
 
             fnc = resultFunctors_[candidate->resultType];
 
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[iRegion];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
             // pass result to resulthandler
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
@@ -984,8 +991,9 @@ namespace CoupledField {
 
           // fetch entry with neighboring regions
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-            neighborRegions.Push_back( histEntities[i]->
-                                       Get("neighborRegion")->As<std::string>() );
+          	std::string str = histEntities[i]->Get("neighborRegion")->As<std::string>();
+          	if ( str != "" )
+          		neighborRegions.Push_back( str );
           }
         } else if(candidate->definedOn == ResultInfo::COIL ) {
           histNode = actResultNode->Get("coilList", ParamNode::PASS);
@@ -1068,10 +1076,13 @@ namespace CoupledField {
                   << quantity << "'");
             }
 
-//            if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY )
-//            	writeToHistFile = false;
-
             fnc = resultFunctors_[candidate->resultType];
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[i];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
                                         actOutDest, postProcNames[i],

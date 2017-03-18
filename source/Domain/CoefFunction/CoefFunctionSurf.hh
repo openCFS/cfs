@@ -124,7 +124,8 @@ public:
 
   CoefFunctionSurfMaxwell( bool mapNormal,
 		  	             Double matFactor,
-                     	 Double factor = 1.0,
+						 Grid* ptrid,
+						 Double factor = 1.0,
 						 shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
 
   //! Destructor
@@ -167,6 +168,8 @@ private:
 
   //! Constant material factor
   Double matFactor_;
+
+  Grid* ptGrid_;
 };
 
 } // end of namespace
