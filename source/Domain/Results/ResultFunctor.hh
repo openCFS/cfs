@@ -60,6 +60,11 @@ public:
   //! Obtain derivType
   ResultDerivType GetDerivType() {return derivType_;}
 
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    EXCEPTION("Base Class ResultFunctor has no Coef-Function");
+  }
+
 protected:
     
   //! Type of result (primary, field, integrated etc.)
@@ -73,6 +78,9 @@ protected:
   
   //! List of integrators
   std::map<RegionIdType, BaseBDBInt*> forms_;
+
+  //! Store coefficient function
+  PtrCoefFct coef_;
 };
 
 // --------------------------------------------------------------------------
@@ -91,7 +99,7 @@ public:
   virtual ~FieldCoefFunctor();
 
   //! Return Coefficient function
-  PtrCoefFct GetCoefFct() {
+  virtual PtrCoefFct GetCoefFct() {
     return coef_;
   }
 
@@ -101,10 +109,6 @@ public:
   //! Evaluate field at local point
   void GetVector(Vector<TYPE>& vec, 
                  const LocPointMapped& lpm);
-protected:
-
-  //! Store coefficient function
-  PtrCoefFct coef_;
 };
 
 // --------------------------------------------------------------------------
@@ -134,11 +138,12 @@ public:
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res );
 
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    return coef_;
+  }
 
 private:
-
-  //! Pointer to coefficient function to be integrated
-  PtrCoefFct coef_;
 
   //! Pointer to FeFunction
   shared_ptr<BaseFeFunction> feFct_;
@@ -174,6 +179,7 @@ public:
 
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res );
+
 
 protected:
 

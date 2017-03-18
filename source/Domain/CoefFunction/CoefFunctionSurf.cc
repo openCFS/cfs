@@ -226,13 +226,15 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
 
 CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
                                     Double matFactor,
+									Grid* ptGrid,
 									Double factor,
-                                    shared_ptr<ResultInfo> surfInfo )
+									shared_ptr<ResultInfo> surfInfo)
 : CoefFunctionSurf(mapNormal, factor, surfInfo) {
 
 
   // not sure about the following one
   matFactor_ = matFactor;
+  ptGrid_ = ptGrid;
 
 }
 
@@ -242,8 +244,10 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
 
   // create local point for surface
   LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfo( regions_);
+  surfLpm.SetSurfInfoWithNeighbor( regions_, neighborRegionId_);
+
   RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+  std::string regionName = ptGrid_->GetRegion().ToString(region);
 
   //get magnetic flux density
   Vector<Double> Bvec;

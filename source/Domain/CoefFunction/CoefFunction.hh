@@ -546,6 +546,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
 
+  virtual void SetNeighborRegionId(RegionIdType id) {
+	  neighborRegionId_ = id;
+  }
+
   //@}
 
   //@}
@@ -602,6 +606,8 @@ protected:
 
   //! only needed for hystersis
   StdPDE* linkedPDE_;
+
+  RegionIdType neighborRegionId_;
 
 };
 

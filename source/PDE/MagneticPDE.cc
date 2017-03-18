@@ -1546,7 +1546,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     	// Note: The positive normal direction in this case is defined as the
     	//       inward facing one.  1/mu0 = 1/(4*pi*1E-07
     	Double mu0Inv = 1.0 / (4.0 * M_PI * 1.0E-07);
-    	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, mu0Inv, -1.0, mfd));
+    	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, mu0Inv, ptGrid_, -1.0, mfd));
     	DefineFieldResult( maxForceDens, mfd);
     	surfCoefFcts_[maxForceDens] = bFunc;
 
