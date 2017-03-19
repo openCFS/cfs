@@ -8,14 +8,17 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 
-
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
 #include <fstream>
 #include <string>
 
 using namespace std;
 using namespace boost;
+
 
 namespace CoupledField
 {
@@ -1013,22 +1016,30 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
     // only really write the file if at least a certain amount of time has passed since last write
     // or if forced. Write always in the debug mode
-    if(debug && !force && write_timer_->GetWallTime() < 2.0)
+    if(!debug && !force && write_timer_->GetWallTime() < 2.0)
     {
-      ++reject_counter_;
+      reject_counter_++;
       return;
     }
 
     write_timer_->ResetStart();    
-    ++write_counter_;
+    write_counter_++;
     
     myFileName = progOpts->GetSimName() + ".info.xml";
   }
-  // write preamble
 
-  std::ofstream info_file(myFileName.c_str());
-  info_file << "<?xml version=\"1.0\"?>" << std::endl;
-  
+  bool compress = ends_with(myFileName, ".gz");
+
+  // a little complicated by transparent for encoding
+  ofstream file(myFileName.c_str(), ios_base::out);
+  boost::iostreams::filtering_ostream out;
+  if(compress)
+    out.push(boost::iostreams::gzip_compressor()); // gzip might not compress as good as bzip2 but is ways faster!
+  out.push(file);
+
+  // write preamble
+  out << "<?xml version=\"1.0\"?>" << std::endl;
+
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
   //    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
@@ -1040,8 +1051,7 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   AdjustElementType();
 
   // Then we print the tree
-  ToXML(info_file);
-  info_file.close();
+  ToXML(out);
 }
 
 void ParamNode::Dump(int level) const

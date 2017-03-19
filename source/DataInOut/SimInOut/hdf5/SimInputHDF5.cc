@@ -47,6 +47,7 @@ namespace CoupledField {
     PtrParamNode pNode;
     coordSysId_ = "default";
     scaleFac_ = 1.0;
+    numNodes_ = 0;
 
     // Change defaults according to XML file
     pNode = myParam_->Get("generateRegionNodes", ParamNode::PASS);

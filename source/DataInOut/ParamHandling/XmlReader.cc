@@ -7,7 +7,14 @@
 #include <def_use_xerces.hh>
 #include <def_use_libxml2.hh>
 
+#include <fstream>
+#include <iostream>
 #include "DataInOut/ParamHandling/XmlReader.hh"
+#include <boost/algorithm/string.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 
 #ifdef USE_XERCES
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -20,18 +27,33 @@
 namespace CoupledField
 {
 
-PtrParamNode XmlReader::ParseFile(const std::string& file, const std::string& schema)
+PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string& schema)
 {
+  bool compress = boost::algorithm::ends_with(filename, ".gz"); // see ParamNode::ToFile()
+
+  if(compress)
+  {
+    // when we are compress we decompress to a stringstream an parse the memeory data
+    std::stringstream ss;
+    std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+    boost::iostreams::filtering_istream in;
+    in.push(boost::iostreams::gzip_decompressor());
+    in.push(file);
+    boost::iostreams::copy(in, ss);
+    return ParseString(ss.str(), schema);
+  }
+
+
 #ifdef USE_XERCES
   Xerces xerces(schema);
-  xerces.SetFile(file);
+  xerces.SetFile(filename);
   return xerces.CreateParamNodeInstance();
 #endif
 
 #ifdef USE_LIBXML2
-  return LibXml2::ParseFile(file, schema);
+  return LibXml2::ParseFile(filename, schema);
 #endif
-
+  assert(false);
 }
 
 /** same as parse file but from memory */
@@ -46,7 +68,7 @@ PtrParamNode XmlReader::ParseString(const std::string& str, const std::string& s
 #ifdef USE_LIBXML2
   return LibXml2::ParseString(str, schema);
 #endif
-
+  assert(false);
 }
 
 } // end of namespace
