@@ -360,7 +360,7 @@ namespace CoupledField
     * @param adjust_element_type this is done in ToFile(), here only for the stream output writer */
     void ToXML(std::ostream& os, int depth = 0, bool adjust_element_type = false);
     
-    /** Print Param / INfo node to file 
+    /** Print Param / INfo node to file. If the name ends with .gz it will be automatically compressed!
      * Note: This is just a temporary solution, until we move the serialization of the 
      * ParamNode to the WriteInfo class  */
     void ToFile(const std::string& name = std::string(), bool force = false);
