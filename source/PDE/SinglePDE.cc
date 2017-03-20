@@ -1717,8 +1717,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           boost::shared_ptr<SimInputHDF5> in;
           in.reset(new SimInputHDF5(fileName, node, infoNode));
           inState->SetInputHdf5Reader(in);
@@ -2499,8 +2498,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
 
@@ -3131,7 +3129,7 @@ namespace CoupledField {
 
   void SinglePDE::DefineFeFunctions(){
     //This is the default creation of spaces
-    //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
+    //idee: die PDE gibt zum attribute formulation die passenden space zurueck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);

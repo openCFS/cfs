@@ -658,8 +658,6 @@ namespace CoupledField {
     	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
     }
 
-    myInfo_->GetRoot()->ToFile(); // write current info state
-
     // start timer of solver
     solver_->GetSolveTimer()->Start();
     

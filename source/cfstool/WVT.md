@@ -5,7 +5,7 @@
 ## Description
 
 - Daten DVD mit
-    + CFS++ binaries für Win/Lin
+    + CFS++ binaries fuer Win/Lin
 	+ WVT Beispieldaten
 	+ sims Verezeichnis
 

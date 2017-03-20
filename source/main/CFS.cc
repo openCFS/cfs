@@ -130,9 +130,7 @@ CFS::CFS(int argc, const char **argv) :
   SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-      //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
-  infoNode->SetName("cfsInfo");
+  infoNode = ParamNode::GenerateWriteNode("cfsInfo", progOpts->GetSimName() + ".info.xml", ParamNode::INSERT, true, true); // lazy write and add counters
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
   infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning

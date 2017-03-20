@@ -93,7 +93,7 @@ class Topology
          *  Returns the index of the first coarse node.
          *  \param matrix system matrix
          *  \param alpha the coarsening parameter \f$ \alpha \f$ in the
-         *         Ruge-St�ben algorithm for the evaluation of strong
+         *         Ruge-St?ben algorithm for the evaluation of strong
          *         dependencies
          *  \param tolerance additional evaluation criterion for strong
          *         dependencies: \f$ (i,j) \in S \Rightarrow (tolerance

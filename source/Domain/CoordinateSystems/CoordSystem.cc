@@ -65,7 +65,7 @@ namespace CoupledField{
 
     angles.Resize(3);
 
-    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
     
