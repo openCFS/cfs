@@ -116,7 +116,7 @@ class MaterialHandler;
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node
-    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT, false));
+    PtrParamNode infoNode = ParamNode::GenerateWriteNode("", ""); // empty filename means we don't write and ignore ParamNode::ToFile()
 
     // Load grids only if not provided 
     std::map<std::string, shared_ptr<SimInput> > inFiles;
@@ -304,8 +304,7 @@ class MaterialHandler;
       // check for restart
       bool restart = progOpts->GetRestart();
       
-      PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
-                                          false));
+      PtrParamNode infoNode = ParamNode::GenerateWriteNode("", ""); // empty filename means we don't write and ignore ParamNode::ToFile()
       PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
