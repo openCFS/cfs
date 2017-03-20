@@ -54,6 +54,7 @@ PtrParamNode XmlReader::ParseFile(const std::string& filename, const std::string
   return LibXml2::ParseFile(filename, schema);
 #endif
   assert(false);
+  return PtrParamNode();
 }
 
 /** same as parse file but from memory */
@@ -69,6 +70,7 @@ PtrParamNode XmlReader::ParseString(const std::string& str, const std::string& s
   return LibXml2::ParseString(str, schema);
 #endif
   assert(false);
+  return PtrParamNode();
 }
 
 } // end of namespace
