@@ -38,28 +38,29 @@ import sys
 def initNacsEnv():
   # Is a NACS 2 installation available? 
   # If not the component can not be loaded and used
-  if 'NACS2_ROOT_DIR' in os.environ:
-    nacsDir=os.environ['NACS2_ROOT_DIR']
-  else:
-    nacsDir=r'C:\Program Files\SIMetris\NACS-2.2'
-  
-  # Binary directory of NACS
-  nacsBinDir=os.path.normpath(os.path.join(nacsDir,'bin'))
-  
+  #if 'NACS2_ROOT_DIR' in os.environ:
+  #  nacsDir=os.environ['NACS2_ROOT_DIR']
+  #else:
+  #  nacsDir=r'C:\Program Files\SIMetris\NACS-2.2'
+ # 
+ # # Binary directory of NACS
+ # nacsBinDir=os.path.normpath(os.path.join(nacsDir,'bin'))
+ # 
   # Site-Packages of NACS containing numpy and h5py
-  nacsPyDir=os.path.normpath(os.path.join(nacsDir,'lib','site-packages'))
+  #nacsPyDir=os.path.normpath(os.path.join(nacsDir,'lib','site-packages'))
   
-  import site
-  site.addsitedir(nacsPyDir)
+  #import site
+  #site.addsitedir(nacsPyDir)
   
   # append NACS binary directory to path variable
-  if not nacsBinDir in os.environ['PATH']:
-    os.environ['PATH'] += ';'+nacsBinDir
+  #if not nacsBinDir in os.environ['PATH']:
+  #  os.environ['PATH'] += ';'+nacsBinDir
   
   # append NACS Site-Packages to PYTHONPATH
-  if not nacsPyDir in sys.path:
-    sys.path.append(nacsPyDir)
-
+  #if not nacsPyDir in sys.path:
+  #  sys.path.append(nacsPyDir)
+  print('sys.path=', sys.path)
+  sys.path.append('/usr/lib64/python2.7/site-packages')
 # GUI stuff
 pyqtVersion = None
 try:

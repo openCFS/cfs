@@ -1710,15 +1710,19 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
       # read 2D surface triangles (WARNING: unreliable, check results)
       if int(item[1]) == 2:
         for bcnum in range(len(surfaceBCnumbers)):
-          if int(item[3]) == surfaceBCnumbers[bcnum]:
-            for j in range(1,len(el)):
-              bcs[bcnum].append(el[j]) 
+          for tag in range(int(item[2])):
+            if int(item[3+tag]) == surfaceBCnumbers[bcnum]:
+              for j in range(1,len(el)):
+                bcs[bcnum].append(el[j]) 
+              break
       # read 3D elements
       if int(item[1]) != 2:
         if regionnumbers != None:
           for region in range(len(regionnumbers)):
-            if int(item[3]) == regionnumbers[region]:
-              regions[region].append(el)
+            for tag in range(int(item[2])):
+              if int(item[3+tag]) == regionnumbers[region]:
+                regions[region].append(el)
+                break
         else:
           regions.append(el)
     count += 1  

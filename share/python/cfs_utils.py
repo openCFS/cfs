@@ -20,7 +20,7 @@ def open_xml(file):
   return xml
 
 
-#ä helper to get namespace for a lxml query. if 'cfs:' is in the query a mapping is returned, else None
+# helper to get namespace for a lxml query. if 'cfs:' is in the query a mapping is returned, else None
 def namespace(query):
   if query.find('cfs:') == -1:
     return None

@@ -399,7 +399,7 @@ extern "C" {
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
     xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
 
-    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
+    dparm_[6] = 10;    // Maximum number of fill-in in each column in the factor.
     xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
 
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.

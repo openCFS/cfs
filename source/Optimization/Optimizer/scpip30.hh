@@ -9,11 +9,11 @@ extern "C"
       will be mentioned below. To execute SCPIP, the corresponding file has to be compiled and linked with the
       object codes for function and gradient evaluations provided by the user. All calculations within the subrou-
       tines of this file are performed in double precision arithmetic.
-   * @param n Number of variables, at least ¸ 1; not altered (NA) (IN) 
+   * @param n Number of variables, at least 1; not altered (NA) (IN) 
    * @param mie Number of inequality constraints (NA) (IN)
    * @param meq Number of equality constraints (NA) (IN)
-   * @param iemax Dimension of inequality dependent arrays H ORG, Y IE, ACTIVE. Must be at least MIE and ¸ 1 (NA) (IN) 
-   * @param eqmax Dimension of equality dependent arrays G ORG, Y EQ. Must be at least MEQ and ¸ 1 (NA) (IN)
+   * @param iemax Dimension of inequality dependent arrays H ORG, Y IE, ACTIVE. Must be at least MIE and 1 (NA) (IN) 
+   * @param eqmax Dimension of equality dependent arrays G ORG, Y EQ. Must be at least MEQ and 1 (NA) (IN)
    * @param x0 (N) X0 has to contain an initial guess of the solution. (IN)
    *        On return: X0 is replaced by the last computed iterate *
    * @param x_l (N) Lower bounds on the variables (NA) (IN)

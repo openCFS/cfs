@@ -42,6 +42,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
 {
   this->space_ = designSpace;
   this->last_set_iter = -2;
+  this->compress_ = export_pn->Get("compress")->As<bool>();
 
   name_ = export_pn->Get("file")->As<string>();
   if(name_ == "[problem]")
@@ -49,9 +50,10 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
-  // append .bz2 if compress=true and not already file ends with it
-  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2"))
-    name_ = name_ + ".bz2";
+  // append .gz if compress=true and not already file ends with it
+  // note that gz is much faster than the better compressing bz2. ParamNode::ToFile() automatically compresses on .gz name
+  if(compress_ && !boost::algorithm::ends_with(name_, ".gz"))
+    name_ = name_ + ".gz";
 }
 
 
