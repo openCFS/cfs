@@ -114,6 +114,7 @@ namespace CoupledField
 
    //stores the system Matrix
    LIS_MATRIX A_;
+   LIS_MATRIX A0_;
 
    //stores the current solution
    LIS_VECTOR x_;
