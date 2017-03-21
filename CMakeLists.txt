@@ -802,6 +802,11 @@ ADD_SUBDIRECTORY(share/doc)
 ADD_SUBDIRECTORY(share/scripts)
 
 #-----------------------------------------------------------------------------
+# Add targets for mkmesh
+#-----------------------------------------------------------------------------
+ADD_SUBDIRECTORY(share/mkmesh)
+
+#-----------------------------------------------------------------------------
 # Add targets for XML schemata and XSL style sheets
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/xml)

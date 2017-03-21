@@ -1,7 +1,8 @@
 ! This is an example for a start script to activate the mkmesh interface
-*ulib,mkmesh,mlib,/path/to/mkmesh.mlib
+*ulib,mkmesh,mlib,@CFS_BINARY_DIR@/share/mkmesh
 *abbr,init,*use,init
 ! The path '/path/to/mkmesh.mlib' must be adapted to the system
+! This is done my cmake
 !
 ! The script needs to be read at ansys startup. Two options exist:
 !   a) $HOME/start<XXX>.ans (not tested)          

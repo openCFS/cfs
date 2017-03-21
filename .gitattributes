@@ -562,10 +562,6 @@ include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
-mkmesh/README.md -text
-mkmesh/mkmesh -text
-mkmesh/mkmesh.mlib -text
-mkmesh/start.ans -text
 share/doc/CMakeLists.txt -text
 share/doc/auxilliaries/LaTeX/attachfile.sty -text
 share/doc/auxilliaries/LaTeX/atveryend.sty -text
@@ -1229,6 +1225,11 @@ share/matlab/mmread.m svneol=native#text/plain
 share/matlab/mmwrite.m -text
 share/matlab/opt_design_change.m -text
 share/matlab/sbmread.m svneol=native#text/plain
+share/mkmesh/CMakeLists.txt -text
+share/mkmesh/README.md -text
+share/mkmesh/mkmesh -text
+share/mkmesh/mkmesh.mlib.in -text
+share/mkmesh/start.ans.in -text
 share/python/abaqus_reader.py -text
 share/python/adjustDesign.py -text
 share/python/angles-twoload.py -text
