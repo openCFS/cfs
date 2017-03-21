@@ -1,11 +1,10 @@
 #include "LISSolver.hh"
 
 #include <string>
-
-
 #include "MatVec/SparseOLASMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include <sstream>
 #include <stdio.h>
 
@@ -69,15 +68,17 @@ namespace CoupledField{
 
 LISSolver::LISSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type){
 
-  int argc = -1;                            /* dummy arg count */
+  int argc = -1;                   /* dummy arg count */
   char **argv = NULL;              /* dummy arg */
   Integer err = 0;
   err = lis_initialize(&argc,&argv); CHKERR(err);
 
-  infoNode_ = olasInfo;
+  infoNode_ =  olasInfo->Get("lis");
+
   xml_ = param;
   firstSetup_ = true;
   ownMatrixA_ = false;
+  resetXZero_ = true;
   param->GetValue("zeroInitialValue",resetXZero_,ParamNode::PASS);
 
 }
@@ -108,16 +109,24 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
   Integer err=0;
 
-  //we create the matrix...
-//  if(firstSetup_){    // Somehow after the first call the matrix assembled by CFS isn't updated anymore in LIS if we have this in here. As we do everything with pointers, setting everything again shouldn't be too costly either
+  // we create the matrix...
+  // Somehow after the first call the matrix assembled by CFS isn't updated anymore if we don't call lis_matrix_create again.
+  // However w/o destroy we create memory leaks
+
+  if(firstSetup_) {
     err = lis_matrix_create(0,&A_); CHKERR(err);
-//  }
-  if(stype == BaseMatrix::SPARSE_SYM){
+  } else {
+    err = lis_matrix_unset(A_); CHKERR(err);
+  }
+
+  if(stype == BaseMatrix::SPARSE_SYM)
+  {
     //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
     //ok we need to think about the matrix conversion a smart way would be nice...
     EXCEPTION("LIS solver cannot yet handle SCRS matrices.");
   }
-  if (etype == BaseMatrix::DOUBLE) {
+  if(etype == BaseMatrix::DOUBLE)
+  {
     // symmetric or non-symmetric real case
     // in symmetric case convert scrs matrix to crs matrix
     const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
@@ -142,14 +151,14 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
     }
     ownMatrixA_ = false;
-  } else {
-
+  }
+  else
+  {
     // non-symmetric complex case
     const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
 
-    if(crs.GetNumCols() != crs.GetNumRows()){
+    if(crs.GetNumCols() != crs.GetNumRows())
       EXCEPTION("IS solver only tested for quadratic matrices");
-    }
 
     //gather info
     UInt dim = crs.GetNumRows();
@@ -222,10 +231,10 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   firstSetup_ = false;
 }
 
-void LISSolver::Solve( const BaseMatrix &sysmat,
-                       const BaseVector &rhs, BaseVector &sol){
-  ParamNode::ActionType at = ParamNode::APPEND;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
+{
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solve", at);
 
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
@@ -251,12 +260,10 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
   }
   
   Integer err = 0;
-  std::cerr << "SOLVING" << std::endl;
   err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
   if(err){
     EXCEPTION("Solver returned error code: " << err << " ...aborting")
   }
-  std::cerr << "DONE" << std::endl;
   //lis_solve(A_, b_, x_, solver_);
   //copy solution
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
@@ -281,7 +288,7 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
   Double lastTime;
   Double norm;
   Integer solverCode;
-  lis_solver_get_iters(solver_,&iterations);
+  lis_solver_get_iter(solver_,&iterations);
   lis_solver_get_time(solver_,&lastTime);
   lis_solver_get_residualnorm(solver_,&norm);
   lis_solver_get_solver(solver_,&solverCode);
@@ -331,11 +338,7 @@ void LISSolver::createConfigString(PtrParamNode configNode, std::string& output)
   }
 
   output = solStr + " " + precondStr + " " + globStream.str() + " -initx_ones false -initx_zeros false";
-  std::cout << " the config string for LIS was: " << output << std::endl;
-#ifdef _OPENMP
-  std::cout << "max number of threads = " << omp_get_num_procs() << std::endl;
-  std::cout << "number of threads = " << omp_get_max_threads() << std::endl;
-#endif
+  infoNode_->Get("config")->SetValue(output);
   return;
 }
 
