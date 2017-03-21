@@ -1490,7 +1490,7 @@ class NrfCommon(object):
     
 if __name__ == "__main__":
 
-	# for testing in the testsuite, this file is run with the TESTSUIT_DIR
+    # for testing in the testsuite, this file is run with the TESTSUIT_DIR
     # as working directory
     # $ python nrfcommon.py -v
     # Thus, you must cd to the correct location for interactive testing.
@@ -1498,8 +1498,8 @@ if __name__ == "__main__":
     # Load nrf reader
     import nrfreader as nrfR
     
-	# should load "example.cfs" from TESTSUITE_DIR
-    f = nrfR.NrfReader(fileName='TESTSUIT/Python/nrfcommon/exampleNrfCommon.cfs',
+    # should load "example.cfs" from TESTSUITE_DIR
+    f = nrfR.NrfReader(fileName='PYTHON/doctest/nrfcommon/exampleNrfCommon.cfs',
                        writeable=False,
                        template=None,
                        externalFiles=False)
