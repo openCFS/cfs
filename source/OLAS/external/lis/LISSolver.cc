@@ -93,6 +93,7 @@ LISSolver::~LISSolver(){
   if(ownMatrixA_) {
     err = lis_matrix_destroy(A_); CHKERR(err);
   }
+  err = lis_matrix_destroy(A0_); CHKERR(err);
 
   err = lis_precon_destroy(precond_);CHKERR(err);
   err = lis_solver_destroy(solver_);CHKERR(err);
@@ -116,7 +117,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   if(firstSetup_) {
     err = lis_matrix_create(0,&A_); CHKERR(err);
   } else {
-    err = lis_matrix_unset(A_); CHKERR(err);
+    err = lis_matrix_destroy(A0_); CHKERR(err);
   }
 
   if(stype == BaseMatrix::SPARSE_SYM)
@@ -212,15 +213,22 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     lis_vector_set_all(0.0,x_);
   }
 
+  //copy matrix (needed as a workaround for multiple iterations with different system matrices to solve without memory leak)
+  err = lis_matrix_duplicate(A_,&A0_); CHKERR(err);
+  lis_matrix_set_type(A0_,LIS_MATRIX_CSR);
+  err = lis_matrix_convert(A_,A0_);
+
+
   //create the solver
 
+
   std::string config;
-  if(firstSetup_ || solver_->A != A_){
+  if(firstSetup_ ){//|| solver_->A != A0_){
     createConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
   }
-  solver_->A = A_;
+  solver_->A = A0_;
 
   err = lis_precon_create(solver_, &precond_);
   CHKERR(err);
