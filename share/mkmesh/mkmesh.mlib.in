@@ -260,7 +260,7 @@ MKMESH
   degensw_=''
 *endif
 ! pass "mkmesh degensw_ jname_" command string to the operating system.
-/syp,mkmesh,degensw_,jname_
+/syp,@CFS_BINARY_DIR@/bin/mkmesh,degensw_,jname_
 /GOPR
 /EOF
 !============================================================================================
@@ -313,7 +313,7 @@ typesw_='ANSYS'
 ! get "Delete temporary files" switch
 ~tcl,'set deltempsw [string trim [ans_getvalue PARM,deltempsw_,VALUE]]'
 ! execute the command line in the { }-brackets
-~tcl,'set status [catch {exec cplreader --type $typesw --name $jname --degen $degensw --strict $strictsw --verbose $verbosesw --deltemp $deltempsw --segfault 0 --justmesh 1 2> ${jname}_mkhdf5.out} results]'
+~tcl,'set status [catch {exec @CFS_BINARY_DIR@/bin/cplreader --type $typesw --name $jname --degen $degensw --strict $strictsw --verbose $verbosesw --deltemp $deltempsw --segfault 0 --justmesh 1 2> ${jname}_mkhdf5.out} results]'
 !~tcl,'puts ###$status###'
 ~tcl,'puts $results'
 ! If an error occurs --> Write "*_mkhdf5.out" log file, otherwise write "*.h5" mesh file.
