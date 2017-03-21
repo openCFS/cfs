@@ -749,13 +749,13 @@ class NrfReader(NrfCommon):
 
 if __name__ == "__main__":
 
-	# for testing in the testsuite, this file is run with the TESTSUIT_DIR
+    # for testing in the testsuite, this file is run with the TESTSUIT_DIR
     # as working directory
     # $ python nrfreader.py -v
     # Thus, you must cd to the correct location for interactive testing.
    
     # should load "example.cfs" from TESTSUITE_DIR
-    f = NrfReader(fileName='TESTSUIT/Python/nrfreader/exampleNrfReader.cfs',
+    f = NrfReader(fileName='PYTHON/doctest/nrfreader/exampleNrfReader.cfs',
                        writeable=False,
                        template=None,
                        externalFiles=False)
