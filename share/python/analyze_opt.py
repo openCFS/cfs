@@ -73,8 +73,8 @@ def process_file(file, args, out, recursive):
           print("skip '" + file + "' with " + cost + "=" + str(value))
         return   
 
-    if not recursive and not os.path.exists(base + '.density.xml'):
-      print("'" + base + ".density.xml' does not exist")
+    if not recursive and (not os.path.exists(base + '.density.xml') and not os.path.exists(base + '.density.xml.gz')):
+      print("'" + base + ".density.xml' or .density.xml.gz' does not exist")
       return   
 
     exe = xpath(xml, '//cfs/@exe')
@@ -83,9 +83,13 @@ def process_file(file, args, out, recursive):
     full = xpath(xml, '//progOpts/@parameterFile')
     prob = full[full.rfind('/')+1:] # remove path stuff
     new  = base + '_a' if level == -1 else base[:-1] + chr(ord('a') + level+1)
-    
-    cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml -p ' + prob + ' ' + new
-
+    if os.path.exists(base + '.density.xml'):
+      cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml -p ' + prob + ' ' + new
+    elif os.path.exists(base + '.density.xml.gz'):
+      cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml.gz -p ' + prob + ' ' + new
+    else:
+      print("No densityz file found!")
+      return
     if args.warmstart:
       if args.warmstart == "qsub":
         print(generate_qsub_script("qsub_template.sh", cmd, new + '.sh', silent = True))

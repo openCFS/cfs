@@ -273,6 +273,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           elif args.type == "robot":
             valid_position = valid_position_robot
             print('Robot is calculated!')
+          elif args.type == "lufo":
+            valid_position == "lufo"
+            print('Lufo bracket is calculated!')
           else:
             valid_position = None
             print('Warning: No type for valid_position was selected!')

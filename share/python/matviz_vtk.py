@@ -376,6 +376,30 @@ def valid_position_robot(pos, coords,opt=0):
     return False
   return True
 
+def valid_position_lufo(pos,coords):
+  sup5 = [24.,2.,-12.]
+  sup4 = [24.,2.,-47.]
+  sup3 = [24.,2.,-82.]
+  sup2 = [24.,2.,-117.]
+  sup1 = [24.,2.,-152.] 
+  force = [0.0, 37.49281,-30.1963]
+  r = 8.
+  
+  # cut out support ring
+  if (pos[1] < 6.00001):
+    if (pos[0] - sup1[0]) ** 2 + (sup1[2] - m1[2]) ** 2 < r ** 2:
+      return False
+    if (pos[0] - sup2[0]) ** 2 + (sup1[2] - m1[2]) ** 2 < r ** 2:
+      return False
+    if (pos[0] - sup3[0]) ** 2 + (sup1[2] - m1[2]) ** 2 < r ** 2:
+      return False
+    if (pos[0] - sup4[0]) ** 2 + (sup1[2] - m1[2]) ** 2 < r ** 2:
+      return False
+    if (pos[0] - sup5[0]) ** 2 + (sup1[2] - m1[2]) ** 2 < r ** 2:
+      return False
+  #if (pos[])
+  return True   
+
 def valid_ring_position_apod6(pos, coords,opt = 0. ):
   # option opt: change cut out area for validation mesh
   # coordinates of the holes manually, returns False if point is inside a hole
