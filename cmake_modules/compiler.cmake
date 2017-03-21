@@ -156,7 +156,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   
   # Disable some annoying warnings.
   # note we have at least gcc 4.8
-  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs")
+  # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
+  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow")
 
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.1")
@@ -166,15 +167,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # CheckFortranRuntime.cmake (CFS) ->  FortranCInterface.cmake (system) -> Detect.cmake (system) -> try_compile(FortranCInterface_COMPILED
     # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option *** is valid for C++ but not for C"
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
-    # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new -Wno-address -Wno-overflow") 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new -Wno-address") 
   ENDIF()
 
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression ")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})

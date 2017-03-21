@@ -38,62 +38,70 @@ import sys
 def initNacsEnv():
   # Is a NACS 2 installation available? 
   # If not the component can not be loaded and used
-  #if 'NACS2_ROOT_DIR' in os.environ:
-  #  nacsDir=os.environ['NACS2_ROOT_DIR']
-  #else:
-  #  nacsDir=r'C:\Program Files\SIMetris\NACS-2.2'
- # 
- # # Binary directory of NACS
- # nacsBinDir=os.path.normpath(os.path.join(nacsDir,'bin'))
- # 
-  # Site-Packages of NACS containing numpy and h5py
-  #nacsPyDir=os.path.normpath(os.path.join(nacsDir,'lib','site-packages'))
+ if 'NACS2_ROOT_DIR' in os.environ:
+   nacsDir=os.environ['NACS2_ROOT_DIR']
+  else:
+    nacsDir=r'C:\Program Files\SIMetris\NACS-2.2'
   
-  #import site
-  #site.addsitedir(nacsPyDir)
+  # Binary directory of NACS
+  nacsBinDir=os.path.normpath(os.path.join(nacsDir,'bin'))
+  
+  # Site-Packages of NACS containing numpy and h5py
+  nacsPyDir=os.path.normpath(os.path.join(nacsDir,'lib','site-packages'))
+  
+  import site
+  site.addsitedir(nacsPyDir)
   
   # append NACS binary directory to path variable
-  #if not nacsBinDir in os.environ['PATH']:
-  #  os.environ['PATH'] += ';'+nacsBinDir
+  if not nacsBinDir in os.environ['PATH']:
+    os.environ['PATH'] += ';'+nacsBinDir
   
   # append NACS Site-Packages to PYTHONPATH
-  #if not nacsPyDir in sys.path:
-  #  sys.path.append(nacsPyDir)
-  print('sys.path=', sys.path)
+  if not nacsPyDir in sys.path:
+    sys.path.append(nacsPyDir)
+  
   sys.path.append('/usr/lib64/python2.7/site-packages')
+  
 # GUI stuff
 pyqtVersion = None
-try:
-  import PyQt4
-  from PyQt4.QtGui import QFileDialog, QMessageBox
-  pyqtVersion = 4
-except Exception, e:
-  print('PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
-  print('Now trying to load NACS PyQt4')
 
-if pyqtVersion is None:
+# For Trelis 16 GUI does not work any more as there is no PyQt but it is also not really requiried
+useGUI = False
+if useGUI:
   try:
-    initNacsEnv()
-    from nacs.widgets.qt import QFileDialog, QMessageBox
+    import PyQt4
+    from PyQt4.QtGui import QFileDialog, QMessageBox
     pyqtVersion = 4
   except Exception, e:
-    print('NACS PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
-    print('Now trying to load NACS PyQt5')
+    print('PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
+    print('Now trying to load NACS PyQt4')
   
-if pyqtVersion is None:
-  try:  
-    import PyQt5
-    from PyQt5.QtWidgets import QFileDialog, QMessageBox
-  except Exception, e:
-    print('PyQt5 module could not be loaded!\nError message:\n%s\n\n' % str(e))
-    print('Now trying to load PyQt5')
-
-try:
-  import widgets as wt
-  reload(wt)
-except:
-  print('Interface widgets module could not be loaded. Mesh can only be exported using python!')
-
+  if pyqtVersion is None:
+    try:
+      # note this is implemented for Windows only
+      initNacsEnv()
+      from nacs.widgets.qt import QFileDialog, QMessageBox
+      pyqtVersion = 4
+    except Exception, e:
+      print('NACS PyQt4 module could not be loaded!\nError message:\n%s\n\n' % str(e))
+      print('Now trying to load NACS PyQt5')
+    
+  if pyqtVersion is None:
+    try:  
+      import PyQt5
+      from PyQt5.QtWidgets import QFileDialog, QMessageBox
+    except Exception, e:
+      print('PyQt5 module could not be loaded!\nError message:\n%s\n\n' % str(e))
+      print('Now trying to load PyQt5')
+  
+  try:
+    import widgets as wt
+    reload(wt)
+  except:
+    print('Interface widgets module could not be loaded. Mesh can only be exported using python!')
+else:    
+  print('Did not even attempt to load GUI. Use writeNacsMeshFile(<filename>)')
+  
 try:
   # functionality of cubit interface (geo/mesh)
   import cubit
