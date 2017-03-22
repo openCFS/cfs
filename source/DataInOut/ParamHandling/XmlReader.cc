@@ -21,7 +21,7 @@
 #endif
 
 #ifdef USE_LIBXML2
-#include "DataInOut/ParamHandling/LibXMl2.hh"
+#include "DataInOut/ParamHandling/LibXml2.hh"
 #endif
 
 namespace CoupledField

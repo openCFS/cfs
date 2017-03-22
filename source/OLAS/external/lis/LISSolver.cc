@@ -12,6 +12,8 @@
   #include <omp.h>
 #endif
 
+using std::string;
+
 namespace CoupledField{
 
   static EnumTuple lisSolverTypeTuples[] =
@@ -66,7 +68,7 @@ namespace CoupledField{
       lisPrecondTypeTuples);
 
 
-LISSolver::LISSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type){
+LISSolver::LISSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
 
   int argc = -1;                   /* dummy arg count */
   char **argv = NULL;              /* dummy arg */
@@ -75,12 +77,26 @@ LISSolver::LISSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::Entr
 
   infoNode_ =  olasInfo->Get("lis");
 
-  xml_ = param;
+  xml_ = pn;
   firstSetup_ = true;
   ownMatrixA_ = false;
-  resetXZero_ = true;
-  param->GetValue("zeroInitialValue",resetXZero_,ParamNode::PASS);
 
+  maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
+  tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
+  minTol_     = pn->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
+  logging_    = pn->Has("logging") ? pn->Get("logging")->As<bool>() : false;
+  resetXZero_ = pn->Has("zeroInitialValue") ? pn->Get("zeroInitialValue")->As<bool>() : false;
+
+  PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
+  hdr->Get("maxIter")->SetValue(maxIter_);
+  hdr->Get("tolerance")->SetValue(tolerance_);
+  hdr->Get("minimalTolerance")->SetValue(minTol_);
+
+  // Solve() also sets solver and precond as attributes to xml_ but w/o arguments and also when the elements here are not given
+  if(xml_->Has("solver"))
+    hdr->Get("solver")->SetValue(xml_->Get("solver"), false);
+  if(xml_->Has("precond"))
+    hdr->Get("precond")->SetValue(xml_->Get("precond"),false);
 }
 
 LISSolver::~LISSolver(){
@@ -122,8 +138,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
   if(stype == BaseMatrix::SPARSE_SYM)
   {
-    //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
-    //ok we need to think about the matrix conversion a smart way would be nice...
+    // TODO first validate and second, as we anyway work with A0_ we can convert the matrix A0_ only
     EXCEPTION("LIS solver cannot yet handle SCRS matrices.");
   }
   if(etype == BaseMatrix::DOUBLE)
@@ -222,9 +237,9 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   //create the solver
 
 
-  std::string config;
+  string config;
   if(firstSetup_ ){//|| solver_->A != A0_){
-    createConfigString(xml_,config);
+    CreateConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
   }
@@ -241,9 +256,6 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
 void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
 {
-  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solve", at);
-
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
       Double myEnt =0;
@@ -292,58 +304,51 @@ void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVect
       sol.SetEntry(i,myEnt);
     }
   }
-  Integer iterations;
-  Double lastTime;
-  Double norm;
-  Integer solverCode;
-  lis_solver_get_iter(solver_,&iterations);
-  lis_solver_get_time(solver_,&lastTime);
-  lis_solver_get_residualnorm(solver_,&norm);
+
+  // the general stuff
+  int solverCode;
   lis_solver_get_solver(solver_,&solverCode);
+  infoNode_->Get("solver")->SetValue(lisSolverType.ToString((LISSolverType) solverCode));
 
+  int precondCode;
+  lis_solver_get_precon(solver_,&precondCode);
+  infoNode_->Get("precond")->SetValue(lisPrecondType.ToString((LISPrecondType) precondCode));
 
-  out->Get("iterations")->SetValue(iterations);
-  PtrParamNode timing = out->Get("timing");
-  timing->Get("lastRun")->SetValue(lastTime);
-  PtrParamNode norms = out->Get("norms");
-  norms->Get("residualNorm")->SetValue(norm);
-  out->Get("solverType")->SetValue(lisSolverType.ToString((LISSolverType)solverCode));
+  //ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND); // for an iterative solve each solution should be interesting
+
+  double lastTime = 0.0;
+  lis_solver_get_time(solver_,&lastTime);
+  curr->Get("timing")->SetValue(lastTime);
+
+  double norm = 0.0;
+  lis_solver_get_residualnorm(solver_,&norm);
+  curr->Get("residualNorm")->SetValue(norm);
+  if(norm > tolerance_)
+    infoNode_->Get(ParamNode::SUMMARY)->SetWarning("residual norm " + lexical_cast<string>(norm) + " exceeds target " + lexical_cast<string>(tolerance_) + " but within minimal tolerance " + lexical_cast<string>(minTol_));
+
+  int iterations = 0;
+  lis_solver_get_iter(solver_,&iterations);
+  curr->Get("iterations")->SetValue(iterations);
+  if(norm > minTol_)
+    EXCEPTION("after " << iterations << " iterations reached residual " << norm << " with target " << tolerance_ << " exceeding minminal tolerance " << minTol_); // CFS.cc will add it to info.xml
 }
 
 
-void LISSolver::createConfigString(PtrParamNode configNode, std::string& output){
-  std::string solStr;
-  std::string precondStr;
-  createSolverString(configNode,solStr);
-  createPrecondString(configNode,precondStr);
+void LISSolver::CreateConfigString(PtrParamNode configNode, string& output){
+  string solStr;
+  string precondStr;
+  CreateSolverString(configNode,solStr);
+  CreatePrecondString(configNode,precondStr);
 
   std::stringstream globStream;
 
-  //lets read teh basics
-  PtrParamNode cNode = configNode->Get("maxIter",ParamNode::PASS);
-  if(cNode){
-    UInt maxIter = 1000;
-    configNode->GetValue("maxIter",maxIter);
-    globStream << " -maxiter " << maxIter;
-  }
+  //lets read the basics
+  globStream << " -maxiter " << maxIter_;
 
-  cNode = configNode->Get("tolerance",ParamNode::PASS);
-  if(cNode){
-    Double tol = 1e-12;
-    configNode->GetValue("tolerance",tol);
-    globStream << " -tol " << tol;
-  }
+  globStream << " -tol " << tolerance_;
 
-  cNode = configNode->Get("logging",ParamNode::PASS);
-  if(cNode){
-    bool log = false;
-    configNode->GetValue("logging",log);
-    if(log){
-      globStream << " -print out";
-    }else{
-      globStream << " -print none";
-    }
-  }
+  globStream << " -print " << (logging_ ? "out" : "none");
 
   output = solStr + " " + precondStr + " " + globStream.str() + " -initx_ones false -initx_zeros false";
   infoNode_->Get("config")->SetValue(output);
@@ -351,9 +356,9 @@ void LISSolver::createConfigString(PtrParamNode configNode, std::string& output)
 }
 
 
-void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output){
-  std::string solverString;
-  std::string nodeName = solverNode->GetName();
+void LISSolver::CreateSolverString(PtrParamNode solverNode, string& output){
+  string solverString;
+  string nodeName = solverNode->GetName();
   PtrParamNode sNode = solverNode->Get("solver",ParamNode::PASS);
 
   std::stringstream solstream;
@@ -408,50 +413,20 @@ void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output)
         solstream << " -irestart "<< restart;
         break;
       case CG:
-        //nothing to do
-        break;
       case BICG:
-        //nothing to do
-        break;
       case CGS:
-        //nothing to do
-        break;
       case BICGSTAB:
-        //nothing to do
-        break;
       case GPBICG:
-        //nothing to do
-        break;
       case TFQMR:
-        //nothing to do
-        break;
       case JACOBI:
-        //nothing to do
-        break;
       case GS:
-        //nothing to do
-        break;
       case BICGSAFE:
-        //nothing to do
-        break;
       case CR:
-        //nothing to do
-        break;
       case BICR:
-        //nothing to do
-        break;
       case CRS:
-        //nothing to do
-        break;
       case BICRSTAB:
-        //nothing to do
-        break;
       case GPBICR:
-        //nothing to do
-        break;
       case BICRSAFE:
-        //nothing to do
-        break;
       case MINRES:
         //nothing to do
         break;
@@ -469,8 +444,8 @@ void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output)
 }
 
 
-void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& output){
-  std::string precondString;
+void LISSolver::CreatePrecondString(PtrParamNode precondNode, string& output){
+  string precondString;
 
   PtrParamNode sNode = precondNode->Get("precond",ParamNode::PASS);
 

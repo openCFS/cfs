@@ -259,6 +259,7 @@ int CFS::Run()
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
+    infoNode->SetComment("memory in KB");
     infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
     infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
