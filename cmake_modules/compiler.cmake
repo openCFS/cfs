@@ -121,8 +121,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   SET(CFS_C_FLAGS "-std=c11")
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-     # Fix a problem in Boost 1.5.2 bimap.
-     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-redeclared-class-member")
+     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
+     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
   ENDIF()
   
   #-----------------------------------------------------------------------------
