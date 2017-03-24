@@ -996,7 +996,8 @@
           <xsd:element name="jacobi"/>
           <xsd:element name="iluk">
             <xsd:complexType>
-              <xsd:attribute name="fill" type="xsd:double" default="0" use="optional"/>
+              <!-- even when given as float, it will be interpretet as int by lis -->
+              <xsd:attribute name="fill" type="xsd:int" default="0" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="ssor">
