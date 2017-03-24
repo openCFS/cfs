@@ -231,7 +231,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   //copy matrix (needed as a workaround for multiple iterations with different system matrices to solve without memory leak)
   err = lis_matrix_duplicate(A_,&A0_); CHKERR(err);
   lis_matrix_set_type(A0_,LIS_MATRIX_CSR);
-  err = lis_matrix_convert(A_,A0_);
+  err = lis_matrix_convert(A_,A0_); CHKERR(err);
 
 
   //create the solver
