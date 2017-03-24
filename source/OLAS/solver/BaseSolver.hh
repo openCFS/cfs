@@ -41,7 +41,7 @@ namespace CoupledField {
     //! - LAPACK_LL
     //! - PARDISO_SOLVER from Olaf Schenk / Intel MKL
     //! - UMFPACK from SuiteSparse
-    //! - ILUPACK from Matthias Bollhöfer
+    //! - ILUPACK from Matthias Bollhoefer
     //! - CHOLMOD from SuiteSparse
     //! - LIS Library of Iterative Solvers
     //! - SUPERLU

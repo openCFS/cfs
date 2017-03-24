@@ -121,7 +121,7 @@ namespace CoupledField {
     //! vector pointing in z-direction
     Vector<Double> zAxis_;
 
-    //! vector pointing in r(phi=0°)-direction
+    //! vector pointing in r(phi=0)-direction
     Vector<Double> rAxis_;
 
   };

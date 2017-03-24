@@ -597,6 +597,11 @@ namespace CoupledField
             if(i == 0 && progOpts->DoDetailedInfo())
             {
               PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+
+              // works only for element integrators
+              if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
+                continue; // no element, no region id
+
               // make sure to have only one output for non-static case (e.g. optimization)
               std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
               bool found = false;

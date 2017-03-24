@@ -1009,7 +1009,7 @@ void IntScheme::DefineTetPoints( IntegMethod method, const IntegOrder& order,
         break;
         
       case 4:
-        // From: §17.7. *Gauss Integration Rules For Tetrahedra in
+        // From: 17.7. *Gauss Integration Rules For Tetrahedra in
         // The Quadratic Tetrahedron
         // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch17.d/AFEM.Ch17.pdf
         static Double c4[][4] = 

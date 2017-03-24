@@ -683,7 +683,7 @@ namespace CoupledField {
   }
   
   
-  StdVector<std::pair<std::string, double> > MathParser::GetRegisteredValues(HandleType handle) const noexcept
+  StdVector<std::pair<std::string, double> > MathParser::GetRegisteredValues(HandleType handle) const
   {
     StdVector<std::pair<std::string, double> > res;
 
@@ -697,7 +697,7 @@ namespace CoupledField {
     return res;
   }
 
-  std::string MathParser::GetRegisteredVariables(HandleType handle) const noexcept
+  std::string MathParser::GetRegisteredVariables(HandleType handle) const
   {
     std::stringstream ss;
 

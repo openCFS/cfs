@@ -25,36 +25,50 @@ IF (LIS_ENABLE_SAAMG)
 		)
 	ELSE()
 		SET(temp_Files 
-			fortran/amg/lis_s_data_type_AMGCG.F90
-			fortran/amg/lis_s_sort.F90
-			fortran/amg/lis_s_queue.F90
-			fortran/amg/lis_s_aggregate.F90
-			fortran/amg/lis_s_data_creation_AMGCG.F90
-			fortran/amg/lis_s_solver_AMGCG.F90
-			fortran/amg/lis_s_finit.F90
+		    fortran/amg/lis_s_aggregate_mod.F90  
+		    fortran/amg/lis_s_data_creation_AMGCG.F90  
+		    fortran/amg/lis_s_data_structure_for_AMG.F90  
+		    fortran/amg/lis_s_finit.F90  
+		    fortran/amg/lis_s_isort.F90  
+		    fortran/amg/lis_s_queue_mod.F90  
+		    fortran/amg/lis_s_solver_AMGCG.F90
 		)
 	ENDIF()	
 	SOURCE_GROUP( lis\\src\\fortran\\amg FILES ${temp_Files} )
 	LIST(APPEND lis_src_Files ${temp_Files}) 
 ENDIF()
+
+#                             .       .         .           .   .        .         .  
+# array  esolver  fortran  matrix  matvec  precision  precon  solver  system  vector
+
+FILE(GLOB temp_Files array/*.c)
+SOURCE_GROUP( lis\\src\\array FILES ${temp_Files} )
+LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files matrix/*.h matrix/*.c)
 SOURCE_GROUP( lis\\src\\matrix FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files matvec/*.h matvec/*.c)
 SOURCE_GROUP( lis\\src\\matvec FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files precision/*.h precision/*.c)
 SOURCE_GROUP( lis\\src\\precision FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files precon/*.h precon/*.c)
 SOURCE_GROUP( lis\\src\\precon FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files solver/*.h solver/*.c)
 SOURCE_GROUP( lis\\src\\solver FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files system/*.h system/*.c)
 SOURCE_GROUP( lis\\src\\system FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
+
 FILE(GLOB temp_Files vector/*.h vector/*.c)
 SOURCE_GROUP( lis\\src\\vector FILES ${temp_Files} )
 LIST(APPEND lis_src_Files ${temp_Files}) 
@@ -68,6 +82,8 @@ INCLUDE_DIRECTORIES(
 	.
 	../include
 )
+
+
 
 ADD_LIBRARY( lis
         ${lis_src_Files}
