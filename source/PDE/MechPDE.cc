@@ -1982,8 +1982,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     try{
       std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
       PtrParamNode node(new ParamNode());
-      PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                          false));
+      PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
       boost::shared_ptr<SimInputHDF5> in;
       in.reset(new SimInputHDF5(fileName, node, infoNode));
       inState->SetInputHdf5Reader(in);

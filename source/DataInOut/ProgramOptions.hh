@@ -153,7 +153,7 @@ namespace CoupledField
     /** Also more detailed info.xml output as with DoListMapping */
     bool DoDetailedInfo() const;
 
-    /** Is cfs invoked with the quite flag to compress console output? */
+    /** Is cfs invoked with the quite flag to compress console output to just a minimu. */
     bool IsQuiet() const;
 
     // =======================================================================

@@ -50,7 +50,7 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
   # insert elements
   for i in range(len(elements)):
     e = mesh_tool.Element()
-    e.nodes = (elements[i][1:]) 
+    e.nodes = (elements[i][2:]) 
     for k in range(len(e.nodes)):
       e.nodes[k] -= offset
     e.density = 1.
@@ -67,12 +67,13 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
       e.type = mesh_tool.TRIA3
       num_nodes = 3
       e.region = 'surface'
-    shell = 0
-    for k in range(num_nodes):
-        coord = mesh.nodes[e.nodes[k]]
-        if (coord[1] - 37.49281)**2 + (coord[2] + 30.1963)**2 < 29.**2 and abs(coord[0]) < 5.:
-          shell += 1
-    if shell > 3:
+    #shell = 0
+    #for k in range(num_nodes):
+    #    coord = mesh.nodes[e.nodes[k]]
+    #    if (coord[1] - 37.49281)**2 + (coord[2] + 30.1963)**2 < 29.**2 and abs(coord[0]) < 5.:
+    #      shell += 1
+    #if shell > 3:
+    if elements[i][1] == 3:
       e.region = 'non-design'
     else:
       e.region = 'design'
@@ -163,7 +164,7 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
   else:
     for i in range(len(elements)):
       e = mesh_tool.Element()()
-      e.nodes = (elements[i][1:])
+      e.nodes = (elements[i][2:])
       for k in range (len(e.nodes)):
         e.nodes[k] -= 1
       e.density = 1.

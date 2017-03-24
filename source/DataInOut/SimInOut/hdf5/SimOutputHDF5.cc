@@ -567,7 +567,6 @@ namespace CoupledField {
       try {
         in->Get("name")->SetValue(currStepFile_.getFileName());
         in->Get("size")->SetValue((int) currStepFile_.getFileSize());
-        myInfo_->GetRoot()->ToFile();
       } catch (H5::FileIException &h5ex) {}
     }
 

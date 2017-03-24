@@ -1264,7 +1264,7 @@ namespace CFSTool {
             feFct->SetGrid(ptGrid1);
             feFct->SetResultInfo(inResults1[iRes]->GetResultInfo());
             feFct->AddExternalDataSource( coefu1,
-                                          inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+                                          inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehoerige Volumenregion zur Oberflaechenregion hinein!
             feFct->SetFctId(PSEUDO_FCT_ID);
             feFct->Finalize();
             feFct->ApplyExternalData();
@@ -1295,7 +1295,7 @@ namespace CFSTool {
             feFct->SetGrid(ptGrid1);
             feFct->SetResultInfo(inResults1[iRes]->GetResultInfo());
             feFct->AddExternalDataSource( coefu2,
-                                          inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+                                          inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehoerige Volumenregion zur Oberflaechenregion hinein!
             feFct->SetFctId(PSEUDO_FCT_ID);
             feFct->Finalize();
             feFct->ApplyExternalData();
@@ -2020,7 +2020,7 @@ namespace CFSTool {
     std::cout << "\n(u')_P (cf. [Hemp1] (13)):                  "
               << u_p_prime << std::endl;
     std::cout << "\nDeltaPhi (cf. [Hemp1] (18)):                "
-              << deltaPhiVol/M_PI*180 << "°" << std::endl;
+              << deltaPhiVol/M_PI*180 << " deg" << std::endl;
     
     csv << freq << ","
         << u_p_prime.real() << ","

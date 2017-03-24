@@ -107,6 +107,7 @@ namespace CoupledField
     void DefinePostProcResults();
     
     //! Define concentrated mechanical elements
+    //! Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output
     void DefineConcentratedElems();
 
     //! Create CoefFunction for preStressing

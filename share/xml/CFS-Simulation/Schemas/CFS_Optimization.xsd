@@ -936,9 +936,11 @@
               <xsd:complexType>
                 <xsd:all>
                   <!-- <framed upper="1200" lower="0" enlarge_upper="2" enlarge_lower="0.5" alwaysEnlarge="true" /> -->
+                  <!-- Framed is the standard approach -->
                   <xsd:element name="framed" minOccurs="0" maxOccurs="1" >
                     <xsd:complexType>
-                      <xsd:attribute name="upper" type="xsd:float" default="1200"/>
+                      <!-- better not too small. It is fast to reduce for the first time but if too small we exceed max_lambda iter which is more expensice -->
+                      <xsd:attribute name="upper" type="xsd:float" default="100000"/>
                       <xsd:attribute name="lower" type="xsd:float" default="0"/>
                       <xsd:attribute name="enlargeUpper" type="xsd:float" default="2"/>
                       <xsd:attribute name="enlargeLower" type="xsd:float" default="0.5"/>
@@ -959,16 +961,19 @@
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
                       <xsd:enumeration value="framed"/>
+                      <!-- Standard implementation where especially upper is important. if too low it is increased for the next iteration only -->
                       <xsd:enumeration value="fumble"/>
                       <xsd:enumeration value="trajectory"/>
                       <xsd:enumeration value="extremize"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <xsd:attribute name="err_eps" use="optional" default="1e-3" type="xsd:float" />
+                <!-- how excact the constraint is reached -->
+                <xsd:attribute name="feasibility" use="optional" default="1e-6" type="xsd:float" />
                 <xsd:attribute name="damping" use="optional" default="0.5" type="xsd:float" />
                 <xsd:attribute name="move_limit" use="optional" default="0.2" type="xsd:float" />
-                <xsd:attribute name="lambda_min" use="optional" default="1e-30" type="xsd:float" />
+                <xsd:attribute name="lambda_min" use="optional" default="1e-20" type="xsd:float" />
+                <!-- exceeding this value for fumble actually means that upper or lower are reached -->
                 <xsd:attribute name="max_lambda_iters" use="optional" default="100" type="xsd:positiveInteger" />
               </xsd:complexType>
             </xsd:element>

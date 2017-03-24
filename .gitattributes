@@ -1291,6 +1291,7 @@ share/python/material_catalogue/inv_tensor_3D.xml -text
 share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/inv_tensor_3D_ortho_bc.xml -text
 share/python/material_catalogue/mat.xml -text
+share/python/material_catalogue/postprocess.py -text
 share/python/material_catalogue/process_sparse.py -text
 share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
@@ -1322,6 +1323,10 @@ share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/streamviz.py -text
 share/python/test.py -text
+share/python/trelis/funcs.py -text
+share/python/trelis/nacsfilewriter.py -text
+share/python/trelis/nacsinterface.py -text
+share/python/trelis/widgets.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/scripts/CMakeGraphVizOptions.cmake -text

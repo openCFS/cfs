@@ -88,8 +88,7 @@ Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
 ErsatzMaterial::ErsatzMaterial() :
   Optimization(),
-  dim(grid->GetDim()),
-  calc_u1ku2_timer_(new Timer("calc_U1KU2", true)) // sub-timer
+  dim(grid->GetDim())
 {
   /** We store here the solution */
   volume_fraction_ = 0.0;
@@ -103,6 +102,9 @@ ErsatzMaterial::ErsatzMaterial() :
   pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
+
+  // we set the calc_u1ku2_timer_ only for non-regular meshes but then as sub-timer
+  calc_u1ku2_timer_ = grid->IsGridRegular() ? boost::shared_ptr<Timer>() : boost::shared_ptr<Timer>(new Timer("calc_U1KU2", true));
 
   // region stuff - we might have the attribute region or a list in region but not both or none
   if(!pn->Has("region") && !pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
@@ -383,7 +385,8 @@ void ErsatzMaterial::PostInit()
   // make basic logging
   design->ToInfo(this);
 
-  optInfoNode->Get(ParamNode::SUMMARY)->Get("calcUKU/timer")->SetValue(calc_u1ku2_timer_);
+  if(calc_u1ku2_timer_)
+    optInfoNode->Get(ParamNode::SUMMARY)->Get("calcUKU/timer")->SetValue(calc_u1ku2_timer_);
 }
 
 
@@ -780,7 +783,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, App::Type app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
-    calc_u1ku2_timer_->Start();
+    if(calc_u1ku2_timer_)
+      calc_u1ku2_timer_->Start();
     // LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
     //              << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
@@ -889,7 +893,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         if(res_idx != -1) de->specialResult[res_idx] = this_value;
       }
     }
-    calc_u1ku2_timer_->Stop();
+    if(calc_u1ku2_timer_)
+      calc_u1ku2_timer_->Stop();
     return sum;
   }
 
