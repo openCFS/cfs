@@ -225,7 +225,7 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
   
 
 CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
-                                    Double matFactor,
+		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
 									Grid* ptGrid,
 									Double factor,
 									shared_ptr<ResultInfo> surfInfo)
@@ -233,7 +233,7 @@ CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
 
 
   // not sure about the following one
-  matFactor_ = matFactor;
+  matCoef_ = matCoefs;
   ptGrid_ = ptGrid;
 
 }
@@ -244,14 +244,22 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
 
   // create local point for surface
   LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfoWithNeighbor( regions_, neighborRegionId_);
+  surfLpm.SetSurfInfo( regions_, neighborRegionId_);
 
-  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-  std::string regionName = ptGrid_->GetRegion().ToString(region);
+//  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+//  std::string regionName = ptGrid_->GetRegion().ToString(region);
+//  std::cout << "RegName: " << regionName << std::endl;
 
   //get magnetic flux density
   Vector<Double> Bvec;
-  coefs_[region]->GetVector(Bvec, *surfLpm.lpmVol );
+  coefs_[neighborRegionId_]->GetVector(Bvec, *surfLpm.lpmVol );
+  //std::cout << "Bvec:  " << Bvec << std::endl;
+
+  //get permeability
+  Double permeability, matFactor;
+  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
+  permFncs[neighborRegionId_]->GetScalar(permeability, *surfLpm.lpmVol );
+  matFactor = 1.0 / permeability;
 
   //compute: factors * ( (B*n)*B - 1/2*B^2*n )
   Double Bn = Bvec * surfLpm.normal; // normal component of B
@@ -259,8 +267,7 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
   Vector<Double> BnB = Bvec; BnB.ScalarMult(Bn); // B * normal component
   Vector<Double> B2n = surfLpm.normal; B2n.ScalarMult(0.5*B2); // n * B^2/2
   coefVec = BnB - B2n;
-  coefVec.ScalarMult(factor_ * matFactor_); // don't forget factors
-
+  coefVec.ScalarMult(factor_ * matFactor); // don't forget factors
 }
 
 void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
