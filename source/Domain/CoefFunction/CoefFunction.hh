@@ -607,6 +607,7 @@ protected:
   //! only needed for hystersis
   StdPDE* linkedPDE_;
 
+  //! volume region id of the specified neighbor (important for surface coefficients!)
   RegionIdType neighborRegionId_;
 
 };

@@ -3,7 +3,7 @@
 
 
 #include "CoefFunction.hh"
-
+#include "CoefFunctionMulti.hh"
 namespace CoupledField {
 
 // forward class declaration
@@ -123,10 +123,10 @@ public:
   //! \param surfInfo Result info object for surface result
 
   CoefFunctionSurfMaxwell( bool mapNormal,
-		  	             Double matFactor,
-						 Grid* ptrid,
-						 Double factor = 1.0,
-						 shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+		                   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+                           Grid* ptrid,
+						   Double factor = 1.0,
+						   shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
 
   //! Destructor
   virtual ~CoefFunctionSurfMaxwell();
@@ -166,9 +166,10 @@ public:
 
 private:
 
-  //! Constant material factor
-  Double matFactor_;
+  //! coef-function as defined in PDE
+  std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoef_;
 
+  //! pointer to the grid
   Grid* ptGrid_;
 };
 
