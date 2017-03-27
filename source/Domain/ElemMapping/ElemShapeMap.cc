@@ -207,8 +207,6 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions,
   // get surface element
   const SurfElem& surfElem = *(shapeMap->GetSurfElem());
 
-  std::cout << "volRegId" << volRegId << std::endl;
-
   // if we have not previously selected the correct volume neighbor, we
   // have to do it now
   shared_ptr<ElemShapeMap> esmVol;
