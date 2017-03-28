@@ -48,6 +48,7 @@ private:
 
   std::vector<QuantityStruct> interpolData_;
 
+  bool checkSum_;
 };
 
 }

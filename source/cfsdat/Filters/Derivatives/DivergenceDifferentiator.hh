@@ -17,14 +17,20 @@
 
 #include <Filters/MeshFilter.hh>
 #include "DataInOut/SimInput.hh"
-#include <boost/tr1/type_traits.hpp>
-#include <cfsdat/Utils/Point.hh>
+
 
 namespace CFSDat{
 
-
-
 class DivergenceDifferentiator : public MeshFilter{
+
+  //! struct containing an interpolation matrix, which may be applied to scalars and vector
+  struct Matrix {
+    CF::UInt numTargets;
+    StdVector<CF::UInt> targetSourceIndex;
+    StdVector<CF::UInt> targetSource;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactor;
+  };
+
 
 public:
 
@@ -47,16 +53,33 @@ protected:
 
 private:
 
+  Grid* inGrid_;
+
+  //! Entity map used for source values
+  str1::shared_ptr<EqnMapSimple> scrMap_;
+
+  //! Entity map used for target values
+  str1::shared_ptr<EqnMapSimple> trgMap_;
+
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
+
+  //! Number of neighbor points to include in interpolation.
+  UInt numNeighbors_;
+
   std::vector<QuantityStruct> derivData_;
 
-  // Coordinates of input data
-  CF::StdVector< CF::Vector<double> > sourceCoords_;
+  //! Exponent for calculation of interpolation weight function.
+  Double p_;
 
-  // Coordinates of target data
-  CF::StdVector< CF::Vector<double> > targetCoords_;
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
 
-  //! Dimension of input values (0=scalar, 1=two-dim vector, 2=three-dim vector).
-  UInt inDim_;
+  //! contains pointers to every interpolator which created a matrix
+  static CF::StdVector<DivergenceDifferentiator*> differentiators_;
+
+  //! contains the matrices created by the Interpolators from interpolators_
+  static CF::StdVector<Matrix> matrices_;
 
 
 };

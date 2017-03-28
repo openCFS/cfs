@@ -42,6 +42,10 @@ public:
   /** This gives the head line of CFSDat printed to cout */
   virtual void GetHeaderString(std::ostream& out);
 
+  /** Get number of threads for CFS supplied on the command line */
+  virtual CoupledField::UInt GetNumThreads() const;
+
+
 private:
    // =======================================================================
    // INTERNAL HELPER METHODS

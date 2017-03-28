@@ -15,7 +15,6 @@
 #include <Filters/MeshFilter.hh>
 #include "DataInOut/DefineInOutFiles.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
-#include "cfsdat/Utils/KNNSearch.hh"
 #include "FeBasis/H1/H1Elems.hh"
 
 
@@ -95,6 +94,44 @@ void MeshFilter::CreateDummyCfsParamNode(){
 }
 
 
+CF::UInt MeshFilter::CountUsedEntities(const StdVector<CF::UInt>& entities) {
+  const CF::UInt size = entities.GetSize();
+  CF::UInt numEntities = 0;
+//#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+  for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
+    if (entities[inEnt] != UnusedEntityNumber) {
+      numEntities++;
+    }
+  }
+  return numEntities;
+}
+
+void MeshFilter::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+                                                  StdVector<CF::UInt>& entities,
+                                                  const std::set<std::string>& regions,
+                                                  Grid* grid) {
+  bool useElems = map->GetMapType() == ExtendedResultInfo::ELEMENT;
+
+  const CF::UInt maxNumEntities = map->GetNumEntities();
+  entities.Clear();
+  entities.Resize(maxNumEntities, UnusedEntityNumber);
+
+  std::set<std::string>::iterator sRegIter = regions.begin();
+  for(;sRegIter != regions.end();++sRegIter){
+    StdVector<CF::UInt> regEntities;
+    if (useElems) {
+      grid->GetElemNumsByName(regEntities,*sRegIter);
+    } else {
+      grid->GetNodesByName(regEntities, *sRegIter);
+    }
+    const UInt size = regEntities.GetSize();
+//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    for (UInt eIter = 0; eIter < size; ++eIter) {
+      CF::UInt entityNumber = regEntities[eIter];
+      entities[map->GetEntityIndex(entityNumber)] = entityNumber;
+    }
+  }
+}
 
 void MeshFilter::Node2Cell(Vector<Double>& returnVec,
                                       const boost::uuids::uuid& resId,
@@ -102,7 +139,6 @@ void MeshFilter::Node2Cell(Vector<Double>& returnVec,
                                       const std::vector<QuantityStruct>& interpolData){
 
   returnVec.Init();
-  //current element
   UInt curE;
   CF::StdVector<UInt> eqns;
 
@@ -135,8 +171,6 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
                           const Vector<Double>& inVec,
                           const std::vector<QuantityStruct>& interpolData,
                           const StdVector<UInt>& nodeNeighbours){
-
-
 
   //perform interpolation
   returnVec.Init();
@@ -174,398 +208,184 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
 
 
 void MeshFilter::NearestNeighbourInterpolation(Vector<Double>& returnVec,
-                                        const CF::StdVector< CF::Vector<Double> >&  scatteredData,
-                                        CF::Vector<Double>& vec,
-                                        const str1::shared_ptr<EqnMapSimple>& downMap,
-                                        const CF::StdVector< CF::Vector<double> >& srcCoords,
-                                        const CF::StdVector< CF::Vector<double> >& trgCoords,
-                                        const std::vector<QuantityStruct>& interpolationData,
-                                        Grid* grid,
-                                        const UInt& dim,
-                                        const UInt& numNeighbors,
-                                        const UInt& p){
+                                            const Vector<Double>& inVec,
+                                            const UInt& numEquPerEnt,
+                                            const StdVector<CF::UInt>& targetSource,
+                                            const StdVector<CF::UInt>& targetSourceIndex,
+                                            const UInt& numNN,
+                                            const StdVector<CF::Double>& targetSourceFactor,
+                                            const UInt& maxNumTrgEntities){
 
-    // Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-    KNNSearch Tree;
-    Tree.ReadScatteredData_Interpolation(srcCoords, dim, grid, scatteredData);
 
-    CF::StdVector<bool> nodeCheck;
-    nodeCheck.Resize(grid->GetNumNodes(ALL_REGIONS));
-    nodeCheck.Init(false);
 
-    // loop over all elements and over every node of each element
-    for(UInt i=0;i < interpolationData.size();++i){
-      UInt nodeIter = 0;
-      QuantityStruct aStru = interpolationData[i];
-      const Elem* curE = grid->GetElem(aStru.trgElemNum);
-      CF::shared_ptr<ElemShapeMap> eShape = grid->GetElemShapeMap(curE,true);
-      //eConn gives us the node numbers of current element curE
-      const CF::StdVector<UInt>& eConn = curE->connect;
-      //std::cout<<"curE"<<curE<<std::endl;
-      //std::cout<<"eConn"<<eConn<<std::endl;
-
-      //get the global coordinates of the nodes of element curE
-      CF::Matrix<Double> globalCoords;
-      grid->GetElemNodesCoord(globalCoords, eConn, true);
-      //std::cout<<"globalCoords"<<globalCoords<<std::endl;
-      FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-      CF::Vector<Double> shFnc;
-      shFnc.Resize(eConn.GetSize());
-      shFnc.Init();
-
-      myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-
-      //loop over every node of element curE and perform interpolation
-      //BUT only if the interpolation for this certain node has not been
-      //carried out before. Therefore we use a std::search in which we
-      //search, if the current node has been used before
-      for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
-        //extract the global point of node aNode
-        CF::Vector<Double> globPoint;
-        globalCoords.GetCol(globPoint, aNode);
-
-        //that is the mentioned search, to find out if the node has already been used
-        //eConn[aNode]-1 because nodeNumbers of eConn start with 1 and not with 0 !!
-        if(nodeCheck[eConn[aNode]-1] == false){
-          //add aNode to the "already-computed-list"
-          nodeCheck[eConn[aNode]-1] = true;
-
-          // coordinate list of nearest neighbour points
-          CF::StdVector< Vector<Double> > neighbors;
-          // distances according to every nearest neighbour point
-          CF::StdVector< Double > l2dists;
-          // vector containing the values of each nearest neighbour point
-          CF::StdVector< Vector<Double> > vectors;
-
-          for (UInt dof = 0; dof < dim + 1; dof++){
-            vec[dof] = 0.0;
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
+  if (numNN > 1) {
+    if (numEquPerEnt == 1) {
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::Double sum = 0.0;
+        const CF::UInt jEnd = targetSourceIndex[i + 1];
+        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+          sum += targetSourceFactor[j] * inVec[targetSource[j]];
+        }
+        returnVec[i] = sum;
+      }
+    } else {
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt targetIndex = i * numEquPerEnt;
+        for (UInt k = 0; k < numEquPerEnt; k++) {
+          returnVec[targetIndex + k] = 0.0;
+        }
+        const CF::UInt jEnd = targetSourceIndex[i + 1];
+        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+          CF::Double factor = targetSourceFactor[j];
+          CF::UInt sourceIndex = targetSource[j] * numEquPerEnt;
+          for (UInt k = 0; k < numEquPerEnt; k++) {
+            returnVec[targetIndex + k] += factor * inVec[sourceIndex + k];
           }
+        }
+      }
+    }
+  } else {
+    if (numEquPerEnt == 1) {
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt sourceIndex = targetSourceIndex[i];
+        if (sourceIndex != UnusedEntityNumber) {
+          returnVec[i] = inVec[sourceIndex];
+        } else {
+          returnVec[i] = 0.0;
+        }
+      }
+    } else {
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < maxNumTrgEntities; i++) {
+        CF::UInt targetIndex = i * numEquPerEnt;
+        CF::UInt sourceIndex = targetSourceIndex[i];
+        if (sourceIndex != UnusedEntityNumber) {
+          sourceIndex *= numEquPerEnt;
+          for (UInt k = 0; k < numEquPerEnt; k++) {
+            returnVec[targetIndex + k] = inVec[sourceIndex + k];
+          }
+        } else {
+          for (UInt k = 0; k < numEquPerEnt; k++) {
+            returnVec[targetIndex + k] = 0.0;
+          }
+        }
+      }
+    }
+  }
 
-          // at that point we can start obtaining the nearest neighbours for every aNode
-          Tree.KNN_CGAL_Interpolation(globPoint, neighbors, l2dists, vectors, numNeighbors);
 
-            Double dmin = l2dists[0];
-            Double dmax = dmin;
-            StdVector< Double >::iterator it, end;
-            it = l2dists.Begin();
-            end = l2dists.End();
-            for( ; it != end; ++it) {
-              Double dist = (*it);
-              dmin = dmin < dist ? dmin : dist;
-              dmax = dmax > dist ? dmax : dist;
-            }
-
-              // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-              // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-              // /Inverse_Distance_Weighted/Shepards_Method.htm
-              Vector<Double> sum(dim+1);
-              Double weights = 0.0;
-              // The point which is farthest away, should at least have a non-zero
-              // weight of 0.01. If we would choose R = dmax, it would not contribute
-              // at all.
-              Double R = 1.01 * dmax;
-
-              // report the N nearest neighbors and their distance
-              // This should sort all N points by increasing distance from origin
-              it = l2dists.Begin();
-              for(UInt j=0; it != end; ++it, j++) {
-                Double d = *it;
-                Double w;
-                if(d == 0){
-                 w = 1.0;
-                }else{
-                 w = std::pow((R-d)/(R*d), p);
-                }
-                weights += w;
-
-                for(UInt dof=0; dof < dim + 1; dof++)
-                {
-                  sum[dof] += vectors[j][dof] * w;
-                }
-              }
-
-              for(UInt dof=0; dof < dim + 1; dof++)
-              {
-                vec[dof] = sum[dof] / weights;
-              }
-              CF::StdVector<UInt> eqns;
-              eqns.Init(0);
-              //get the equation map for the nodes in eConn, in order to insert the
-              //interpolation in the correct position in the result vector
-              //downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-              downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-              //if scalar input values of scattered data->inDim_=0
-              //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-              //std::cout<<"aNode"<<aNode<<std::endl;
-              //std::cout<<"eConn[aNode]"<<eConn[aNode]<<std::endl;
-              //std::cout<<"eConn"<<eConn<<std::endl;
-              //std::cout<<"eqns"<<eqns<<std::endl;
-              //std::cout<<"returnVec.GetSize()"<<returnVec.GetSize()<<std::endl;
-              //std::cout<<"vec"<<vec<<std::endl;
-              for(UInt aDof = 0; aDof < dim+1; aDof++){
-                returnVec[eqns[aDof]] = vec[aDof];
-              }
-              //iterator for the already computed nodes
-              nodeIter++;
-
-          }// if nodeMatch == false
-      }// for aNode
-    }// for element
 
 }
 
 
 void MeshFilter::RBFInterpolation(Vector<Double>& returnVec,
-                                  const CF::StdVector< CF::Vector<Double> >&  scatteredData,
-                                  CF::Vector<Double>& vec,
-                                  const str1::shared_ptr<EqnMapSimple>& downMap,
-                                  const CF::StdVector< CF::Vector<double> >& srcCoords,
-                                  const CF::StdVector< CF::Vector<double> >& trgCoords,
-                                  const std::vector<QuantityStruct>& interpolationData,
-                                  Grid* grid,
-                                  const UInt& dim,
-                                  const UInt& p,
-                                  const bool noSlip){
-
-  // find out the dimension of the mesh (2D, 3D) and assign the appropriate number of nearest neighbours
-  // nr. of nearest neighbours for the nodal RBF basis functions
-  UInt numNN = (grid->GetDim() == 2) ? 13 : 18 ;
-  //nr. of nearest neighbours needed for the weight-calculation (must be smaller than numNN !!)
-  UInt numNW = (grid->GetDim() == 3) ? 10 : 7 ;
-
-  //Object for nearest neighbor-searches and bringing the data into the correct form for CGAL search
-  KNNSearch Tree;
-  Tree.ReadScatteredData_Interpolation(srcCoords, dim, grid, scatteredData);
-
-
-
-  CF::StdVector<bool> nodeCheck;
-  nodeCheck.Resize(grid->GetNumNodes(ALL_REGIONS));
-  nodeCheck.Init(false);
-
-  /* We want to automatically set velocity at a certain region named "wall"
-   * to be zero (no-slip-condition). If tag <noSlipWall/> is set in xml-scheme,
-   * we  skip the computation of wall-nodes so the value is zero because
-   * returnVec was initialized with 0.0
-   */
-  if(noSlip == true){
-    CF::StdVector<UInt> wallNodes;
-    grid->GetNodesByName(wallNodes, "wall");
-
-    CoupledField::StdVector<unsigned int>::iterator nIter = wallNodes.Begin();
-    //std::set<uint>::iterator nIter = wallNodes.Begin();
-    for(;nIter != wallNodes.End(); ++nIter){
-      // -1 because nodeNumbers start with 1
-      nodeCheck[*nIter - 1] = true;
-    }
-  }
-
-  CF::Vector<Double> R_k;
-  R_k.Resize(dim+1);
-
-  // loop over all elements and over every node of each element
-  for(UInt i=0;i < interpolationData.size();++i){
-
-    QuantityStruct aStru = interpolationData[i];
-    const Elem* curE = grid->GetElem(aStru.trgElemNum);
-    CF::shared_ptr<ElemShapeMap> eShape = grid->GetElemShapeMap(curE,true);
-    //eConn gives us the node numbers of current element curE
-    const CF::StdVector<UInt>& eConn = curE->connect;
-
-    //get the global coordinates of the nodes of element curE
-    CF::Matrix<Double> globalCoords;
-    grid->GetElemNodesCoord(globalCoords, eConn, true);
-    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-    CF::Vector<Double> shFnc;
-    shFnc.Resize(eConn.GetSize());
-    shFnc.Init();
-
-    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-
-    //loop over every node of element curE and perform interpolation
-    //BUT only if the interpolation for this certain node has not been
-    //carried out before. Therefore we use a std::search in which we
-    //search, if the current node has been used before
-    for(UInt aNode = 0;aNode < eConn.GetSize(); ++aNode){
-
-      //extract the global point of node aNode
-      CF::Vector<Double> globPoint;
-      globalCoords.GetCol(globPoint, aNode);
-
-      //that is the mentioned search, to find out if the node has already been used
-      //eConn[aNode]-1 because nodeNumbers of eConn start with 1 and not with 0 !!
-      if(nodeCheck[eConn[aNode]-1] == false){
-        //add aNode to the "already-computed-list"
-        nodeCheck[eConn[aNode]-1] = true;
-
-        // coordinate list of nearest neighbour points
-        CF::StdVector< Vector<Double> > neighbors;
-        // distances according to every nearest neighbour point
-        CF::StdVector< Double > l2dists;
-        // vector containing the values of each nearest neighbour point
-        CF::StdVector< Vector<Double> > vectors;
-
-        for (UInt dof = 0; dof < dim + 1; dof++){
-          vec[dof] = 0.0;
-        }
-
-        // at that point we can start obtaining the nearest neighbours for every aNode
-        Tree.KNN_CGAL_Interpolation(globPoint, neighbors, l2dists, vectors, numNN);
-
-        // concerning radius factor alpha: we want to scale min(l2dists)/alpha~=1.5e-03
-        // this means alpha = min(l2dists) * 1.5e+03
-        // the first entry of l2dists is zero, if target and source node coincide, then we
-        // simply take the next entry, which must be != 0
-        Double alpha;
-        if( l2dists[0] == 0.0 ){
-          alpha = l2dists[1] * 1.5e+03;
-        }else{
-          alpha = l2dists[0] * 1.5e+03;
-        }
-
-        // local RBF interpolation coefficients vector (matrix only because
-        // of the following ALoc*coefVec multiplication)
-        CF::Matrix<Double> coefVec;
-        CalcLocRBFCoefs(coefVec, globPoint, neighbors, l2dists, vectors, numNN, alpha, dim);
-
-        Double r_k;
-        Double W_k_bar;
-        Double temp;
-        Double r_Wk = l2dists[numNW]; //influence radius of the weight function
-        Double W_denom = 0.0;
-        //now we can perform the computation of the weight function
-        for (UInt srcIter = 0; srcIter < numNN; ++srcIter){
-          r_Wk = l2dists[numNW]; //influence radius of the weight function
-          W_denom = 0.0;
-          for (UInt k = 0; k < numNN; ++k){
-            r_k = l2dists[k];
-            temp = (r_Wk - r_k);
-            if (temp < 0.0){temp = 0.0;}
-            if (r_k == 0.0){
-              W_denom += 0.0;
-            }else{
-              W_denom += pow(temp / (r_Wk * r_k), Double(p));
-            }
-          }
-          r_k = l2dists[srcIter];
-          temp = (r_Wk - r_k);
-          if (temp < 0.0){temp = 0.0;}
-          if (r_k == 0.0){
-            W_k_bar = 1.0 / W_denom;
-          }else{
-            W_k_bar = pow(temp / (r_Wk * r_k), Double(p)) / W_denom;
-          }
-
-          //RBF evaluation
-          //just a clear-up of of R_k
-          for (UInt dof = 0; dof < dim + 1; dof++){
-            R_k[dof] = 0.0;
-          }
-
-          for(UInt dof=0; dof < dim + 1; dof++){
-            for (UInt m = 0; m < numNN; ++m){
-              R_k[dof] += coefVec[m][dof] * pow(1.0 - l2dists[m]/alpha, 2.0);
-            }
-          }
-
-          for(UInt dof=0; dof < dim + 1; dof++){
-            vec[dof] += R_k[dof] * W_k_bar;
-          }
-        }
-
-        CF::StdVector<UInt> eqns;
-        //get the equation map for the nodes in eConn, in order to insert the
-        //interpolation in the correct position in the result vector
-        downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-
-
-        //if scalar input values of scattered data->inDim_=0
-        //if it is a two-dimensional vector->inDim_=1 and inDim_=2 for 3d-vector
-        for(UInt aDof = 0; aDof < eqns.GetSize(); aDof++){
-          returnVec[eqns[aDof]] = vec[aDof];
-        }
-      }// if nodeMatch == false
-
-
-    }// for aNode
-
-  }// for element
-  //}// pragma parallel
-
-
-}
-
-
-
-
-
-void MeshFilter::CalcLocRBFCoefs(CF::Matrix<Double>& coefVec,
-                                  const CF::Vector<Double>& globPoint,
-                                  const CF::StdVector< Vector<Double> >& neighbors,
-                                  const CF::StdVector< Double >& l2Distances,
-                                  const CF::StdVector< Vector<Double> >& vectors,
+                                  const Vector<Double>& inVec,
+                                  const UInt& numEquPerEnt,
+                                  const StdVector<CF::UInt>& targetSource,
+                                  const StdVector<CF::UInt>& targetSourceIndex,
                                   const UInt& numNN,
-                                  const Double& alpha,
-                                  const UInt& inDim){
+                                  const StdVector< CF::Matrix<Double> >& targetRBFInv,
+                                  const StdVector<CF::Double>& targetSourceFactor,
+                                  const StdVector<CF::Double>& targetSourceFactor2,
+                                  const UInt& maxNumTrgEntities){
 
-  coefVec.Resize(numNN,1);
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
+  returnVec.Init();
 
-
-
-  Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
-      if (trgGrid_->GetDim() == 3){
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-      }else{
-        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-      }
-      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
-    }
-    switch( inDim ){
-    case 0:
+  if (numEquPerEnt == 1) {
+    /***************** SCALAR DATA ****************/
+#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    for (UInt i = 0; i < maxNumTrgEntities; i++) {
+      CF::Double R_k = 0.0;
+      const CF::UInt jEnd = targetSourceIndex[i + 1];
+      //multiply inverse of local RBF matrix with values
+      CF::Matrix<Double> vals;
       vals.Resize(numNN,1);
-      vals[i][0] = vectors[i][0];
-      break;
-    case 1:
-      vals.Resize(numNN,2);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      break;
-    case 2:
-      vals.Resize(numNN,3);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      vals[i][2] = vectors[i][2];
-      break;
+      UInt t = 0;
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+         vals[t][0] = inVec[targetSource[j]];
+         t += 1;
+      }
+      t = 0;
+      CF::Matrix<Double> coefVec;
+
+
+      coefVec = targetRBFInv[i] * vals;
+      CF::Double factor2;
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+         factor2 = targetSourceFactor2[j];
+         R_k += coefVec[t][0] * factor2;
+         t += 1;
+      }
+
+      CF::Double sum = 0.0;
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+        sum += R_k * targetSourceFactor[j];
+      }
+      returnVec[i] = sum;
+    }
+  } else {
+    /***************** 2/3D VECTOR DATA ****************/
+#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    for (UInt i = 0; i < maxNumTrgEntities; i++) {
+      CF::Vector<Double> R_k;
+      R_k.Resize(numEquPerEnt);
+      R_k.Init();
+      CF::UInt targetIndex = i * numEquPerEnt;
+      for (UInt k = 0; k < numEquPerEnt; k++) {
+          returnVec[targetIndex + k] = 0.0;
+      }
+
+      CF::Matrix<Double> vals;
+      vals.Resize(numNN, numEquPerEnt);
+      UInt t = 0;
+
+      const CF::UInt jEnd = targetSourceIndex[i + 1];
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+        CF::UInt sourceIndex = targetSource[j] * numEquPerEnt;
+        for(CF::UInt k = 0; k < numEquPerEnt; ++k){
+           vals[t][k] = inVec[sourceIndex + k];
+        }
+        t += 1;
+      }
+
+      CF::Matrix<Double> coefVec;
+      coefVec = targetRBFInv[i] * vals;
+      t = 0;
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+         for(UInt k = 0; k < numEquPerEnt; ++k){
+             R_k[k] += coefVec[t][k] * targetSourceFactor2[j];
+         }
+         t += 1;
+      }
+      CF::Vector<Double> sum;
+      sum.Resize(numEquPerEnt);
+      sum.Init();
+      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+        for(UInt k = 0; k < numEquPerEnt; ++k){
+          sum[k] += R_k[k] * targetSourceFactor[j];
+        }
+      }
+      for(UInt k = 0; k < numEquPerEnt; ++k){
+        returnVec[targetIndex + k] = sum[k];
+      }
     }
   }
-
-  // now we have to invert Aloc and multiply it with the according value-coloumn
-  ALoc.Invert_Lapack();
-
-  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-  coefVec = ALoc * vals;
 }
 
-void MeshFilter::CalcLocCurl(CF::Matrix<Double>& vec,
-                                                  const CF::Vector<Double>& globPoint,
-                                                  const CF::StdVector< Vector<Double> >& neighbors,
-                                                  const  CF::StdVector< Double >& l2Distances,
-                                                  const  CF::StdVector< Vector<Double> >& vectors,
-                                                  const  UInt numNN,
-                                                  const  Double alpha,
-                                                  const UInt dim,
-                                                  Grid* grid){
-  CF::Matrix<Double> derivCoefVec;
-  CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
-  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
 
+
+void MeshFilter::CalcLocRBFInv(CF::Matrix<Double>& matr,
+                                  const StdVector< CF::Vector<CF::Double> >& neighbors,
+                                  const Double& alpha,
+                                  const UInt numNN,
+                                  Grid* grid){
+
+  matr.Resize(numNN,numNN);
   Double rNN; //distance between two src points
   for (UInt i = 0; i < numNN; ++i){
     for (UInt j = 0; j < numNN; ++j){
@@ -574,18 +394,45 @@ void MeshFilter::CalcLocCurl(CF::Matrix<Double>& vec,
       }else{
         rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
       }
+      matr[i][j] = pow(1.0 - rNN/alpha, 2.0);
+    }
+  }
+  // now we have to invert Aloc and multiply it with the according value-coloumn
+  matr.Invert_Lapack();
+}
+
+
+void MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
+                              const CF::Vector<CF::Double>& globPoint,
+                              const StdVector<CF::Double>& l2Distances,
+                              const StdVector< CF::Vector<CF::Double> >& neighbors,
+                              const Double& alpha,
+                              const UInt& numNeighbors,
+                              const UInt& numEquPerEnt,
+                              Grid* grid){
+
+  CF::Matrix<Double> ALoc;
+  ALoc.Resize(numNeighbors,numNeighbors);
+  CF::Matrix<Double> vals;
+  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
+
+  Double rNN; //distance between two src points
+  for (UInt i = 0; i < numNeighbors; ++i){
+    for (UInt j = 0; j < numNeighbors; ++j){
+      if (grid->GetDim() == 3){
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
+      }else{
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
+      }
       ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
     }
-    switch( dim ){
-    case 0:
+    switch( numEquPerEnt ){
+    case 1:
       EXCEPTION("Curl of a scalar field!");
       break;
-    case 1:
-      vals.Resize(numNN,2);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
+    case 2:
       if (grid->GetDim() == 2){
-        derivVec.Resize(numNN,2);
+        derivVec.Resize(numNeighbors,2);
         if (l2Distances[i] == 0) {
           derivVec[i][0] = 0.0;
           derivVec[i][1] = 0.0;
@@ -597,13 +444,9 @@ void MeshFilter::CalcLocCurl(CF::Matrix<Double>& vec,
         EXCEPTION("2D mesh and 3D-values!")
       }
       break;
-    case 2:
-      vals.Resize(numNN,3);
-      vals[i][0] = vectors[i][0];
-      vals[i][1] = vectors[i][1];
-      vals[i][2] = vectors[i][2];
+    case 3:
       if (grid->GetDim() == 3){
-        derivVec.Resize(numNN,3);
+        derivVec.Resize(numNeighbors,3);
         if (l2Distances[i] == 0) {
           derivVec[i][0] = 0.0;
           derivVec[i][1] = 0.0;
@@ -626,44 +469,28 @@ void MeshFilter::CalcLocCurl(CF::Matrix<Double>& vec,
 
   // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
   derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  CF::Matrix<Double> tempvec;
-  tempvec.Resize(1,dim+1);
-  tempvec = temp * derivCoefVec;
-
-  //now we have to combine the tempvec-entries in order to obtain the curl
-  if(grid->GetDim() == 2){
-    vec[0][0] = tempvec[1][0] - tempvec[0][1];
-  }else{
-    vec[0][0] = tempvec[2][1] - tempvec[1][2];
-    vec[0][1] = tempvec[0][2] - tempvec[2][0];
-    vec[0][2] = tempvec[1][0] - tempvec[0][1];
-  }
 }
 
 
 
-void MeshFilter::CalcLocGradient(CF::Matrix<Double>& vec,
-                                  const CF::Vector<Double>& globPoint,
-                                  const CF::StdVector< Vector<Double> >& neighbors,
-                                  const CF::StdVector< Double >& l2Distances,
-                                  const CF::StdVector< Vector<Double> >& vectors,
-                                  const UInt numNN,
-                                  const Double alpha,
-                                  const UInt dim,
-                                  Grid* grid){
+void MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
+    const CF::Vector<CF::Double>& globPoint,
+    const StdVector<CF::Double>& l2Distances,
+    const StdVector< CF::Vector<CF::Double> >& neighbors,
+    const Double& alpha,
+    const UInt& numNeighbors,
+    const UInt& numEquPerEnt,
+    Grid* grid){
 
-  Matrix<Double> derivCoefVec;
-  derivCoefVec.Resize(numNN,1);
+
+  derivCoefVec.Resize(numNeighbors,1);
   CF::Matrix<Double> ALoc;
-  ALoc.Resize(numNN,numNN);
-  CF::Matrix<Double> vals;
+  ALoc.Resize(numNeighbors,numNeighbors);
   CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
 
   Double rNN; //distance between two src points
-  for (UInt i = 0; i < numNN; ++i){
-    for (UInt j = 0; j < numNN; ++j){
+  for (UInt i = 0; i < numNeighbors; ++i){
+    for (UInt j = 0; j < numNeighbors; ++j){
       if (grid->GetDim() == 3){
         rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
       }else{
@@ -671,12 +498,10 @@ void MeshFilter::CalcLocGradient(CF::Matrix<Double>& vec,
       }
       ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
     }
-    switch( dim ){
-    case 0:
-      vals.Resize(numNN,1);
-      vals[i][0] = vectors[i][0];
+    switch( numEquPerEnt ){
+    case 1:
       if (grid->GetDim() == 2){
-      derivVec.Resize(numNN,2);
+      derivVec.Resize(numNeighbors,2);
       if (l2Distances[i] == 0) {
         derivVec[i][0] = 0.0;
         derivVec[i][1] = 0.0;
@@ -685,7 +510,7 @@ void MeshFilter::CalcLocGradient(CF::Matrix<Double>& vec,
         derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
       }
       }else{
-        derivVec.Resize(numNN,3);
+        derivVec.Resize(numNeighbors,3);
         if (l2Distances[i] == 0) {
           derivVec[i][0] = 0.0;
           derivVec[i][1] = 0.0;
@@ -697,122 +522,238 @@ void MeshFilter::CalcLocGradient(CF::Matrix<Double>& vec,
         }
       }
       break;
-    case 1:
+    case 2:
       EXCEPTION("Gradient of Vector not defined in this context!");
       break;
-    case 2:
+    case 3:
       EXCEPTION("Gradient of Vector not defined in this context!");
       break;
     }
  }
 
+  // now we have to invert Aloc and multiply it with the according value-coloumn
+  ALoc.Invert_Lapack();
 
+  // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
+  derivCoefVec = ALoc * derivVec;
+
+}
+
+void MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
+                                    const CF::Vector<CF::Double>& globPoint,
+                                    const StdVector<CF::Double>& l2Distances,
+                                    const StdVector< CF::Vector<CF::Double> >& neighbors,
+                                    const Double& alpha,
+                                    const UInt& numNeighbors,
+                                    const UInt& numEquPerEnt,
+                                    Grid* grid){
+
+
+  CF::Matrix<Double> ALoc;
+  ALoc.Resize(numNeighbors,numNeighbors);
+  CF::Matrix<Double> vals;
+  CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
+
+  Double rNN; //distance between two src points
+  for (UInt i = 0; i < numNeighbors; ++i){
+    for (UInt j = 0; j < numNeighbors; ++j){
+      if (grid->GetDim() == 3){
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
+      }else{
+        rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
+      }
+      ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
+    }
+    switch( numEquPerEnt ){
+    case 1:
+      //should already be caught
+      EXCEPTION("Divergence of a scalar field!");
+      break;
+    case 2:
+      if (grid->GetDim() == 2){
+      derivVec.Resize(numNeighbors,2);
+      if (l2Distances[i] == 0) {
+        derivVec[i][0] = 0.0;
+        derivVec[i][1] = 0.0;
+      }else{
+        derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
+        derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
+      }
+      }else{
+        EXCEPTION("2D values and 3D mesh!");
+      }
+      break;
+    case 3:
+      if (grid->GetDim() == 3){
+      derivVec.Resize(numNeighbors,3);
+      if (l2Distances[i] == 0) {
+        derivVec[i][0] = 0.0;
+        derivVec[i][1] = 0.0;
+        derivVec[i][2] = 0.0;
+      }else{
+        derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
+        derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
+        derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
+      }
+      }else{
+         WARN("DivergenceDifferentiator.cc : Treat 3D values as 2D values, due to a 2D mesh!")
+         derivVec.Resize(numNeighbors,2);
+         if (l2Distances[i] == 0) {
+           derivVec[i][0] = 0.0;
+           derivVec[i][1] = 0.0;
+         }else{
+           derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
+          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
+         }
+        //EXCEPTION("3D-values and 2D-mesh!");
+
+      }
+      break;
+    }
+ }
 
   // now we have to invert Aloc and multiply it with the according value-coloumn
   ALoc.Invert_Lapack();
 
-  CF::Matrix<Double> temp;
   // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
   derivCoefVec = ALoc * derivVec;
-  vals.Transpose(temp);
-
-  vec = temp * derivCoefVec;
 }
 
-void MeshFilter::CalcLocDivergence(CF::Matrix<Double>& vec,
-                                  const CF::Vector<Double>& globPoint,
-                                  const CF::StdVector< Vector<Double> >& neighbors,
-                                  const CF::StdVector< Double >& l2Distances,
-                                  const CF::StdVector< Vector<Double> >& vectors,
-                                  const UInt numNN,
-                                  const Double alpha,
-                                  const UInt dim,
-                                  Grid* grid){
-  CF::Matrix<Double> derivCoefVec;
-    CF::Matrix<Double> ALoc;
-    ALoc.Resize(numNN,numNN);
+
+
+void MeshFilter::CalcCurl(Vector<Double>& returnVec,
+                                  const Vector<Double>& inVec,
+                                  const UInt& numEquPerEnt,
+                                  const StdVector<CF::UInt>& targetSource,
+                                  const StdVector<CF::UInt>& targetSourceIndex,
+                                  const UInt& numNN,
+                                  const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                                  const UInt& maxNumTrgEntities,
+                                  const UInt& gridDim){
+
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
+  returnVec.Init();
+
+//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < maxNumTrgEntities; i++) {
+    const CF::UInt jEnd = targetSourceIndex[i + 1];
+    CF::UInt targetIndex = i * numEquPerEnt;
+    for (UInt k = 0; k < numEquPerEnt; k++) {
+      returnVec[targetIndex + k] = 0.0;
+    }
+
     CF::Matrix<Double> vals;
-    CF::Matrix<Double> derivVec; //Vector of RBF derivatives evaluated at srcPoints
-
-    Double rNN; //distance between two src points
-    for (UInt i = 0; i < numNN; ++i){
-      for (UInt j = 0; j < numNN; ++j){
-        if (grid->GetDim() == 3){
-          rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0) + pow(neighbors[i][2]-neighbors[j][2],2.0));
-        }else{
-          rNN = sqrt(pow(neighbors[i][0]-neighbors[j][0],2.0) + pow(neighbors[i][1]-neighbors[j][1],2.0));
-        }
-        ALoc[i][j] = pow(1.0 - rNN/alpha, 2.0);
+    vals.Resize(numEquPerEnt, numNN);
+    vals.Init();
+    UInt k = 0;
+    for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+      CF::UInt sourceIndex = targetSource[j];
+      for(UInt d = 0; d < numEquPerEnt; ++d){
+        vals[d][k] = inVec[numEquPerEnt * sourceIndex + d];
       }
-      switch( dim ){
-      case 0:
-        //should already be caught
-        EXCEPTION("Divergence of a scalar field!");
-        break;
-      case 1:
-        vals.Resize(numNN,2);
-        vals[i][0] = vectors[i][0];
-        vals[i][1] = vectors[i][1];
-        if (grid->GetDim() == 2){
-        derivVec.Resize(numNN,2);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-        }
-        }else{
-          EXCEPTION("2D values and 3D mesh!");
-        }
-        break;
-      case 2:
-        vals.Resize(numNN,3);
-        vals[i][0] = vectors[i][0];
-        vals[i][1] = vectors[i][1];
-        vals[i][2] = vectors[i][2];
-        if (grid->GetDim() == 3){
-        derivVec.Resize(numNN,3);
-        if (l2Distances[i] == 0) {
-          derivVec[i][0] = 0.0;
-          derivVec[i][1] = 0.0;
-          derivVec[i][2] = 0.0;
-        }else{
-          derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-          derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-          derivVec[i][2] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][2] - globPoint[2])/(l2Distances[i]*alpha);
-        }
-        }else{
-           WARN("DivergenceDifferentiator.cc : Treat 3D values as 2D values, due to a 2D mesh!")
-           derivVec.Resize(numNN,2);
-           if (l2Distances[i] == 0) {
-             derivVec[i][0] = 0.0;
-             derivVec[i][1] = 0.0;
-           }else{
-             derivVec[i][0] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][0] - globPoint[0])/(l2Distances[i]*alpha);
-            derivVec[i][1] = 2.0 * (1.0 - l2Distances[i]/alpha) * (neighbors[i][1] - globPoint[1])/(l2Distances[i]*alpha);
-           }
-          //EXCEPTION("3D-values and 2D-mesh!");
+      k += 1;
+     }
+    CF::Matrix<Double> tempMat;
+    tempMat = vals * targetSourceFactor[i];
 
-        }
-        break;
+    StdVector<CF::Double> vec;
+    vec.Resize(3);
+    vec.Init(0.0);
+    //now we have to combine the tempvec-entries in order to obtain the curl
+    if(gridDim == 2){
+      // in 2D the vector actually points in z-direction
+      // but here we define it to point in x !!!!
+      vec[0] = tempMat[1][0] - tempMat[0][1];
+    }else{
+      vec[0] = tempMat[2][1] - tempMat[1][2];
+      vec[1] = tempMat[0][2] - tempMat[2][0];
+      vec[2] = tempMat[1][0] - tempMat[0][1];
+    }
+    for (UInt k = 0; k < numEquPerEnt; k++) {
+      returnVec[targetIndex + k] = vec[k];
+    }
+
+  }
+
+}
+
+
+void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
+                                  const Vector<Double>& inVec,
+                                  const UInt& numEquPerEnt,
+                                  const StdVector<CF::UInt>& targetSource,
+                                  const StdVector<CF::UInt>& targetSourceIndex,
+                                  const UInt& numNN,
+                                  const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                                  const UInt& maxNumTrgEntities){
+
+  returnVec.Resize(maxNumTrgEntities);
+  returnVec.Init();
+//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < maxNumTrgEntities; i++) {
+    const CF::UInt jEnd = targetSourceIndex[i + 1];
+    CF::UInt targetIndex = i;
+    returnVec[targetIndex] = 0.0;
+
+
+    CF::Matrix<Double> vals;
+    vals.Resize(numEquPerEnt, numNN);
+    vals.Init();
+    UInt k = 0;
+    for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+      CF::UInt sourceIndex = targetSource[j];
+      for(UInt d = 0; d < numEquPerEnt; ++d){
+        vals[d][k] = inVec[numEquPerEnt * sourceIndex + d];
       }
-   }
+      k += 1;
+     }
+    CF::Matrix<Double> tempMat;
+    tempMat = vals * targetSourceFactor[i];
+    returnVec[targetIndex] = tempMat.Trace();
+  }
 
-    // now we have to invert Aloc and multiply it with the according value-coloumn
-    ALoc.Invert_Lapack();
+}
 
-    CF::Matrix<Double> temp;
+void MeshFilter::CalcGradient(Vector<Double>& returnVec,
+                                  const Vector<Double>& inVec,
+                                  const UInt& numEquPerEnt,
+                                  const StdVector<CF::UInt>& targetSource,
+                                  const StdVector<CF::UInt>& targetSourceIndex,
+                                  const UInt& numNN,
+                                  const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                                  const UInt& maxNumTrgEntities,
+                                  const UInt& tDim){
 
-    // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
-    derivCoefVec = ALoc * derivVec;
-    vals.Transpose(temp);
 
-    CF::Matrix<Double> tempvec;
-    tempvec.Resize(1,dim+1);
-    tempvec = temp * derivCoefVec;
-    //in order to obtain the divergence of the vectorfield, we have to add tempvec[:,0]+tempvec[:,1]+tempvec[:,2]
-    vec[0][0] = tempvec.Trace();
+
+  returnVec.Resize(maxNumTrgEntities * tDim);
+  returnVec.Init();
+
+
+//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < maxNumTrgEntities; i++) {
+    const CF::UInt jEnd = targetSourceIndex[i + 1];
+    CF::UInt targetIndex = i * tDim;
+    for (UInt k = 0; k < tDim; k++) {
+      returnVec[targetIndex + k] = 0.0;
+    }
+
+    CF::Matrix<Double> vals;
+    vals.Resize(1, numNN);
+    vals.Init();
+    UInt k = 0;
+    for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
+      CF::UInt sourceIndex = targetSource[j];
+      vals[0][k] = inVec[sourceIndex];
+      k += 1;
+     }
+    CF::Matrix<Double> sol;
+    sol = vals * targetSourceFactor[i];
+    for(UInt k = 0; k < tDim; ++k){
+      returnVec[targetIndex + k] = sol[0][k];
+    }
+  }
+
 }
 
 }

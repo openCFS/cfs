@@ -26,6 +26,11 @@
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/Timer.hh"
+#include <boost/date_time/posix_time/posix_time.hpp>
+//#include <boost/date_time/posix_time/time_formatters.hpp>
+#include <boost/version.hpp>
+#include <boost/asio/ip/host_name.hpp>
+
 
 
 //CFSDatIncludes
@@ -60,8 +65,12 @@ int main(int argc, const char** argv)
   options->ParseData();
 
   SetEnvironmentEnums();
+
+
 #ifdef USE_OPENMP
-  SetNumberOfThreads(omp_get_max_threads());
+  //now set the number of threads from the commandline
+  SetNumberOfThreads(options->GetNumThreads());
+  ////SetNumberOfThreads(omp_get_max_threads());
 #else
   SetNumberOfThreads(1);
 #endif
@@ -71,6 +80,25 @@ int main(int argc, const char** argv)
 
   // Log program startup
   options->GetHeaderString( std::cout );
+
+  // this is our hostname. Empty if it cannot be determined */
+  std::string hostname = boost::asio::ip::host_name();
+
+  // This is a string for output with the start time */
+  std::string start_time;
+
+  // Print information about program start time and host
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+
+  start_time = to_simple_string( second_clock::local_time() );
+
+  std::cout << "Simulation run started at " << start_time << std::endl;
+  if(!hostname.empty()) std::cout<< "on " << hostname << std::endl;
+
+
+
+
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   std::string schema = options->GetSchemaPathStr();
@@ -162,6 +190,8 @@ int main(int argc, const char** argv)
   datTimer->Stop();
   std::stringstream elapsed;
   const int walltime((int) datTimer->GetWallTime());
+
+
   if(walltime > 120) {
     const int wallmin((int) (walltime / 60.0));
     if(wallmin > 60){
@@ -172,6 +202,7 @@ int main(int argc, const char** argv)
   }else{
     elapsed << walltime << "s";
   }
+
 
   std::cout << std::endl << "---> COMPUTATION DONE. Time elapsed: " << elapsed.str() << std::endl << std::endl;
 

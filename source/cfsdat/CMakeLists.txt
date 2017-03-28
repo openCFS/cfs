@@ -35,7 +35,7 @@ SET(CFSDAT_SRCS
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
-  Utils/KNNSearch.cc
+#  Utils/KNNSearch.cc
 )
 
 # Main CFS++ Dat executable target.

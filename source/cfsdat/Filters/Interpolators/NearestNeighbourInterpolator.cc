@@ -17,14 +17,11 @@
 #include "NearestNeighbourInterpolator.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
-#include "cfsdat/Utils/KNNSearch.hh"
+//#include "cfsdat/Utils/KNNSearch.hh"
 #include <algorithm>
 #include <vector>
 
-// cgal copy and paste stuff for association of points to CF::UInt from
-// http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
-//
-// later on this should be refactored into KNNSearch.hh and KNNSearch.cc
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/basic.h>
 #include <CGAL/Search_traits_3.h>
@@ -33,6 +30,8 @@
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <boost/iterator/zip_iterator.hpp>
 #include <utility>
+
+
 
 // check if Intel MKL is available
 #include <def_use_blas.hh>
@@ -99,71 +98,16 @@ bool NearestNeighbourInterpolator::Run(){
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
   
   // TODO matrix interpolation here
-
   Matrix& matrix = matrices_[matrixIndex_];
-  const UInt maxNumTrgEntities = matrix.numTargets;
+  CF::UInt& maxNumTrgEntities = matrix.numTargets;
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
   StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
-  returnVec.Resize(maxNumTrgEntities * numEquPerEnt_);
-  if (numNeighbors_ > 1) {
-    if (numEquPerEnt_ == 1) {
-      #pragma omp parallel for
-      for (UInt i = 0; i < maxNumTrgEntities; i++) {
-        CF::Double sum = 0.0;
-        const CF::UInt jEnd = targetSourceIndex[i + 1];
-        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
-          sum += targetSourceFactor[j] * inVec[targetSource[j]];
-        }
-        returnVec[i] = sum;
-      }
-    } else {
-      #pragma omp parallel for
-      for (UInt i = 0; i < maxNumTrgEntities; i++) {
-        CF::UInt targetIndex = i * numEquPerEnt_;
-        for (UInt k = 0; k < numEquPerEnt_; k++) {
-          returnVec[targetIndex + k] = 0.0;
-        }
-        const CF::UInt jEnd = targetSourceIndex[i + 1];
-        for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
-          CF::Double factor = targetSourceFactor[j];
-          CF::UInt sourceIndex = targetSource[j] * numEquPerEnt_;
-          for (UInt k = 0; k < numEquPerEnt_; k++) {
-            returnVec[targetIndex + k] += factor * inVec[sourceIndex + k];
-          }
-        }
-      }
-    }
-  } else {
-    if (numEquPerEnt_ == 1) {
-      #pragma omp parallel for
-      for (UInt i = 0; i < maxNumTrgEntities; i++) {
-        CF::UInt sourceIndex = targetSourceIndex[i];
-        if (sourceIndex != UnusedEntityNumber) {
-          returnVec[i] = inVec[sourceIndex];
-        } else {
-          returnVec[i] = 0.0;
-        }
-      }
-    } else {
-      #pragma omp parallel for
-      for (UInt i = 0; i < maxNumTrgEntities; i++) {
-        CF::UInt targetIndex = i * numEquPerEnt_;
-        CF::UInt sourceIndex = targetSourceIndex[i];
-        if (sourceIndex != UnusedEntityNumber) {
-          sourceIndex *= numEquPerEnt_;
-          for (UInt k = 0; k < numEquPerEnt_; k++) {
-            returnVec[targetIndex + k] = inVec[sourceIndex + k];
-          }
-        } else {
-          for (UInt k = 0; k < numEquPerEnt_; k++) {
-            returnVec[targetIndex + k] = 0.0;
-          }
-        }
-      }
-    }
-  }
+
   
+  NearestNeighbourInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, numNeighbors_, targetSourceFactor, maxNumTrgEntities);
+
+
   resultManager_->ActivateResult(filterResIds[0]);
 
 
@@ -221,7 +165,7 @@ Double sumXi = 0.0;
 Double sumYi = 0.0;
 Double sumXi_squared = 0.0;
 Double sumYi_squared = 0.0;
-//#pragma omp parallel shared(origVec, newVec)
+//#pragma omp parallel shared(origVec, newVec) num_threads(NUM_CFS_THREADS)
 //{
 //#pragma omp for
 for (UInt i = 0; i < origVec.GetSize(); ++i){
@@ -318,6 +262,8 @@ std::cout<<"correlation=" << cor[1][0] <<std::endl;
 
 }
 
+
+/*
 bool NearestNeighbourInterpolator::CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator) {
   return (otherInterpolator->numNeighbors_ == numNeighbors_) && (otherInterpolator->p_ == p_)
     && (otherInterpolator->inGrid_ == inGrid_) && (otherInterpolator->trgGrid_ == trgGrid_)
@@ -325,10 +271,11 @@ bool NearestNeighbourInterpolator::CreatesEqualMatrix(NearestNeighbourInterpolat
     && (otherInterpolator->scrMap_->Equals(*scrMap_)) && (otherInterpolator->trgMap_->Equals(*trgMap_));
 }
 
-CF::UInt NearestNeighbourInterpolator::CountUsedEntities(StdVector<CF::UInt>& entities) {
+
+CF::UInt NearestNeighbourInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities)
+#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -337,13 +284,16 @@ CF::UInt NearestNeighbourInterpolator::CountUsedEntities(StdVector<CF::UInt>& en
   return numEntities;
 }
 
-void NearestNeighbourInterpolator::GetUsedMappedEntities(str1::shared_ptr<EqnMapSimple>& map, StdVector<CF::UInt>& entities, std::set<std::string>& regions, Grid* grid) {
+void NearestNeighbourInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+                                                  StdVector<CF::UInt>& entities,
+                                                  const std::set<std::string>& regions,
+                                                  Grid* grid) {
   bool useElems = map->GetMapType() == ExtendedResultInfo::ELEMENT;
-  
+
   const CF::UInt maxNumEntities = map->GetNumEntities();
   entities.Clear();
   entities.Resize(maxNumEntities, UnusedEntityNumber);
-  
+
   std::set<std::string>::iterator sRegIter = regions.begin();
   for(;sRegIter != regions.end();++sRegIter){
     StdVector<CF::UInt> regEntities;
@@ -353,44 +303,50 @@ void NearestNeighbourInterpolator::GetUsedMappedEntities(str1::shared_ptr<EqnMap
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for
+#pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
     }
   }
 }
+*/
+
+
 
 // cgal copy and paste stuff for association of points to CF::UInt from
-// http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
-//
-// later on this should be refactored into KNNSearch.hh and KNNSearch.cc
-typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef Kernel::Point_3 Point_3;
-typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
+ // http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
+ //
+ // later on this should be refactored into KNNSearch.hh and KNNSearch.cc
+ typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
+ typedef Kernel::Point_3 Point_3;
+ typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
 
-//definition of the property map
-struct My_point_property_map{
-  typedef Point_3 value_type;
-  typedef const value_type& reference;
-  typedef const Point_and_int& key_type;
-  typedef boost::readable_property_map_tag category;
-};
+ //definition of the property map
+ struct My_point_property_map{
+   typedef Point_3 value_type;
+   typedef const value_type& reference;
+   typedef const Point_and_int& key_type;
+   typedef boost::readable_property_map_tag category;
+ };
 
-//get function for the property map
-My_point_property_map::reference 
-get(My_point_property_map,My_point_property_map::key_type p)
-{return boost::get<0>(p);}
+ //get function for the property map
+ inline My_point_property_map::reference
+ get(My_point_property_map,My_point_property_map::key_type p)
+ {return boost::get<0>(p);}
+
+ typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
+ typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
+ typedef CGAL::Search_traits_adapter<Point_and_int,My_point_property_map,Traits_base>    Traits;
 
 
-typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
-typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
-typedef CGAL::Search_traits_adapter<Point_and_int,My_point_property_map,Traits_base>    Traits;
+ typedef CGAL::Orthogonal_k_neighbor_search<Traits>                      K_neighbor_search;
+ typedef K_neighbor_search::Tree                                         Tree;
+ typedef K_neighbor_search::Distance                                     Distance;
 
 
-typedef CGAL::Orthogonal_k_neighbor_search<Traits>                      K_neighbor_search;
-typedef K_neighbor_search::Tree                                         Tree;
-typedef K_neighbor_search::Distance                                     Distance;
+
+
 
 CF::StdVector<NearestNeighbourInterpolator*> NearestNeighbourInterpolator::interpolators_;
 CF::StdVector<NearestNeighbourInterpolator::Matrix> NearestNeighbourInterpolator::matrices_;
@@ -416,6 +372,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
   }
   
   trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  /*
   // checking, if interpolation matrix need to be created
   for (UInt i = 0; i < interpolators_.GetSize(); i++) {
     
@@ -425,6 +382,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
       return;
     }
   }
+  */
   interpolators_.Push_back(this);
   matrixIndex_ = matrices_.GetSize();
   matrices_.Resize(matrixIndex_ + 1);
@@ -483,7 +441,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     targetSource.Resize(index);
     targetSourceFactor.Resize(index);
   }
-  #pragma omp parallel for
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
@@ -506,6 +464,9 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
             dmax = distance;
           }
         }
+//for(UInt l = 0; l<10;++l){
+//std::cout<<targetSourceFactor[l]<<std::endl;
+//}
         // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
         // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
         // /Inverse_Distance_Weighted/Shepards_Method.htm

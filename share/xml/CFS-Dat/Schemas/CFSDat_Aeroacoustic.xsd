@@ -24,6 +24,7 @@
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
           <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"/>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>

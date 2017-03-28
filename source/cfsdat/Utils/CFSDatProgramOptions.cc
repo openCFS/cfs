@@ -57,6 +57,9 @@ void CFSDatProgramOptions::ParseData(){
       ( "paramFile,p", po::value<std::string>(),
         "name of XML parameter file for the simulation" )
 
+      ( "numThreads,t", po::value<UInt>()->default_value(1),
+        "number of threads used in CFSDat run. Default 1." )
+
       ( "schemaRoot,s", po::value<std::string>(),
         "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
 
@@ -144,6 +147,16 @@ void CFSDatProgramOptions::ParseData(){
       exit(EXIT_SUCCESS);
     }
 }
+
+CoupledField::UInt CFSDatProgramOptions::GetNumThreads() const
+{
+  if( varMap_.count( "numThreads") != 0 ) {
+    return varMap_["numThreads"].as<UInt>();
+  }else{
+    return 1;
+  }
+}
+
 
 void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
 {
