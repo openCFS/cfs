@@ -100,7 +100,7 @@ void EqnMapSimple::GetEquation(CF::StdVector<CF::UInt> & eqns,
 CF::UInt EqnMapSimple::GetEntityIndex(const CF::UInt globalEntNum) const {
   // Some mild security checks
   if(globalEntNum > maxNumEqns_){
-    CF::Exception("Requested equation number for an invalid entity number (Exceeds maximum)");
+    CF::Exception("EqnNumberingSimple::GetEntityIndex: Requested equation number for an invalid entity number (Exceeds maximum)");
   }
   return entityEquations_[globalEntNum-zeroOne_] / eqnPerEnt_;
 }

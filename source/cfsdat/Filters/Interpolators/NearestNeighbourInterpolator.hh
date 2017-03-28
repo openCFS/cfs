@@ -16,10 +16,9 @@
 
 
 #include "DataInOut/SimInput.hh"
-#include <cfsdat/Utils/Point.hh>
+//#include <cfsdat/Utils/Point.hh>
 #include <Filters/MeshFilter.hh>
 
-#include <limits>
 
 
 
@@ -30,9 +29,8 @@ namespace CFSDat{
 
 class NearestNeighbourInterpolator : public MeshFilter{
   
-  //! Entity number for unused indices in in- and output results
-  static const CF::UInt UnusedEntityNumber = UINT_MAX;
-  
+
+
   //! struct containing an interpolation matrix, which may be applied to scalars and vector
   struct Matrix {
     CF::UInt numTargets;
@@ -40,7 +38,8 @@ class NearestNeighbourInterpolator : public MeshFilter{
     StdVector<CF::UInt> targetSource;
     StdVector<CF::Double> targetSourceFactor;
   };
-  
+
+
 public:
 
   NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
@@ -50,10 +49,27 @@ public:
   virtual bool Run();
 
 protected:
+/*
+  //! Count the number of entities, which are used for the interpolation
+  CF::UInt CountUsedEntities(const StdVector<CF::UInt>& entities);
   
-  CF::UInt CountUsedEntities(StdVector<CF::UInt>& entities);
-  
-  void GetUsedMappedEntities(str1::shared_ptr<EqnMapSimple>& map, StdVector<CF::UInt>& entities, std::set<std::string>& regions, Grid* grid);
+
+  //! Collects global entity numbers (nodeNums or elemNums), according to the specified regions of the grid.
+  //! If an equation-number is not used for the calculation, the according entry in entities is UInt_MAX
+
+  //! \param (in) map       equation map, containing the equation numbers of the specified map (source or target map)
+  //! \param (in) regions   source or target region-names
+  //! \param (in) grid      source or target Grid
+  //! \param (out) entities Vector, which has the size of the equation-map and contains the entity-numbers
+  //!                       at the location, which is stored for this entity in the map, this means, the
+  //!                       location is the index of the entity number in the equation-map
+  void GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+                             StdVector<CF::UInt>& entities,
+                             const std::set<std::string>& regions,
+                             Grid* grid);
+
+  bool CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator);
+*/
 
   virtual void PrepareCalculation();
 
@@ -61,9 +77,10 @@ protected:
 
   virtual void AdaptFilterResults();
 
-  bool CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator);
+
 
 private:
+
 
   //! Method which performs comparison of original results and twice interpolated ones
   //! in order to check the difference between the initial source-values and the
@@ -106,7 +123,7 @@ private:
   
   //! contains pointers to every interpolator which created a matrix
   static CF::StdVector<NearestNeighbourInterpolator*> interpolators_;
-  
+
   //! contains the matrices createb by the Interpolators from interpolators_
   static CF::StdVector<Matrix> matrices_;
 

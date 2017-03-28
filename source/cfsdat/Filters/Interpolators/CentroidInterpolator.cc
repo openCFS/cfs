@@ -27,6 +27,12 @@ CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode con
 
   this->filtStreamType_ = FIFO_FILTER;
 
+  checkSum_ = false;
+  if(config->Has("sourceSum")){
+    checkSum_ = config->Get("sourceSum")->As<bool>();
+  }
+
+
 }
 
 CentroidInterpolator::~CentroidInterpolator(){
@@ -89,6 +95,13 @@ bool CentroidInterpolator::Run(){
       }
     }
   }
+
+  // Check filter mesh and output values
+  if(checkSum_ == 1){
+    Double intSource = returnVec.Sum();
+    std::cout<<"Sum over all sources (integrated) = "<<intSource<<std::endl;
+  }
+
 
   resultManager_->ActivateResult(filterResIds[0]);
 

@@ -29,6 +29,22 @@ namespace CFSDat{
 //! the whole LighthillSource-term
 class Lighthill : public AeroacousticBase{
 
+  //! struct containing an interpolation matrix, which may be applied to scalars and vector
+  struct Matrix {
+    CF::UInt numTargets;
+    CF::UInt numSources;
+    StdVector<CF::UInt> targetSourceIndexNtE; // NtE...node to element
+    StdVector<CF::UInt> targetSourceIndexEtN; // EtN...element to node
+    StdVector<CF::UInt> targetSourceNtE;
+    StdVector<CF::UInt> targetSourceEtN;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorDiv;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorGrad;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorCurl;
+    StdVector<CF::Double> targetSourceNNFactor;
+
+  };
+
+
 public:
 
   Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
@@ -45,17 +61,6 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
-
-  //! -) AeroacousticSource_LambVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
-  //!    -) externVorticity == true: NODE-RESULTS
-  //!    -) externVorticity == false: ELEMENT-RESULTS
-  //! -) AeroacousticSource_LighthillSourceVector: output is vector-valued and has the dimension of the grid (2 for 2D, 3 for 3D)
-  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
-  //! -) AeroacousticSource_LighthillSourceTerm (only 2D yet): physically it's a scalar but due to the
-  //!                                                          result-managing it is vector valued with the scalar
-  //!                                                          quantity in x-direction. to extract it and get a real
-  //!                                                          scalar value, use the filter PostLighthillSourceTerm
-  //!    -) ELEMENT-RESULTS no matter if externVorticity is provided or not
   virtual void AdaptFilterResults();
 
   std::string res1Name;
@@ -71,20 +76,36 @@ private:
 
   void LighthillSourceVector(Vector<Double>& tempRetVec);
 
-  void LighthillSourceTerm(Vector<Double>& tempRetVec, const str1::shared_ptr<EqnMapSimple>& upMap);
-
-  //! data struct for node-values
-  std::vector<QuantityStruct> derivDataNode_;
-
-  //! data struct for element-values
-  std::vector<QuantityStruct> derivDataElem_;
+  void LighthillSourceTerm(Vector<Double>& tempRetVec);
 
 
-  //! Coordinates of input data
-  CF::StdVector< CF::Vector<double> > sourceCoords_;
+  Grid* Grid_;
 
-  //! Coordinates of target data
-  CF::StdVector< CF::Vector<double> > targetCoords_;
+  //! Entity map used for source values
+  str1::shared_ptr<EqnMapSimple> scrMap_;
+
+  //! Entity map used for target values
+  str1::shared_ptr<EqnMapSimple> trgMap_;
+
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
+
+  //! Number of neighbor points to include in differentiation.
+  UInt numNeighbors_;
+
+  std::vector<QuantityStruct> derivData_;
+
+  //! Exponent for calculation of interpolation weight function.
+  Double p_;
+
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
+
+  //! contains pointers to every interpolator which created a matrix
+  static CF::StdVector<Lighthill*> differentiators_;
+
+  //! contains the matrices created by the Interpolators from interpolators_
+  static CF::StdVector<Matrix> matrices_;
 
   //! Density, if not specified in xml-scheme it is automatically set to one
   Double density_;
@@ -95,7 +116,7 @@ private:
   //! Boolean if an extern vorticity-input is provided of if we have to compute it
   bool externVorticity_;
 
-  PhysicalEntity data_;
+  bool checkSum_;
 
 };
 

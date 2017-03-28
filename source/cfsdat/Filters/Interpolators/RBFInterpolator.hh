@@ -16,7 +16,7 @@
 
 
 #include "DataInOut/SimInput.hh"
-#include <cfsdat/Utils/Point.hh>
+//#include <cfsdat/Utils/Point.hh>
 #include <Filters/MeshFilter.hh>
 
 
@@ -24,6 +24,18 @@ namespace CFSDat{
 
 //! Class for calculating interpolation using radial basis functions (RBF)
 class RBFInterpolator : public MeshFilter{
+
+
+  //! struct containing an interpolation matrix, which may be applied to scalars and vector
+  struct Matrix {
+    CF::UInt numTargets;
+    StdVector<CF::UInt> targetSourceIndex;
+    StdVector<CF::UInt> targetSource;
+    StdVector<CF::Double> targetSourceFactor;
+    StdVector<CF::Double> targetSourceFactor2;
+    StdVector< CF::Matrix<CF::Double> > targetRBFInvMat;
+  };
+
 
 public:
 
@@ -37,15 +49,32 @@ public:
 
 protected:
 
+
+
   virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-
 private:
 
+
+    //! Number of neighbor points to include in interpolation.
+    UInt numNN_;
+    UInt numNW_;
+
+
+    //! number of euqations per entity
+    UInt numEquPerEnt_;
+
+    //! Entity map used for source values
+    str1::shared_ptr<EqnMapSimple> scrMap_;
+
+    //! Entity map used for target values
+    str1::shared_ptr<EqnMapSimple> trgMap_;
+
+    Grid* inGrid_;
 
     //! Coordinates of input data
     CF::StdVector< CF::Vector<double> > sourceCoords_;
@@ -64,6 +93,15 @@ private:
 
     //! if true, then all nodes on region "wall" will have 0.0 as return-vector entry
     bool noSlip_;
+
+    //! index in the static matrices vector to use
+    UInt matrixIndex_;
+
+    //! contains pointers to every interpolator which created a matrix
+    static CF::StdVector<RBFInterpolator*> interpolators_;
+
+    //! contains the matrices createb by the Interpolators from interpolators_
+    static CF::StdVector<Matrix> matrices_;
 };
 
 }
