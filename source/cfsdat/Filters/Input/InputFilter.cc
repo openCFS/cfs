@@ -59,6 +59,8 @@ InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_
   //Another question: how can two inputs share a common grid?
   ptGrid->FinishInit();
   CreateAvailableResultInfos();
+
+  ranAlready_ = false;
 }
 
 
@@ -72,55 +74,58 @@ bool InputFilter::Run(){
   std::set<uuids::uuid>::iterator aIter = activeResults.begin();
 
   //=========================
-  //TODO: this needs to be cleaner
+  //TODO: this needs to be cleaner!!!
   //=========================
-
-  std::map<std::string,StdVector<Integer> > offsets;
-  std::map<std::string,StdVector<boost::uuids::uuid> > offIds;
-  for(; aIter != activeResults.end(); ++aIter){
-    //loop over results and determine if they are offsets
-    ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
-    if(aInfo->resultName == "")
-      continue;
-    offsets[aInfo->resultName].Push_back(aInfo->timeStepOffset);
-    offIds[aInfo->resultName].Push_back(*aIter);
-  }
-
-  //now we loop over the map and try to shift results and deactivate them
-  std::map<std::string,StdVector<Integer> >::iterator mpIter = offsets.begin();
-  for(; mpIter != offsets.end(); ++mpIter){
-    if(mpIter->second.GetSize()==1){
-      continue;
-    }
-    StdVector<Integer> cVec = mpIter->second;
-    std::sort(cVec.Begin(),cVec.End());
-    StdVector<boost::uuids::uuid>& uidVec = offIds[mpIter->first];
-
-    //safe
-    //for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
-    //  if(cVec[aV] != cVec[aV]-1){
-    //    EXCEPTION("TIME BUFFER RESULT OFFSET TIMELINE IS NOT CONTINUOUS!");      
-    //  }
-    //}
-    //ADDITIONAL: could be, that we compute only every other step.
-    // need to check with timeline...
-
-    for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
-      if(cVec[aV+1] != cVec[aV]+1)
+  //this is just an intermediate solution...
+  if(this->ranAlready_){
+    std::map<std::string,StdVector<Integer> > offsets;
+    std::map<std::string,StdVector<boost::uuids::uuid> > offIds;
+    for(; aIter != activeResults.end(); ++aIter){
+      //loop over results and determine if they are offsets
+      ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
+      if(aInfo->resultName == "")
         continue;
-      CF::StdVector<UInt> eqnVec;
-      //now shift the result and deactivate them
-      UInt idx1 = mpIter->second.Find(cVec[aV]);
-      UInt idx2 = mpIter->second.Find(cVec[aV+1]);
-      //std::cout << "\tShifting result \'" << mpIter->first << "\' from step offset " <<  cVec[aV+1] << " to offset value " << cVec[aV] << std::endl;
-      Vector<Double>& fullVec1 =  resultManager_->GetResultVector<Double>(uidVec[idx1],eqnVec);
-      Vector<Double>& fullVec2 =  resultManager_->GetResultVector<Double>(uidVec[idx2],eqnVec);
-      for(UInt aE=0;aE<fullVec1.GetSize();++aE){
-        fullVec1[aE] = fullVec2[aE];
-      } 
-      resultManager_->DeactivateResult(uidVec[idx1]);
+      offsets[aInfo->resultName].Push_back(aInfo->timeStepOffset);
+      offIds[aInfo->resultName].Push_back(*aIter);
+    }
+
+    //now we loop over the map and try to shift results and deactivate them
+    std::map<std::string,StdVector<Integer> >::iterator mpIter = offsets.begin();
+    for(; mpIter != offsets.end(); ++mpIter){
+      if(mpIter->second.GetSize()==1){
+        continue;
+      }
+      StdVector<Integer> cVec = mpIter->second;
+      std::sort(cVec.Begin(),cVec.End());
+      StdVector<boost::uuids::uuid>& uidVec = offIds[mpIter->first];
+
+      //safe
+      //for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
+      //  if(cVec[aV] != cVec[aV]-1){
+      //    EXCEPTION("TIME BUFFER RESULT OFFSET TIMELINE IS NOT CONTINUOUS!");
+      //  }
+      //}
+      //ADDITIONAL: could be, that we compute only every other step.
+      // need to check with timeline...
+
+      for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
+        if(cVec[aV+1] != cVec[aV]+1)
+          continue;
+        CF::StdVector<UInt> eqnVec;
+        //now shift the result and deactivate them
+        UInt idx1 = mpIter->second.Find(cVec[aV]);
+        UInt idx2 = mpIter->second.Find(cVec[aV+1]);
+        //std::cout << "\tShifting result \'" << mpIter->first << "\' from step offset " <<  cVec[aV+1] << " to offset value " << cVec[aV] << std::endl;
+        Vector<Double>& fullVec1 =  resultManager_->GetResultVector<Double>(uidVec[idx1],eqnVec);
+        Vector<Double>& fullVec2 =  resultManager_->GetResultVector<Double>(uidVec[idx2],eqnVec);
+        for(UInt aE=0;aE<fullVec1.GetSize();++aE){
+          fullVec1[aE] = fullVec2[aE];
+        }
+        resultManager_->DeactivateResult(uidVec[idx1]);
+      }
     }
   }
+  this->ranAlready_ = true;
   //=========================
   // END TODO: this needs to be cleaner
   //=========================
