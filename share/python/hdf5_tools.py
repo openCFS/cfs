@@ -142,8 +142,8 @@ def last_h5_step(hdf5_file):
 
   return int(last[5:])
 
-def read_displacement(hdf5_file,nr,region = 'mech'):
-  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/'+region+'/Nodes/Real'].value
+def read_displacement(hdf5_file,region = 'mech'):
+  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'].value
   return u
 
 def read_density(hdf5_file):
