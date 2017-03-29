@@ -32,6 +32,7 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/RBFInterpolator.cc
   Filters/Interpolators/Node2CellInterpolator.cc
   Filters/SignalProcessing/FftFilter.cc
+  Filters/SignalProcessing/TimeMeanFilter.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
