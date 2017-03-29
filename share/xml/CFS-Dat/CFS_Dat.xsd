@@ -31,6 +31,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_PostLighthill.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FftFilter.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_TMean.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
 
 
@@ -53,6 +54,16 @@
         </xsd:annotation>
       </xsd:element>
       <xsd:element name="fft" type="DT_FFT"/>
+      <xsd:element name="timeMean" type="DT_TMean">
+        <xsd:annotation>
+          <xsd:documentation>
+            This filter computes the moving average of a time series with a defined span.
+            With the span it is possible to control the filter property. This filter extracts
+            the frequency content up to a maximum freuqency defined by the span.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      
     </xsd:choice>
   </xsd:group>
 
