@@ -84,7 +84,7 @@ def get_R(h5file,i,R,dof,dim,l,over = False,rep=None,C=None):
   # matrix C necessary for MSFEM oversampling
   
   f = h5py.File(h5file, 'r')
-  tmp = read_displacement(f,1)
+  tmp = read_displacement(f)
   count = 0
   for j in range((l+1)**2):
     R[i, count] = tmp[j][0]

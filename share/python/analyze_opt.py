@@ -21,8 +21,7 @@ def find_task(input):
 
 def process_file(file, args, out, recursive):
   if not os.path.exists(file):
-    print('error: file not found: ' + file)
-    sys.exit(3) 
+    raise RuntimeError('error: file not found: ' + file)
 
   xml = None 
   try:
@@ -37,13 +36,11 @@ def process_file(file, args, out, recursive):
   
   process = True
 
+  msg = ""
   q = xml.xpath('//optimization/summary/@problem')
   assert(len(q) <= 1)
-  if len(q) == 0:
-    if args.verbose:
-      print("pass '" + file + "', no optimization summary")
-    return
-  msg = q[0]
+  if len(q) == 1:
+     msg = q[0]
   
   if args.restrict == "snopt_difficulties":
     process = True if 'difficulties' in msg else False
@@ -138,9 +135,12 @@ if "qsub" == args.warmstart:
 raw = [] # in the info case tuples (value, out) where out is a list of strings 
  
 for file in args.input:
-  res = process_file(file, args, [], recursive=False)
-  if res: # skip None
-    raw.append(res)
+  try:
+    res = process_file(file, args, [], recursive=False)
+    if res: # skip None
+      raw.append(res)
+  except RuntimeError as re:
+    print("Error processing ",file," -> ", str(re))
    
 if not args.warmstart:
   list = sorted(raw, key=lambda x: x[0], reverse=False if find_task(args.input) == "maxizie" else True)   

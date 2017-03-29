@@ -3303,9 +3303,15 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   // temporary data structure
   Vector<double> p(3);
-  p[0] = GetDesign(DesignElement::STIFF1, local, access, true);;
-  p[1] = GetDesign(DesignElement::STIFF2, local, access, true);;
-  p[2] = GetDesign(DesignElement::STIFF3, local, access, true);;
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1) {
+    p[0] = GetDesign(DesignElement::STIFF1, local, access, true);
+    p[1] = p[0];
+    p[2] = p[0];
+  } else {
+    p[0] = GetDesign(DesignElement::STIFF1, local, access, true);
+    p[1] = GetDesign(DesignElement::STIFF2, local, access, true);
+    p[2] = GetDesign(DesignElement::STIFF3, local, access, true);
+  }
   double direction;
   if (!derivative) {
     direction = 0.;
@@ -3332,10 +3338,11 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
 
 double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
-  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
-  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
-  double vol;
   int dim = domain->GetGrid()->GetDim();
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
+    throw Exception("CalcTwoScaleVolume is not implemented for dim = 2 and HOM_ISO_C1.");
+  }
+  double vol;
   bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
   if (!regular) {
@@ -3344,6 +3351,12 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   /**svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 3) {
+    return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+  }
+
+  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
+  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
 
   if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
     Vector<double> p(3);
