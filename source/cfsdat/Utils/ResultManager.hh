@@ -460,7 +460,7 @@ private:
 
   void CreateEqnMapping(InfoPtr cInfo, ResPtr cRes);
 
-  //! Check if the result id is valid
+  //! Check if the result ID is a valid master ID
   //! \param (in) result Requested result id
   //! \return true
   inline bool checkResultDef(uuids::uuid result){

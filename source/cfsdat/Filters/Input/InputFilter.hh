@@ -63,6 +63,8 @@ protected:
   std::set<std::string> volRegions;
 
   std::set<std::string> surfRegions;
+private:
+  bool ranAlready_;
 };
 
 }

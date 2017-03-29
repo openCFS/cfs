@@ -132,7 +132,8 @@ void ResultManager::SetTimeValue(uuids::uuid requestedId, Double value){
         //assume equidistant otherwise we would need to search now
         Double delta = tsteps[1] - tsteps[0];
         resultMap_[assocIter->second].second->stepValue = value+(resultMap_[assocIter->second].first->timeStepOffset*delta);
-        resultMap_[assocIter->second].second->GetSingleVector()->Init();
+        //do not activate this. otherwise the shifting operation in input filter will not work!
+        //resultMap_[assocIter->second].second->GetSingleVector()->Init();
         resultMap_[assocIter->second].second->isUpToDate = false;
       }
     }
