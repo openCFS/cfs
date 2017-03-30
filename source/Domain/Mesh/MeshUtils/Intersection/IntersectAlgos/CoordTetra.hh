@@ -33,6 +33,7 @@ struct CoordTetra{
   {
 
     points.Init(Vector<Double>(3));
+    AllocateClipPlaneMem();
 
   }
 
@@ -50,12 +51,14 @@ struct CoordTetra{
       }
     }
     planesComputed_ = false;
+    AllocateClipPlaneMem();
     if(origTet.planesComputed_){
       clipPlanes_ = origTet.clipPlanes_;
       planesComputed_ = true;
     }
     tetSize_ = origTet.tetSize_;
   }
+
 
   inline Vector<Double>& operator[](UInt i){
     assert(i<4);
@@ -81,13 +84,13 @@ struct CoordTetra{
         points[i][d] *= factor;
       }
     }
-    clipPlanes_.Clear(true);
+    InitClipPlanes();
     planesComputed_ = false;
   }
 
   void ReversePoints(){
     //WARNING THIS RENDERS THE CUT PLANES INVALID
-    clipPlanes_.Clear(true);
+    InitClipPlanes();
     planesComputed_ = false;
     Vector<Double> dummy = points[3];
     points[3] = points[2];
@@ -97,6 +100,19 @@ struct CoordTetra{
   }
 
 private:
+
+
+  inline void AllocateClipPlaneMem(){
+    for(UInt i =0;i<4;++i){
+      clipPlanes_[i].first.Resize(3);
+    }
+  }
+  inline void InitClipPlanes(){
+    for(UInt i =0;i<4;++i){
+      clipPlanes_[i].first.Init();
+      clipPlanes_[i].second = 0;
+    }
+  }
 
   void ComputeClipPlanes();
 
