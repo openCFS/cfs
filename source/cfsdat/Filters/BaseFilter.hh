@@ -85,22 +85,7 @@ protected:
     this->sinks_.Push_back(filt);
   }
 
-  virtual void ExtractFilterResults(){
-
-    filterResIds.Clear();
-
-    std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-    std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-    for(; aIter != activeResults.end(); ++aIter){
-      ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
-      //print_ConstExtInfoFields((*aInfo.get()));
-
-      if(filtResNames.find(aInfo->resultName) != filtResNames.end()){
-        filterResIds.Push_back(*aIter);
-        resultManager_->DeactivateResult(*aIter);
-      }
-    }
-  }
+  virtual void ExtractFilterResults();
 
   virtual ResultIdList SetUpstreamResults()=0;
 

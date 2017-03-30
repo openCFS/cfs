@@ -129,6 +129,11 @@ bool OutputFilter::Run(){
       }
 
   }
+  //now deactivate own upstream results
+  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
+    resultManager_->DeactivateResult(upResIds[aRes]);
+  }
+
   ++aStepIter_;
   //check for last step
   if(aStepIter_ == globalStepValueMap_.end())

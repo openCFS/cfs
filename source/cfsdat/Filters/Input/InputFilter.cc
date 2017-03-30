@@ -77,6 +77,8 @@ bool InputFilter::Run(){
   //TODO: this needs to be cleaner!!!
   //=========================
   //this is just an intermediate solution...
+  // this can produce wrong results as soon as multiple child filters are active...
+  //should be deactivated.
   if(this->ranAlready_){
     std::map<std::string,StdVector<Integer> > offsets;
     std::map<std::string,StdVector<boost::uuids::uuid> > offIds;

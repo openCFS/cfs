@@ -136,4 +136,32 @@ void BaseFilter::InitResults(){
   }
 }
 
+void BaseFilter::ExtractFilterResults(){
+
+  //in case of multiple output filters, this clear leads to the adding of just the last child filter
+  //visiting the current one during traversal. on first sight, nothing prevents us from just pushing additional results
+  //needs a little bit more thought as this is really a general issue
+  if(filterResIds.GetSize() > 0){
+    std::cout << "WARNING: BaseFilter::ExtractFilterResults() : Filter results are not empty in call to Extract filter results for " << this->filterId_<< std::endl;
+    std::cout << "\t This warning is triggered due to the occurence of multiple child filters. This is not yet validated." << std::endl;
+    std::cout << "\t remove this warning if everything has been proven to be valid!" << std::endl;
+  }
+  //filterResIds.Clear();
+
+  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+  for(; aIter != activeResults.end(); ++aIter){
+    ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
+    //print_ConstExtInfoFields((*aInfo.get()));
+
+    if(filtResNames.find(aInfo->resultName) != filtResNames.end()){
+      //only push back the result id once.
+      if(filterResIds.Find(*aIter) == -1){
+        filterResIds.Push_back(*aIter);
+      }
+      resultManager_->DeactivateResult(*aIter);
+    }
+  }
+}
+
 }
