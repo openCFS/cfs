@@ -1566,6 +1566,30 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
     	}
     	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
+
+
+    	// === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+    	shared_ptr<ResultInfo> vwp(new ResultInfo);
+    	vwp->resultType = MAG_FORCE_VWP;
+    	vwp->dofNames = vecComponents;
+    	vwp->unit = "N";
+    	vwp->definedOn = ResultInfo::SURF_REGION;
+    	vwp->entryType = ResultInfo::VECTOR;
+    	availResults_.insert( vwp );
+
+    	// define and save coefFunction
+    	shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_,
+    			                                                         1.0, vwp));
+    	surfCoefFcts_[vwpForce] = bFunc;
+
+    	// build result functor for integration
+    	shared_ptr<ResultFunctor> vwpFunc;
+    	if( isComplex_ ) {
+    		vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+    	} else {
+    		vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+    	}
+    	resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
     }
 
     // === MAGNETIC ENERGY ===

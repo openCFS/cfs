@@ -173,5 +173,70 @@ private:
   Grid* ptGrid_;
 };
 
+
+//! This class represents coefficient functions, which are defined just on a
+//! surface and computes the force defined by virtual work principle
+//! It's derived from CoefFunctionSurf
+class CoefFunctionSurfVWP : public CoefFunctionSurf {
+public:
+
+  //! Constructor
+
+  //! Constructor for the class
+  //! \param mapNormal If true, only the normal component w.r.t. to the
+  //!                  surface element is taken into account.By default,
+  //!                  the normal direction points OUT of the related volumes.
+  //! \param material parameter
+  //! \param factor Additional scaling factor
+  //! \param surfInfo Result info object for surface result
+
+  CoefFunctionSurfVWP( bool mapNormal,
+	                   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+                       Double factor = 1.0,
+					   shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+
+  //! Destructor
+  virtual ~CoefFunctionSurfVWP();
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Double>& coefMat,
+                 const LocPointMapped& lpm ) {
+	  EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Complex>& coefMat,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Complex>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Complex& coefScalar,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+  };
+
+//  virtual void SetNeighborRegionId(RegionIdType id);
+
+private:
+
+  //! coef-function as defined in PDE
+  std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoef_;
+};
+
 } // end of namespace
 #endif

@@ -161,7 +161,7 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
 	//store subdomain list of elements
 	SDList_ = actSDList;
 
-  Double inf = std::numeric_limits<double>::infinity();
+  //Double inf = std::numeric_limits<double>::infinity();
 
 	//allocate memory for previous results, needed for the
 	//effective material parameter formulation
@@ -328,7 +328,7 @@ void CoefFunctionHyst::GetTensor( Matrix<Double>& tensor,
     Double Xval, Ycurrent;
 
     ComputeXY(lpm, Xval, Ycurrent, overwrite_);
-    UInt version = 1;
+    //UInt version = 1;
 
     Double dX,dY;
 

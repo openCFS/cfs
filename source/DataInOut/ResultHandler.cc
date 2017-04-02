@@ -59,7 +59,7 @@ namespace CoupledField {
     if( actDof.resultName == "" ) {
       actDof.resultName = SolutionTypeEnum.ToString(actDof.resultType);
     }
-    
+
     LOG_DBG(resHandler) << "Registering result:";
     LOG_DBG(resHandler) << "-------------------";
     LOG_DBG(resHandler) << "name: " << actDof.resultName;
