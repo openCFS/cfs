@@ -223,7 +223,7 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
   }
 }
   
-
+//============= Maxwell's stress tensor =======================================================
 CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
 		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
 									Grid* ptGrid,
@@ -281,4 +281,48 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
 CoefFunctionSurfMaxwell::~CoefFunctionSurfMaxwell() {
 
 }
+
+
+//===================Virtual Work Principle =================================================
+CoefFunctionSurfVWP::CoefFunctionSurfVWP( bool mapNormal,
+		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+									Double factor,
+									shared_ptr<ResultInfo> surfInfo)
+: CoefFunctionSurf(mapNormal, factor, surfInfo) {
+
+
+  // not sure about the following one
+  matCoef_ = matCoefs;
+}
+
+void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
+                                    const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  // create local point for surface
+  LocPointMapped lpmVol(lpm);
+
+  //get magnetic flux density
+  Vector<Double> Bvec;
+  coefs_[neighborRegionId_]->GetVector(Bvec, lpmVol );
+
+  //get permeability
+  Double permeability;
+  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
+  permFncs[neighborRegionId_]->GetScalar(permeability, lpmVol );
+
+  coefVec = Bvec / std::sqrt( permeability );
+}
+
+void CoefFunctionSurfVWP::GetVector(Vector<Complex>& coefVec,
+                               const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  EXCEPTION("CoefFunctionSurfVWP for Harmonic Analysis not implemented");
+
+}
+
+CoefFunctionSurfVWP::~CoefFunctionSurfVWP() {
+}
+
 }

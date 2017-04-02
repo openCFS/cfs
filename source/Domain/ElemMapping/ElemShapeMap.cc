@@ -40,7 +40,7 @@ LocPointMapped::LocPointMapped() :
 }
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-    Double weight) {
+                         Double weight) {
 
   this->shapeMap = esm;
   this->lp = lp;
@@ -50,6 +50,63 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
   // Calculate Jacobian, its inverse as well as determinant for local point
   esm->CalcJ(this->jac, lp);
+
+  // The inversion can only be performed in case we have a quadratic Jacobian
+  // i.e. the dimension of the element is the dimension of the grid
+  if (jac.GetNumCols() == jac.GetNumRows()) {
+    // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
+    jac.Invert(jacInv);
+    jac.Determinant(jacDet);
+
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
+    // === 2D elements in 3D ===
+    Vector<Double> normal;
+    normal.Resize(3);
+    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
+    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
+    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
+    jacDet = sqrt(
+        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
+    // === 1D elements in 3D ===
+    jacDet = sqrt( jac[0][0] * jac[0][0]
+                 + jac[1][0] * jac[1][0]
+                 + jac[2][0] * jac[2][0]);
+
+  } else if (jac.GetNumRows() == 2) {
+    // === 1D elements in 2D ===
+    //see kaltenbacher, p.23, eq.(2.122)
+    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
+  };
+
+  // safety check for negative Jacobian determinant
+  if (jacDet <= 0.0) {
+	  std::cout << jacDet << std::endl;
+    EXCEPTION(
+        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+  }
+
+  // Check, if geometry is axi-symmetric. In this case scale the
+  // Jacobian determinant with 2*pi*r
+  Vector<Double> globPoint;
+  if (esm->IsAxi()) {
+    esm->Local2Global(globPoint, lp);
+    jacDet *= 2 * M_PI * globPoint[0];
+  }
+}
+
+void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                         Double weight, Matrix<Double>& cornerCoord) {
+
+  this->shapeMap = esm;
+  this->lp = lp;
+  this->weight = weight;
+  this->ptEl = shapeMap->GetElem();
+  this->isSurface = false;
+
+  // Calculate Jacobian, its inverse as well as determinant for local point
+  esm->CalcJ(this->jac, lp, cornerCoord);
 
   // The inversion can only be performed in case we have a quadratic Jacobian
   // i.e. the dimension of the element is the dimension of the grid
@@ -80,12 +137,12 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
 
-  // safety check for negative Jacobian determinant
-  if (jacDet <= 0.0) {
-	  std::cout << jacDet << std::endl;
-    EXCEPTION(
-        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
-  }
+//  // safety check for negative Jacobian determinant
+//  if (jacDet <= 0.0) {
+//	  std::cout << jacDet << std::endl;
+//    EXCEPTION(
+//        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+//  }
 
   // Check, if geometry is axi-symmetric. In this case scale the
   // Jacobian determinant with 2*pi*r
@@ -95,6 +152,7 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet *= 2 * M_PI * globPoint[0];
   }
 }
+
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     const std::set<RegionIdType>& myRegions, Double weight) {
@@ -1953,6 +2011,14 @@ void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {
 void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
 jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
 jac *= depth_; // explicitly include depth_ of setup
+}
+
+//! Calculation of Jacobian with given coordinates
+void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac,
+       		                     const LocPoint& lp,
+   				                 Matrix<Double>& cornerCoords) {
+	jac = cornerCoords * ptFe_->GetLocDerivShFnc( lp, ptElem_);
+	jac *= depth_; // explicitly include depth_ of setup
 }
 
 Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {

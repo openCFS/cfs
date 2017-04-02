@@ -350,6 +350,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFlux"/>
       <xsd:enumeration value="magForceMaxwell"/>
+      <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 

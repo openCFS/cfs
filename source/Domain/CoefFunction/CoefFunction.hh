@@ -546,8 +546,14 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
 
+  //! set regionId of neighbor
   virtual void SetNeighborRegionId(RegionIdType id) {
 	  neighborRegionId_ = id;
+  }
+
+  //! return regionId of neighbor
+  virtual RegionIdType GetNeighborRegionId() {
+	  return neighborRegionId_;
   }
 
   //@}
