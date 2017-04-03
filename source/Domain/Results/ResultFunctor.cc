@@ -579,11 +579,11 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
 
     EntityIterator elemIt = actSDList->GetIterator();
 
-    Vector<Double> force(elemList.GetSize()*dim_);
+    Vector<Double> force(surfNodeList.GetSize()*dim_);
     force.Init();
     for (UInt ielem=0; ielem<elemList.GetSize(); ielem++) {
-    	Matrix<Double> Force;
-        CalcElemElecForce( Force, elemIt, elemList[ielem], isBoundaryNode[ielem] );
+       	Matrix<Double> Force;
+       	CalcElemElecForce( Force, elemIt, elemList[ielem], isBoundaryNode[ielem] );
 
         // Add the element force to the according coupling node
         for (UInt ielemnode=0; ielemnode<elemList[ielem]->connect.GetSize(); ielemnode++) {
@@ -621,8 +621,6 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 
     StdVector<UInt>  connectivity = ptElement->connect;
     UInt numNodes  = connectivity.GetSize();
-
-
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
