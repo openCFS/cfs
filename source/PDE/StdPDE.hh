@@ -180,6 +180,11 @@ namespace CoupledField {
     }
 
     /*
+     *
+     */
+    void SetFlagInCoefFncHyst(std::string flagName,bool newState);
+
+    /*
      * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
      * the underlying CoefFunctionHyst
      * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
@@ -190,7 +195,7 @@ namespace CoupledField {
     /*!
      * SetPreviousHystVals -> store input and output values from last iteration
      */
-    void SetPreviousHystVals(bool setNextToLastTS_too = false);
+    void SetPreviousHystVals(bool setNextToLastTS = false);
     /*!
      * LockUnlockHystMemory -> if locked, all changes to the Hysteresis operator are only
      *                           done on temporary storage

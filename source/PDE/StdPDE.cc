@@ -344,7 +344,7 @@ namespace CoupledField {
   // **********
   // Hysteresis
   // **********
-  void StdPDE::SetPreviousHystVals(bool setNextToLastTS_too){
+  void StdPDE::SetPreviousHystVals(bool setNextToLastTS){
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
         //needed for the next time step
@@ -354,7 +354,22 @@ namespace CoupledField {
           /*
            * Note: If locked = true, overwrite = false
            */
-          it->second->SetPreviousHystVals(setNextToLastTS_too);
+          it->second->SetPreviousHystVals(setNextToLastTS);
+        }
+     }
+  }
+
+  void StdPDE::SetFlagInCoefFncHyst(std::string flagName,bool newState){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->SetFlag(flagName,newState);
         }
      }
   }

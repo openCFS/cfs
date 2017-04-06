@@ -1151,7 +1151,7 @@ PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType 
      //		  for the dependency on S we currently consider the signed maximum value of S (+/- max(abs(S_i)) where +/- depends on sign of max component)
 
      // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
-     std::cout << "ElectroMagneticMaterial: GetNonLinFnc" << std::endl;
+    // std::cout << "ElectroMagneticMaterial: GetNonLinFnc" << std::endl;
      if( matType != MAG_RELUCTIVITY  ) {
        EXCEPTION("Scalar Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY!");
      }

@@ -736,7 +736,8 @@ namespace CoupledField {
      * NEW: we have to put P on the rhs also for deltaMaterial stepping!
      * -> see StdSolveStep::StepTransNonLinHysteresis for details
      */
-    if ( isHysteresis_ && isHysteresisFixPoint_) {
+    if ( isHysteresis_ ){ //&& isHysteresisFixPoint_) {
+      std::cout << "Putting polarisation to rhs" << std::endl;
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -869,6 +870,7 @@ namespace CoupledField {
                                 elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
 
       hysteresisCoefs_->AddRegion( regionId, curCoef_tmp);
+      std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
 
       if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
         /*

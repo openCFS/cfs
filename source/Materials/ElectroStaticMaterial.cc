@@ -148,8 +148,8 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-        std::cout << param.GetNumRows() << std::endl;
-        std::cout << param.GetNumCols() << std::endl;
+        //std::cout << param.GetNumRows() << std::endl;
+        //std::cout << param.GetNumCols() << std::endl;
         if ( tensorParams_[matType].GetNumRows() == 0 ) {
           tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
