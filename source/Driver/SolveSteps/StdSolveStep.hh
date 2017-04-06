@@ -139,10 +139,17 @@ namespace CoupledField
      *  for simplification, encapsulate that sequence of function calls
      *  in a separate function
      */
+    /*
+     * for residual computation we need a slightly different version -> see .cc file
+     */
+    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta, UInt stage, UInt callingCnt, UInt evalVersion, bool trans);
+
+    virtual void ConfigureSystemForHysteresisResidual(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta,UInt stage, bool trans);
+
     virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
     //! does a line search and returns the optimal residual norm
-    Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& actSol,
-                      Double& etaLineSearch, bool trans=false);
+    Double LineSearchHyst(SBM_Vector& solIncrement, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
+                      bool trans=false, bool performLineSearch=true);
     
     //----------------------- helpfull methods--------------------------------------
 
@@ -267,8 +274,14 @@ namespace CoupledField
     //! Vector containing all solution vectors of the FE-functions
     SBM_Vector solVec_;
     
-    //! Vector containing all solution vectors of the FE-functions
+    //! Vector containing rhs
     SBM_Vector rhsVec_;
+
+    //! Vector containing residual
+    SBM_Vector resVec_;
+
+    //! nonLinRHS
+    SBM_Vector nonLinRHS_;
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

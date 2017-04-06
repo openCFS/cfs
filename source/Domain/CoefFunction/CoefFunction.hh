@@ -546,6 +546,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
 
+  virtual void SetFlag(std::string flagName,bool newState){
+    EXCEPTION( "Not implemented in base class");
+  }
+
   //! set regionId of neighbor
   virtual void SetNeighborRegionId(RegionIdType id) {
 	  neighborRegionId_ = id;

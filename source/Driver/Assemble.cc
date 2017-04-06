@@ -458,7 +458,6 @@ namespace CoupledField
     // On first Assembly, assemble all matrices for each BilinearForm
     CheckNonLinearities(isFirstTime_);
 
-
     // Init all matrices, which have to be reassembled
     // Just to be done, when isNewtonPart is false!
     if ( !isNewtonPart) {
@@ -545,7 +544,6 @@ namespace CoupledField
       UInt start = 0;
       UInt end = size;
 #endif
-
 
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();

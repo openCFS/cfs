@@ -47,10 +47,10 @@ public:
   void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm );
 
   //!
-  void SetPreviousHystVals(bool setNextToLastTS_too = false);
+  void SetPreviousHystVals(bool setNextToLastTS = false);
 
   //! Create for the vector case deltaMat from dX and dY
-  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat, UInt idxElem);
+  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat);
 
   //! \see CoefFunction::ToString
   std::string ToString() const;
@@ -62,8 +62,8 @@ public:
 
   //! Return row and columns size of tensor if coefficient function is a tensor
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      numRows = matTensorStart_.GetNumRows();
-      numCols = matTensorStart_.GetNumCols();
+      numRows = matInitialTensor_.GetNumRows();
+      numCols = matInitialTensor_.GetNumCols();
   }
 
   void setOverwrite(bool overwrite_new){
@@ -82,13 +82,15 @@ public:
     deltaComputation_ = deltaComputation_new;
   }
 
+  void SetFlag(std::string flagName,bool newState);
+
 protected:
   
   //! compute X and Y value
-  void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y, bool overwrite);
+  void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y);
 
   //! compute X and Y vector for vector model
-  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y, bool overwrite);
+  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y);
 
   //! Constant initial value of the curve
   Double coefScalar_;
@@ -121,7 +123,7 @@ protected:
   Matrix<Double>* matDeltaTensor_;
 
   //! non-delta matrial tensor (basically eps0, nu0 as diagonal matrix)
-  Matrix<Double> matTensor_;
+  Matrix<Double> matFreeFieldTensor_;
 
   //! for vector version
   //! XcurrentItVec_, YcurrentItVec_ store values of the current iteration; if function is called several times
@@ -177,7 +179,7 @@ protected:
   Directions dirP_;
 
   //! initial material tensor
-  Matrix<Double> matTensorStart_;
+  Matrix<Double> matInitialTensor_;
 
   //! list of all elements
   shared_ptr<ElemList> SDList_;
@@ -309,13 +311,30 @@ protected:
    * a) the previousIterationValues > useNextLastTS_ = false
    * b) the nextLastTimestepValues -> useNextLastTS_ = true
    */
-  bool useNextToLastTS_;
+
 
   /*
    * for magnetics, we need the inverse deltaMatrix, as we not need \mu but \nu
    * -> indicate that by a flag
    */
   bool compute_inverse_;
+
+
+  /*
+   * new flags
+   */
+  bool returnFreeFieldTensor_;
+  bool returnInitialTensor_;
+  bool addFreeFieldTensorToDeltaMat_;
+  bool addInitialTensorToDeltaMat_;
+  bool useNextToLastTS_;
+  bool useDeltaY_;
+  bool useDeltaX_;
+  bool hystMemoryLocked_;
+  bool hystDirectionLocked_;
+  bool returnZeroValues_;
+  bool allowBMP_;
+  std::string PDEName_;
 };
 
 

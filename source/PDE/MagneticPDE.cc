@@ -136,6 +136,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 	  //  Loop over all regions
 	  std::map<RegionIdType, BaseMaterial*>::iterator it;
+	  //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+
 	  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
 
@@ -241,7 +243,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 			  }
 		  } else {
 			  // ====================================================================
-			  //  HYSTERESIS
+			  //  HYSTERESIS + LINEAR CASE
 			  // ====================================================================
 			  shared_ptr<CoefFunction > curCoef;
 
@@ -256,12 +258,34 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 				  //see above
 				  // shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
 				  // actSDList->SetRegion( regionId );
-				  PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
+				  //PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
+
+				  /*
+				   * Issue with Hysteresis being dependend on Field Intensity H:
+				   * - during calculation of delta matrix, we need to compute:
+				   *    deltaM/deltaH
+				   *   to do so, we have to evaluate the Hysteresis operator using H
+				   *   (as long as we do not have an inverse Hysteresis operator that
+				   *   uses B as input). However, as the PDE is solved for B, we have
+				   *   to get H out of B using the reluctivity first. This value needs
+				   *   deltaM/deltaH itself so that we get trapped in a recursion that
+				   *   aborts once the stack is full.
+				   * Solution idea:
+				   * - instead of requesting H during the computation of the Hysteresis
+				   *   operator, we ask for the value of B (which is the solution of the
+				   *   system and thus should be available). Then, we approximate
+				   *   H by H = nu_0*B - M_last_iteration
+				   */
+				  PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
 				  curCoef_tmp.reset(new CoefFunctionHyst( actMat, actSDList,
 						  magFieldCoef,tensorType,MAG_RELUCTIVITY));
 
+				  std::cout << "Add to hystCoefs" << std::endl;
+				  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
 				  hysteresisCoefs_->AddRegion( actRegion, curCoef_tmp);
+				  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
+				  //std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
 
 				  if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
 					  /*
@@ -271,7 +295,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 					   */
 					  //std::string mu0 = "1.2566370614e-6";
 					  std::string nu0 = "795774.715482";
-					  StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+					  StdVector<std::string> realVal = StdVector<std::string>(3*3);
 					  realVal.Init("0.0");
 					  realVal[0] = nu0;
 					  if(dim_ == 2){
@@ -289,21 +313,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 					  isHysteresisFixPoint_ = true;
 				  } else {
-					  std::cout << "Using DeltaMaterial Hystersis" << std::endl;
-
-					  EXCEPTION("Not yet implemented");
-
-					  /* TODO:
-					   *
-					   * To implement the deltaMaterial model, one has to do (at least) the following:
-					   * 1. check how to describe it mathematically. Is it enough to return just deltaNu = deltaH/deltaB = deltaH/(mu0*deltaM + mu0*deltaH)?
-					   *    (as opposed to deltaEps = deltaD/deltaE = (deltaP + eps0*deltaE)/deltaE)
-					   * 2a. If the idea above is reasonable, CoefFncHyst has to be extended, so that it returns not dY/dX (would be deltaD/deltaE) but dX/dY
-					   * 2b. If the idea above is not reasonable, use what you have derived ...
-					   * 3. in StdSolveStep, we have to store the old rhs and subtract it, so that we get a correct delta formulation
-					   *    note that this is missing in the electrostatic case, too!
-					   *
-					   */
+					  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
 
 					  curCoef = curCoef_tmp;
 					  isHysteresisFixPoint_ = false;
@@ -348,7 +358,17 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 			  bdbInts_[actRegion] = stiffInt;
 
 			  // add also material to global, distributed reluctivity coefficient function
-			  reluc_->AddRegion(actRegion, curCoef);
+			  if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+			    std::cout << "Do not add to reluc" << std::endl;
+			    /*
+			     * we cannot directly add coefFunctionHyst to reluc_ as reluc_ expects tensorial coefFncs
+			     * but coefFunctionHyst has to be a vector coefFnc
+			     */
+			  } else {
+			    std::cout << "Add to reluc" << std::endl;
+			    reluc_->AddRegion(actRegion, curCoef);
+			  }
+
 
 			  // ====================================================================
 			  //  3D CASE (additional stiffness integrator)
@@ -798,6 +818,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
     //check for hysteresis
     if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
+      std::cout << "Putting magnetization to rhs" << std::endl;
       LOG_DBG(magpde) << "Putting magnetization to rhs";
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -1378,7 +1399,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
      magM->unit = "A/m";
      magM->definedOn = ResultInfo::ELEMENT;
      magM->entryType = ResultInfo::VECTOR;
+     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
      DefineFieldResult( hysteresisCoefs_, magM );
+     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
      availResults_.insert( magM );
     }
 
@@ -1853,16 +1876,16 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   void MagneticPDE::FinalizeAfterTimeStep() {
 
-	  //check for hysteresis
-	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {
-		  //set current values to previous values for hysteresis operator
-		  //needed for the next time step
-		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-			  it->second->SetPreviousHystVals();
-		  }
-	  }
+//	  //check for hysteresis
+//	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {
+//		  //set current values to previous values for hysteresis operator
+//		  //needed for the next time step
+//		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+//		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+//		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+//			  it->second->SetPreviousHystVals();
+//		  }
+//	  }
   }
 
   

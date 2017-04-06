@@ -74,8 +74,8 @@ namespace CoupledField
     }
 
     /*
-     * Needed in context of fixpoint hysteresis;
-     * for the linesearch algorithm, we have to evaluate the hysteresis operator
+     * Needed in context of the linesearch algorithm:
+     * there we have to evaluate the hysteresis operator
      * for multiple value of eta; due to the memory property of the hysteresis operator
      * these test-steps will have a permanent effect on the output; to avoid this
      * we can use a flag which denotes if we want to overwrite or not;
@@ -128,11 +128,8 @@ namespace CoupledField
        * 0. Check old rotation state: if it is zero (i.e. unset yet), rotate completely to new direction
        */
       if(e_u_old.NormL2() < tol_){
-        //std::cout << "Rotation state was unset before; completely rotate towards e_u_new" << std::endl;
         return e_u_new;
       }
-
-
       /*
        * 1. calculate delta_phi based on (10) Sutor2015
        * Note: original formula uses 2*abs(xVal) due to normalization to range [-0.5,0.5] instead of [-1,1];
@@ -142,10 +139,6 @@ namespace CoupledField
        */
       xVal /= Xsaturated_;
       delta_phi = angularDistance_ * (1 - abs(xVal));
-
-      std::cout << "e_u_input: " << e_u_new.ToString() << std::endl;
-      std::cout << "e_u_old: " << e_u_old.ToString() << std::endl;
-      //std::cout << "delta_phi: " << delta_phi << std::endl;
 
       /*
        * 2. get angle between e_u_new and e_u_old
@@ -163,8 +156,6 @@ namespace CoupledField
         tmp = -1.0;
       }
       alpha = std::acos(tmp)*180/M_PI;
-
-      std::cout << "alpha: " << alpha << std::endl;
 
       /*
        * NEW: 15.2.2017
@@ -184,19 +175,16 @@ namespace CoupledField
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
       if(delta_phi < angleTol){
-        //std::cout << "delta_phi <= tol: full rotation will be performed towards e_u_new" <<std::endl;
         /*
          * no resistance to rotation
          */
         return e_u_new;
       } else if(delta_phi >= alpha) {
-        //std::cout << "delta_phi >= alpha: no rotation will be performed; e_u_old is kept" <<std::endl;
         /*
          * e_u_old is already closer than the resistance angle delta_phi that should remain
          */
         return e_u_old;
       } else {
-        //std::cout << "delta_phi < alpha: rotation will be performed from e_u_old towards e_u_new" <<std::endl;
         /*
          * construct new rotation vector e_phi
          * Note: e_u_new is rotated by -delta_phi towards e_u_old
@@ -717,7 +705,6 @@ namespace CoupledField
      * For classical model, we insert a minimum of value 0
      * -> evaluation will lead to an upper triangle which is completely -1 and a split upper square
      *    together with the +1 lower triangle we get a total state of 0 (assuming symmetric weights!
-     *    No dummy anymore!
      */
     if(classical_ == true){
       initEntry.getListReference().push_back(ListEntryv10(0,true,false));
@@ -793,8 +780,7 @@ namespace CoupledField
 
     // for classical_ we have to add entries for xThres = 0.0 as this entry would influence
     // the result of the upper triangle!
-    // -> already done during Initialize_GlobalRotationList
-
+    // -> already done during Initialize_GlobalRotationList -> no further insert needed
     if(xThres <= 0.0){
       xThres = 0.0;
       needsInsert = false;
@@ -810,6 +796,9 @@ namespace CoupledField
     int cntInner = 0;
 
     if(overwriteDirection){
+      /*
+       * Update rotation states
+       */
 
       for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
         cntInner++;
@@ -868,17 +857,13 @@ namespace CoupledField
                * Note that the function list::insert adds the new entry before position listIt
                * (i.e. if listIt = list.end() it will be inserted before the end)
                */
-              //std::cout << "Mark current position" << std::endl;
-              //std::cout << "Current entry: " << listIt->getVecReference().ToString() << std::endl;
               insertPos = listIt;
-              //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
 
               // ???
   //            if(insertPos == globRotList_[idElem].end()){
   //
   //            }
 
-              //std::cout << "Current entry: " << insertPos->getVecReference().ToString() << std::endl;
               /*
                * the new rotation area will be between xThresh and curVal
                */
@@ -895,16 +880,18 @@ namespace CoupledField
            */
 
           if(classical_){
+            /*
+             * classical model knows no angular distance -> full rotation is performed
+             */
             listIt->setVec(e_u);
           } else {
             /*
              * here we do not set the state to e_u directly but rotate it towards e_u;
              * Note that each previously stored rotation state gets rotated to a different e_phi!
              */
-            //std::cout << "Overwrite current rotation state " << cntInner << std::endl;
             e_u_old = listIt->getVecReference();
             e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
-            std::cout << "New rotation state " << e_phi.ToString() << std::endl;
+
             listIt->setVec(e_phi);
           }
         }
@@ -1002,10 +989,11 @@ namespace CoupledField
 
         usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
       }
-    }
+    } // if overwriteDirection = true
 
     /*
      * Step 2. For each entry in rotation list, update the switching list with the value xPar
+     * -> this has to be done even if overwriteDirection = false
      */
     Double xPar;
     UInt updated;
@@ -1045,7 +1033,6 @@ namespace CoupledField
       getBoundingBoxFromRotEntry(listIt, bbox, isLastRotEntry);
 
       updated = Update_SwitchingList(listIt->getListReference(),xPar,listIt->getLastLocalXpar(), bbox, listIt->wasListWipedOut(),isLastRotEntry);
-
 
 //      if(updated != 0){
 //        std::cout << "UPDATE of switching list!" << std::endl;
@@ -1611,22 +1598,6 @@ namespace CoupledField
       X_thres = u_in.NormL2()*(rotationalResistance_/Xsaturated_);
     }
 
-    std::cout << "X_thres: " << X_thres << std::endl;
-
-    Double resolutionTol = 1e-8;
-    if(X_thres < -resolutionTol){
-      std::cout << "X_thres < " << resolutionTol << std::endl;
-      std::cout << "Will set X_thres to 0, i.e. only change in switching state" << std::endl;
-      X_thres = 0.0;
-
-      //std::cout << "No change to hysteresis operator perfomred; will return old value" << std::endl;
-      //return preisachSum_[idElem];
-    }
-
-    if(overwriteDirection == false){
-      X_thres = 0.0;
-    }
-
     /*
      * Get current direction
      */
@@ -1639,19 +1610,12 @@ namespace CoupledField
       e_u.Init(0.0);
     }
 
-    std::cout << "u_in: " << u_in.ToString() << std::endl;
-    std::cout << "e_u: " << e_u.ToString() << std::endl;
-
-
-
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
      */
-
-
-    //if(overwriteDirection){
+    if(overwriteDirection){
       lastEu_[idElem] = e_u;
-    //}
+    }
     /*
      * Storage for return values
      */
@@ -1685,8 +1649,8 @@ namespace CoupledField
        * work on std data structure
        */
       //std::cout << "Work on permanent storage" << std::endl;
-      //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
-      Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
+      Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
+      //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
 
       /*
        * Evaluate_GlobalRotationList checks for each element if it was changed or not and
@@ -1711,8 +1675,8 @@ namespace CoupledField
        * then perform all updates on that temporal list only
        */
       std::cout << "Working only on temporal storage! " << std::endl;
-      Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
-      //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection);
+      //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
+      Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection);
 
       Evaluate_GlobalRotationList(tmpList, retVec);
 
