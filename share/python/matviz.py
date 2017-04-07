@@ -30,7 +30,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       "hom_sheared_rot_cross" : 3,
       "hom_frame" : 2,
       "hom_framed_cross" : 4,
-      "hom_rect" : 3}
+      "hom_rect" : 3 }
     if args.show in number_of_parameters:
       try:
         res['microparams'] = [get_element(f, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(number_of_parameters[args.show])]
@@ -66,6 +66,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     res['s1'] = s1
     res['s2'] = s2
     res['s3'] = numpy.ones((len(centers),1)) * .1 # fix for 3D
+  elif args.parametrization == "hom_iso":
+    # isotropic homogenized basecell e.g. lufo fuller or V7 base cell
+    res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1 
+    res['s2'] = res['s1']
+    res['s3'] = res['s1']
   elif args.parametrization == 'simp':
     res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['angle'] = numpy.zeros(((len(s1), 3)))
@@ -274,7 +279,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
             valid_position = valid_position_robot
             print('Robot is calculated!')
           elif args.type == "lufo":
-            valid_position == "lufo"
+            valid_position = valid_position_lufo
             print('Lufo bracket is calculated!')
           else:
             valid_position = None
@@ -299,6 +304,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                   #TODO: not implemented yet for robot arm
                   valid_ring_position = None
                   print('Robot is validated!')
+                elif args.type == "lufo":
+                  valid_position = valid_position_lufo
+                  valid_ring_position = None
+                  print('Lufo bracket is calculated!')
 
                 if args.show == 'simp':
                   me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
@@ -308,7 +317,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
-                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
+                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
             else:
@@ -429,7 +438,7 @@ parser.add_argument("--stream_max_traces_per_cell", help="maximum number of trac
 parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'])
 parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'])
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
-parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
+parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho','hom_iso'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
@@ -440,7 +449,7 @@ parser.add_argument("--nodefile", help="name of the design to node file", defaul
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
-parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot'])
+parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','lufo'])
 
 # print sys.argv
 

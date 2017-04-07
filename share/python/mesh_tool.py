@@ -1004,7 +1004,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz")
+  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
 
   nx = x_res  
    
@@ -1033,6 +1033,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     width = 1.
     height = 1.
     depth = 1. 
+  elif type == "box_lufo":
+    width = 2.
+    heigth = 1.
+    depth = 1.
+    nx = x_res
+    ny = nx/2 if y_res == None else y_res
+    nz = nx/2 if z_res == None else z_res
     
      
   dx = width / nx 
@@ -1149,6 +1156,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
   
+  if type == "box_lufo":
+    
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
   msg += " with threshold " + str(threshold) 
