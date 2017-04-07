@@ -6,8 +6,9 @@ from cfs_utils import *
 import argparse
 from optimization_tools import *
 import collections
+import os.path
 
-def read_spring_data(file,xml, spring, dic,ns,fix_force):
+def read_spring_data(file,xml, spring, dic,ns,fix_force,detailed):
   # reads and calculates spring data
   sq_out = []
   max_f_tension = 0.
@@ -30,20 +31,23 @@ def read_spring_data(file,xml, spring, dic,ns,fix_force):
     max_u_spring_shear = max(abs(max_u_spring_shear),numpy.sqrt(dx**2+dz**2))
   a_all = max(sq_out)/min(sq_out)
   a_calc = sq_out[ns-1]/sq_out[0]
-  dic['max_u_spring'] =  max_u_spring
-  dic['max_u_spring_tension'] = max_u_spring_tension
-  dic['max_u_spring_shear'] = max_u_spring_shear
-  dic['max_f_tension'] = max_f_tension
-  dic['max_f_shear'] =  max_f_shear
-  dic['a_calc'] = a_calc
-  dic['a_all'] = a_all
   f = numpy.sqrt((spring/3.57143 * disp[:,0])**2 + (spring * disp[:,1])**2 + (spring/3.57143 * disp[:,2])**2)
   dic['f_spring_sum'] = sum(f)
+  if detailed:
+    dic['max_u_spring'] =  max_u_spring
+    dic['max_u_spring_tension'] = max_u_spring_tension
+    dic['max_u_spring_shear'] = max_u_spring_shear
+    dic['a_calc'] = a_calc
+    dic['a_all'] = a_all
+    dic['q_calc'] = f[ns-1]/f[0] 
+  
+  dic['max_f_tension'] = max_f_tension
+  dic['max_f_shear'] =  max_f_shear
   dic['q_all'] = max(f)/min(f)
-  dic['q_calc'] = f[ns-1]/f[0]  
+   
   
 
-def process(file, sort,spring,fix_force):
+def process(file, sort,spring,fix_force,detailed):
   xml = open_xml(file)
   problem = file[:-9]
   if has(xml,'//iteration[last()]/@compliance'):
@@ -54,16 +58,22 @@ def process(file, sort,spring,fix_force):
       dic['vol'] = float(xpath(xml,'//iteration[last()]/@volume'))
     else:
       dic['vol'] = float(xpath(xml,'//iteration[last()]/@globalTwoScaleVolume_allDesigns'))
-    f = h5py.File(problem+".h5", 'r')
+    print(problem + ".h5")
+    if os.path.exists(problem+".h5"):
+      f = h5py.File(problem+".h5", 'r')
+    else:
+      print(problem+".h5 not found!")
+      return None
     u_design = read_displacement(f,'design')
     u_ndesign = read_displacement(f,'non_design')
     scale = 0.5 if fix_force else 1.
     dic['max_u'] = scale * max(max(numpy.sqrt(u_design[:,1]**2+u_design[:,0]**2 + u_design[:,2]**2)),max(numpy.sqrt(u_ndesign[:,1]**2+u_ndesign[:,0]**2 + u_ndesign[:,2]**2)))
-    read_spring_data(file,xml, spring, dic,5,fix_force)
+    read_spring_data(file,xml, spring, dic,5,fix_force,detailed)
     if has(xml,'//iteration[last()]/@sf_a_by_s'):
       dic['a'] = float(xpath(xml,'//iteration[last()]/@sf_a_by_s'))
     else:
       dic['a'] = -1.
+    dic['unknowns'] = int(xpath(xml,'//system/@totalNumRows'))
     dic['problem'] = problem
     #dic[sort] = float(xpath(xml,'//ssor/@omega')) 
     return dic
@@ -76,6 +86,9 @@ parser.add_argument("input", nargs='*', help="info xml files (wildcards ok) to b
 parser.add_argument('--sort', help="how to sort the results (header label)", required=False)
 parser.add_argument('--ref',help="reference info.xml without optimization",action="store_true")
 parser.add_argument('--fix_force',help="fix force",action="store_true")
+parser.add_argument('--d',help="detailed output")
+
+
 args = parser.parse_args()
 
 if len(args.input) == 0:
@@ -87,12 +100,13 @@ spring = 100000.
 if args.ref:
   xml = open_xml(args.input[0])
   dic = collections.OrderedDict()
-  read_spring_data(args.input[0],xml, spring, dic,10,False)
+  
+  read_spring_data(args.input[0],xml, spring, dic,10,False,args.d)
   res.append(dic)
 else:
   for file in args.input:
     #print("file = " + str(file))
-    data =  process(file, args.sort,spring,args.fix_force)
+    data =  process(file, args.sort,spring,args.fix_force,args.d)
     if data != None:
       res.append(data)
 

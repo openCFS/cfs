@@ -16,11 +16,15 @@ parser.add_argument("--uangle", help="upper bound for angle", type=float, defaul
 parser.add_argument("--angle", help="set rotAngle between -pi/2 and pi/2", type=float)
 parser.add_argument("--rot_ordering", help="option for ordering of the rotation angles")
 parser.add_argument("--out_dat", help="file name for table of design variables")
+parser.add_argument("--dim", help="dimension of output file, default: 2 (2D)", type=int, default=2)
 
 
 
 args = parser.parse_args()
-d = read_density_as_vector(args.input, "design")
+if args.dim ==2:
+  d = read_density_as_vector(args.input, "design")
+else:
+  d = read_density_as_vector(args.input, "density","physical")
 if args.rot: 
   d2 = read_multi_design(args.rot, "stiff1", "stiff2", "rotAngle")
 if args.threshold > 0:
@@ -108,15 +112,18 @@ else:
           data[i, 2] = d2[i, 2]         
     write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
   else:
-    data = numpy.zeros((len(d), 3))
+    data = numpy.zeros((len(d), 3)) 
     for i in range(len(d)): 
         # data[i,0] = 1.-numpy.sqrt(1.-d[i])
         # data[i,1] = 1.-numpy.sqrt(1.-d[i])
         data[i, 0] = d[i]
         data[i, 1] = d[i]
-        data[i, 2] = 0.
-        if args.rot:
+        data[i, 2] = 0. if args.dim == 2 else d[i]
+        if args.rot and args.dim != 2:
           data[i, 2] = d2[i, 2]
-        if args.angle:
-          data[i, 2] = args.angle      
-    write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
+        if args.angle and args.dim !=2:
+          data[i, 2] = args.angle     
+    if args.dim == 2: 
+      write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
+    else:
+      write_multi_design_file(args.output, data, ["stiff1", "stiff2", "stiff3"])

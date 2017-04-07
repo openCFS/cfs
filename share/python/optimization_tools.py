@@ -118,10 +118,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 6
     
   length = len(sett) / designs
-  
+  offset = int(sett[0].get("nr")) - 1
   out = numpy.zeros((length, designs))
   for element in sett:
-    nr = int(element.get("nr"))
+    nr = int(element.get("nr"))- offset
     type = element.get("type")
     idx = -1
     if type == design1:
@@ -217,8 +217,8 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None)
   
   xml = open_xml(filename)
   query = '//set[' + qset + ']/' + qelement + '[@type="' + dt + '"]/@' + attribute
-
   res = xml.xpath(query)
+  print("len " + str(len(res)))
   vals = [0] * len(res)
   for idx, element in enumerate(res):
     # traverse the elements and get the design
