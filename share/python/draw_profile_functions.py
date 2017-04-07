@@ -213,6 +213,7 @@ def dirToString(dir):
    
   return res
 
+
 # checks if logging should be used and adds a line break
 def log(text,linebreak=True):
   if logger:
@@ -310,8 +311,6 @@ class Heaviside():
 
 # shifted tanh, returns values are between 0 and 1 for x \in [0,0.5]
 def calc_tanh(beta,eta,x):
-  if not(x >= -1e-6 and x <= 1.0 + 1e-6):
-    print("x:",x)
   assert(x >= -1e-6 and x <= 1.0 + 1e-6)
   return 1.0 - 1.0 / (np.exp(2.0*beta*(x-eta)) + 1)
    
@@ -371,11 +370,15 @@ class PrincipleSpline():
   spline = None
   angle = -1
   coords_cut = None
-  left = True 
+  left = True
+  radiusx = None # assume spline lives in 2d plane
+  radiusy = None 
   
   def __init__(self, x1, y1, bend, angle=0, left_flag=True):
     rx = 0.5 - x1/2.0 # radius for center (0,1)
     ry = 0.5 - y1/2.0 # radius for center (0,1)
+    self.radiusx = rx
+    self.radiusy = ry
     self.left = left_flag
     
     if infoXml is not None:
@@ -476,10 +479,10 @@ class BisecSpline:
     # search for point p
     right = PrincipleSpline(y1, z1, bend)
     p = right.coords_cut
-  
+    
     assert(p[0] <= 0.5 and p[1] >= 0.5)
-#     height = distance_to_center(p) + 0.5
-    height = p[1]#distance_to_center(p) + 0.5
+    height = distance_to_center(p) + 0.5
+#     height = p[1]#distance_to_center(p) + 0.5
   
     self.angle = angle_to_center(p)
     
@@ -698,12 +701,18 @@ class Profile:
     if infoXml:  
       infoXml.write('  <profile dir="' + str(dir) + '">\n')
       
+    plot_dir = None if not args.plot_bisec else args.plot_bisec[0]
+    assert(plot_dir is None or plot_dir == "x" or plot_dir == "y" or plot_dir == "z")
+    plot_bisec = -1 if not args.plot_bisec else int(args.plot_bisec[1])
+    assert(plot_bisec <= 7) 
+      
     if dir == 0:
       self.splines_left[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0)
       self.splines_left[1] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.x1, args.z2, args.bend, 1.5*np.pi)
-      
+      print("x1z2 coords_cut:",self.splines_left[3].coords_cut)
+#       self.splines_left[3].spline.plot()
       # 2nd and 3rd argument switchable 
       self.bisecs_left[0] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
@@ -719,10 +728,7 @@ class Profile:
       self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.functions_left[0].spline.plot()
-#       self.functions_right[0].spline.plot(left=False)
-#       plt.show()
-#       
+
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
     elif dir == 1:
@@ -755,6 +761,7 @@ class Profile:
       self.splines_left[3] = PrincipleSpline(args.z1, args.x1, args.bend, 1.5*np.pi)
        
       self.bisecs_left[0] = BisecSpline(args.z1, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+#       sys.exit()
       self.bisecs_left[1] = BisecSpline(args.z1, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.z1, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
@@ -763,6 +770,9 @@ class Profile:
       self.splines_right[1] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0, False)
       self.splines_right[2] = PrincipleSpline(args.z2, args.y2, args.bend, np.pi, False)
       self.splines_right[3] = PrincipleSpline(args.z2, args.x1, args.bend, 1.5*np.pi, False)
+      print("z2x1 coords_cut:",self.splines_right[3].coords_cut)
+#       self.splines_right[3].spline.plot(left=False)
+#       plt.show()
        
       self.bisecs_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
@@ -772,11 +782,12 @@ class Profile:
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
       
-    
-#     self.functions_left[0].spline.plot()
-#     self.functions_right[0].spline.plot()
-# #     self.functions[2].spline.plot()
-#     plt.show()
+    if plot_dir and plot_dir == dirToString(dir):
+      if plot_bisec <= 3: # left side
+        self.bisecs_left[plot_bisec].plot_all()
+      else:
+        self.bisecs_right[plot_bisec].plot_all()
+      plt.show()
     
     if infoXml:  
       infoXml.write('  </profile>\n\n')
@@ -809,7 +820,6 @@ def create_profiles(args,infoXml=None):
         continue
       
       count = 411 # need this for add_suplot
-      
       for i in range(0,4):
         sub1 = figs[dir].add_subplot(count)
         sub1.set_ylim((0.5,1.0))
@@ -1302,8 +1312,6 @@ def calc_radius(profile,x,rad):
   assert(val is not None)
   return val - 0.5
     
-  
-
 # rasterize profile functions
 # if basecell is symmetric, rasterize only 1/8 of structure
 # and mirror the rest
@@ -1951,6 +1959,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # if we have reached the very first edge, we're done
       if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
         log("filled")
+        print("filled")
         end = True
         break
       # find out if we have reached an edge which is already part of another triangle
@@ -1960,6 +1969,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       # triangles[:-1]:don't compare edge with its own triangle
       if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
         log("filled")
+        print("filled")
 #         history += triangles
 #         print("here")
 #         return True, True
