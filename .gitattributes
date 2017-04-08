@@ -142,7 +142,6 @@ cfsdeps/fftw/lis-configure.cmake.in -text
 cfsdeps/fftw/lis-patch.cmake.in -text
 cfsdeps/flann/External_FLANN.cmake -text
 cfsdeps/flann/flann-any.patch -text
-cfsdeps/flann/flann-basic-type-serializer-for-64bit-ints.patch -text
 cfsdeps/flann/flann-extra-commas-at-end-of-enum-lists.patch -text
 cfsdeps/flann/flann-for-cfs.patch -text
 cfsdeps/flann/flann-patch.cmake.in -text
@@ -326,7 +325,6 @@ cfsdeps/superlu/testing/ztest.cmake.in -text
 cfsdeps/vtk/External_VTK.cmake -text
 cfsdeps/vtk/vtk-ensight.patch -text
 cfsdeps/vtk/vtk-patch.cmake.in -text
-cfsdeps/vtk/vtk-semicolon.patch -text
 cfsdeps/xerces/External_Xerces-C.cmake -text
 cfsdeps/xerces/Main_CMakeLists.txt -text
 cfsdeps/xerces/Src_CMakeLists.txt -text

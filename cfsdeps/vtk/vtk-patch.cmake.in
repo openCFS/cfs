@@ -15,7 +15,6 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "vtk-semicolon.patch"
   "vtk-ensight.patch"
 )
 

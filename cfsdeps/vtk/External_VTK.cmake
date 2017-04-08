@@ -49,7 +49,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://www.vtk.org/files/release/${VTK_VERSION}/VTK-${VTK_VERSION}.0.tar.gz"
+  "http://www.vtk.org/files/release/7.1/${VTK_TAR}"
   "${VTK_URL}/${VTK_TAR}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/vtk/${VTK_TAR}")
@@ -79,6 +79,7 @@ ExternalProject_Add(vtk
 #if we add more file reader we should make this optional depending on USE_ENSIGHT
     -DModule_vtkIOEnSight:BOOL=ON
     -DModule_vtkIOParallel:BOOL=ON
+    -DModule_vtkIOXML:BOOL=ON
     -DVTK_SMP_IMPLEMENTATION_TYPE:STRING="TBB"
 #-DVTK_INSTALL_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include/vtk
 #    -DVTK_INSTALL_LIBRARY_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
@@ -106,7 +107,11 @@ SET(CFSDEPS
 )
 
 SET(VTK_INCLUDE_DIR "${vtk_install}/include/vtk-${VTK_VERSION}")
+set(VTK_DIR "${vtk_install}/lib/cmake/vtk-${VTK_VERSION}") # from https://github.com/statismo/statismo/blob/master/superbuild/External-VTK.cmake
 
+#find_package(VTK) # does not work
+# this is how it should be done: http://cmake.3232098.n2.nabble.com/How-to-use-VTK-as-an-ExternalProject-td6002193.html
+# explantion: http://cmake.3232098.n2.nabble.com/Question-regarding-External-Project-add-and-VTK-td7587557.html
 
 #-------------------------------------------------------------------------------
 # Set linking libraries, the exact order of .a files is of highest importance
@@ -137,6 +142,7 @@ SET(VTK_LIBRARY
      ${LD}/libvtkParallelCore-${VTK_VERSION}.a
      ${LD}/libvtkIOLegacy-${VTK_VERSION}.a
      ${LD}/libvtkIOCore-${VTK_VERSION}.a
+     ${LD}/libvtkIOXML-${VTK_VERSION}.a
      ${LD}/libvtkzlib-${VTK_VERSION}.a
      ${LD}/libvtkFiltersModeling-${VTK_VERSION}.a
      ${LD}/libvtkFiltersGeometry-${VTK_VERSION}.a
