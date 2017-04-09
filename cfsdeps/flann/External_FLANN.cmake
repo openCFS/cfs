@@ -104,6 +104,38 @@ SET(ZIPTOCACHE "${flann_prefix}/flann-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of FLANN libraries.
+#-------------------------------------------------------------------------------
+IF(MINGW)
+  SET(FLANN_LIB flannstatic)
+  SET(FLANN_SHARED_LIB flann)
+ELSE(MINGW)
+  IF(UNIX)
+    SET(FLANN_LIB flann_cpp_s)
+    SET(FLANN_SHARED_LIB flann_cpp_s)
+  ELSE(UNIX)
+    SET(FLANN_LIB flannstatic)
+    SET(FLANN_SHARED_LIB flann)
+    IF(DEBUG)
+      SET(FLANN_LIB "${FLANN_LIB}d")
+      SET(FLANN_SHARED_LIB "${FLANN_SHARED_LIB}d")
+    ENDIF()
+  ENDIF(UNIX)
+ENDIF(MINGW)
+
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
+SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+IF(MINGW)
+  SET(FLANN_SHARED_LIBRARY "${FLANN_SHARED_LIBRARY}.a")
+ENDIF(MINGW)
+SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
+SET(FLANN_INCLUDE_DIR "${CFS_BINARY_DIR}/include/flann" CACHE PATH "flann include directory")
+MARK_AS_ADVANCED(FLANN_LIBRARY)
+MARK_AS_ADVANCED(FLANN_SHARED_LIBRARY)
+MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)
+
+#-------------------------------------------------------------------------------
 # The flann external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -138,6 +170,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       -DBUILD_MATLAB_BINDINGS=OFF
       -DBUILD_PYTHON_BINDINGS=OFF
       -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
+    BUILD_BYPRODUCTS ${FLANN_LIBRARY} ${FLANN_SHARED_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -172,31 +205,6 @@ SET(CFSDEPS
   flann
 )
 
-#-------------------------------------------------------------------------------
-# Determine paths of FLANN libraries.
-#-------------------------------------------------------------------------------
-IF(MINGW)
-  SET(FLANN_LIB flannstatic)
-  SET(FLANN_SHARED_LIB flann)
-ELSE(MINGW)
-  IF(UNIX)
-    SET(FLANN_LIB flann_cpp_s)
-    SET(FLANN_SHARED_LIB flann_cpp_s)
-  ELSE(UNIX)
-    SET(FLANN_LIB flannstatic)
-    SET(FLANN_SHARED_LIB flann)
-    IF(DEBUG)
-      SET(FLANN_LIB "${FLANN_LIB}d")
-      SET(FLANN_SHARED_LIB "${FLANN_SHARED_LIB}d")
-    ENDIF()
-  ENDIF(UNIX)
-ENDIF(MINGW)
-
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
-SET(FLANN_INCLUDE_DIR "${CFS_BINARY_DIR}/include/flann" CACHE PATH "flann include directory")
-MARK_AS_ADVANCED(FLANN_LIBRARY)
-MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)
 
 IF(0)
 
@@ -218,11 +226,7 @@ ELSE(MINGW)
 ENDIF(MINGW)
 
 SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
-SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-IF(MINGW)
-  SET(FLANN_SHARED_LIBRARY "${FLANN_SHARED_LIBRARY}.a")
-ENDIF(MINGW)
-SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
+
 SET(FLANN_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "flann include directory")
 
 MESSAGE("${FLANN_LIBRARY}")

@@ -105,6 +105,32 @@ SET(ZIPTOCACHE "${gidpost_prefix}/gidpost-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of GIDPOST libraries.
+#-------------------------------------------------------------------------------
+SET(GIDPOST_LIBRARY_DEBUG
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+  CACHE FILEPATH "GiDpost library" FORCE)
+SET(GIDPOST_LIBRARY_RELEASE
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
+  CACHE FILEPATH "GiDpost library" FORCE)
+
+#-------------------------------------------------------------------------------
+# Mark paths of GIDPOST libraries as advanced.
+#-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(GIDPOST_INCLUDE_DIR)
+MARK_AS_ADVANCED(GIDPOST_LIBRARY_DEBUG)
+MARK_AS_ADVANCED(GIDPOST_LIBRARY_RELEASE)
+
+#-------------------------------------------------------------------------------
+# Set GIDPOST_LIBRARY according to configuration
+#-------------------------------------------------------------------------------
+IF(DEBUG)
+  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_DEBUG}")
+ELSE(DEBUG)
+  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_RELEASE}")
+ENDIF(DEBUG)
+
+#-------------------------------------------------------------------------------
 # The GiDpost external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -133,6 +159,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     LIST_SEPARATOR ,
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${GIDPOST_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -176,29 +203,3 @@ SET(GIDPOST_INCLUDE_DIR
   FILEPATH
   "GiDpost include dir"
   FORCE)
-
-#-------------------------------------------------------------------------------
-# Determine paths of GIDPOST libraries.
-#-------------------------------------------------------------------------------
-SET(GIDPOST_LIBRARY_DEBUG
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
-  CACHE FILEPATH "GiDpost library" FORCE)
-SET(GIDPOST_LIBRARY_RELEASE
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgidpost.a"
-  CACHE FILEPATH "GiDpost library" FORCE)
-
-#-------------------------------------------------------------------------------
-# Mark paths of GIDPOST libraries as advanced.
-#-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(GIDPOST_INCLUDE_DIR)
-MARK_AS_ADVANCED(GIDPOST_LIBRARY_DEBUG)
-MARK_AS_ADVANCED(GIDPOST_LIBRARY_RELEASE)
-
-#-------------------------------------------------------------------------------
-# Set GIDPOST_LIBRARY according to configuration
-#-------------------------------------------------------------------------------
-IF(DEBUG)
-  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_DEBUG}")
-ELSE(DEBUG)
-  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_RELEASE}")
-ENDIF(DEBUG)

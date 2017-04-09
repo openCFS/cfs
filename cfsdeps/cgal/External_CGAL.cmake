@@ -108,6 +108,17 @@ SET(ZIPTOCACHE "${cgal_prefix}/cgal-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of CGAL libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(CGAL_LIBRARY
+  "${LD}/libCGAL.a"
+  CACHE FILEPATH "CGAL library.")
+
+MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
+MARK_AS_ADVANCED(CGAL_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -159,6 +170,7 @@ ELSE()
       -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
       -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
       -DWITH_MPFR:BOOL=ON
+    BUILD_BYPRODUCTS ${CGAL_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -194,14 +206,3 @@ SET(CFSDEPS
 )
 
 SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/src/cgal/include" "${CFS_BINARY_DIR}/src/cgal-build/include"  "${CFS_BINARY_DIR}/src/cgal/include/CGAL")
-
-#-------------------------------------------------------------------------------
-# Determine paths of CGAL libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(CGAL_LIBRARY
-  "${LD}/libCGAL.a"
-  CACHE FILEPATH "CGAL library.")
-
-MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
-MARK_AS_ADVANCED(CGAL_LIBRARY)

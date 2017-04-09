@@ -79,6 +79,26 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${xerces_prefix}/xerces-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of XERCES libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(XERCES_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  LIST(APPEND XERCES_LIBRARY "-framework CoreFoundation")
+  LIST(APPEND XERCES_LIBRARY "-framework CoreServices")
+ELSEIF(MINGW)
+  SET(XERCES_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "XERCES library.")
+ELSE()
+  SET(XERCES_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
+    CACHE FILEPATH "XERCES library.")
+ENDIF()
+
 #-------------------------------------------------------------------------------
 # The xerces external project
 #-------------------------------------------------------------------------------
@@ -106,6 +126,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${XERCES_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -138,26 +159,6 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 SET(CFSDEPS ${CFSDEPS} xerces)
 
 SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of XERCES libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-
-
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(XERCES_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  LIST(APPEND XERCES_LIBRARY "-framework CoreFoundation")
-  LIST(APPEND XERCES_LIBRARY "-framework CoreServices")
-ELSEIF(MINGW)
-  SET(XERCES_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "XERCES library.")
-ELSE()
-  SET(XERCES_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
-    CACHE FILEPATH "XERCES library.")
-ENDIF()
 
 MARK_AS_ADVANCED(XERCES_LIBRARY)
 MARK_AS_ADVANCED(XERCES_INCLUDE_DIR)
