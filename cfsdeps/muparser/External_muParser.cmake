@@ -72,6 +72,12 @@ SET(ZIPTOCACHE "${muparser_prefix}/muparser-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of MUPARSER libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(MUPARSER_LIBRARY "${LD}/libmuparser.a" CACHE FILEPATH "MUPARSER library.")
+
+#-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -98,6 +104,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL_MD5 ${MUPARSER_MD5}
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${MUPARSER_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -159,14 +166,6 @@ SET(CFSDEPS
 )
 
 SET(MUPARSER_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-------------------------------------------------------------------------------
-# Determine paths of MUPARSER libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(MUPARSER_LIBRARY
-  "${LD}/libmuparser.a"
-  CACHE FILEPATH "MUPARSER library.")
 
 MARK_AS_ADVANCED(MUPARSER_INCLUDE_DIR)
 MARK_AS_ADVANCED(MUPARSER_LIBRARY)

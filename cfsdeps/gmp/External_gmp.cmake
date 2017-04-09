@@ -65,6 +65,22 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${gmp_prefix}/gmp-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of GMP libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(GMP_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmp${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "GMP library.")
+
+SET(GMPXX_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmpxx${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "GMPXX library.")
+
+MARK_AS_ADVANCED(GMP_LIBRARY)
+MARK_AS_ADVANCED(GMPXX_LIBRARY)
+MARK_AS_ADVANCED(GMP_INCLUDE_DIR)
+
 #-------------------------------------------------------------------------------
 # The gmp external project
 #-------------------------------------------------------------------------------
@@ -85,6 +101,13 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
+  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # GMP does not use CMake but automake: We cannot use the CMake Ninja-generator,
+    # we use make instead to build GMP
+    find_program(GMP_MAKE_PROGRAM make)
+  else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    set(GMP_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+  endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
   ExternalProject_Add(gmp
     PREFIX "${gmp_prefix}"
     SOURCE_DIR "${gmp_source}"
@@ -93,8 +116,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
-    BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
-    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
+    BUILD_COMMAND ${GMP_MAKE_PROGRAM} -f Makefile
+    INSTALL_COMMAND ${GMP_MAKE_PROGRAM} -f Makefile install
+    BUILD_BYPRODUCTS ${GMP_LIBRARY} ${GMPXX_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -138,20 +162,3 @@ SET(CFSDEPS
 )
 
 SET(GMP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of GMP libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(GMP_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmp${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "GMP library.")
-
-SET(GMPXX_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmpxx${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "GMPXX library.")
-
-MARK_AS_ADVANCED(GMP_LIBRARY)
-MARK_AS_ADVANCED(GMPXX_LIBRARY)
-MARK_AS_ADVANCED(GMP_INCLUDE_DIR)
-

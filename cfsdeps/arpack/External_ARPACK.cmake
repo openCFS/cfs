@@ -76,6 +76,13 @@ SET(ZIPTOCACHE "${ARPACK_prefix}/arpack-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of ARPACK libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
+MARK_AS_ADVANCED(ARPACK_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The ARPACK external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -101,6 +108,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL_MD5 ${ARPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -132,10 +140,3 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 SET(CFSDEPS ${CFSDEPS} arpack)
 
-#-------------------------------------------------------------------------------
-# Determine paths of ARPACK libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
-
-MARK_AS_ADVANCED(ARPACK_LIBRARY)

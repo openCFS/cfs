@@ -363,7 +363,7 @@ INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 # Find VTK 
 #-----------------------------------------------------------------------------
 IF(USE_VTK)
-  SET(VTK_URL "${LSE17_SOURCES_DIR}/vtk")
+  SET(VTK_URL "${CFS_DS_SOURCES_DIR}/vtk")
   SET(VTK_TAR "VTK-7.1.1.tar.gz")
   SET(VTK_VERSION "7.1") # must be 2 digits for include-dir to be correct
   SET(VTK_MD5 "daee43460f4e95547f0635240ffbc9cb")

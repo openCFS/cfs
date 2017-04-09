@@ -62,57 +62,6 @@ CONFIGURE_FILE(
   @ONLY
   ) 
 
-ExternalProject_Add(vtk
-  BUILD_COMMAND make -j4
-  DEPENDS boost zlib 
-  PREFIX "${vtk_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${VTK_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-    -DVTK_Group_Rendering:BOOL=OFF
-    -DVTK_Group_StandAlone:BOOL=OFF
-    -DModule_vtkFiltersParallel:BOOL=ON
-    -DModule_vtkFiltersSMP:BOOL=ON
-#if we add more file reader we should make this optional depending on USE_ENSIGHT
-    -DModule_vtkIOEnSight:BOOL=ON
-    -DModule_vtkIOParallel:BOOL=ON
-    -DModule_vtkIOXML:BOOL=ON
-    -DVTK_SMP_IMPLEMENTATION_TYPE:STRING="TBB"
-#-DVTK_INSTALL_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include/vtk
-#    -DVTK_INSTALL_LIBRARY_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
-#    -DVTK_INSTALL_ARCHIVE_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
-)
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(vtk cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${vtk_prefix}
-)
-
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  vtk 
-)
-
-SET(VTK_INCLUDE_DIR "${vtk_install}/include/vtk-${VTK_VERSION}")
-set(VTK_DIR "${vtk_install}/lib/cmake/vtk-${VTK_VERSION}") # from https://github.com/statismo/statismo/blob/master/superbuild/External-VTK.cmake
-
-#find_package(VTK) # does not work
-# this is how it should be done: http://cmake.3232098.n2.nabble.com/How-to-use-VTK-as-an-ExternalProject-td6002193.html
-# explantion: http://cmake.3232098.n2.nabble.com/Question-regarding-External-Project-add-and-VTK-td7587557.html
-
 #-------------------------------------------------------------------------------
 # Set linking libraries, the exact order of .a files is of highest importance
 #-------------------------------------------------------------------------------
@@ -142,7 +91,7 @@ SET(VTK_LIBRARY
      ${LD}/libvtkParallelCore-${VTK_VERSION}.a
      ${LD}/libvtkIOLegacy-${VTK_VERSION}.a
      ${LD}/libvtkIOCore-${VTK_VERSION}.a
-     ${LD}/libvtkIOXML-${VTK_VERSION}.a
+     #${LD}/libvtkIOXML-${VTK_VERSION}.a
      ${LD}/libvtkzlib-${VTK_VERSION}.a
      ${LD}/libvtkFiltersModeling-${VTK_VERSION}.a
      ${LD}/libvtkFiltersGeometry-${VTK_VERSION}.a
@@ -166,6 +115,57 @@ SET(VTK_LIBRARY
      ${LD}/libvtksys-${VTK_VERSION}.a
      dl
   CACHE FILEPATH "VTK library.")
-
-MARK_AS_ADVANCED(VTK_INCLUDE_DIR)
 MARK_AS_ADVANCED(VTK_LIBRARY)
+
+ExternalProject_Add(vtk
+  #BUILD_COMMAND make -j4
+  DEPENDS boost zlib 
+  PREFIX "${vtk_prefix}"
+  URL ${LOCAL_FILE}
+  URL_MD5 ${VTK_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DBUILD_SHARED_LIBS:BOOL=OFF
+    -DVTK_Group_Rendering:BOOL=OFF
+    -DVTK_Group_StandAlone:BOOL=OFF
+    -DModule_vtkFiltersParallel:BOOL=ON
+    -DModule_vtkFiltersSMP:BOOL=ON
+#if we add more file reader we should make this optional depending on USE_ENSIGHT
+    -DModule_vtkIOEnSight:BOOL=ON
+    -DModule_vtkIOParallel:BOOL=ON
+    -DModule_vtkIOXML:BOOL=ON
+    -DVTK_SMP_IMPLEMENTATION_TYPE:STRING="TBB"
+   BUILD_BYPRODUCTS ${VTK_LIBRARY}
+#-DVTK_INSTALL_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include/vtk
+#    -DVTK_INSTALL_LIBRARY_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
+#    -DVTK_INSTALL_ARCHIVE_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(vtk cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${vtk_prefix}
+)
+
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  vtk 
+)
+
+SET(VTK_INCLUDE_DIR "${vtk_install}/include/vtk-${VTK_VERSION}" CACHE FILEPATH "VTK include directory.")
+MARK_AS_ADVANCED(VTK_INCLUDE_DIR)
+set(VTK_DIR "${vtk_install}/lib/cmake/vtk-${VTK_VERSION}") # from https://github.com/statismo/statismo/blob/master/superbuild/External-VTK.cmake
+
+#find_package(VTK) # does not work
+# this is how it should be done: http://cmake.3232098.n2.nabble.com/How-to-use-VTK-as-an-ExternalProject-td6002193.html
+# explantion: http://cmake.3232098.n2.nabble.com/Question-regarding-External-Project-add-and-VTK-td7587557.html

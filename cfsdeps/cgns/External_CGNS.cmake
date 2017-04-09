@@ -139,6 +139,36 @@ SET(ZIPTOCACHE "${cgns_prefix}/cgns-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of CGNS libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(CGNS_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "CGNS library.")
+
+IF(CFS_OS STREQUAL LINUX)
+  SET(CGNS_SHARED_LIBRARY
+    "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "CGNS shared library.")
+ELSE()
+  IF(WIN32)
+    SET(CGNS_SHARED_LIBRARY
+      "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
+  ELSE()
+    SET(CGNS_SHARED_LIBRARY
+      "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
+  ENDIF()
+ENDIF()
+
+SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
+
+MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
+MARK_AS_ADVANCED(CGNS_LIBRARY)
+MARK_AS_ADVANCED(CGNS_SHARED_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The CGNS external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -168,6 +198,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     LIST_SEPARATOR ,
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${CGNS_LIBRARY} ${CGNS_SHARED_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -201,33 +232,3 @@ SET(CFSDEPS
   ${CFSDEPS}
   cgns
 )
-
-#-------------------------------------------------------------------------------
-# Determine paths of CGNS libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(CGNS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "CGNS library.")
-
-IF(CFS_OS STREQUAL LINUX)
-  SET(CGNS_SHARED_LIBRARY
-    "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "CGNS shared library.")
-ELSE()
-  IF(WIN32)
-    SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS shared library.")
-  ELSE()
-    SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS shared library.")
-  ENDIF()
-ENDIF()
-
-SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
-
-MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
-MARK_AS_ADVANCED(CGNS_LIBRARY)
-MARK_AS_ADVANCED(CGNS_SHARED_LIBRARY)
