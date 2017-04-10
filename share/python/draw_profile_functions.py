@@ -761,7 +761,6 @@ class Profile:
       self.splines_left[3] = PrincipleSpline(args.z1, args.x1, args.bend, 1.5*np.pi)
        
       self.bisecs_left[0] = BisecSpline(args.z1, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-#       sys.exit()
       self.bisecs_left[1] = BisecSpline(args.z1, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.z1, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
