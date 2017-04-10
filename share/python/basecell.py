@@ -207,6 +207,9 @@ else:
     
 val = args.x1
 
+if args.target == "volume_mesh":
+  args.save_vtp = True
+
 meshName = None
 if args.save is None: # set default gid mesh name
   if args.force_bisec:
