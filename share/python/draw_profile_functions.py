@@ -335,7 +335,6 @@ def profileCirc(x1,res):
 
 # for a given profile and point p, check if p lies on or inside profile
 def contains_point(p,profile):
-  print(p[1])
   assert(p[0] >= 0.0 and p[0] <= 1.0)
   assert(p[1] >= 0.0 and p[1] <= 1.0)
   assert(p[2] >= 0.0 and p[2] <= 1.0)
@@ -419,14 +418,14 @@ class PrincipleSpline():
   # @param x: can be one argument value or list or aguments
   def eval(self,x):
     if isinstance(x, (float,int)):
-      ret = translate_to_correct_quadrant(x,self.eval_elem(x),self.angle)
+      ret = self.eval_elem(x)
       return ret
     
     # in case x is a list    
     ret = []
     
     for i in x:
-      ret.append(translate_to_correct_quadrant(i,self.eval_elem(i),self.angle))
+      ret.append(self.eval_elem(i))
     
     if type(ret) == np.float64:
       return float(ret)
@@ -451,12 +450,14 @@ class BisecSpline:
     self.z1 = 0
     self.type = None
     self.angle = None
+    self.left = None
   
-  def __init__(self,x1,y1,z1,bend,beta,eta,force=None):
+  def __init__(self,x1,y1,z1,bend,beta,eta,force=None,left=True):
     self.x1 = x1
     self.y1 = y1
     self.z1 = z1
     self.bicubic = [] # 0-th entry is spline function and 1st entry is cubic polynomial
+    self.left = left
   
     assert(bend <= 1 and bend >= 0)
     self.type = None
@@ -472,19 +473,18 @@ class BisecSpline:
     # from the point p we determine the angle phi of this bisec Profile function 
   
     # left part is same spline as orhtogonal spline up to point
-    left = PrincipleSpline(x1, 0.5*(y1+z1), bend)
-    b = left.coords_cut 
+    left_spline = PrincipleSpline(x1, 0.5*(y1+z1), bend)
+    b = left_spline.coords_cut 
     self.cut = b 
     assert(b[0] <= 0.5 and b[1] >= 0.5)
 
     # search for point p
     right = PrincipleSpline(y1, z1, bend)
     p = right.coords_cut
-    
-    assert(p[0] <= 0.5 and p[1] >= 0.5)
+    if not self.left:
+      p[0] = 1.0 - p[0]
     height = distance_to_center(p) + 0.5
 #     height = p[1]#distance_to_center(p) + 0.5
-  
     self.angle = angle_to_center(p)
     
     # polynomial interpolation for right part from b to p
@@ -523,7 +523,7 @@ class BisecSpline:
     # in case undershooting for x1=0.9, y1=0.1, z1=0.1
     lin = Linear_1D(x1, x1)
     
-    self.bicubic.append(left)
+    self.bicubic.append(left_spline)
     self.bicubic.append(cubic)
     self.spline = bspline
     self.linear = lin
@@ -536,9 +536,15 @@ class BisecSpline:
     else:
       # to check if bicubic has under/overshooting when point p is much lower than point b
       # sample points and check for maximum value
-      t = np.linspace(0, 1, 100)
+      t = None 
+      if self.left:
+        t = np.linspace(0, 0.5, 100)
+      else:
+        t = np.linspace(0.5, 1, 100)
+        
+      assert(t is not None)
       samples = self.eval_bicubic(t)
-      if max(samples) < p[1]:
+      if max(samples) <= height:
         self.type = "bicubic"
       # in case function composed of b-spline and cubic function has undershoot  
       # in case b-spline has no undershoot (point p is not below bspline(x=0))
@@ -563,9 +569,11 @@ class BisecSpline:
     x = np.reshape(x, np.size(x), )
     for i in x:
       assert(i >= 0 and i <=1)
-      if i <= 0.5:
+      if self.left:
+        assert(max(x) <= 0.5)
         val = self.spline.eval_x(i)
       else:
+        assert(max(x) >= 0.5 and max(x) <= 1.0)
         val = self.spline.eval_x(1-i)
       
       assert(val is not None)
@@ -582,22 +590,24 @@ class BisecSpline:
     
     # make x iterable in case it's one float element and not a list
     x = np.reshape(x, np.size(x), )
-    
-    for i in x:
-      assert(i >= 0 and i <=1)
-      if i <= 0.5:
+    val = None
+    if self.left:
+      assert(max(x) <= 0.5)
+      for i in x:
         if i <= left.coords_cut[0]:
           val = left.eval(i)
         else:
           val = cubic(i)
-      else:
+        res.append(val)  
+    else: #right
+      assert(max(x) >= 0.5)
+      for i in x:
         if i <= 1.0-left.coords_cut[0]: # mirror of cubic 
          val = cubic(1-i)
         else:
          val = left.eval(1-i)
-      
-      res.append(val)
-      
+        res.append(val)
+    
     return res
   
   def eval_linear(self,x):
@@ -609,9 +619,11 @@ class BisecSpline:
     res = []
     for i in x:
       assert(i >= 0 and i <=1)
-      if i <= 0.5:
+      if self.left:
+        assert(max(x) <= 0.5)
         res.append(self.heaviside.eval(i))
       else:
+        assert(max(x) >= 0.5 and max(x) <= 1.0)
         res.append(self.heaviside.eval(1.0-i))
     
     return res
@@ -658,7 +670,11 @@ class BisecSpline:
   def plot_all(self):
     plt.gcf().clear()
     
-    x = np.linspace(0, 1, 100)
+    x = None 
+    if self.left:
+      x = np.linspace(0, 0.5, 100)
+    else:
+      x = np.linspace(0.5, 1, 100)
     
     bicubic = self.eval_bicubic(x)
     spline = self.eval_spline(x)
@@ -669,6 +685,11 @@ class BisecSpline:
     
     assert(self.type == 'bicubic' or self.type == 'bspline' or self.type == 'linear' or self.type == 'heaviside')
 
+    if self.left:
+      plt.xlim((0,0.5))
+    else:
+      plt.xlim((0.5,1.0))
+        
     plt.ylim((0.5,1.0))
     bc_label = 'bicubic*' if self.type == 'bicubic' else 'bicubic'
     sp_label = 'bspline*' if self.type == 'bspline' else 'bspline'
@@ -678,7 +699,10 @@ class BisecSpline:
     plt.plot(x,spline,label=sp_label,linewidth=5.0)
     plt.plot(x,linear,label=lin_label,linewidth=5.0)
     plt.plot(x,heavi,label=hv_label,linewidth=5.0)
-    plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15) 
+    if self.left:
+      plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15)
+    else:
+      plt.plot(1-cut[0],cut[1],marker='o',color='red',markersize=15) 
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
     plt.show()  
     
@@ -725,11 +749,13 @@ class Profile:
       self.splines_right[1] = PrincipleSpline(args.x2, args.z1, args.bend, np.pi/2.0, False)
       self.splines_right[2] = PrincipleSpline(args.x2, args.y2, args.bend, np.pi, False)
       self.splines_right[3] = PrincipleSpline(args.x2, args.z2, args.bend, 1.5*np.pi, False)
+      print("x2:",args.z2,"z2:",args.x2)
+      print("coords_cut:",self.splines_right[3].coords_cut)
        
-      self.bisecs_right[0] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
 
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
@@ -738,7 +764,7 @@ class Profile:
       self.splines_left[1] = PrincipleSpline(args.y1, args.z2, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.y1, args.x2, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.y1, args.z1, args.bend, 1.5*np.pi)
-       
+      
       self.bisecs_left[0] = BisecSpline(args.y1, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[1] = BisecSpline(args.y1, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.y1, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
@@ -749,10 +775,10 @@ class Profile:
       self.splines_right[2] = PrincipleSpline(args.y2, args.x2, args.bend, np.pi, False)
       self.splines_right[3] = PrincipleSpline(args.y2, args.z1, args.bend, 1.5*np.pi, False)
        
-      self.bisecs_right[0] = BisecSpline(args.y2, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.y2, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.y2, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.y2, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[2] = BisecSpline(args.y2, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[3] = BisecSpline(args.y2, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
       
       self.radius_left = args.y1 / 2.0
       self.radius_right = args.y2 / 2.0
@@ -772,10 +798,10 @@ class Profile:
       self.splines_right[2] = PrincipleSpline(args.z2, args.y2, args.bend, np.pi, False)
       self.splines_right[3] = PrincipleSpline(args.z2, args.x1, args.bend, 1.5*np.pi, False)
       
-      self.bisecs_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.z2, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.z2, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[2] = BisecSpline(args.z2, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[3] = BisecSpline(args.z2, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
       
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
@@ -784,7 +810,7 @@ class Profile:
       if plot_bisec <= 3: # left side
         self.bisecs_left[plot_bisec].plot_all()
       else: # right side
-        self.bisecs_right[plot_bisec].plot_all()
+        self.bisecs_right[plot_bisec-4].plot_all()
       plt.show()
     
     if infoXml:  
@@ -1225,13 +1251,12 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     for i,x in enumerate(np.arange(0,1.0,h)):
       for alpha in range(0,360):
         map[alpha,i] = calc_radius_for_quadrant(profile, x, degree_to_rad_quadrant(alpha))
-          
         if save:
           out.write(str(i) + " \t" + str(alpha) + " \t" + str(map[alpha,i]) + "\n")
   else:
     for i,x in enumerate(np.arange(0,1.0,h)):
       for alpha in range(0,360):
-         map[alpha,i] = calc_radius(profile, x, radians(alpha))
+        map[alpha,i] = calc_radius(profile, x, radians(alpha))
             
   if verbose == "polar_plot":
     plt.gcf().clear()
@@ -2381,15 +2406,3 @@ def triangle_contains_any_neighbors(vertices):
         return True    
   
   return False
-
-# for given angle, move y to right quadrant
-# assume x is always given in quadrant 270 - 360 degree
-def translate_to_correct_quadrant(x,y,angle):
-  assert(y >= 0.5)
-  if angle > np.pi/2.0 and angle <= np.pi:
-    y -= 0.5
-  elif angle > np.pi and angle <= 1.5*np.pi:
-    y -= 0.5
-  # in case angle is already in assumed quadrant, do nothing
-  
-  return y 
