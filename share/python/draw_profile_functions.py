@@ -198,7 +198,7 @@ class Cubic_spline():
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
     ret = self.eval_t(t1) # array of array with 1 elem, due to outer product
-    return (ret[0][0],ret[1][0])
+    return np.array((ret[0][0],ret[1][0]))
   
   def calc_min(self):
     dC = self.calc_d_spline_d_t(u)
@@ -416,16 +416,17 @@ class PrincipleSpline():
     return val
   
   # wrapper function
-  #@param x: can be one argument value or list or aguments
+  # @param x: can be one argument value or list or aguments
   def eval(self,x):
     if isinstance(x, (float,int)):
-      return self.eval_elem(x)
+      ret = translate_to_correct_quadrant(x,self.eval_elem(x),self.angle)
+      return ret
     
     # in case x is a list    
     ret = []
     
     for i in x:
-      ret.append(self.eval_elem(i))
+      ret.append(translate_to_correct_quadrant(i,self.eval_elem(i),self.angle))
     
     if type(ret) == np.float64:
       return float(ret)
@@ -711,29 +712,24 @@ class Profile:
       self.splines_left[1] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.x1, args.z2, args.bend, 1.5*np.pi)
+#       for i in range(0,4):
+#         print(self.splines_left[i].coords_cut)
+#       sys.exit()
       # 2nd and 3rd argument switchable 
       self.bisecs_left[0] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.x1, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.x1, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       
-#       self.splines_right[0] = PrincipleSpline(args.x2, args.y1, args.bend, 0, False)
-#       self.splines_right[1] = PrincipleSpline(args.x2, args.z1, args.bend, np.pi/2.0, False)
-#       self.splines_right[2] = PrincipleSpline(args.x2, args.y2, args.bend, np.pi, False)
-#       self.splines_right[3] = PrincipleSpline(args.x2, args.z2, args.bend, 1.5*np.pi, False)
-      self.splines_right[0] = PrincipleSpline(args.x1, args.y1, args.bend, 0, False)
-      self.splines_right[1] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi/2.0, False)
-      self.splines_right[2] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi, False)
-      self.splines_right[3] = PrincipleSpline(args.x1, args.z2, args.bend, 1.5*np.pi, False)
+      self.splines_right[0] = PrincipleSpline(args.x2, args.y1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.x2, args.z1, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.x2, args.y2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.x2, args.z2, args.bend, 1.5*np.pi, False)
        
-#       self.bisecs_right[0] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[0] = BisecSpline(args.x1, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.x1, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.x1, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[2] = BisecSpline(args.x2, args.y2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
 
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
@@ -748,23 +744,15 @@ class Profile:
       self.bisecs_left[2] = BisecSpline(args.y1, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       
-#       self.splines_right[0] = PrincipleSpline(args.y2, args.x1, args.bend, 0, False)
-#       self.splines_right[1] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
-#       self.splines_right[2] = PrincipleSpline(args.y2, args.x2, args.bend, np.pi, False)
-#       self.splines_right[3] = PrincipleSpline(args.y2, args.z1, args.bend, 1.5*np.pi, False)
-      self.splines_right[0] = PrincipleSpline(args.y1, args.x1, args.bend, 0, False)
-      self.splines_right[1] = PrincipleSpline(args.y1, args.z2, args.bend, np.pi/2.0, False)
-      self.splines_right[2] = PrincipleSpline(args.y1, args.x2, args.bend, np.pi, False)
-      self.splines_right[3] = PrincipleSpline(args.y1, args.z1, args.bend, 1.5*np.pi, False)
+      self.splines_right[0] = PrincipleSpline(args.y2, args.x1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.y2, args.z2, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.y2, args.x2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.y2, args.z1, args.bend, 1.5*np.pi, False)
        
-#       self.bisecs_right[0] = BisecSpline(args.y2, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[2] = BisecSpline(args.y2, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[3] = BisecSpline(args.y2, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[0] = BisecSpline(args.y1, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.y1, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.y1, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.y1, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.y2, args.x1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[1] = BisecSpline(args.y2, args.x2, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[2] = BisecSpline(args.y2, args.x2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[3] = BisecSpline(args.y2, args.x1, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       
       self.radius_left = args.y1 / 2.0
       self.radius_right = args.y2 / 2.0
@@ -779,25 +767,15 @@ class Profile:
       self.bisecs_left[2] = BisecSpline(args.z1, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
       
-#       self.splines_right[0] = PrincipleSpline(args.z2, args.y1, args.bend, 0, False)
-#       self.splines_right[1] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0, False)
-#       self.splines_right[2] = PrincipleSpline(args.z2, args.y2, args.bend, np.pi, False)
-#       self.splines_right[3] = PrincipleSpline(args.z2, args.x1, args.bend, 1.5*np.pi, False)
-      self.splines_right[0] = PrincipleSpline(args.z1, args.y1, args.bend, 0, False)
-      self.splines_right[1] = PrincipleSpline(args.z1, args.x2, args.bend, np.pi/2.0, False)
-      self.splines_right[2] = PrincipleSpline(args.z1, args.y2, args.bend, np.pi, False)
-      self.splines_right[3] = PrincipleSpline(args.z1, args.x1, args.bend, 1.5*np.pi, False)
+      self.splines_right[0] = PrincipleSpline(args.z2, args.y1, args.bend, 0, False)
+      self.splines_right[1] = PrincipleSpline(args.z2, args.x2, args.bend, np.pi/2.0, False)
+      self.splines_right[2] = PrincipleSpline(args.z2, args.y2, args.bend, np.pi, False)
+      self.splines_right[3] = PrincipleSpline(args.z2, args.x1, args.bend, 1.5*np.pi, False)
       
-#       self.splines_right[3].spline.plot()
-       
-#       self.bisecs_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[2] = BisecSpline(args.z2, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
-#       self.bisecs_right[3] = BisecSpline(args.z2, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[0] = BisecSpline(args.z1, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[1] = BisecSpline(args.z1, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[2] = BisecSpline(args.z1, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
-      self.bisecs_right[3] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[0] = BisecSpline(args.z2, args.y1, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[1] = BisecSpline(args.z2, args.y2, args.x2, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[2] = BisecSpline(args.z2, args.y2, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
+      self.bisecs_right[3] = BisecSpline(args.z2, args.y1, args.x1, args.bend,args.beta,args.eta,args.force_bisec)
       
       self.radius_left = args.z1 / 2.0
       self.radius_right = args.z2 / 2.0
@@ -805,7 +783,7 @@ class Profile:
     if plot_dir and plot_dir == dirToString(dir):
       if plot_bisec <= 3: # left side
         self.bisecs_left[plot_bisec].plot_all()
-      else:
+      else: # right side
         self.bisecs_right[plot_bisec].plot_all()
       plt.show()
     
@@ -1223,7 +1201,8 @@ def generate_basecell(args,info,log):
       if args.target == "volume_mesh" or args.target == "volume_vtk":
         global symmetric
         # if basecell is symmetric, calculate only 1/8 and mirror the rest
-        symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False 
+        symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
+        symmetric = False
         write_profile_to_array(array, profiles[i], i)
       if args.target == "3dlines":
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
@@ -1332,7 +1311,7 @@ def calc_radius(profile,x,rad):
   if interpolation == "linear":
     val = calc_radius_linear(splines,bisecs,x,rad)
   else: #heaviside
-    val = calc_radius_heaviside(splines,bisecs,x,rad)
+    val = calc_radius_heaviside_asymm(splines,bisecs,x,rad)
   
   assert(val is not None)
   return val - 0.5
@@ -1343,7 +1322,6 @@ def calc_radius(profile,x,rad):
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
   assert(dir >=0 and dir <=2)
-  
   map = create_profile_map(profile, res)
   
   bound = res if not symmetric else int(res/2)
@@ -2115,39 +2093,10 @@ def close(x,ref,eps=1e-6):
 # return heaviside interpolation between principal spline and bisec
 # see calc_radius_linear for params
 def calc_radius_heaviside_symm(funcs,x,rad):
-  # get beta and eta for heaviside function from bisec
-  beta = funcs[1].heaviside.beta
-  eta = funcs[1].heaviside.eta
-  eps = 1e-5 #for numerical comparison
   phi = float(funcs[1].angle)  # bisec angle
+  
+  return calc_radius_heaviside((funcs[0],funcs[2]), funcs[1], x, rad,phi)
     
-  # a + c * tanh(...) in [0,1]
-  assert(calc_tanh(beta, eta, 1) <= 1)
-  assert(calc_tanh(beta, eta, 0) >= 0)
-  c = 1.0 / (calc_tanh(beta, eta, 1) - calc_tanh(beta, eta, 0))
-  a = - c * calc_tanh(beta, eta, 0)
-  if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
-    print(a+c*calc_tanh(beta, eta, 0))
-  assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
-  assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-eps)
-    
-  if rad <= phi:
-    alpha = 1.0/phi * rad # scale section between 0 and 1
-    scale = a+c*calc_tanh(beta, eta, 1-alpha)
-    assert(close(a+c*calc_tanh(beta, eta, 0),0))
-    assert(close(a+c*calc_tanh(beta, eta, 1),1))
-    assert(scale >= -eps and scale <= 1.0 + eps)
-#     assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
-    
-    return scale * funcs[0].eval(x) + (1-scale) * funcs[1].eval(x)
-  else:
-    alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
-    scale = a+c*calc_tanh(beta, eta, alpha)
-    
-    assert(scale >= -eps and scale <= 1.0 + eps)
-#     assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
-    return (1-scale) * funcs[1].eval(x) + scale * funcs[2].eval(x)
-
 # returns two splines, one bisec function and angle offset depending on angle rad
 # called by calc_radius_linear and calc_radius_heaviside
 # offset is required as bisec angle is always between 0 and 90 degrees
@@ -2215,17 +2164,11 @@ def calc_radius_linear(splines,bisecs,x,rad):
 
 # same as calc_radius_linear but with heaviside interpolation
 # between splines and bisecs
-def calc_radius_heaviside(splines,bisecs,x,rad):
-  # get beta and eta for heaviside function from bisec
-  beta = bisecs[0].heaviside.beta
-  eta = bisecs[0].heaviside.eta
-    
+def calc_radius_heaviside(splines,bisec,x,rad,phi,offset=0):
   eps = 1e-5 #for numerical comparison
-  
-  spline_1, spline_2, bisec, offset = get_splines_and_bisec(splines,bisecs,rad)
-  # bisection angle in radians
-  phi = bisec.angle + offset
-  
+  # get beta and eta for heaviside function from bisec
+  beta = bisec.heaviside.beta
+  eta = bisec.heaviside.eta
   # a + c * tanh(...) in [0,1]
   assert(calc_tanh(beta, eta, 1) <= 1)
   assert(calc_tanh(beta, eta, 0) >= 0)
@@ -2244,7 +2187,7 @@ def calc_radius_heaviside(splines,bisecs,x,rad):
     assert(close(a+c*calc_tanh(beta, eta, 1),1))
     assert(scale >= -eps and scale <= 1.0 + eps)
 #     assert(funcs[0].eval(x) >= 0.5-eps and funcs[1].eval(x) >= 0.5-eps)
-    return scale * spline_1.eval(x) + (1-scale) * bisec.eval(x)
+    return scale * splines[0].eval(x) + (1-scale) * bisec.eval(x)
   else:
     # project interval [phi,offset+pi/2] onto [0,1] 
     alpha = (rad - phi) / (offset+np.pi/2.0 - phi)
@@ -2252,7 +2195,14 @@ def calc_radius_heaviside(splines,bisecs,x,rad):
     
     assert(scale >= -eps and scale <= 1.0 + eps)
 #     assert(funcs[1].eval(x) >= 0.5-eps and funcs[2].eval(x) >= 0.5-eps)
-    return (1-scale) * bisec.eval(x) + scale * spline_2.eval(x)  
+    return (1-scale) * bisec.eval(x) + scale * splines[1].eval(x)  
+
+def calc_radius_heaviside_asymm(splines,bisecs,x,rad):  
+  spline_1, spline_2, bisec, offset = get_splines_and_bisec(splines,bisecs,rad)
+  # bisection angle in radians
+  phi = bisec.angle + offset
+  
+  return calc_radius_heaviside((spline_1,spline_2),bisec,x,rad,phi,offset)
     
 # helper function for building a kd-tree
 # @param list containing end nodes objects
@@ -2431,3 +2381,15 @@ def triangle_contains_any_neighbors(vertices):
         return True    
   
   return False
+
+# for given angle, move y to right quadrant
+# assume x is always given in quadrant 270 - 360 degree
+def translate_to_correct_quadrant(x,y,angle):
+  assert(y >= 0.5)
+  if angle > np.pi/2.0 and angle <= np.pi:
+    y -= 0.5
+  elif angle > np.pi and angle <= 1.5*np.pi:
+    y -= 0.5
+  # in case angle is already in assumed quadrant, do nothing
+  
+  return y 
