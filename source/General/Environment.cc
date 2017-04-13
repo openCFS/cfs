@@ -486,7 +486,21 @@ namespace CoupledField {
         return "N/m^2";
         break;
 
+      case MECH_PRINCIPAL_STRESS:
+      case MECH_PRINCIPAL_STRESS_MIN:
+      case MECH_PRINCIPAL_STRESS_MAX:
+      case MECH_PRINCIPAL_STRESS_MED:
+    	return "N/m^2";
+        break;
+
       case MECH_STRAIN:
+        return "";
+        break;
+
+      case MECH_PRINCIPAL_STRAIN:
+      case MECH_PRINCIPAL_STRAIN_MIN:
+      case MECH_PRINCIPAL_STRAIN_MAX:
+      case MECH_PRINCIPAL_STRAIN_MED:
         return "";
         break;
 
@@ -1264,6 +1278,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRESS, "mechPrincipalStress");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRESS_MIN, "mechPrincipalStressMin");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRESS_MAX, "mechPrincipalStressMax");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRESS_MED, "mechPrincipalStressMed");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRAIN, "mechPrincipalStrain");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRAIN_MIN, "mechPrincipalStrainMin");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRAIN_MAX, "mechPrincipalStrainMax");
+    SolutionTypeEnum.Add(MECH_PRINCIPAL_STRAIN_MED, "mechPrincipalStrainMed");
     SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");

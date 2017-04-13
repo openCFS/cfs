@@ -209,6 +209,67 @@ protected:
 };
 
 // ==========================================================================
+//  COEFFICIENT FUNCTION EIGEN
+// ==========================================================================
+//! Coefficient function that calculates the eigenvalues of another CoefFunction.
+
+//! This CoefFunction was designed for the purpose of calculating principal stress and principal strain
+//! Only works if the handled CoefFct (e.g. CoefFctFlux for stresses) calls a GetVector(), other methods are not implemented.
+
+class CoefFunctionEigen : public CoefFunctionFormBased {
+public:
+
+  //! Constructor
+  CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
+                    shared_ptr<ResultInfo> info,
+					PtrCoefFct stressCoef,
+                    Double factor = 1.0 );
+  //! Destructor
+  virtual ~CoefFunctionEigen();
+
+
+  // ========================
+  //  ACCESS METHODS
+  // ========================
+  //@{ \name Access Methods
+
+  //! \copydoc CoefFunction::GetVector
+  virtual void GetVector(Vector<Double>& coefVec,
+                         const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //#ifdef USE_LAPACK
+  //! Calculates Eigenvector and Eigenvalue from a stress- or strain coefVec. For principal stresses and strain.
+  void GetEigenFromCoefVec(Vector<Double> &solVec);
+  //#endif
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    EXCEPTION("This class defined coefficients of vector type only." );
+  }
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<Double> > feFct_;
+
+  //! Pointer to result info of desired result
+  shared_ptr<ResultInfo> res_;
+
+  //! Additional factor
+  Double factor_;
+
+  //! Coefficient Function of derived solution (e.g. strain or stress coefficients)
+  PtrCoefFct stressCoef_;
+
+};
+
+// ==========================================================================
 //  COEFFICIENT FUNCTION BASED ON KERNEL OF BDB-INTEGRATOR
 // ==========================================================================
 //! Coefficient function, calculated by the kernel of a BdB-integrator

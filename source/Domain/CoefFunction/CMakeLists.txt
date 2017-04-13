@@ -4,6 +4,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionAccumulator.cc
   CoefFunctionApprox.cc
   CoefFunctionFormBased.cc
+  CoefFunctionCache.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
   CoefFunctionExpression.cc

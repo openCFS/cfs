@@ -1611,6 +1611,8 @@ source/Domain/CoefFunction/CoefFunctionAccumulator.cc svneol=native#text/x-c%2B%
 source/Domain/CoefFunction/CoefFunctionAccumulator.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CoefFunction/CoefFunctionApprox.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/CoefFunction/CoefFunctionApprox.hh -text
+source/Domain/CoefFunction/CoefFunctionCache.cc -text
+source/Domain/CoefFunction/CoefFunctionCache.hh -text
 source/Domain/CoefFunction/CoefFunctionCompound.cc -text
 source/Domain/CoefFunction/CoefFunctionCompound.hh -text
 source/Domain/CoefFunction/CoefFunctionConst.cc -text
