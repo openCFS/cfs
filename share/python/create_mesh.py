@@ -88,7 +88,7 @@ if args.type == "voxels_from_optistruct" or args.type == "convert_optistruct":
 
 mesh= None 
     
-if args.type == 'bulk3d' or args.type == 'validation_test' or args.type == 'cantilever3d' or args.type == 'traegerblz':
+if args.type == 'bulk3d' or args.type == 'validation_test' or args.type == 'cantilever3d' or args.type == 'traegerblz' or args.type == 'box_lufo':
   mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)    
 elif args.type.startswith('lbm'):
   if args.lbm == None:
