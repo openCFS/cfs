@@ -456,6 +456,8 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   //after  dsyev: stacked normalized eigenvectors
 
 }
+#else
+EXCEPTION("Compile with USE_LAPACK = ON");
 #endif
 
 std::string CoefFunctionEigen::ToString() const {
