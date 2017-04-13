@@ -1035,7 +1035,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     depth = 1. 
   elif type == "box_lufo":
     width = 2.
-    heigth = 1.
+    height = 1.
     depth = 1.
     nx = x_res
     ny = nx/2 if y_res == None else y_res
@@ -1157,7 +1157,22 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         side[1].append((z * nny + ny) * nnx + x)
   
   if type == "box_lufo":
-    
+    top = (("force",[]))
+    mesh.bc.append(top)
+    for x in range(0,nnx+1):
+      for y in range(0,nny+1):
+        top[1].append((nnx*nny*nnz + nnx*y + x))
+    support = (("support",[]))
+    mesh.bc.append(support)
+    for y in range(0,nny+1):
+      support[1].append((nnx*y))
+    for y in range(0,nny+1):
+      support[1].append((nnx*y + nnx))
+    for x in range(0,nnx+1):
+      support[1].append((x))
+    for x in range(0,nnx+1):
+      support[1].append((nnx*nny + x))
+  
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
   msg += " with threshold " + str(threshold) 
