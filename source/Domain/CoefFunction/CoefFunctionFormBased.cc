@@ -6,6 +6,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 
 
 namespace CoupledField
@@ -339,6 +340,132 @@ template class CoefFunctionFlux<Double,false>;
 template class CoefFunctionFlux<Complex,false>;
 template class CoefFunctionFlux<Double,true>;
 template class CoefFunctionFlux<Complex,true>;
+
+// ==========================================================================
+//  COEFFICIENT FUNCTION FOR EIGENSTRESSES
+// ==========================================================================
+// Example for using CoefFunctionEigen: See MechPDE::DefinePostProcResults()
+// Principal Stresses and Strains
+CoefFunctionEigen::CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
+                  shared_ptr<ResultInfo> info,
+				  PtrCoefFct stressCoef,
+                  Double factor )
+                  :CoefFunctionFormBased() {
+  feFct_ = dynamic_pointer_cast<FeFunction<Double> >(feFct);
+  res_ = info;
+  factor_ = factor;
+  isComplex_ = false; //this eigenvalue solver can only handle real values!
+
+  // set inherited attributes
+  dimType_ = CoefFunction::VECTOR;
+  stressCoef_ = stressCoef;
+}
+
+CoefFunctionEigen::~CoefFunctionEigen() {
+
+}
+
+void CoefFunctionEigen::GetVector(
+		  Vector<Double>& coefVec,
+          const LocPointMapped& lpm
+		  ) {
+
+  //Gets the stress/strain values from the CoefFunction class which is passed through stressCoef
+  stressCoef_->GetVector(coefVec, lpm);
+
+  GetEigenFromCoefVec(coefVec);
+}
+
+UInt CoefFunctionEigen::GetVecSize() const{
+     return this->res_->dofNames.GetSize();
+}
+
+#ifdef USE_LAPACK
+void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
+  {
+  //This function calculates the principal stresses and principal strains from a given
+  //stress or strain state in coefVec and return it to solVec.
+  //
+  //Returns principal stress/strain vectors in a stacked order, where the
+  //eigenvector belonging to min(eigenvalue) is the first one.
+  //eigenvector belonging to max(eigenvalue) is the last one.
+
+  //Step 1: Conversion of this (coefVec) to a std::vector a in the correct order
+
+  std::vector<double> lp_a, lp_w, lp_work;
+
+  int lp_n;
+
+  if (solVec.GetSize() == 3) {
+    lp_n = 2;
+  }
+
+  else if (solVec.GetSize() == 6) {
+	lp_n = 3;
+  }
+  else {
+	EXCEPTION("Not a valid Voigt stress/strain tensor for eigenvalue calculation")
+  }
+
+  char lp_jobz = 'V'; //Documentation in LAPACK: dsyev
+  char lp_uplo = 'L';
+
+  int lp_lda = lp_n;
+  int lp_info;
+  int lp_lwork;
+
+  if (lp_n == 2){                             //2D-case
+    lp_lwork = 68;                            //68 is the optimum value for a 2x2 matrix
+    lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
+    lp_a.push_back(solVec.GetDoubleEntry(2)); //style in FORTRAN
+    lp_a.push_back(solVec.GetDoubleEntry(2));
+    lp_a.push_back(solVec.GetDoubleEntry(1));
+  }
+  else if (lp_n == 3){                        //3D-case
+    lp_lwork = 102;                           //102 is the optimum value for a 3x3 matrix
+    lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
+    lp_a.push_back(solVec.GetDoubleEntry(5)); //style in FORTRAN
+    lp_a.push_back(solVec.GetDoubleEntry(4));
+    lp_a.push_back(solVec.GetDoubleEntry(5));
+    lp_a.push_back(solVec.GetDoubleEntry(1));
+    lp_a.push_back(solVec.GetDoubleEntry(3));
+    lp_a.push_back(solVec.GetDoubleEntry(4));
+    lp_a.push_back(solVec.GetDoubleEntry(5));
+    lp_a.push_back(solVec.GetDoubleEntry(2));
+  }
+
+  lp_w.resize(lp_n);
+
+  lp_work.resize(lp_lwork);
+
+  solVec.Resize(lp_n * lp_n);
+
+  //Step 2: Eigensolver
+
+  dsyev(&lp_jobz, &lp_uplo, &lp_n, &*lp_a.begin(), &lp_lda, &*lp_w.begin(), &*lp_work.begin(), &lp_lwork, &lp_info);
+
+  //Step 3: Back-conversion of a to solVec
+  for(int i = 0; i < lp_n; ++i) {
+    for (int j = 0; j < lp_n; ++j){
+      solVec[i*lp_n + j] = lp_w[i] * lp_a[i*lp_n + j]; //Stacking the eigenvectors in a 4x1 (2D) or 9x1(3D) vector
+    }
+  }
+  //lp_w: vector of eigenvalues
+  //lp_a:
+  //before dsyev: "stacked" stress or strain tensor
+  //after  dsyev: stacked normalized eigenvectors
+
+}
+#endif
+
+std::string CoefFunctionEigen::ToString() const {
+  std::stringstream out;
+  out << "CoefFunctionEigen\n";
+  out << "ApplyTransposed: false. No such implementation in CoefFunctionEigen" << std::endl;
+  out << "Result: " <<
+      SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
 
 // ==========================================================================
 //  COEFFICIENT FUNCTION BASED ON KERNEL OF BDB-INTEGRATOR

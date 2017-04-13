@@ -43,6 +43,7 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionCache.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -2263,6 +2264,107 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     DefineFieldResult( stressCoef, stress );
     stiffFormCoefs_.insert(sigmaFunc);
 
+    //If stresses should be cached - take the following lines and go with stressCoefCache
+    //shared_ptr<CoefFunctionCache<Double> > stressCoefCache(new CoefFunctionCache<Double>(feFct, stress, stressCoef));
+    //DefineFieldResult(stressCoefCache, stress);
+    //stiffFormCoefs_.insert(sigmaFunc);
+
+    // === MECHANIC PRINCIPAL STRESS ===
+    //This result type should not be called in the xml-file. Call e.g. Mech_Principal_Stress_Max instead.
+
+    shared_ptr<ResultInfo> principalstress(new ResultInfo);
+
+    principalstress->resultType = MECH_PRINCIPAL_STRESS;
+    if( subType_ == "3d" || subType_ == "2.5d") {
+      principalstress->dofNames = "x", "y", "z", "x", "y", "z", "x", "y", "z";
+    } else if( subType_ == "planeStress" || subType_ == "planeStrain" ) {
+      principalstress->dofNames = "x", "y", "x", "y";
+    }
+    principalstress->unit =  "N/m^2";
+    principalstress->entryType = ResultInfo::VECTOR;
+    principalstress->definedOn = ResultInfo::ELEMENT;
+
+    //Variante principal stress CACHE, stress NO CACHE
+    shared_ptr<CoefFunctionEigen> prinStressCoef(new CoefFunctionEigen(feFct, principalstress, stressCoef));
+    shared_ptr<CoefFunctionCache<Double> > prinStressCoefCache(new CoefFunctionCache<Double>(feFct, principalstress, prinStressCoef));
+    DefineFieldResult( prinStressCoefCache, principalstress);
+
+    // === MECHANIC MINIMUM PRINCIPAL STRESS ===
+    shared_ptr<ResultInfo> principalstress_min(new ResultInfo);
+    principalstress_min->resultType = MECH_PRINCIPAL_STRESS_MIN;
+    principalstress_min->dofNames = dispDofNames;
+    principalstress_min->unit = "N/m^2";
+    principalstress_min->entryType = ResultInfo::VECTOR;
+    principalstress_min->definedOn = ResultInfo::ELEMENT;
+
+    // === MECHANIC MAXIMUM PRINCIPAL STRESS ===
+    shared_ptr<ResultInfo> principalstress_max(new ResultInfo);
+    principalstress_max->resultType = MECH_PRINCIPAL_STRESS_MAX;
+    principalstress_max->dofNames = dispDofNames;
+    principalstress_max->unit = "N/m^2";
+    principalstress_max->entryType = ResultInfo::VECTOR;
+    principalstress_max->definedOn = ResultInfo::ELEMENT;
+
+    // === MECHANIC MEDIUM PRINCIPAL STRESS ===
+    shared_ptr<ResultInfo> principalstress_med(new ResultInfo);
+    principalstress_med->resultType = MECH_PRINCIPAL_STRESS_MED;
+    principalstress_med->dofNames = dispDofNames;
+    principalstress_med->unit = "N/m^2";
+    principalstress_med->entryType = ResultInfo::VECTOR;
+    principalstress_med->definedOn = ResultInfo::ELEMENT;
+
+    shared_ptr<CoefFunctionCompound<Double> > prinStressCoefMin(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > prinStressCoefMax(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > prinStressCoefMed(new CoefFunctionCompound<Double>(mp_));
+
+    std::map<std::string, PtrCoefFct> var2;
+    //Take Coefficients of CoefFctCache
+    var2["d"] = prinStressCoefCache;
+
+    if ( !isComplex_ ) {
+
+      StdVector<std::string> coefMinReal;
+      StdVector<std::string> coefMaxReal;
+      StdVector<std::string> coefMedReal;
+
+      if ( stressDim_==3 ) {
+        const std::string prinStressCoefMinStr[] = {"d_0_R", "d_1_R"};
+        const std::string prinStressCoefMaxStr[] = {"d_2_R", "d_3_R"};
+        const std::string prinStressCoefMedStr[] = {"0", "0"};
+        coefMinReal.Import(prinStressCoefMinStr, 2);
+        coefMaxReal.Import(prinStressCoefMaxStr, 2);
+        coefMedReal.Import(prinStressCoefMedStr, 2);
+      }
+
+      else if ( stressDim_==6 ) {
+        const std::string prinStressCoefMinStr[] = {"d_0_R", "d_1_R", "d_2_R"};
+        const std::string prinStressCoefMedStr[] = {"d_3_R", "d_4_R", "d_5_R"};
+        const std::string prinStressCoefMaxStr[] = {"d_6_R", "d_7_R", "d_8_R"};
+        coefMinReal.Import(prinStressCoefMinStr, 3);
+        coefMaxReal.Import(prinStressCoefMaxStr, 3);
+        coefMedReal.Import(prinStressCoefMedStr, 3);
+      }
+      else if ( stressDim_==4 ) {
+        const std::string prinStressCoefMinStr[] = {"0", "0"};
+        const std::string prinStressCoefMedStr[] = {"0", "0"};
+        const std::string prinStressCoefMaxStr[] = {"0", "0"};
+        coefMinReal.Import(prinStressCoefMinStr, 2);
+        coefMaxReal.Import(prinStressCoefMaxStr, 2);
+        coefMedReal.Import(prinStressCoefMedStr, 2);
+        WARN("No implementation for principal stress in axi-formulation yet.");
+      }
+
+      else {
+        EXCEPTION( "Wrong dimension for principal stress: in DefinePostprocResults");
+      }
+      prinStressCoefMin->SetVector(coefMinReal, var2);
+      prinStressCoefMax->SetVector(coefMaxReal, var2);
+      prinStressCoefMed->SetVector(coefMedReal, var2);
+      DefineFieldResult( prinStressCoefMin, principalstress_min );
+      DefineFieldResult( prinStressCoefMax, principalstress_max );
+      DefineFieldResult( prinStressCoefMed, principalstress_med );
+    }
+
     // === THERMOMECHANICAL STRESS ===
     if ( isThermalStrain )  {
       shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -2338,6 +2440,101 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       DefineFieldResult( strainFunc, strain );
     }
     stiffFormCoefs_.insert(strainFunc);
+
+    // === MECHANIC PRINCIPAL STRAIN ===
+
+    shared_ptr<ResultInfo> principalstrain(new ResultInfo);
+
+    principalstrain->resultType = MECH_PRINCIPAL_STRAIN;
+    if( subType_ == "3d" || subType_ == "2.5d") {
+      principalstrain->dofNames = "x", "y", "z", "x", "y", "z", "x", "y", "z";
+    } else if( subType_ == "planeStress" || subType_ == "planeStrain" ) {
+      principalstrain->dofNames = "x", "y", "x", "y";
+    }
+    principalstrain->unit =  "";
+    principalstrain->entryType = ResultInfo::VECTOR;
+    principalstrain->definedOn = ResultInfo::ELEMENT;
+
+    // === MECHANIC MINIMUM PRINCIPAL STRAIN ===
+    shared_ptr<ResultInfo> principalstrain_min(new ResultInfo);
+    principalstrain_min->resultType = MECH_PRINCIPAL_STRAIN_MIN;
+    principalstrain_min->dofNames = dispDofNames;
+    principalstrain_min->unit = "";
+    principalstrain_min->entryType = ResultInfo::VECTOR;
+    principalstrain_min->definedOn = ResultInfo::ELEMENT;
+
+    // === MECHANIC MAXIMUM PRINCIPAL STRAIN ===
+    shared_ptr<ResultInfo> principalstrain_max(new ResultInfo);
+    principalstrain_max->resultType = MECH_PRINCIPAL_STRAIN_MAX;
+    principalstrain_max->dofNames = dispDofNames;
+    principalstrain_max->unit = "";
+    principalstrain_max->entryType = ResultInfo::VECTOR;
+    principalstrain_max->definedOn = ResultInfo::ELEMENT;
+
+    // === MECHANIC MEDIUM PRINCIPAL STRAIN ===
+    shared_ptr<ResultInfo> principalstrain_med(new ResultInfo);
+    principalstrain_med->resultType = MECH_PRINCIPAL_STRAIN_MED;
+    principalstrain_med->dofNames = dispDofNames;
+    principalstrain_med->unit = "";
+    principalstrain_med->entryType = ResultInfo::VECTOR;
+    principalstrain_med->definedOn = ResultInfo::ELEMENT;
+
+    shared_ptr<CoefFunctionEigen> prinStrainCoef(new CoefFunctionEigen(feFct, principalstrain, strainFunc));
+    shared_ptr<CoefFunctionCache<Double> > prinStrainCoefCache(new CoefFunctionCache<Double>(feFct, principalstrain, prinStrainCoef));
+
+    DefineFieldResult( prinStrainCoefCache, principalstrain);
+
+    shared_ptr<CoefFunctionCompound<Double> > prinStrainCoefMin(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > prinStrainCoefMax(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > prinStrainCoefMed(new CoefFunctionCompound<Double>(mp_));
+
+    std::map<std::string, PtrCoefFct> var3;
+    var3["e"] = prinStrainCoefCache;
+
+    if ( !isComplex_ ) {
+
+      StdVector<std::string> coefMinReal;
+      StdVector<std::string> coefMaxReal;
+      StdVector<std::string> coefMedReal;
+
+      if ( stressDim_==3 ) {
+        const std::string prinStrainCoefMinStr[] = {"e_0_R", "e_1_R"};
+        const std::string prinStrainCoefMaxStr[] = {"e_2_R", "e_3_R"};
+        const std::string prinStrainCoefMedStr[] = {"0", "0"};
+        coefMinReal.Import(prinStrainCoefMinStr, 2);
+        coefMaxReal.Import(prinStrainCoefMaxStr, 2);
+        coefMedReal.Import(prinStrainCoefMedStr, 2);
+      }
+
+      else if ( stressDim_==6 ) {
+        const std::string prinStrainCoefMinStr[] = {"e_0_R", "e_1_R", "e_2_R"};
+        const std::string prinStrainCoefMedStr[] = {"e_3_R", "e_4_R", "e_5_R"};
+        const std::string prinStrainCoefMaxStr[] = {"e_6_R", "e_7_R", "e_8_R"};
+        coefMinReal.Import(prinStrainCoefMinStr, 3);
+        coefMaxReal.Import(prinStrainCoefMaxStr, 3);
+        coefMedReal.Import(prinStrainCoefMedStr, 3);
+      }
+
+      else if ( stressDim_==4 ) {
+        const std::string prinStrainCoefMinStr[] = {"0", "0"};
+        const std::string prinStrainCoefMedStr[] = {"0", "0"};
+        const std::string prinStrainCoefMaxStr[] = {"0", "0"};
+        coefMinReal.Import(prinStrainCoefMinStr, 2);
+        coefMaxReal.Import(prinStrainCoefMaxStr, 2);
+        coefMedReal.Import(prinStrainCoefMedStr, 2);
+        WARN("No implementation for principal strain in axi-formulation yet.");
+      }
+
+      else {
+        EXCEPTION( "Wrong dimension for principal strain: in DefinePostprocResults");
+      }
+      prinStrainCoefMin->SetVector(coefMinReal, var3);
+      prinStrainCoefMax->SetVector(coefMaxReal, var3);
+      prinStrainCoefMed->SetVector(coefMedReal, var3);
+      DefineFieldResult( prinStrainCoefMin, principalstrain_min );
+      DefineFieldResult( prinStrainCoefMax, principalstrain_max );
+      DefineFieldResult( prinStrainCoefMed, principalstrain_med );
+    }
 
     if ( isThermalStrain )  {
       shared_ptr<ResultInfo> thermalStrain(new ResultInfo);
