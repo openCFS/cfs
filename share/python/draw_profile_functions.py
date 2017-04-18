@@ -544,7 +544,7 @@ class BisecSpline:
         
       assert(t is not None)
       samples = self.eval_bicubic(t)
-      if max(samples) <= height:
+      if max(samples) <= height+1e-3:
         self.type = "bicubic"
       # in case function composed of b-spline and cubic function has undershoot  
       # in case b-spline has no undershoot (point p is not below bspline(x=0))
@@ -786,7 +786,7 @@ class Profile:
       self.splines_left[1] = PrincipleSpline(args.z1, args.x2, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.z1, args.y1, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.z1, args.x1, args.bend, 1.5*np.pi)
-       
+      
       self.bisecs_left[0] = BisecSpline(args.z1, args.y2, args.x2, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec)
       self.bisecs_left[1] = BisecSpline(args.z1, args.x2, args.y1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.z1, args.y1, args.x1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec)
