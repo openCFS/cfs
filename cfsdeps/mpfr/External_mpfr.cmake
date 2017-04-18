@@ -94,8 +94,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # we use make instead to build GMP
     find_program(MPFR_MAKE_PROGRAM make)
   else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-    set(MPFR_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+    set(MPFR_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build MPFR")
   endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  MARK_AS_ADVANCED(MPFR_MAKE_PROGRAM)
   ExternalProject_Add(mpfr
     DEPENDS gmp
     PREFIX "${mpfr_prefix}"

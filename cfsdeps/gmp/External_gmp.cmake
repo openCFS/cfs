@@ -106,8 +106,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # we use make instead to build GMP
     find_program(GMP_MAKE_PROGRAM make)
   else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-    set(GMP_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+    set(GMP_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build GMP")
   endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  MARK_AS_ADVANCED(GMP_MAKE_PROGRAM)
   ExternalProject_Add(gmp
     PREFIX "${gmp_prefix}"
     SOURCE_DIR "${gmp_source}"
