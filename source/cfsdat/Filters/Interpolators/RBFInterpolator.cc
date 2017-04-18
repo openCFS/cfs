@@ -29,6 +29,7 @@
 #include <boost/iterator/zip_iterator.hpp>
 #include <utility>
 
+
 namespace CFSDat{
 
 RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)

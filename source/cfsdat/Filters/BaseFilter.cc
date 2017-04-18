@@ -23,6 +23,7 @@
 #include "Filters/Derivatives/PostLighthillSource.hh"
 #include "SignalProcessing/FftFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
+#include "SignalProcessing/TemporalBlendingFilter.hh"
 #include <boost/tokenizer.hpp>
 #include <Filters/BaseMeshFilterType.hh>
 
@@ -56,6 +57,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   else if (filtNode->GetName() == "fft") {
     newPtr.reset(new FftFilter(0, filtNode, resMana));
   }
+  else if (filtNode->GetName() == "temporalBlending") {
+      newPtr.reset(new CFSDat::TemporalBlendFilter(0, filtNode, resMana));
+    }
   else if (filtNode->GetName() == "timeMean") {
     newPtr = FilterPtr(new CFSDat::TimeMeanFilter1(0,filtNode,resMana));
   }
