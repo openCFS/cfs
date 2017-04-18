@@ -981,7 +981,7 @@ void CoefFunctionHyst::CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, 
    */
 
   std::string version_name = "DirectDivisionAbs"; // "L1_Regularized_LeastSquares";// "Unregularized_LeastSquares";
-  Double scaling;
+  Double scaling = 0.0;
   if(PDEName_ == "Electromagnetics"){
     /*
      * Electromagnetics (J = magnetic polarization = mu_0 * M, rev_mat_fac_ = nu0)
