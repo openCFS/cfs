@@ -449,9 +449,8 @@ class BisecSpline:
     self.type = None
     self.angle = None
     self.left = None
-    self.bicubic_height = None
   
-  def __init__(self,x1,y1,z1,bend,beta,eta,force=None,left=True,bicubic_height=None):
+  def __init__(self,x1,y1,z1,bend,beta,eta,force=None,left=True):
     self.x1 = x1
     self.y1 = y1
     self.z1 = z1
@@ -471,7 +470,7 @@ class BisecSpline:
     # the right part is from b to x=0.5 where the heigt comes from the spline y1,z1 with grad=1 at point p
     # from the point p we determine the angle phi of this bisec Profile function 
   
-    # left part is same spline as orhtogonal spline up to point
+    # left part is same spline as orhtogonal spline up to point b
     left_spline = PrincipleSpline(x1, 0.5*(y1+z1), bend)
     b = left_spline.coords_cut 
     self.cut = b 
@@ -481,15 +480,10 @@ class BisecSpline:
     right = PrincipleSpline(y1, z1, bend)
     p = right.coords_cut
     p[0] = 1.0 - p[0] # move p to 1st quadrant to calculate right angle
-    if bicubic_height:
-      self.bicubic_height = bicubic_height
-      height = bicubic_height
-    else:
-      
-      height = distance_to_center(p) + 0.5 
+    height = distance_to_center(p) + 0.5 
 #     height = p[1]#distance_to_center(p) + 0.5
     self.angle = angle_to_center(p)
-    
+     
     # polynomial interpolation for right part from b to p
     lx = b[0]
     ly = b[1] 
@@ -738,24 +732,21 @@ class Profile:
       self.splines_left[1] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.x1, args.y1, args.bend, 1.5*np.pi)
-#       for i in range(0,4):
-#         print(self.splines_left[i].coords_cut)
-#       sys.exit()
-      # 2nd and 3rd argument switchable 
+
       self.bisecs_left[0] = BisecSpline(args.x1, args.z2, args.y2, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[2] = BisecSpline(args.x1, args.z1, args.y1, args.bend,args.beta,args.eta,args.force_bisec)
       self.bisecs_left[3] = BisecSpline(args.x1, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec)
       
-      self.splines_right[0] = PrincipleSpline(args.x2, args.z2, args.bend, 0, False)
+      self.splines_right[0] = PrincipleSpline(args.x2, args.z1, args.bend, 0, False)
       self.splines_right[1] = PrincipleSpline(args.x2, args.y2, args.bend, np.pi/2.0, False)
       self.splines_right[2] = PrincipleSpline(args.x2, args.z1, args.bend, np.pi, False)
       self.splines_right[3] = PrincipleSpline(args.x2, args.y1, args.bend, 1.5*np.pi, False)
        
-      self.bisecs_right[0] = BisecSpline(args.x2, args.z2, args.y2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[0] = BisecSpline(args.x2, args.z1, args.y2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
       self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
       self.bisecs_right[2] = BisecSpline(args.x2, args.z1, args.y1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
-      self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z2, args.bend,args.beta,args.eta,args.force_bisec,left=False)
+      self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.force_bisec,left=False)
 
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
@@ -1230,9 +1221,20 @@ def generate_basecell(args,info,log):
         symmetric = False
         write_profile_to_array(array, profiles[i], i)
       if args.target == "3dlines":
-        plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
-        
-  if args.target == '3dlines':
+        if args.save_vtp: #write 3 .vtp files
+          points = vtk.vtkPoints()
+          lines = vtk.vtkCellArray()
+          polygon = vtk.vtkPolyData()
+          
+          points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,i,points,lines)
+          
+          polygon.SetPoints(points)
+          polygon.SetLines(lines)
+          show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
+        else:  
+          plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+
+  if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
   return array
@@ -1281,12 +1283,10 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   return map
 
 def plot_3dlines(profile,res,numLines,dir,ha):
-  Z = np.linspace(0,2*np.pi,360)
-  
   nodes = []
-  
+   
   map = create_profile_map(profile, res)
-        
+         
   nodes = get_surface_lines(map, numLines, dir)
   color = None
   if dir == 0:
@@ -2405,3 +2405,18 @@ def triangle_contains_any_neighbors(vertices):
         return True    
   
   return False
+
+def write_polylines_to_vtk(profile,res,numLines,dir,points,lines):
+  map = create_profile_map(profile, res)
+  lenx = np.size(map,1)
+  nodes = get_surface_lines(map, numLines, dir)
+  for i in range(numLines):
+    vtk_ids = []
+    for j in range(lenx):
+      vtk_ids.append(points.InsertNextPoint(nodes[i,j,0], nodes[i,j,1], nodes[i,j,2]))
+    lines.InsertNextCell(lenx) # specify number of following nodes
+    for j in range(lenx):
+      lines.InsertCellPoint(vtk_ids[j])
+  
+  return points,lines
+      
