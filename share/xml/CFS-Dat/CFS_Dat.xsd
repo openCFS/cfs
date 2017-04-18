@@ -31,6 +31,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_PostLighthill.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FftFilter.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_TemporalBlending.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_TMean.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
 
@@ -63,7 +64,14 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      
+      <xsd:element name="temporalBlending" type="DT_TemporalBlend">
+        <xsd:annotation>
+          <xsd:documentation>
+            This filter multiplies every timestep with a specified function f(t), therewith
+            different blendings for e.g. acoustic source terms can be realized
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:choice>
   </xsd:group>
 

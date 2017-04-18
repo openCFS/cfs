@@ -1351,6 +1351,7 @@ share/xml/CFS-Dat/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_SimplePoint.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TDeriv1.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TMean.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_TemporalBlending.xsd -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/MaterialDataBase.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
@@ -2326,6 +2327,8 @@ source/cfsdat/Filters/Output/OutputFilter.cc -text
 source/cfsdat/Filters/Output/OutputFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/FftFilter.cc svneol=native#text/plain
 source/cfsdat/Filters/SignalProcessing/FftFilter.hh svneol=native#text/plain
+source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.cc -text
+source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.hh -text
 source/cfsdat/README -text

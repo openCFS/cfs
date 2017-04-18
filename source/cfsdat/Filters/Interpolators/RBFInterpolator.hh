@@ -102,6 +102,10 @@ private:
 
     //! contains the matrices createb by the Interpolators from interpolators_
     static CF::StdVector<Matrix> matrices_;
+
+    std::string expr_;
+
+    MathParser* mp_;
 };
 
 }
