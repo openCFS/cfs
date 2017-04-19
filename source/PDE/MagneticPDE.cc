@@ -57,8 +57,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   pdename_          = "magnetic";
   pdematerialclass_ = ELECTROMAGNETIC;
   
-  //! Always use updated Lagrangian formulation 
-  updatedGeo_        = true;
+  updatedGeo_        = false;  //true; //! Always use updated Lagrangian formulation
   isMagnetoStrictCoupled_ = false;
   mechanicPDE_ = NULL;
   
@@ -359,13 +358,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 			  // add also material to global, distributed reluctivity coefficient function
 			  if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-			    std::cout << "Do not add to reluc" << std::endl;
+			    //std::cout << "Do not add to reluc" << std::endl;
 			    /*
 			     * we cannot directly add coefFunctionHyst to reluc_ as reluc_ expects tensorial coefFncs
 			     * but coefFunctionHyst has to be a vector coefFnc
 			     */
 			  } else {
-			    std::cout << "Add to reluc" << std::endl;
+			    //std::cout << "Add to reluc" << std::endl;
 			    reluc_->AddRegion(actRegion, curCoef);
 			  }
 

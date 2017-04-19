@@ -3554,14 +3554,15 @@ namespace CoupledField {
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
-      PtrCoefFct nu1, nu2;
-      PtrCoefFct oneHalf = CoefFunction::Generate( mp_, Global::REAL, "0.5");
-      factor = materials_[nitscheIf->GetMasterVolRegion()]
-                             ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+      PtrCoefFct permability;
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+      permability = materials_[nitscheIf->GetMasterVolRegion()]
+                             ->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
 //      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
 //                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
-//      factor = CoefFunction::Generate( mp_, Global::REAL,
-//                         CoefXprBinOp(mp_, nu1, nu2, CoefXpr::OP_ADD));
+      factor = CoefFunction::Generate( mp_, Global::REAL,
+                             CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
 //      factor = nu2;
 //      factor = CoefFunction::Generate( mp_, Global::REAL,
 //                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
@@ -3771,6 +3772,15 @@ namespace CoupledField {
                         factor, beta, curcpl, updatedGeo_, true, true);
     }
 
+//    if ( nonLin_ ) {
+//    	penalty_u2_v2->SetSolDependent(true);
+//    	penalty_u1_v2->SetSolDependent(true);
+//    	penalty_u1_v1->SetSolDependent(true);
+//    	flux_du1_v1->SetSolDependent(true);
+//    	flux_u1_dv1->SetSolDependent(true);
+//    	flux_du1_v2->SetSolDependent(true);
+//    }
+
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
     SurfaceBiLinFormContext *flux_u1_dv1_Context   = NULL;
@@ -3780,7 +3790,7 @@ namespace CoupledField {
 
     FEMatrixType targetMatrix = STIFFNESS;
     if(isMoving){
-        targetMatrix = STIFFNESS_UPDATE;
+    	targetMatrix = STIFFNESS_UPDATE;
     }
 
     curcpl = BiLinearForm::MASTER_MASTER;

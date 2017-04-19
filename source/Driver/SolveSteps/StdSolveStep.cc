@@ -3492,7 +3492,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin)
   {
 
-    std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
+    //std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
     Double RhsLinL2Norm;
 
     // to incorporate loads+
