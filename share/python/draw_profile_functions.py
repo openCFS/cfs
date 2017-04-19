@@ -263,6 +263,16 @@ def distance_to_center(p):
 
 # calculates angle between (0.5,0.5) and point p
 def angle_to_center(p):
+  """
+  >>> print(round(angle_to_center(np.array([1.0,0.0])),5))
+  5.49779
+  >>> print(round(angle_to_center(np.array([0.5,1.0])),5))
+  1.5708
+  >>> print(round(angle_to_center(np.array([0.0,0.0])),5))
+  3.92699
+  >>> print(round(angle_to_center(np.array([0.5,-1.0])),5))
+  4.71239
+  """
   x = p[0] - 0.5
   y = p[1] - 0.5
   
@@ -331,31 +341,20 @@ def profileCirc(x1,res):
   
   return vec
 
-# for a given profile and point p, check if p lies on or inside profile
+# for a given profile and point p, check if p lies inside (not on surface of) profile
 def contains_point(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)
   assert(p[1] >= 0.0 and p[1] <= 1.0)
   assert(p[2] >= 0.0 and p[2] <= 1.0)
   
   # depending on direction, estimate plane in which we perform check
-  if profile.direction == 0:# check for x profile -> z-y plane
-    x = p[0]
-    y = p[2]
-    z = p[1]
-  elif profile.direction == 1: #check for y profile -> x-z plane
-    x = p[1]
-    y = p[0]
-    z = p[2]
-  else: # dir == 2; check for z profile --> y-x plane
-    x = p[2]
-    y = p[1]
-    z = p[0]
+  major = profile.direction
+  minor_1,minor_2 = give_normal_plane_axes(profile.direction)  
     
-  phi = angle_to_center((y,z))
-  r = calc_radius(profile, x, phi)
-  val = (y-0.5)**2 + (z-0.5)**2
-  
-  if (val-r*r <= 1e-3):
+  phi = angle_to_center((minor_1,minor_2))
+  r = calc_radius(profile, p[major], phi)
+  val = (p[minor_1]-0.5)**2 + (p[minor_2]-0.5)**2
+  if (val <= r*r+1e-6):
     return True
   
   return False
@@ -892,46 +891,71 @@ def get_surface_lines(map,numLines,dir):
 # each surface point is also given a unique id
 # min_distance defines smallest distance between a surface node and a neighbor inner node that we allow
 # if the distance between these two is smaller, we omit the surface node
-def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=2.0/res):
+def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance,ips):
   dir = profile.direction
   assert(dir == 0 or dir == 1 or dir == 2)
+  assert(dir != otherProfile1.direction and dir != otherProfile2.direction)
   res = nodes.shape[1]
-  
+ 
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
-  
-  # for each line, check if a point is contained in two other profiles
-  # if not -> point is a surface point
-  # if yes, omit point 
-  # if point p is surface point, check if next point p+1 is also a surface point
-  # if not, check distance from this inner point (p+1) to previous surface point (p)
-  # if distance is too small (e.g. < 0.5* grid spacing (h)), then omit p
   
   for numLine,line in enumerate(nodes):
     for i,p in enumerate(line):
-      # detect crossing border from inner to outer:
-      if i > 0 and nodes_ids[numLine,i-1] == -1:
-        # it is possible that we already performed this check on
-        if contains_point(line[i-1], otherProfile1) or contains_point(line[i-1], otherProfile2):
-          intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
-          if calc_distance(p, intersect) < min_distance:
-            nodes_ids[numLine,i] = -1
-            continue
-
-      # check if point is contained in other profiles
-      # assume we start with a point that is a surface point
-      if not contains_point(p, otherProfile1) and not contains_point(p, otherProfile2):  
-        nodes_ids[numLine,i] = pointId
-        pointId += 1
-      else: # point is not on surface
-        assert(True)
-        if nodes_ids[numLine,i-1] > -1:
-          intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
-          # calc distance to intersection point
-          if calc_distance(line[i-1], intersect) < min_distance:
-            # if too small, don't draw previous surface point
-            nodes_ids[numLine,i-1] = -1
-            pointId -=1
-            
+      if (not contains_point(p, otherProfile1)) and (not contains_point(p, otherProfile2)):
+        if i < len(line) - 2:
+          # this point might be a valid surface point
+          # check for next on
+          if contains_point(line[i+1], otherProfile1) or contains_point(line[i+1], otherProfile2):
+              # next point is inner point
+              p_next = line[i+1]
+              intersect = find_intersection_point(p, p_next, profile, otherProfile1, otherProfile2)
+              ips.InsertNextPoint(intersect)
+              if calc_distance(p, intersect) > min_distance:
+                # surface point is valid, as it is sufficiently away from intersection  
+                nodes_ids[numLine,i] = pointId
+                pointId += 1
+          else:
+            nodes_ids[numLine,i] = pointId
+            pointId += 1       
+        else:
+          # assume last point in line is far away from intersection
+          nodes_ids[numLine,i] = pointId
+          pointId += 1  
+  # for each line, check if a point is contained in two other profiles
+  # if not -> point is a surface point
+  # if yes, omit point
+  # if point p is surface point, check if next point p+1 is also a surface point
+  # if not, check distance from this inner point (p+1) to previous surface point (p)
+  # if distance is too small (e.g. < 0.5* grid spacing (h)), then omit p
+ 
+#   for numLine,line in enumerate(nodes):
+#     for i,p in enumerate(line):
+#       # detect crossing border from inner to outer:
+#       if i > 0 and nodes_ids[numLine,i-1] == -1:
+#         # it is possible that we already performed this check on
+#         if contains_point(line[i-1], otherProfile1) or contains_point(line[i-1], otherProfile2):
+#           intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
+#           ips.InsertNextPoint(intersect)
+#           if calc_distance(p, intersect) < min_distance:
+#             nodes_ids[numLine,i] = -1
+#             continue
+# 
+#       # check if point is contained in other profiles
+#       # assume we start with a point that is a surface point
+#       if not contains_point(p, otherProfile1) and not contains_point(p, otherProfile2): 
+#         nodes_ids[numLine,i] = pointId
+#         pointId += 1
+#       else: # point is not on surface
+#         assert(True)
+#         if nodes_ids[numLine,i-1] > -1:
+#           intersect = find_intersection_point(line[i-1], p, profile, otherProfile1, otherProfile2)
+#           ips.InsertNextPoint(intersect)
+#           # calc distance to intersection point
+#           if calc_distance(line[i-1], intersect) < min_distance:
+#             # if too small, don't draw previous surface point
+#             nodes_ids[numLine,i-1] = -1
+#             pointId -=1
+           
   return nodes_ids, pointId
 
 # use bisection algorithm to find intersection point between two profiles
@@ -949,10 +973,7 @@ def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
   # find out on which coordinate component we have to perform bisection
   dir1,dir2 = give_normal_plane_axes(dir)
   # convert to degrees and modulo 45 degrees to stay in first quadrant
-  phi = degrees(angle_to_center((left[dir1],left[dir2]))) % 45
-#   print "phii: ", phi
-  phi = radians(phi)
-#   print "phi in rad: ", phi
+  phi = angle_to_center((left[dir1],left[dir2])) 
   lower = left[dir]
   upper = right[dir]
     
@@ -1134,18 +1155,28 @@ def generate_basecell(args,info,log):
     map_y = create_profile_map(profiles[1], res)
     map_z = create_profile_map(profiles[2], res)
     
+    # if distance between potential surface and intersection points of two profiles
+    # is smaller than this distance, suspend first point as surface point 
+    min_distance = 0    # store all intersection points computed in find_points_on_surface
+    # and visualize them
+    ips = vtk.vtkPoints()
+    
     # first dimension of nodes : surface lines
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
     nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 0)
-    nodes_ids_1, id = find_points_on_surface(nodes_1, profiles[0], profiles[1], profiles[2],id)
+    nodes_ids_1, id = find_points_on_surface(nodes_1, profiles[0], profiles[1], profiles[2],id,min_distance,ips)
 
     nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 1)
-    nodes_ids_2, id = find_points_on_surface(nodes_2, profiles[1], profiles[0], profiles[2], id)
+    nodes_ids_2, id = find_points_on_surface(nodes_2, profiles[1], profiles[0], profiles[2], id,min_distance,ips)
     
     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 2)
-    nodes_ids_3, id = find_points_on_surface(nodes_3, profiles[2], profiles[0], profiles[1], id)
-    
+    nodes_ids_3, id = find_points_on_surface(nodes_3, profiles[2], profiles[0], profiles[1], id,min_distance,ips)
+   
+    ips_polydata = vtk.vtkPolyData()
+    ips_polydata.SetPoints(ips)
+    show_write_vtk(ips_polydata, 1000, "intersection_points.vtp")
+#     sys.exit() 
     # create vtk cells and points
     cells = vtk.vtkCellArray()
     
@@ -2437,9 +2468,21 @@ def write_polylines_to_vtk(profile,res,numLines,dir,points,lines):
   
   return points,lines
 
-# angle in radians between 0 and 2*pi
-# returns weight for spline part of bicubic bisec
+# @param angle in radians between 0 and pi/2
+# @param interpolation: either "linear" or "heaviside", passed by basecell.py
+# @param y1,z1: we want to interpolate between these two values
+# @para beta param of tanh(), in case of heaviside interpolation
+# returns weighted radius for spline part of bicubic bisec
 def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
+  """
+  # python doctest
+  >>> weighted_by_angle(np.pi/4,"heaviside",0.2,0.3,10) != 0.2
+  True
+  >>> print(round(weighted_by_angle(0,"heaviside",0.2,0.3,10),2))
+  0.2
+  >>> print(round(weighted_by_angle(np.pi/2,"heaviside",0.2,0.3,10),2))
+  0.3
+  """ 
   assert(angle >= 0 and angle <= np.pi/2.0)
   w = (angle-np.pi/2.0) / (-np.pi/2.0) # linear interpolation 
   if interpolation == "heaviside":
@@ -2447,6 +2490,6 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
     alpha = angle / (np.pi/2.0) # project angle in [0,pi/2] onto [0,1]
     # set eta = 0.5 as we want weight = 0.5 for an angle of 0.5
     w = 1 - calc_heaviside_interpolation(alpha, beta, 0.5)
-
+  
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1

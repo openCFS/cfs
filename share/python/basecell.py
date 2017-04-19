@@ -3,7 +3,8 @@
 import mesh_tool
 import cfs_utils
 import argparse
-from draw_profile_functions import *
+import draw_profile_functions
+from draw_profile_functions import generate_basecell
 import numpy as np
 import matviz_rot
 from matviz_vtk import *
@@ -181,6 +182,10 @@ parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, 
 
 args = parser.parse_args()
 
+if __name__ == "__main__":
+  import doctest, draw_profile_functions
+  doctest.testmod(draw_profile_functions)
+
 if args.res_surf_lines is None:
   args.res_surf_lines = args.res
 
@@ -267,8 +272,6 @@ if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.s
   assert(file.endswith('.mesh'))
   
   mesh_tool.write_gid_mesh(mesh, file)
-
-#   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
 
 ############## info xml scheme #####################
 # <basecell>
