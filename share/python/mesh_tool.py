@@ -2301,9 +2301,9 @@ def create_mesh_for_aux_cells(all_nodes = [], elements = [],offset = 0.):
   return mesh
 
 # @param array to be written out
-# @param singRegion do we want a mesh with only one region?
+# @param multRegion do we want a mesh with three regions?
 # @param minDim and maxDim contain for x,y,z direction the minimum/maximum coordinate
-def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
+def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
   
@@ -2327,10 +2327,10 @@ def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,
       for x in range(nx):
         e = Element()
         e.type = HEXA8
-        if (array[x][y][z] >= 0.0 and not singRegion):
+        if (array[x][y][z] >= 0.0 and multRegion):
           e.region = "mech" + str(int(array[x][y][z]))
           count += 1
-        elif (array[x][y][z] >= 0.0 and singRegion):
+        elif (array[x][y][z] >= 0.0 and not multRegion):
           e.region = "mech"
           count += 1
         else:
