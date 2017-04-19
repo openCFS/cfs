@@ -20,7 +20,7 @@ def calc_volume(array,infoXml):
   
   print("volume:" + str(vol))
 
-def visualize_structure(array,singRegion,show,save):
+def visualize_structure(array,show,save):
   # create vtk cells and points
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
@@ -124,7 +124,7 @@ def create_mesh_with_profiles(args,infoXml,log):
     if args.z1 == 0.0 and args.z2 == 0.0:
       mesh = create_2d_mesh_from_array(array)
     else:
-      mesh = mesh_tool.create_3d_mesh_from_array(array,args.single_region)
+      mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
     mesh_tool.validate_periodicity(mesh)
   elif args.target.startswith("surface") and not args.skip_surface_gaps:
@@ -139,9 +139,9 @@ def create_mesh_with_profiles(args,infoXml,log):
       save = "volume.vtp" if not args.save else args.save
       if not save.endswith('.vtp'):
         save += ".vtp"
-      visualize_structure(array,args.single_region,args.show,save)
+      visualize_structure(array,args.show,save)
     elif args.show:
-      visualize_structure(array,args.single_region,args.show,False)
+      visualize_structure(array,args.show,False)
   if infoXml != None:
     infoXml.write('</basecell>')  
   
@@ -164,7 +164,7 @@ parser.add_argument('--skip_y', help="don't show bar in y direction", action='st
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
 parser.add_argument('--skip_surface_gaps', help="show final structure in new window", action='store_true',default=False)
-parser.add_argument('--single_region', help="create mesh with only one region", action='store_true', default=True)
+parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
 parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)

@@ -339,23 +339,23 @@ def contains_point(p,profile):
   
   # depending on direction, estimate plane in which we perform check
   if profile.direction == 0:# check for x profile -> z-y plane
-    x = p[2]
-    y = p[0]
+    x = p[0]
+    y = p[2]
     z = p[1]
   elif profile.direction == 1: #check for y profile -> x-z plane
-    x = p[0]
-    y = p[1]
+    x = p[1]
+    y = p[0]
     z = p[2]
   else: # dir == 2; check for z profile --> y-x plane
-    x = p[1]
-    y = p[2]
+    x = p[2]
+    y = p[1]
     z = p[0]
     
-  phi = angle_to_center((x,z))
-  r = calc_radius_for_quadrant(profile, y, phi)
-  val = (x-0.5)**2 + (z-0.5)**2
+  phi = angle_to_center((y,z))
+  r = calc_radius(profile, x, phi)
+  val = (y-0.5)**2 + (z-0.5)**2
   
-  if (val - r*r <= 1e-3):
+  if (val-r*r <= 1e-3):
     return True
   
   return False
@@ -892,7 +892,7 @@ def get_surface_lines(map,numLines,dir):
 # each surface point is also given a unique id
 # min_distance defines smallest distance between a surface node and a neighbor inner node that we allow
 # if the distance between these two is smaller, we omit the surface node
-def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=1.0/res):
+def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance=2.0/res):
   dir = profile.direction
   assert(dir == 0 or dir == 1 or dir == 2)
   res = nodes.shape[1]
@@ -969,21 +969,25 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
   u = upper
   
 #   print "lower: ", lower, " upper: ", upper
-  
+  eps = 1e-6
   midpoint = -1.0
   midpoint_node = np.zeros(3)
   while abs(u-l) > 1e-4:
     midpoint = 0.5 * (l + u)
     # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
-    plane_coordinates = polar_to_cartesian(calc_radius_for_quadrant(profile, midpoint, phi), phi, 0.5)
+    plane_coordinates = polar_to_cartesian(calc_radius(profile, midpoint, phi), phi, 0.5)
     # direction of axes of plane normal to profile.direction
     # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
     dir1, dir2 =  give_normal_plane_axes(profile.direction)
     assert(dir != dir1 and dir != dir2)
     # assign plane coordinates to correct 3d coordinate components
     midpoint_node[dir] = midpoint
-    midpoint_node[dir1] = plane_coordinates[1]
-    midpoint_node[dir2] = plane_coordinates[0]
+    midpoint_node[dir1] = plane_coordinates[0]
+    midpoint_node[dir2] = plane_coordinates[1]
+    
+    assert(midpoint_node[dir] >= -eps and midpoint_node[dir] <= 1.0+eps)
+    assert(midpoint_node[dir1] >= -eps and midpoint_node[dir1] <= 1.0+eps)
+    assert(midpoint_node[dir2] >= -eps and midpoint_node[dir2] <= 1.0+eps)
      
     otherDir1 = otherProfile1.direction
     otherDir2 = otherProfile2.direction
@@ -1166,9 +1170,9 @@ def generate_basecell(args,info,log):
           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
 
         
-    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
     
     if not args.skip_surface_gaps:  
       fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
@@ -1368,7 +1372,7 @@ def write_profile_to_array(array,profile,dir):
         phi = angle_to_center((y,z))
         
         p = map[int(phi/np.pi*180),i]
-        if (valx <= p*p):
+        if (valx <= p*p+1e-3):
           if dir == 0:
             array[i,k,j] = dir
           if dir == 1:
