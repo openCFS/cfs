@@ -323,7 +323,7 @@ ELSE(WIN32)
   ENDIF(CFS_ARCH STREQUAL "I386")
 
   IF(CFS_ARCH STREQUAL "X86_64")
-    SET(MKL_ARCH_ID "libem64t")
+    SET(MKL_ARCH_ID "intel64")
   ENDIF(CFS_ARCH STREQUAL "X86_64")
 
   IF(CFS_ARCH STREQUAL "IA64")
@@ -353,10 +353,42 @@ ELSE(WIN32)
 #  ENDIF(USE_OPENMP)  
 
   #-----------------------------------------------------------------------------
-  # Configure our little build script using the previously defined variables.
+  # Make a directory for the test compile
   #-----------------------------------------------------------------------------
   SET(COMPILE_MKL_TEST_DIR "${CFS_BINARY_DIR}/tmp/mkl_test")
   FILE(MAKE_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
+
+  #-----------------------------------------------------------------------------
+  # Search for the proper $MKLROOT/examples/solver[c]/makefile.
+  #-----------------------------------------------------------------------------
+  foreach(fname "solver" "solverc") # search for example directly 
+    file(GLOB_RECURSE MKL_SOLVERMAKEFILE FOLLOW_SYMLINKS "${MKL_ROOT_DIR}/*/examples/${fname}/[Mm]akefile")
+      if(MKL_SOLVERMAKEFILE)
+        break()
+      endif(MKL_SOLVERMAKEFILE)
+  endforeach(fname)
+  
+  if(NOT MKL_SOLVERMAKEFILE) # serach for archive and extract it if found
+    foreach(fname "examples_core.tgz" "examples_core_c.tgz")
+      file(GLOB_RECURSE MKL_SOLVERMAKEFILE_TGZ FOLLOW_SYMLINKS "${MKL_ROOT_DIR}/*/${fname}")
+      #message("${fname}:${MKL_SOLVERMAKEFILE_TGZ}")
+      if(MKL_SOLVERMAKEFILE_TGZ)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${MKL_SOLVERMAKEFILE_TGZ}
+          WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}"
+        )
+        file(GLOB_RECURSE MKL_SOLVERMAKEFILE FOLLOW_SYMLINKS "${COMPILE_MKL_TEST_DIR}/solverc/makefile")
+        break()
+      endif(MKL_SOLVERMAKEFILE_TGZ)
+    endforeach(fname)
+  endif(NOT MKL_SOLVERMAKEFILE)
+
+  if(NOT MKL_SOLVERMAKEFILE)
+    error("did not find example solver makefile")
+  endif(NOT MKL_SOLVERMAKEFILE)
+
+  #-----------------------------------------------------------------------------
+  # Configure our little build script using the previously defined variables.
+  #-----------------------------------------------------------------------------
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/share/scripts/compile_mkl_test.sh.in"
     "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh" @ONLY)
@@ -365,7 +397,7 @@ ELSE(WIN32)
   EXECUTE_PROCESS(
     COMMAND chmod 755 "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh"
     WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
-    
+  
   #-----------------------------------------------------------------------------
   # Execute the build script and put the generated CMake code into mkl.cmake.
   #-----------------------------------------------------------------------------
@@ -383,10 +415,20 @@ ELSE(WIN32)
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------
     INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
+    #---------------------------------------------------------------------------
+    # Create a custom target to copy over libiomp5.so
+    # here one could include the option USE_OMP=OFF which does not need to not copy libomp5
+    #---------------------------------------------------------------------------
+    ADD_CUSTOM_TARGET(mkl_libomp5 ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+      BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+      COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
+      USES_TERMINAL)
+
   ELSE(RETVAL EQUAL 0)
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
-                        by hand to investigate the problem.")
+                        by hand to investigate the problem. Script output was\n ${MKL_INFO}")
   ENDIF(RETVAL EQUAL 0)
   
 ENDIF(WIN32)
@@ -403,6 +445,7 @@ MARK_AS_ADVANCED(MKL_BLAS_LIB)
 MARK_AS_ADVANCED(MKL_LAPACK_LIB)
 MARK_AS_ADVANCED(MKL_PARDISO_LIB)
 MARK_AS_ADVANCED(MKL_ROOT_DIR)
+MARK_AS_ADVANCED(MKL_OMP_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
