@@ -886,101 +886,41 @@ def get_surface_lines(map,numLines,dir):
     
     #transformation to cartesian coordinates
     X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
-    if dir == 0:
-      nodes[i,:,0] = np.linspace(0.0,1.0,lenx)
-      nodes[i,:,1] = Y
-      nodes[i,:,2] = X
-    if dir == 1:
-      nodes[i,:,0] = X
-      nodes[i,:,1] = np.linspace(0.0,1.0,lenx)
-      nodes[i,:,2] = Y
-    if dir == 2:
-      nodes[i,:,0] = Y
-      nodes[i,:,1] = X
-      nodes[i,:,2] = np.linspace(0.0,1.0,lenx)
-      
+    major_dir = dir
+    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+
+    nodes[i,:,major_dir] = np.linspace(0.0,1.0,lenx)
+    nodes[i,:,minor_dir_1] = X
+    nodes[i,:,minor_dir_2] = Y 
+    
   return nodes
 
-def get_surface_lines_cont(profile,otherProfile1,otherProfile2,ips,n_points):
+def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points):
   interval = np.linspace(0, 1.0, res)
   dir = profile.direction
 
-  nodes = np.zeros((res, 360, 3))
+  nodes = np.zeros((res_surf_lines,res, 3))
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
-  
   for i,x in enumerate(interval):
-    for alpha in range(0,360):
+    for j,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
       angle = radians(alpha)
       radius = calc_radius(profile, x, angle)
       px,py = polar_to_cartesian(radius, angle)
-      point = np.zeros(3)
-      if dir == 0:
-        point[0] = x
-        point[1] = py 
-        point[2] = px
-      elif dir == 1:  
-        point[0] = px
-        point[1] = x 
-        point[2] = py
-      else: # dir == 2  
-        point[0] = py
-        point[1] = px 
-        point[2] = x
       
+      point = np.zeros(3)
+      major_dir = dir
+      minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+      point[major_dir] = x
+      point[minor_dir_1] = px
+      point[minor_dir_2] = py 
+       
       if not point_inside_profile(point, otherProfile1) and (not point_inside_profile(point, otherProfile2)):
 #       points.add(point)
-        nodes[i,alpha] = point
-        nodes_ids[i,alpha] = ips.InsertNextPoint(point)
+        nodes[j,i] = point
+        nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
         n_points += 1
   
   return nodes,nodes_ids,n_points
-#     if x > 0.2:
-#       sys.exit()      
-# for direction 'dir' with nodes 'nodes', find surface nodes on the left and right
-# each surface point is also given a unique id
-# min_distance defines smallest distance between a surface node and a neighbor inner node that we allow
-# if the distance between these two is smaller, we omit the surface node
-def find_points_on_surface(nodes, profile, otherProfile1, otherProfile2, pointId, min_distance,ips):
-  dir = profile.direction
-  assert(dir == 0 or dir == 1 or dir == 2)
-  assert(dir != otherProfile1.direction and dir != otherProfile2.direction)
-  
-#   p = [0.769231,0.787855,0.545592]
-#   temp = point_inside_profile(p, profile)
-  
-  nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
-  
-  for numLine,line in enumerate(nodes):
-    for i,p in enumerate(line):
-      if (not point_inside_profile(p, otherProfile1)) and (not point_inside_profile(p, otherProfile2)):
-#         if i < len(line) - 2:
-#           # this point might be a valid surface point
-#           # check for next on
-#           if point_inside_profile(line[i+1], otherProfile1) or point_inside_profile(line[i+1], otherProfile2):
-#               # next point is inner point
-#               p_next = line[i+1]
-# #               print(p,p_next)
-#               intersect = find_intersection_point(p, p_next, profile, otherProfile1, otherProfile2)
-#               ips.InsertNextPoint(intersect)
-#               if calc_distance(p, intersect) > min_distance:
-#                 # surface point is valid, as it is sufficiently away from intersection  
-#                 nodes_ids[numLine,i] = pointId
-#                 pointId += 1
-#           else:
-#             nodes_ids[numLine,i] = pointId
-#             pointId += 1       
-#         else:
-        # assume last point in line is far away from intersection
-        nodes_ids[numLine,i] = pointId
-        pointId += 1  
-  # for each line, check if a point is contained in two other profiles
-  # if not -> point is a surface point
-  # if yes, omit point
-  # if point p is surface point, check if next point p+1 is also a surface point
-  # if not, check distance from this inner point (p+1) to previous surface point (p)
-  # if distance is too small (e.g. < 0.5* grid spacing (h)), then omit p
-           
-  return nodes_ids, pointId
 
 # use bisection algorithm to find intersection point between two profiles
 # left and right are tuples/lists with x,y,z coordinates
@@ -1053,17 +993,19 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
 def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
   end_nodes = []
   
-  for i in range(0,nodes_ids.shape[0]-1):
+  for i in range(0,nodes_ids.shape[0]):
     this_line = nodes_ids[i]
     right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
     left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
-    for j in range(0,len(this_line)):
+    for j in range(0,len(this_line)-1):
       this_id = this_line[j]
       prev_id = -1 if j == 0 else this_line[j-1]
-      next_id = this_line[j+1 if j < len(this_line)-1 else 0]
+      next_id = this_line[j+1] 
+#       next_id = this_line[j+1 if j < len(this_line)-1 else 0]
       right_id = right_line[j]
       left_id = left_line[j]
-      right_next_id = right_line[j+1 if j < len(this_line)-1 else 0]
+      right_next_id = right_line[j+1]
+#       right_next_id = right_line[j+1 if j < len(this_line)-1 else 0]
       # divide rectangle into 2 triangles, this one is the first triangle
       if this_id >= 0 and next_id >= 0 and right_id >= 0:
         add_triangle(this_id,right_id,next_id,cells)
@@ -1072,7 +1014,8 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
         vtkArray.SetValue(next_id,dir)
         vtkArray.SetValue(right_id,dir)
         
-        if j > 0 and (left_id < 0 or prev_id < 0) and j+1 < len(this_line)-1 :
+        if j > 0 and (left_id < 0 or prev_id < 0): 
+#         if j > 0 and (left_id < 0 or prev_id < 0) and j+1 < len(this_line)-1 :
           # next, left next, left, left previous, previous, right previous, right, right next
           left_next_id = left_line[j+1]
           left_prev_id = left_line[j-1]
@@ -1174,42 +1117,21 @@ def generate_basecell(args,info,log):
   if args.target == "surface_mesh":
     assert(not args.skip_x and not args.skip_y and not args.skip_z)
     
-    map_x = create_profile_map(profiles[0], res)
-    map_y = create_profile_map(profiles[1], res)
-    map_z = create_profile_map(profiles[2], res)
-    
     # if distance between potential surface and intersection points of two profiles
     # is smaller than this distance, suspend first point as surface point 
     min_distance = 0    # store all intersection points computed in find_points_on_surface
     # and visualize them
-    ips = vtk.vtkPoints()
+    surf_points = vtk.vtkPoints()
     
     # first dimension of nodes : surface lines
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
-#     nodes_1 = get_surface_lines(map_x, args.res_surf_lines, 0)
-#     nodes_ids_1, id = find_points_on_surface(nodes_1, profiles[0], profiles[1], profiles[2],id,min_distance,ips)
-#     # assert found surface nodes are really part of profile
-#     check_points_on_surface_line(nodes_1,profiles[0])
-#     
-#     nodes_2 = get_surface_lines(map_y, args.res_surf_lines, 1)
-#     nodes_ids_2, id = find_points_on_surface(nodes_2, profiles[1], profiles[0], profiles[2], id,min_distance,ips)
-#     # assert found surface nodes are really part of profile
-#     check_points_on_surface_line(nodes_2,profiles[1])
-#     
-#     nodes_3 = get_surface_lines(map_z, args.res_surf_lines, 2)
-#     nodes_ids_3, id = find_points_on_surface(nodes_3, profiles[2], profiles[0], profiles[1], id,min_distance,ips)
-#     # assert found surface nodes are really part of profile
-#     check_points_on_surface_line(nodes_3,profiles[2])
     num_surf_points = 0
-    nodes_1, nodes_ids_1, num_surf_points = get_surface_lines_cont(profiles[0],profiles[1],profiles[2],ips,num_surf_points)
-    nodes_2, nodes_ids_2, num_surf_points = get_surface_lines_cont(profiles[1],profiles[0],profiles[2],ips,num_surf_points)
-    nodes_3, nodes_ids_3, num_surf_points = get_surface_lines_cont(profiles[2],profiles[0],profiles[1],ips,num_surf_points)
+    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],surf_points,num_surf_points)
+    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],surf_points,num_surf_points)
+    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],surf_points,num_surf_points)
     
-    ips_polydata = vtk.vtkPolyData()
-    ips_polydata.SetPoints(ips)
-    show_write_vtk(ips_polydata, 1000, "intersection_points.vtp")
-#     sys.exit() 
+    
     # create vtk cells and points
     cells = vtk.vtkCellArray()
     
@@ -1218,27 +1140,14 @@ def generate_basecell(args,info,log):
     vtkData.SetName("intersection")
     vtkData.SetNumberOfValues(num_surf_points)
     
-    print("num_surf_points:",num_surf_points)
-
     end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
-#     points = vtk.vtkPoints()
-#     points.SetNumberOfPoints(id)
-#     for i,line in enumerate(nodes_1):
-#       for j in range(len(line)):
-#         if nodes_ids_1[i,j] >= 0:          
-#           points.SetPoint(nodes_ids_1[i,j], nodes_1[i,j,0], nodes_1[i,j,1], nodes_1[i,j,2])
-#         if nodes_ids_2[i,j] >= 0:          
-#           points.SetPoint(nodes_ids_2[i,j], nodes_2[i,j,0], nodes_2[i,j,1], nodes_2[i,j,2])
-#         if nodes_ids_3[i,j] >= 0:          
-#           points.SetPoint(nodes_ids_3[i,j], nodes_3[i,j,0], nodes_3[i,j,1], nodes_3[i,j,2])
-
-    points = ips    
-#     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,points,cells,vtkData)
-#     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,points,cells,vtkData)
-#     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,points,cells,vtkData)
+    id = num_surf_points
+    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
     
     if not args.skip_surface_gaps:  
       fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
@@ -1250,7 +1159,7 @@ def generate_basecell(args,info,log):
 #     surface_to_volume_mesh(ps,cs)
 
     polydata = vtk.vtkPolyData()
-    polydata.SetPoints(points)
+    polydata.SetPoints(surf_points)
     polydata.GetPointData().SetScalars(vtkData)
     
     if args.export == "surface_points":
@@ -1903,16 +1812,16 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     x,y = polar_to_cartesian(radius, radians(angle), 0.5)
     coords_left = np.zeros(3)
     coords_right = np.zeros(3)
-    idx_y, idx_x = give_normal_plane_axes(dir)
-    idx_z = [v for v in (0,1,2) if v != idx_x and v != idx_y][0]
-    assert(idx_z != idx_x and idx_z != idx_y)
-    coords_left[idx_x] = x
-    coords_left[idx_y] = y
-    coords_left[idx_z] = 0.0
+    major_dir = dir
+    minor_dir_1, minor_dir_2 = give_normal_plane_axes(dir)
+    assert(major_dir != minor_dir_1 and major_dir != minor_dir_2)
+    coords_left[minor_dir_1] = x
+    coords_left[minor_dir_2] = y
+    coords_left[major_dir] = 0.0
     
-    coords_right[idx_x] = x
-    coords_right[idx_y] = y
-    coords_right[idx_z] = 1.0 
+    coords_right[minor_dir_1] = x
+    coords_right[minor_dir_2] = y
+    coords_right[major_dir] = 1.0 
     
     # assign any other direction to end node as triangulation routine assumes two different directions  
     nodes_left.append(End_Node(coords_left,id,dir,line,0,[]))
@@ -1922,7 +1831,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id != nodes_left[-1].id:
-        print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_left[-1].id)))
+        print(("vtk_id:" + str(vtk_id) + " id: " + str(nodes_left[-1].id)))
       assert(vtk_id == nodes_left[-1].id)  
     
     # assign any other direction to end node as triangulation routine assumes two different directions
@@ -1945,10 +1854,10 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
 # we need nodes_ids to determine ids of points on starting circle 
 def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   radius = profile.radius_left
-  arc_length = radius * radians(360.0/np.size(nodes_ids,0))
+  arc_length = radius * radians(360.0/np.size(nodes_ids,1))
   outer_points_left, outer_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
   set_correct_point_ids(outer_points_left, outer_points_right,nodes_ids)
-  
+   
   inner_points_left = []
   inner_points_right = []
   triangles = []
@@ -1959,7 +1868,7 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
   while len(outer_points_left) > 1 and len(outer_points_right) > 1:
     radius -= step
     inner_points_left, inner_points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
-    
+     
     # previous_points_* are the points on the outer circle
     # left: x=0, right: x = 1
     for lists in [(outer_points_left,inner_points_left),(outer_points_right,inner_points_right)]:
@@ -1970,16 +1879,16 @@ def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
         p.dir = 5
       for p in lists[1]:
         p.dir = 6
-        
+          
       start = lists[0][0]
       next = give_next_end_node_on_inner_circle(start,lists[1])
       log("\nstart:" + str(start.id))
       log("next:" + str(next.id))
       start_boundary_circle_triangulation(start,next,lists[0],lists[1],cells)
-     
+       
     outer_points_left = inner_points_left
     outer_points_right = inner_points_right
-      
+    
   return id
 
 # this is called after first call of generate_end_nodes_in_circle
@@ -2528,9 +2437,3 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
   
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1
-
-def check_points_on_surface_line(nodes,profile):
-  for numLine,line in enumerate(nodes):
-    for i,p in enumerate(line):
-      val = not point_inside_profile(p,profile)
-      assert(not point_inside_profile(p,profile))
