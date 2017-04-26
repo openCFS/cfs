@@ -287,7 +287,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
 
               if (initDependsOnSpace) {
-                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->barycenter.GetCoordVector());
+                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->extended->barycenter.GetCoordVector());
                 initial = mp->Eval(mHandle);
                 if (initial < lower || initial > upper) {
                   if (initial < lower)
@@ -766,12 +766,13 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   */
 
-
-
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) { // easy to extend to piezo and other stuff!
-    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1) {
-      if (this->IsRegular()) {
+  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  {
+    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1)
+    {
+      if (this->IsRegular())
+      {
         /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
         double dx = ptCoord_[0][0]-ptCoord_[0][1];
         double dy = ptCoord_[1][0]-ptCoord_[1][1];

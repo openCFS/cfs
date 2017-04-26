@@ -276,9 +276,14 @@ template<typename T> class ElemStoreSol;
     //! Compute Euclidean norm of this vector object
     double NormL2() const;
 
+    /**  this functions localized the maximal component (absolute value) and returns it with its original sign
+		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
+    Double SignedMax() const; 
+
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    /** Sum of all the vector's elements */
     T Sum() const;
 
     T Avg() const;
@@ -324,7 +329,7 @@ template<typename T> class ElemStoreSol;
     void ScalarMult( const Complex factor );
 
     //! Calc cross product of two vectors v = this x b
-    void CrossProduct( const Vector<T>& b, Vector<T>& v );
+    void CrossProduct( const Vector<T>& b, Vector<T>& v ) const;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);

@@ -11,7 +11,6 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-  
 
   //! Implementation of a simple, one level grid.
 
@@ -32,7 +31,7 @@ namespace CoupledField
 
     //! Standard Constructor 
     GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
-        const std::string &id = "default");
+        const std::string &id = "default",bool buildExtend = true);
   
     //! Destructor
     virtual ~GridCFS();
@@ -324,6 +323,9 @@ namespace CoupledField
     //! If not found, Elem vector \parm surfEl (in) is empty.
     virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS);
     
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated);
+
     //@}
 
     // =======================================================================
@@ -638,6 +640,9 @@ namespace CoupledField
     //! Vector containing all edges
     StdVector<Edge> edges_;
     
+    //! Boolean controlling the creation of extended element information
+    bool buildExtendedElemInfo_;
+
     // =======================================================================
     // Named Entities
     // =======================================================================

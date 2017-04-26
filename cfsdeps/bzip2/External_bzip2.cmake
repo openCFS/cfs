@@ -86,6 +86,14 @@ SET(ZIPTOCACHE "${bzip2_prefix}/bzip2-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of BZIP2 libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(BZIP2_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}bz2${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "BZIP2 library.")
+
+#-------------------------------------------------------------------------------
 # The bzip2 external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -124,6 +132,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     CMAKE_ARGS
       ${CMAKE_ARGS}
       -DBUILD_SHARED_LIBS:BOOL=OFF
+    BUILD_BYPRODUCTS ${BZIP2_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -174,14 +183,6 @@ SET(CFSDEPS
 )
 
 SET(BZIP2_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-------------------------------------------------------------------------------
-# Determine paths of BZIP2 libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(BZIP2_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}bz2${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "BZIP2 library.")
 
 MARK_AS_ADVANCED(BZIP2_INCLUDE_DIR)
 MARK_AS_ADVANCED(BZIP2_LIBRARY)

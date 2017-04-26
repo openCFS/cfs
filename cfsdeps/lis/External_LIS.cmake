@@ -87,6 +87,15 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${lis_prefix}/lis-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of LIS libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(LIS_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}lis${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "LIS library.")
+MARK_AS_ADVANCED(LIS_LIBRARY)
+
 #-------------------------------------------------------------------------------
 # The lis external project
 #-------------------------------------------------------------------------------
@@ -118,6 +127,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
 #      -DLIS_BUILD_TEST:BOOL=ON
       -DLIS_ENABLE_FORTRAN:BOOL=ON
       -DLIS_ENABLE_SAAMG:BOOL=ON
+    BUILD_BYPRODUCTS ${LIS_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -153,15 +163,5 @@ SET(CFSDEPS
 )
 
 SET(LIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of LIS libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(LIS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}lis${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "LIS library.")
-
-MARK_AS_ADVANCED(LIS_LIBRARY)
 MARK_AS_ADVANCED(LIS_INCLUDE_DIR)
 

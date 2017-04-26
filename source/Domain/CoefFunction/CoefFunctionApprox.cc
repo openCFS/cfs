@@ -44,8 +44,10 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
 
   // evaluate vector of dependency
   Vector<Double> elemSol;
+
   dependCoef_->GetVector( elemSol, lpm);
   
+
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
     // in case of permeability (reluctivity) the function depends on the norm of the field
     // it is specialized in terms of evaluation
@@ -56,7 +58,11 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
     } else {
       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
     }
-  }
+  } else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
+
+	 Double SignedMaxStrain = elemSol.SignedMax();
+	 coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
+}
   else if( nLinFnc_->GetMatType() == CORE_LOSS ){
     // this is the case for general functions depending on the norm of a field
     Double fieldAbs = elemSol.NormL2();
@@ -73,6 +79,7 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
   }
   // LOG does not check if lpm is a dummy
   // LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
 }
 
 bool IsComplex(){
@@ -308,7 +315,7 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
 CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {
   // this type of coefficient is nonlinear, i.e. spatial and time dependent
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isComplex_ = false;
 }
 

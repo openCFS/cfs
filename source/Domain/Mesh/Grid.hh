@@ -31,6 +31,7 @@
 #include "MatVec/Vector.hh"
 #include "Forms/IntScheme.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField
 
@@ -327,6 +328,10 @@ namespace CoupledField
                                const std::set<RegionIdType>& srcRegions
                                = std::set<RegionIdType>() );
 
+
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated) = 0;
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -373,12 +378,17 @@ namespace CoupledField
     /** does the grid consist of regular regions? */
     bool IsGridRegular() const;
 
+    //! Get name of region using a region id
+    std::string GetRegionName( RegionIdType& id );
+    
     //! Get vector containing all region names
-
     //! Get a vector which contains all region nodes. The order is in that way,
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
     void GetRegionNames(StdVector<std::string>& out);
+
+    //! Get the region id for the region with name
+    RegionIdType GetRegionId(const std::string name);
 
     //! Get vector with all volume region identifiers
 
@@ -902,20 +912,17 @@ namespace CoupledField
    // =======================================================================
    //@{
 
-   //! Cached values in OMP environment requires number of threads
-   UInt numOMPThreads_;
-
    //! Pointer to element shape map (original grid)
-   StdVector< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
+   CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
 
    //! Pointer to element shape map (updated grid)
-   StdVector<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
+   CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
 
    //! Last accessed elements for updated grid
-   StdVector< StdVector<UInt> > lastShapeElemNumUpdated_;
+   CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
 
    //! Last accessed secondary element map for original grid
-   StdVector< StdVector<UInt> > lastShapeElemNumOrig_;
+   CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
 
    ////! Pointer to seoncary element shape map (original grid)
    //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;

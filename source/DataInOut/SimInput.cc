@@ -11,73 +11,91 @@
 namespace CoupledField 
 {
   
+  SimInput::GetResultArguments::GetResultArguments(UInt sequenceStep, SolutionType solType, std::string regionName):
+    sequenceStep_(sequenceStep),
+    solType_(solType),
+    regionName_(regionName) {
+  }
+  
+  const bool SimInput::GetResultArguments::operator<(const GetResultArguments &r) const {
+    return (sequenceStep_ < r.sequenceStep_) || (solType_ < r.solType_) || (regionName_ < r.regionName_);
+  }
+
   shared_ptr<BaseResult> 
   SimInput::GetResult( UInt sequenceStep,
                        UInt stepValue,
                        SolutionType solType,
                        const std::string& regionName )
   {
-    // get all defined result types
-    StdVector<shared_ptr<ResultInfo> > infos;
-    bool isHistory = false;
+    GetResultArguments getResultArguments(sequenceStep, solType, regionName);
     
-    GetResultTypes( sequenceStep, infos, isHistory );
-
-    // find correct one; if multiple are present -> Exception
-    bool found = false;
-    shared_ptr<ResultInfo> actInfo;
-    for( UInt i = 0; i < infos.GetSize(); i++ ) {
-      if( infos[i]->resultType == solType ) {
-        // check, if result was already found
-        if(found) { 
-          EXCEPTION( "A result of type '" << SolutionTypeEnum.ToString(solType) << "' was already "
-                      << "found in sequence Step " << sequenceStep );
-        }
-        actInfo = infos[i];
-      }
-    }
-    
-    // check if any result at all was found
-    if( !actInfo ) {
-     EXCEPTION( "Result was not found in file '"
-                 << fileName_ << "'" );
-    }
-
-    // get all regions for given resulinfo object
-    StdVector<shared_ptr<EntityList> > entList;
-    GetResultEntities( sequenceStep, actInfo, entList, false );
-
-    // find correct one; if none is found -> Exception
-    shared_ptr<EntityList> actList;
-    for( UInt i = 0; i < entList.GetSize(); i++ ) {
-      if( entList[i]->GetName() == regionName )
-        actList = entList[i];
-    }
-    
-    // check if any region at all was  found
-    if( !actList) {
-      EXCEPTION( "No entitylist found for result '"
-                 << solType << "' on region '" << regionName << "'" ); 
-    }
+    if (rawBaseResults_.find(getResultArguments) == rawBaseResults_.end()) {
+      // get all defined result types
+      StdVector<shared_ptr<ResultInfo> > infos;
+      bool isHistory = false;
       
-
-    // determine analysistype of current multi sequence step
-    std::map<UInt, BasePDE::AnalysisType> analysis;
-    std::map<UInt, UInt> numSteps;
-    GetNumMultiSequenceSteps( analysis, numSteps, false );
-    
-    // create new result object, fill it and return it
-    shared_ptr<BaseResult> result;
-    if( analysis[sequenceStep] != BasePDE::HARMONIC &&
-        analysis[sequenceStep] != BasePDE::EIGENFREQUENCY ) {
-      result = shared_ptr<BaseResult>(new Result<Double>() );
-    } else {
-      result = shared_ptr<BaseResult>(new Result<Complex>() );
+      GetResultTypes( sequenceStep, infos, isHistory );
+  
+      // find correct one; if multiple are present -> Exception
+      bool found = false;
+      shared_ptr<ResultInfo> actInfo;
+      for( UInt i = 0; i < infos.GetSize(); i++ ) {
+        if( infos[i]->resultType == solType ) {
+          // check, if result was already found
+          if(found) { 
+            EXCEPTION( "A result of type '" << SolutionTypeEnum.ToString(solType) << "' was already "
+                        << "found in sequence Step " << sequenceStep );
+          }
+          actInfo = infos[i];
+          found = true;
+        }
+      }
+      
+      // check if any result at all was found
+      if( !actInfo ) {
+      EXCEPTION( "Result was not found in file '"
+                  << fileName_ << "'" );
+      }
+  
+      // get all regions for given resulinfo object
+      StdVector<shared_ptr<EntityList> > entList;
+      GetResultEntities( sequenceStep, actInfo, entList, false );
+  
+      // find correct one; if none is found -> Exception
+      shared_ptr<EntityList> actList;
+      for( UInt i = 0; i < entList.GetSize(); i++ ) {
+        if( entList[i]->GetName() == regionName )
+          actList = entList[i];
+      }
+      
+      // check if any region at all was  found
+      if( !actList) {
+        EXCEPTION( "No entitylist found for result '"
+                  << solType << "' on region '" << regionName << "'" ); 
+      }
+        
+  
+      // determine analysistype of current multi sequence step
+      std::map<UInt, BasePDE::AnalysisType> analysis;
+      std::map<UInt, UInt> numSteps;
+      GetNumMultiSequenceSteps( analysis, numSteps, false );
+      
+      // create new raw result object and put it to the rawBaseResults_ map
+      shared_ptr<BaseResult> rawResult;
+      if( analysis[sequenceStep] != BasePDE::HARMONIC &&
+          analysis[sequenceStep] != BasePDE::EIGENFREQUENCY ) {
+        rawResult = shared_ptr<BaseResult>(new Result<Double>() );
+      } else {
+        rawResult = shared_ptr<BaseResult>(new Result<Complex>() );
+      }
+      rawResult->SetResultInfo( actInfo );
+      rawResult->SetEntityList( actList );
+      rawBaseResults_[getResultArguments] = rawResult;
     }
-    result->SetResultInfo( actInfo );
-    result->SetEntityList( actList );
-    GetResult( sequenceStep, stepValue, result);
     
+    // clone result object from rawBaseResults_ map, fill it and return it
+    shared_ptr<BaseResult> result = rawBaseResults_[getResultArguments]->Clone();
+    GetResult( sequenceStep, stepValue, result);
     return result;
   } 
   

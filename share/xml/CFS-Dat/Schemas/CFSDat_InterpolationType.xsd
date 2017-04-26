@@ -1,0 +1,62 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for field-interpolation -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_InterpolationType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="FieldInterpolation_Conservative_CellCentroid"/>
+      <xsd:enumeration value="FieldInterpolation_Conservative_CutCell"/>
+      <xsd:enumeration value="FieldInterpolation_FEBased">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation between meshes based on first order FE basis functions!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="FieldInterpolation_Cell2Node">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from cell-centroid to nodes of element, no interpolation between meshes!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="FieldInterpolation_NearestNeighbour">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
+            and an inverse distance weighting for calculating the interpolation values
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="FieldInterpolation_RBF">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from mesh1 (cell-centroid or node results) to mesh2 (node results), using CGAL nearest neighbour search
+            and locally supported radial basis functions for calculating the interpolation values
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="FieldInterpolation_Node2Cell">
+        <xsd:annotation>
+          <xsd:documentation>
+            Interpolation from nodes to cell-centroids of one element, no interpolation between meshes!
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>

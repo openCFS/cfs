@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -16,37 +13,35 @@
   <!-- ******************************************************************** -->
   <!--   Definition file formats element data type -->
   <!-- ******************************************************************** -->
-  
+
   <!-- Data type for defining the input, output and material formats -->
   <xsd:complexType name="DT_FileFormats">
     <xsd:sequence>
-      <xsd:element name="input"  type="DT_InputList" minOccurs="0" maxOccurs="1">
+      <xsd:element name="input" type="DT_InputList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             List of input files which contain meshes and data. 
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
       </xsd:element>
-      <xsd:element name="scatteredData" type="DT_InputScatteredData"
-        minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="scatteredData" type="DT_InputScatteredData" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="output" type="DT_OutputList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             List of output files for mesh based data and history data. 
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
       </xsd:element>
-      <xsd:element name="materialData" type="DT_MatFile" minOccurs="1"
-        maxOccurs="1">
+      <xsd:element name="materialData" type="DT_MatFile" minOccurs="1" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Specification of material data file. 
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
       </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of basic data input type -->
@@ -61,7 +56,7 @@
           Unique id  of this input tag. Can  be used later on  to specify from
           which input file certain data sets should be read.
         </xsd:documentation>
-      </xsd:annotation>      
+      </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="gridId" type="xsd:token" default="default">
       <xsd:annotation>
@@ -72,7 +67,13 @@
           mesh is required one can vary  the gridId, e.g. to get a second mesh
           from which data values may be interpolated to the first mesh.
         </xsd:documentation>
-      </xsd:annotation>      
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="fileName" type="xsd:token" default="default">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">Specify exact path to input file.
+            </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 
@@ -83,15 +84,16 @@
       <xsd:element name="gmv" type="DT_InputGMV"/>
       <xsd:element name="mesh" type="DT_InputMesh"/>
       <xsd:element name="mphtxt" type="DT_InputComsol"/>
-      <xsd:element name="hdf5" type="DT_InputHDF5"/>      
+      <xsd:element name="hdf5" type="DT_InputHDF5"/>
       <xsd:element name="cgns" type="DT_InputCGNS"/>
       <xsd:element name="unv" type="DT_InputUNV"/>
       <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
+      <xsd:element name="ensight" type="DT_InputEnsight"/>
     </xsd:choice>
   </xsd:group>
 
-<!--
+  <!--
 
   <xsd:group name="InputGroup">
     <xsd:sequence>
@@ -100,7 +102,7 @@
   </xsd:group>
 -->
 
- <!-- Data type for specification of output file format -->
+  <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_InputList">
     <xsd:sequence>
       <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="unbounded"/>
@@ -120,13 +122,12 @@
         and were also supported by CAPA which is the predecessor of CFS++.
       </xsd:documentation>
     </xsd:annotation>
-    
+
     <xsd:complexContent>
-      <xsd:extension base="DT_InputBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_InputBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of GMSH  data input type -->
   <!-- ******************************************************************** -->
@@ -141,13 +142,11 @@
         recommended to use  cfstool for converting the .msh in  order to get a
         list of the actual region names.
       </xsd:documentation>
-    </xsd:annotation>              
+    </xsd:annotation>
 
     <xsd:complexContent>
       <xsd:extension base="xsd:anyType">
-        <xsd:attribute name="name"
-          type="xsd:token"
-          default="default">
+        <xsd:attribute name="name" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               This name will be assigned  by CFS++ to the given phsical entity
@@ -155,24 +154,20 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="physicalEntity" 
-          type="xsd:nonNegativeInteger"
-          default="0">
+        <xsd:attribute name="physicalEntity" type="xsd:nonNegativeInteger" default="0">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
             Identify the physical entity for this region by an integer.
             </xsd:documentation>
-          </xsd:annotation>              
+          </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="linearize"
-           type="xsd:boolean"
-           default="false">
+        <xsd:attribute name="linearize" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               Read only linear versions (just corner nodes) of the elements in
               this region.
             </xsd:documentation>
-          </xsd:annotation>          
+          </xsd:annotation>
         </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
@@ -185,39 +180,27 @@
         Read mesh files generated using Gmsh (http://www.geuz.org/gmsh).
       </xsd:documentation>
     </xsd:annotation>
-    
+
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:sequence minOccurs="0">
-          <xsd:element name="region" type="DT_InputGmsh_RegionType"  minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="region" type="DT_InputGmsh_RegionType" minOccurs="0"
+            maxOccurs="unbounded"/>
         </xsd:sequence>
-        <xsd:attribute name="fileName"
-		       type="xsd:token"
-		       default="default">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Specify exact path to .msh file.
-            </xsd:documentation>
-          </xsd:annotation>          
-        </xsd:attribute>
-        <xsd:attribute name="coordSysId"
-          type="xsd:token"
-          default="default">
+        <xsd:attribute name="coordSysId" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               Use a coordinate system to transform all points in this mesh file.
             </xsd:documentation>
-          </xsd:annotation>          
+          </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="scaleFac"
-          type="xsd:double"
-          default="1.0">
+        <xsd:attribute name="scaleFac" type="xsd:double" default="1.0">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               Scale geometry using this factor.
             </xsd:documentation>
-          </xsd:annotation>          
-        </xsd:attribute>        
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -231,13 +214,11 @@
       <xsd:documentation xml:lang="en">
         Since no information about physical regions is saved in .mphtxt files, the regions have to be reassembled from surface and volume ids. The CFS++ regions are therefore assembled by specifying the domtype (volume or surface) and the list of ids in domains.
       </xsd:documentation>
-    </xsd:annotation>              
-    
+    </xsd:annotation>
+
     <xsd:complexContent>
       <xsd:extension base="xsd:anyType">
-        <xsd:attribute name="name"
-          type="xsd:token"
-          default="default">
+        <xsd:attribute name="name" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               This name will be assigned  by CFS++ to the given physical entity
@@ -245,29 +226,25 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="domains" 
-          type="xsd:token"
-          default="0">
+        <xsd:attribute name="domains" type="xsd:token" default="0">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               Specify a list of domain numbers as generated by CFS++ for COMSOL meshes.
             </xsd:documentation>
-          </xsd:annotation>              
+          </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="domtype"
-          type="xsd:token"
-          default="volume">
+        <xsd:attribute name="domtype" type="xsd:token" default="volume">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               May be 'surface' or 'volume' region.
             </xsd:documentation>
-          </xsd:annotation>          
+          </xsd:annotation>
         </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputComsol">
     <xsd:annotation>
@@ -275,25 +252,14 @@
         Read ASCII .mphtxt mesh files generated using Comsol (http://www.comsol.com).
       </xsd:documentation>
     </xsd:annotation>
-    
+
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:sequence minOccurs="0">
-          <xsd:element name="region" type="DT_InputComsol_RegionType"
-                       minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="region" type="DT_InputComsol_RegionType" minOccurs="0"
+            maxOccurs="unbounded"/>
         </xsd:sequence>
-        <xsd:attribute name="fileName"
-		       type="xsd:token"
-		       default="default">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Specify exact path to .mphtxt file.
-            </xsd:documentation>
-          </xsd:annotation>          
-        </xsd:attribute>
-        <xsd:attribute name="mph"
-          type="xsd:token"
-          default="default">
+        <xsd:attribute name="mph" type="xsd:token" default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               File name of multiphysics .mph file corresponding to the grid
@@ -305,7 +271,7 @@
               model.xml this maps to
               /com.comsol.mph-vXX:Model/selection[1]/selections[1...n].
             </xsd:documentation>
-          </xsd:annotation>          
+          </xsd:annotation>
         </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
@@ -323,8 +289,7 @@
       </xsd:documentation>
     </xsd:annotation>
     <xsd:complexContent>
-      <xsd:extension base="DT_InputBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_InputBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -343,24 +308,11 @@
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="generateRegionNodes"
-		       type="DT_CFSBool"
-		       default="no"/>
-        <xsd:attribute name="readEntities"
-		       type="xsd:token"
-		       default=""/>
-        <xsd:attribute name="linearizeEntities"
-          type="xsd:token"
-          default=""/>
-        <xsd:attribute name="fileName"
-		       type="xsd:token"
-		       default="default"/>
-        <xsd:attribute name="coordSysId"
-           type="xsd:token"
-           default="default"/>
-        <xsd:attribute name="scaleFac"
-           type="xsd:double"
-           default="1.0"/>
+        <xsd:attribute name="generateRegionNodes" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="readEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+        <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -368,29 +320,22 @@
   <!-- ******************************************************************** -->
   <!--   Definition of CGNS data input type -->
   <!-- ******************************************************************** -->
-  
+
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputCGNS">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         Read (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
       </xsd:documentation>
-    </xsd:annotation>    
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName"
-          type="xsd:token"
-          default="default"/>
-        <xsd:attribute name="coordSysId"
-          type="xsd:token"
-          default="default"/>
-        <xsd:attribute name="scaleFac"
-          type="xsd:double"
-          default="1.0"/>
+        <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+        <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of UNV  data input type -->
   <!-- ******************************************************************** -->
@@ -400,24 +345,15 @@
     <xsd:annotation>
       <xsd:documentation xml:lang="de">
         Read Ideas universal files. These can e.g. be generated using
-        Siemens NX PLM, GiD (File -&gt; Export -&gt; Using Template .bas -&gt; UNV)
+        Siemens NX PLM, GiD (File -> Export -> Using Template .bas -> UNV)
         or Gmsh.
       </xsd:documentation>
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName"
-          type="xsd:token"
-          default="default"/>
-        <xsd:attribute name="mapXTo"
-          type="DT_InputUNVCoordMap"
-          default="x"/>
-        <xsd:attribute name="mapYTo"
-          type="DT_InputUNVCoordMap"
-          default="y"/>
-        <xsd:attribute name="mapZTo"
-          type="DT_InputUNVCoordMap"
-          default="z"/>
+        <xsd:attribute name="mapXTo" type="DT_InputUNVCoordMap" default="x"/>
+        <xsd:attribute name="mapYTo" type="DT_InputUNVCoordMap" default="y"/>
+        <xsd:attribute name="mapZTo" type="DT_InputUNVCoordMap" default="z"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -429,20 +365,20 @@
       <xsd:enumeration value="z"/>
       <xsd:enumeration value="zero"/>
     </xsd:restriction>
-  </xsd:simpleType>  
+  </xsd:simpleType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of ANSYS .cdb/.inp data input type -->
   <!-- ******************************************************************** -->
-  
+
   <xsd:simpleType name="DT_InputCDBSurfElemsTypes">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="nodeCmpToNamedElems"/>
       <xsd:enumeration value="nodeCmpToSurfRegions"/>
       <xsd:enumeration value="surfBCsToNamedElems"/>
     </xsd:restriction>
-  </xsd:simpleType>  
-  
+  </xsd:simpleType>
+
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputCDB">
     <xsd:annotation>
@@ -457,12 +393,7 @@
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
-        <xsd:attribute name="fileName"
-          type="xsd:token"
-          default="default"/>
-        <xsd:attribute name="strict"
-          type="xsd:boolean"
-          default="false">
+        <xsd:attribute name="strict" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               If strict is true, no gaps in the node number list and the element
@@ -471,9 +402,7 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="degenerate"
-          type="xsd:boolean"
-          default="false">
+        <xsd:attribute name="degenerate" type="xsd:boolean" default="false">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               ANSYS usually writes wedges, pyras and tets as degenerated versions
@@ -483,12 +412,11 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="surfElemsMode"
-          type="DT_InputCDBSurfElemsTypes"
+        <xsd:attribute name="surfElemsMode" type="DT_InputCDBSurfElemsTypes"
           default="nodeCmpToSurfRegions">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              ANSYS Workbench  Mechanical (Tools ; Write Input  File) and
+              ANSYS Workbench  Mechanical (Tools to Write Input  File) and
               Finite  Element Modeler  (Write APDL  Solver File)  write named  
               selections of surfaces  as node  components. Therefore,  the CDB  reader
               reconstructs  surface  elements from  node  components and adds them as
@@ -516,13 +444,77 @@
         Internal mesh is generated from input in xml-format.
       </xsd:documentation>
     </xsd:annotation>
-    
+
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of ENSIGHT (Gold) data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputEnsight">
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
+        <xsd:sequence>
+          <xsd:element name="variableList" maxOccurs="1" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="variable" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="CFSVarName" use="required" type="xsd:token"/>
+                    <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                         CFS++ compliant variable name. May be one of fluidMechPressure | fluidMechVelocity |
+                         fluidMechPressure_deriv2
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <xsd:attribute name="EnsightVarName" use="required" type="xsd:token"/>
+                    <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                          Name of variable as given in case file
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <!--xsd:attribute name="multByCellVolume" use="optional"  type="xsd:boolean" default="false"/-->
+                    <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                          If this is true, the value at node/cellCenter is multiplied by the cell volume
+                          during read. 
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <!--xsd:attribute name="type">
+                      <xsd:simpleType>
+                        <xsd:restriction>
+                          <xsd:enumeration value="vector"/>
+                          <xsd:enumeration value="scalar"/>                          
+                        </xsd:restriction>                        
+                      </xsd:simpleType>
+                    </xsd:attribute-->
+                    <xsd:attribute name="dof" use="optional" type="xsd:token">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          In case of vectors (e.g. velocity) which are stored component wise as scalar results we can give the 
+                          target dof for CFS here.
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="readEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
+        <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+        <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
+
   <!-- ******************************************************************** -->
   <!--   Definition of scattered data input type -->
   <!-- ******************************************************************** -->
@@ -530,10 +522,11 @@
   <xsd:group name="ScatteredDataGroup">
     <xsd:choice>
       <xsd:element name="csv" type="DT_ScatteredDataCSV"/>
+      <xsd:element name="csvt" type="DT_ScatteredDataCSVT"/>
       <xsd:element name="ccm" type="DT_ScatteredDataCCM"/>
     </xsd:choice>
   </xsd:group>
-  
+
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputScatteredData">
     <xsd:annotation>
@@ -546,35 +539,31 @@
       <xsd:group ref="ScatteredDataGroup" minOccurs="1" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of basic scattered input type -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_ScatteredDataBasic">
-    <xsd:attribute name="fileName"
-      use="required"
-      type="xsd:token">
+    <xsd:attribute name="fileName" use="required" type="xsd:token">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Full path of file containing the scattered data.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="id"
-      use="required"
-      type="xsd:token">
+    <xsd:attribute name="id" use="required" type="xsd:token">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Unique id for input reader which reads from the given file.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-  </xsd:complexType>  
-  
+  </xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!--   Definition of basic quantity type for scattered data -->
   <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_ScatteredQuantityBasic"  abstract="true">
+  <xsd:complexType name="DT_ScatteredQuantityBasic" abstract="true">
     <xsd:sequence>
       <xsd:element name="bbox" maxOccurs="1" minOccurs="0">
         <xsd:annotation>
@@ -582,14 +571,14 @@
             Only data points contained in this bounding box are considered
             for the database inside the CoefFunctionScatteredData.
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
         <xsd:complexType>
           <xsd:attribute name="xmin" type="xsd:double" use="required"/>
           <xsd:attribute name="ymin" type="xsd:double" use="required"/>
           <xsd:attribute name="zmin" type="xsd:double" use="required"/>
           <xsd:attribute name="xmax" type="xsd:double" use="required"/>
           <xsd:attribute name="ymax" type="xsd:double" use="required"/>
-          <xsd:attribute name="zmax" type="xsd:double" use="required"/>          
+          <xsd:attribute name="zmax" type="xsd:double" use="required"/>
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="dump" maxOccurs="1" minOccurs="0">
@@ -598,7 +587,7 @@
             Dump point cloud data contained in the CoefFunctionScatteredData
             to a file.
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
         <xsd:complexType>
           <xsd:attribute name="fileName" type="xsd:token" use="required"/>
           <xsd:attribute name="format" type="xsd:token" use="optional" default="csv"/>
@@ -612,19 +601,24 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="id"
-      use="required"
-      type="xsd:token">
+    <xsd:attribute name="id" use="required" type="xsd:token">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Id for this scattered data quantity.
         </xsd:documentation>
       </xsd:annotation>
-    </xsd:attribute>    
+    </xsd:attribute>
     <xsd:attribute name="factor" type="xsd:double" default="1.0">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           A scaling factor for all components of the values.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="searchRadius" type="xsd:double" default="1.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Search raduis for the neighbors.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -648,16 +642,16 @@
           Exponent for calculation of weights.
         </xsd:documentation>
       </xsd:annotation>
-    </xsd:attribute>        
+    </xsd:attribute>
     <xsd:attribute name="knnLib" use="optional" default="cgal">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Library for k-nearest-neighbor search. May be one of cgal or flann.
         </xsd:documentation>
       </xsd:annotation>
-    </xsd:attribute>    
-  </xsd:complexType>  
-  
+    </xsd:attribute>
+  </xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!--   Definition of scattered quantity for .csv files -->
   <!-- ******************************************************************** -->
@@ -675,13 +669,13 @@
             <xsd:complexType>
               <xsd:attribute name="dof" type="xsd:token" use="required"/>
               <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
-            </xsd:complexType>  
+            </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of input tag for .csv files -->
   <!-- ******************************************************************** -->
@@ -702,7 +696,7 @@
                   <xsd:complexType>
                     <xsd:attribute name="dof" type="xsd:token" use="required"/>
                     <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
-                  </xsd:complexType>  
+                  </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
@@ -711,7 +705,79 @@
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>  
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered quantity for .csvt files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityCSVT">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        The columns of the single degrees of freedom (dofs) for the values
+        can be specified component-wise.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredQuantityBasic">
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                For complex numbers each entry in the data file must have the form
+                (a+ib).
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="optional"/>
+              <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of input tag for .csvt files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataCSVT">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredDataBasic">
+        <xsd:sequence>
+          <xsd:element name="stepValues" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="stepFiles" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="coordinates" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Each point of the scattered data points is described bz its 
+                coordinates (x,z,y), they are stored in the file name given
+                in the description.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity" minOccurs="1" maxOccurs="1" type="DT_ScatteredQuantityCSVT"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of scattered quantity for .ccm files -->
@@ -733,7 +799,7 @@
             <xsd:complexType>
               <xsd:attribute name="dof" type="xsd:token" use="required"/>
               <xsd:attribute name="shortName" type="xsd:token" use="required"/>
-            </xsd:complexType>  
+            </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
       </xsd:extension>
@@ -773,34 +839,22 @@
         </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>  
-  
+  </xsd:complexType>
+
   <xsd:group name="OutputGroup">
     <xsd:choice>
-      <xsd:element name="gmsh" type="DT_OutputGMsh"
-        minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="gmshParsed" type="DT_OutputGMshParsed"
-        minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="gmv" type="DT_OutputGMV"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="unv" type="DT_OutputUNV"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="gid" type="DT_OutputGiD"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="hdf5" type="DT_OutputHDF5"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="rst" type="DT_OutputRST"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="cgns" type="DT_OutputCGNS"
-        minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="text" type="DT_OutputText"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="csv" type="DT_OutputCSV"
-        minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="info" type="DT_OutputInfo"
-        minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="streaming" type="DT_OutputStreaming"
-        minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gmsh" type="DT_OutputGMsh" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gmshParsed" type="DT_OutputGMshParsed" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gmv" type="DT_OutputGMV" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="unv" type="DT_OutputUNV" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gid" type="DT_OutputGiD" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="hdf5" type="DT_OutputHDF5" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="rst" type="DT_OutputRST" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="cgns" type="DT_OutputCGNS" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="text" type="DT_OutputText" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="csv" type="DT_OutputCSV" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="info" type="DT_OutputInfo" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="streaming" type="DT_OutputStreaming" minOccurs="0" maxOccurs="1"/>
     </xsd:choice>
   </xsd:group>
 
@@ -820,7 +874,7 @@
     <xsd:attribute name="id" type="xsd:token" default="gmsh"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for OutputGMshParsed output High order FEM -->
   <!-- ******************************************************************** -->
@@ -839,7 +893,7 @@
     <xsd:attribute name="id" type="xsd:token" default="gmv"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for UNV output -->
   <!-- ******************************************************************** -->
@@ -847,14 +901,14 @@
     <xsd:attribute name="id" type="xsd:token" default="unv"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition writing history data to InfoNode output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputInfo">
     <xsd:attribute name="id" type="xsd:token" default="info"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
-  </xsd:complexType>  
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition writing results to a streaming receiver -->
@@ -884,21 +938,21 @@
     <!-- if not silent prints on which port a connectiont is attempted to -->
     <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>    
-  </xsd:complexType>  
+  </xsd:complexType>
 
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for GiD output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputGiD">
-    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="yes"/> 
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="groupEigenFreqs" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="id" type="xsd:token" default="gid"/>
     <xsd:attribute name="directory" type="xsd:string" default="results_gid"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
     <xsd:attribute name="mergeSequenceSteps" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for HDF5 output -->
   <!-- ******************************************************************** -->
@@ -913,6 +967,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
+    <xsd:attribute name="extension" type="xsd:string" default="cfs"/>
     <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
@@ -932,7 +987,7 @@
     <xsd:attribute name="id" type="xsd:token" default="rst"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for CGNS output -->
   <!-- ******************************************************************** -->
@@ -941,7 +996,7 @@
       <xsd:documentation xml:lang="en">
         Write (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
       </xsd:documentation>
-    </xsd:annotation>   
+    </xsd:annotation>
     <xsd:attribute name="directory" type="xsd:string" default="results_cgns"/>
     <xsd:attribute name="id" type="xsd:token" default="cgns"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
@@ -997,8 +1052,8 @@
       <xsd:enumeration value="hdf5"/>
       <xsd:enumeration value="default"/>
     </xsd:restriction>
-  </xsd:simpleType>  
-  
+  </xsd:simpleType>
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for text output -->
   <!-- ******************************************************************** -->
@@ -1034,7 +1089,7 @@
     <xsd:attribute name="id" type="xsd:token" default="txt"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for CSV output -->
   <!-- ******************************************************************** -->
@@ -1086,11 +1141,10 @@
     <xsd:attribute name="id" type="xsd:token" default="csv"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
+
   <!-- Data type for name of file containing material data -->
   <xsd:complexType name="DT_MatFile">
-    <xsd:attribute name="file" type="xsd:string" use="optional"
-      default="mat.xml"/>
+    <xsd:attribute name="file" type="xsd:string" use="optional" default="mat.xml"/>
     <xsd:attribute name="format" use="optional" default="xml">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -1099,9 +1153,8 @@
       </xsd:simpleType>
     </xsd:attribute>
   </xsd:complexType>
-  
+
 
 
 
 </xsd:schema>
-

@@ -101,6 +101,25 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${superlu_prefix}/superlu-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of SuperLU libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(SUPERLU_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}")
+ELSEIF(MINGW)
+  SET(SUPERLU_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "SuperLU library.")
+ELSE()
+  SET(SUPERLU_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "SuperLU library.")
+ENDIF()
+
+MARK_AS_ADVANCED(SUPERLU_LIBRARY)
+
 #-------------------------------------------------------------------------------
 # The superlu external project
 #-------------------------------------------------------------------------------
@@ -130,6 +149,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     LIST_SEPARATOR "^"
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${SUPERLU_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -165,25 +185,5 @@ SET(CFSDEPS
 )
 
 SET(SUPERLU_INCLUDE_DIR "${CFS_BINARY_DIR}/include/superlu")
-
-#-----------------------------------------------------------------------------
-# Determine paths of SuperLU libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-
-
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(SUPERLU_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}")
-ELSEIF(MINGW)
-  SET(SUPERLU_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "SuperLU library.")
-ELSE()
-  SET(SUPERLU_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "SuperLU library.")
-ENDIF()
-
-MARK_AS_ADVANCED(SUPERLU_LIBRARY)
 MARK_AS_ADVANCED(SUPERLU_INCLUDE_DIR)
 

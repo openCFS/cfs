@@ -12,9 +12,14 @@ SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
 
-# this is copy pasted to the ctest cases
-set(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_cfs-test")
+IF(SITE_DIR MATCHES "trunk")
+  SET(CTEST_BUILD_NAME "Update Testsuite trunk")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk_cfs-test")
+ELSE()
+  SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_cfs-test")
+ENDIF()
+
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
 # don't delete!!

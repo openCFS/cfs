@@ -1,0 +1,76 @@
+# This is a single test case to be called via nightly_test.cmake.
+#
+# You may test this script alone via ctest -T <test>.ctest
+#
+# see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
+#
+#-----------------------------------------------------------------------------
+# Do the stuff common for all tests on this machine
+#-----------------------------------------------------------------------------
+include("${CMAKE_CURRENT_LIST_DIR}/site_macros.cmake")
+INIT_TEST()
+
+##############################################################################
+#
+# Define what is beeing tested (compiler & config)
+#
+#  * Adapt here to define specific configs
+#  * All non-standard configs should be represented in the build name,
+#    e.g. Trunk DISABLE_OPTIMIZATION UBUNTU ...
+#
+##############################################################################
+
+# set the compiler environment
+SET_COMPILER_ENV("ICC")
+
+# set build name
+set(BUILDTYPE "RELEASE")
+set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+
+# define intel shared libs
+set(INTEL_DLLS
+  libifport.so.5
+  libifcore.so.5
+  libimf.so
+  libirc.so
+  libsvml.so
+  libintlc.so.5
+  libiomp5.so
+)
+if(DIST_FAMILY STREQUAL "") # its probably ubuntu ...
+  set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST}_${REV}_${ARCH}")
+else()
+  set(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
+endif(DIST_FAMILY STREQUAL "")
+
+# remove intel libs if already there, otherwise fail silently
+foreach(DLL IN ITEMS ${INTEL_DLLS})
+  message("  removing ${DLL}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E remove "${CFS_LIB_DIR}/${DLL}")
+endforeach()
+
+# set the default initial cache for nighly tests
+INIT_CACHE(CTEST_INITIAL_CACHE) 
+# set additional config options 
+SET(CTEST_INITIAL_CACHE
+  "${CTEST_INITIAL_CACHE}
+   DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   TESTSUITE_DIR:STRING=${NIGHTLY_TESTSUITE_DIR}
+   CFS_DEPS_PRECOMPILED:BOOL=ON
+   CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
+
+#-----------------------------------------------------------------------------
+# Update, Configure, Build & Test
+#-----------------------------------------------------------------------------
+DO_TESTING()
+
+# copy over intel libraries
+foreach(DLL IN ITEMS ${INTEL_DLLS})
+  message("  copy ${DLL} ${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL} -> ${CFS_LIB_DIR}/${DLL}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}/${DLL}" RESULT_VARIABLE RETVAL)
+  if(RETVAL)
+    message(  "failed to copy ${DLL}: ${RETVAL}")
+  endif(RETVAL)
+endforeach()

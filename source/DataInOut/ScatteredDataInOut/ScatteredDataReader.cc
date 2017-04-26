@@ -7,6 +7,7 @@
 #include "def_use_ccmio.hh"
 
 #include "ScatteredDataReaderCSV.hh"
+#include "ScatteredDataReaderCSVT.hh"
 #ifdef USE_CCMIO
 #include "ScatteredDataReaderCCM.hh"
 #endif
@@ -23,7 +24,7 @@ namespace CoupledField
 
   void ScatteredDataReader::CreateReaders(PtrParamNode& scatteredDataNode)
   {
-    // Check wether readers have already been created.
+    // Check whether readers have already been created.
     if(!readers_.empty())
     {
       return;
@@ -85,6 +86,10 @@ namespace CoupledField
 #else
         EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
 #endif
+      } else if (type == "csvt"){
+        ScatteredDataReaderCSVT* SCRCSV = new ScatteredDataReaderCSVT(scatteredNodes[i]);
+        SCRCSV->SetNumSkipLines(0);
+        reader.reset(SCRCSV);
       } else {
         EXCEPTION("Unknown type '" << type << "' for scattered data file!");
       }
@@ -115,16 +120,18 @@ namespace CoupledField
     readers_[quantities2Readers_[quantity]]->registeredQuantities_.insert(quantity);
   }
 
-  void ScatteredDataReader::Read() 
+  void ScatteredDataReader::Read(bool updateMode)
   {
     std::map<std::string, boost::shared_ptr<ScatteredDataReader> >::iterator it, end;
-
     it = readers_.begin();
     end = readers_.end();
 
+
     for( ; it != end; it++ ) 
     {
-      it->second->ReadData();
+      if(!updateMode || it->second->GetMode() == ScatteredDataReader::TF)
+        it->second->ReadData();
+
     }
   }
 
@@ -145,5 +152,37 @@ namespace CoupledField
     
     coordinates = readers_[quantities2Readers_[quantity]]->coordinates_;
     scatteredData = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantity_[quantity];
+  }
+
+  void ScatteredDataReader::GetQuantity(const std::string& quantity,
+                                        std::vector< std::vector<double> >& coordinates,
+                                        std::vector< std::vector<Complex> >& scatteredData)
+  {
+    if(readers_.empty())
+    {
+      EXCEPTION("Readers for scattered data have not been created yet.");
+    }
+
+    if(quantities2Readers_.find(quantity) == quantities2Readers_.end())
+    {
+      EXCEPTION("Desired quantity '" << quantity << "' is not available "
+                << "through any of the readers for scattered data.");
+    }
+
+    coordinates = readers_[quantities2Readers_[quantity]]->coordinates_;
+
+    // loop over elements
+    std::vector< std::vector<double> >& realParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantity_[quantity];
+    std::vector< std::vector<double> >& imagParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantityImag_[quantity];
+    // size of vector
+    scatteredData.resize(imagParts.size());
+    for(UInt aNode = 0; aNode < imagParts.size();aNode++){
+      scatteredData[aNode].resize(imagParts[aNode].size());
+      for(UInt aDof=0;aDof< imagParts[aNode].size(); aDof++){
+        scatteredData[aNode][aDof].real(realParts[aNode][aDof]);
+        scatteredData[aNode][aDof].imag(imagParts[aNode][aDof]);
+      }
+    }
+
   }
 }

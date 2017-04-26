@@ -149,6 +149,8 @@ namespace CoupledField
     //! Add a new region to 
     void AddRegion(RegionIdType region );
     
+    void SetNormFlag( bool justNorm);
+    
     //! \copydoc ConvCriterion::ResetValues
     virtual void ResetValues();
     
@@ -180,6 +182,9 @@ namespace CoupledField
     
     //! Old norm of updated displacement values
     Double oldNorm_;
+    
+    //! if just norm of mechanical displacement is of interest, but no updated geometry is needed
+    bool justNorm_;
   };
   
   // ======================================================================
@@ -315,6 +320,10 @@ namespace CoupledField
     
     //! Flag if simulation should be aborted in case of diveregence
     bool stopOnDivergence_;
+    
+    //! Flag indicating if mechanical displacement shall be treated as a simple norm for convergence or
+    //! if an actual change in geometry shall be calculated
+    bool justNorm_;
     
     //! Maximum number of iterations per time step
     UInt maxiter_;      

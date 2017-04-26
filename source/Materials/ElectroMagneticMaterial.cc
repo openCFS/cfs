@@ -40,14 +40,23 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
+    isAllowed_.insert( Y_REMANENCE );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
+    isAllowed_.insert( EVAL_VERSION );
+    isAllowed_.insert( PRINT_PREISACH );
+    isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
+    isAllowed_.insert( IS_TESTING );
+    isAllowed_.insert( ANG_DISTANCE );
+    isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );
     isAllowed_.insert( DATA_ACCURACY );
     isAllowed_.insert( MAX_APPROX_VAL );
+    isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( CORE_LOSS );
   }
@@ -61,14 +70,20 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-
-    if ( matType == HYST_MODEL ) {
+    if ( matType == HYST_MODEL || matType == P_DIRECTION ) {
       stringParams_[matType] = param;
       isSet_.insert( matType );
     }
     else {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
+
+      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+        std::string dim = "scalar";
+        matTypeNotAllowed( matType, dim );
+      }
+      else {
+        isSet_.insert( matType );
+      }
+      stringParams_[matType] = param;
     }
   }
 
@@ -278,6 +293,21 @@ namespace CoupledField
     }
   }
 
+  void ElectroMagneticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
+
+    integerMap::const_iterator pos;
+    pos = integerParams_.find( matType );
+    std::string value;
+
+    if ( pos == integerParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }
+
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
                                            MaterialType matType, 
                                            Global::ComplexPart dataType,
@@ -362,12 +392,53 @@ namespace CoupledField
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
-    //2D tensor axi or plane is the same
-    matMatrix.Resize(2,2);
-    matMatrix.Init();
-    pos->second.GetSubMatrix(matMatrix, 1, 1);
+	if(matType == MAGNETOSTRICTION_TENSOR_h_mag){
+		ComputeSubTensor_magstrict(matMatrix, matType, subTensor);
+	} else {
+	    //2D tensor axi or plane is the same
+	    matMatrix.Resize(2,2);
+	    matMatrix.Init();
+	    pos->second.GetSubMatrix(matMatrix, 1, 1);
+	}
   }
 
+void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
+                                         MaterialType matType, SubTensorType subTensor) const {
+
+  //std::cout << "MagMaterial ComputeSubTensor-> MagStrictVersion" << std::endl;
+
+  tensorMap::const_iterator pos;
+  pos = tensorParams_.find( matType );
+
+  Matrix<Complex> const &mat = pos->second;
+
+  if ( subTensor == AXI ) {
+    matMatrix.Resize(2,4);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[0][3] = mat[0][2];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+    matMatrix[1][3] = mat[1][2];
+  }
+  else if ( subTensor == PLANE_STRAIN ||
+      subTensor == PLANE_STRESS ) {
+    matMatrix.Resize(2,3);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+
+  } else {
+    subTensorNotAvailable( matType, subTensor );
+  }
+}
 
 //  void ElectroMagneticMaterial::InitApproxCurves() {
 //
@@ -392,6 +463,8 @@ namespace CoupledField
 //    }
 //  }
 
+  /*
+   * done in base class
   void ElectroMagneticMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                           bool isInverse, bool computeHystInverse ) {
 
@@ -455,7 +528,7 @@ namespace CoupledField
       vecYact_.Init();
     }
   }
-
+*/
 
   void ElectroMagneticMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& valVec) {
 
@@ -525,7 +598,7 @@ namespace CoupledField
       Ycurrent[1] = valVec[1];
       Xcurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
       Xcurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
-      std::cout << "Ycurrent:\n" << Ycurrent << "\n Xcurrent: \n" << Ycurrent << std::endl;
+     // std::cout << "Ycurrent:\n" << Ycurrent << "\n Xcurrent: \n" << Ycurrent << std::endl;
     }
     else if ( computeHystInverse_ ) {
       ComputeInverseScalar( idx, 0, valVec[0], Xcurrent[0] );
@@ -550,7 +623,7 @@ namespace CoupledField
     dY[0] = Ycurrent[0] - vecYprevious_[0][idx];
     dY[1] = Ycurrent[1] - vecYprevious_[1][idx];
 
-    std::cout << "dX \n" << dX << "  DdY:\n" << dY << std::endl;
+  //  std::cout << "dX \n" << dX << "  DdY:\n" << dY << std::endl;
     Double dB = dY[0]*dY[0] + dY[1]*dY[1];
 
     scalarValues.Init();
@@ -689,7 +762,7 @@ namespace CoupledField
     Double eps = 1e-3;
     Double  dH = vecHyst_[0]->GetIncX();
 
-    std::cout << "Yin= " << Yin << std::endl;
+  //  std::cout << "Yin= " << Yin << std::endl;
 
     if ( ( abs(Yin) + 0.05*Ysat_ ) > Ysat_ ) {
       Xout = Xsat_;
@@ -702,16 +775,16 @@ namespace CoupledField
       Hs = vecXact_[comp][idxEl];
       Bs = vecHyst_[comp]->computeValueAndUpdate( Hs, idxEl, false); 
 
-      std::cout << "Start Bs: " << Bs << "  Hs=" << Hs <<  std::endl;
+    //  std::cout << "Start Bs: " << Bs << "  Hs=" << Hs <<  std::endl;
       if  ( abs(Bs - Yin) < eps ) {
         found = true;
         Xout  = Hs;
-        std::cout << "Direct found " << std::endl;
+     //   std::cout << "Direct found " << std::endl;
       }
       else if ( (Bs - Yin) > eps ) {
         Ho = Hs;
         Hu = Hs;
-        std::cout << "Fix Ho= " << Ho << std::endl;
+     //   std::cout << "Fix Ho= " << Ho << std::endl;
         do {
           Hu  -= dH;
           Bact = vecHyst_[comp]->computeValueAndUpdate( Hu, idxEl, false); 
@@ -721,7 +794,7 @@ namespace CoupledField
       else {
         Hu = Hs;
         Ho = Hs;
-        std::cout << "Fix Hu=  " << Hu << std::endl;
+      //  std::cout << "Fix Hu=  " << Hu << std::endl;
         do {
           Ho  += dH;
           Bact = vecHyst_[comp]->computeValueAndUpdate( Ho, idxEl, false); 
@@ -731,7 +804,7 @@ namespace CoupledField
       }
 
       if ( found == false ) {
-        std::cout << "Do iter: Bin=" << Yin << "  Bs=" << std::endl;
+     //   std::cout << "Do iter: Bin=" << Yin << "  Bs=" << std::endl;
         do {
           Hact = ( Ho + Hu ) * 0.5;
           Bact = vecHyst_[comp]->computeValueAndUpdate( Hact, idxEl, false); 
@@ -742,7 +815,7 @@ namespace CoupledField
           else 
             Ho = Hact;
 
-          std::cout << "newB =" << Bact << "  Hact=" << Hact << "  Ho=" << Ho << "   Hu=" << Hu << std::endl; 
+       //   std::cout << "newB =" << Bact << "  Hact=" << Hact << "  Ho=" << Ho << "   Hu=" << Hu << std::endl;
 
         } while ( abs(dB) > eps && abs(Ho-Hu) > abs(Ho)*1e-4 );
 
@@ -775,7 +848,6 @@ namespace CoupledField
       case GENERAL:
         // in this case we have already the full permeability tensor
         
-        //std::cout << "WTF?" << std::endl;
         GetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
         break;
         
@@ -807,20 +879,12 @@ namespace CoupledField
     Matrix<Double> nuTensor(3,3), temp;
     temp = muTensor.GetPart(Global::REAL);
     temp.Invert(nuTensor);
-  
-  /*  
-    std::cout << "-----------" << std::endl;
-    std::cout << "NU" << std::endl;
-    std::cout << temp << std::endl;
-    std::cout << "MU" << std::endl;   
-    std::cout << nuTensor << std::endl;
-    std::cout << "-----------" << std::endl;
-   */
         
     SetTensor( nuTensor, MAG_RELUCTIVITY, Global::REAL );
     
     GetTensor( temp, MAG_RELUCTIVITY, Global::REAL );
   }
+
 
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                            Global::ComplexPart matDataType,
@@ -1074,6 +1138,82 @@ namespace CoupledField
     return ret;
   }
 
+PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                                           Global::ComplexPart matDataType,
+                                                           PtrCoefFct mechStrain ) {
+     //This method allocates the objects handling a nonlinear nu(S) curve; thereby, we allow
+     //approximation with smooth splines
+     //
+     //Please note: in comparison to the nonlinear treatment of the BH curve
+     // 		  both the analyitc function as well as the points to be interpolated must
+     //		  must specify the reluctivity in dependency on the mechanical strain
+     //		  as only a scalar value is returned, we assume the isotropic case 
+     //		  for the dependency on S we currently consider the signed maximum value of S (+/- max(abs(S_i)) where +/- depends on sign of max component)
+
+     // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
+    // std::cout << "ElectroMagneticMaterial: GetNonLinFnc" << std::endl;
+     if( matType != MAG_RELUCTIVITY  ) {
+       EXCEPTION("Scalar Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY!");
+     }
+     
+     // Ensure that only real-valued parameters are used
+     if( matDataType != Global::REAL ) {
+       EXCEPTION( "Only real-valued nonlinear parameters are supported");
+     }
+     PtrCoefFct ret;
+     
+     // check if material is isotropic or anisotropic
+     if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+       
+       // ---------------------------
+       // ISOTROPIC VERSION
+       // ---------------------------
+       // check, if nonlinear curve was already calculated
+       MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+
+       //Here we approximate nu(S) from data points
+       if( matNl.approxType == SMOOTH_SPLINES ) {	 
+		EXCEPTION("Currently nu(S) is currently not implemented with splines (did not find approx)");
+       }
+       else if( matNl.approxType == ANALYTIC ) {
+
+	//	std::cout << "Use analytic nonlin type for reluctivity" << std::endl;
+         // this is for describing the reluctivity directly in the xml as analytic formula
+         // idea: the string from the xml describes a function with the same notation as
+         // described in CoefFunctionCompound.hh
+         // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+         // note: a good starting value for B->0 works miracles!
+
+         // get Euclidean norm of S
+         CoefXprUnaryOp strainAbsOp = CoefXprUnaryOp( mp_, mechStrain, CoefXpr::OP_NORM );
+         PtrCoefFct mechStrainAbs = CoefFunction::Generate( mp_, Global::REAL, strainAbsOp );
+
+         // get function of S
+         std::string nuStr = matNl.analyticExpr;
+         shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
+         std::map<std::string,PtrCoefFct> symbolsNu;
+         symbolsNu["s"] = mechStrain;
+         symbolsNu["S"] = mechStrainAbs;
+
+         nuStr.insert(0,"( ");
+         nuStr.append(" )");
+         nuFnc->SetScalar(nuStr,symbolsNu);
+         return(nuFnc);
+       }
+
+     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+       
+       EXCEPTION("Currently nu(S) is only implemented for the isotropic case");  
+     }
+
+     else {
+       EXCEPTION( "No nonlinear definition found for material type '"
+           << MaterialTypeEnum.ToString(matType) << "'");
+     }
+
+     return ret;
+   }
+  
 
   PtrCoefFct ElectroMagneticMaterial::GetTensorCoefFncNonLin( MaterialType matType,
                                                               SubTensorType type,

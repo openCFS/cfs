@@ -10,12 +10,16 @@ namespace CoupledField {
 
     name_ = "SingleEntryInt";
     // check, if we have a constant expression coefficient function
-//    if( val->GetDependency() == CoefFunction::GENERAL) {
-//      EXCEPTION("SingleEntryInt only works with constant coefficients");
-//    }
+    if((val->GetDependency() != CoefFunction::CONSTANT) && (val->GetDependency() != CoefFunction::TIMEFREQ)) {
+      EXCEPTION("SingleEntryInt only works with space independent coefficients");
+    }
     val_ = val;
   }
 
+ SingleEntryInt::SingleEntryInt(const SingleEntryInt& right )
+   : LinearForm(right){
+   this->val_ = right.val_;
+ }
 
   SingleEntryInt::~SingleEntryInt() {
   }

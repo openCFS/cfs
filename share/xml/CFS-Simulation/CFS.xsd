@@ -20,6 +20,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEsplit.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
@@ -188,18 +189,6 @@
         <!-- Parameters for specifying an optimization (optional) -->
         <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
 
-				<!-- Enforce parameter settings by disabling Expert() (optional) -->
-				<xsd:element name="expert" minOccurs="0"
-					maxOccurs="1">
-					<xsd:complexType>
-						<xsd:attribute name="override" type="DT_CFSBool"
-							use="optional" default="no" />
-					</xsd:complexType>
-				</xsd:element>
-
-				<!-- Optional developer's element -->
-				<xsd:element name="devel" type="xsd:anyType"
-					minOccurs="0" maxOccurs="unbounded" />
 			</xsd:sequence>
 			<!-- The simulation can be given an id/token/label/name that is written to info.xml if present. -->
 			<xsd:attribute name="id" type="xsd:token" default=""

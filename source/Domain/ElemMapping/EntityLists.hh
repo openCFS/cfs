@@ -340,7 +340,7 @@ namespace CoupledField {
     //! Set Region ids
     void SetRegions( const StdVector<RegionIdType>& names );
 
-    //! Get Region anmes
+    //! Get Region names
     const StdVector<RegionIdType>& GetRegionIds() const {return list_; }
     
 
@@ -471,6 +471,9 @@ namespace CoupledField {
     //! Increment iterator
     EntityIterator& operator++(int);
     
+    //! Increment iterator by fixed value
+    EntityIterator& operator+=(int val);
+
     //! Return current element
     const Elem* GetElem() const;
     
