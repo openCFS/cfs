@@ -100,8 +100,8 @@ namespace CoupledField
        * switch sign then. */
       double lambda_min_;
       
-      /** err_eps for bisection iteration is fine */
-      double err_eps_;
+      /** err_eps for bisection iteration is fine. This is actually the feasibility tolerance */
+      double feasibility_;
       
       /** for the framed mode the starting lower border */
       double start_lower_;

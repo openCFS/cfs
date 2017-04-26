@@ -1125,7 +1125,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         mesh.elements.append(e)
     
   if type == "traegerblz":
-    mesh = name_bc_nodes(mesh)
     side = (("top_mech", []))
     mesh.bc.append(side)
     for z in range(0, nnz):
@@ -1156,6 +1155,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
   
+<<<<<<< .working
   if type == "box_lufo":
     top = (("force",[]))
     mesh.bc.append(top)
@@ -1173,6 +1173,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     for x in range(0,nnx):
       support[1].append((nnx*ny + x))
   
+
+  mesh = name_bc_nodes(mesh)  
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
   msg += " with threshold " + str(threshold) 
