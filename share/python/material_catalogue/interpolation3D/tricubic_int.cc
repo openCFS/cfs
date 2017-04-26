@@ -424,7 +424,7 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
 }
 int main(int argc, char * argv[]) {
   int mode;
-  cout<<"Select number of interpolation goal: 3D cross shaped volume 1 or homogenized tensor 2 or debug mode 3 or homogenized tensor with volume 4"<<endl;
+  cout<<"Select number of interpolation goal: 3D cross shaped volume 1 or homogenized tensor 2 or debug mode 3 or homogenized tensor with volume 4 or mode 5 create plot data for volume."<<endl;
   cin>>mode;
   /*if (argc !=2 ) {
     cout <<"Error number of input parameter wrong"<<endl;
@@ -484,12 +484,12 @@ int main(int argc, char * argv[]) {
     //Write interpolation coefficients in the xml file above
     write_to_xml_vol(file,Coeff,aa,bb,cc);
 
-  } else if (mode == 2 || mode == 3 || mode == 4) {
+  } else if (mode == 2 || mode == 3 || mode == 4 || mode == 5) {
     cout<<"Enter name of the homogenized data file:"<<endl;
     string input;
     string input_vol = "none";
     cin>>input;
-    if (mode == 4) {
+    if (mode == 4 || mode == 5) {
       cout<<"Enter name of the homogenized volume data file:"<<endl;
       cin>>input_vol;
       cout<<"Read "<<input_vol<<endl;
@@ -583,7 +583,7 @@ int main(int argc, char * argv[]) {
     cc.assign(tcc,tcc+o);*/
     //Calculate coefficient matrix for the interpolation of the different entries in E
     int nrow;
-    if (mode == 2 || mode == 3 || mode == 4) {
+    if (mode == 2 || mode == 3 || mode == 4 || mode == 5) {
       nrow = 9;
     } else {
       nrow = 6 + 1;
@@ -625,13 +625,15 @@ int main(int argc, char * argv[]) {
     cin>>name;
     string file(name);
     //Write interpolation coefficients in the xml file above
-    write_to_xml(file,Coeff,aa,bb,cc, mode);
+    if (mode != 5)
+      write_to_xml(file,Coeff,aa,bb,cc, mode);
     if (fin_vol.is_open()) {
       cout<<"Insert volume output xml file name:"<<endl;
       string name_vol;
       cin>>name_vol;
       string file_vol(name_vol);
-      write_to_xml_vol(file_vol, Coeff_vol, aa,bb, cc);
+      if (mode != 5)
+        write_to_xml_vol(file_vol, Coeff_vol, aa,bb, cc);
     }
     /*for (int i=0;i<m-1;i++) {
       for (int j=0;j<n-1;j++) {
@@ -688,19 +690,6 @@ int main(int argc, char * argv[]) {
       double coeff2=(x2-bb[b1])/db;
       double coeff3=(x3-cc[c1])/dc;
 
-      /*cout<<"c1: "<<coeff1<<endl;
-      cout<<"c2: "<<coeff2<<endl;
-      cout<<"c3: "<<coeff3<<endl;
-      cout<<" i:"<<a1<<endl;
-      cout<<" j:"<<b1<<endl;
-      cout<<" k:"<<c1<<endl;*/
-
-      /*for (int i=0;i<(m-1)*(n-1)*(o-1);i++) {
-        for (int j=0;j<64;j++) {
-          cout<<" "<<Coeff[i][j];
-        }
-        cout<<endl;
-      }*/
       vector<double> a(64,0.);
       vector<double> b(64,0.);
       vector<double> c(64,0.);
@@ -722,7 +711,7 @@ int main(int argc, char * argv[]) {
         x[i] = Coeff[8][(n-1)*(o-1)*a1+(o-1)*b1+c1][i];
       }
 
-      //Evaluate the interpolation intervall at point x1,x2,x3
+      //Evaluate the interpolation interval at point x1,x2,x3
       result= tricubic_eval(a, coeff1, coeff2, coeff3);
       cout<<"e11: "<<result<<endl;
       cout<<"e12: "<<tricubic_eval(b, coeff1, coeff2, coeff3)<<endl;
@@ -735,6 +724,67 @@ int main(int argc, char * argv[]) {
       cout<<"e66: "<<tricubic_eval(x, coeff1, coeff2, coeff3)<<endl;
       return 0;
     }
+    if (mode == 5) {
+      //vector<vector<double > > vol_values(101*101,vector<double>(3,0.));
+      fstream f,f2;
+      f.open("output_vol.dat", ios::out);
+      f2.open("output_kreuze_vol.dat", ios::out);
+      for (int ii = 0;ii <= 100;ii++) {
+        for (int jj = 0;jj <= 100;jj++) {
+            x1 = ii/100.;
+            x2 = jj/100.;
+            x3 = 0.;
+            //Select the correct interval for x1, x2 and x3
+            int a1=-1;
+            int b1=-1;
+            int c1 =-1;
+            for (int i=0;i<m;i++) {
+              if (aa[i] <= x1 && x1 < aa[i+1]) {
+                a1=i;
+              } else if( x1 == aa[m-1]) {
+                a1=m-2;
+                break;
+              } else if (x1 > aa[m-1]) {
+                cout<<"x1 out of bounds"<<endl;
+                break;
+                }
+            }
+
+            for (int i=0;i<n;i++) {
+              if (bb[i] <= x2 && x2 < bb[i+1]) {
+                b1=i;
+              } else if( x2 == bb[n-1]) {
+                b1=n-2;
+                break;
+              } else if (x2 > bb[n-1]) {
+                cout<<"x2 out of bounds"<<endl;
+                break;
+              }
+            }
+            for (int i=0;i<o;i++) {
+              if (cc[i] <= x3 && x3 < cc[i+1]) {
+                c1=i;
+              } else if( x3 == cc[o-1]) {
+                c1=o-2;
+                break;
+              } else if (x3 > cc[o-1]) {
+                cout<<"x3 out of bounds"<<endl;
+                break;
+              }
+            }
+            // Map x1,x2,x3 into the chosen intervall
+            double coeff1=(x1-aa[a1])/da;
+            double coeff2=(x2-bb[b1])/db;
+            double coeff3=(x3-cc[c1])/dc;
+            f<<x1<<" "<<x2<< " " <<x3<<" "<<tricubic_eval(Coeff_vol[(n-1)*(o-1)*a1+(o-1)*b1+c1], coeff1, coeff2, coeff3)<<endl;
+            f2<<x1<<" "<<x2<< " " <<x3<<" "<<Calc3DCrossVolume(x1,x2,x3,false,1)<<endl;
+        }
+      }
+      f.close();
+      f2.close();
+      return 0;
+    }
+    return 0;
   } else {
     cout<<"wrong interpolation goal number chosen."<<endl;
     return -1;

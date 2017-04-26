@@ -1040,10 +1040,18 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is default
   this->periodic = enable & domain->HasPerdiodicBC();
-
-  if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
+  int dim = domain->GetGrid()->GetDim();
+  if (dim == 3 && (domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homRectC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1"))) {
     //read interpolation data for volume calculation in 3D
-    std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
+    //std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
+    string p_node = "";
+    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1) {
+      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homRectC1";
+    } else {
+      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1";
+    }
+    PtrParamNode hr = domain->GetParamRoot()->Get(p_node);
+    string file = hr->Get("file")->As<string>();
     PtrParamNode root = XmlReader::ParseFile(file);
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
@@ -1054,6 +1062,17 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
     ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
     ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
+
+    // create volume output data for material catalog in info.xml file
+    Vector<double> p(3,0);
+    double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    p[0] = 1.;
+    p[1] = 1.;
+    p[2] = 1.;
+    double v1 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
+    info_matCatalog->Get("vol_0")->SetValue(v0);
+    info_matCatalog->Get("vol_1")->SetValue(v1);
   }
   //total volume in the non-regular case is needed for the volume calculations
   this->total_vol_ = 0.0;
