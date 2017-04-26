@@ -38,7 +38,7 @@ import sys
 def initNacsEnv():
   # Is a NACS 2 installation available? 
   # If not the component can not be loaded and used
- if 'NACS2_ROOT_DIR' in os.environ:
+  if 'NACS2_ROOT_DIR' in os.environ:
    nacsDir=os.environ['NACS2_ROOT_DIR']
   else:
     nacsDir=r'C:\Program Files\SIMetris\NACS-2.2'

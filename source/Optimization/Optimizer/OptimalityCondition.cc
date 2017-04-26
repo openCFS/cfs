@@ -44,22 +44,22 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   type.Add(TRAJECTORY, "trajectory");
   type.Add(EXTREMIZE, "extremize");
   
-  this->lambda_ = 1000; // just to set a value
+  this->lambda_ = 0; // just to set a value
 
   // the following values are standard in mech SIMP -> see e.g. the 99 lines paper
   this->move_limit_ = 0.2;
   this->oc_damping_ = 0.5;
-  this->lambda_min_ = 1e-30;
+  this->lambda_min_ = 1e-20;
   this->lambda_iters_ = 0;
   this->max_lambda_iters_ = 70;
-  this->err_eps_    = 1e-3;
+  this->feasibility_    = 1e-6;
   this->type_       = optimization->objectives.Has(Objective::COMPLIANCE) ? FRAMED : FUMBLE;
 
   // framed
   this->upper_ = 0.0;
   this->lower_ = 0.0;
   this->start_lower_ = 0;
-  this->start_upper_ = 1000;
+  this->start_upper_ = 100000;
   this->enlarge_lower_ = 0.5;
   this->enlarge_upper_ = 2.0;
   this->always_enlarge_ = true;
@@ -79,7 +79,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     move_limit_ = pn->Get("move_limit")->As<Double>();
     oc_damping_ = pn->Get("damping")->As<Double>();
     lambda_min_ = pn->Get("lambda_min")->As<Double>();
-    err_eps_    = pn->Get("err_eps")->As<Double>();
+    feasibility_    = pn->Get("feasibility")->As<Double>();
     max_lambda_iters_ = pn->Get("max_lambda_iters")->As<int>();
 
     // it doesn't harm to read the parameters for all types!
@@ -273,10 +273,10 @@ void OptimalityCondition::CalcNextFramedIteration()
     LOG_DBG2(oc) << "lambda_iter/lambda/err/lower/upper = " <<  lambda_iters_ << "\t" 
                  << lambda_ << "\t" << err << "\t" << lower_ << "\t" << upper_; 
    }
-   while(abs(err) > err_eps_  && lambda_iters_ < max_lambda_iters_);
+   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_);
   
    if(lambda_iters_ >= max_lambda_iters_)
-     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << std::endl;
+     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check bounds in 'optimalityCondition/framed/upper'\n";
 }
 
 void OptimalityCondition::CalcNextFumbleIteration()
@@ -345,7 +345,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
                  << Evaluate(lambda_ - expand_ * step_) << "\t" << Evaluate(lambda_ - contract_ * step_) << "\t"
                  << Evaluate(lambda_ + contract_ * step_) << "\t" <<  Evaluate(lambda_ + expand_ * step_);
   }
-  while(abs(min_err) > err_eps_ && lambda_iters_ < max_lambda_iters_);
+  while(abs(min_err) > feasibility_ && lambda_iters_ < max_lambda_iters_);
 
   if(lambda_iters_ >= max_lambda_iters_)
     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << min_err << std::endl;
@@ -367,7 +367,7 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
   double factor;
   lambda_iters_ = 0;
 
-  while(abs(err) > err_eps_ && lambda_iters_ < max_lambda_iters_)
+  while(abs(err) > feasibility_ && lambda_iters_ < max_lambda_iters_)
   {
     // we have to support to step over zero!
     if(abs(lambda_) < lambda_min_)
