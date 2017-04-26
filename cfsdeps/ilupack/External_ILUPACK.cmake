@@ -95,6 +95,19 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${ilupack_prefix}/ilupack-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of ILUPACK libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(ILUPACK_LIBRARY
+  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}"
+  CACHE FILEPATH "ILUPACK library.")
+set(ILUPACK_DOUBLE_LIBRARY "${LD}/libDilupack.a")
+set(ILUPACK_COMPLEX_LIBRARY "${LD}/libZilupack.a")
+set(ILUPACK_BLASLIKE_LIBRARY "${LD}/libblaslike.a")
+set(ILUPACK_SPARSPAK_LIBRARY "${LD}/libsparspak.a")
+MARK_AS_ADVANCED(ILUPACK_LIBRARY)
+
 #-------------------------------------------------------------------------------
 # The ilupack external project
 #-------------------------------------------------------------------------------
@@ -136,6 +149,7 @@ ELSE()
     CMAKE_ARGS
       ${CMAKE_ARGS}
       -DFLOAT_TYPE:STRING=DOUBLE_REAL
+    BUILD_BYPRODUCTS ${ILUPACK_DOUBLE_LIBRARY} ${ILUPACK_BLASLIKE_LIBRARY} ${ILUPACK_SPARSPAK_LIBRARY} #${AMD_LIBRARY}
   )
   ExternalProject_Add(ilupack-complex
     DEPENDS ilupack-double
@@ -146,6 +160,7 @@ ELSE()
     CMAKE_ARGS
       ${CMAKE_ARGS}
       -DFLOAT_TYPE:STRING=DOUBLE_COMPLEX
+    BUILD_BYPRODUCTS ${ILUPACK_COMPLEX_LIBRARY}
   )
   
   
@@ -189,15 +204,5 @@ SET(CFSDEPS
 )
 
 SET(ILUPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of ILUPACK libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ILUPACK_LIBRARY
-  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}"
-  CACHE FILEPATH "ILUPACK library.")
-
-MARK_AS_ADVANCED(ILUPACK_LIBRARY)
 MARK_AS_ADVANCED(ILUPACK_INCLUDE_DIR)
 

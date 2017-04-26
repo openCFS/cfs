@@ -93,6 +93,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gidpost.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ensight.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ensight.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
 
@@ -134,3 +137,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
   @ONLY )
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
+  "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")
+  

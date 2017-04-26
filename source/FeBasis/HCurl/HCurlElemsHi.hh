@@ -20,8 +20,14 @@ public:
   //! Constructor
   FeHCurlHi( Elem::FEType feType  );
 
+  //! Copy Constructor
+  FeHCurlHi(const FeHCurlHi & other);
+
   //! Destructor
   virtual ~FeHCurlHi();
+
+  //! Deep Copy
+  virtual FeHCurlHi* Clone() = 0;
 
   //! Set Usage of only lowest order functions
   void SetOnlyLowestOrder( bool flag);
@@ -120,16 +126,36 @@ public:
   //! Constructor
   FeHCurlHiTria();
 
+  //! Copy Constructor
+  FeHCurlHiTria(const FeHCurlHiTria & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiTria* Clone(){
+    return new FeHCurlHiTria(*this);
+  }
+
   //! Destructor
   virtual ~FeHCurlHiTria();
 
-  //! @copydoc FeHCurl::CalcLocShFnc
-  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                     const Elem* elem, UInt comp = 1 );
 
-  //! @copydoc FeHCurl::CalcLocCurlShFnc
-  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+  //! Return HCurl shape functions
+  virtual void GetShFnc( Matrix<Double>& shape,
+                         const LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl,
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl,
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+
 protected:
   
   //! Calculate number of unknowns
@@ -146,8 +172,18 @@ public:
   //! Constructor
   FeHCurlHiQuad();
 
+  //! Copy Constructor
+  FeHCurlHiQuad(const FeHCurlHiQuad & other)
+    : FeHCurlHi(other){
+  }
+
   //! Destructor
   virtual ~FeHCurlHiQuad();
+
+  //! Create deep copy
+  virtual FeHCurlHiQuad* Clone(){
+    return new FeHCurlHiQuad(*this);
+  }
 
   //! Return HCurl shape functions 
   virtual void GetShFnc( Matrix<Double>& shape, 
@@ -184,6 +220,16 @@ public:
 
   //! Constructor
   FeHCurlHiHex();
+
+  //! Copy Constructor
+  FeHCurlHiHex(const FeHCurlHiHex & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiHex* Clone(){
+    return new FeHCurlHiHex(*this);
+  }
 
   //! Destructor
   virtual ~FeHCurlHiHex();
@@ -229,6 +275,17 @@ public:
   //! Constructor
   FeHCurlHiWedge();
 
+  //! Copy Constructor
+  FeHCurlHiWedge(const FeHCurlHiWedge & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiWedge* Clone(){
+    return new FeHCurlHiWedge(*this);
+  }
+
+
   //! Destructor
   virtual ~FeHCurlHiWedge();
 
@@ -263,6 +320,16 @@ public:
 
   //! Constructor
   FeHCurlHiTet();
+
+  //! Copy Constructor
+  FeHCurlHiTet(const FeHCurlHiTet & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiTet* Clone(){
+    return new FeHCurlHiTet(*this);
+  }
 
   //! Destructor
   virtual ~FeHCurlHiTet();
@@ -299,6 +366,16 @@ public:
 
   //! Constructor
   FeHCurlHiPyra();
+
+  //! Copy Constructor
+  FeHCurlHiPyra(const FeHCurlHiPyra & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiPyra* Clone(){
+    return new FeHCurlHiPyra(*this);
+  }
 
   //! Destructor
   virtual ~FeHCurlHiPyra();

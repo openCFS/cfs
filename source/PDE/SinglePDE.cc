@@ -98,13 +98,15 @@ namespace CoupledField {
     isDirectCoupled_(false),
     isInitialized_(false),
     iterCplPde_(NULL),
-    updatedGeo_(false)
+    updatedGeo_(false),
+	isMaterialComplex_( false )
   {
     
     // get id for linear system
     std::string systemId = myParam_->Get("systemId")->As<std::string>();
     
-    PtrParamNode ls = myParam_->GetParent()->GetParent()->Get("linearSystems",ParamNode::INSERT);
+    PtrParamNode ls = myParam_->GetParent()
+        ->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
     
   }
@@ -164,8 +166,8 @@ namespace CoupledField {
       inputIt->first->Finalize();
       delete inputIt->second;
     }
-
   }
+
 
   std::string SinglePDE::ToString() const
   {
@@ -173,7 +175,6 @@ namespace CoupledField {
     ss << pdename_ << " s=" << sequenceStep_ << " at=" << BasePDE::analysisType.ToString(analysistype_);
     return ss.str();
   }
-
 
   // ********
   //   Init
@@ -513,7 +514,7 @@ namespace CoupledField {
       //     }
       
       for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        //take cae: one region can have more then one nonlinearity!!
+        //take care: one region can have more then one nonlinearity!!
         
         // get data
         regionNodes[i]->GetValue( "name", actRegionName );
@@ -548,6 +549,9 @@ namespace CoupledField {
           
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
+
+          if ( nonLinTypes_[nonLinId] == HYSTERESIS or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )
+        	  isHysteresis_ = true;
         }
       }
 
@@ -750,7 +754,7 @@ namespace CoupledField {
   {
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
-    StdVector<std::string> postProcNames, outDestNames, neighborRegions;
+    StdVector<std::string> postProcNames, outDestNames, neighborRegions, writeAsHistResult;
     UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
@@ -780,308 +784,324 @@ namespace CoupledField {
 
     // fetch result node and leave, if none is present
     PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
-    if(!resultNode)
+    if( !resultNode )
       return false;
 
-    // Convert enum
-    quantity = SolutionTypeEnum.ToString(candidate->resultType);
-    LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '" << quantity << "'";
+      // Convert enum
+      quantity = SolutionTypeEnum.ToString(candidate->resultType);
+      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '" << quantity << "'";
 
-    // try to catch possible errors
-    try {
+      // try to catch possible errors
+      try {
 
-      // Get type of result
-      std::string xmlElemName = elemNames[candidate->definedOn];
-      if( xmlElemName == "" ){
-        return false;
-      }
+        // Get type of result
+        std::string xmlElemName = elemNames[candidate->definedOn];
+        if( xmlElemName == "" ){
+          return false;
+        }
 
-      // Remember current result node
-      PtrParamNode actResultNode =
+        // Remember current result node
+        PtrParamNode actResultNode =
           resultNode->GetByVal(xmlElemName, "type", quantity, ParamNode::PASS );
 
-      // Check on which entity type the result is defined on
-      switch(candidate->definedOn)
-      {
-      case ResultInfo::NODE:
-        entityType = EntityList::NODE_LIST;
-        break;
-      case ResultInfo::REGION:
-      case ResultInfo::SURF_REGION:
-        entityType = EntityList::NAME_LIST;
-        break;
-      case ResultInfo::SURF_ELEM:
-        entityType = EntityList::SURF_ELEM_LIST;
-        break;
-      case ResultInfo::ELEMENT:
-        entityType = EntityList::ELEM_LIST;
-        break;
-      case ResultInfo::COIL:
-        entityType = EntityList::COIL_LIST;
-        break;
-      default:
-        EXCEPTION("Type of 'definedOn' was not found");
-        break;
-      }
+        // Check on which entity type the result is defined on
+        switch(candidate->definedOn)
+        {
+        case ResultInfo::NODE:
+          entityType = EntityList::NODE_LIST;
+          break;
+        case ResultInfo::REGION:
+        case ResultInfo::SURF_REGION:
+          entityType = EntityList::NAME_LIST;
+          break;
+        case ResultInfo::SURF_ELEM:
+          entityType = EntityList::SURF_ELEM_LIST;
+          break;
+        case ResultInfo::ELEMENT:
+          entityType = EntityList::ELEM_LIST;
+          break;
+        case ResultInfo::COIL:
+          entityType = EntityList::COIL_LIST;
+          break;
+        default:
+          EXCEPTION("Type of 'definedOn' was not found");
+          break;
+        }
 
-      // intialize variables
-      neighborRegions.Clear();
-      regionNames.Clear();
-      //outDestNames.Clear();
+        // intialize variables
+        neighborRegions.Clear();
+        regionNames.Clear();
+        //outDestNames.Clear();
 
-      // ========== Look for defineType 'REGION' ==========
-      // 1a) Look if result is defined on 'allRegions'
+        // ========== Look for defineType 'REGION' ==========
+        // 1a) Look if result is defined on 'allRegions'
 
-      // if no node was found, continue with next result
-      if( !actResultNode) {
-        return false;
-      }
+        // if no node was found, continue with next result
+        if( !actResultNode) {
+          return false;
+        }
 
-      // determine complexFormat
-      complexFormatString = "amplPhase";
-      actResultNode->GetValue("complexFormat", complexFormatString, ParamNode::PASS);
-      String2Enum( complexFormatString, complexFormat );
+        // determine complexFormat
+        complexFormatString = "amplPhase";
+        actResultNode->GetValue("complexFormat", complexFormatString, ParamNode::PASS);
+        String2Enum( complexFormatString, complexFormat );
 
-      // otherwise check, if result is to be saved on "allRegions"
-      if( actResultNode->Has("allRegions" ) ) {
-        ptGrid_->GetRegion().ToString(regions_,regionNames);
+        // otherwise check, if result is to be saved on "allRegions"
+        if( actResultNode->Has("allRegions" ) ) {
+          ptGrid_->GetRegion().ToString(regions_,regionNames);
 
-        PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
+          PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
 
-        std::string allPostProcName, allOutDestName;
+          std::string allPostProcName, allOutDestName;
 
-        // fetch postProcNames
-        allRegionsNode->GetValue("postProcId", allPostProcName );
-        postProcNames.Resize( regionNames.GetSize() );
-        postProcNames.Init( allPostProcName );
+          // fetch postProcNames
+          allRegionsNode->GetValue("postProcId", allPostProcName );
+          postProcNames.Resize( regionNames.GetSize() );
+          postProcNames.Init( allPostProcName );
 
-        //fetch outDestName
-        allRegionsNode->GetValue("outputIds", allOutDestName );
-        outDestNames.Resize( regionNames.GetSize() );
-        outDestNames.Init( allOutDestName );
+          //fetch outDestName
+          allRegionsNode->GetValue("outputIds", allOutDestName );
+          outDestNames.Resize( regionNames.GetSize() );
+          outDestNames.Init( allOutDestName );
 
-        // fetch saveBegin, saveEnd and saveInc
-        saveBegin = allRegionsNode->Get("saveBegin")->MathParse<UInt>();
-        saveEnd = allRegionsNode->Get("saveEnd")->MathParse<UInt>();
-        saveInc = allRegionsNode->Get("saveInc")->MathParse<UInt>();
+          // fetch saveBegin, saveEnd and saveInc
+          saveBegin = allRegionsNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = allRegionsNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = allRegionsNode->Get("saveInc")->MathParse<UInt>();
 
-        // fetch writeResult flag
-        std::string writeResult;
-        allRegionsNode->GetValue("writeResult", writeResult );
-        writeResults.Resize( regionNames.GetSize() );
-        writeResults.Init( writeResult );
+          // fetch writeResult flag
+          std::string writeResult;
+          allRegionsNode->GetValue("writeResult", writeResult );
+          writeResults.Resize( regionNames.GetSize() );
+          writeResults.Init( writeResult );
 
-      } else {
+        } else {
 
-        ParamNodeList regionNodes;
-        PtrParamNode listNode;
-        // 1b) Look for regions the result is defined on
-        if(candidate->definedOn == ResultInfo::NODE ||
-            candidate->definedOn == ResultInfo::ELEMENT ||
-            candidate->definedOn == ResultInfo::REGION ) {
-          listNode = actResultNode->Get("regionList", ParamNode::PASS);
-          if( listNode )
-            regionNodes = listNode->GetList("region");
-        } else if(candidate->definedOn == ResultInfo::SURF_ELEM ||
-            candidate->definedOn == ResultInfo::SURF_REGION ) {
-          listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
-          if( listNode )
-            regionNodes = listNode->GetList("surfRegion");
+          ParamNodeList regionNodes;
+          PtrParamNode listNode;
+          // 1b) Look for regions the result is defined on
+          if(candidate->definedOn == ResultInfo::NODE ||
+             candidate->definedOn == ResultInfo::ELEMENT ||
+             candidate->definedOn == ResultInfo::REGION ) {
+            listNode = actResultNode->Get("regionList", ParamNode::PASS);
+            if( listNode )
+              regionNodes = listNode->GetList("region");
+          } else if(candidate->definedOn == ResultInfo::SURF_ELEM ||
+                    candidate->definedOn == ResultInfo::SURF_REGION ) {
+            listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
+            if( listNode )
+              regionNodes = listNode->GetList("surfRegion");
 
-          // fetch entry with neighboring regions
-          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-            neighborRegions.Push_back( regionNodes[i]->
-                Get("neighborRegion")->As<std::string>() );
+            // fetch entry with neighboring regions
+            for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+            	std::string str = regionNodes[i]->Get("neighborRegion")->As<std::string>();
+            	if ( str != "" )
+            		neighborRegions.Push_back( str );
+            }
+          }
+
+          // only enter, at least one region is present
+          if( listNode ) {
+            // fetch saveBegin, saveEnd and saveInc
+            saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
+            saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
+            saveInc = listNode->Get("saveInc")->MathParse<UInt>();
+
+            // iterate over all regions
+            regionNames.Clear();
+            postProcNames.Clear();
+            outDestNames.Clear();
+            writeResults.Clear();
+            for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+              regionNames.Push_back( regionNodes[i]->Get("name")->As<std::string>() );
+              postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
+              outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
+              writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
+            }
           }
         }
 
-        // only enter, at least one region is present
-        if( listNode ) {
-          // fetch saveBegin, saveEnd and saveInc
-          saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
-          saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
-          saveInc = listNode->Get("saveInc")->MathParse<UInt>();
+        // Check, if any region was found for this result type
+        if( regionNames.GetSize() != 0 ) {
+          candidate->complexFormat = complexFormat;
 
           // iterate over all regions
-          regionNames.Clear();
+          for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ )
+          {
+            actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion] );
+            shared_ptr<BaseResult> actSol;
+            if( isComplex_ ) {
+              actSol = shared_ptr<BaseResult>(new Result<Complex>());
+            } else {
+              actSol = shared_ptr<BaseResult>(new Result<Double>());
+            }
+
+            // intialize result object
+            actSol->SetResultInfo(candidate);
+            actSol->SetEntityList( actList );
+            resultLists_[candidate].Push_back( actSol );
+
+            // extract all output destinations and determine bool flag for writeResult
+            SplitStringList( outDestNames[iRegion], actOutDest, ',' );
+            bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
+
+            
+            // try to get result functor
+            shared_ptr<ResultFunctor> fnc;
+            if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end())
+              return false;
+              // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
+
+            fnc = resultFunctors_[candidate->resultType];
+
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[iRegion];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
+            // pass result to resulthandler
+            resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
+                                        saveBegin, saveInc, saveEnd,
+                                        actOutDest,
+                                        postProcNames[iRegion], writeResult,
+										isHistory[candidate->definedOn] );
+          }
+        }
+
+        // ========== Look for defineType node/elemList/coilList (history) ==========
+
+        std::string entityTypeName;
+        StdVector<std::string> histNames;
+        neighborRegions.Clear();
+        writeAsHistResult.Clear();
+
+        PtrParamNode histNode;
+        ParamNodeList histEntities;
+
+        if(candidate->definedOn == ResultInfo::NODE ) {
+          histNode = actResultNode->Get("nodeList",ParamNode::PASS);
+          if( histNode )
+            histEntities = histNode->GetList("nodes");
+          entityTypeName = "nodes";
+
+        } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
+          histNode = actResultNode->Get("elemList",ParamNode::PASS);
+          if( histNode )
+            histEntities = histNode->GetList("elems");
+          entityTypeName = "elements";
+
+        } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
+          histNode = actResultNode->Get("surfElemList",ParamNode::PASS);
+          if( histNode)
+            histEntities = histNode->GetList("surfElems");
+          entityTypeName = "surfElems";
+
+          // fetch entry with neighboring regions
+          for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
+          	std::string str = histEntities[i]->Get("neighborRegion")->As<std::string>();
+          	if ( str != "" )
+          		neighborRegions.Push_back( str );
+          }
+        } else if(candidate->definedOn == ResultInfo::COIL ) {
+          histNode = actResultNode->Get("coilList", ParamNode::PASS);
+          if( histNode )
+            histEntities = histNode->GetList("coil");
+        }
+
+        // only proceed, if any history result is defined
+        if( histNode && histNode->HasChildren() ) {
+
+          // fetch saveBegin, saveEnd and saveInc
+          saveBegin = histNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = histNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = histNode->Get("saveInc")->MathParse<UInt>();
+
+          // iterate over all regions
+          histNames.Clear();
           postProcNames.Clear();
           outDestNames.Clear();
           writeResults.Clear();
-          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-            regionNames.Push_back( regionNodes[i]->Get("name")->As<std::string>() );
-            postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
-            outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
-            writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
+          for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
+            std::string nameType = "name";
+            if( candidate->definedOn == ResultInfo::COIL )
+              nameType = "id";
+            histNames.Push_back( histEntities[i]->Get(nameType)->As<std::string>() );
+            postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
+            outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
+            writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
+            writeAsHistResult.Push_back( histEntities[i]->Get("writeAsHistResult")->As<std::string>() );
           }
         }
-      }
 
-      // Check, if any region was found for this result type
-      if( regionNames.GetSize() != 0 ) {
-        candidate->complexFormat = complexFormat;
-
-        // iterate over all regions
-        for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ )
+        if( histNames.GetSize() > 0 )
         {
-          actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion] );
-          shared_ptr<BaseResult> actSol;
-          if( isComplex_ ) {
-            actSol = shared_ptr<BaseResult>(new Result<Complex>());
-          } else {
-            actSol = shared_ptr<BaseResult>(new Result<Double>());
-          }
+          candidate->complexFormat = complexFormat;
 
-          // intialize result object
-          actSol->SetResultInfo(candidate);
-          actSol->SetEntityList( actList );
-          resultLists_[candidate].Push_back( actSol );
-
-          // extract all output destinations and determine bool flag for writeResult
-          SplitStringList( outDestNames[iRegion], actOutDest, ',' );
-          bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
-
-
-          // try to get result functor
-          shared_ptr<ResultFunctor> fnc;
-          if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end())
-            return false;
-          // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
-
-          fnc = resultFunctors_[candidate->resultType];
-
-          // pass result to resulthandler
-          resHandler->RegisterResult( actSol, fnc, sequenceStep_,
-              saveBegin, saveInc, saveEnd,
-              actOutDest,
-              postProcNames[iRegion], writeResult,
-              isHistory[candidate->definedOn] );
-        }
-      }
-
-
-      // ========== Look for defineType node/elemList/coilList (history) ==========
-
-      std::string entityTypeName;
-      StdVector<std::string> histNames;
-      neighborRegions.Clear();
-
-      PtrParamNode histNode;
-      ParamNodeList histEntities;
-
-      if(candidate->definedOn == ResultInfo::NODE ) {
-        histNode = actResultNode->Get("nodeList",ParamNode::PASS);
-        if( histNode )
-          histEntities = histNode->GetList("nodes");
-        entityTypeName = "nodes";
-
-      } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
-        histNode = actResultNode->Get("elemList",ParamNode::PASS);
-        if( histNode )
-          histEntities = histNode->GetList("elems");
-        entityTypeName = "elements";
-
-      } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
-        histNode = actResultNode->Get("surfElemList",ParamNode::PASS);
-        if( histNode)
-          histEntities = histNode->GetList("surfElems");
-        entityTypeName = "surfElems";
-
-        // fetch entry with neighboring regions
-        for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-          neighborRegions.Push_back( histEntities[i]->
-              Get("neighborRegion")->As<std::string>() );
-        }
-      } else if(candidate->definedOn == ResultInfo::COIL ) {
-        histNode = actResultNode->Get("coilList", ParamNode::PASS);
-        if( histNode )
-          histEntities = histNode->GetList("coil");
-      }
-
-      // only proceed, if any history result is defined
-      if( histNode && histNode->HasChildren() ) {
-
-        // fetch saveBegin, saveEnd and saveInc
-        saveBegin = histNode->Get("saveBegin")->MathParse<UInt>();
-        saveEnd = histNode->Get("saveEnd")->MathParse<UInt>();
-        saveInc = histNode->Get("saveInc")->MathParse<UInt>();
-
-        // iterate over all regions
-        histNames.Clear();
-        postProcNames.Clear();
-        outDestNames.Clear();
-        writeResults.Clear();
-        for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-          std::string nameType = "name";
-          if( candidate->definedOn == ResultInfo::COIL )
-            nameType = "id";
-          histNames.Push_back( histEntities[i]->Get(nameType)->As<std::string>() );
-          postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
-          outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
-          writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
-        }
-      }
-
-      if( histNames.GetSize() > 0 )
-      {
-        candidate->complexFormat = complexFormat;
-
-        // iterate over all entityNames
-        for( UInt i = 0; i < histNames.GetSize(); i++ )
-        {
-          if( candidate->definedOn != ResultInfo::COIL ){
-            actList = ptGrid_->GetEntityList( entityType, histNames[i] );
-          } else {
-            // The grid does not know about coils beause depending on the space used
-            // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
-            // But we know that we want only one result per coil, not for each element in the coil.
-            shared_ptr<Coil> actCoil;
-            if( pdename_ == "magneticEdge" ){
-              MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
-              actCoil = askThePDE->GetCoilById( histNames[i] );
+          // iterate over all entityNames
+          for( UInt i = 0; i < histNames.GetSize(); i++ )
+          {
+            if( candidate->definedOn != ResultInfo::COIL ){
+              actList = ptGrid_->GetEntityList( entityType, histNames[i] );
             } else {
-              MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
-              actCoil = askThePDE->GetCoilById( histNames[i] );
+              // The grid does not know about coils beause depending on the space used
+              // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
+              // But we know that we want only one result per coil, not for each element in the coil.
+              shared_ptr<Coil> actCoil;
+              if( pdename_ == "magneticEdge" ){
+                MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              } else {
+                MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              }
+              shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+              singleCoilList->AddCoil( actCoil );
+              actList = singleCoilList;
             }
-            shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
-            singleCoilList->AddCoil( actCoil );
-            actList = singleCoilList;
+            shared_ptr<BaseResult> actSol;
+            if( isComplex_ ) {
+              actSol = shared_ptr<BaseResult>(new Result<Complex>());
+            } else {
+              actSol = shared_ptr<BaseResult>(new Result<Double>());
+            }
+
+            // Set result info and entitylist at the result object
+            actSol->SetResultInfo(candidate);
+            actSol->SetEntityList( actList );
+            resultLists_[candidate].Push_back( actSol );
+
+            // extract all output destinations and determine bool flag for writeResult
+            SplitStringList( outDestNames[i], actOutDest, ',' );
+            bool writeResult = (writeResults[i] == "yes"  ? true : false );
+            bool writeAsHistoryResult = ( writeAsHistResult[i] == "yes"  ? true : false );
+
+            // try to get result functor
+            shared_ptr<ResultFunctor> fnc;
+            if( resultFunctors_.find(candidate->resultType) == 
+                resultFunctors_.end() ) {
+              EXCEPTION( "No result functor defined for results of type '"
+                  << quantity << "'");
+            }
+
+            fnc = resultFunctors_[candidate->resultType];
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[i];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
+            resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
+                                        saveBegin, saveInc, saveEnd,
+                                        actOutDest, postProcNames[i],
+										writeResult, writeAsHistoryResult);
+
           }
-          shared_ptr<BaseResult> actSol;
-          if( isComplex_ ) {
-            actSol = shared_ptr<BaseResult>(new Result<Complex>());
-          } else {
-            actSol = shared_ptr<BaseResult>(new Result<Double>());
-          }
-
-          // Set result info and entitylist at the result object
-          actSol->SetResultInfo(candidate);
-          actSol->SetEntityList( actList );
-          resultLists_[candidate].Push_back( actSol );
-
-          // extract all output destinations and determine bool flag for writeResult
-          SplitStringList( outDestNames[i], actOutDest, ',' );
-          bool writeResult = (writeResults[i] == "yes"  ? true : false );
-
-          // try to get result functor
-          shared_ptr<ResultFunctor> fnc;
-          if( resultFunctors_.find(candidate->resultType) ==
-              resultFunctors_.end() ) {
-            EXCEPTION( "No result functor defined for results of type '"
-                << quantity << "'");
-          }
-          fnc = resultFunctors_[candidate->resultType];
-
-          resHandler->RegisterResult( actSol, fnc, sequenceStep_,
-              saveBegin, saveInc, saveEnd,
-              actOutDest,
-              postProcNames[i], writeResult, true );
-
         }
+      } catch( Exception &ex ) {
+        RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
+                          << quantity << "' within pde '" << pdename_ << "'" );
       }
-    } catch( Exception &ex ) {
-      RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
-          << quantity << "' within pde '" << pdename_ << "'" );
-    }
     return true;
   }
   
@@ -1717,7 +1737,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           boost::shared_ptr<SimInputHDF5> in;
           in.reset(new SimInputHDF5(fileName, node, infoNode));
           inState->SetInputHdf5Reader(in);
@@ -1956,10 +1976,26 @@ namespace CoupledField {
     //=====================================================================
     // inhomogeneous Dirichlet BC
     // =====================================================================
-    // iterate over all available result tyes
+    // iterate over all available result types
+    
+    // loop over timederivative
     std::map<SolutionType,std::string>::const_iterator idbcIt;
-    idbcIt = idbcSolNameMap_.begin();
-    for( ; idbcIt != idbcSolNameMap_.end(); ++idbcIt ) {
+    std::map<SolutionType,std::string>::const_iterator idbcIt_end;
+    
+    for(UInt timeDeriv = 0; timeDeriv < 3; timeDeriv++){
+	    if(timeDeriv == 0){
+		idbcIt = idbcSolNameMap_.begin();
+		idbcIt_end = idbcSolNameMap_.end();
+	    }else if(timeDeriv == 1){
+		idbcIt = idbcSolNameMapD1_.begin();
+		idbcIt_end = idbcSolNameMapD1_.end();
+	    }else if(timeDeriv == 2){
+		idbcIt = idbcSolNameMapD2_.begin();
+		idbcIt_end = idbcSolNameMapD2_.end();    
+	    } else {
+		 EXCEPTION("Max timederiv = 2");
+	    }
+		for( ; idbcIt != idbcIt_end; ++idbcIt ) {
 
       // get for each solutiontype the corresponding element name for the
       // homogeneous Dirichlet Bc
@@ -2013,21 +2049,24 @@ namespace CoupledField {
           }
         }
 
-        actBc->entities = actList;
-        actBc->result = actFeFunction->GetResultInfo();
-        if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
-          actBc->dofs.insert(0);
-        } else {
-          actBc->dofs = definedDofs;        
-        }
-        
-        actBc->value = coef;
-        actBc->updatedGeo = updatedGeo;
+		  actBc->entities = actList;
+		  actBc->result = actFeFunction->GetResultInfo();
+		  if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+		    actBc->dofs.insert(0);
+		  } else {
+		    actBc->dofs = definedDofs;        
+		  }
+		  
+		  actBc->value = coef;
+		  actBc->updatedGeo = updatedGeo;
+		  actBc->timeDerivOrder = timeDeriv;
 
-        // add definition to feFunction
-        actFeFunction->AddInhomDirichletBc(actBc);
-      } // loop: idbcs
-    } // loop: solutiontypes
+		  // add definition to feFunction
+		  actFeFunction->AddInhomDirichletBc(actBc);
+		} // loop: idbcs
+	    } // loop: solutiontypes
+    } // loop: timederiv
+    
     
     // =====================================================================
     // Constraint Conditions
@@ -2345,7 +2384,6 @@ namespace CoupledField {
     if(!input && !myParam_->Has("bcsAndLoads") )
       return;
 
-
     ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
 
     // necessary for constraints on displacements
@@ -2361,18 +2399,50 @@ namespace CoupledField {
 
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
+
     for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
-      // get entity list, depending on type
-      std::string entName = xml->Get("name")->As<std::string>();
+      bool hasName = xml->Has("name");
+      bool hasRegionList = xml->Has("regionList");
+      
+      if (hasName && hasRegionList) {
+        EXCEPTION(elemName << " element contains name attribute and regionList element, both are not allowed together");
+      } else if (!hasName && !hasRegionList) {
+        EXCEPTION(elemName << " element contains neither name attribute nor regionList element, exactly one these is required");
+      }
+      
+      std::string entName;
+      if (hasRegionList) {
+        StdVector<PtrParamNode> regs = xml->Get("regionList")->GetList("region");
+        if (regs.GetSize() > 1) {
+          StdVector<RegionIdType> regionTypes;
+          for(UInt r=0;r<regs.GetSize();++r) {
+            std::string regName = regs[r]->Get("name")->As<std::string>();
+            regionTypes.Push_back(ptGrid_->GetRegion().Parse(regName));
+          }
+          RegionList* regionList = new RegionList(ptGrid_);
+          regionList->SetRegions(regionTypes);
+          shared_ptr<EntityList> entList(regionList);
+          entities[i] = entList;
+        } else if (regs.GetSize() == 1) {
+          entName = regs[0]->Get("name")->As<std::string>();
+          ptGrid_->GetRegion().Parse(entName);
+          hasName = true;
+        } else {
+          EXCEPTION(elemName << " element contains regionList without any regions");
+        }
+      }
+      if (hasName) {
+        // get entity list, depending on type
+        entName = xml->Get("name")->As<std::string>();
         try {
           // determine list type: In case we have have surface elements, generate explicitly
           // a surface element list
-          EntityList::ListType listType = EntityList::ELEM_LIST;
+          EntityList::ListType listType = EntityList::ELEM_LIST; 
           if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
             listType = EntityList::SURF_ELEM_LIST;
           }
-
+  
           switch( ptGrid_->GetEntityType(entName) ) {
             case EntityList::NAMED_NODES:
               entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
@@ -2385,17 +2455,38 @@ namespace CoupledField {
               EXCEPTION("No entities with name '" << entName << "' known");
               break;
           }
-
-          std::set<UInt> definedDofs;
-          ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                              definedDofs, updateGeo );
-
         } catch (Exception& e) {
           RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
                             << "' on entities '" << entName <<"'");
         }
+      }
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                          definedDofs, updateGeo );
     } // loop: elements
+  }
 
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  bool isComplex,
+                                  StdVector<shared_ptr<EntityList> >& entities,
+                                  StdVector<PtrCoefFct>& coef,
+                                  bool& updateGeo,
+                                  StdVector<std::string>& volumeRegions){
+      // get nodes
+      ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+
+      // read the Volume Region from each node
+      volumeRegions.Resize(elems.GetSize());
+      for( UInt i = 0; i < elems.GetSize(); ++i ) {
+          PtrParamNode xml = elems[i];
+          std::string volRegName;
+          xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
+          volumeRegions[i] = volRegName;
+      }
+      // read the rest
+      ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -2418,15 +2509,23 @@ namespace CoupledField {
       // ====================
       //  EXTERNAL GRID DATA 
       // ====================
+      shared_ptr<RegionList> regions;
+      if (list->GetType() == EntityList::REGION_LIST) {
+        regions = boost::static_pointer_cast<RegionList>(list);
+      } else {
+        RegionList* regionList = new RegionList(ptGrid_);
+        regionList->SetRegion(list->GetRegion());
+        regions = shared_ptr<RegionList>(regionList);
+      }
       if(!isComplex) {
         coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
         coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs
@@ -2494,11 +2593,17 @@ namespace CoupledField {
           
           sequenceStep = esNode->Get("index")->As<UInt>();
           // create new simState from current hdf file
+          if( !simState_->GetOutputWriter() ){
+            // Sometimes the writer is not yet set if using initial values and external data.
+            // Therefore the SimState is instructed to create it now.
+            shared_ptr<SimOutputHDF5> writer;
+            simState_->SetOutputHdf5Writer( writer );
+          }
           std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
 
@@ -2606,33 +2711,50 @@ namespace CoupledField {
       
     } else if( valueNode->Has("scatteredData") ) {
       PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
-      
-      if( dim_ == 2 ) {
+      if(type == ResultInfo::SCALAR){
         if(isComplex)
         {
           coef.reset(
-            new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
-            );
+            new CoefFunctionScatteredData<Complex, 1>(scatteredDataNode) );
         }
         else
         {
           coef.reset(
-            new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+            new CoefFunctionScatteredData<Double, 1>(scatteredDataNode)
             );
         }
-      } else {
-        if(isComplex) 
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
-            );
+      }
+      else if(type == ResultInfo::VECTOR){
+        if( dim_ == 2 ) {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+              );
+          }
+        } else {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
+              );
+          }
         }
-        else
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
-            );
-        } 
+      }
+      else{
+        EXCEPTION("TENSOR not implemented yet!");
       }
     }else{
       // ======================================
@@ -3406,8 +3528,7 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface,
-                                         bool icModes)
+                                         NcInterfaceInfo &iface )
   {
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
@@ -3451,14 +3572,15 @@ namespace CoupledField {
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
-      PtrCoefFct nu1, nu2;
-      PtrCoefFct oneHalf = CoefFunction::Generate( mp_, Global::REAL, "0.5");
-      factor = materials_[nitscheIf->GetMasterVolRegion()]
-                             ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+      PtrCoefFct permability;
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+      permability = materials_[nitscheIf->GetMasterVolRegion()]
+                             ->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
 //      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
 //                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
-//      factor = CoefFunction::Generate( mp_, Global::REAL,
-//                         CoefXprBinOp(mp_, nu1, nu2, CoefXpr::OP_ADD));
+      factor = CoefFunction::Generate( mp_, Global::REAL,
+                             CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
 //      factor = nu2;
 //      factor = CoefFunction::Generate( mp_, Global::REAL,
 //                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
@@ -3473,6 +3595,15 @@ namespace CoupledField {
 //      std::cout << "Nu1: " << values[0] << std::endl;
 //      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
 //      std::cout << "Nu2: " << values[0] << std::endl;
+    }
+    else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
+       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+       if ( isMaterialComplex_ ) {
+    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]
+    	                                ->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	   factor = CoefFunction::Generate( mp_, Global::COMPLEX,
+ 				                  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
+       }
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -3535,9 +3666,10 @@ namespace CoupledField {
       }
     }
 
-    if ( analysistype_ == HARMONIC ) {
-      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
-    }
+//    Who wrote this????? It is tested!!
+//    if ( analysistype_ == HARMONIC ) {
+//      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
+//    }
 
     curcpl = BiLinearForm::MASTER_MASTER;
 
@@ -3548,67 +3680,124 @@ namespace CoupledField {
     // not symmetric. Nitsche formulation is basically sym due to the
     // set counterpart directive for the context.
 
-    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else  {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, -1.0, curcpl, updatedGeo_, true);
         flux_du1_v1->SetBCoefFunctionOpA(coefMech);
     }
     else {
-      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+    		             ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+    		               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+    		               factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+                         ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            factor, -1.0, curcpl, updatedGeo_, true);
       flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
-        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-          (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
-    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, 1.0, curcpl, updatedGeo_, true);
       flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
-        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-           (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, 1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     //curcpl = BiLinearForm::SLAVE_MASTER;
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
+
+//    if ( nonLin_ ) {
+//    	penalty_u2_v2->SetSolDependent(true);
+//    	penalty_u1_v2->SetSolDependent(true);
+//    	penalty_u1_v1->SetSolDependent(true);
+//    	flux_du1_v1->SetSolDependent(true);
+//    	flux_u1_dv1->SetSolDependent(true);
+//    	flux_du1_v2->SetSolDependent(true);
+//    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
@@ -3617,15 +3806,20 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
 
+    FEMatrixType targetMatrix = STIFFNESS;
+    if(isMoving){
+    	targetMatrix = STIFFNESS_UPDATE;
+    }
+
     curcpl = BiLinearForm::MASTER_MASTER;
-    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
-    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
+    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
+    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);
+    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
     curcpl = BiLinearForm::MASTER_SLAVE;
-    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
+    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
+    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
@@ -3742,10 +3936,10 @@ namespace CoupledField {
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,3>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
 #endif
 
 } // end of namespace

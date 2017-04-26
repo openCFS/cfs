@@ -47,7 +47,6 @@ IF(MINGW)
 ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
     -llapack
     -lblas
     -lquadmath
@@ -55,7 +54,6 @@ ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
 ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
 ########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
 #    -llapack            
 #    -lblas
@@ -63,10 +61,9 @@ ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    )
+    -lquadmath
+     )
 ENDIF()
-
 
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin 

@@ -35,6 +35,13 @@ namespace CoupledField
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( HYST_MODEL );
+    isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( ROT_RESISTANCE );
+    isAllowed_.insert( EVAL_VERSION );
+    isAllowed_.insert( PRINT_PREISACH );
+    isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
+    isAllowed_.insert( IS_TESTING );
+    isAllowed_.insert( ANG_DISTANCE );
     isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );

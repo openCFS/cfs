@@ -198,7 +198,7 @@ namespace CoupledField {
  
   //! Add an element to the list
   void ElemList::AddElement( const Elem* elem ) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_ELEMLIST)
 {
     list_.Push_back(elem->elemNum);
     ++size_;
@@ -279,7 +279,7 @@ namespace CoupledField {
   }
   
   void SurfElemList::AddElement(const SurfElem* elem) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_SURFELEMLIST)
 {
     surfElemList_.Push_back(elem);
     ++size_;
@@ -600,7 +600,7 @@ namespace CoupledField {
 
   //! Adds an element using a shared pointer which is better suited here
   void NcSurfElemList::AddElement( const shared_ptr<NcSurfElem> elem ) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_NCELEMLIST)
 {
     ncElems_.Push_back(elem);
     ++size_;
@@ -648,6 +648,12 @@ namespace CoupledField {
   
   EntityIterator& EntityIterator::operator++(int) {
     pos_++;
+    return *this;
+  }
+
+  EntityIterator& EntityIterator::operator+=(int val){
+    assert((pos_+val) < size_);
+    pos_ += val;
     return *this;
   }
   

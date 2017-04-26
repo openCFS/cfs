@@ -38,6 +38,11 @@ namespace CoupledField {
     //! get a scalar real material parameter
     void GetScalar( Double& param, MaterialType matType, 
 		    Global::ComplexPart dataType ) const;
+
+    //! get a scalar complex material parameter
+    void GetScalar( Complex& param, MaterialType matType,
+    		  Global::ComplexPart dataType )  const;
+
     //! get a scalar real material parameter
     void GetScalar( std::string& param, MaterialType matType,
         Global::ComplexPart dataType ) const;

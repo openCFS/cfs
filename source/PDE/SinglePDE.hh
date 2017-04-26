@@ -86,6 +86,12 @@ namespace CoupledField
       return updatedGeo_;
     }
     
+    //! check, if PDE has complex material parameters;
+    //! has to be overwritten by specific PDE
+    virtual bool IsMaterialComplex()  {
+    	return isMaterialComplex_;
+    }
+
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
@@ -154,11 +160,20 @@ namespace CoupledField
                             bool& updateGeo,
                             PtrParamNode input = PtrParamNode());
 
+    void ReadRhsExcitation( const std::string& elemName,
+                                const StdVector<std::string>& compNames,
+                                ResultInfo::EntryType type,
+                                bool isComplex,
+                                StdVector<shared_ptr<EntityList> >& entities,
+                                StdVector<PtrCoefFct>& coef,
+                                bool& updateGeo,
+                                StdVector<std::string>& volumeRegions);
+
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
-    //! \param[in] name EentityList the Field should be applied to
+    //! \param[in] list EntityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
     //! \param[in] compNames Names of the components (vector, tensor)
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
@@ -176,7 +191,7 @@ namespace CoupledField
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
-
+    
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
@@ -409,6 +424,9 @@ namespace CoupledField
     //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
     bool updatedGeo_;
     
+    //! flag indicating that material parametters are complex
+    bool isMaterialComplex_;
+
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 
@@ -524,8 +542,7 @@ namespace CoupledField
     //! interface.
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                NcInterfaceInfo &iface,
-                                bool icModes = false);
+                                NcInterfaceInfo &iface );
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

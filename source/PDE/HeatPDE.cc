@@ -25,6 +25,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
 
@@ -648,7 +649,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 //        //  Nodal Charges 
 //        // ---------------
 //        // Nodal charge must be constant
-//        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+//        if( coef[i]->GetDependency() == CoefFunction::GENERAL || coef[i]->GetDependency() == CoefFunction::SPACE ) {
 //          EXCEPTION("Nodal charges must not be spatial dependent");
 //        }
 //

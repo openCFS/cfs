@@ -32,6 +32,7 @@ BUIntegrator(BaseBOperator * bOp,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
+
 //  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 //#ifndef NDEBUG
 //  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
@@ -84,7 +85,7 @@ BUIntegrator(BaseBOperator * bOp,
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
      UInt nrFncs = 0;
-     VEC_DATA_TYPE fac;
+     VEC_DATA_TYPE fac(0.0);
 
      // Obtain FE element from feSpace and integration scheme
      IntegOrder order;
@@ -144,6 +145,7 @@ BUIntegrator(BaseBOperator * bOp,
          }
        }
        elemVec += bMat * cVec * fac;
+
      }
 
   }

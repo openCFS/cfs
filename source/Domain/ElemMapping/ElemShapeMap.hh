@@ -7,6 +7,9 @@
 #include "MatVec/Matrix.hh"
 #include "Elem.hh"
 #include "SurfElem.hh"
+
+#include "Utils/ThreadLocalStorage.hh"
+
 #include <climits>
 
 
@@ -21,6 +24,7 @@ namespace CoupledField {
   class BaseFE;
   class CoefFunction;
   class IntScheme;
+
   
   // ==========================================================================
   //  C L A S S   LocPoint
@@ -126,6 +130,20 @@ namespace CoupledField {
     //!               within an integration loop)
     void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
     
+    //! Initialize shape map with with given local point and shape map
+
+    //! This constructor initializes the struct for a local point in a
+    //! general (volume) element.
+    //! \param lp Local point to bet set
+    //! \param esm ElemShapeMap, representing the mapping from reference to
+    //!            physical domain
+    //! \param weight Integration weight (should be set to 0.0 if not used
+    //!               within an integration loop)
+    //! \param cornerCoord explicit definition of corner coordiantes of element
+    void Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                 Double weight, Matrix<Double>& cornerCoord);
+
+
     //! Set method for a local point of a surface element
     
     //! This constructor initializes the struct for a local point in a
@@ -152,8 +170,8 @@ namespace CoupledField {
     
     //! This method allows to set information specific to a surface
     //! element, in case it was initialized with only the volume information;
-    void SetSurfInfo( const std::set<RegionIdType>& volRegions );
-
+    void SetSurfInfo( const std::set<RegionIdType>& volRegions,
+    		          const RegionIdType volRegid = NO_REGION_ID );
 
     //! Specialized version for NMG points
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
@@ -334,6 +352,12 @@ namespace CoupledField {
                                            const Elem* volElem,
                                            const SurfElem* edgeFaceElem)=0;
 
+    //! This method calculates a parallel projection of the given point onto the surface element
+    //! with respect to the given direction
+    //! \param direction vector detrmining the direction of the projection
+    //! \param point point to be projected
+    virtual void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point) = 0;
+
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -419,6 +443,11 @@ namespace CoupledField {
     virtual void CalcJ( Matrix<Double>& jac, 
                         const LocPoint& ip ) = 0;
 
+    //! Calculation of Jacobian with given coordinates
+    virtual void CalcJ( Matrix<Double>& jac,
+       		            const LocPoint& ip,
+   				        Matrix<Double>& cornerCoords) = 0;
+
     //! Calculation of Jacobian determinant
     /*!
          \param LCoord (input) Local Coordinates of evaluation point
@@ -428,7 +457,7 @@ namespace CoupledField {
      */
     virtual Double CalcJDet( Matrix<Double>& jac, 
                              const LocPoint& ip ) = 0;
-    
+
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
 
@@ -514,6 +543,9 @@ namespace CoupledField {
                                const Elem* volElem,
                                const SurfElem* edgeFaceElem);
 
+    //! @copydoc ElemShapeMap::TranslatePointOntoSurface
+    void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point);
+
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
                                     const LocPoint & surfIntPoint,
@@ -551,6 +583,11 @@ namespace CoupledField {
     void CalcJ( Matrix<Double>& jac, 
                 const LocPoint& ip );
     
+    //! @copydoc ElemShapeMap::CalcJ with given coordinates
+    void CalcJ( Matrix<Double>& jac,
+    		    const LocPoint& ip,
+				Matrix<Double>& cornerCoords);
+
     //! @copydoc ElemShapeMap::CalcJ
     Double CalcJDet( Matrix<Double>& jac, 
                      const LocPoint& ip );
@@ -617,15 +654,14 @@ namespace CoupledField {
     { 
     private: 
       LagrangeMapSingleton();   
-      LagrangeMapSingleton(const LagrangeMapSingleton&) {}            
-      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&) {
-        return *this;}
+      LagrangeMapSingleton(const LagrangeMapSingleton&);            
+      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&);
       ~LagrangeMapSingleton();
     public: 
       static LagrangeMapSingleton& getInstance();
 
       //! Map containing the reference elements
-      std::map<Elem::FEType, FeH1LagrangeExpl* > feMap_;
+      TLMap<Elem::FEType, FeH1LagrangeExpl* > feMap_;
     }; 
 
     //! Nodal coordinates

@@ -699,7 +699,6 @@ namespace CoupledField {
     } else {
       idx.Resize( numEntities );
 
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities ; i++ )
         idx[i] = i;
     }
@@ -709,7 +708,6 @@ namespace CoupledField {
     if( result->GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
       resVec.Resize( resVecSize );
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
           resVec[i*numDofs+iDof] = realVals[idx[i]*numDofs+iDof];
@@ -722,7 +720,6 @@ namespace CoupledField {
 
       resVec.Resize( resVecSize );
 
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
           resVec[i*numDofs+iDof] = Complex( realVals[idx[i]*numDofs+iDof],
@@ -1375,11 +1372,11 @@ namespace CoupledField {
 
   void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
   {
-    if (dim_ != coordSys.GetDim()) {
-      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
-                << coordSys.GetName() << ") to transform a "
-                << dim_ << "D mesh (" << fileName_ << ").");
-    }
+//    if (dim_ != coordSys.GetDim()) {
+//      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
+//                << coordSys.GetName() << ") to transform a "
+//                << dim_ << "D mesh (" << fileName_ << ").");
+//    }
     
     Vector<Double> p, globPoint;
     p.Resize(dim_);

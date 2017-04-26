@@ -10,10 +10,8 @@ namespace CoupledField
 {
 
   // Forward declaration of classes
-  class Coil;
   class CurlCurlEdgeInt;
   class nLinCurlCurlEdgeInt;
-  class CoefFunctionMulti;
 
   //! Class for 3D magnetics using edge elements
   class MagEdgePDE : public SinglePDE
@@ -96,6 +94,9 @@ namespace CoupledField
 
     //! Tells if there are coils excited by voltage
     bool hasVoltCoils_;
+
+    //! Storage for CoefFunctions of external current density as source
+    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
     //@}
 
 

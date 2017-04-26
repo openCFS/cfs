@@ -13,33 +13,24 @@ namespace CoupledField{
 
   public:
 
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 3; 
-    //@}
-
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
     StrainOperator2D( bool useICModes = false )
     :  useICModes_(useICModes) {
       this->name_ = "StrainOperator2D";
+    }
+
+    //! Copy constructor
+    StrainOperator2D(const StrainOperator2D & other)
+       :  BaseBOperator(other),
+          useICModes_(other.useICModes_) {
+    }
+
+
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator2D * Clone(){
+      return new StrainOperator2D(*this);
     }
 
     //! Destructor
@@ -60,6 +51,29 @@ namespace CoupledField{
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
+
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 2;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 3;
+    //@}
 
     // ===============
     //  QUERY METHODS
@@ -94,7 +108,11 @@ namespace CoupledField{
   protected:
     
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
+    /*
+     * does it have to be const bool?
+     * with const bool I have troubles when using StrainOperator for rhs coupling in mechanics
+     */
 
   };
 
@@ -190,28 +208,6 @@ namespace CoupledField{
 
   public:
 
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 4; 
-    //@}
-
     //! Constructor
     //! \param useIcModes Use incompatible modes shape functions
     StrainOperatorAxi( bool useICModes = false )
@@ -219,8 +215,18 @@ namespace CoupledField{
       this->name_ = "StrainOperatorAxi";
     }
 
+    //! Copy constructor
+    StrainOperatorAxi(const StrainOperatorAxi & other)
+       :  BaseBOperator(other), useICModes_(other.useICModes_) {
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperatorAxi * Clone(){
+      return new StrainOperatorAxi(*this);
+    }
+
     //! Destructor
-    ~StrainOperatorAxi(){
+    virtual ~StrainOperatorAxi(){
 
     }
 
@@ -237,6 +243,28 @@ namespace CoupledField{
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 2;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 4;
+    //@}
 
     // ===============
     //  QUERY METHODS
@@ -270,7 +298,7 @@ namespace CoupledField{
   protected:
 
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
 
   };
 
@@ -399,199 +427,416 @@ namespace CoupledField{
   }
   
   // ============================
-   //  3D STRAIN OPERATOR 
-   // ============================
-   //! Strain-like differential operator in 3D
-   template<class FE, class TYPE = Double >
-   class StrainOperator3D : public BaseBOperator  {
+  //  3D STRAIN OPERATOR
+  // ============================
+  //! Strain-like differential operator in 3D
+  template<class FE, class TYPE = Double >
+  class StrainOperator3D : public BaseBOperator  {
 
-   public:
+  public:
 
-     // ------------------
-     //  STATIC CONSTANTS 
-     // ------------------
-     //@{ 
-     //! \name Static constants
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    StrainOperator3D( bool useICModes = false)
+    :  useICModes_(useICModes) {
+     this->name_ = "StrainOperator3D";
+    }
 
-     //! Order of differentiation
-     static const UInt ORDER_DIFF = 1;
+    //! Copy constructor
+    StrainOperator3D(const StrainOperator3D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
 
-     //! Number of components of the problem (scalar, vector)
-     static const UInt DIM_DOF = 3;
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator3D * Clone(){
+      return new StrainOperator3D(*this);
+    }
 
-     //! Dimension of the underlying domain / space
-     static const UInt DIM_SPACE = 3;
+    //! Destructor
+    virtual ~StrainOperator3D(){
 
-     //! Dimension of the finite element
-     static const UInt DIM_ELEM = 3;
+    }
 
-     //! Dimension of the related material 
-     static const UInt DIM_D_MAT = 6; 
-     //@}
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                          const LocPointMapped& lp,
+                          BaseFE* ptFe );
 
-     //! Constructor
-     //! \param useIcModes Use incompatible modes shape functions
-     StrainOperator3D( bool useICModes = false)
-     :  useICModes_(useICModes) {
-       this->name_ = "StrainOperator3D";
-     }
+    //! Calculate transposed operator matrix
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                    const LocPointMapped& lp,
+                                    BaseFE* ptFe );
 
-     //! Destructor
-     ~StrainOperator3D(){
-
-     }
-
-     //! Calculate operator matrix
-     virtual void CalcOpMat(Matrix<Double> & bMat,
-                            const LocPointMapped& lp,
-                            BaseFE* ptFe );
-
-     //! Calculate transposed operator matrix
-     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                      const LocPointMapped& lp, 
-                                      BaseFE* ptFe );
-     
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
 
-     // ===============
-     //  QUERY METHODS
-     // ===============
-     //@{ \name Query Methods
-     //! \copydoc BaseBOperator::GetDiffOrder
-     virtual UInt GetDiffOrder() const {
-       return ORDER_DIFF;
-     }
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
 
-     //! \copydoc BaseBOperator::GetDimDof()
-     virtual UInt GetDimDof() const {
-       return DIM_DOF;
-     }
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
 
-     //! \copydoc BaseBOperator::GetDimSpace()
-     virtual UInt GetDimSpace() const {
-       return DIM_SPACE;
-     }
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 3;
 
-     //! \copydoc BaseBOperator::GetDimElem()
-     virtual UInt GetDimElem() const {
-       return DIM_ELEM;
-     }
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 3;
 
-     //! \copydoc BaseBOperator::GetDimDMat()
-     virtual UInt GetDimDMat() const {
-       return DIM_D_MAT;
-     }
-     //@}
-     
-   protected:
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 3;
 
-     //! Flag, if incompatible modes are used
-     const bool useICModes_;
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 6;
+    //@}
 
-   };
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+     return ORDER_DIFF;
+    }
 
-   template<class FE, class TYPE>
-   void StrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                             const LocPointMapped& lp, 
-                                             BaseFE* ptFe ){
-     // Get derivatives of local shape functions with respect to global
-     // coords (format: nrNodes x spaceDim)
-     Matrix<Double> xiDx;
-     FE *fe = (static_cast<FE*>(ptFe));
-     if( useICModes_ ) {
-       if ( isSurfOpt_ )
-         fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-       else
-         fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     } else {
-       if ( isSurfOpt_ )
-         fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-       else
-         fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     }
-     
-     const UInt numFncs = xiDx.GetNumRows();
-     // Set correct size of matrix B and initialize with zeros
-     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-     bMat.Init();
-         
-     UInt iFunc = 0;
-     UInt pos = 0;
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-       bMat[0][pos+0] = xiDx[iFunc][0];
-     }
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+     return DIM_DOF;
+    }
 
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[1][pos+1] = xiDx[iFunc][1];
-     }
-     
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[2][pos+2] = xiDx[iFunc][2];
-     }
-     
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[3][pos+1] = xiDx[iFunc][2];
-       bMat[3][pos+2] = xiDx[iFunc][1];
-     }
-     
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[4][pos+0] = xiDx[iFunc][2];
-       bMat[4][pos+2] = xiDx[iFunc][0];
-     }
-     
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[5][pos+0] = xiDx[iFunc][1];
-       bMat[5][pos+1] = xiDx[iFunc][0];
-     }
-   }
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+     return DIM_SPACE;
+    }
 
-   template<class FE, class TYPE>
-   void StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                       const LocPointMapped& lp, 
-                                                       BaseFE* ptFe ){
-     // Get derivatives of local shape functions with respect to global
-     // coords (format: spaceDim x nrNodes )
-     Matrix<Double> xiDx;
-     FE *fe = (static_cast<FE*>(ptFe));
-     if( useICModes_ ) {
-       if ( isSurfOpt_ )
-         fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-       else
-         fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     } else {
-       if ( isSurfOpt_ )
-         fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-       else
-         fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     }
-     
-     const UInt numFncs = xiDx.GetNumRows();
-     // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-     bMat.Init();
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+     return DIM_ELEM;
+    }
 
-     UInt iFunc = 0;
-     UInt pos = 0;
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-       bMat[pos+0][0] = xiDx[iFunc][0];
-       bMat[pos+0][4] = xiDx[iFunc][2];
-       bMat[pos+0][5] = xiDx[iFunc][1];
-     }
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+     return DIM_D_MAT;
+    }
+    //@}
 
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[pos+1][1] = xiDx[iFunc][1];
-       bMat[pos+1][3] = xiDx[iFunc][2];
-       bMat[pos+1][5] = xiDx[iFunc][0];
-     }
+  protected:
 
-     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
-       bMat[pos+2][2] = xiDx[iFunc][2];
-       bMat[pos+2][3] = xiDx[iFunc][1];
-       bMat[pos+2][4] = xiDx[iFunc][0];
-     }
-   }
+    //! Flag, if incompatible modes are used
+    bool useICModes_;
+
+  };
+
+  template<class FE, class TYPE>
+  void StrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                           const LocPointMapped& lp,
+                                           BaseFE* ptFe ){
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if( useICModes_ ) {
+     if ( isSurfOpt_ )
+       fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+     else
+       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    } else {
+     if ( isSurfOpt_ )
+       fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+     else
+       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
+    bMat.Init();
+
+    UInt iFunc = 0;
+    UInt pos = 0;
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[0][pos+0] = xiDx[iFunc][0];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[1][pos+1] = xiDx[iFunc][1];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[2][pos+2] = xiDx[iFunc][2];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[3][pos+1] = xiDx[iFunc][2];
+     bMat[3][pos+2] = xiDx[iFunc][1];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[4][pos+0] = xiDx[iFunc][2];
+     bMat[4][pos+2] = xiDx[iFunc][0];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[5][pos+0] = xiDx[iFunc][1];
+     bMat[5][pos+1] = xiDx[iFunc][0];
+    }
+  }
+
+  template<class FE, class TYPE>
+  void StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                     const LocPointMapped& lp,
+                                                     BaseFE* ptFe ){
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: spaceDim x nrNodes )
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if( useICModes_ ) {
+     if ( isSurfOpt_ )
+       fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+     else
+       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    } else {
+     if ( isSurfOpt_ )
+       fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+     else
+       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialise with zeros
+    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+    bMat.Init();
+
+    UInt iFunc = 0;
+    UInt pos = 0;
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[pos+0][0] = xiDx[iFunc][0];
+     bMat[pos+0][4] = xiDx[iFunc][2];
+     bMat[pos+0][5] = xiDx[iFunc][1];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[pos+1][1] = xiDx[iFunc][1];
+     bMat[pos+1][3] = xiDx[iFunc][2];
+     bMat[pos+1][5] = xiDx[iFunc][0];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     bMat[pos+2][2] = xiDx[iFunc][2];
+     bMat[pos+2][3] = xiDx[iFunc][1];
+     bMat[pos+2][4] = xiDx[iFunc][0];
+    }
+  }
+
+  // ============================
+  //  2.5D STRAIN OPERATOR
+  // ============================
+  //! Strain-like 3D differential operator in 2D
+  template<class FE, class TYPE = Double>
+  class StrainOperator2p5D : public BaseBOperator  {
+
+  public:
+
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 3;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = 2;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = 2;
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = 6;
+    //@}
+
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    StrainOperator2p5D(bool useICModes = false)
+    :  useICModes_(useICModes) {
+      this->name_ = "StrainOperator2.5D";
+    }
+
+    //! Copy constructor
+    StrainOperator2p5D(const StrainOperator2p5D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator2p5D * Clone(){
+      return new StrainOperator2p5D(*this);
+    }
+
+    //! Destructor
+    virtual ~StrainOperator2p5D(){
+
+    }
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+    //! Calculate transposed operator matrix
+    virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+    using BaseBOperator::CalcOpMat;
+
+    using BaseBOperator::CalcOpMatTransposed;
+
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+
+  protected:
+
+    //! Flag, if incompatible modes are used
+    bool useICModes_;
+
+  };
+
+  template<class FE, class TYPE>
+  void StrainOperator2p5D<FE, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if(useICModes_)
+    {
+      if (isSurfOpt_)
+        fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
+    else
+    {
+      if (isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+    bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    UInt pos = 0;
+    for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+    {
+      bMat[0][pos+0] = xiDx[iFunc][0];
+    }
+
+    for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+    {
+      bMat[1][pos+1] = xiDx[iFunc][1];
+    }
+
+    for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+    {
+      bMat[3][pos+2] = xiDx[iFunc][1];
+    }
+
+    for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+    {
+      bMat[4][pos+2] = xiDx[iFunc][0];
+    }
+
+    for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+    {
+      bMat[5][pos+0] = xiDx[iFunc][1];
+      bMat[5][pos+1] = xiDx[iFunc][0];
+    }
+  }
+
+  template<class FE, class TYPE>
+  void StrainOperator2p5D<FE, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: spaceDim x nrNodes )
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if (useICModes_)
+    {
+      if (isSurfOpt_)
+        fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
+    else
+    {
+      if (isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialise with zeros
+    // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+    bMat.Resize(numFncs*DIM_DOF , DIM_D_MAT);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    UInt pos = 0;
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF ) {
+      bMat[pos+0][0] = xiDx[iFunc][0];
+      bMat[pos+0][5] = xiDx[iFunc][1];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF ) {
+      bMat[pos+1][1] = xiDx[iFunc][1];
+      bMat[pos+1][5] = xiDx[iFunc][0];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF ) {
+      bMat[pos+2][3] = xiDx[iFunc][1];
+      bMat[pos+2][4] = xiDx[iFunc][0];
+    }
+  }
 
 
    /** This is the StrainOperator2D Variant for Bloch mode eigenfrequency analysis with additional imaginary part for B */
@@ -610,8 +855,25 @@ namespace CoupledField{
        this->wave_vector_ = NULL; // to be set
      }
 
+     //! Copy constructor
+     StrainOperatorBloch2D(const StrainOperatorBloch2D & other)
+        : StrainOperator2D<FE, Double>(other){
+       this->name_ = other.name_;
+       //deep copy
+       this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       //copy values
+       for(UInt i=0;i<this->wave_vector_->GetSize();i++){
+         (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
+       }
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual StrainOperatorBloch2D * Clone(){
+       return new StrainOperatorBloch2D(*this);
+     }
+
      //! Destructor
-     ~StrainOperatorBloch2D(){ }
+     virtual ~StrainOperatorBloch2D(){ }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
@@ -708,8 +970,23 @@ namespace CoupledField{
        this->wave_vector_ = NULL; // to be set
      }
 
+     //! Copy constructor
+     StrainOperatorBloch3D(const StrainOperatorBloch3D & other)
+        : StrainOperator3D<FE, Double>(other){
+       this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       //copy values
+       for(UInt i=0;i<this->wave_vector_->GetSize();i++){
+         (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
+       }
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     StrainOperatorBloch3D * Clone(){
+       return new StrainOperatorBloch3D(*this);
+     }
+
      //! Destructor
-     ~StrainOperatorBloch3D(){ }
+     virtual ~StrainOperatorBloch3D(){ }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
@@ -803,7 +1080,1644 @@ namespace CoupledField{
      // Conjugate(bMat);
    }
 
+   // ============================
+   //  2D SCALED STRAIN OPERATOR (PLANE)
+   // ============================
+   //! Scaled strain-like differential operator in 2D
+   template<class FE, class TYPE = Double >
+   class ScaledStrainOperator2D : public StrainOperator2D<FE, TYPE>
+   {
 
+   public:
+
+     // ------------------
+     //  STATIC CONSTANTS
+     // ------------------
+     //@{
+     //! \name Static constants
+
+     //! Order of differentiation
+     static const UInt ORDER_DIFF = 1;
+
+     //! Number of components of the problem (scalar, vector)
+     static const UInt DIM_DOF = 2;
+
+     //! Dimension of the underlying domain / space
+     static const UInt DIM_SPACE = 2;
+
+     //! Dimension of the finite element
+     static const UInt DIM_ELEM = 2;
+
+     //! Dimension of the related material
+     static const UInt DIM_D_MAT = 3;
+     //@}
+
+     //! Constructor
+     //! \param useIcModes Use incompatible modes shape functions
+     ScaledStrainOperator2D(bool useICModes = false) : StrainOperator2D<FE, TYPE>(useICModes)
+     {
+       this->name_ = "ScaledStrainOperator2D";
+     }
+
+     //! Copy constructor
+     ScaledStrainOperator2D(const ScaledStrainOperator2D & other)
+        : StrainOperator2D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator2D * Clone(){
+       return new ScaledStrainOperator2D(*this);
+     }
+
+     //! Destructor
+     virtual ~ScaledStrainOperator2D() { }
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     // ===============
+     //  QUERY METHODS
+     // ===============
+     //@{ \name Query Methods
+     //! \copydoc BaseBOperator::GetDiffOrder
+     virtual UInt GetDiffOrder() const
+     {
+       return ORDER_DIFF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDof()
+     virtual UInt GetDimDof() const
+     {
+       return DIM_DOF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimSpace()
+     virtual UInt GetDimSpace() const
+     {
+       return DIM_SPACE;
+     }
+
+     //! \copydoc BaseBOperator::GetDimElem()
+     virtual UInt GetDimElem() const
+     {
+       return DIM_ELEM;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDMat()
+     virtual UInt GetDimDMat() const
+     {
+       return DIM_D_MAT;
+     }
+     //@}
+
+   };
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     else
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0 ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[2][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[2][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     else
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+       bMat[pos+0][2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+1][2] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0 ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[2][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[2][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+       bMat[pos+0][2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+1][2] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   // ============================
+   //  3D SCALED STRAIN OPERATOR
+   // ============================
+   //! Scaled strain-like differential operator in 3D
+   template<class FE, class TYPE = Double >
+   class ScaledStrainOperator3D : public StrainOperator3D<FE, TYPE>
+   {
+
+   public:
+
+     // ------------------
+     //  STATIC CONSTANTS
+     // ------------------
+     //@{
+     //! \name Static constants
+
+     //! Order of differentiation
+     static const UInt ORDER_DIFF = 1;
+
+     //! Number of components of the problem (scalar, vector)
+     static const UInt DIM_DOF = 3;
+
+     //! Dimension of the underlying domain / space
+     static const UInt DIM_SPACE = 3;
+
+     //! Dimension of the finite element
+     static const UInt DIM_ELEM = 3;
+
+     //! Dimension of the related material
+     static const UInt DIM_D_MAT = 6;
+     //@}
+
+     //! Constructor
+     //! \param useIcModes Use incompatible modes shape functions
+     ScaledStrainOperator3D(bool useICModes = false) : StrainOperator3D<FE, TYPE>(useICModes)
+     {
+       this->name_ = "ScaledStrainOperator3D";
+     }
+
+     //! Copy constructor
+     ScaledStrainOperator3D(const ScaledStrainOperator3D & other)
+        : StrainOperator3D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator3D * Clone(){
+       return new ScaledStrainOperator3D(*this);
+     }
+
+     //! Destructor
+     virtual ~ScaledStrainOperator3D() { }
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     // ===============
+     //  QUERY METHODS
+     // ===============
+     //@{ \name Query Methods
+     //! \copydoc BaseBOperator::GetDiffOrder
+     virtual UInt GetDiffOrder() const
+     {
+       return ORDER_DIFF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDof()
+     virtual UInt GetDimDof() const
+     {
+       return DIM_DOF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimSpace()
+     virtual UInt GetDimSpace() const
+     {
+       return DIM_SPACE;
+     }
+
+     //! \copydoc BaseBOperator::GetDimElem()
+     virtual UInt GetDimElem() const
+     {
+       return DIM_ELEM;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDMat()
+     virtual UInt GetDimDMat() const
+     {
+       return DIM_D_MAT;
+     }
+     //@}
+
+   };
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     if (this->isSurfOpt_)
+       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     else
+       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
+       bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
+       bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     else
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize(numFncs*DIM_SPACE, DIM_D_MAT);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+       bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+2][4] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+       bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
+       bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
+       bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT );
+     bMat.Init();
+
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+       bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     {
+       bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+2][4] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   // ============================
+   //  2.5D SCALED STRAIN OPERATOR
+   // ============================
+   //! Scaled strain-like 3D differential operator in 2D
+   template<class FE, class TYPE = Double >
+   class ScaledStrainOperator2p5D : public StrainOperator2p5D<FE, TYPE>
+   {
+
+   public:
+
+     // ------------------
+     //  STATIC CONSTANTS
+     // ------------------
+     //@{
+     //! \name Static constants
+
+     //! Order of differentiation
+     static const UInt ORDER_DIFF = 1;
+
+     //! Number of components of the problem (scalar, vector)
+     static const UInt DIM_DOF = 3;
+
+     //! Dimension of the underlying domain / space
+     static const UInt DIM_SPACE = 2;
+
+     //! Dimension of the finite element
+     static const UInt DIM_ELEM = 2;
+
+     //! Dimension of the related material
+     static const UInt DIM_D_MAT = 6;
+     //@}
+
+     //! Constructor
+     //! \param useIcModes Use incompatible modes shape functions
+     ScaledStrainOperator2p5D(bool useICModes = false) : StrainOperator2p5D<FE, TYPE>(useICModes)
+     {
+       this->name_ = "ScaledStrainOperator2p5D";
+     }
+
+     //! Copy constructor
+     ScaledStrainOperator2p5D(const ScaledStrainOperator2p5D & other)
+        : StrainOperator2p5D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator2p5D * Clone(){
+       return new ScaledStrainOperator2p5D(*this);
+     }
+
+
+     //! Destructor
+     virtual ~ScaledStrainOperator2p5D() { }
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate operator matrix
+     virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     //! Calculate transposed operator matrix
+     virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+     // ===============
+     //  QUERY METHODS
+     // ===============
+     //@{ \name Query Methods
+     //! \copydoc BaseBOperator::GetDiffOrder
+     virtual UInt GetDiffOrder() const
+     {
+       return ORDER_DIFF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDof()
+     virtual UInt GetDimDof() const
+     {
+       return DIM_DOF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimSpace()
+     virtual UInt GetDimSpace() const
+     {
+       return DIM_SPACE;
+     }
+
+     //! \copydoc BaseBOperator::GetDimElem()
+     virtual UInt GetDimElem() const
+     {
+       return DIM_ELEM;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDMat()
+     virtual UInt GetDimDMat() const
+     {
+       return DIM_D_MAT;
+     }
+     //@}
+
+   };
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     else
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+     bMat.Init();
+
+     // commented entries are zeros in 2.5D case
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+
+     //for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     //  bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
+       bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
+       bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Double> coefs;
+     this->coef_->GetVector(coefs, lp);
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     else
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(numFncs*DIM_DOF, DIM_D_MAT);
+     bMat.Init();
+
+     // commented entries are zeros in 2.5D case
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+     //  bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+     //  bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+2][4] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: nrNodes x spaceDim)
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+     bMat.Init();
+
+     // commented entries are zeros in 2.5D case
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+       bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+       bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
+
+     //for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     //  bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
+       bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
+       bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
+       bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   template<class FE, class TYPE>
+   void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+   {
+     assert(this->coef_ != NULL);
+     Vector<Complex> coefs;
+     this->coef_->GetVector(coefs, lp);
+
+     // Get derivatives of local shape functions with respect to global
+     // coords (format: spaceDim x nrNodes )
+     Matrix<Double> xiDx, xiDxTmp, rotMat;
+     FE *fe = (static_cast<FE*>(ptFe));
+     // query const variable, should be pretty much optimized away
+     if (this->coef_->GetCoordinateSystem())
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+       // If coordinate system is set at the coefficient function, rotate B-matrix
+       Vector<Double> globPoint;
+       lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+       this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+       xiDx = xiDxTmp*rotMat;
+     }
+     else
+     {
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       else
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+     }
+
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(numFncs*DIM_DOF, DIM_D_MAT);
+     bMat.Init();
+
+     // commented entries are zeros in 2.5D case
+     UInt iFunc = 0;
+     UInt pos = 0;
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
+     //  bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
+     }
+
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+       bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
+     //  bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
+     {
+     //  bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
+       bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];
+       bMat[pos+2][4] = xiDx[iFunc][0]*coefs[0];
+     }
+   }
+
+   
+   // =========================================================================
+   //  NONLINEAR 2D STRAIN OPERATOR (PLANE) 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 2D
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperator2D : public StrainOperator2D<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperator2D(shared_ptr<BaseFeFunction> displ)
+         : StrainOperator2D<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperator2D";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(4);
+       }
+
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperator2D * Clone(){
+         return new NonLinStrainOperator2D(*this);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperator2D() {}
+
+       //! Calculate operator matrix
+       void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Vector<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+     // get global derivatives of shape functions
+     FE *fe = static_cast<FE*>(ptFE);
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     //bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[0][colPos  ] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[0][colPos+1] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[1][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[1][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[2][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[2][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator2D<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+     
+ //    std::cerr << "B matrix:\n" << bMat.ToString() << std::endl;
+     //    << "End NonLinStrainOperator2D::CalcOpMat\n\n";
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator2D<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+     // get global derivatives of shape functions
+     FE *fe = static_cast<FE*>(ptFE);
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+ //    std::cerr << "element solution: " << elemDisp_.ToString() << std::endl;
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     //bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][0] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[colPos+1][0] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][1] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[colPos+1][1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][2] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[colPos+1][2] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator2D<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+     
+ //    std::cerr << "B matrix:\n" << bMat.ToString() << std::endl;
+     //    << "End NonLinStrainOperator2D::CalcOpMatTransposed\n\n";
+   }
+
+   
+   // =========================================================================
+   //  NONLINEAR 2D STRAIN OPERATOR (AXI) 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 2D axi
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperatorAxi : public StrainOperatorAxi<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperatorAxi(shared_ptr<BaseFeFunction> displ)
+         : StrainOperatorAxi<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperatorAxi";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(5);
+       }
+
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperatorAxi * Clone(){
+         return new NonLinStrainOperatorAxi(*this);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperatorAxi() {}
+
+       //! Calculate operator matrix
+       virtual void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp, 
+           BaseFE* ptFe );
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Vector<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+       
+       //! Values of shape functions at integration point
+       Vector<Double> shFncAtIp_;
+       
+       //! Global coordinates of integration point
+       Vector<Double> ipCoord_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get shape functions at integration point
+     fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
+     
+     // get global coordinates of integration point
+     if (ipCoord_.GetSize() == 0) {
+       lp.shapeMap->Local2Global(ipCoord_, lp.lp);
+     }
+
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_33
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[4] += shFncAtIp_[iFunc] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     nlCoef_[4] /= ipCoord_[0] * ipCoord_[0];
+
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[0][colPos  ] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[0][colPos+1] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[1][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[1][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[2][colPos  ] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[2][colPos+1] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[3][colPos  ] = this->shFncAtIp_[iFunc] * nlCoef_[4];
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperatorAxi<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get shape functions at integration point
+     fe->GetShFnc(shFncAtIp_, lp.lp, lp.shapeMap->GetElem(), 1);
+     
+     // get global coordinates of integration point
+     if (ipCoord_.GetSize() == 0) {
+       lp.shapeMap->Local2Global(ipCoord_, lp.lp);
+     }
+     
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     // l_11
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[0] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_22
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[1] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_21
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[2] += this->xiDx_[iFunc][0] * elemDisp_[iFunc*this->DIM_DOF+1];
+     }
+     // l_12
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[3] += this->xiDx_[iFunc][1] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     // l_33
+     for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+       nlCoef_[4] += shFncAtIp_[iFunc] * elemDisp_[iFunc*this->DIM_DOF  ];
+     }
+     nlCoef_[4] /= ipCoord_[0] * ipCoord_[0];
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     bMat.Init();
+     
+     UInt colPos;
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][0] = this->xiDx_[iFunc][0] * nlCoef_[0];
+       bMat[colPos+1][0] = this->xiDx_[iFunc][0] * nlCoef_[2];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][1] = this->xiDx_[iFunc][1] * nlCoef_[3];
+       bMat[colPos+1][1] = this->xiDx_[iFunc][1] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][2] = this->xiDx_[iFunc][1] * nlCoef_[0] +
+                           this->xiDx_[iFunc][0] * nlCoef_[3];
+       bMat[colPos+1][2] = this->xiDx_[iFunc][1] * nlCoef_[2] +
+                           this->xiDx_[iFunc][0] * nlCoef_[1];
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       bMat[colPos  ][3] = this->shFncAtIp_[iFunc] * nlCoef_[4];
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   // =========================================================================
+   //  NONLINEAR 3D STRAIN OPERATOR 
+   // =========================================================================
+   
+   //! Displacement-dependent Strain-like differential operator in 3D
+   template<class FE, class TYPE=Double>
+   class NonLinStrainOperator3D : public StrainOperator3D<FE, TYPE> {
+
+     public:
+
+       //! Constructor
+       NonLinStrainOperator3D(shared_ptr<BaseFeFunction> displ)
+         : StrainOperator3D<FE, TYPE>(false)
+       {
+           this->name_ = "NonLinStrainOperator3D";
+           
+           dispCoef_ = dynamic_pointer_cast< FeFunction<TYPE> >(displ);
+           if (!dispCoef_) {
+             EXCEPTION("Could not cast BaseFeFunction to FeFunction!");
+           }
+           
+           nlCoef_.Resize(3, 3);
+       }
+
+       //! \copydoc BaseBOperator::Clone()
+       virtual NonLinStrainOperator3D * Clone(){
+         return new NonLinStrainOperator3D(*this);
+       }
+
+       //! Destructor
+       virtual ~NonLinStrainOperator3D() {}
+
+       //! Calculate operator matrix
+       virtual void CalcOpMat(Matrix<Double> & bMat,
+           const LocPointMapped& lp,
+           BaseFE* ptFe );
+
+       //! Calculate transposed operator matrix
+       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+           const LocPointMapped& lp, 
+           BaseFE* ptFe );
+
+       //! Displacement CoefFunction
+       shared_ptr< FeFunction<Double> > dispCoef_;
+       
+       //! Vector of element displacements
+       Vector<Double> elemDisp_;
+       
+       //! Nonlinear coefficients
+       Matrix<Double> nlCoef_;
+
+       //! Cached matrix for spatial derivatives
+       Matrix<Double> xiDx_;
+   };
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> &bMat,
+                                                   const LocPointMapped &lp,
+                                                   BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+           nlCoef_[i][j] += this->xiDx_[iFunc][j] *
+                            elemDisp_[iFunc*this->DIM_DOF + i];
+         }
+       }
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(this->DIM_D_MAT, numFncs * this->DIM_DOF);
+     bMat.Init();
+     
+     UInt colPos;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+         for (UInt j = 0; j < this->DIM_DOF; ++j) {
+           bMat[i][colPos+j] = this->xiDx_[iFunc][i] * nlCoef_[j][i];
+         }
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[3][colPos+j] = this->xiDx_[iFunc][2] * nlCoef_[j][1] +
+                             this->xiDx_[iFunc][1] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[4][colPos+j] = this->xiDx_[iFunc][2] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[5][colPos+j] = this->xiDx_[iFunc][1] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][1];
+       }
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator3D<FE,TYPE>::CalcOpMat(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
+
+   template<class FE, class TYPE>
+   void NonLinStrainOperator3D<FE,TYPE>::CalcOpMatTransposed(
+       Matrix<Double> &bMat,
+       const LocPointMapped &lp,
+       BaseFE *ptFE)
+   {
+     FE *fe = static_cast<FE*>(ptFE);
+
+     // get global derivatives of shape functions
+     fe->GetGlobDerivShFnc(this->xiDx_, lp, lp.shapeMap->GetElem(), 1);
+     UInt numFncs = this->xiDx_.GetNumRows();
+     
+     // get displacement for all nodes of current element
+     dispCoef_->GetElemSolution(elemDisp_, lp.ptEl);
+     
+     // compute nonlinear coefficients for strain tensor
+     nlCoef_.Init();
+     
+     UInt iFunc;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         for (iFunc = 0; iFunc < numFncs; ++iFunc) {
+           nlCoef_[i][j] += this->xiDx_[iFunc][j] *
+                            elemDisp_[iFunc*this->DIM_DOF + i];
+         }
+       }
+     }
+     
+     // compute nonlinear part of linear strain-displacement
+     // transformation matrix B_L1
+     bMat.Resize(numFncs * this->DIM_DOF, this->DIM_D_MAT);
+     bMat.Init();
+     
+     UInt colPos;
+     for (UInt i = 0; i < this->DIM_DOF; ++i) {
+       for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+         for (UInt j = 0; j < this->DIM_DOF; ++j) {
+           bMat[colPos+j][i] = this->xiDx_[iFunc][i] * nlCoef_[j][i];
+         }
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][3] = this->xiDx_[iFunc][1] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][1];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][4] = this->xiDx_[iFunc][2] * nlCoef_[j][1] +
+                             this->xiDx_[iFunc][1] * nlCoef_[j][2];
+       }
+     }
+     for (iFunc = 0, colPos = 0; iFunc < numFncs; ++iFunc, colPos += this->DIM_DOF) {
+       for (UInt j = 0; j < this->DIM_DOF; ++j) {
+         bMat[colPos+j][5] = this->xiDx_[iFunc][2] * nlCoef_[j][0] +
+                             this->xiDx_[iFunc][0] * nlCoef_[j][2];
+       }
+     }
+
+     // add linear stiffness operator
+     Matrix<Double> linBmat;
+     StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(linBmat, lp, ptFE);
+     bMat += linBmat;
+   }
 
 }
 #endif

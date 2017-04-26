@@ -46,7 +46,15 @@ public:
       this->name_ = "DivOperator";
     }
 
-    ~DivOperator(){
+    DivOperator(const DivOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual DivOperator * Clone(){
+      return new DivOperator(*this);
+    }
+
+    virtual ~DivOperator(){
 
     }
 
@@ -175,6 +183,14 @@ public:
 
       ScalarDivergenceOperator(){
         this->name_ = "ScalarDivergenceOperator";
+      }
+
+      ScalarDivergenceOperator(const ScalarDivergenceOperator & other)
+       : BaseBOperator(other){
+      }
+
+      virtual ScalarDivergenceOperator * Clone(){
+        return new ScalarDivergenceOperator(*this);
       }
 
       ~ScalarDivergenceOperator(){

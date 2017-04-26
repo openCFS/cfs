@@ -29,6 +29,14 @@ namespace CoupledField{
     
     CurlOperator();
 
+    CurlOperator(const CurlOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual CurlOperator * Clone(){
+      return new CurlOperator(*this);
+    }
+
       ~CurlOperator();
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
@@ -85,6 +93,14 @@ namespace CoupledField{
     CurlOperator(){
       this->name_ = "CurlOperator";
 
+    }
+
+    CurlOperator(const CurlOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual CurlOperator * Clone(){
+      return new CurlOperator(*this);
     }
 
     ~CurlOperator(){
@@ -158,6 +174,14 @@ namespace CoupledField{
 
     }
 
+    ScaledByEdgeCurlOperator(const ScaledByEdgeCurlOperator & other)
+     : CurlOperator<FeHCurl,D,TYPE>(other){
+    }
+
+    virtual ScaledByEdgeCurlOperator * Clone(){
+      return new ScaledByEdgeCurlOperator(*this);
+    }
+
     ~ScaledByEdgeCurlOperator(){
 
     }
@@ -221,6 +245,14 @@ namespace CoupledField{
     CurlOperator(){
       this->name_ = "CurlOperator3D";
 
+    }
+
+    CurlOperator(const CurlOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual CurlOperator * Clone(){
+      return new CurlOperator(*this);
     }
 
     ~CurlOperator(){
@@ -371,6 +403,14 @@ namespace CoupledField{
 
     }
 
+    CurlOperator(const CurlOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual CurlOperator * Clone(){
+      return new CurlOperator(*this);
+    }
+
     ~CurlOperator(){
 
     }
@@ -490,6 +530,14 @@ namespace CoupledField{
     CurlOperatorAxi(){
       this->name_ = "CurlOperatorAxi";
 
+    }
+
+    CurlOperatorAxi(const CurlOperatorAxi & other)
+     : BaseBOperator(other){
+    }
+
+    virtual CurlOperatorAxi * Clone(){
+      return new CurlOperatorAxi(*this);
     }
 
     ~CurlOperatorAxi(){

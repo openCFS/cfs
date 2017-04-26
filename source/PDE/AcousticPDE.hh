@@ -39,11 +39,15 @@ namespace CoupledField{
       *  @return depending on the formulation: ACOU_POTENTIAL or ACOU_PRESSURE. */
      SolutionType GetNativeSolutionType() const { return formulation_; }
 
+     //! check, if PDE has complex material parameters;
+     bool IsMaterialComplex()  {
+     	return complexFluidFormulation_;
+     }
+
   protected:
 
     //! \copydoc SinglePDE::CreateFeSpaces
-    virtual std::map<SolutionType, shared_ptr<FeSpace> >
-    CreateFeSpaces( const std::string&  formulation,
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
     //! define all (bilinearform) integrators needed for this pde
@@ -78,12 +82,16 @@ namespace CoupledField{
 
     //! create transient PML integrators
     template<UInt DIM>
-    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
+    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id,
+    		                    RegionIdType actRegion, std::string tempId);
 
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
+
+    //! if true, speed of sound squared ist at Laplace term!
+    bool sosAtLaplace_;
 
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
@@ -100,11 +108,29 @@ namespace CoupledField{
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> divMeanFlowCoef_;
 
+    //! This coefficient function describes the temperatur field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> meanTemperatureCoef_;
+
+    //! This coefficient function describes the lamb vector field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> lambCoef_;
+
     //! store convective bilinear forms
     std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
 
     //! convective coefficient function for martial derivatve
     shared_ptr<CoefFunctionFormBased> convectiveCoef_;
+
+    //! compute speed of sound, which may depend on temperature
+    void ComputeSOS(PtrCoefFct& sos, PtrCoefFct dens, PtrCoefFct blk,
+    		        PtrCoefFct regionTemp, std::string tempId);
+
+    //! compute special PML coefficient: c0^2
+    void ComputeSOS_SQR(PtrCoefFct& sosPML, PtrCoefFct dens, PtrCoefFct blk,
+    		            PtrCoefFct regionTemp, std::string tempId);
 
     //! override from Single PDE due to convective operators
     virtual void FinalizePostProcResults();
@@ -117,6 +143,9 @@ namespace CoupledField{
 
     //! flag indicating if we have almost PML (better stability in 3D)
     bool isAPML_;
+
+    //! need wave-PDE for changing density
+    bool complexFluidFormulation_;
   };
 
 }

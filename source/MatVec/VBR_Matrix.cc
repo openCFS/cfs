@@ -10,10 +10,6 @@ DECLARE_LOG(vbrMat)
 DEFINE_LOG(vbrMat, "vbrMatrix")
 
 
-// switch for using BLAS-methods for
-// matrix-vector multiplication
-#define USE_BLAS_VERSION 1
-
 namespace CoupledField {
 
 
@@ -409,7 +405,7 @@ namespace CoupledField {
       UInt colNum; // column number
       UInt ind;    //index to data array
       
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
       char trans = 'T';
       Double alpha = 1.0;
       Double beta = 1.0;
@@ -429,7 +425,7 @@ namespace CoupledField {
           ind = valPtr_[ibc];
 
           // perform mat-vec multiplication on dense sub-block
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
                  &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
           ind+=cbs*rbs;
@@ -462,7 +458,7 @@ namespace CoupledField {
     UInt colNum; // column number
     UInt ind;    //index to data array
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     char trans = 'T';
     Double alpha = -1.0;
     Double beta = 1.0;
@@ -482,7 +478,7 @@ namespace CoupledField {
         ind = valPtr_[ibc];
         
         // perform mat-vec multiplication on dense sub-block
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
         dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
                &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
         ind+=cbs*rbs;
@@ -517,7 +513,7 @@ namespace CoupledField {
     UInt colNum; // column number
     UInt ind;    //index to data array
     
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     char trans = 'T';
     Double alpha = -1.0;
     Double beta = 1.0;
@@ -540,7 +536,7 @@ namespace CoupledField {
         ind = valPtr_[ibc];
         
         // perform mat-vec multiplication on dense sub-block
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
         dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
                &x[cStart], &inc, &beta, &r[rStart], &inc);
         ind+=cbs*rbs;
@@ -579,7 +575,7 @@ namespace CoupledField {
     UInt colNum; // column number
     UInt ind;    //index to data array
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     char trans = 'N';
     Double alpha = 1.0;
     Double beta = 1.0;
@@ -599,7 +595,7 @@ namespace CoupledField {
         ind = valPtr_[ibc];
 
         //perform mat-vec multiplication on dense sub-block
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
         dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
                &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
         ind+=cbs*rbs;
@@ -631,9 +627,9 @@ namespace CoupledField {
    int rbs;    // row block size
    int cbs;    // col block size
    UInt colNum; // column number
+#ifdef NDEBUG
    UInt ind;    //index to data array
 
-#ifdef USE_BLAS_VERSION
    char trans = 'N';
    Double alpha = -1.0;
    Double beta = 1.0;
@@ -650,10 +646,10 @@ namespace CoupledField {
        colNum = colInd_[ibc];
        cStart = bCol_[colNum];
        cbs = bCol_[colNum+1] - bCol_[colNum];
+#ifdef NDEBUG
        ind = valPtr_[ibc];
-
+       
        //perform mat-vec multiplication on dense sub-block
-#ifdef USE_BLAS_VERSION
        dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
               &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
        ind+=cbs*rbs;
