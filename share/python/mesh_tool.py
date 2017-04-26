@@ -706,7 +706,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   # buld2d case
   ny = y_res if y_res != None else x_res
-  width = 1.0
+  width = width if width != None else 1. 
   height = float(ny)/nx if opt_height is None else opt_height 
    
   offx = 0.
@@ -1159,19 +1159,19 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   if type == "box_lufo":
     top = (("force",[]))
     mesh.bc.append(top)
-    for x in range(0,nnx+1):
-      for y in range(0,nny+1):
-        top[1].append((nnx*nny*nnz + nnx*y + x))
+    for x in range(0,nnx):
+      for y in range(0,nny):
+        top[1].append((nnx*nny*nz + nnx*y + x))
     support = (("support",[]))
     mesh.bc.append(support)
-    for y in range(0,nny+1):
+    for y in range(0,nny):
       support[1].append((nnx*y))
-    for y in range(0,nny+1):
-      support[1].append((nnx*y + nnx))
-    for x in range(0,nnx+1):
+    for y in range(0,nny):
+      support[1].append((nnx*y + nx))
+    for x in range(0,nnx):
       support[1].append((x))
-    for x in range(0,nnx+1):
-      support[1].append((nnx*nny + x))
+    for x in range(0,nnx):
+      support[1].append((nnx*ny + x))
   
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"

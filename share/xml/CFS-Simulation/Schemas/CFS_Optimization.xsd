@@ -1950,11 +1950,7 @@
     <xsd:attribute name="normalize" type="xsd:boolean" default="false"/>
     
     <!-- global functions are actually sum( max(0, g_i(x) - c)^p) where c is the parameter and p is a "norm" -->
-    <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>
-    
-    <!-- for the globalLatticeVol constraint in 3D we need an external coefficient file for the interpolation of the function and gradient
-         as the function is only C0 -->
-    <xsd:attribute name="lattice_vol_coeff_file" type="xsd:token" use="optional" />      
+    <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>   
     
     <!-- only for the oscillation constraint, defines if applied on void and/or material phase.
     Requires locality without _AND_REVERSE -->

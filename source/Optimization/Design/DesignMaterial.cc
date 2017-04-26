@@ -316,7 +316,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
            }
     std::cout << "Matrices filled" << std::endl;
   }
-
+  std::string interpolation_str;
   if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1) {
     string p_node = "";
     if (type_ == HOM_RECT_C1) {
@@ -327,7 +327,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     PtrParamNode hr = pn->Get(p_node);
     std::string file = hr->Get("file")->As<std::string>();
     // read interpolation method
-    std::string interpolation_str = hr->Get("interpolation")->As<std::string>();
+    interpolation_str = hr->Get("interpolation")->As<std::string>();
 
     // full C1 interpolation with text coefficients for 2D (without shearing angle)
     if (interpolation_str == "c1_text_2d") {
@@ -661,6 +661,33 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
     LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
     LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
+  }
+
+  if (dim == 3 && (interpolation_str == "c1" || interpolation_str == "c1_text_3d")) {
+    // create output data for material catalog in info.xml file
+    Vector<double> p(3,0);
+    int m = hom_rect_a_.GetNumRows();
+    int n = hom_rect_b_.GetNumRows();
+    int o = hom_rect_c_.GetNumRows();
+    double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
+    double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
+    double dc = 0.0;
+    dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
+    int j, k, l(-1);
+    j = GetInterpolationIndex(hom_rect_a_,p[0]);
+    k = GetInterpolationIndex(hom_rect_b_,p[1]);
+    l = GetInterpolationIndex(hom_rect_c_,p[2]);
+    double e11_0 = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+    p[0] = 1.;
+    p[1] = 1.;
+    p[2] = 1.;
+    j = GetInterpolationIndex(hom_rect_a_,p[0]);
+    k = GetInterpolationIndex(hom_rect_b_,p[1]);
+    l = GetInterpolationIndex(hom_rect_c_,p[2]);
+    double e11_1 = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
+    info_matCatalog->Get("E11_0")->SetValue(e11_0);
+    info_matCatalog->Get("E11_1")->SetValue(e11_1);
   }
 }
 
