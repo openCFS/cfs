@@ -22,7 +22,7 @@ namespace CFSDat{
 OutputFilter::OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
              :BaseFilter(numWorkers,config,resMan){
 
-  infoNode_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT , false));
+  infoNode_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
   std::string name = "cfsDatInfoFilter-";
   name += this->filterId_;
   infoNode_->SetName(name.c_str());
