@@ -82,18 +82,23 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{LC_ALL} "C")
     SET(ENV{LANG} "C")
     SET(ENV{LANGUAGE} "C")
-    # determine compiler info
-    SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
-    SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-    SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-    SET(COMPILER "$ENV{CXX}")
-    SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
-    CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
-    # create build/tmp directory
-    EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
-    # read ID_CXX
-    EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
-    INCLUDE("${COMPILER_ID_FILE}")
+
+  elseif(${COMPILER_TYPE} STREQUAL "GCC-6")
+    # search for compilers from software collections
+    execute_process(COMMAND scl enable devtoolset-6 -- which gcc
+                    OUTPUT_VARIABLE SCL_CC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-6 -- which g++
+                    OUTPUT_VARIABLE SCL_CXX OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-6 -- which gfortran
+                    OUTPUT_VARIABLE SCL_FC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    SET(ENV{CC} "${SCL_CC}")
+    SET(ENV{CXX} "${SCL_CXX}")
+    SET(ENV{FC} "${SCL_FC}")
+
+    SET(ENV{LC_MESSAGES} "C")
+    SET(ENV{LC_ALL} "C")
+    SET(ENV{LANG} "C")
+    SET(ENV{LANGUAGE} "C")
 
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
@@ -148,10 +153,18 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{LANG} "C")
     SET(ENV{LANGUAGE} "C")
 
+  else(${COMPILER_TYPE} STREQUAL "GCC")
+
+    message("can only set compiler environment for GCC or ICC, not for ${COMPILER}!")
+
+  endif(${COMPILER_TYPE} STREQUAL "GCC")
+  IDENTIFY_COMPILER()
+endmacro()
+
+macro(IDENTIFY_COMPILER)
     SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
     SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
     SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-
     # determine compiler info
     SET(COMPILER "$ENV{CXX}")
     SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
@@ -162,12 +175,4 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
     # include compiler info
     INCLUDE("${COMPILER_ID_FILE}")
-
-  else(${COMPILER_TYPE} STREQUAL "GCC")
-
-    message("can only set compiler environment for GCC or ICC, not for ${COMPILER}!")
-
-  endif(${COMPILER_TYPE} STREQUAL "GCC")
 endmacro()
-
-
