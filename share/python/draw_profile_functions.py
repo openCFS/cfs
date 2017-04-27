@@ -356,9 +356,10 @@ def point_inside_profile(p,profile):
   
   # depending on direction, estimate plane in which we perform check
   major = profile.direction
-  minors = [ d for d in [0,1,2] if d != major ]
-  minor_1=minors[0]
-  minor_2=minors[1]
+  minor_1, minor_2 = give_normal_plane_axes(major)
+#   minors = [ d for d in [0,1,2] if d != major ]
+#   minor_1=minors[0]
+#   minor_2=minors[1]
 #   print("major: ",major," minor1:",minor_1," minor2:",minor_2)
 #   print(p[major],p[minor_1],p[minor_2])  
   phi = angle_to_center((p[minor_1],p[minor_2]))
@@ -914,11 +915,12 @@ def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points):
       point[minor_dir_1] = px
       point[minor_dir_2] = py 
        
-      if not point_inside_profile(point, otherProfile1) and (not point_inside_profile(point, otherProfile2)):
+      if not point_inside_profile(point, otherProfile1):
+        if not point_inside_profile(point, otherProfile2):
 #       points.add(point)
-        nodes[j,i] = point
-        nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
-        n_points += 1
+          nodes[j,i] = point
+          nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
+          n_points += 1
   
   return nodes,nodes_ids,n_points
 
@@ -1130,7 +1132,6 @@ def generate_basecell(args,info,log):
     nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],surf_points,num_surf_points)
     nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],surf_points,num_surf_points)
     nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],surf_points,num_surf_points)
-    
     
     # create vtk cells and points
     cells = vtk.vtkCellArray()
@@ -1466,8 +1467,8 @@ def calc_triangle_ratio(v1,v2,v3):
     aspect_ratio = d1*d2*d3 / denom
   else: # all three points form a line
     aspect_ratio = 1e6
- 
-  assert(aspect_ratio >= 1)
+  
+  assert(aspect_ratio >= 1-1e-6)
   
   return aspect_ratio
 
@@ -1945,7 +1946,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   quality_bound = 5  
   end = False
   stop = False
-  #while not end and quality_bound < 30: 
+  #while not end and quality_bound < 30:
   while not end:
     # 3 possibilities: - False, nothing to go back we need to increase quality bound
     # - True: Process next triangle
@@ -1984,6 +1985,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
         log("filled")
         print("filled")
+
 #         history += triangles
 #         print("here")
 #         return True, True
