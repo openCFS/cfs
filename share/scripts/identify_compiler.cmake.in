@@ -49,7 +49,7 @@ EXECUTE_PROCESS(
   )
 
 IF(NOT rv EQUAL 0)
-  MESSAGE(FATAL_ERROR "Compiler ${COMPILER} could not be identified!\n\n${COMPILER_ERROR}")
+  MESSAGE(FATAL_ERROR "Compiler ${COMPILER} could not be identified!\ncmd: ${COMPILER} -E ${SOURCE} \nout:${COMPILER_OUTPUT}\nerr:${COMPILER_ERROR}")
 ENDIF(NOT rv EQUAL 0)
 
 SET(COMPILER_OUTPUT_ICC
