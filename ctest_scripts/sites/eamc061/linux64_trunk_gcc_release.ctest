@@ -1,4 +1,4 @@
-# This is a single test case to be called via nightly_test.cmake.
+G# This is a single test case to be called via nightly_test.cmake.
 #
 # You may test this script alone via ctest -S <test>.ctest
 #
@@ -123,6 +123,6 @@ message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
+message("  Submit trunk gcc rel on ${BUILDNAME}")
 ctest_submit(RETURN_VALUE res)
 message("  All done")
