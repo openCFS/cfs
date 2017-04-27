@@ -477,10 +477,10 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   checked.insert(base->elem->elemNum);
 
   // we start with the base neighborhood to be checked
-  assert(base->elem->neighborhood != NULL);
+  assert(base->elem->extended->neighborhood != NULL);
   std::set<unsigned int> to_check;
 
-  const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->neighborhood);
+  const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->extended->neighborhood);
   for(unsigned int j = 0; j < initial.GetSize(); j++) {
     // we reduce to surface neighbors. second is the number of sharing nodes
     // for 2d the surface is = 2 (edge) for 3D the surface is >= 3 (triangle)
@@ -537,7 +537,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
       neighbors.Push_back(ne); // cheap
 
       // as test was a successful element we have to process the Elem* neighbors
-      const StdVector<std::pair<Elem*, int> >& test_ne = *(test->neighborhood);
+      const StdVector<std::pair<Elem*, int> >& test_ne = *(test->extended->neighborhood);
       for(unsigned e = 0; e < test_ne.GetSize(); e++)
       {
         // see above!
@@ -562,8 +562,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
-  const Point& bb = base->barycenter;
-  const Point& tb = test->barycenter;
+  const Point& bb = base->extended->barycenter;
+  const Point& tb = test->extended->barycenter;
 
   assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0)/* && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0)*/);
 
@@ -598,8 +598,8 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
     }
   }
 
-  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->barycenter.ToString()
-               << " test=" << test->elemNum << " " << test->barycenter.ToString()
+  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->extended->barycenter.ToString()
+               << " test=" << test->elemNum << " " << test->extended->barycenter.ToString()
                << " direct=" << dist << " relaxed=" << std::sqrt(preSqrt);
 
   return std::sqrt(preSqrt);
@@ -782,7 +782,7 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
 
   // add the original neighborhood if there is a periodic case
   if(neighbors.GetSize() > 0)
-    AppendNeighbors(*elem->neighborhood, neighbors);
+    AppendNeighbors(*elem->extended->neighborhood, neighbors);
 
   LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << ToString(neighbors);
 
@@ -811,7 +811,7 @@ void DesignStructure::AppendNeighbors(Elem* check,
 {
   if(check == NULL) return;
   
-  StdVector<std::pair<Elem*, int> >& source = *(check->neighborhood);
+  StdVector<std::pair<Elem*, int> >& source = *(check->extended->neighborhood);
 
   // check all elements
   for(int s = -1, sn = (int) source.GetSize(); s < sn; s++)

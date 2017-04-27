@@ -28,7 +28,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   Double ConvCriterion::CalcNorm( Double newVal, Double oldVal ) {
     Double ret = 0.0;
+    /*
+     * // Tested, but did not work
+    if((std::abs(newVal) > 1e30) || (std::abs(oldVal) > 1e30)){
+	    std::cout << "Abs(newVal)= "<<std::abs(newVal) << "; Abs(oldVal)= "<<std::abs(oldVal) << std::endl;
+	    std::cout << "Input out of bounds, reset norm to 1 to avoid NaN!" << std::endl;
+	    return 1.0; 
+    }
+    */
     Double delta = std::abs( std::abs(newVal) - std::abs(oldVal) );
+
     switch( normType_) {
       case NO_NORM:
         break;
@@ -36,14 +45,50 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         ret = std::abs(newVal);
         break;
       case L2REL:
-        if (std::abs(newVal) > 1.0 ) {
+
+        //if (std::abs(newVal) > 1.0 ) { 
+        if (std::abs(newVal) > 0.0 ) {
           ret = delta / std::abs(newVal);
         } else {
           ret = delta;
         }
         break;
+        
     }
+
     return ret;
+    
+    
+      /* FOR comparison from OLD TRUNK  
+    // Calculate difference
+    delta->Add(1.0, val, -1.0, oldval );
+
+//    Vector<Double> & val_vec = dynamic_cast<Vector<Double>& >(val);
+//    Vector<Double> & oldval_vec = dynamic_cast<Vector<Double>& >(oldval);
+//    delta = val_vec - oldval_vec;
+
+    switch (normtype)
+      {
+      case NO_NORM:
+        return 0;
+        break;
+      
+      case L2ABS:
+        norm = delta->NormL2();
+        break;
+
+      case L2REL:
+        valNorm2 =  val.NormL2();
+        if (valNorm2 > 0) 				<---- this is the interesting part here!
+          norm = delta->NormL2() / valNorm2;
+        else
+          norm = delta->NormL2();
+
+        break;
+      }
+*/
+    
+    
   }
 
   // Definition of norm types
@@ -147,6 +192,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     disp_ = disp;
   }
   
+  void ConvCriterionDisplacement::SetNormFlag( bool justNorm) {
+    justNorm_ = justNorm;
+  }  
+  
+  
   void ConvCriterionDisplacement::AddRegion(RegionIdType region ) {
     updatedRegions_.insert(region);
   }
@@ -161,16 +211,24 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   void ConvCriterionDisplacement::StartSampling() {
     // update grid to current values
       // Check if displacement fefunction is set
-      if( !disp_)
+    // if we just want to calculate the norm, we need no geometry update
+    if( !disp_ || justNorm_)
         return;
-      
+/*    
+    double currentNorm = CalcNorm(actNorm_, oldNorm_);
+    if(currentNorm >= 1.0){
+	   std::cout << "Difference to last timestep too large (currentNorm = " << currentNorm << " )" << std::endl;
+	   std::cout << "Skip mesh smoothing this time! " << std::endl;
+	   return;
+   } 
+*/	    
       Grid * ptGrid = disp_->GetGrid();
       const UInt dim = ptGrid->GetDim();
       // Loop over all regions of FeFunction
       shared_ptr<EntityList> nodes;
       std::set<RegionIdType> dispRegions = disp_->GetRegions();
       std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
-      
+
       for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
         
         std::string regionName = ptGrid->GetRegion().ToString(*regionIt);
@@ -202,8 +260,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         } 
         // Pass total array
         ptGrid->SetNodeOffset(nodeNums, totalOffset);
-      
+
       }
+      // update nc interfaces if existing
+      ptGrid->MoveNcInterfaces();
   }
   
   void ConvCriterionDisplacement::StopSampling() {
@@ -211,12 +271,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // if no displacement is set, just leave
     if( !disp_)
       return;
-    
+
     oldNorm_ = actNorm_;
     actNorm_ = 0.0;
 
     // Calculate norm of total displacement
     Grid * ptGrid = disp_->GetGrid();
+    
+    // update nc interfaces if existing
+    //ptGrid->MoveNcInterfaces();
+    
     const UInt dim = ptGrid->GetDim();
     // Loop over all regions of FeFunction
     shared_ptr<EntityList> nodes;
@@ -244,20 +308,22 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         nodeNums[pos] = nodeIt.GetNode();
         // aquire nodal solution
         disp_->GetEntitySolution(offset, nodeIt);
+        
         for( UInt iDim = 0; iDim < dim; ++iDim ) {
           actNorm_ +=  offset[iDim] * offset[iDim];
         }
+
       } // loop: nodes
     } // loop: regions
     
-    // take squre root 
+    // take square root 
     actNorm_ = sqrt(actNorm_);
+      
   }
 
   Double ConvCriterionDisplacement::GetNorm() {
     return CalcNorm( actNorm_, oldNorm_);
-    
-    
+  
   }
       
   bool ConvCriterionDisplacement::Converged() {
@@ -290,6 +356,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     nonLinLogging_ = false;
     stopOnDivergence_ =  false;
     maxiter_ = 0;
+    // for mechPDE if only the norm shall converge, but no geometry change shall be executed
+    justNorm_ = false;
     
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
@@ -328,9 +396,17 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // query divergence behavior
     stopOnDivergence_ = true;
-    if( convParamNode ) 
+    if( convParamNode ) {
       convParamNode->GetValue( "stopOnDivergence", stopOnDivergence_, ParamNode::PASS );
+    }
     convNode_->Get("stopOnDivergence")->SetValue(stopOnDivergence_);
+
+    justNorm_ = true;
+    if( convParamNode ) {
+      convParamNode->GetValue( "justNorm", justNorm_, ParamNode::PASS );
+    } 
+    convNode_->Get("justNorm")->SetValue(justNorm_);
+
 
     // 1) Check for general convergence criterions
     if( convParamNode && convParamNode->Has("quantity") ) {
@@ -348,9 +424,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         LOG_DBG3(itersolvestep) << "\tNormType: " << ConvCriterion::NormTypeEnum.ToString(type);
         // Create new convergence criterion, depending on solution type
         shared_ptr<ConvCriterion> crit;
+        // test: if no geometry update is present, calculate mech displacement as normal criterion
+
         if( solType == MECH_DISPLACEMENT ) {
           LOG_DBG3(itersolvestep) << "\t=> Creating special displacement convergence criterion";
           shared_ptr<ConvCriterionDisplacement> accu (new ConvCriterionDisplacement(type, norm));
+          accu->SetNormFlag(justNorm_);
           crit  = accu;
         } else {
           LOG_DBG3(itersolvestep) << "\t=> Creating general accumulated convergence criterion";
@@ -365,8 +444,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   void IterSolveStep::Finalize() {
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
-    
-    
     
     // 1) Check for updated geometry
     if( param_->Has("geometryUpdate") ) {
@@ -386,7 +463,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             break;
           }
         }
-
         if(!disp) {
           WARN( "No geometry updated will performed, as no mechanical "
               << "physic is defined");
@@ -493,21 +569,24 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) << "Returning Coupling CoefFct for quantity '"
         << SolutionTypeEnum.ToString(type) << "' of PDE '" << pdeName 
         << "' on entityList '" << list->GetName() << "'";
-    
+
     // finalize, if not yet done
-    if( !isFinalized_ ) {
+    
+    if( !isFinalized_) {
       LOG_DBG(itersolvestep) << "Calling ::Finalize()";
       Finalize();
-    }
-     
+    } 
      PtrCoefFct ret, coef;
      
      
      // Initial implementation: Directly access CoefFct of PDE
      // Later we use the interface, which keeps track of the norm of the coupling quantity
      for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
+	 
        if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
+
          coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
+
          updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
          if( coef ) {
            LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
@@ -521,7 +600,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
            << SolutionTypeEnum.ToString(type) << "' for Physic '"
            << pdeName << "' on entityList '" << list->GetName() << "'");
      }
-     
+
      // wrap the return coefficient function in a CoefFunctionAccumulator
      shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
      
@@ -534,10 +613,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
        LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
            SolutionTypeEnum.ToString(mappedType);
      }
-     
+
      // Check, if there was a convergence criterion defined for this quantity.
      // In this case, we add it to the ConvergenceCriterion instance.
      if( criterions_.find(mappedType) != criterions_.end() ) {
+	
        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
        // add accumulated coefficient function to list
        shared_ptr<ConvCriterionAccu> c 
@@ -679,8 +759,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   {
   }
   
-  
-  
+
   void IterSolveStep::SolveStepTrans() {
 
     LOG_TRACE(itersolvestep) << "--------------------------------------"; 
@@ -708,7 +787,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // if no convergence was achieved to report the status of the lastest iteration.
     std::stringstream msg;
     UInt width[4] = {20, 10, 15, 15}; // define widths for convergence output
-    while (iter < maxiter_ &&  (! normsReached)) {
+
+    while ( iter < maxiter_ &&  (! normsReached) ) {
+	    	    
       LOG_DBG(itersolvestep) << "\n";
       LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
 
@@ -740,7 +821,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       } // end of for-loop
 
-
       // -----------------------------------
       //  3) Compute Coupling Criterions 
       // -----------------------------------
@@ -757,6 +837,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       for( convIt = criterions_.begin(); 
           convIt != criterions_.end(); ++convIt ) {
         LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+            
         convIt->second->StopSampling();
         
 
@@ -783,6 +864,27 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       }
       iter++;
     } // end of while-loop
+   
+   /* 
+           for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+
+        LOG_DBG(itersolvestep) << "Processing PDE '" << 
+            rPDE_.PDEs_[i]->GetName() << "'";
+
+            std::cout << "Processing PDE " << rPDE_.PDEs_[i]->GetName() << std::endl;
+
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
+        rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
+       if(rPDE_.PDEs_[i]->GetName() == "mechanic"){
+	 }else{
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
+  }
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
+      } // end of for-loop
+*/
+    
     
     LOG_DBG(itersolvestep) << "Finished loop in " << iter << " iterations";
 

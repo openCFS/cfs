@@ -27,8 +27,6 @@
 #include "BaseBOperator.hh"
 
 
-#define USE_BLAS_VERSION
-
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
@@ -61,6 +59,17 @@ namespace CoupledField{
 
     MultiIdOp(){
       return;
+    }
+
+
+    //! Copy constructor
+    MultiIdOp(const MultiIdOp & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual MultiIdOp * Clone(){
+      return new MultiIdOp(*this);
     }
 
     virtual ~MultiIdOp(){

@@ -165,6 +165,7 @@
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                       <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
+                      <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     </xsd:complexType>
                   </xsd:element>            
                 </xsd:sequence>
@@ -177,6 +178,7 @@
                 <xsd:choice maxOccurs="unbounded">
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
                   <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+                  <xsd:element name="hysteresis_fixpoint" type="DT_PiezoDirectNonLinHyst"/>
                   <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
                   <xsd:element name="piezoMicroHF" type="DT_PiezoDirectNonLinHyst"/> 
                 </xsd:choice>
@@ -614,6 +616,12 @@
     </xsd:restriction>
   </xsd:simpleType>
   
+  <xsd:simpleType name="DT_MagStrictRegionResult">
+    <xsd:restriction base="xsd:token">
+	<xsd:enumeration value="magEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+    
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_MagStrictStoreResults">
     <xsd:sequence>
@@ -628,6 +636,18 @@
           </xsd:complexContent>
         </xsd:complexType>
       </xsd:element>
+      <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MagStrictRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+      
+      
     </xsd:sequence>
   </xsd:complexType>
   

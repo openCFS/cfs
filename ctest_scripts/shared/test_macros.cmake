@@ -148,11 +148,11 @@ MACRO(PERFORM_TEST TEST_NAME)
 =============================================================================
 "
   )
-
-  IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
-    MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
-    FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
-  ENDIF()
+  # this is unnecessary use: SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE) instead
+  #IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
+  #  MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
+  #  FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+  #ENDIF()
 
   IF(UNIX)
     STRING(REPLACE "_" ";" TARGET_ARCH_ENV_LIST "${TEST_NAME}")
@@ -381,6 +381,7 @@ MACRO(SITE_SPECIFIC_FINISH)
 #  MESSAGE("Leaving SITE_SPECIFIC_FINISH...")
 ENDMACRO()
 
+
 MACRO(INIT_CACHE CACHE_VAR)
   # =========================================================================
   #
@@ -391,17 +392,42 @@ MACRO(INIT_CACHE CACHE_VAR)
   SET(${CACHE_VAR}
     "BUILD_TESTING:BOOL=ON
      CMAKE_COLOR_MAKEFILE:BOOL=OFF
+     CFSDAT:BOOL=ON
      CFSTOOL:BOOL=ON
-     USE_GMV:BOOL=ON
-     USE_GMSH:BOOL=ON
-     USE_CGAL:BOOL=ON
-     USE_FLANN:BOOL=ON
-     USE_CCMIO:BOOL=ON
-     USE_ILUPACK:BOOL=ON
-     USE_SCPIP:BOOL=ON
-     USE_SUITESPARSE:BOOL=ON
-     USE_SUPERLU:BOOL=ON
     "
   )
 ENDMACRO()
 
+
+macro(IDENTIFY_DISTRO)
+  #-----------------------------------------------------------------------------
+  # Identify distro.
+  #-----------------------------------------------------------------------------
+  EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
+    ARGS
+    OUTPUT_VARIABLE DISTRO_OUT
+    RETURN_VALUE RETVAL)
+  FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
+  INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+endmacro()
+
+# condigures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
+macro(WRITE_CTEST_CONFIG)
+  # copy over CTestConfig.cmake.in
+  # puts it into the binary dir
+
+  IF(NOT CFS_BUILD_HOST)
+    SET(CFS_BUILD_HOST "${HOSTNAME}") # hostname is set in SET_GLOBAL_VARS()
+  ENDIF()
+
+  message("Copy CTestConfig.cmake config, checking for host ${CFS_BUILD_HOST}")  
+  set(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
+  MESSAGE("check for ${SITE_CTEST_CONFIG}")
+  if(EXISTS ${SITE_CTEST_CONFIG})
+    message("  ${SITE_CTEST_CONFIG} -> ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake")
+    configure_file(${SITE_CTEST_CONFIG} ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
+  else()
+    message("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
+    configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
+  endif()
+endmacro()

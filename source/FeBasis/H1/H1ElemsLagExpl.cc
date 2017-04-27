@@ -14,7 +14,12 @@ namespace CoupledField {
    order_ = 0;
    preComputShFnc_ = true;
   }
-    
+
+  FeH1LagrangeExpl::FeH1LagrangeExpl(const FeH1LagrangeExpl & other)
+                   : FeH1(other), FeNodal(other){
+    this->order_ = other.order_;
+  }
+
   FeH1LagrangeExpl::~FeH1LagrangeExpl() {
   }
   
@@ -65,7 +70,7 @@ namespace CoupledField {
       for ( UInt i = 0; i < order_-1 ; i++ ) {
         fncPermutation[i] = i;
       }
-    }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
+    }else if( fctEntityType == FACE && ptElem->extended->faces.GetSize() > 0) {
       if(completeType_ == TENSOR_TYPE){
         //WARNING: for order > 2 we would need to check for orientation. See H1ElemsLagVar.cc
         fncPermutation.Resize((order_-1) * (order_-1));
@@ -83,7 +88,7 @@ namespace CoupledField {
         }
         fncPermutation.Resize(0);
       }
-    }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() > 3){
+    }else if( fctEntityType == INTERIOR && ptElem->extended->faces.GetSize() > 3){
       if(completeType_ == SERENDIPITY_TYPE){
         if(order_>3){
           Exception("Function FeH1LagrangeExpl::GetNodalPermutation needs to be extended for higher order serendipity elements!");
@@ -209,7 +214,8 @@ namespace CoupledField {
                             Vector<Double>& locNormal ) {
     EXCEPTION("Not implemented");
   }
-  
+
+
   // --- Tria 1st order ---
 
   FeH1LagrangeTria1::FeH1LagrangeTria1()  : FeH1LagrangeTria(){
@@ -334,10 +340,22 @@ namespace CoupledField {
             << "have not two nodes in common. Check your .mesh-file.");
     }
   }
-  
+
+
   void FeH1LagrangeTria::
   ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
 
+  }
+
+  
+  void FeH1LagrangeTria1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+    //trivial
+    triConnect.Resize(1);
+    triConnect.Init(StdVector<UInt>(3));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 1;
+    triConnect[0][2] = 2;
   }
 
   // --- Quad 1st order ---
@@ -356,6 +374,37 @@ namespace CoupledField {
     
   }
   
+  void FeH1LagrangeQuad1::ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+    P.Resize(4,3);
+    P.Init();
+    C.Resize(4,4);
+    C.Init();
+    C[0][0] = 0.25;
+    C[0][1] = -0.25;
+    C[0][2] = 0.25;
+    C[0][3] = -0.25;
+
+    C[1][0] = 0.25;
+    C[1][1] = 0.25;
+    C[1][2] = -0.25;
+    C[1][3] = -0.25;
+
+    C[2][0] = 0.25;
+    C[2][1] = 0.25;
+    C[2][2] = 0.25;
+    C[2][3] = 0.25;
+
+    C[3][0] = 0.25;
+    C[3][1] = -0.25;
+    C[3][2] = -0.25;
+    C[3][3] = 0.25;
+
+    P[1][0] = 1;
+    P[2][1] = 1;
+    P[3][0] = 1;
+    P[3][1] = 1;
+  }
+
   void FeH1LagrangeQuad1::CalcShFnc( Vector<Double>& shape,
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
@@ -506,6 +555,21 @@ namespace CoupledField {
         }
   }
   
+  void FeH1LagrangeQuad1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    triConnect.Resize(2);
+    triConnect.Init(StdVector<UInt>(3));
+
+    //create two triangles in counterclockwise orientation
+    //diagonal is in both cases third edge
+    triConnect[0][0] = 3;
+    triConnect[0][1] = 0;
+    triConnect[0][2] = 1;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 2;
+    triConnect[1][2] = 3;
+  }
+
   // --- Hex 1st order ---
   FeH1LagrangeHex1::FeH1LagrangeHex1() : FeH1LagrangeHex() {
     feType_ = Elem::ET_HEXA8;
@@ -522,6 +586,52 @@ namespace CoupledField {
     
   }
   
+  void FeH1LagrangeHex1::ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+          P.Resize(actNumFncs_,3);
+          C.Resize(actNumFncs_,actNumFncs_);
+
+          P[0][0] = 0; P[0][1] = 0; P[0][2] = 0;
+          P[1][0] = 0; P[1][1] = 0; P[1][2] = 1;
+          P[2][0] = 0; P[2][1] = 1; P[2][2] = 0;
+          P[3][0] = 0; P[3][1] = 1; P[3][2] = 1;
+          P[4][0] = 1; P[4][1] = 0; P[4][2] = 0;
+          P[5][0] = 1; P[5][1] = 0; P[5][2] = 1;
+          P[6][0] = 1; P[6][1] = 1; P[6][2] = 0;
+          P[7][0] = 1; P[7][1] = 1; P[7][2] = 1;
+
+          C[0][0] =  1.2500000e-01; C[0][1] = -1.2500000e-01; C[0][2] = -1.2500000e-01;
+          C[0][3] =  1.2500000e-01; C[0][4] = -1.2500000e-01; C[0][5] =  1.2500000e-01;
+          C[0][6] =  1.2500000e-01; C[0][7] = -1.2500000e-01;
+
+          C[1][0] =  1.2500000e-01; C[1][1] = -1.2500000e-01; C[1][2] = -1.2500000e-01;
+          C[1][3] =  1.2500000e-01; C[1][4] =  1.2500000e-01; C[1][5] = -1.2500000e-01;
+          C[1][6] = -1.2500000e-01; C[1][7] =  1.2500000e-01;
+
+          C[2][0] =  1.2500000e-01; C[2][1] = -1.2500000e-01; C[2][2] =  1.2500000e-01;
+          C[2][3] = -1.2500000e-01; C[2][4] =  1.2500000e-01; C[2][5] = -1.2500000e-01;
+          C[2][6] =  1.2500000e-01; C[2][7] = -1.2500000e-01;
+
+          C[3][0] =  1.2500000e-01; C[3][1] = -1.2500000e-01; C[3][2] =  1.2500000e-01;
+          C[3][3] = -1.2500000e-01; C[3][4] = -1.2500000e-01; C[3][5] =  1.2500000e-01;
+          C[3][6] = -1.2500000e-01; C[3][7] =  1.2500000e-01;
+
+          C[4][0] =  1.2500000e-01; C[4][1] =  1.2500000e-01; C[4][2] = -1.2500000e-01;
+          C[4][3] = -1.2500000e-01; C[4][4] = -1.2500000e-01; C[4][5] = -1.2500000e-01;
+          C[4][6] =  1.2500000e-01; C[4][7] =  1.2500000e-01;
+
+          C[5][0] =  1.2500000e-01; C[5][1] =  1.2500000e-01; C[5][2] = -1.2500000e-01;
+          C[5][3] = -1.2500000e-01; C[5][4] =  1.2500000e-01; C[5][5] =  1.2500000e-01;
+          C[5][6] = -1.2500000e-01; C[5][7] = -1.2500000e-01;
+
+          C[6][0] =  1.2500000e-01; C[6][1] =  1.2500000e-01; C[6][2] =  1.2500000e-01;
+          C[6][3] =  1.2500000e-01; C[6][4] =  1.2500000e-01; C[6][5] =  1.2500000e-01;
+          C[6][6] =  1.2500000e-01; C[6][7] =  1.2500000e-01;
+
+          C[7][0] =  1.2500000e-01; C[7][1] =  1.2500000e-01; C[7][2] =  1.2500000e-01;
+          C[7][3] =  1.2500000e-01; C[7][4] = -1.2500000e-01; C[7][5] = -1.2500000e-01;
+          C[7][6] = -1.2500000e-01; C[7][7] = -1.2500000e-01;
+  }
+
   void FeH1LagrangeHex1::CalcShFnc( Vector<Double>& shape,
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
@@ -710,6 +820,41 @@ namespace CoupledField {
       }
    }
   
+  void FeH1LagrangeHex1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    //TODO: check orientation!
+    triConnect.Resize(6);
+    triConnect.Init(StdVector<UInt>(4));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 4;
+    triConnect[0][2] = 1;
+    triConnect[0][3] = 2;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 5;
+    triConnect[1][2] = 2;
+    triConnect[1][3] = 4;
+
+    triConnect[2][0] = 0;
+    triConnect[2][1] = 4;
+    triConnect[2][2] = 2;
+    triConnect[2][3] = 3;
+
+    triConnect[3][0] = 2;
+    triConnect[3][1] = 6;
+    triConnect[3][2] = 3;
+    triConnect[3][3] = 4;
+
+    triConnect[4][0] = 3;
+    triConnect[4][1] = 7;
+    triConnect[4][2] = 4;
+    triConnect[4][3] = 6;
+
+    triConnect[5][0] = 2;
+    triConnect[5][1] = 6;
+    triConnect[5][2] = 4;
+    triConnect[5][3] = 5;
+  }
+
   
   // --- Wedge 1st order ---
   FeH1LagrangeWedge1::FeH1LagrangeWedge1() : FeH1LagrangeWedge() {
@@ -924,6 +1069,27 @@ namespace CoupledField {
     } // if
   }
   
+  void FeH1LagrangeWedge1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+    triConnect.Resize(3);
+    triConnect.Init(StdVector<UInt>(4));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 2;
+    triConnect[0][2] = 1;
+    triConnect[0][3] = 3;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 3;
+    triConnect[1][2] = 5;
+    triConnect[1][3] = 4;
+
+    triConnect[2][0] = 1;
+    triConnect[2][1] = 2;
+    triConnect[2][2] = 5;
+    triConnect[2][3] = 3;
+
+  }
+
   // ========================================================================
   //  Lagrangian Elements of 2nd order
   // ========================================================================
@@ -1043,22 +1209,26 @@ namespace CoupledField {
                                      UInt comp ) {
     StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     shape.Resize( 8 );
+    shape.Init();
+    //intermediate Storage for important terms
+    Double xProd = 0.0;
+    Double yProd = 0.0;
     // From:
     // Zienkiewicz, The Finite Element Method.-  Vol 1, 5th ed., page 174
     
-    // corner nodesf
+    // corner nodes
     for( UInt i = 0; i < 4; i++ ) {
-      shape[i] = 0.25 * ( 1 + coords[i][0] * point[0] ) 
-                      * ( 1 + coords[i][1] * point[1] )
-                      * ( coords[i][0] * point[0] + coords[i][1] * point[1] - 1 );
+      xProd = coords[i][0] * point[0];
+      yProd = coords[i][1] * point[1];
+      shape[i] = 0.25 * ( 1.0 + xProd ) * ( 1.0 + yProd ) * ( xProd + yProd - 1.0 );
     }
     
     // mid-side nodes
     for( UInt i = 4; i < 8; i = i + 2 ) {
-      shape[i]   = 0.5 * ( 1 - point[0] * point[0] )
-                       * ( 1 + coords[i][1] * point[1] );
-      shape[i+1] = 0.5 * (1 - point[1] * point[1] )
-                       * (1 + coords[i+1][0] * point[0] );
+      shape[i]   = 0.5 * ( 1.0 - point[0] * point[0] )
+                       * ( 1.0 + coords[i][1] * point[1] );
+      shape[i+1] = 0.5 * (1.0 - point[1] * point[1] )
+                       * (1.0 + coords[i+1][0] * point[0] );
     }
   }
   
@@ -1068,26 +1238,25 @@ namespace CoupledField {
                                              UInt comp ) {
     StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 8, 2 );
+    deriv.Init();
+    Double xProd = 0.0;
+    Double yProd = 0.0;
     
     // corner nodes
     for( UInt i = 0; i < 4; i++ ) {
-      deriv[i][0] = 0.25 * coords[i][0]  
-                         * ( 1 + coords[i][1] * point[1] )
-                         * ( 2 * coords[i][0] * point[0] 
-                               + coords[i][1] * point[1] );
-      deriv[i][1] = 0.25 * coords[i][1]
-                         * ( 1 + coords[i][0] * point[0] )
-                         * ( 2 * coords[i][1] * point[1] 
-                               + coords[i][0] * point[0] );
+      xProd = coords[i][0] * point[0];
+      yProd = coords[i][1] * point[1];
+      deriv[i][0] = 0.25 * coords[i][0] * ( 1.0 + yProd ) * ( 2.0 * xProd + yProd );
+      deriv[i][1] = 0.25 * coords[i][1] * ( 1.0 + xProd ) * ( 2.0 * yProd + xProd );
     }
       
     // mid-side nodes
     for( UInt i = 4; i < 8; i = i + 2 ) {
-      deriv[i][0] = - point[0] * ( 1 + coords[i][1] * point[1] );
-      deriv[i][1] =  0.5 * coords[i][1] * ( 1 - point[0] * point[0] );
+      deriv[i][0] = - point[0] * ( 1.0 + coords[i][1] * point[1] );
+      deriv[i][1] =  0.5 * coords[i][1] * ( 1.0 - point[0] * point[0] );
       
-      deriv[i+1][0] = 0.5 * coords[i+1][0] * ( 1 - point[1] * point[1] );
-      deriv[i+1][1] = - point[1] * ( 1 + coords[i+1][0] * point[0] );
+      deriv[i+1][0] = 0.5 * coords[i+1][0] * ( 1.0 - point[1] * point[1] );
+      deriv[i+1][1] = - point[1] * ( 1.0 + coords[i+1][0] * point[0] );
     }
   }
   
@@ -1845,6 +2014,25 @@ namespace CoupledField {
 
     }
 
+    void FeH1LagrangeTet1::ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+      P.Resize(actNumFncs_,3);
+      P.Init();
+      C.Resize(actNumFncs_,actNumFncs_);
+      C.Init();
+      P[1][0] = 1;
+      P[2][1] = 1;
+      P[3][2] = 1;
+
+      C[0][0] = 1;
+      C[0][1] = -1;
+      C[0][2] = -1;
+      C[0][3] = -1;
+      C[1][1] = 1;
+      C[2][2] = 1;
+      C[3][3] = 1;
+
+    }
+
     void FeH1LagrangeTet1::CalcShFnc( Vector<Double>& shape,
                                       const Vector<Double>& point,
                                       const Elem* ptElem,
@@ -2073,6 +2261,17 @@ namespace CoupledField {
     				<< "Check your .mesh-file.");
     		break;
     	}
+    }
+
+    void FeH1LagrangeTet1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+      triConnect.Resize(1);
+      triConnect.Init(StdVector<UInt>(4));
+
+      triConnect[0][0] = 0;
+      triConnect[0][1] = 1;
+      triConnect[0][2] = 2;
+      triConnect[0][3] = 3;
     }
 
     // --- Pyramid 1st order ---
@@ -2432,6 +2631,23 @@ namespace CoupledField {
     				 (1-point[2])+point[2]*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
     	 }
+     }
+
+     void FeH1LagrangePyra1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+       triConnect.Resize(2);
+       triConnect.Init(StdVector<UInt>(4));
+
+       triConnect[0][0] = 0;
+       triConnect[0][1] = 1;
+       triConnect[0][2] = 2;
+       triConnect[0][3] = 4;
+
+       triConnect[1][0] = 0;
+       triConnect[1][1] = 2;
+       triConnect[1][2] = 3;
+       triConnect[1][3] = 4;
+
      }
 
      // --- Pyra 2nd order ---

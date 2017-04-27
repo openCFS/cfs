@@ -17,6 +17,14 @@ namespace CoupledField {
     //! constructor getting x, y(x)
     LinInterpolate(std::string nlFncName, MaterialType matType );
 
+    //! Copy Constructor
+    LinInterpolate(const LinInterpolate& right)
+      : ApproxData(right){
+    }
+
+    virtual LinInterpolate* Clone(){
+      return new LinInterpolate( *this );
+    }
     //! destructor
     virtual ~ LinInterpolate();
 

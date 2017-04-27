@@ -20,6 +20,9 @@ TARGET_LINK_LIBRARIES(siminouthdf5
 ADD_EXECUTABLE(h5tool h5tool.cc)
 
 SET(TARGET_LL siminouthdf5 cfsgeneral)
+IF(USE_CGAL)
+  SET(TARGET_LL ${TARGET_LL} CGAL)
+ENDIF(USE_CGAL)
 
 # Fix link problems with Intel 9 compiler
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND

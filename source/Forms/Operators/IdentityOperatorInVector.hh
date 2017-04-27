@@ -42,6 +42,17 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorInVector(const IdentityOperatorInVector & other)
+       :  BaseBOperator(other){
+      this->vector_ = other.vector_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorInVector * Clone(){
+      return new IdentityOperatorInVector(*this);
+    }
+
     virtual ~IdentityOperatorInVector(){
       return;
     }
@@ -164,6 +175,17 @@ namespace CoupledField{
 
     IdentityOperatorInNormal(){
       return;
+    }
+
+    //! Copy constructor
+    IdentityOperatorInNormal(const IdentityOperatorInNormal & other)
+       :  BaseBOperator(other){
+      this->vector_ = other.vector_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorInNormal * Clone(){
+      return new IdentityOperatorInNormal(*this);
     }
 
     virtual ~IdentityOperatorInNormal(){

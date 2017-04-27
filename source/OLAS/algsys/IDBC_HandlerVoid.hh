@@ -34,10 +34,10 @@ namespace CoupledField {
     void AdaptSystemMatrix( SBM_Matrix &sysMat ) {};
 
     //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
-    void AddIDBCToRHS( SBM_Vector *rhs ) {};
+    void AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC = false ) {};
 
     //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()
-    void RemoveIDBCFromRHS( SBM_Vector *rhs ) {};
+    void RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC = false ) {};
 
     //! @copydoc BaseIDBC_Handler::SetIDBC()
     void SetIDBC( UInt rowBlock, UInt rowNum, const Double &val ) {};
@@ -57,8 +57,10 @@ namespace CoupledField {
     //! @copydoc BaseIDBC_Handler::InitDirichletValues()
     void InitDirichletValues() {};
 
+    void SetOldDirichletValues() {};
+
     //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
-    void SetDofsToIDBC( SBM_Vector *vec ) {};
+    void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false ) {};
 
     //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,

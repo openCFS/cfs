@@ -359,7 +359,7 @@ DEFINE_LOG(approxdata, "approxdata")
         Double epsY = 1e-3;
         if ( x_[k+1] - x_[k] < epsX ) {
           std::string str = "The H-values in file '" + nlFileName +
-            "', are not monoton increasing (epsH = 1)!";
+            "', are not monoton increasing (epsH = 1)! ";
           EXCEPTION( str );
         }
         if ( y_[k+1] - y_[k] < epsY ) {

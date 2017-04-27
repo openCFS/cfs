@@ -1,0 +1,52 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Grid data-type -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_GridType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="fullGrid">
+        <xsd:annotation>
+          <xsd:documentation> Will generate a full scale CFS grid which can be used for mesh result
+            export. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="simpleGrid">
+        <xsd:annotation>
+          <xsd:documentation> Will generate a full scale CFS grid which can be used for mesh result
+            export.But no additional element information thus reducing memory consumption at the
+            cost of less flexibility. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <!--xsd:enumeration value="justCentroids">
+        <xsd:annotation>
+          <xsd:documentation>
+            Just reads cell centroids, cell volumes and element results. Diregards connectivity etc. thus reducing the required memory.
+            Those grids can not be exported on output filters.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="justNodes">
+        <xsd:annotation>
+          <xsd:documentation>
+            Just read nodes and their coordinates from the input and features nodal results defined on 
+            the input mesh. Not valid for export except e.g. for csv point cloud export.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration-->
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>

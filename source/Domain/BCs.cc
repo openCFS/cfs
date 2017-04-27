@@ -31,8 +31,10 @@ namespace CoupledField {
 
 
   InhomDirichletBc::InhomDirichletBc() {
+	  // set default to 0
+	  timeDerivOrder = 0;
   }
-  
+    
   InhomDirichletBc::~InhomDirichletBc() {
     value.reset();
   }

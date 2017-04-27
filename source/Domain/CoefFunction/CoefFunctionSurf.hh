@@ -3,7 +3,7 @@
 
 
 #include "CoefFunction.hh"
-
+#include "CoefFunctionMulti.hh"
 namespace CoupledField {
 
 // forward class declaration
@@ -37,25 +37,25 @@ public:
   virtual ~CoefFunctionSurf();
 
   //! Set single volume coefficient function
-  void AddVolumeCoef( RegionIdType, PtrCoefFct );
+  virtual void AddVolumeCoef( RegionIdType, PtrCoefFct );
   
   //! Pass volume coefficients
-  void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ); 
+  virtual void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs );
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<Double>& coefMat, 
+  virtual void GetTensor(Matrix<Double>& coefMat,
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetTensor
-    void GetTensor(Matrix<Complex>& coefMat, 
+  virtual void GetTensor(Matrix<Complex>& coefMat,
                    const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<Double>& coefVec, 
+  virtual void GetVector(Vector<Double>& coefVec,
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<Complex>& coefVec, 
+  virtual void GetVector(Vector<Complex>& coefVec,
                  const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetScalar
@@ -63,7 +63,7 @@ public:
                  const LocPointMapped& lpm );
   
   //! \copydoc CoefFunction::GetScalar
-    void GetScalar(Complex& coefScalar, 
+  virtual void GetScalar(Complex& coefScalar,
                    const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
@@ -92,7 +92,6 @@ public:
   
   //@}
   
-private:
 
   //! Map with CoefFunctions for each region
   std::map<RegionIdType, PtrCoefFct> coefs_;
@@ -107,6 +106,137 @@ private:
   Double factor_;
 };
 
+//! This class represents coefficient functions, which are defined just on a
+//! surface and computes the force defined by Maxwell's stress tensor
+//! It#s derived from CoefFunctionSurf
+class CoefFunctionSurfMaxwell : public CoefFunctionSurf {
+public:
+
+  //! Constructor
+
+  //! Constructor for the class
+  //! \param mapNormal If true, only the normal component w.r.t. to the
+  //!                  surface element is taken into account.By default,
+  //!                  the normal direction points OUT of the related volumes.
+  //! \param material parameter
+  //! \param factor Additional scaling factor
+  //! \param surfInfo Result info object for surface result
+
+  CoefFunctionSurfMaxwell( bool mapNormal,
+		                   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+                           Grid* ptrid,
+						   Double factor = 1.0,
+						   shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+
+  //! Destructor
+  virtual ~CoefFunctionSurfMaxwell();
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Double>& coefMat,
+                 const LocPointMapped& lpm ) {
+	  EXCEPTION("CoefFunctionSurfMaxwell:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Complex>& coefMat,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Complex>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetScalar not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Complex& coefScalar,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfMaxwell:GetScalar not implemented");
+  };
+
+
+private:
+
+  //! coef-function as defined in PDE
+  std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoef_;
+
+  //! pointer to the grid
+  Grid* ptGrid_;
+};
+
+
+//! This class represents coefficient functions, which are defined just on a
+//! surface and computes the force defined by virtual work principle
+//! It's derived from CoefFunctionSurf
+class CoefFunctionSurfVWP : public CoefFunctionSurf {
+public:
+
+  //! Constructor
+
+  //! Constructor for the class
+  //! \param mapNormal If true, only the normal component w.r.t. to the
+  //!                  surface element is taken into account.By default,
+  //!                  the normal direction points OUT of the related volumes.
+  //! \param material parameter
+  //! \param factor Additional scaling factor
+  //! \param surfInfo Result info object for surface result
+
+  CoefFunctionSurfVWP( bool mapNormal,
+	                   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+                       Double factor = 1.0,
+					   shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+
+  //! Destructor
+  virtual ~CoefFunctionSurfVWP();
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Double>& coefMat,
+                 const LocPointMapped& lpm ) {
+	  EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetTensor
+  void GetTensor(Matrix<Complex>& coefMat,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Complex>& coefVec,
+                 const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Complex& coefScalar,
+		  const LocPointMapped& lpm ) {
+  	  EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+  };
+
+//  virtual void SetNeighborRegionId(RegionIdType id);
+
+private:
+
+  //! coef-function as defined in PDE
+  std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoef_;
+};
 
 } // end of namespace
 #endif

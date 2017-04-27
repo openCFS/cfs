@@ -42,17 +42,18 @@ void CoefFunctionAccumulator::GetTensor(Matrix<Double>& coefMat,
 }
 void CoefFunctionAccumulator::GetVector(Vector<Double>& coefVec,
                                         const LocPointMapped& lpm ){
-  fct_->GetVector(coefVec, lpm);
 
+#pragma omp critical (COEFFUNCTIONACCUMULATOR_SUMMATION)
+{
+  fct_->GetVector(coefVec, lpm);
   for( UInt i = 0; i < coefVec.GetSize(); ++i ) {
     if( integrate_ ) {
       squaredSum_ += coefVec[i] * coefVec[i] * lpm.weight * lpm.jacDet;
-    
     } else {
       squaredSum_ += coefVec[i] * coefVec[i];
     }
   }
-  
+}
   // code for vector norm
   //  if( integrate_ ) {
   //    sum_ += (coefVec * lpm.weight * lpm.jacDet);
@@ -66,10 +67,14 @@ void CoefFunctionAccumulator::GetScalar(Double& coef,
 
 	fct_->GetScalar(coef, lpm);
 
+#pragma omp critical (CoefFunctionAccumulator)
+{
 	if( integrate_ )
 		squaredSum_ = coef * coef * lpm.weight * lpm.jacDet;
 	else
 		squaredSum_ = coef * coef;
+}
+
 }
 
 } // end of namespace
