@@ -99,45 +99,40 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
                                        PtrParamNode configNode,
-                                       shared_ptr<EntityList> list){
-
-
+                                       shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
     if(format == Global::COMPLEX){
       ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
+          configNode->Get("defaultGrid"), tmpNode, regions));
     }else{
       ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
+          configNode->Get("defaultGrid"), tmpNode, regions));
     }
   }else if(configNode->Has("externalGrid")){
     if(format == Global::COMPLEX){
       ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
     }else{
       ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
     }
   } else {
     EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
   }
-  ret->AddEntityList( list);
   return ret;
 }
 
-CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
+CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode, shared_ptr<RegionList> regions){
   dimDof_ = 0;
   inputId_ = "";
   gridId_ = "";
   srcGrid_ = NULL;
   domain_ = ptDomain;
   solType_ = NO_SOLUTION_TYPE;
-  curStep_ = 0;
   aSeqStep_ = 0;
   curInterpType_ = NO_INTERPOLATION;
-  curTStep_ = 0;
   myConfigNode_ = configNode;
   verbose_ = false;
   //obtain the sequence step for result
@@ -150,6 +145,7 @@ CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
     this->aSeqStep_ = domain_->GetDriver()->GetActSequenceStep();
     WARN("external data did not specify its sequence step. assuming current step...")
   }
+  SetEntitiesByRegions(regions);
 }
 
 CoefFunctionGrid::~CoefFunctionGrid(){
@@ -252,7 +248,7 @@ void CoefFunctionGrid::GetScalar(Double& CoefMat,
 
 
 std::string CoefFunctionGrid::ToString() const {
-  return "ToSting is not implemented";
+  return "ToString is not implemented";
 }
 
 UInt CoefFunctionGrid::GetVecSize() const {
@@ -271,7 +267,7 @@ void CoefFunctionGrid::DetermineResult(std::string inputID,UInt seqStep){
   //now we search for the appropriate result
   for(UInt i = 0;i<results.GetSize();i++){
 	  if( results[i]->resultType == solType_ ) {
-        resultInfo_ = results[i];
+      resultInfo_ = results[i];
 	    break;
 	  }
   }

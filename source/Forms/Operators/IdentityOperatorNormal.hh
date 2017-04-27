@@ -46,6 +46,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorNormal(const IdentityOperatorNormal & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorNormal * Clone(){
+      return new IdentityOperatorNormal(*this);
+    }
+
     virtual ~IdentityOperatorNormal(){
       return;
     }
@@ -176,6 +186,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorPiolaNormal(const IdentityOperatorPiolaNormal & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorPiolaNormal * Clone(){
+      return new IdentityOperatorPiolaNormal(*this);
+    }
+
     virtual ~IdentityOperatorPiolaNormal(){
       return;
     }
@@ -225,7 +245,7 @@ namespace CoupledField{
       }
     }
     //now apply piola tranform
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     Double jacDetInv = (1.0/lp.lpmVol->jacDet);
     lp.lpmVol->jac.Mult_Blas(bId,bIdPiola,false,false,jacDetInv,0.0);
 #else
@@ -277,7 +297,7 @@ namespace CoupledField{
     }
 
     //now apply piola tranform
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.lpmVol->jacDet);
           bId.Mult_Blas(lp.lpmVol->jac,bIdPiola,false,true,jacDetInv,0.0);
 #else

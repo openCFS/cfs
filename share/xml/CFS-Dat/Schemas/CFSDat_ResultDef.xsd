@@ -1,0 +1,58 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_PDEbasic.xsd" />
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for defining the results -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:complexType name="DT_ResultDef">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:choice minOccurs="1" maxOccurs="1">
+          <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence>
+                    <xsd:element name="region" type="DT_SingleRegionResultDescr" minOccurs="1"
+                      maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="allRegions" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_AllRegionResultDescr">
+                  <xsd:attribute name="onlyVolumes" type="DT_CFSBool" default="no"/>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+        <!--xsd:attribute name="defOn" type="DT_DefOn" use="required"/-->
+        <xsd:attribute name="resultName" type="xsd:string" use="required"/>
+        <xsd:attribute name="saveBegin" type="xsd:token" default="0"/>
+        <xsd:attribute name="saveEnd" type="xsd:token" default="2147483647"/>
+        <xsd:attribute name="saveInc" type="xsd:token" default="1"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

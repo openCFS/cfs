@@ -133,7 +133,7 @@
 
 
   <!-- ******************************************************************* -->
-  <!--   Definition of permeability nonlienarity -->
+  <!--   Definition of permeability nonlinearity -->
   <!-- ******************************************************************* -->
 
   <!-- Definition of permeability nonlinearity type -->
@@ -284,7 +284,7 @@
   <!-- Definition of coil result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeCoilResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="coilInductance"/>
+      <!--xsd:enumeration value="coilInductance"/--><!-- not implemented -->
       <xsd:enumeration value="coilCurrent"/>
       <xsd:enumeration value="coilInducedVoltage"/>
       <xsd:enumeration value="coilLinkedFlux"/>

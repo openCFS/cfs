@@ -14,7 +14,7 @@
 #include "FeSpaceConst.hh"
 
 
-#ifdef OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -168,21 +168,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     bcCounter_[IDBC] = 0;
     bcCounter_[CS] = 0;
     
+    lastElemNum_.Set(0);
+
     // get already integrationScheme from grid
     // In the future we could also create our own instance,
     // where only the maximum integration order defined by 
     // the user gets initialized
     intScheme_ = ptGrid_->GetIntegrationScheme();
-
-    UInt numOMPThreads = 1;
-
-#ifdef _OPENMP
-    numOMPThreads = omp_get_max_threads();
-#endif
-    lastElemNum_.Resize(numOMPThreads);
-    lastElemNum_.Init(0.0);
-    lastEqns_.Resize(numOMPThreads);
-    eqnNodes_.Resize(numOMPThreads);
   }
 
   FeSpace::~FeSpace(){
@@ -460,14 +452,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
     // Collect edge nodes
-    {
-      UInt numEdges = ptElem->edges.GetSize();
+    if(eNodes.size() >0){
+      UInt numEdges = ptElem->extended->edges.GetSize();
+
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
         // Check for permutation
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[perm[j]]);
@@ -475,7 +468,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[j]);
             }
@@ -485,21 +478,21 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
     // Collect face nodes
-    {
-      UInt numFaces = ptElem->faces.GetSize();
+    if(fNodes.size() >0){
+      UInt numFaces = ptElem->extended->faces.GetSize();
       if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[perm[j]]);
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -784,7 +777,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           ptFe->GetNumFncs( numFncs, BaseFE::EDGE );
           // loop over edges
           for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+            UInt edgeNum = std::abs(actEl->extended->edges[iEdge]);
             StdVector<UInt> & en = etn[edgeNum];
 
             // check if edge got already numbered
@@ -820,7 +813,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
           // loop over faces
           for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-            UInt faceNum = actEl->faces[iFace];
+            UInt faceNum = actEl->extended->faces[iFace];
             StdVector<UInt> & fn = ftn[faceNum];
             // check if face got already numbered
             if( numFncs.GetSize() > 0 ) {
@@ -1011,10 +1004,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
-      if(ptElem->edges.GetSize() != 1) {
+      if(ptElem->extended->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
       }
-      UInt edgeNr = std::abs(ptElem->edges[0]);
+      UInt edgeNr = std::abs(ptElem->extended->edges[0]);
       const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
      
       // loop until element with highest dimension and acceptable regionId 
@@ -1196,40 +1189,31 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
-      //StdVector<UInt> nodes;
-      //GetNodesOfElement(nodes, ent.GetElem());
-      //eqns.Resize( nodes.GetSize() * dofsPerUnknown );
-      //eqns.Init();
-      //for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-      //  for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-      //    eqns[(iNode*dofsPerUnknown) + iDof] =
-      //        nodeMap_[nodes[iNode]][iDof];
-      //  }
-      //}
+
       // check if last accessed element is the same as this one
-      UInt aThread = 0;
-#ifdef OPENMP
-      aThread = omp_get_thread_num();
-#endif
+
+      UInt& lastElemNum             = lastElemNum_.Mine();
+      StdVector<Integer>& lastEqns  = lastEqns_.Mine();
+      StdVector<UInt>& eqnNodes     = eqnNodes_.Mine();
 
       UInt elemNum = ent.GetElem()->elemNum;
-      if( elemNum == lastElemNum_[aThread] ) {
-        eqns = lastEqns_[aThread];
+      if( elemNum == lastElemNum ) {
+        eqns = lastEqns;
       } else {
-        GetNodesOfElement(eqnNodes_[aThread], ent.GetElem());
-        UInt nrNodes = eqnNodes_[aThread].GetSize();
+        GetNodesOfElement(eqnNodes, ent.GetElem());
+        UInt nrNodes = eqnNodes.GetSize();
         eqns.Resize( nrNodes * dofsPerUnknown );
         //eqns.Init();
         UInt pos = 0;
         for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
-          const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes_[aThread][iNode]];
+          const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes[iNode]];
           for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
             eqns[pos + iDof] = nodeEqns[iDof];
           }
           pos += dofsPerUnknown;
         }
-        lastElemNum_[aThread] = elemNum;
-        lastEqns_[aThread] = eqns;
+        lastElemNum = elemNum;
+        lastEqns = eqns;
       } // if: lastElemNum == elemNum
     } else {
       EXCEPTION("In FeSpace::GetEqns(): Supplied an iterator which is not supported by FeSpace");
@@ -1359,7 +1343,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt dofsPerUnknown = GetNumDofs();
 
       StdVector<UInt> nodes;
+      //this function uses hash maps... pretty dangerous for concurrent access
+#pragma omp critical (FeSpace_GetNodesOfElementCall)
+      {
       this->GetNodesOfElement(nodes,elem);
+      }
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1681,9 +1669,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // Print edge  information
       out << "Edges: ";
-      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+      for( UInt i=0, numEdges = ptElem->extended->edges.GetSize(); i < numEdges; ++i ) {
         StdVector<UInt> edgeNodes;
-        Integer edgeNum = ptElem->edges[i];
+        Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
         out << "E #" << edgeNum << " ("
                   << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
@@ -1692,9 +1680,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // Print face  information
       out << "Faces: ";
-      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+      for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
-        UInt faceNum = ptElem->faces[i];
+        UInt faceNum = ptElem->extended->faces[i];
         ptElem->GetFaceNodes( faceNum, faceNodes );
         out << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
@@ -1728,13 +1716,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             entNumbers.Resize( shape.numVertices );
           }
         } else if( type == BaseFE::EDGE ) {
-          entNumbers.Resize(ptElem->edges.GetSize());
-          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
-            entNumbers[i] = std::abs(ptElem->edges[i]);
+          entNumbers.Resize(ptElem->extended->edges.GetSize());
+          for( UInt i=0; i < ptElem->extended->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->extended->edges[i]);
         } else if( type == BaseFE::FACE ) {
-          entNumbers.Resize(ptElem->faces.GetSize());
-          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
-            entNumbers[i] = ptElem->faces[i];
+          entNumbers.Resize(ptElem->extended->faces.GetSize());
+          for( UInt i=0; i < ptElem->extended->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->extended->faces[i];
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)

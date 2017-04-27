@@ -358,8 +358,14 @@ namespace CoupledField
       return isMoving_;
     }
 
+    //! Does the Context needs a fully populated matrix
+    virtual bool NeedsFullMatrix(){
+      return isMoving_;
+    }
 
-  private:
+
+
+  protected:
 
     //flag indicating if we are moving
     bool isMoving_;
@@ -396,6 +402,13 @@ namespace CoupledField
        return ((result1_ == result2_) && (ent1_ == ent2_) &&
                (currentDirection_== BiLinearForm::MASTER_MASTER ||
                 currentDirection_== BiLinearForm::SLAVE_SLAVE ) );
+     }
+
+     //! Does the Context needs a fully populated matrix
+     virtual bool NeedsFullMatrix(){
+       bool direction = (currentDirection_ == BiLinearForm::MASTER_SLAVE ||
+                         currentDirection_ == BiLinearForm::SLAVE_MASTER);
+       return (direction && isMoving_) ;
      }
    protected:
      BiLinearForm::CouplingDirection currentDirection_;

@@ -21,6 +21,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 STRING(REPLACE ";" "," FLANN_HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY}")
 
+# set flann suffix
+string(REPLACE "lib" "" FLANN_LIB_SUFFIX "${LIB_SUFFIX}")
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
@@ -28,7 +30,7 @@ SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${flann_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DLIB_SUFFIX:STRING=${FLANN_LIB_SUFFIX}/${CFS_ARCH_STR}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
@@ -38,6 +40,9 @@ SET(CMAKE_ARGS
   -DUSE_OPENMP:BOOL=${USE_OPENMP}
   -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
   -DHDF5_C_LIBRARY:PATH=${FLANN_HDF5_LIBRARY}
+  -DHDF5_C_HL_LIBRARY:PATH=${HDF5_LT_LIBRARY}
+  -DHDF5_CXX_LIBRARY:PATH=${HDF5_CPP_LIBRARY}
+  -DHDF5_CXX_HL_LIBRARY:PATH=${HDF5_LT_CPP_LIBRARY}
   -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
 )
 
@@ -70,9 +75,10 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://distfiles.macports.org/flann/${FLANN_ZIP}"
-  "http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
-  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
+  "https://github.com/mariusmuja/flann/archive/${FLANN_VER}.zip"
+  #"http://distfiles.macports.org/flann/${FLANN_ZIP}"
+  #"http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
+  #"http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
   "${FLANN_URL}/${FLANN_ZIP}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_ZIP}")
@@ -96,6 +102,38 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 
 SET(ZIPTOCACHE "${flann_prefix}/flann-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# Determine paths of FLANN libraries.
+#-------------------------------------------------------------------------------
+IF(MINGW)
+  SET(FLANN_LIB flannstatic)
+  SET(FLANN_SHARED_LIB flann)
+ELSE(MINGW)
+  IF(UNIX)
+    SET(FLANN_LIB flann_cpp_s)
+    SET(FLANN_SHARED_LIB flann_cpp_s)
+  ELSE(UNIX)
+    SET(FLANN_LIB flannstatic)
+    SET(FLANN_SHARED_LIB flann)
+    IF(DEBUG)
+      SET(FLANN_LIB "${FLANN_LIB}d")
+      SET(FLANN_SHARED_LIB "${FLANN_SHARED_LIB}d")
+    ENDIF()
+  ENDIF(UNIX)
+ENDIF(MINGW)
+
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
+SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+IF(MINGW)
+  SET(FLANN_SHARED_LIBRARY "${FLANN_SHARED_LIBRARY}.a")
+ENDIF(MINGW)
+SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
+SET(FLANN_INCLUDE_DIR "${CFS_BINARY_DIR}/include/flann" CACHE PATH "flann include directory")
+MARK_AS_ADVANCED(FLANN_LIBRARY)
+MARK_AS_ADVANCED(FLANN_SHARED_LIBRARY)
+MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)
 
 #-------------------------------------------------------------------------------
 # The flann external project
@@ -132,6 +170,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       -DBUILD_MATLAB_BINDINGS=OFF
       -DBUILD_PYTHON_BINDINGS=OFF
       -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
+    BUILD_BYPRODUCTS ${FLANN_LIBRARY} ${FLANN_SHARED_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -166,6 +205,7 @@ SET(CFSDEPS
   flann
 )
 
+
 IF(0)
 
 IF(MINGW)
@@ -186,12 +226,11 @@ ELSE(MINGW)
 ENDIF(MINGW)
 
 SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
-SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-IF(MINGW)
-  SET(FLANN_SHARED_LIBRARY "${FLANN_SHARED_LIBRARY}.a")
-ENDIF(MINGW)
-SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
+
 SET(FLANN_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "flann include directory")
+
+MESSAGE("${FLANN_LIBRARY}")
+LIST(APPEND TARGET_LL ${FLANN_LIBRARY})
 
 MARK_AS_ADVANCED(FLANN_LIBRARY)
 MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)

@@ -58,6 +58,17 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "
 SET(ZIPTOCACHE "${mpfr_prefix}/mpfr-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
+#-----------------------------------------------------------------------------
+# Determine paths of MPFR libraries.
+#-----------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(MPFR_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}mpfr${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "MPFR library.")
+
+MARK_AS_ADVANCED(MPFR_LIBRARY)
+MARK_AS_ADVANCED(MPFR_INCLUDE_DIR)
+
 #-------------------------------------------------------------------------------
 # The mpfr external project
 #-------------------------------------------------------------------------------
@@ -78,6 +89,14 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
+  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # GMP does not use CMake but automake: We cannot use the CMake Ninja-generator,
+    # we use make instead to build GMP
+    find_program(MPFR_MAKE_PROGRAM make)
+  else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    set(MPFR_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build MPFR")
+  endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  MARK_AS_ADVANCED(MPFR_MAKE_PROGRAM)
   ExternalProject_Add(mpfr
     DEPENDS gmp
     PREFIX "${mpfr_prefix}"
@@ -86,8 +105,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL_MD5 ${MPFR_MD5}
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
-    BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
-    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
+    BUILD_COMMAND ${MPFR_MAKE_PROGRAM} -f Makefile
+    INSTALL_COMMAND ${MPFR_MAKE_PROGRAM} -f Makefile install
+    BUILD_BYPRODUCTS ${MPFR_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -130,16 +150,4 @@ SET(CFSDEPS
   mpfr
 )
 
-SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-----------------------------------------------------------------------------
-# Determine paths of MPFR libraries.
-#-----------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(MPFR_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}mpfr${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "MPFR library.")
-
-MARK_AS_ADVANCED(MPFR_LIBRARY)
-MARK_AS_ADVANCED(MPFR_INCLUDE_DIR)
-
+SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/cfsdeps/mpfr/src/mpfr")

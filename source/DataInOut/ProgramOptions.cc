@@ -24,6 +24,8 @@
 #include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 #include <def_use_openmp.hh>
+#include <def_disable_optimization.hh>
+
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -182,6 +184,9 @@ namespace CoupledField {
 
       ( "history,H",
         "history of revisions" )
+
+      ( "numThreads,t", po::value<UInt>()->default_value(1),
+        "number of threads used in CFS run. Default 1." )
 
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
@@ -522,6 +527,19 @@ namespace CoupledField {
     return varMap_.count("quiet") > 0;
   }
   
+  UInt ProgramOptions::GetNumThreads() const
+  {
+#ifdef USE_OPENMP
+    if( varMap_.count( "numThreads") != 0 ) {
+      return varMap_["numThreads"].as<UInt>();
+    }else{
+      return 1;
+    }
+#else
+    return 1;
+#endif
+  }
+
   void ProgramOptions::PrintHelp( std::ostream& out )
   {
     out << helpMsg_;
@@ -660,6 +678,16 @@ namespace CoupledField {
     out << "USE_OPENMP:            "
         << fg_blue  << "NO" << fg_reset << endl;
 #endif
+
+#ifdef DISABLE_OPTIMIZATION
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "YES" << fg_reset << endl;
+#else
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+
 
 #ifdef USE_ARPACK    
     out << "USE_ARPACK:            "
@@ -1043,7 +1071,11 @@ namespace CoupledField {
         << endl
         << "15.11, Back To The Future" << endl
         << "  Precompiled CFSDEPS are back and eamc080 is a new mirror server for CFSDEPS." << endl
-        << "  Tests now are able to compare info.xml files." << endl;
+        << "  Tests now are able to compare info.xml files." << endl
+        << endl
+        << "16.1, Concurrent Monorail" << endl
+        << "  Starting point of making classes thread safe in preparation to parallelize assembly loop." << endl
+        << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
@@ -1064,7 +1096,8 @@ namespace CoupledField {
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
           << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
-          << " as " << CMAKE_BUILD_TYPE << endl;
+          << " as " << CMAKE_BUILD_TYPE << endl
+          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run" << endl;
       out << "============================================================"
           << "==========="
           << endl << endl;

@@ -49,6 +49,24 @@ public:
                bool coordUpdate = false,
                bool fullEvaluation = true);
 
+  //! Copy constructor
+  BUIntegrator(const BUIntegrator& right )
+  :  LinearForm(right),
+     fullEvaluation_(right.fullEvaluation_)
+    {
+    this->bOperator_ = right.bOperator_->Clone();
+    this->factor_ = right.factor_;
+    this->rhsCoefs_ = right.rhsCoefs_;
+    this->volRegions_ = right.volRegions_;
+    this->Bdim_ = right.Bdim_;
+  }
+
+  //! \copydoc LinearForm::Clone
+  virtual BUIntegrator* Clone(){
+    return new BUIntegrator( *this );
+  }
+
+
   virtual ~BUIntegrator(){
 
   }

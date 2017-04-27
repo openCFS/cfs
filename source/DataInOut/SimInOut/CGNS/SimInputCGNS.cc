@@ -105,6 +105,8 @@ namespace CoupledField{
     cg_base_read(fn,1,firstBaseName , &dim_ , &physDim_ );
     cg_zone_type(fn,1,1,&zoneType);
 
+//    std::cout << "\n Name: " << firstBaseName << "   readDIM: " <<
+//    		     dim_ << "  PhysDIM: " << physDim_ << std::endl;
     switch(zoneType)
     {
     case ZoneTypeNull:
@@ -379,7 +381,6 @@ namespace CoupledField{
       EXCEPTION("Physical grid dimension " << dim << " does not match " <<
                 "number of coordinate arrays: " << ncoords); 
     }
-    dim_ = dim;
 
     //==================================================================
     // READ IN COORDINATES
@@ -547,6 +548,9 @@ namespace CoupledField{
   {
     regionId = -2;
     UInt elemDim = Elem::shapes[feType].dim;
+
+//    std::cout << "\nDIM: " << dim_ << "  elemDim: " << elemDim
+//    		  << "   sectionName: " << sectionName << std::endl;
 
     switch(elemDim) 
     {

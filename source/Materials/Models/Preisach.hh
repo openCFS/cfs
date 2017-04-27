@@ -33,7 +33,7 @@ namespace CoupledField {
 
     //! returns the number of stored minima and maxima
     UInt getStringLength( Integer idxElem ) {
-      return  StringLenght_[ idxElem];
+      return  StringLength_[ idxElem];
     };
 
     //! updates the list of minima and maxima due to new input
@@ -67,7 +67,7 @@ namespace CoupledField {
     Vector<Double>* strings_; //! irreduceable minima and maxima
     Vector<Double>* helpStrings_; //! help array for string_
 
-    Vector<UInt> StringLenght_; //! number of irreduceable minima and maxima
+    Vector<UInt> StringLength_; //! number of irreduceable minima and maxima
     UInt maxStringLength_; //! maximum allowd length for 
 
     Matrix<Double> preisachWeights_; //! presach weight function

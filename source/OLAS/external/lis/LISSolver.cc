@@ -139,7 +139,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   if(stype == BaseMatrix::SPARSE_SYM)
   {
     // TODO first validate and second, as we anyway work with A0_ we can convert the matrix A0_ only
-    EXCEPTION("LIS solver cannot yet handle SCRS matrices.");
+    EXCEPTION("LIS solver cannot yet handle SCRS matrices. Please set sparseNonSym as storage type");
   }
   if(etype == BaseMatrix::DOUBLE)
   {
@@ -165,6 +165,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     // Create RHS vector only the first time, assuming that dimensions will not change
     if(firstSetup_ ){//|| b_->n != dim){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      lis_vector_set_all(0.0, b_);
     }
     ownMatrixA_ = false;
   }
@@ -218,11 +219,13 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     err = lis_matrix_assemble(A_); CHKERR(err);
     if(firstSetup_ ){//|| b_->n != dim){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      lis_vector_set_all(0.0,b_);
     }
     ownMatrixA_ = true;
   }
   if(firstSetup_){
     err = lis_vector_duplicate(b_,&x_); CHKERR(err);
+    lis_vector_set_all(0.0,b_);
   }
   if(resetXZero_ || firstSetup_){
     lis_vector_set_all(0.0,x_);
@@ -242,6 +245,8 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     CreateConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
+  } else {
+    err = lis_precon_destroy(precond_);CHKERR(err);
   }
   solver_->A = A0_;
 

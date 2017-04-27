@@ -1750,7 +1750,9 @@ hsize_t H5IO::maxChunkSize_= 100;
       definedOn = 4;
       break;
     case ResultInfo::SURF_ELEM:
-      definedOn = 5;
+    	//currently our plug-in needs also for surface elements
+    	//the value 4!!!!
+      definedOn = 4;
       break;
       // PFEM is not really defined anymore
 //    case ResultInfo::PFEM:
