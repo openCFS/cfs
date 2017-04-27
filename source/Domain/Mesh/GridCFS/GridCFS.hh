@@ -631,7 +631,7 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > mapNodeToElems_;
 
     //! Flag to ensure that mapNodeToElems_ is only set up once
-    bool mappedNodeToElems_;
+    bool mappedNodeToElems_ = false;
     //@}
   
     //! Vector containing all faces 

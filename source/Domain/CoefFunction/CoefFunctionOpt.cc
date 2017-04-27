@@ -16,12 +16,11 @@ DEFINE_LOG(coef, "coef")
 
 CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde) : CoefFunction()
 {
-  // this type of coefficient is always constant
-  dependType_ = GENERAL;
   isAnalytic_ = false;
   isComplex_ = false;
   supportDerivative_ = false;
   dimType_ = orgMat->GetDimType();
+  dependType_ = SPACE;
   this->direction = DesignElement::NO_DERIVATIVE;
   this->design  = design;
   this->orgMat  = orgMat;
@@ -184,7 +183,7 @@ void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
     break;
   }
 
-  LOG_DBG3(coef) << "CFO:GV el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << vec;
+  LOG_DBG3(coef) << "CFO:GV node=" << lpm.lp.number  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << vec;
 
 }
 

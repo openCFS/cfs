@@ -2818,7 +2818,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     LOG_DBG3(em) << "CSTAN node=" << node << " u=" << stateSol[0];
-    assert(stateSol[0] >= 0);
+    assert(stateSol[0] > -1e15);
     assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal));
     assert(factor > 0);
 
