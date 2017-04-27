@@ -10,13 +10,9 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
 
     name_ = "SingleEntryBiLinInt";
     numDofs_ = numDofs;
-    
-    // check, if we have a constant expression coefficient function
-    if((val->GetDependency() != CoefFunction::CONSTANT) && (val->GetDependency() != CoefFunction::TIMEFREQ)) {
-      EXCEPTION("SingleEntryBiLinInt only works with space independent coefficients");
-    }
+    // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
+    // the check was removed. It came down to 2011 from andi hauk.
     val_ = val;
-
     isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
   }
 
