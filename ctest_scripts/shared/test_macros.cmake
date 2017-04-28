@@ -534,6 +534,16 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{LANG} "C")
     SET(ENV{LANGUAGE} "C")
 
+  elseif(${COMPILER_TYPE} STREQUAL "CLANG")
+    SET(ENV{CC} "clang")
+    SET(ENV{CXX} "clang++")
+    SET(ENV{FC} "gfortran")
+    SET(ENV{LC_MESSAGES} "C")
+    SET(ENV{LC_ALL} "C")
+    SET(ENV{LANG} "C")
+    SET(ENV{LANGUAGE} "C")
+
+
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
     if(NOT INTEL_COMPILER_PATH)
@@ -587,11 +597,10 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{LANG} "C")
     SET(ENV{LANGUAGE} "C")
 
-  else(${COMPILER_TYPE} STREQUAL "GCC")
+  else()
+    message("can only set compiler environment for GCC, GCC-6, CLANG or ICC, not for ${COMPILER}!")
+  endif()
 
-    message("can only set compiler environment for GCC or ICC, not for ${COMPILER}!")
-
-  endif(${COMPILER_TYPE} STREQUAL "GCC")
   IDENTIFY_COMPILER()
 endmacro()
 
