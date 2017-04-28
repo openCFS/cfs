@@ -394,18 +394,11 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
 
   std::vector<double> lp_a, lp_w, lp_work;
 
-  int lp_n;
+  // throwing otherwise "Not a valid Voigt stress/strain tensor for eigenvalue calculation"
+  // is expensive as exception throwing has a slight overhead
+  assert(solVec.GetSize() == 3 || solVec.GetSize() == 6);
 
-  if (solVec.GetSize() == 3) {
-    lp_n = 2;
-  }
-
-  else if (solVec.GetSize() == 6) {
-	lp_n = 3;
-  }
-  else {
-	EXCEPTION("Not a valid Voigt stress/strain tensor for eigenvalue calculation")
-  }
+  int lp_n = solVec.GetSize() == 3 ? 2 : 3;
 
   char lp_jobz = 'V'; //Documentation in LAPACK: dsyev
   char lp_uplo = 'L';
@@ -414,6 +407,8 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   int lp_info;
   int lp_lwork;
 
+  assert(lp_n == 2 || lp_n == 3);
+
   if (lp_n == 2){                             //2D-case
     lp_lwork = 68;                            //68 is the optimum value for a 2x2 matrix
     lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
@@ -421,7 +416,7 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
     lp_a.push_back(solVec.GetDoubleEntry(2));
     lp_a.push_back(solVec.GetDoubleEntry(1));
   }
-  else if (lp_n == 3){                        //3D-case
+  else {                                      //3D-case
     lp_lwork = 102;                           //102 is the optimum value for a 3x3 matrix
     lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
     lp_a.push_back(solVec.GetDoubleEntry(5)); //style in FORTRAN
@@ -457,7 +452,7 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
 
 }
 #else
-EXCEPTION("Compile with USE_LAPACK = ON");
+  EXCEPTION("Compile with USE_LAPACK = ON");
 #endif
 
 std::string CoefFunctionEigen::ToString() const {
