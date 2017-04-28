@@ -21,7 +21,7 @@ ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
-# don't delete!!
+# additionally we create and remove the directories in the ctest files
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 MESSAGE("\n---------------------------------------------------")
