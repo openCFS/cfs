@@ -11,6 +11,7 @@ SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
+
 IF(SITE_DIR MATCHES "trunk")
   SET(CTEST_BUILD_NAME "Update Testsuite trunk")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk_cfs-test")
@@ -22,7 +23,7 @@ ENDIF()
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
 # don't delete!!
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 
 MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
