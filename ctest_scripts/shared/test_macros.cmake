@@ -35,37 +35,6 @@ MACRO(SET_GLOBAL_VARS)
   SET(NIGHTLY_ARCHIVES_DIR "/opt/pckg/cfs_nightly/archives")
 ENDMACRO()
 
-# This INIT_TEST is specific for TU-Wien with ubunut-14 an SL7 tests
-# check if you can provide the site_specific_vars.cmake file!!
-macro(INIT_TEST)
-  # this sets the variables
-  #   NIGHTLY_TESTSUITE_DIR
-  #   NIGHTLY_CACHE_DIR
-  #   NIGHTLY_SOURCE_DIR
-  #   NIGHTLY_BUILD_DIR
-  include("${CMAKE_CURRENT_LIST_DIR}/site_specific_vars.cmake")
-
-  # Set source & binary directories on the machine
-  # We take the name of this file and append it to NIGHTLY_BUILD_DIR
-  SET(CTEST_SOURCE_DIRECTORY "${NIGHTLY_SOURCE_DIR}")
-  get_filename_component(FNAME "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
-  set(CTEST_BINARY_DIRECTORY "${NIGHTLY_BUILD_DIR}/${FNAME}")
-
-  # Identify distro.
-  IDENTIFY_DISTRO()
-  # empty binary directory
-  #ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY}) # this fails if there is no "CMakeLists.txt"
-  file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
-  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
-
-  # write ctest config
-  WRITE_CTEST_CONFIG()
-
-  # set ctest & cmake commands to the executables corresponding to the one used to run this script.
-  SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-  SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
-endmacro()
-
 MACRO(SET_SITE_SPECIFIC_VARS)
 
   # =========================================================================

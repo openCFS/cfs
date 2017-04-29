@@ -3,8 +3,8 @@ Nightly builds & tests on test-ubuntu14
 
 Gerneral Layout
 ---------------
-Varaibles common to all tests are set in `site_specific_vars.cmake` which is incuded by every `*.ctest` file.
-Stuff common for all tests is defined in `test_macros.cmake`.
+Varaibles common to all tests are set in `init_test.cmake` which is incuded by every `*.ctest` file.
+Stuff common for all tests should be defined in `ctest_scripts/shared/test_macros.cmake`.
 The deploy is done by `deploy_draco.cmake`, which is included from `*_deploy.cmake`.
 
 Workfow for Testing
