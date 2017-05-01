@@ -14,7 +14,7 @@ include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 SET_GLOBAL_VARS()
 
 IDENTIFY_DISTRO()
-# empty binary directory
+# empty binary directory manually
 file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
 file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
@@ -57,5 +57,8 @@ SET(CTEST_INITIAL_CACHE
    USE_OPENMP:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${BUILDNAME}")
+
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
 DO_TESTING()
