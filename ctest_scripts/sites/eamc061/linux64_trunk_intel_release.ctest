@@ -61,4 +61,7 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
+
 DO_TESTING()

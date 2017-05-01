@@ -23,6 +23,7 @@ SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "RELEASE")
 SET(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+message("orig CTEST_SITE=${CTEST_SITE}")
 set(CTEST_SITE "${HOSTNAME}")
 
 # will generate CTestConfig.cmake using our sites variant
@@ -55,5 +56,8 @@ SET(CTEST_INITIAL_CACHE
    USE_ILUPACK:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
+
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
 DO_TESTING()

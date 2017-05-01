@@ -1,5 +1,7 @@
 # update the shared_opt testsuite prior to all tests
 
+message("ssi: org CTEST_SITE=${CTEST_SITE}")
+message("ssi: HOSTNAME=${HOSTNAME}")
 set(CTEST_SITE "eamc061")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
@@ -22,6 +24,7 @@ ENDIF()
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
 # additionally we create and remove the directories in the ctest files
+# note that originally this was false, whyever?!
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 MESSAGE("\n---------------------------------------------------")
