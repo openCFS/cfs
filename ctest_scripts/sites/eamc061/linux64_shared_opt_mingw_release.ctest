@@ -1,62 +1,36 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest -S <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
-#-----------------------------------------------------------------------------
-# Set source and binary directories on the machine
-#-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_mingw_release")
 
+include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
-#-----------------------------------------------------------------------------
-# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
-#-----------------------------------------------------------------------------
-INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
 
+IDENTIFY_DISTRO()
+# empty binary directory
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
-# the compilers are set in the toolchain
-SET(ENV{LC_MESSAGES} "C")
-SET(ENV{LC_ALL} "C")
-SET(ENV{LANG} "C")
-SET(ENV{LANGUAGE} "C")
-
-
-# create build/tmp directory
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
-
-
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
-  ARGS
-  OUTPUT_VARIABLE DISTRO_OUT
-  RETURN_VALUE RETVAL)
-
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
-
-INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+# the crosscompiler is set via cmake
 
 SET(BUILDTYPE "RELEASE")
-# too difficult to get the version for the crosscompiler beforehand. The scripts try 
-# to compile an example which failes. So udate here when you update mxe!!
-SET(BUILDNAME "shared_opt ${DIST} ${REV} MINGW_X86_64 GCC 6.3.0 ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} MINGW_X64_64 GCC 6.3.0 ${BUILDTYPE}")
+set(CTEST_SITE "${HOSTNAME}") 
 
-SITE_NAME(CFS_BUILD_HOST)
-STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
-LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-
-set(CTEST_SITE "${CFS_BUILD_HOST}")
-set(CTEST_BUILD_NAME "${BUILDNAME}")
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
 
 #-----------------------------------------------------------------------------
-# Start out with an empty binary directory.
-#-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
-
-#-----------------------------------------------------------------------------
-# This is the packaged mingw cross compiler from openSuse, check the wiki page!
+# Enter the following values into the initial cache
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
 #-----------------------------------------------------------------------------
 INIT_CACHE(CTEST_INITIAL_CACHE)
 SET(CTEST_INITIAL_CACHE
@@ -66,42 +40,25 @@ SET(CTEST_INITIAL_CACHE
    CMAKE_TOOLCHAIN_FILE:FILEPATH=${CTEST_SOURCE_DIRECTORY}/share/scripts/toolchain_cross_linux_mingw_w64_opensuse.cmake
    MKL_ROOT_DIR:PATH=/opt/pckg/mkl_win/composer_xe_2013
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
-   PYTHON_TESTS:BOOL=OFF
+   MATVIZ_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   CFSDAT:BOOL=OFF
+   USE_OPENMP:BOOL=ON
    USE_PARDISO:BOOL=ON
-   USE_CGAL:BOOL=OFF
+   USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
-   USE_FLANN:BOOL=OFF
+   USE_FLANN:BOOL=OFF   
+   USE_ENSIGHT:BOOL=OFF
+   USE_ILUPACK:BOOL=ON
+   USE_LIS:BOOL=ON
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
-   USE_PARDISO:BOOL=ON
-   USE_OPENMP:BOOL=ON
-   USE_ILUPACK:BOOL=OFF
-   BUILDNAME:STRING=${BUILDNAME}")
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
-message("Start dashboard...")
-# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-ctest_start(Nightly)
-
-message("  Update")
-find_program(CTEST_SVN_COMMAND NAMES svn)
-ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-
-message("  Configure")
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
-# some configurations require to repeat the same ctest_configure() command
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Build")
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
+DO_TESTING()

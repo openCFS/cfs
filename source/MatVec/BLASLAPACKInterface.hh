@@ -115,6 +115,7 @@ namespace CoupledField
                  int*);
     void zpbtrs( char*, int*, int*, int*, double*, int*, double*, int*,
                  int*);
+    void dsyev( char*, char*, int*, double*, int*, double*, double*, int*, int* );
 
     // ! To be continued ...
 

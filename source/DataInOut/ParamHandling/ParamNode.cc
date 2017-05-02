@@ -189,6 +189,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   PtrParamNode result;
   // make sure we have valid element and attribute names.
   string myName = ToValidLabel(name_raw);
+
   if (action == DEFAULT)
     action = defaultAction_;
 
@@ -500,9 +501,9 @@ bool ParamNode::As<bool>() const
   if(value_.type() == typeid(std::string))
   {
     std::string str = boost::any_cast<std::string>(value_);
-    if(str == "yes" || str == "true" || str == "on" || str == "enable")
+    if(str == "yes" || str == "true" || str == "on" || str == "enable" || str == "1")
       return true;
-    if(str == "no" || str == "false" || str == "off" || str == "disable")
+    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0")
       return false;
 
    EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");

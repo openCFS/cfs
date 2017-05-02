@@ -182,6 +182,7 @@ class MortarInterface : public BaseNcInterface {
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
+    bool mutualProjection_;
 
     //caching for Line intersection
     Vector<Double> c0_Line_, c1_Line_, d0_Line_, d1_Line_, tmp_Line_;
@@ -201,12 +202,28 @@ class MortarInterface : public BaseNcInterface {
     Vector<Double> temp1_, temp2_;
 
     bool isReset_;
+    
+    //if true, nc interface will be updated, but no mesh update will be done
+    //the mesh update will be done by iterative geometry updates (and there it will also be triggered)
+    bool useMeshSmoothing_;
 
     bool precomputeIntersectionCandiates_;
 
     std::vector<Grid::ElemElemMatch> intersectionCandiatesIdx_;
 
+    Vector<Double> translationVector_;
+
 #ifdef USE_CGAL
+    //! Calculates the intersection between two polygons using CGAL
+    //! \param p1 (in) first polygon to be intersected
+    //! \param p2 (in) second polygon to be intersected
+    //! \param r (out) resulting polygon
+    bool CutPolysCGAL(StdVector<Vector<Double> > &p1, StdVector<Vector<Double> > &p2,
+                      const bool coPlanarIface, StdVector<Vector<Double> > &r);
+
+    // caching for CutPolysCGAL
+    Matrix<Double> rMat_, rMatTrans_;
+    StdVector< Vector<Double> > p1Rot_, p2Rot_;
 
     void PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,const StdVector<SurfElem*>& slaveElems);
 

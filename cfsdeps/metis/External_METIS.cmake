@@ -80,6 +80,15 @@ SET(ZIPTOCACHE "${metis_prefix}/metis-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of METIS libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(METIS_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "METIS library.")
+MARK_AS_ADVANCED(METIS_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The metis external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -106,6 +115,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${METIS_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -141,14 +151,4 @@ SET(CFSDEPS
 )
 
 SET(METIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-------------------------------------------------------------------------------
-# Determine paths of METIS libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(METIS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "METIS library.")
-
 MARK_AS_ADVANCED(METIS_INCLUDE_DIR)
-MARK_AS_ADVANCED(METIS_LIBRARY)

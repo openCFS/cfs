@@ -1,0 +1,28 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for simple cartesian coordinates -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SimpleQuantity">
+    <xsd:attribute name="resultName" type="xsd:token"/>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_SimplePoint">
+    <xsd:attribute name="x" type="xsd:double"/>
+    <xsd:attribute name="y" type="xsd:double"/>
+    <xsd:attribute name="z" type="xsd:double"/>
+  </xsd:complexType>
+  
+</xsd:schema>

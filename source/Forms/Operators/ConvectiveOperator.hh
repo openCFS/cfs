@@ -49,6 +49,14 @@ namespace CoupledField{
       this->name_ = "ConvectiveOperator";
     }
 
+    ConvectiveOperator(const ConvectiveOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual ConvectiveOperator * Clone(){
+      return new ConvectiveOperator(*this);
+    }
+
     virtual ~ConvectiveOperator(){
 
     }
@@ -112,7 +120,7 @@ namespace CoupledField{
                                          BaseFE* ptFe ){
 
     //obtain external field
-	Vector<Double> myVec;
+    Vector<Double> myVec;
     this->coef_->GetVector(myVec,lp);
 
     //std::cout << "Velocity at IP" << std::endl << myVec << std::endl;
@@ -225,7 +233,15 @@ namespace CoupledField{
      public:
 
      ConvectiveOperatorPiola(){
-       this->name_ = "DivOperator";
+       this->name_ = "ConvectiveOperatorPiola";
+     }
+
+     ConvectiveOperatorPiola(const ConvectiveOperatorPiola & other)
+      : ConvectiveOperator<FE,D,D_DOF,TYPE>(other){
+     }
+
+     virtual ConvectiveOperatorPiola * Clone(){
+       return new ConvectiveOperatorPiola(*this);
      }
 
      virtual ~ConvectiveOperatorPiola(){
@@ -272,7 +288,7 @@ namespace CoupledField{
      //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
 
      if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        Double jacDetInv = (1.0/lp.lpmVol->jacDet);
        lp.lpmVol->jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -280,7 +296,7 @@ namespace CoupledField{
        bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
      }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        Double jacDetInv = (1.0/lp.jacDet);
        lp.jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -305,7 +321,7 @@ namespace CoupledField{
      //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
 
      if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        Double jacDetInv = (1.0/lp.lpmVol->jacDet);
        bMatInitial.Mult_Blas(lp.lpmVol->jac,bMat,false,true,jacDetInv,0.0);
 #else
@@ -315,7 +331,7 @@ namespace CoupledField{
        bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
      }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
        Double jacDetInv = (1.0/lp.jacDet);
        bMatInitial.Mult_Blas(lp.jac,bMat,false,true,jacDetInv,0.0);
 #else

@@ -46,6 +46,12 @@ namespace CoupledField
     //! Constructor (does nothing)
     BaseFE();
 
+    //! Copy constructor (does something)
+    BaseFE(const BaseFE & fe);
+
+    //! declare clone operation
+    virtual BaseFE* Clone()=0;
+
     //! Decstructor
     virtual ~BaseFE();
     
@@ -127,6 +133,12 @@ namespace CoupledField
       // provide default implementation for isotropic elements
       order.Resize( Elem::shapes[feType_].dim);
       order.Init( GetIsoOrder() );
+    }
+
+    //! Returns connect indices for a triangulated simplex
+    //! \return Vector of triangle/tet connectivities relative to the reference element 0-based
+    virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect){
+      Exception("Triangulation not available for the selected element type!");
     }
 
     //! Compute the coefficient and exponent matrix for an alternate desciption 

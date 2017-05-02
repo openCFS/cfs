@@ -42,6 +42,9 @@ namespace CoupledField {
 
     //! Return vector containing data
     virtual SingleVector* GetSingleVector() = 0 ;
+    
+    //! Clone the result object
+    virtual shared_ptr<BaseResult> Clone() = 0 ;
 
     /** Set all result values to the null value. Used, if one cannot compute */
     virtual void Init() = 0;
@@ -74,6 +77,9 @@ namespace CoupledField {
     /** Some results, like region results with a single scalar, get here the ParamNode
      * to write the data at the right position in info.xml */
     PtrParamNode infoNode_;
+    
+    //! Clones the member variables to the target BaseResult object
+    void CloneMembers(BaseResult* target);
 
   };
 
@@ -101,6 +107,9 @@ namespace CoupledField {
     //! Return specific data vector
     Vector<TYPE>& GetVector() {return values_; }
 
+    //! Clone the result object
+    shared_ptr<BaseResult> Clone();
+    
     /** Initialize data vector */
     void Init();
 

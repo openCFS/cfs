@@ -7,6 +7,8 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 
+#include "Utils/SyncAccess.hh"
+
 
 // Implementation of methods for the compressed row storage matrix class
 
@@ -940,7 +942,7 @@ namespace CoupledField {
       for ( UInt k = l; k < u; k++ ) {
         if ( colInd_[k] == j ) {
           found = true;
-          data_[k] += v;
+          SyncAccess<SYNC_DATA>::AddTo(data_[k],v);
           break;
         }
       }
@@ -948,7 +950,7 @@ namespace CoupledField {
     case LEX_DIAG_FIRST:
       if(colInd_[l] == j){ // the diagonal exists
         if(i == j){ // we want the diagonal
-          data_[j] += v;
+          SyncAccess<SYNC_DATA>::AddTo(data_[j],v);
           found = true;
           break;
         }else{
@@ -966,7 +968,7 @@ namespace CoupledField {
         }else if(colInd_[k] < j){
           l = k+1;
         }else{
-          data_[k] += v;
+	        SyncAccess<SYNC_DATA>::AddTo(data_[k],v);
           found = true;
           break;
         }
@@ -1059,7 +1061,7 @@ namespace CoupledField {
       for ( UInt k = l; k < u; k++ ) {
         if ( colInd_[k] == j ) {
           found = true;
-          data_[k] = v;
+          SyncAccess<SYNC_DATA>::Set(data_[k],v);
           break;
         }
       }
@@ -1067,7 +1069,7 @@ namespace CoupledField {
     case LEX_DIAG_FIRST:
       if(colInd_[l] == j){ // the diagonal exists
         if(i == j){ // we want the diagonal
-          data_[j] = v;
+          SyncAccess<SYNC_DATA>::Set(data_[j],v);
           found = true;
           break;
         }else{
@@ -1085,7 +1087,7 @@ namespace CoupledField {
         }else if(colInd_[k] < j){
           l = k+1;
         }else{
-          data_[k] = v;
+          SyncAccess<SYNC_DATA>::Set(data_[k],v);
           found = true;
           break;
         }

@@ -108,6 +108,17 @@ SET(ZIPTOCACHE "${cgal_prefix}/cgal-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of CGAL libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(CGAL_LIBRARY
+  "${LD}/libCGAL.a"
+  CACHE FILEPATH "CGAL library.")
+
+MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
+MARK_AS_ADVANCED(CGAL_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -145,7 +156,11 @@ ELSE()
 #      -DBoost_THREAD_LIBRARY_RELEASE:FILEPATH=${BOOST_THREAD_LIB_RELEASE}
 #      -DBoost_THREAD_LIBRARY_DEBUG:FILEPATH=${BOOST_THREAD_LIB_DEBUG}
       -DWITH_CGAL_Qt3:BOOL=OFF
+      -DWITH_CGAL_Qt3/CMakeLists.txt:BOOL=OFF
       -DWITH_CGAL_Qt4:BOOL=OFF
+      -DWITH_CGAL_Qt4/CMakeLists.txt:BOOL=OFF
+      -DWITH_CGAL_Core/CMakeLists.txt:BOOL=OFF
+      -DWITH_CGAL_ImageIO/CMakeLists.txt:BOOL=OFF
       -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
       -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARY}
       -DGMP_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
@@ -155,6 +170,7 @@ ELSE()
       -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
       -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
       -DWITH_MPFR:BOOL=ON
+    BUILD_BYPRODUCTS ${CGAL_LIBRARY}
   )
   
   #-------------------------------------------------------------------------------
@@ -189,15 +205,4 @@ SET(CFSDEPS
   cgal
 )
 
-SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
-
-#-------------------------------------------------------------------------------
-# Determine paths of CGAL libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(CGAL_LIBRARY
-  "${LD}/libCGAL.a"
-  CACHE FILEPATH "CGAL library.")
-
-MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
-MARK_AS_ADVANCED(CGAL_LIBRARY)
+SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/src/cgal/include" "${CFS_BINARY_DIR}/src/cgal-build/include"  "${CFS_BINARY_DIR}/src/cgal/include/CGAL")

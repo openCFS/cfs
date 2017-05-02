@@ -244,6 +244,10 @@ private:
     void CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
                       StdVector<Double>& weights );
 
+    //! Calculate gauss integration points for tetrahedras by applying 3D Duffy transformation to hexahedrals
+    void CalcIntTet( IntegMethod, UInt order,StdVector<LocPoint>& points,
+                      StdVector<Double>& weights );
+
     //! Fill initial set of integration points up to a given order.
     void FillInitialIntegPoints(UInt order);
 

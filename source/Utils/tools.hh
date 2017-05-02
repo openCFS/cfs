@@ -97,12 +97,14 @@ namespace CoupledField {
   
   //! Convert (ampl,phase) => real (strings)
   std::string AmplPhaseToReal( const std::string& val, 
-                               const std::string& phase );
+                               const std::string& phase,
+							   bool isInRad = false );
 
   //! Convert (ampl,phase) => imag (strings)
   std::string AmplPhaseToImag( const std::string& val, 
-                               const std::string& phase );
-  
+                               const std::string& phase,
+							   bool isInRad = false );
+
   // ------ vector versions -----
   //! Convert (ampl,phase) => (real,imag) (strings vectors)
   void AmplPhaseToRealImag( const StdVector<std::string>& val, 

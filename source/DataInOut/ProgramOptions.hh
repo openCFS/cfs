@@ -36,13 +36,13 @@ namespace CoupledField
     ProgramOptions( Integer argc,
                     const char **argv );
 
-    ~ProgramOptions();
+    virtual ~ProgramOptions();
 
     //! Gather information from commandline and environment
 
     //! This method triggers the reading of information from the command line
     //! and the environment.
-    void ParseData();
+    virtual void ParseData();
 
     // =======================================================================
     // QUERY METHODS FOR PARAMETERS
@@ -60,21 +60,21 @@ namespace CoupledField
     //! run, which may be something like e.g. plate3D. This name is used by
     //! CFS internally as basename for the generation of several (default)
     //! names for input and output files.
-    std::string GetSimName() const;
+    virtual std::string GetSimName() const;
 
     //! Return path to simulation files
 
     //! This method can be used to query the directory of the current,
     //! i.e. where the output files will be created.
-    fs::path GetSimPath() const;
-    std::string GetSimPathStr() const;
+    virtual fs::path GetSimPath() const;
+    virtual std::string GetSimPathStr() const;
 
     //! Return name of XML parameter file (including path)
 
     //! This method can be used to query the name of the parameter file in
     //! XML format that contains the steering parameters for the simulation.
-    fs::path GetParamFile() const;
-    std::string GetParamFileStr() const;
+    virtual fs::path GetParamFile() const;
+    virtual std::string GetParamFileStr() const;
 
     //! Return name of log configuration file
 
@@ -82,12 +82,12 @@ namespace CoupledField
     //! file, i.e. a xml file, which contains the module names, log levels
     //! and destination, where the log stream gets logged to. 
     //!  If no filename was provided an empty string is returned.
-    fs::path GetLogConfFile() const;
-    std::string GetLogConfFileStr() const;
+    virtual fs::path GetLogConfFile() const;
+    virtual std::string GetLogConfFileStr() const;
 
     /** Return the optional ersatz  material density file
      * @return "" if nothing given. */
-    std::string GetErsatzMaterialStr() const;
+    virtual std::string GetErsatzMaterialStr() const;
 
     //! Return path to XML schema file
 
@@ -99,15 +99,15 @@ namespace CoupledField
     //!   file itself. This must be called CFS.xsd!
     //! - This path is also used to locate the default XML-file that is
     //!   currently still needed by the XMLParamHandler.
-    fs::path GetSchemaPath() const;
-    std::string GetSchemaPathStr() const;
+    virtual fs::path GetSchemaPath() const;
+    virtual std::string GetSchemaPathStr() const;
 
     //! Return name of mesh file (including path)
 
     //! This method can be used to query the name of the mesh file containing
     //! the description of the FEM mesh for the simulation.
-    fs::path GetMeshFile() const;
-    std::string GetMeshFileStr() const;
+    virtual fs::path GetMeshFile() const;
+    virtual std::string GetMeshFileStr() const;
 
     //! Return printGrid flag
 
@@ -116,11 +116,11 @@ namespace CoupledField
     //! perform an actual simulation, but to only import the grid and
     //! re-export it to an output file in the format specified in the XML
     //! parameter file.
-    bool GetPrintGrid() const;
+    virtual bool GetPrintGrid() const;
 
     /** exports the grid to the info.xml file.
      * Might get really big!! */
-    bool DoExportGrid() const;
+    virtual bool DoExportGrid() const;
 
     /** shall a .map be created using StdPDE::CreateEquationMapFile() */
     bool DoEquationMapping() const;
@@ -129,7 +129,7 @@ namespace CoupledField
 
     //! This method can be used to query the status of the restart flag.
     //! If this flag is true the simulation restarts from an previous state.
-    bool GetRestart() const;
+    virtual bool GetRestart() const;
 
     //! Return writeSkeleton flag
 
@@ -137,7 +137,7 @@ namespace CoupledField
     //! As a convenience for the CFS++ user it is possible to let the
     //! executable write a skeleton XML parameter file that must then be
     //! filled out by the user for a subsequent simulation run.
-    bool GetWriteSkeleton() const;
+    virtual bool GetWriteSkeleton() const;
 
     //! Returns license path
 
@@ -147,14 +147,17 @@ namespace CoupledField
     //! If this flag is set now exception will be thrown, but a segmentation
     //! fault will be forced instead, which enables one to use a debugger
     //! to get a stack trace.
-    bool GetForceSegFault() const;
+    virtual bool GetForceSegFault() const;
     //@}
 
     /** Also more detailed info.xml output as with DoListMapping */
-    bool DoDetailedInfo() const;
+    virtual bool DoDetailedInfo() const;
 
     /** Is cfs invoked with the quite flag to compress console output to just a minimu. */
-    bool IsQuiet() const;
+    virtual bool IsQuiet() const;
+
+    /** Get number of threads for CFS supplied on the command line */
+    virtual UInt GetNumThreads() const;
 
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
@@ -163,10 +166,10 @@ namespace CoupledField
     //@{ \name Auxilliary methods for outputting information
 
     //! Print help information to command line
-    void PrintHelp( std::ostream &out );
+    virtual void PrintHelp( std::ostream &out );
 
     /** Write the command line options to the info.xml file */
-    void ToInfo(PtrParamNode in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 
@@ -177,7 +180,7 @@ namespace CoupledField
     static void GetHistoryString(std::ostream& out);
     
     /** This gives the head line of CFS++ printed to cout */
-    void GetHeaderString(std::ostream& out);
+    virtual void GetHeaderString(std::ostream& out);
     
     // @}
 
@@ -193,6 +196,7 @@ namespace CoupledField
 
     //@}
 
+ protected:
     // =======================================================================
     // INTERNAL DATA
     // =======================================================================

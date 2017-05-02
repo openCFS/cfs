@@ -31,6 +31,18 @@ namespace CoupledField {
                 BaseBOperator * gOp,
                 PtrCoefFct dData, MAT_DATA_TYPE factor,
                 bool coordUpdate = false );
+    //! Copy constructor
+    ICModesInt(const ICModesInt& right)
+      : BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
+      //here we would also need to create a new operator
+      this->gOperator_ = right.gOperator_->Clone();
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual ICModesInt* Clone(){
+      return new ICModesInt( *this );
+    }
+
 
     //! Destructor
     virtual ~ICModesInt(){

@@ -66,16 +66,16 @@ namespace CoupledField {
     void AdaptSystemMatrix( SBM_Matrix &sysMat );
 
     //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
-    void AddIDBCToRHS( SBM_Vector *rhs );
+    void AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC = false );
 
     //! @copydoc BaseIDBC_Handler::SetIDBC()
     void SetIDBC( UInt rowBlock, UInt rowNum, const T &val );
     
     //! @copydoc BaseIDBC_Handler::GetIDBC()
-    void GetIDBC( UInt rowBlock, UInt rowNum, T &val );
+    void GetIDBC( UInt rowBlock, UInt rowNum, T &val, bool deltaIDBC=false );
 
     //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
-    void SetDofsToIDBC( SBM_Vector *vec );
+    void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false );
 
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION and CLEARING
@@ -100,6 +100,8 @@ namespace CoupledField {
     //! @copydoc BaseIDBC_Handler::InitDirichletValues()
     void InitDirichletValues();
 
+    void SetOldDirichletValues();
+
     //@}
 
 
@@ -121,7 +123,7 @@ namespace CoupledField {
     }
 
     //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()
-    inline void RemoveIDBCFromRHS( SBM_Vector *rhs ) {
+    inline void RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC = false ) {
     }
 
     //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
@@ -185,6 +187,7 @@ namespace CoupledField {
 
     //! Array for storing inhomogeneous Dirichlet values
     SBM_Vector *dirichletValue_;
+    SBM_Vector *oldDirichletValue_;
 
     //! Value of the penalty term in the penalty approach
     Double penaltyTerm_;

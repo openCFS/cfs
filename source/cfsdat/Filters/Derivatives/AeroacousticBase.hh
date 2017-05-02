@@ -1,0 +1,77 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     AeroacousticBase.hh
+ *       \brief    <Description>
+ *
+ *       \date     Jan 7, 2017
+ *       \author   kroppert
+ */
+//================================================================================================
+
+#pragma once
+
+
+#include <Filters/MeshFilter.hh>
+#include "DataInOut/SimInput.hh"
+
+
+namespace CFSDat{
+
+class AeroacousticBase : public MeshFilter{
+
+public:
+
+  AeroacousticBase(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+
+  virtual ~AeroacousticBase();
+
+  virtual bool Run() = 0;
+
+
+
+protected:
+
+  virtual void PrepareCalculation() = 0;
+
+  virtual ResultIdList SetUpstreamResults() = 0;
+
+  virtual void AdaptFilterResults() = 0;
+
+
+
+  void OmegaVectorProductU(const Vector<Double>& inVecVel,
+                           const Vector<Double>& inVecOmega,
+                           Vector<Double>& retVec,
+                           const UInt& dim);
+
+
+  void ScalarProduct(Vector<Double>& retVec,
+                    const Vector<Double>& inVec1,
+                    const Vector<Double>& inVec2,
+                    const UInt& numEquPerEnt,
+                    const Double& scalarFactor);
+
+
+  void Node2Cell(Vector<Double>& returnVec,
+        const Vector<Double>& inVec,
+        const UInt& numEquPerEnt,
+        const StdVector<CF::UInt>& targetSource,
+        const StdVector<CF::UInt>& targetSourceIndex,
+        const UInt& numNN,
+        const UInt& maxNumTrgEntities,
+        const UInt& gridDim);
+
+
+  Vector<Double> ScalarToTwoD(const Vector<Double>& inVec);
+
+  Vector<Double> TwoDToScalar(const Vector<Double>& inVec);
+
+};
+
+
+
+}

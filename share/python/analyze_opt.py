@@ -2,7 +2,8 @@
 import argparse
 from optimization_tools import *
 from csv import excel
-
+from cfs_utils import dicts_to_gnuplot
+import collections
 
 def find_task(input):
   for file in input:
@@ -16,9 +17,26 @@ def find_task(input):
       continue
   assert(False)
     
-# process a file and inf args.info and not already recursice call the function for additional info output recursively
-# @param out an array which will contain strings in the info case, otherwise it might be None
+## conditionally extract an attribute from iteration[last()] and add it to the dictionary    
+def extract_float_attribute(dict, xml, attribute):    
+  query = '//iteration[last()]/@' + attribute
+  if has(xml, query):
+    dict[attribute] = float(xpath(xml, query))
 
+## conditionally extract band gap data    
+def extract_band_gap(dict, xml):
+  for l in range(1,20):
+    if has(xml, '//iteration[last()]/@bandgap_' + str(l) + '_' + str(l+1)):
+      lower = float(xpath(xml, '//iteration[last()]/@ev_' + str(l) + '_max'))
+      upper = float(xpath(xml, '//iteration[last()]/@ev_' + str(l+1) + '_min'))
+      dict['rel_gap'] = (upper-lower)/lower # gap by lower
+      dict['norm_gap'] = (upper-lower)/(.5 * (lower + upper)) # gap by center frequency
+      dict['ev_' + str(l) + '_max'] = lower
+      dict['ev_' + str(l+1) + '_min'] = upper
+      return                                   
+                                         
+# process a file and inf args.info and not already recursice call the function for additional info output recursively
+# @param out an array which will contain OrderedDict in the info case, otherwise it might be None
 def process_file(file, args, out, recursive):
   if not os.path.exists(file):
     print('error: file not found: ' + file)
@@ -52,6 +70,7 @@ def process_file(file, args, out, recursive):
 
   if process:
     # detect the order we have
+    dic = collections.OrderedDict()
     base = file[:-len('.info.xml')]
     level = ord(base[-1]) - ord('a') if base[-2] == '_' and base[-1] >= 'a' and base[-1] <= 'z' else -1
 
@@ -63,7 +82,16 @@ def process_file(file, args, out, recursive):
 
     # objective name to identify the value in 'iteration'. objective/@name added 22.2.2017 
     cost = xpath(xml, '//objective/@name') if has(xml,'//objective/@name') else xpath(xml, '//objective/@type')  
-    value = float(xpath(xml, '//iteration[last()]/@' + cost)) 
+    value = float(xpath(xml, '//iteration[last()]/@' + cost))
+    dic[cost] = value 
+    extract_band_gap(dic, xml)
+    extract_float_attribute(dic, xml, 'volume')
+    extract_float_attribute(dic, xml, 'youngsModulusE1')
+    
+    if has(xml, '//constraints/constraint[@type="curvature"][@design="profile"]/@bound_value'):
+      dic['curv_prof'] = float(xpath(xml, '//constraints/constraint[@type="curvature"][@design="profile"]/@bound_value'))
+    
+    dic['iter'] = iter
 
     if not recursive and args.bound is not None:
       task = xpath(xml, '//objective/@task')
@@ -92,20 +120,19 @@ def process_file(file, args, out, recursive):
       else:
         print(cmd)
     else:
-      if not args.no_recursive:
+      if args.recursive:
         if level == 0:
           process_file(base[:-2] + '.info.xml', args, out, recursive=True) # base is ..._a
         if level > 0:  
           process_file(base[:-1] + chr(ord('a') + level-1) + '.info.xml', args, out, recursive=True)
-      line = ('iter:' if not recursive else '  >>:') + '{:3}'.format(iter) + ' ' + cost + ': {:8.4f}'.format(value) + " issue: '" + msg[msg.find('- ')+2:] 
-      if args.show_density:
-        line += "' -> show_density.py " + file[:-9] + ".density.xml"
-      else:
-        line += "' problem: '" + file + "'"
-      
-      out.append(line)    
+          
+      dic['level'] = level    
+      dic['base'] = base
+      if args.recursive:
+        dic['issue'] = msg[msg.find('- ')+2:]       
+      out.append(dic)    
       if not recursive:
-        return (value, out)  
+        return out  
   
 parser = argparse.ArgumentParser(description="The purpose of this tool is to analyze succeeded and failed optimization and optionally restart them with the current .density.xml")
 parser.add_argument("input", nargs='*', help="info xml files (wildcards ok) to be ckecked for numerical aborts")
@@ -113,10 +140,11 @@ parser.add_argument('--restrict', help="optionally filter optimization results",
 parser.add_argument('--min_iter', help="minimal number of iterations such that we proceed", type=int, default = 0)
 parser.add_argument('--bound', help="only process results not below or upper the bound, depending on the objective tast", type=float)
 parser.add_argument('--verbose', help="additional information about skipped files", action='store_true')
-parser.add_argument('--no_recursive', help="skip printing information of forerunner results", action='store_true')
+parser.add_argument('--recursive', help="identify forerunner results", action='store_true')
 parser.add_argument('--show_density', help="offer show_density.py calls", action='store_true')
 parser.add_argument('--warmstart', help="generate warmstart calls for local run or RRZE HPC qsub submission. Reads info.xml for exec, mesh, ...", choices=["local", "qsub"])
 parser.add_argument('--failsafe', help="continue on read error with next file", action='store_true')
+parser.add_argument('--sort', help="how to sort the results (header label)", required=False)
 args = parser.parse_args()
 
 if len(args.input) == 0:
@@ -139,10 +167,22 @@ for file in args.input:
     raw.append(res)
    
 if not args.warmstart:
-  list = sorted(raw, key=lambda x: x[0], reverse=False if find_task(args.input) == "maxizie" else True)   
-  for entry in list:
-    if not args.no_recursive and len(entry[1]) > 1:
-      print() # empty line to separare blocks
-    for line in entry[1]:
-      print(line)  
+
+  if not args.recursive:
+    # raw is a list of lists with one item each
+    list = [item[0] for item in raw]    
+
+    if args.sort:
+      list = sorted(list, key=lambda k: k[args.sort])
+
+    dicts_to_gnuplot(list)
+  else:
+    for entry in raw:
+      dicts_to_gnuplot(entry)
+      print()
+      
+      #if len(entry[1]) > 1:
+      #  print() # empty line to separare blocks
+      #for line in entry[1]:
+      #  print(line)  
   
