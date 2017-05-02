@@ -28,10 +28,11 @@ namespace CoupledField{
   BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
   BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
-  {
+    {
       name_ = "BDBInt";
       isSymmetric_ = true;
-      assert(dData->GetDimType() == CoefFunction::TENSOR);
+
+      //assert(dData->GetDimType() == CoefFunction::TENSOR);
 #ifndef NDEBUG
       if(dData->GetDimType() != CoefFunction::TENSOR){
         Exception("BDB integrator expects the coefficient function to be tensorial");
@@ -40,6 +41,7 @@ namespace CoupledField{
       bOperator_ = bOp;
       dData_ = dData;
       factor_ = factor;
+      isSolDependent_ = dData->GetDependency() == CoefFunction::SOLUTION;
   }
 
   //! Destructor
@@ -56,7 +58,7 @@ namespace CoupledField{
   {
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-    MAT_DATA_TYPE fac = 0.0;
+    MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
@@ -99,7 +101,6 @@ namespace CoupledField{
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
       assert(dMat_.IsSymmetric(1e-8) > 0);
-      
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
@@ -108,9 +109,7 @@ namespace CoupledField{
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
-#define USE_BLAS_VERSION
-
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
       dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_
       bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
 #else
@@ -324,7 +323,6 @@ namespace CoupledField{
     kernel.Resize( nrFncs * bOperator_->GetDimDof());
     kernel.Init();
 
-#define USE_BLAS_VERSION
 
     // Call the CalcBMat()-method
     bOperator_->CalcOpMat( bMat_, lpm, ptFe);
@@ -335,12 +333,15 @@ namespace CoupledField{
     dData_->GetTensor(dMat_,lpm);
     dbMat_.Resize(dMat_.GetNumRows(),nrFncs* bOperator_->GetDimDof());
 
-#ifdef USE_BLAS_VERSION
+    // this calculates K = B^* C B with B^* is conjugate complex. The effect is only seen form Bloch mode analysis
+    // where we have a complex B matrix.
+
+#ifdef NDEBUG
     dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
     bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0, true); // conjugate complex
 #else
-    dbMat = (dMat * bMat) * fac;
-    kernel += TransposeConjugate(bMat) * dbMat * factor_;
+    dbMat_ = (dMat_ * bMat_);
+    kernel += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
   }

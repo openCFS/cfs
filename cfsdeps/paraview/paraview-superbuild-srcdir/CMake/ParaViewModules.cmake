@@ -11,6 +11,56 @@ macro(add_revision name)
 endmacro()
 
 #------------------------------------------------------------------------------
+# Use this macro instead of the add_revision() macro when adding
+# a source repo to add advanced options for the user to change the default
+# selections. Currently advanced options are added for
+# CVS_REPOSITORY, CVS_MODULE, CVS_TAG, SVN_REVISION, SVN_REVISION,
+# GIT_REPOSITORY, GIT_TAG, HG_REPOSITORY, HG_TAG, URL, URL_HASH, and URL_MD5.
+#------------------------------------------------------------------------------
+function(add_customizable_revision name)
+  # ExternalProject_Add arguments
+  #[CVS_REPOSITORY cvsroot]    # CVSROOT of CVS repository
+  #[CVS_MODULE mod]            # Module to checkout from CVS repo
+  #[CVS_TAG tag]               # Tag to checkout from CVS repo
+  #[SVN_REPOSITORY url]        # URL of Subversion repo
+  #[SVN_REVISION rev]          # Revision to checkout from Subversion repo
+  #[SVN_USERNAME john ]        # Username for Subversion checkout and update
+  #[SVN_PASSWORD doe ]         # Password for Subversion checkout and update
+  #[SVN_TRUST_CERT 1 ]         # Trust the Subversion server site certificate
+  #[GIT_REPOSITORY url]        # URL of git repo
+  #[GIT_TAG tag]               # Git branch name, commit id or tag
+  #[GIT_SUBMODULES modules...] # Git submodules that shall be updated, all if empty
+  #[HG_REPOSITORY url]         # URL of mercurial repo
+  #[HG_TAG tag]                # Mercurial branch name, commit id or tag
+  #[URL /.../src.tgz]          # Full path or URL of source
+  #[URL_HASH ALGO=value]       # Hash of file at URL
+  #[URL_MD5 md5]               # Equivalent to URL_HASH MD5=md5
+  #[SOURCE_DIR]                # Source dir to be used for build
+
+  set (args
+    CVS_REPOSITORY CVS_MODULE CVS_TAG
+    SVN_REVISION SVN_REVISION
+    GIT_REPOSITORY GIT_TAG
+    HG_REPOSITORY HG_TAG
+    URL URL_HASH URL_MD5
+    SOURCE_DIR)
+  cmake_parse_arguments(_args "" "${args}" "" ${ARGN})
+  set (CUSTOMIZED_ARGN)
+  string(TOUPPER "${name}" name_UPPER)
+  foreach (key IN LISTS args)
+    if (_args_${key})
+      set (option_name "${name_UPPER}_${key}")
+      set (option_default "${_args_${key}}")
+      set(${option_name} "${option_default}" CACHE STRING "${key} for project '${name}'")
+      mark_as_advanced(${option_name})
+      list(APPEND CUSTOMIZED_ARGN ${key} ${${option_name}})
+    endif()
+  endforeach()
+
+  set (${name}_revision ${CUSTOMIZED_ARGN} ${_args_UNPARSED_ARGUMENTS} PARENT_SCOPE)
+endfunction()
+
+#------------------------------------------------------------------------------
 macro(add_external_project _name)
   project_check_name(${_name})
   set(cm-project ${_name})
@@ -112,6 +162,64 @@ macro(add_external_project_or_use_system _name)
     option(USE_SYSTEM_${_name} "Use system ${_name}" OFF)
     set_property(CACHE USE_SYSTEM_${_name} PROPERTY TYPE INTERNAL)
   endif()
+endmacro()
+
+#------------------------------------------------------------------------------
+# similar to add_external_project, except it disables the project's build as a
+# standalone element of the superbuild and, instead, sets paraview's
+# PARAVIEW_EXTERNAL_PLUGIN_DIRS to point to the directory, resulting in the
+# project being built within ParaView.
+macro(add_external_pv_plugin _name)
+
+  # strip out ParaView dependency, since it is automatic and the flag would
+  # otherwise break the build order. Avoid using REMOVE, since the element
+  # 'paraview' may be used for other arguments (like branch names).
+  # Additionally, apply a user-defined plugin name (useful for ENABLE_ flags,
+  # where the provided _name is not the same as the plugin.cmake name), if it
+  # is provided.
+  set (arguments)
+  set (filter FALSE)
+  set (reject FALSE)
+  set (has_plugin_name FALSE)
+  set (plugin_name)
+  set (project_arguments "${ARGN}") #need quotes to keep empty list items
+  foreach(arg IN LISTS project_arguments)
+    if (has_plugin_name)
+      set (plugin_name ${arg})
+      set (has_plugin_name FALSE)
+    elseif (arg STREQUAL "PLUGIN_NAME")
+      set (has_plugin_name TRUE)
+    elseif (arg STREQUAL "DEPENDS")
+      set (filter TRUE)
+      list(APPEND arguments "${arg}")
+    elseif (arg MATCHES "${_ep_keywords_ExternalProject_Add}")
+      set (filter FALSE)
+      list(APPEND arguments "${arg}")
+    elseif (NOT (filter AND arg STREQUAL "paraview"))
+      list(APPEND arguments "${arg}")
+    endif()
+  endforeach()
+
+  if (NOT plugin_name)
+    set (plugin_name ${_name})
+  endif()
+
+  # add the project, but null out any configure, build and install instructions
+  # (this will be handled by ParaView's build)
+  add_external_project(${_name}
+    ${arguments}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND "")
+
+  set_property(GLOBAL APPEND PROPERTY pv_plugins "${_name}")
+
+  if (NOT plugin_name)
+    set (plugin_name ${_name})
+  endif()
+
+  add_extra_cmake_args("-DPARAVIEW_BUILD_PLUGIN_${plugin_name}:BOOL=ON")
+
 endmacro()
 
 #------------------------------------------------------------------------------

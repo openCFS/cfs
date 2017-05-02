@@ -981,8 +981,6 @@
               <xsd:attribute name="irestart" type="xsd:int" default="2"/>
             </xsd:complexType>
           </xsd:element>
-
-
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>

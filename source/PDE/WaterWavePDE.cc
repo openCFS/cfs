@@ -32,6 +32,7 @@
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
@@ -73,6 +74,13 @@ namespace CoupledField{
     if( subType == "surfaceGravityWave")
       isSurfaceGravityWave_ = true;
 
+    // compute surface wave velocity
+    g_ = CoefFunction::Generate( mp_, Global::REAL, "9.81");
+    PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
+    //      PtrCoefFct gravityC0 =
+    Cdeep_ = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, g_, omega, CoefXpr::OP_DIV));
+    PtrCoefFct omega2 = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_,omega,omega,CoefXpr::OP_MULT));
+    kdeep_ = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, omega2 , g_, CoefXpr::OP_DIV)); // omega^2/g
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> >
@@ -96,19 +104,6 @@ namespace CoupledField{
     if(this->analysistype_ == TRANSIENT && isTimeDomPML_){
       //now define the additional uknowns
       EXCEPTION("Trasient PML not implemented yet!");
-
-//      if(dim_==3 && !this->isAPML_){
-//        PtrParamNode scalarpml = infoNode->Get("TransientPMLScalarAuxVar");
-//        crSpaces[WATER_PMLAUXSCALAR] =
-//            FeSpace::CreateInstance(myParam_,scalarpml,FeSpace::H1, ptGrid_);
-//        crSpaces[WATER_PMLAUXSCALAR]->Init(solStrat_);
-//      }
-//
-//      PtrParamNode vectorPML = infoNode->Get("TransientPMLVectorAuxVar");
-//      crSpaces[WATER_PMLAUXVEC] =
-//          FeSpace::CreateInstance(myParam_,vectorPML,FeSpace::H1, ptGrid_);
-//      crSpaces[WATER_PMLAUXVEC]->Init(solStrat_);
-
     }
     return crSpaces;
   }
@@ -167,6 +162,126 @@ namespace CoupledField{
         isTimeDomPML_ = true;
       }
     }
+
+    // read the transform list and store the transform types
+    std::map<std::string, DampingType> transformType;
+    if (myParam_->Has("transformList")) {
+        ParamNodeList transformNodes = myParam_->Get("transformList")->GetChildren();
+        std::string strType, strId;
+        for (UInt k = 0; k < transformNodes.GetSize(); k++) {
+            strType = transformNodes[k]->GetName();
+            strId = transformNodes[k]->Get("id")->As<std::string>();
+            // determine type of damping
+            DampingType actType;
+            String2Enum( strType, actType );
+            if( transformType.count( strId ) > 0 ) {
+                EXCEPTION( "Transform id '" << strId << "' not unique");
+            }
+            else {
+                transformType[strId] = actType;
+            }
+        }
+    }
+
+    // loop over all regions and determine transform
+    RegionIdType actRegion;
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+        // Set current region and material
+        actRegion = it->first;
+        // actSDMat = it->second;
+
+        // Get current region name
+        std::string regionName = ptGrid_->GetRegion().ToString(actRegion);      // functions for coordinate transformations (PML or infinite mapping)
+
+        // create new entity list
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( actRegion );
+
+        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+
+        shared_ptr<CoefFunction> coeffTransScal, coeffTransVec;
+
+        // transform list
+        bool isTransform = false;
+        std::string actDampingId, actTransformId;
+        curRegNode->GetValue( "dampingId", actDampingId ); // dampingId defaults to empty if not set
+        if ( !(actDampingId == "") && curRegNode->Has("transforms")) { // dampingId and transform list
+            EXCEPTION("dampingId and transformList cannot be used at the same time - check region '" <<regionName<<"'" );
+        }
+        else if ( !(actDampingId == "") && !(curRegNode->Has("transforms")) ) {// only damping id set
+            LOG_TRACE(waterWavepde) << regionName<< ": id =" <<actDampingId<<"\n";
+            //EXCEPTION("please use the new <transfromList>");
+            std::cout << "please use the new <transfromList> to define a PML or mapping layer\n";
+            PtrParamNode transNode = myParam_->Get("dampingList")->GetByVal("pml","id",actDampingId);
+            coeffTransVec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,true));
+            coeffTransScal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+            isTransform = true;
+        }
+        else if (curRegNode->Has("transforms") && (actDampingId == "") ) { // only transform list
+            LOG_TRACE(waterWavepde) << "list\n";
+            // read damping ids and multiply transform
+            // check for PML and analysis type
+            ParamNodeList transformNodes = curRegNode->Get("transforms")->GetChildren();
+            for (UInt k = 0; k < transformNodes.GetSize(); k++) {
+                transformNodes[k]->GetValue( "name", actTransformId );
+                // get PML/mapping definition for Id
+                PtrParamNode transNode;
+                PtrCoefFct vec,scal;
+                if ( transformType.count(actTransformId) > 0 ) {
+                    if (transformType.at(actTransformId)==PML) {
+                        transNode = myParam_->Get("transformList")->GetByVal("pml","id",actTransformId);
+                        vec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,true));
+                        scal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+                    }
+                    else if (transformType.at(actTransformId)==MAPPING) {
+                        transNode = myParam_->Get("transformList")->GetByVal("mapping","id",actTransformId);
+                        PtrCoefFct sos = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+                        if(analysistype_ == HARMONIC){
+                            PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+                            sos = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, one, kdeep_, CoefXpr::OP_DIV));
+                            vec.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,true));
+                            scal.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,false));
+                        }
+                        else {
+                            vec.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,true));
+                            scal.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,false));
+                        }
+                    }
+                    else {
+                        EXCEPTION("this should not happen")
+                    }
+                }
+                else {
+                    EXCEPTION("transform id '" <<actTransformId<<"' not found in transformList");
+                }
+                if (k==0) { // initialize
+                    coeffTransVec = vec;//.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,true));
+                    coeffTransScal = scal; //.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+                }
+                else { // multiply
+                    shared_ptr<CoefFunction> prodVec,prodScal;
+                    prodVec = CoefFunction::Generate( mp_, Global::COMPLEX,
+                            CoefXprBinOp(mp_, coeffTransVec, vec, CoefXpr::OP_MULT_COMP) );
+                    prodScal = CoefFunction::Generate( mp_, Global::COMPLEX,
+                            CoefXprBinOp(mp_, coeffTransScal, scal, CoefXpr::OP_MULT) );
+                    coeffTransVec = prodVec;
+                    coeffTransScal = prodScal;
+                }
+                isTransform = true;
+            }
+        }
+        else { // no mapping or damping
+            LOG_TRACE(waterWavepde) << "normal\n";
+        }
+        // save to transformList
+        shared_ptr< std::pair<PtrCoefFct,PtrCoefFct> > Fcts ; // Initialize as NULL pointer
+        if (isTransform) { // set if we have transform
+            // first scalar, second vector
+            Fcts.reset( new std::pair<PtrCoefFct,PtrCoefFct>(coeffTransScal,coeffTransVec ) );
+        }
+        transformFctList_[actRegion] = Fcts;
+    }
   }
 
   void WaterWavePDE::DefineIntegrators(){
@@ -181,8 +296,6 @@ namespace CoupledField{
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[WATER_PRESSURE]->GetFeSpace();
 
-    //flag indicating frequency PML formulation
-    bool harmonicPML = false;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
@@ -200,80 +313,54 @@ namespace CoupledField{
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
-      
+
       //=======================================================================
       // Generate coefficient functions
       //=======================================================================
-
-      // compute surface wave velocity
-      PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
-      PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
-      PtrCoefFct gravityC0 =
-          CoefFunction::Generate( mp_,  Global::REAL,
-                    CoefXprBinOp( mp_, gravity, omega, CoefXpr::OP_DIV));
-
       PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-
-      // ====================================================================
-      // Take account for pml (frequency domain only)
-      // ====================================================================
-      shared_ptr<CoefFunction> coeffPMLScal, coeffPMLVec;
-      //just coeffunctions for the transformation of jacobians
-      shared_ptr<CoefFunction> coeffPMLfactor;
-
-      if( dampingList_[actRegion] == PML ) {
-        std::string dampId;
-        curRegNode->GetValue("dampingId",dampId);
-        if(analysistype_ == HARMONIC){
-          PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-          coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,actSDList,regions_,true));
-          coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,actSDList,regions_,false));
-
-          // store pml factor
-          //matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
-          coeffPMLfactor = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                            CoefXprBinOp(mp_, factor,coeffPMLScal,CoefXpr::OP_MULT));
-          harmonicPML = true;
-        }else{
-          if(dim_==2)
-            DefineTransientPMLInts<2>(actSDList,dampId);
-          else
-            DefineTransientPMLInts<3>(actSDList,dampId);
-        }
-      }else{
-        harmonicPML = false;
-      } // damping == PML
-
 
       // ====================================================================
       // standard stiffness integrator
       // ====================================================================
       BaseBDBInt * stiffInt = NULL;
-      if( dim_ == 2 ) {
-        if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
-                                        coeffPMLfactor, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
-        }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 
-                                       1.0, updatedGeo_ );
-        }
+      // if we have a transform defined on the region we need to use scaled operators
+      if(transformFctList_[actRegion]){
+          LOG_TRACE(waterWavepde) << "transform on region '"<<regionName<<"'\n";
+          PtrCoefFct coeffTransScal = transformFctList_[actRegion]->first;
+          PtrCoefFct coeffTransVec = transformFctList_[actRegion]->second;
+          if(coeffTransVec->IsComplex()) {
+              LOG_TRACE(waterWavepde) << "  -> should be PML\n";
+              if ( dim_ == 2) {
+                  stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), coeffTransScal, 1.0, updatedGeo_ );
+                  stiffInt->SetBCoefFunctionOpB(coeffTransVec);
+              } else {
+                  stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), coeffTransScal, 1.0, updatedGeo_ );
+                  stiffInt->SetBCoefFunctionOpB(coeffTransVec);
+              }
+          }
+          else {
+              LOG_TRACE(waterWavepde) << "  -> should be only mapping\n";
+              if (dim_ == 2) {
+                  stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(),coeffTransScal, 1.0, updatedGeo_ );
+                  stiffInt->SetBCoefFunctionOpB(coeffTransVec);
+              } else {
+                  stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,3,Double>(),coeffTransScal, 1.0, updatedGeo_ );
+                  stiffInt->SetBCoefFunctionOpB(coeffTransVec);
+              }
+          }
       }
-      else{
-        if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
-                                        coeffPMLfactor, 1.0, updatedGeo_ );
-          stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
-        }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor,
-                                       1.0, updatedGeo_ );
-        }
+      // use the standard operators
+      else {
+          if (dim_==2) {
+              stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 1.0, updatedGeo_ );
+          } else {
+              stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0, updatedGeo_ );
+          }
       }
-      
+
       stiffInt->SetName("LaplaceIntegrator");
 
-      BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
       feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
 
@@ -298,168 +385,134 @@ namespace CoupledField{
   
   void WaterWavePDE::DefineSurfaceIntegrators( ){
     //========================================================================================
-    // ABC boundaries
+    // boundaries
     //========================================================================================
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
-      //free surface condition for gravity waves
-      ParamNodeList freeSurfaceNodes = bcNode->GetList( "freeSurfaceCondition" );
-      for( UInt i = 0; i < freeSurfaceNodes.GetSize(); i++ ) {
-        std::string regionName = freeSurfaceNodes[i]->Get("name")->As<std::string>();
-        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
-        std::string volRegName = freeSurfaceNodes[i]->Get("volumeRegion")->As<std::string>();
+        //free surface condition for gravity waves
+        ParamNodeList freeSurfaceNodes = bcNode->GetList( "freeSurfaceCondition" );
+        for( UInt i = 0; i < freeSurfaceNodes.GetSize(); i++ ) {
+            std::string regionName = freeSurfaceNodes[i]->Get("name")->As<std::string>();
+            shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+            std::string volRegName = freeSurfaceNodes[i]->Get("volumeRegion")->As<std::string>();
+            LOG_TRACE(waterWavepde) << "free surf of "<< volRegName << "\n";
 
-        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
-        // gravity
-        PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
-        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+            // define necessary factors
+            PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+            // factor for mass matrix: 1 / gravity
+            PtrCoefFct coeffMass = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, g_, CoefXpr::OP_DIV ) );
 
-        PtrCoefFct factor;
-        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+            // setup integrator
+            BiLinearForm * gravityInt = NULL;
+            // check if volume region has mapping or PML
+            RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
+            if (transformFctList_[volRegion]) { // we have mapping / PML in the region
+                // read mapping list from volume
+                PtrCoefFct coeffTransScal = transformFctList_[volRegion]->first;
+                PtrCoefFct prod;
+                if (coeffTransScal->IsComplex()) { // PML
+                    LOG_TRACE(waterWavepde) << "  -> has PML\n";
+                    prod = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, coeffMass, coeffTransScal, CoefXpr::OP_MULT ) );
+                } else { // MAPPING
+                    LOG_TRACE(waterWavepde) << "  -> has only mapping\n";
+                    prod = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, coeffMass, coeffTransScal, CoefXpr::OP_MULT ) );
+                }
+                coeffMass = prod;
+            }
+            if (coeffMass->IsComplex()) {
+                if( dim_ == 2 ) {
+                    gravityInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1>(), coeffMass, 1.0, updatedGeo_ );
+                } else {
+                    gravityInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1>(), coeffMass, 1.0, updatedGeo_ );
+                }
+            } else {
+                if( dim_ == 2 ) {
+                    gravityInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffMass, 1.0, updatedGeo_ );
+                } else {
+                    gravityInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffMass, 1.0, updatedGeo_ );
+                }
+            }
+            gravityInt->SetName("gravityWaveIntegrator");
+            BiLinFormContext *gravityContext = new BiLinFormContext(gravityInt, MASS);
 
-        // factor for damping matrix: factor / gravity
-        PtrCoefFct coeffMass =
-        CoefFunction::Generate( mp_, Global::REAL,
-                               CoefXprBinOp(mp_, factor, gravity, CoefXpr::OP_DIV ) );
-        BiLinearForm * gravityInt = NULL;
-        if( dim_ == 2 ) {
-          gravityInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffMass, 1.0, updatedGeo_ );
-        } else {
-          gravityInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffMass, 1.0, updatedGeo_ );
-        }
-
-        gravityInt->SetName("gravityWaveIntegrator");
-        BiLinFormContext *gravityContext = new BiLinFormContext(gravityInt, MASS);
-
-        gravityContext->SetEntities( actSDList, actSDList );
-        gravityContext->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);
-        feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
-        assemble_->AddBiLinearForm( gravityContext );
-      } //free surface condition for gravity waves
-
-      //PML for free surface condition for gravity waves
-      ParamNodeList pmlfreeSurfaceNodes = bcNode->GetList( "pml4FreeSurfaceCondition" );
-      for( UInt i = 0; i < pmlfreeSurfaceNodes.GetSize(); i++ ) {
-        if(analysistype_ != HARMONIC)
-          EXCEPTION("pml4FreeSurfaceCondition just working for harmonic anlaysis");
-
-        std::string regionName = pmlfreeSurfaceNodes[i]->Get("name")->As<std::string>();
-        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
-        std::string volRegName = pmlfreeSurfaceNodes[i]->Get("volumeRegion")->As<std::string>();
-
-        RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
-
-        // create new entity list
-        shared_ptr<ElemList> volSDList( new ElemList(ptGrid_ ) );
-        volSDList->SetRegion( volRegion );
-
-        PtrCoefFct factor;
-        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-
-        // compute surface wave velocity
-        PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
-        PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
-        PtrCoefFct gravityC0 = CoefFunction::Generate( mp_,  Global::REAL,
-                                   CoefXprBinOp( mp_, gravity, omega, CoefXpr::OP_DIV));
-
-        //just coef-functions for the transformation of jacobians
-        shared_ptr<CoefFunction> coeffPMLScal;
-        shared_ptr<CoefFunction> coeffPMLfactor;
-        shared_ptr<CoefFunction> coeffPMLMass;
-        if( dampingList_[volRegion] == PML ) {
-          std::string dampId = pmlfreeSurfaceNodes[i]->Get("dampingId")->As<std::string>();
-          if(analysistype_ == HARMONIC){
-            PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,volSDList,regions_,false));
-            coeffPMLfactor = CoefFunction::Generate( mp_, Global::COMPLEX,
-                                              CoefXprBinOp(mp_, factor, coeffPMLScal,CoefXpr::OP_MULT));
-          }else
-            EXCEPTION("PML for gravity waves just for harmonic case");
-        }
-        else
-          EXCEPTION("pml4FreeSurfaceCondition needs definition of dampingId");
-
-        // factor for damping matrix: factor / gravity
-        PtrCoefFct coeffMassPML =
-            CoefFunction::Generate( mp_, Global::COMPLEX,
-                               CoefXprBinOp(mp_, coeffPMLfactor, gravity, CoefXpr::OP_DIV ) );
-        BiLinearForm * gravityIntPML = NULL;
-        if( dim_ == 2 ) {
-          gravityIntPML = new BBInt<Complex>(new IdentityOperator<FeH1,2,1>(), coeffMassPML, 1.0, updatedGeo_ );
-        } else {
-          gravityIntPML = new BBInt<Complex>(new IdentityOperator<FeH1,3,1>(), coeffMassPML, 1.0, updatedGeo_ );
-        }
-
-        gravityIntPML->SetName("gravityWaveIntegratorPML");
-        BiLinFormContext *gravityContextPML = new BiLinFormContext(gravityIntPML, MASS);
-
-        gravityContextPML->SetEntities( actSDList, actSDList );
-        gravityContextPML->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);
-        feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
-        assemble_->AddBiLinearForm( gravityContextPML );
-        //std::cout << "Have added gravityWaveIntegratorPML\n" << std::endl;
+            gravityContext->SetEntities( actSDList, actSDList );
+            gravityContext->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);
+            feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
+            assemble_->AddBiLinearForm( gravityContext );
+        } //free surface condition for gravity waves
       }
     }
   }
 
 
   void WaterWavePDE::DefineRhsLoadIntegrators() {
-    LOG_TRACE(waterWavepde) << "Defining rhs load integrators for acoustic PDE";
-    
+    LOG_TRACE(waterWavepde) << "Defining rhs load integrators for WaterWave PDE";
     // Get FESpace and FeFunction of mechanical displacement
     shared_ptr<BaseFeFunction> myFct = feFunctions_[WATER_PRESSURE];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
     StdVector<std::string> empty;
     LinearForm * lin = NULL;
 
     // obtain density
-//    shared_ptr<CoefFunctionMulti> densFct  = matCoefs_[ELEM_DENSITY];
-//    shared_ptr<CoefFunctionSurf> surfDens(new CoefFunctionSurf(false));
-//    surfDens->SetVolumeCoefs( densFct->GetRegionCoefs() );
     PtrCoefFct surfDens = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-           
-    // In the case of acou-mech coupling we have to multiply the
-    // integrators by -densiy
-    Double scalFactor = 1.0;
+
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
     bool coefUpdateGeo;
-    
 
     // ===========================
     //  general surface load
     // ===========================
-    ReadRhsExcitation( "surfaceLoad", empty, ResultInfo::SCALAR, isComplex_,
-                       ent, coef,coefUpdateGeo );
-
+    StdVector<std::string> volumeRegions;
+    ReadRhsExcitation( "surfaceLoad", empty, ResultInfo::SCALAR, isComplex_, ent, coef,coefUpdateGeo,volumeRegions);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-
+      LOG_TRACE(waterWavepde) << "  surface region number "<< i+1;
       // ensure that list contains only surface elements
       EntityIterator it = ent[i]->GetIterator();
-      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-      if( elemDim != (dim_-1) ) {
-        EXCEPTION("surfaceLoad can only be defined on surface elements");
+      for ( it.Begin(); !it.IsEnd(); it++)  {
+          // check dimension
+          UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+          if( elemDim != (dim_-1) ) {
+              EXCEPTION("surfaceLoad can only be defined on surface elements");
+          }
+          //TODO: one should get the bounding volume element for each surface element and get the transform from there!
       }
-
       PtrCoefFct exValue;
-      if ( isMechCoupled_ == true ) {
-        scalFactor = -1.0;
-        exValue =
-            CoefFunction::Generate( mp_, part,
-                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
-      } else {
-        exValue = coef[i];
+      // check for volume region, if defined get transorm
+      std::string volRegName = volumeRegions[i];
+      PtrCoefFct mapFact;
+      if (!(volRegName=="")) {
+          LOG_TRACE(waterWavepde) << "  -> volume region: '"<< volRegName <<"'";
+          RegionIdType actRegion = ptGrid_->GetRegionId(volRegName);
+          // if we have a transform defined on the region we need to use scaled operators
+          if(transformFctList_[actRegion]){
+              PtrCoefFct mapFact = transformFctList_[actRegion]->first;
+              LOG_TRACE(waterWavepde) << "  -> volumeRegion has transform";
+              if (mapFact->IsComplex() && coef[i]->IsComplex()) { // PML
+                  LOG_TRACE(waterWavepde) << "  -> complex";
+                  exValue = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, coef[i], mapFact, CoefXpr::OP_MULT ) );
+              } else { // MAPPING
+                  LOG_TRACE(waterWavepde) << "  -> real";
+                  exValue = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, coef[i], mapFact, CoefXpr::OP_MULT ) );
+              }
+          }
+          else {
+              EXCEPTION("volumeRegion has no transform defined");
+          }
       }
+      else {
+          exValue = coef[i]; //mapFact = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      }
+      // define integrators
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
-                                                scalFactor, exValue, volRegions, coefUpdateGeo);
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
-                                               scalFactor, exValue, volRegions, coefUpdateGeo);
+                                               1.0, exValue, volRegions, coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
@@ -470,17 +523,17 @@ namespace CoupledField{
                                                1.0, exValue , volRegions, coefUpdateGeo);
         }
       }
-
       lin->SetName("SurfaceLoadIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
-    } // general surface load
+    }
+
 
     // =====================================
-    //  rhsValues for e.g. for aeroacoustics
+    //  rhsValues
     // =====================================
     ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
                           ent, coef, coefUpdateGeo );
@@ -626,7 +679,6 @@ namespace CoupledField{
     }
   }
 
-}
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template void WaterWavePDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string);

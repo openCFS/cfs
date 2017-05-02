@@ -30,6 +30,7 @@
 #include "H1ElemsLagExpl.hh"
 #include "H1ElemsLagVar.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -105,6 +106,11 @@ class FeSpaceH1Nodal : public FeSpaceNodal{
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
     
+    //during standard usage initialization, we use the normal refElems_ map.
+    //Just in case of SMP execution of the GetFe method will be using TLMap
+    //! Thread Local cache for reference elements
+    std::map< RegionIdType, TLMap<Elem::FEType, FeH1* > > TL_RefElems_;
+
     //! Mapping type for each region
     std::map< RegionIdType, MappingType> mappingType_;
     

@@ -1,6 +1,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include "boost/filesystem/operations.hpp"
 #include <boost/tokenizer.hpp>
+#include <boost/tr1/type_traits.hpp>  //TODO
 
 #ifdef __MINGW64__
 #include <intrin.h>
@@ -25,6 +26,8 @@ namespace CoupledField{
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
+
+    isComplex_ =  std::tr1::is_same<T,Complex>::value;
 
     // Obtain id of quantity this CoefFunctionScatteredData should handle.
     qid_ = scatteredDataNode->Get("quantityId")->As<std::string>();
@@ -98,12 +101,17 @@ namespace CoupledField{
     {
       factor_ = quantityNode_->Get("factor")->As<Double>();
     }
+
+    if(quantityNode_->Has("searchRadius"))
+    {
+      searchRadius_ = quantityNode_->Get("searchRadius")->As<Double>();
+    }
   }
   
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData() 
+  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData(bool updateMode)
   {
-    ScatteredDataReader::Read();
+    ScatteredDataReader::Read(updateMode);
 
     if(quantityNode_->Has("bbox")) 
     {
@@ -118,7 +126,7 @@ namespace CoupledField{
       bbox[5] = bboxNode->Get("zmax")->As<Double>();
 
       std::vector< std::vector<double> > coords;
-      std::vector< std::vector<double> > data;
+      std::vector< std::vector<T> > data;  // CHANGED
       ScatteredDataReader::GetQuantity(qid_, coords, data);
 
       UInt n = data.size();
@@ -143,6 +151,7 @@ namespace CoupledField{
       ScatteredDataReader::GetQuantity(qid_, coordinates_, scatteredData_);
     }
   }
+
 
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::DumpData() 
@@ -196,10 +205,12 @@ namespace CoupledField{
   }
 
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::Read() 
+  void CoefFunctionScatteredData<T,DOFS>::Read(bool updateMode)
   {
-    GetQuantityData();
+    GetQuantityData(updateMode);
     DumpData();
+
+
 
     UInt n = scatteredData_.size();
 
@@ -208,11 +219,11 @@ namespace CoupledField{
     case CGAL:
 #ifdef USE_CGAL
       {
-      std::list<CGAL::Point> points;
-
+      std::vector<CGAL::Point> points;
+      points.resize(n);
       for(UInt i=0; i<n; i++)
       {
-        points.push_back(CGAL::Point(coordinates_[i][0],
+        points[i] = (CGAL::Point(coordinates_[i][0],
                                coordinates_[i][1],
                                coordinates_[i][2],
                                scatteredData_[i][0] * factor_,
@@ -221,6 +232,8 @@ namespace CoupledField{
       }
 
       searchTree_.reset(new Tree(points.begin(), points.end()));
+      if(updateMode)
+        return;
     }
 #else
       EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
@@ -230,6 +243,8 @@ namespace CoupledField{
     case FLANN:
 #ifdef USE_FLANN
       {
+        if(updateMode)
+          return;
       dataset_.reset(new flann::Matrix<Double>(new Double[n*3], n, 3));
       Double *dPtr = dataset_->ptr();
       for(UInt i=0; i<n; i++)
@@ -338,10 +353,8 @@ namespace CoupledField{
 
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::InterpolateVector(Vector<Double> globPoint, Vector<T> & vec){
-    if(!scatteredData_.size())
-    {
-      Read();
-    }
+
+    Read(scatteredData_.size()!=0);
 
     StdVector< Vector<Double> > neighbors;
     StdVector< Double > l2dists;
@@ -442,7 +455,7 @@ namespace CoupledField{
       StdVector< Vector<T> >& vectors)
   {
     CGAL::Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    if(DOFS == 2)
+    if(globPoint.GetSize() == 2)
     {
       CGAL::Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
       query = query2;
@@ -466,29 +479,71 @@ namespace CoupledField{
     neighbors.Resize(nn);
     l2Distances.Resize(nn);
     vectors.Resize(nn);
-    
+
     for(UInt i=0 ; it != search.end(); ++it, i++) {
       l2Distances[i] = std::sqrt(it->second);
-      neighbors[i].Resize(DOFS);
-      vectors[i].Resize(DOFS);
+      neighbors[i].Resize(globPoint.GetSize());
+      vectors[i].Resize(globPoint.GetSize());
 
-      if(DOFS == 2)
+      if(quantityNode_->Has("searchRadius"))
       {
-        vectors[i][0] = it->first.vx();
-        vectors[i][1] = it->first.vy();
+        if(l2Distances[i]<searchRadius_){
+          if(globPoint.GetSize() == 2)
+          {
+            it->first.vx(vectors[i][0]);
+            it->first.vy(vectors[i][1]);
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+          }
+          else
+          {
+            it->first.vx(vectors[i][0]);
+            it->first.vy(vectors[i][1]);
+            it->first.vz(vectors[i][2]);
 
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+            neighbors[i][2] = it->first.z();
+          }
+        }else{
+          if(globPoint.GetSize() == 2)
+          {
+            vectors[i][0] = 0.0;
+            vectors[i][1] = 0.0;
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+          }
+          else
+          {
+            vectors[i][0] = 0.0;
+            vectors[i][1] = 0.0;
+            vectors[i][2] = 0.0;
+
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+            neighbors[i][2] = it->first.z();
+          }
+        }
       }
-      else
-      {
-        vectors[i][0] = it->first.vx();
-        vectors[i][1] = it->first.vy();
-        vectors[i][2] = it->first.vz();
+      else{
+        if(globPoint.GetSize() == 2)
+        {
+          it->first.vx(vectors[i][0]);
+          it->first.vy(vectors[i][1]);
+          neighbors[i][0] = it->first.x();
+          neighbors[i][1] = it->first.y();
+        }
+        else
+        {
+          it->first.vx(vectors[i][0]);
+          it->first.vy(vectors[i][1]);
+          it->first.vz(vectors[i][2]);
 
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-        neighbors[i][2] = it->first.z();
+          neighbors[i][0] = it->first.x();
+          neighbors[i][1] = it->first.y();
+          neighbors[i][2] = it->first.z();
+        }
+
       }
     }
   }
@@ -503,7 +558,7 @@ namespace CoupledField{
   {
     Double q[3];
 
-    if(DOFS == 2)
+    if(globPoint.GetSize()==2)
     {
       q[0] = globPoint[0];
       q[1] = globPoint[1];
@@ -532,16 +587,44 @@ namespace CoupledField{
       {
         l2Distances[j] = std::sqrt(dists[i][j]);
 
-        UInt idx = indices[i][j];
-        
-        neighbors[j].Resize(DOFS);
-        vectors[j].Resize(DOFS);
-
-        for(UInt d=0; d<DOFS; d++) 
+        if(quantityNode_->Has("searchRadius"))
         {
-          vectors[j][d] = scatteredData_[idx][d] * factor_;
-          neighbors[j][d] = coordinates_[idx][d];
+          if(l2Distances[j]<searchRadius_){
+            UInt idx = indices[i][j];
+
+            neighbors[j].Resize(DOFS);
+            vectors[j].Resize(DOFS);
+
+            for(UInt d=0; d<DOFS; d++)
+            {
+              vectors[j][d] = scatteredData_[idx][d] * factor_;
+              neighbors[j][d] = coordinates_[idx][d];
+            }
+          }else{
+            UInt idx = indices[i][j];
+
+            neighbors[j].Resize(DOFS);
+            vectors[j].Resize(DOFS);
+
+            for(UInt d=0; d<DOFS; d++)
+            {
+              vectors[j][d] = scatteredData_[idx][d] * 0.0;
+              neighbors[j][d] = coordinates_[idx][d];
+            }
+          }
+        }else{
+          UInt idx = indices[i][j];
+
+          neighbors[j].Resize(DOFS);
+          vectors[j].Resize(DOFS);
+
+          for(UInt d=0; d<DOFS; d++)
+          {
+            vectors[j][d] = scatteredData_[idx][d] * factor_;
+            neighbors[j][d] = coordinates_[idx][d];
+          }
         }
+
       }
     }
 
@@ -552,6 +635,9 @@ namespace CoupledField{
 
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CoefFunctionScatteredData<Double,1>;
+  template class CoefFunctionScatteredData<Complex,1>;
+
   template class CoefFunctionScatteredData<Double,2>;
   template class CoefFunctionScatteredData<Complex,2>;
 

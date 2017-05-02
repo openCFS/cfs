@@ -84,8 +84,11 @@ namespace CoupledField
     if( !simState_->HasInput() ) {
       // unregister signal handler and use default action
       // register signal handler
-      if( signal( SIGINT, SIG_DFL) == SIG_ERR )
-        std::cerr << "Could not assign default signal action\n"; // no exceptions in desctructors with gcc 6
+      if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
+        std::cerr << "Could not assign default signal action" << std::endl; // no exceptions in destructors!
+        domain->GetInfoRoot()->ToFile();
+        exit(-1);
+      }
 
       // set global pointer to zero
       instance = NULL;
@@ -321,6 +324,7 @@ namespace CoupledField
       PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
+      envNode->Get("timePerStep")->SetValue(timePerStep_);
     } // loop: frequencies
 
     handler_->FinishMultiSequenceStep();

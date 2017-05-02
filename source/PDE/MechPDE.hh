@@ -9,6 +9,7 @@
 
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "SinglePDE.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -82,7 +83,32 @@ namespace CoupledField
     /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
      * @param isComplex either from complex material or bloch mode */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex);
+
+    /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D) with the material tensor scaled by a given factor
+     * @param isComplex either from complex material or bloch mode
+     * @param scalingFactor is a factor the material tensor to be multiplied by */
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
     
+    /** Returns an integrator for prestressing
+     * @param preStressFct is a tensor coefficient function for prestressing
+     * @param isComplex either from complex material or bloch mode */
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex);
+
+    /** Returns an integrator for prestressing
+     * @param preStressFct is a tensor coefficient function for prestressing
+     * @param isComplex either from complex material or bloch mode
+     * @param scalingFactor is a factor the prestressing tensor to be multiplied by */
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
+
+    //! Return flux integrator used for Nitsche coupling
+    template<typename DATA_TYPE>
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
+                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA, bool icModes, bool preStress = false);
+
+    //! Return penalty integrator used for Nitsche coupling
+    template<typename DATA_TYPE>
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Double factor, BiLinearForm::CouplingDirection cplDir);
+
     //! Return strain operator 
     BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);
 
@@ -124,7 +150,10 @@ namespace CoupledField
     
     //! Stores the linear stiffness for each region
     std::map<RegionIdType, PtrCoefFct > regionStiffness_;
-    
+
+    //! Stores the prestressing for each region
+    std::map<RegionIdType, PtrCoefFct > regionPreStress_;
+
     //! Dimension of stresses
     UInt stressDim_;
     
@@ -137,8 +166,62 @@ namespace CoupledField
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 
+/*old
+    //! flag if effective Mass or Stiffness formulation shall be used 
+    //! effMass_ = true -> mass formulation; effMass_ = false -> stiffness formualation
+    bool effMass_;
+*/
     StdVector<std::string> dofNames_;
 
+    // ========================================================================
+    //  Class for calculating the 2nd Piola-Kirchhoff stress tensor
+    // ========================================================================
+
+    //! CoefficientFunction for 2nd Piola-Kirchhoff stress tensor
+    class CoefFunction2ndPiolaTensor : public CoefFunction {
+        
+      public:
+        
+        //! Constructor
+        CoefFunction2ndPiolaTensor(SubTensorType &subType,
+                                   PtrCoefFct stiffness,
+                                   shared_ptr<BaseFeFunction> displ);
+        
+        //! Destructor
+        ~CoefFunction2ndPiolaTensor();
+        
+        //! Return tensor in Voigt vector notation
+        virtual void GetVector(Vector<Double>& vec, 
+                               const LocPointMapped& lpm );
+        
+        //! Return full tensor at integration point
+        virtual void GetTensor(Matrix<Double>& tensor, 
+                               const LocPointMapped& lpm );
+        
+        //! Return row and columns size of tensor if coefficient function is a tensor
+        virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+        
+      protected:
+        
+        //! Tensor type
+        SubTensorType tensorType_;
+        
+        //! Stiffness CoefFunction
+        PtrCoefFct stiffCoef_;
+        
+        //! Real-valued displacement CoefFunction
+        shared_ptr< FeFunction<Double> > dispCoefReal_;
+        
+        //! Complex-values displacement CoefFunction
+        shared_ptr< FeFunction<Complex> > dispCoefComplex_;
+        
+        //! Linear strain operator
+        BaseBOperator *linOp_;
+        
+        //! Nonlinear strain operator
+        BaseBOperator *nonLinOp_;
+    };
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

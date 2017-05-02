@@ -17,6 +17,9 @@ public:
   //! Constructor
   FeNodal();
 
+  //! Copy constructor
+  FeNodal(const FeNodal & other);
+
   //! Destructor
   virtual ~FeNodal();
   
@@ -61,7 +64,7 @@ protected:
   
   //! Calculate the location of unknowns for a line up to given order
   //! Righ now the calculation is done here but has to move into the 
-  //! Integration Scheme class!
+  //! Integration ot implementeScheme class!
   //! This method gets reimplemented in the Spectral classes to ask the 
   //! Integration scheme to provide the points
   void CalcAllSupportingPoints(UInt maxOrder);

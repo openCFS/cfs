@@ -15,7 +15,6 @@ CoefFunctionMulti::CoefFunctionMulti( CoefDimType dimType,
   
   // a distributed coefficient function can never be analytic
   isAnalytic_ = false;
-  
   isComplex_ = isComplex;
   rowSize_ = dim1;
   colSize_ = dim2;
@@ -31,7 +30,6 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
-
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
     shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions
@@ -66,6 +64,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
 
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
+
     if( coef->GetDimType() != dimType_ ) {
       EXCEPTION( "The dimensionality of the coefficient functions "
           << "is not the same");
@@ -101,8 +100,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   }
 
   // adjust dependency of this coeffunction
-  dependType_ = std::max(this->GetDependency(), 
-                         coef->GetDependency());
+  dependType_ = GetMaxCoefDependType(this->GetDependency(), coef->GetDependency());
   
   regionCoefs_[region] = coef;
 }

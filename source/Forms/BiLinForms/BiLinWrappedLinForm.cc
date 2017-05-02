@@ -12,6 +12,12 @@ BiLinWrappedLinForm::BiLinWrappedLinForm(LinearForm* linForm,
   name_ = linForm->GetName();
 }
 
+BiLinWrappedLinForm::BiLinWrappedLinForm(const BiLinWrappedLinForm& right)
+: BiLinearForm(right){
+    this->linForm_ = right.linForm_->Clone();
+    this->assembleTransposed_ = right.assembleTransposed_;
+}
+
 BiLinWrappedLinForm::~BiLinWrappedLinForm() {
 
   // we assume responsibility of the encapsulated LinearForm 

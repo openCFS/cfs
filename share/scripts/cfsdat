@@ -1,0 +1,214 @@
+#!/bin/sh
+
+# This is the start script for CFSDAT. It should be placed in
+# CFS_DIST/bin under the name 'cfsdat'
+
+# Source shell script for setting some common variables.
+. `dirname $0`/common.sh
+
+
+SetANSYSParameters()
+{
+    ARCH=$1
+    ANSYS_ROOT_DIR=$2
+
+    case "$ARCH" in
+	I386)
+	    ANS_ARCH=linia32;
+	    LIB=/lib ;;
+	X86_64)
+	    if [ "$SUBARCH" = "OPTERON" ]; then
+		ANS_ARCH=linop64;
+	    else
+		ANS_ARCH=linem64t;
+	    fi
+	    LIB=/lib64 ;;
+	IA64)
+	    ANS_ARCH=linia64;
+	    LIB=/lib ;;
+    esac
+
+    # If ANSYS directory does not exist, try to determine it from executable.
+    if [ "$OS" = "LINUX" ] && [ ! -d "$ANSYS_ROOT_DIR" ]
+    then
+        PGFLIB=`$LDD $CFSDAT_EXE | grep libpgf90.so | cut -d' ' -f3`
+
+        if [ -f "$PGFLIB" ]
+        then
+            SEDSTR="s/\\/ansys\\/syslib\\/$ANS_ARCH\\/libpgf90.so//"
+            ANSYS_ROOT_DIR=`echo $PGFLIB | sed -e $SEDSTR`
+        fi
+    fi
+
+#    if [ ! -d "$ANSYS_ROOT_DIR" ]
+#    then
+#
+#
+#	echo "Cannot find root directory of ANSYS:"
+#	echo "  $ANSYS_ROOT_DIR"
+#	echo "Please set either environment variable ANSYS_ROOT_DIR"
+#	echo "or edit $HOME/.nacsrc."
+#	exit 1
+#    fi
+
+
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH
+}
+
+SetGIDParameters()
+{
+#    echo "Setting parameters for running cfstool..."
+    a=1;
+}
+
+# Set XML schema root path
+CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+export CFS_SCHEMA_ROOT
+
+# Get settings concerning the distribution type of CFS: GiD/ANSYS
+#if [ "$CFS_DIST_TYPE" != "" ]
+#then 
+#    CFS_DIST_TYPE_TEMP=$CFS_DIST_TYPE 
+#fi
+
+if [ "$ANSYS_ROOT_DIR" != "" ]
+then 
+    ANSYS_ROOT_DIR_TEMP=$ANSYS_ROOT_DIR 
+fi
+
+# Check if a CFS config file exists in user's home directory.
+#if [ -e $HOME/.nacsrc ]
+#then 
+#    . $HOME/.nacsrc;
+#fi
+
+# environment variables override variables from config file.
+#if [ "$CFS_DIST_TYPE_TEMP" != "" ]
+#then 
+#    CFS_DIST_TYPE=$CFS_DIST_TYPE_TEMP
+#    unset CFS_DIST_TYPE_TEMP
+#fi
+
+if [ "$ANSYS_ROOT_DIR_TEMP" != "" ]
+then 
+    ANSYS_ROOT_DIR=$ANSYS_ROOT_DIR_TEMP
+    unset ANSYS_ROOT_DIR_TEMP
+fi
+
+CFS_DIST_TYPE="ANSYS"
+
+if [ "$CFS_DIST_TYPE" = "" ]
+then 
+    echo "Cannot determine distribution type of CFSDAT."
+    echo "CFS_DIST_TYPE should be one of GID / ANSYS."
+    exit 1
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "CFS_DIST_TYPE: $CFS_DIST_TYPE"
+    echo "CFS_SCHEMA_ROOT: $CFS_SCHEMA_ROOT"
+    echo "OS: $OS"
+    echo "ARCH_STR: $ARCH_STR"
+    echo "DISTRO: $DISTRO"
+    echo "DISTRO_VER: $DISTRO_VER"
+    echo "ARCH: $ARCH"
+fi
+
+# Set path to CFS executable
+CFSDAT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsdatbin
+
+# If we cannot find the usual executable, maybe we have crosscompiled
+# using MinGW and need to start the binary using Wine.
+MINGW=0
+if [ ! -e $CFSDAT_EXE ]; then
+  
+  for arch in "X86_64" "I386"; do
+    if [[ -e $CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsdatbin.exe ]]; then
+      CFSDAT_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsdatbin.exe"
+      if [ -e $CFSDAT_EXE ]; then
+	  ARCH=$arch
+	  ARCH_STR="MINGW"_$ARCH
+	  MINGW=1;
+	  break;
+      fi
+    fi
+  done
+fi
+
+# Set parameters according to distribution type.
+case "$CFS_DIST_TYPE" in
+    ANSYS)
+	SetANSYSParameters $ARCH $ANSYS_ROOT_DIR ;;
+    GID)
+	SetGIDParameters ;;
+    *)
+	echo "Unknown distribution type $CFS_DIST_TYPE.";
+	echo "Should be one of GID / ANSYS.";
+	exit 1;;
+esac
+
+# Check if we have the necessary libraries for the current arch.
+if [ "$BINARY_TREE" = "0" ]; then
+    if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
+    then 
+        echo "Cannot find CFSDAT library path for architecture $ARCH_STR."
+        exit 2
+    fi
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    case "$OS" in
+	LINUX)
+            echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" ;;
+	MACOSX)
+            echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH" ;;
+	*)
+	    ;;
+    esac
+fi
+
+# Check if we have the necessary executable for the current arch.
+if [ ! -e $CFSDAT_EXE ]
+then 
+    echo "Cannot find CFSDAT executable for architecture $ARCH_STR."
+    exit 3
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Libraries:"
+    $LDD $CFSDAT_EXE
+fi
+
+if [ "$OS" = "LINUX" ]; then
+    # Check if some system libraries are missing.
+    CFSDAT_EXE_LDD=`$LDD $CFSDAT_EXE | grep "not found"`
+
+    if [ "$CFSDAT_EXE_LDD" != "" ]
+    then 
+        echo "Some dependencies on system libraries could not be resolved."
+        echo "These were:"
+        echo "$CFSDAT_EXE_LDD";
+        echo
+        exit 4
+    fi
+fi
+
+# Execute the CFS exutable with arguments from this script
+if [ $# != 0 ]
+then
+    if [ $MINGW = 1 ]; then
+	wine $CFSDAT_EXE "$@";
+    else
+	$CFSDAT_EXE "$@";
+    fi
+else
+    if [ $MINGW = 1 ]; then
+	wine $CFSDAT_EXE;
+    else
+	$CFSDAT_EXE;
+    fi
+fi

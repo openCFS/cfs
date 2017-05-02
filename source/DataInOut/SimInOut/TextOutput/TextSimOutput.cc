@@ -330,7 +330,8 @@ namespace CoupledField {
             std::ofstream& actOut = *ptFiles[it.GetPos()];
             actOut << actStepVal_;;
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-              actOut << delim_ << vec[it.GetPos()*numDofs + iDof];
+              //actOut << delim_ << vec[it.GetPos()*numDofs + iDof];
+              actOut << delim_ << std::setprecision(12) << vec[it.GetPos()*numDofs + iDof];
             }
             actOut << std::endl;
           

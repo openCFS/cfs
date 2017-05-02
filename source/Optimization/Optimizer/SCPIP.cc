@@ -30,7 +30,8 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
   // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
   PostInitScale(1.0); // does autoscale
 
-  std::cout << objective->ToString() << std::endl;
+  if(objective->scaling.value != 0.0 && objective->target != 0.0)
+    std::cout << "objective scaling: " << objective->ToString() << std::endl;
   
   SetIntegerValue("max_iter", optimization->GetMaxIterations());
   

@@ -12,7 +12,6 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
-
 namespace CoupledField {
 
   /** This class fills a ParamNode element with an XML file content using the DOM parser from xerces. 

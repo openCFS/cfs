@@ -88,7 +88,11 @@ namespace CoupledField {
     //! @copydoc BaseIDBC_Handler::InitDirichletValues()
     void InitDirichletValues() {
       vecIDBC_->Init();
+      vecOldIDBC_->Init();
     };
+
+    void SetOldDirichletValues();
+    void ToString();
 
     //@}
 
@@ -99,16 +103,16 @@ namespace CoupledField {
                             std::map<UInt, std::set<UInt> >& indicesPerBlock );
 
     //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
-    void AddIDBCToRHS( SBM_Vector *rhs );
+    void AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC = false  );
 
     //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS
-    void RemoveIDBCFromRHS( SBM_Vector *rhs );
+    void RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC = false );
 
     //! @copydoc BaseIDBC_Handler::SetIDBC()
     void SetIDBC( UInt blockNum, UInt index, const T &val );
     
     //! @copydoc BaseIDBC_Handler::GetIDBC()
-    void GetIDBC( UInt blockNum, UInt index, T &val );
+    void GetIDBC( UInt blockNum, UInt index, T &val, bool deltaIDBC=false );
 
     //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,
@@ -139,7 +143,7 @@ namespace CoupledField {
                                         UInt colInd, SBM_Vector *rhs, const T& val );
 
     //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
-    void SetDofsToIDBC( SBM_Vector *vec );
+    void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false );
 
 
     // =======================================================================
@@ -200,6 +204,11 @@ namespace CoupledField {
 
     //! Vector for storing the inhomogeneous Dirichlet values
     SBM_Vector *vecIDBC_;
+
+    //! Vector for storing the inhomogeneous Dirichlet values from a previous
+    //! time step or iteration -> needed to compute delta IDBC values, i.e.
+    //! vecIDBC-vecOldIDBC
+    SBM_Vector *vecOldIDBC_;
 
     // Entry type of auxiliary matrices
 
