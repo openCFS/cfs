@@ -1,6 +1,6 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest [-VV] -S  <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 #
@@ -8,7 +8,6 @@
 # Do the stuff common for all tests on this machine
 #-----------------------------------------------------------------------------
 include("${CMAKE_CURRENT_LIST_DIR}/init_test.cmake")
-
 
 ##############################################################################
 #
@@ -21,7 +20,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/init_test.cmake")
 ##############################################################################
 
 # set the compiler environment
-SET_COMPILER_ENV("GCC")
+SET_COMPILER_ENV("GCC-6")
 
 # set build name
 set(BUILDTYPE "RELEASE")
