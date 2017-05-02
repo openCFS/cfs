@@ -491,6 +491,7 @@ ctest_scripts/sites/test-sl7/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/test-sl7/linux64_trunk_icc_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_icc_release_deploy.cmake -text
 ctest_scripts/sites/test-sl7/linux64_trunk_no-opt_gcc_release.ctest -text
+ctest_scripts/sites/test-sl7/site_specific_vars.cmake -text
 ctest_scripts/sites/test-sl7/update_cfs_trunk.ctest -text
 ctest_scripts/sites/test-sl7/update_testsuite_trunk.ctest -text
 ctest_scripts/sites/test-ubuntu14/README.md -text
@@ -504,6 +505,7 @@ ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-opt_gcc_release.ctest -text
+ctest_scripts/sites/test-ubuntu14/site_specific_vars.cmake -text
 ctest_scripts/sites/test-ubuntu14/update_cfs_trunk.ctest -text
 ctest_scripts/sites/test-ubuntu14/update_testsuite_trunk.ctest -text
 ctest_scripts/sites/trusty/Vagrantfile -text
