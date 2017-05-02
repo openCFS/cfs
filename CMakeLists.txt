@@ -594,6 +594,20 @@ ENDIF(CFS_ARCH STREQUAL "X86_64")
 SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}
   CACHE INTERNAL "Single output directory for building all executables.")
 
+#-----------------------------------------------------------------------------
+# Create symlinks to lib & bin dirs allowing the build to run on (newer) linux
+#-----------------------------------------------------------------------------
+if(UNIX)
+  # lib dir
+  get_filename_component(wd ${LIBRARY_OUTPUT_PATH} DIRECTORY)
+  add_custom_target(symlink_lib_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY ${wd})
+  # bin dir
+  add_custom_target(symlink_bin_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY "${CFS_BINARY_DIR}/bin")
+endif(UNIX)
 
 #-----------------------------------------------------------------------------
 # Create and set a path where temporaries should go

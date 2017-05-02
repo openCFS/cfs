@@ -1,6 +1,7 @@
-# This script sets varaibles appropriate to this site.
-# It is called by nightly_test.cmake and is also used
-# in all the tests on this site.
+# This script is loaded by `nightly_test.cmake`, it sets source and build
+# directories, the hostname and the update method.
+# To make the tests run individually also it must be included by
+# the single test files too.
 
 # these variables must be set:
 set(NIGHTLY_TESTSUITE_DIR "$ENV{HOME}/cfs/testsuite") # source of the testsuite
@@ -21,6 +22,3 @@ find_program(CTEST_GIT_COMMAND NAMES git)
 set(CTEST_UPDATE_TYPE "git") # use git
 set(CTEST_UPDATE_COMMAND "${CTEST_GIT_COMMAND}")
 set(CTEST_GIT_UPDATE_CUSTOM "${CTEST_GIT_COMMAND};svn;rebase") # use git-svn
-
-# load data on development server
-include("${NIGHTLY_SOURCE_DIR}/cmake_modules/DevelopmentServer.cmake")
