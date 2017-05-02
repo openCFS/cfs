@@ -40,25 +40,9 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. n_q_ for D3Qn_q_
-  if (dim == 2) {
-    assert(sizeZ == 1);
-    n_q_ = 9;
-  }
-  else
-    n_q_ = 19;
+  n_q_ = dim == 2 ? 9 : 19;
+  assert(!(dim == 2 && sizeZ !=1));
 
-  dim_ = dim;
-  sizeX_ = sizeX;
-  sizeY_ = sizeY;
-  sizeZ_ = sizeZ;
-  ux_ = ux;
-  uy_ = uy;
-  uz_ = uz;
-  omega_nu_ = omega; // this relaxation rate is directly related to the fluid's viscosity
-  maxIter_ = maxIterations;
-  maxTol_ = maxTolerance;
-  writeFrequency_ = writeFrequency;
-  numWriteResults_ = 0;
 
   nNodes_ = sizeX_ * sizeY_ * sizeZ_;
 
@@ -180,6 +164,20 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   Timer timer;
   timer.Start();
 
+<<<<<<< .working
+||||||| .merge-left.r14270
+    LOG_DBG(lattice) << "bb = " << ToString(bb);
+    LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+    LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+    LOG_DBG(lattice) << "rel = " << ToString(rel);
+
+=======
+  LOG_DBG(lattice) << "bb = " << ToString(bb);
+  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+  LOG_DBG(lattice) << "rel = " << ToString(rel);
+
+>>>>>>> .merge-right.r14271
   in->Get("converged")->SetValue("running");
 
   while(it < maxIter_ && !steady_state && R <= 1000)
@@ -213,9 +211,19 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     it++;
 
+<<<<<<< .working
     if (writeIntermediateResults_) {
       if (it % writeFrequency_ == 0) {
         domain->GetDriver()->StoreResults(count,(double) it);
+||||||| .merge-left.r14270
+    if (writeIntermediateResults) {
+      if (it % m_writeFrequency == 0) {
+        domain->GetDriver()->StoreResults(count,(double) count);
+=======
+    if (writeIntermediateResults) {
+      if (it % m_writeFrequency == 0) {
+        domain->GetDriver()->StoreResults(count,(double) it);
+>>>>>>> .merge-right.r14271
         count++;
       }
     }
@@ -254,8 +262,18 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   if(!steady_state)
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
+<<<<<<< .working
   numIterations_ = it;
   numWriteResults_ = count;
+||||||| .merge-left.r14270
+  m_numWriteResults = count;
+=======
+//  if (writeIntermediateResults)
+//    m_numWriteResults = count-1;
+//  else
+  m_numIterations = it;
+  m_numWriteResults = count;
+>>>>>>> .merge-right.r14271
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)
 
