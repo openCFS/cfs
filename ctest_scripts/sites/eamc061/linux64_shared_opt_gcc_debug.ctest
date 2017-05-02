@@ -1,6 +1,6 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest -S <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
@@ -8,21 +8,16 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_debug")
-
-#-----------------------------------------------------------------------------
-# Specify that we want to do an experimental build without updating the CFS++
-# working copy. I.e. we leave away the ExperimentalUpdate step between
-# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
-# done by simon on mac before the the test scripts on rom get executed.
-#-----------------------------------------------------------------------------
-SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_debug")
 
 #-----------------------------------------------------------------------------
 # Include macros for CFS++ specific testing (e.g. default initial cache, etc)
 #-----------------------------------------------------------------------------
 INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+# set e.g. HOSTNAME 
+SET_GLOBAL_VARS() 
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
@@ -56,7 +51,9 @@ SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
 CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
 
 # create build/tmp directory
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
+# somehow CTEST_START_WITH_EMPTY_BINARY_DIRECTORY does not work?! So do it also manually
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 # read ID_CXX 
 EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
@@ -71,24 +68,14 @@ EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 
-# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
-# MESSAGE("${DIST} ${REV} ${ARCH}")
-
 SET(BUILDTYPE "DEBUG")
-SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
-SITE_NAME(CFS_BUILD_HOST)
-STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
-LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-
-#SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
-set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_SITE "${HOSTNAME}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
-#-----------------------------------------------------------------------------
-# Start out with an empty binary directory.
-#-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
 
 #-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
@@ -100,22 +87,23 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/trunk_cfs-test
+   MATVIZ_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
-   CFSDAT:BOOL=OFF   
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/trunk_cfsdepscache
    USE_PARDISO:BOOL=ON
-   USE_CGAL:BOOL=OFF
+   USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
-   USE_FLANN:BOOL=OFF
-   USE_ENSIGHT:BOOL=OFF 
+   USE_FLANN:BOOL=OFF   
+   USE_ENSIGHT:BOOL=OFF
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
+   CFS_DS_PORT:STRING=1022
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
@@ -138,6 +126,6 @@ message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
+message("  Submit gcc debug trunk ${BUILDNAME}")
 ctest_submit(RETURN_VALUE res)
 message("  All done")
