@@ -1,7 +1,6 @@
-# update the shared_opt testsuite prior to all tests
+# update the testsuites prior to all tests
 
-message("ssi: org CTEST_SITE=${CTEST_SITE}")
-message("ssi: HOSTNAME=${HOSTNAME}")
+# needs to set again for the test cases
 set(CTEST_SITE "eamc061")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
@@ -27,10 +26,9 @@ SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 # note that originally this was false, whyever?!
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
-MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
-MESSAGE("---------------------------------------------------\n")
 
+# note that the cfs tests need to perform this again
 FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
 SET(CTEST_UPDATE_TYPE "svn")
 

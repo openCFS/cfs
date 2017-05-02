@@ -11,77 +11,26 @@
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_debug")
 
-#-----------------------------------------------------------------------------
-# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
-#-----------------------------------------------------------------------------
-INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
-# set e.g. HOSTNAME 
-SET_GLOBAL_VARS() 
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
 
-#-----------------------------------------------------------------------------
-# Use CMake (cmake) executable corresponding to CTest executable used to run
-# this script.
-#-----------------------------------------------------------------------------
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
-
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/gcc")
-SET(ENV{CXX} "/usr/bin/g++")
-SET(ENV{FC} "/usr/bin/gfortran")
-SET(ENV{LC_MESSAGES} "C")
-SET(ENV{LC_ALL} "C")
-SET(ENV{LANG} "C")
-SET(ENV{LANGUAGE} "C")
-
-SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
-SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-
-#-----------------------------------------------------------------------------
-# Let's first find out some infos about the system GNU compiler first.
-#-----------------------------------------------------------------------------
-SET(COMPILER "$ENV{CXX}")
-
-SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
-
-# create build/tmp directory
-# somehow CTEST_START_WITH_EMPTY_BINARY_DIRECTORY does not work?! So do it also manually
+IDENTIFY_DISTRO()
+# empty binary directory
 file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
-# read ID_CXX 
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
-  ARGS
-  OUTPUT_VARIABLE DISTRO_OUT
-  RETURN_VALUE RETVAL)
-
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
-INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+# set the compiler environment
+SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "DEBUG")
-SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
-
+SET(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 set(CTEST_SITE "${HOSTNAME}")
-set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 # will generate CTestConfig.cmake using our sites variant
 WRITE_CTEST_CONFIG()
 
-#-----------------------------------------------------------------------------
-# Enter the following values into the initial cache
-# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
-# run.
-#-----------------------------------------------------------------------------
 INIT_CACHE(CTEST_INITIAL_CACHE)
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
@@ -91,9 +40,10 @@ SET(CTEST_INITIAL_CACHE
    MATVIZ_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/trunk_cfsdepscache
+   CFSDAT:BOOL=ON
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=ON
-   USE_CGNS:BOOL=OFF
+   USE_CGNS:BOOL=ON
    USE_CCMIO:BOOL=OFF
    USE_FLANN:BOOL=OFF   
    USE_ENSIGHT:BOOL=OFF
@@ -103,29 +53,9 @@ SET(CTEST_INITIAL_CACHE
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
-   CFS_DS_PORT:STRING=1022
    BUILDNAME:STRING=${BUILDNAME}")
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
-message("Start dashboard...")
-# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-ctest_start(Nightly)
-
-message("  Update")
-find_program(CTEST_SVN_COMMAND NAMES svn)
-ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-
-message("  Configure")
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
-# some configurations require to repeat the same ctest_configure() command
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Build")
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit trunk gcc deb on ${BUILDNAME}")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
+DO_TESTING()
