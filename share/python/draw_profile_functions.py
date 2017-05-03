@@ -910,18 +910,21 @@ def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points,i
 
   nodes = np.zeros((res_surf_lines,res, 3))
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
-  for i,x in enumerate(interval):
-    for j,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
+  
+  for i,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
+    for j,x in enumerate(interval):
       point = get_surface_point_candidate(profile,radians(alpha),x)
-
+      nodes[i,j] = point
+      
       if not point_inside_profile(point, otherProfile1) and not point_inside_profile(point, otherProfile2):
-#         nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
-        nodes_ids[j,i] = n_points
-        nodes[j,i] = point
+#         nodes_ids[i,j] = vtk_points.InsertNextPoint(point)
+        nodes_ids[i,j] = n_points
         n_points += 1
         
   return nodes,nodes_ids,n_points
 
+# check if any surface point is too close to an intersection point
+# if too close, omit it as surface point
 def postproc_surface_points(nodes,nodes_ids,profile,otherProfile1,otherProfile2,intersections,vtk_points):
   for i,line in enumerate(nodes_ids):
     for j,p in enumerate(line):
@@ -929,14 +932,14 @@ def postproc_surface_points(nodes,nodes_ids,profile,otherProfile1,otherProfile2,
       if j > 1 and nodes_ids[i,j] == -1 and nodes_ids[i,j-1] > -1:
         intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
         intersections.InsertNextPoint(intersect)
-        if calc_distance(nodes[i,j-1], intersect) < 1e-2:
+        if calc_distance(nodes[i,j-1], intersect) < 0.5/res:
           # don't draw if too close
           nodes_ids[i,j-1] = -1
       # jump from inner point to surface point    
-      if j > 1 and nodes_ids[i,j] > -1 and nodes_ids[i,j-1] == -1:
+      if j > 2 and nodes_ids[i,j] > -1 and nodes_ids[i,j-1] == -1:
         intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
         intersections.InsertNextPoint(intersect)
-        if calc_distance(nodes[i,j], intersect) < 1e-2:
+        if calc_distance(nodes[i,j], intersect) < 0.5/res:
           # don't draw if too close
           nodes_ids[i,j] = -2
     
@@ -1089,7 +1092,7 @@ def give_all_neighbor_coords(i,j,nodes,nodes_ids):
       continue
     
     # if v is a surface node id
-    if nodes_ids[v[0],v[1]] != -1:
+    if nodes_ids[v[0],v[1]] > -1:
       # for each neighbor, store its coordinates and id
       neighbors.append((nodes[v[0],v[1],:],nodes_ids[v[0],v[1]]))
       
@@ -1181,10 +1184,10 @@ def generate_basecell(args,info,log):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
-#     id = num_surf_points
-#     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
-#     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
-#     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
+    id = num_surf_points
+    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
+    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
     
     if not args.skip_surface_gaps:  
       fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
