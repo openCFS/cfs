@@ -102,5 +102,6 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_AeroacousticType.xsd ${DST_DIR}/Schemas/CFSDat_AeroacousticType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_PostLighthill.xsd ${DST_DIR}/Schemas/CFSDat_PostLighthill.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TemporalBlending.xsd ${DST_DIR}/Schemas/CFSDat_TemporalBlending.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DiffScheme.xsd ${DST_DIR}/Schemas/CFSDat_DiffScheme.xsd
   COMMENT "Updating XML schemata for CFS-Dat..."
 )
