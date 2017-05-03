@@ -442,8 +442,7 @@ macro(DO_TESTING)
   message("Start dashboard...")
   set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
   # see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-  #ctest_start(Nightly)
-  ctest_start(Experimental)
+  ctest_start(Nightly)
 
   message("  Update")
   ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
