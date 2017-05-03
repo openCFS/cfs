@@ -42,7 +42,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
     x = len(vals)
     y = 1
     z = 1
-
+    
   assert(x > 0 and y > 0 and z > 0)  
   
   # density files where not the whole domain is design domain are read and re-written
@@ -1169,7 +1169,28 @@ def read_bloch_properties(xml):
       
   raise RuntimeError("no ev_(i)_max and ev_(i+i)_min pair found")
 
-    
+# calculates non-physical and physical grayness for a given .density.xml file
+def calc_grayness(filename):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
+  mechDens = read_density(filename,"design")
+  physDens = read_density(filename,"physical")
+  
+  # read penalization parameter
+  xml = open_xml(filename)
+  physLower = float(xml.xpath("//cfsErsatzMaterial/header/design/@physical_lower")[0])
+  param = float(xml.xpath("//cfsErsatzMaterial/header/transferFunction/@param")[0])
+  # non-physical lower bound
+  lower = physLower*(1+param)/(1+physLower*param)
+  #substract lower from density field
+  dens_normed = (mechDens-lower) / (1-lower)
+  gray = numpy.average(4*dens_normed*(1-dens_normed))
+  
+  physGray = numpy.average(4*physDens*(1-physDens))
+  
+  return param, gray, physGray
+      
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11
 # a[:,1] *= 0.11

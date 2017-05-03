@@ -182,9 +182,9 @@ parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, 
 
 args = parser.parse_args()
 
-if __name__ == "__main__":
-  import doctest, draw_profile_functions
-  doctest.testmod(draw_profile_functions)
+# if __name__ == "__main__":
+#   import doctest, draw_profile_functions
+#   doctest.testmod(draw_profile_functions)
 
 if args.res_surf_lines is None:
   args.res_surf_lines = args.res
