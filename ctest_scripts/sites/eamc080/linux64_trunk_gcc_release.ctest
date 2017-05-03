@@ -5,8 +5,8 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_release")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-trunk")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-trunk")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 

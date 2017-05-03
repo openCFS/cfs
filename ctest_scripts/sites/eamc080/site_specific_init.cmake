@@ -1,7 +1,7 @@
 # update the testsuites prior to all tests
 
 # needs to set again for the test cases
-set(CTEST_SITE "eamc061")
+set(CTEST_SITE "eamc080")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
@@ -14,10 +14,10 @@ SET(ENV{LANGUAGE} "C")
 
 IF(SITE_DIR MATCHES "trunk")
   SET(CTEST_BUILD_NAME "Update Testsuite trunk")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk_cfs-test")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-trunk")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_cfs-test")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
@@ -32,7 +32,8 @@ MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
 FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
 SET(CTEST_UPDATE_TYPE "svn")
 
-CTEST_START(Nightly )
+#CTEST_START(Nightly)
+CTEST_START(Experimental)
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 CTEST_SUBMIT()
 
