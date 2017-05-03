@@ -904,7 +904,7 @@ def get_surface_point_candidate(profile,alpha,x):
   
   return point
   
-def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points,intersections):
+def get_surface_points(profile,otherProfile1,otherProfile2,n_points,intersections):
   interval = np.linspace(0, 1.0, res)
   dir = profile.direction
 
@@ -1159,15 +1159,13 @@ def generate_basecell(args,info,log):
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
     num_surf_points = 0
-    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],surf_points,num_surf_points,intersections)
-    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],surf_points,num_surf_points,intersections)
-    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],surf_points,num_surf_points,intersections)
+    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],num_surf_points,intersections)
+    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],num_surf_points,intersections)
+    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],num_surf_points,intersections)
     
-    postproc_surface_points(nodes_1,nodes_ids_1,profiles[0],profiles[1],profiles[2],intersections,surf_points)
-    postproc_surface_points(nodes_2,nodes_ids_2,profiles[1],profiles[0],profiles[2],intersections,surf_points)
-    postproc_surface_points(nodes_3,nodes_ids_3,profiles[2],profiles[0],profiles[1],intersections,surf_points)
-    
-    print(num_surf_points)
+    num_surf_points = postproc_surface_points(nodes_1,nodes_ids_1,profiles[0],profiles[1],profiles[2],intersections,surf_points)
+    num_surf_points = postproc_surface_points(nodes_2,nodes_ids_2,profiles[1],profiles[0],profiles[2],intersections,surf_points)
+    num_surf_points = postproc_surface_points(nodes_3,nodes_ids_3,profiles[2],profiles[0],profiles[1],intersections,surf_points)
     
     intersect_poly = vtk.vtkPolyData()
     intersect_poly.SetPoints(intersections)
@@ -1178,13 +1176,13 @@ def generate_basecell(args,info,log):
     # set scalar info of intersection points to 1.0 to make them visible
     vtkData = vtk.vtkFloatArray()
     vtkData.SetName("intersection")
-    vtkData.SetNumberOfValues(num_surf_points)
+    vtkData.SetNumberOfValues(num_surf_points+1)
     
     end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
-    id = num_surf_points
+    id = num_surf_points+1
     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
@@ -1877,6 +1875,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_right)
+      print(vtk_id)
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id != nodes_right[-1].id:
         print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id)))
