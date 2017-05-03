@@ -878,24 +878,32 @@ def create_profiles(args,infoXml=None):
 # @param map: Profile map
 # @param numLines: number of lines on surface that we want to plot
 # @param dir: direction (x,y or z) as (1,2,3)
-def get_surface_lines(map,numLines,dir):
-  lenx = np.size(map,1)
-  nodes = np.zeros((numLines, lenx, 3))
-  for i,grad in enumerate(np.arange(0,360,360.0/numLines)):
-    radii = map[int(grad),:]
-    rad = grad/180.0*np.pi
-    
-    #transformation to cartesian coordinates
-    X,Y = polar_to_cartesian(radii, rad, 0.5*np.ones(lenx))
-    major_dir = dir
-    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
-
-    nodes[i,:,major_dir] = np.linspace(0.0,1.0,lenx)
-    nodes[i,:,minor_dir_1] = X
-    nodes[i,:,minor_dir_2] = Y 
-    
+def get_surface_lines(profile):
+  nodes = np.zeros((res_surf_lines,res, 3))
+  interval = np.linspace(0, 1.0, res)
+  
+  for i,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
+    for j,x in enumerate(interval):
+      nodes[i,j] = get_surface_point_candidate(profile,radians(alpha),x)
+  
   return nodes
 
+# @param alpha in radians
+def get_surface_point_candidate(profile,alpha,x):
+  assert(alpha >= 0 and alpha <= 2.0*np.pi)
+  
+  radius = calc_radius(profile, x, alpha)
+  px,py = polar_to_cartesian(radius, alpha)
+  
+  point = np.zeros(3)
+  major_dir = profile.direction
+  minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+  point[major_dir] = x
+  point[minor_dir_1] = px
+  point[minor_dir_2] = py
+  
+  return point
+  
 def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points,intersections):
   interval = np.linspace(0, 1.0, res)
   dir = profile.direction
@@ -904,21 +912,12 @@ def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points,i
   nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
   for i,x in enumerate(interval):
     for j,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
-      angle = radians(alpha)
-      radius = calc_radius(profile, x, angle)
-      px,py = polar_to_cartesian(radius, angle)
-      
-      point = np.zeros(3)
-      major_dir = dir
-      minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
-      point[major_dir] = x
-      point[minor_dir_1] = px
-      point[minor_dir_2] = py 
+      point = get_surface_point_candidate(profile,radians(alpha),x)
 
-      nodes[j,i] = point      
       if not point_inside_profile(point, otherProfile1) and not point_inside_profile(point, otherProfile2):
 #         nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
         nodes_ids[j,i] = n_points
+        nodes[j,i] = point
         n_points += 1
         
   return nodes,nodes_ids,n_points
@@ -1182,10 +1181,10 @@ def generate_basecell(args,info,log):
     end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
     end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
     
-    id = num_surf_points
-    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
+#     id = num_surf_points
+#     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
+#     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
     
     if not args.skip_surface_gaps:  
       fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
@@ -1251,7 +1250,7 @@ def generate_basecell(args,info,log):
           lines = vtk.vtkCellArray()
           polygon = vtk.vtkPolyData()
           
-          points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,i,points,lines)
+          points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,points,lines)
           
           polygon.SetPoints(points)
           polygon.SetLines(lines)
@@ -1310,9 +1309,7 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
 def plot_3dlines(profile,res,numLines,dir,ha):
   nodes = []
    
-  map = create_profile_map(profile, res)
-         
-  nodes = get_surface_lines(map, numLines, dir)
+  nodes = get_surface_lines(profile)
   color = None
   if dir == 0:
     color = "red"
@@ -2437,16 +2434,14 @@ def triangle_contains_any_neighbors(vertices):
   
   return False
 
-def write_polylines_to_vtk(profile,res,numLines,dir,points,lines):
-  map = create_profile_map(profile, res)
-  lenx = np.size(map,1)
-  nodes = get_surface_lines(map, numLines, dir)
+def write_polylines_to_vtk(profile,res,numLines,points,lines):
+  nodes = get_surface_lines(profile)
   for i in range(numLines):
     vtk_ids = []
-    for j in range(lenx):
+    for j in range(res):
       vtk_ids.append(points.InsertNextPoint(nodes[i,j,0], nodes[i,j,1], nodes[i,j,2]))
-    lines.InsertNextCell(lenx) # specify number of following nodes
-    for j in range(lenx):
+    lines.InsertNextCell(res) # specify number of following nodes
+    for j in range(res):
       lines.InsertCellPoint(vtk_ids[j])
   
   return points,lines
