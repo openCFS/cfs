@@ -369,7 +369,7 @@ def point_inside_profile(p,profile):
   val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
 #   print("radii:",r,val)
   assert(val**2 <= 0.5+1e-6)
-  if (val < r+1e-6):
+  if (val - r < 1e-6):
     return True
   
   return False
@@ -896,7 +896,7 @@ def get_surface_lines(map,numLines,dir):
     
   return nodes
 
-def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points):
+def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points,intersections):
   interval = np.linspace(0, 1.0, res)
   dir = profile.direction
 
@@ -914,16 +914,44 @@ def get_surface_points(profile,otherProfile1,otherProfile2,vtk_points,n_points):
       point[major_dir] = x
       point[minor_dir_1] = px
       point[minor_dir_2] = py 
-       
-      if not point_inside_profile(point, otherProfile1):
-        if not point_inside_profile(point, otherProfile2):
-#       points.add(point)
-          nodes[j,i] = point
-          nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
-          n_points += 1
-  
+
+      nodes[j,i] = point      
+      if not point_inside_profile(point, otherProfile1) and not point_inside_profile(point, otherProfile2):
+#         nodes_ids[j,i] = vtk_points.InsertNextPoint(point)
+        nodes_ids[j,i] = n_points
+        n_points += 1
+        
   return nodes,nodes_ids,n_points
 
+def postproc_surface_points(nodes,nodes_ids,profile,otherProfile1,otherProfile2,intersections,vtk_points):
+  for i,line in enumerate(nodes_ids):
+    for j,p in enumerate(line):
+      # detect jump from surface point to inner point
+      if j > 1 and nodes_ids[i,j] == -1 and nodes_ids[i,j-1] > -1:
+        intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
+        intersections.InsertNextPoint(intersect)
+        if calc_distance(nodes[i,j-1], intersect) < 1e-2:
+          # don't draw if too close
+          nodes_ids[i,j-1] = -1
+      # jump from inner point to surface point    
+      if j > 1 and nodes_ids[i,j] > -1 and nodes_ids[i,j-1] == -1:
+        intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
+        intersections.InsertNextPoint(intersect)
+        if calc_distance(nodes[i,j], intersect) < 1e-2:
+          # don't draw if too close
+          nodes_ids[i,j] = -2
+    
+#   vtk_points.SetNumberOfPoints(sum(nodes_ids > -1))
+  count = 0
+  for i,line in enumerate(nodes_ids):
+    for j,p in enumerate(line):
+      if p > -1:
+        assert(nodes_ids[i,j] > -1)
+        # reset vtk point ids after deleting some surface points in loop above
+        count = vtk_points.InsertNextPoint(nodes[i,j])
+        nodes_ids[i,j] = count
+        
+  return count      
 # use bisection algorithm to find intersection point between two profiles
 # left and right are tuples/lists with x,y,z coordinates
 # assume:
@@ -955,14 +983,13 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
   l = lower
   u = upper
   
-#   print "lower: ", lower, " upper: ", upper
-  eps = 1e-6
+  eps = 1e-12
   midpoint = -1.0
   midpoint_node = np.zeros(3)
-  while abs(u-l) > 1e-4:
+  while abs(u-l) > eps:
     midpoint = 0.5 * (l + u)
     # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
-    plane_coordinates = polar_to_cartesian(calc_radius(profile, midpoint, phi), phi, 0.5)
+    plane_coordinates = polar_to_cartesian(calc_radius(profile, midpoint, phi), phi)
     # direction of axes of plane normal to profile.direction
     # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
     dir1, dir2 =  give_normal_plane_axes(profile.direction)
@@ -1124,15 +1151,25 @@ def generate_basecell(args,info,log):
     min_distance = 0    # store all intersection points computed in find_points_on_surface
     # and visualize them
     surf_points = vtk.vtkPoints()
+    intersections = vtk.vtkPoints()
     
     # first dimension of nodes : surface lines
     # second dimension of nodes: resolution of unit cube
     # third dimension: tuple with x,y,z coordinate
     num_surf_points = 0
-    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],surf_points,num_surf_points)
-    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],surf_points,num_surf_points)
-    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],surf_points,num_surf_points)
+    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],surf_points,num_surf_points,intersections)
+    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],surf_points,num_surf_points,intersections)
+    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],surf_points,num_surf_points,intersections)
     
+    postproc_surface_points(nodes_1,nodes_ids_1,profiles[0],profiles[1],profiles[2],intersections,surf_points)
+    postproc_surface_points(nodes_2,nodes_ids_2,profiles[1],profiles[0],profiles[2],intersections,surf_points)
+    postproc_surface_points(nodes_3,nodes_ids_3,profiles[2],profiles[0],profiles[1],intersections,surf_points)
+    
+    print(num_surf_points)
+    
+    intersect_poly = vtk.vtkPolyData()
+    intersect_poly.SetPoints(intersections)
+    show_write_vtk(intersect_poly, 1000, "intersections.vtp")
     # create vtk cells and points
     cells = vtk.vtkCellArray()
     
@@ -1468,7 +1505,7 @@ def calc_triangle_ratio(v1,v2,v3):
   else: # all three points form a line
     aspect_ratio = 1e6
   
-  assert(aspect_ratio >= 1-1e-6)
+  assert(aspect_ratio >= 1-1e-12)
   
   return aspect_ratio
 
@@ -1494,7 +1531,7 @@ def find_closest_point(ref_node,end_nodes):
 # @param list with all 'end_nodes' 
 # @param ball 'radius' for neighborhood
 def give_next_end_nodes_in_ball(tree,node,end_nodes):
-  radius=6.0/res
+  radius=10.0/res
   # get indices of nearest neighbors within ball radius
   indices = tree.query_ball_point(node.coords,radius)
   candidates = []
