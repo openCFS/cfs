@@ -22,7 +22,13 @@ file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
 file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
 # set the compiler environment
-set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries")
+set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries/linux")
+message("INTEL_COMPILER_PATH = ${INTEL_COMPILER_PATH}")
+if(NOT INTEL_COMPILER_PATH)
+   message("INTEL_COMPILER_PATH not defined")
+else()
+   message("INTEL_COMPILER_PATH is defined")
+endif()
 SET_COMPILER_ENV("ICC")
 
 SET(BUILDTYPE "RELEASE")
