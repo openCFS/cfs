@@ -22,7 +22,7 @@ file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "RELEASE")
-SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "shared_opt no_prec ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 set(CTEST_SITE "${HOSTNAME}") 
 
 # will generate CTestConfig.cmake using our sites variant
