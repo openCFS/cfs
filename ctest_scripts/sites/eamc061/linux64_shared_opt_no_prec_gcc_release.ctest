@@ -6,7 +6,7 @@
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_release")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_no_prec_gcc_release")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
