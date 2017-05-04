@@ -105,29 +105,29 @@ void AeroacousticBase::ScalarProduct(Vector<Double>& retVec,
 
 
 void AeroacousticBase::Node2Cell(Vector<Double>& returnVec,
-      const Vector<Double>& inVec,
-      const UInt& numEquPerEnt,
-      const StdVector<CF::UInt>& targetSource,
-      const StdVector<CF::UInt>& targetSourceIndex,
-      const UInt& numNN,
-      const UInt& maxNumTrgEntities,
-      const UInt& gridDim){
+    const Vector<Double>& inVec,
+    const UInt& numEquPerEnt,
+    const StdVector< StdVector<CF::UInt> >& targetSourceIndex,
+    const UInt& maxNumTrgEntities,
+    const UInt& gridDim){
 
-    returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
-    returnVec.Init();
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
+  returnVec.Init();
+
 
 //#pragma omp parallel for num_threads(NUM_CFS_THREADS)
-    for(UInt i = 0; i < maxNumTrgEntities; ++i){
-      const CF::UInt jEnd = targetSourceIndex[i + 1];
-      CF::UInt targetIndex = i * numEquPerEnt;
-      for (CF::UInt j = targetSourceIndex[i]; j < jEnd; j++) {
-        CF::UInt sourceIndex = targetSource[j];
-        for(UInt k = 0; k < numEquPerEnt; ++k){
-          returnVec[targetIndex + k] += inVec[numEquPerEnt * sourceIndex + k] / numNN;
-        }
+  for(UInt i = 0; i < maxNumTrgEntities; ++i){
+    UInt patchSize = targetSourceIndex[i].GetSize();
+    StdVector<UInt> sM = targetSourceIndex[i];
+    CF::UInt targetIndex = i * numEquPerEnt;
+    for (CF::UInt j = 0; j < patchSize; j++) {
+      CF::UInt sourceIndex = sM[j];
+      for(UInt k = 0; k < numEquPerEnt; ++k){
+        returnVec[targetIndex + k] += inVec[numEquPerEnt * (sourceIndex-1) + k] / patchSize;
       }
     }
   }
+}
 
 
 Vector<Double> AeroacousticBase::ScalarToTwoD(const Vector<Double>& inVec){
