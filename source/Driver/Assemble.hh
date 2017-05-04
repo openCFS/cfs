@@ -25,7 +25,6 @@ namespace CoupledField {
   class TimeFunc;
   class Timer;
   class StdPDE;
-  class AdjointParameters;
   class AlgebraicSys;
 
   //! Class for assembling element/entities matrices and RHS vectors
@@ -125,9 +124,8 @@ namespace CoupledField {
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }
 
-//    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-//    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
-    
+    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
+    std::set<BiLinFormContext*>& GetBiLinForms() { return allBiLinForms_; }
 
     /** Returns the linear forms list for external modification */
     StdVector<LinearFormContext*>& GetLinForms(bool take_ownership = false)
@@ -234,7 +232,6 @@ namespace CoupledField {
 
     /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
     bool lin_forms_given_;
-
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;

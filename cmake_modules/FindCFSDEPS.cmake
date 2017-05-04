@@ -116,10 +116,22 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
-  SET(HDF5_VER "1.8.12")
-  SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
-  SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
+  IF(APPLE)
+    # macOS 10.12 requires gcc as clang does not catch exceptions. gcc comes with brew as 6.2.0 which
+    # is not able to compile hdf5-1.8.12 but works with 1.8.17. However 1.8.17 requires cmake >= 3.0
+    # which is unconvenient for many CFS developers and also requires the following changes for the mingw
+    # cross-compiler (Windows on Linux)  
+    # - hdf5-cross-compile.patch shall be replaced by hdf5-cross-compile.hdf5-1.8.17.patch (mosty case sensitive stuff)
+    # - hdf5-mingw.patch becomes obsolete as the patch now comes from upstream
+    # - TryRun* needs to be checked for the prefix (H5 -> HDF5) ...
+    SET(HDF5_VER "1.8.17")
+    SET(HDF5_MD5 "34bd1afa5209259201a41964100d6203") # 1.8.17
+  ELSE()
+    SET(HDF5_VER "1.8.12")
+    SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
+  ENDIF()
 
+  SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
 
@@ -205,10 +217,11 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
     SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
-    SET(OPENBLAS_BASE "xianyi-OpenBLAS")
-    SET(OPENBLAS_VER "v0.2.10")
-    SET(OPENBLAS_GZ "${OPENBLAS_BASE}-${OPENBLAS_VER}-0-gf20c0f9.tar.gz")
-    SET(OPENBLAS_MD5 "66e64bbc4dc7b602ac3bb359d2933936")
+    SET(OPENBLAS_BASE "OpenBLAS")
+    SET(OPENBLAS_VER "0.2.18")
+    # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
+    SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+    SET(OPENBLAS_MD5 "805e7f660877d588ea7e3792cda2ee65")
     
     INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
     
@@ -223,10 +236,11 @@ IF(USE_BLAS OR USE_LAPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
 
-  IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
-    SET(BLAS_LIBRARY "-framework Accelerate")
-    SET(LAPACK_LIBRARY "-framework Accelerate")
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+  # unclear what it means. Fabian 30.5.16
+  #IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+  #  SET(BLAS_LIBRARY "-framework Accelerate")
+  #  SET(LAPACK_LIBRARY "-framework Accelerate")
+  #ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
 
   #-----------------------------------------------------------------------------
   # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
@@ -248,9 +262,9 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(USE_ARPACK)
     SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
     SET(ARPACK_BASE "arpack")
-    SET(ARPACK_VER "ng_3.1.5")
+    SET(ARPACK_VER "ng-3.2.0")
     SET(ARPACK_GZ "${ARPACK_BASE}-${ARPACK_VER}.tar.gz")
-    SET(ARPACK_MD5 "f773f34079a9c24807da6bc2e72fe6df")
+    SET(ARPACK_MD5 "0ae8a0bb796370b06647d9e005c0f3ea")
   
     INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
   ENDIF(USE_ARPACK)
@@ -293,9 +307,9 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 IF(USE_LIS)
   SET(LIS_URL "${CFS_DS_SOURCES_DIR}/lis")
   SET(LIS_BASE "lis")
-  SET(LIS_VER "1.3.16")
+  SET(LIS_VER "1.7.28")
   SET(LIS_GZ "${LIS_BASE}-${LIS_VER}.tar.gz")
-  SET(LIS_MD5 "7bbbcd2070cca367a98d17767c0ea408")
+  SET(LIS_MD5 "59fbaea19fbf443d9a991ebacd7e58cd")
   
   INCLUDE("${CFSDEPS_DIR}/lis/External_LIS.cmake")
 ENDIF(USE_LIS)
@@ -334,7 +348,9 @@ SET(BOOST_MAJOR_VER 1)
 SET(BOOST_MINOR_VER 58)
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
-SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546")
+SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546") # 1.58
+#SET(BOOST_MD5 "65a840e1a0b13a558ff19eeb2c4f0cbe") # 1.60
+#SET(BOOST_MD5 "6095876341956f65f9d35939ccea1a9f") # 1.61
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
@@ -349,15 +365,26 @@ SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
-# Xerces library is mandatory
+# Xerces library or libxml2, triggered by XML_READER
 #-------------------------------------------------------------------------------
-SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
-SET(XERCES_BASE "xerces")
-SET(XERCES_VER "3.1.1")
-SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
-SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
-  
-INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
+IF(USE_XERCES)
+  SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
+  SET(XERCES_BASE "xerces")
+  SET(XERCES_VER "3.1.3")
+  SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
+  SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
+  INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
+ENDIF(USE_XERCES)
+
+#-------------------------------------------------------------------------------
+# libxml is an alternative for Xerces
+#-------------------------------------------------------------------------------
+IF(USE_LIBXML2)
+  SET(LIBXML2_VER "2.9.4")
+  SET(LIBXML2_GZ "libxml2-${LIBXML2_VER}.tar.gz")
+  SET(LIBXML2_MD5 "ae249165c173b1ff386ee8ad676815f5") 
+  INCLUDE("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
+ENDIF(USE_LIBXML2)
 
 #-----------------------------------------------------------------------------
 # Find VTK 
@@ -488,13 +515,9 @@ ENDIF(USE_IPOPT)
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)
   SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
-  SET(SGPP_BASE "release")
-  SET(SGPP_VER "1.0.0")
-  SET(SGPP_TGZ "${SGPP_BASE}_${SGPP_VER}.tgz")
-  #SET(SGPP_BASE "sgopt")
-  #SET(SGPP_VER "r4892")
-  #SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
-  
+  SET(SGPP_BASE "sgopt")
+  SET(SGPP_VER "2016-03-04_166a3d9")
+  SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
 ENDIF(USE_SGPP)
 

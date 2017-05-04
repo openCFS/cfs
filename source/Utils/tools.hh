@@ -1,13 +1,14 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-#include <math.h>
+#include <cmath>
 
 #include <string>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+#include "Optimization/EigenInfo.hh"
 
 // C++ is so poor that there even is no really standard for pi - > why not????
 #ifndef M_PI
@@ -51,6 +52,9 @@ namespace CoupledField {
   
   /** boost based SplitStringList() which consideres almost all whitespaces */
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
+
+  /** convert a string such that is becomes a valid filename. Might need extensions */
+  std::string ConvertToFilename(std::string org);
 
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
@@ -216,6 +220,12 @@ namespace CoupledField {
        out[i] += fac * other[i];
   }
 
+  /** Search for the smallest value within a row
+   * @param value set when given
+   * @param set the info if given to be used for output
+   * @return the 0-based column index */
+   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
+
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);
@@ -300,6 +310,18 @@ namespace CoupledField {
   /** derivative of
    * @see CalcAbsApproximation() */
   double DerivSmoothAbs(double x, double eps);
+
+  inline unsigned int Product(const StdVector<unsigned int>& vec)
+  {
+    unsigned int prod = 1;
+    for (unsigned int i = 0; i < vec.GetSize(); i++)
+      prod *= vec[i];
+
+    return prod;
+  }
+
+  /** uses the global domain->GetMathParser() to evaluate an expression */
+  double MathParse(const std::string& expr);
 
 } // end of CoupledField
 

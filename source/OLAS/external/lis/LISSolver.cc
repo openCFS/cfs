@@ -1,17 +1,18 @@
 #include "LISSolver.hh"
 
 #include <string>
-
-
 #include "MatVec/SparseOLASMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include <sstream>
 #include <stdio.h>
 
 #ifdef _OPENMP
   #include <omp.h>
 #endif
+
+using std::string;
 
 namespace CoupledField{
 
@@ -67,19 +68,35 @@ namespace CoupledField{
       lisPrecondTypeTuples);
 
 
-LISSolver::LISSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type){
+LISSolver::LISSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
 
-  int argc = -1;                            /* dummy arg count */
+  int argc = -1;                   /* dummy arg count */
   char **argv = NULL;              /* dummy arg */
   Integer err = 0;
   err = lis_initialize(&argc,&argv); CHKERR(err);
 
-  infoNode_ = olasInfo;
-  xml_ = param;
+  infoNode_ =  olasInfo->Get("lis");
+
+  xml_ = pn;
   firstSetup_ = true;
   ownMatrixA_ = false;
-  param->GetValue("zeroInitialValue",resetXZero_,ParamNode::PASS);
 
+  maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
+  tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
+  minTol_     = pn->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
+  logging_    = pn->Has("logging") ? pn->Get("logging")->As<bool>() : false;
+  resetXZero_ = pn->Has("zeroInitialValue") ? pn->Get("zeroInitialValue")->As<bool>() : false;
+
+  PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
+  hdr->Get("maxIter")->SetValue(maxIter_);
+  hdr->Get("tolerance")->SetValue(tolerance_);
+  hdr->Get("minimalTolerance")->SetValue(minTol_);
+
+  // Solve() also sets solver and precond as attributes to xml_ but w/o arguments and also when the elements here are not given
+  if(xml_->Has("solver"))
+    hdr->Get("solver")->SetValue(xml_->Get("solver"), false);
+  if(xml_->Has("precond"))
+    hdr->Get("precond")->SetValue(xml_->Get("precond"),false);
 }
 
 LISSolver::~LISSolver(){
@@ -92,6 +109,7 @@ LISSolver::~LISSolver(){
   if(ownMatrixA_) {
     err = lis_matrix_destroy(A_); CHKERR(err);
   }
+  err = lis_matrix_destroy(A0_); CHKERR(err);
 
   err = lis_precon_destroy(precond_);CHKERR(err);
   err = lis_solver_destroy(solver_);CHKERR(err);
@@ -108,119 +126,131 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
   Integer err=0;
 
-  //we create the matrix...
-  if(firstSetup_){
+  // we create the matrix...
+  // Somehow after the first call the matrix assembled by CFS isn't updated anymore if we don't call lis_matrix_create again.
+  // However w/o destroy we create memory leaks
+
+  if(firstSetup_) {
     err = lis_matrix_create(0,&A_); CHKERR(err);
+  } else {
+    err = lis_matrix_destroy(A0_); CHKERR(err);
   }
 
-  if(stype == BaseMatrix::SPARSE_SYM ){
-    //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
-    //ok we need to think about the matrix conversion a smart way would be nice...
-    EXCEPTION("LIS solver cannot yet handle SCRS matrices. Please set sparseNonSym as storage type.");
-  }else{
-    if ( etype == BaseMatrix::DOUBLE ) {
-      // non-symmteric real case
-      const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
+  if(stype == BaseMatrix::SPARSE_SYM)
+  {
+    // TODO first validate and second, as we anyway work with A0_ we can convert the matrix A0_ only
+    EXCEPTION("LIS solver cannot yet handle SCRS matrices. Please set sparseNonSym as storage type");
+  }
+  if(etype == BaseMatrix::DOUBLE)
+  {
+    // symmetric or non-symmetric real case
+    // in symmetric case convert scrs matrix to crs matrix
+    const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
 
-      if(crs.GetNumCols() != crs.GetNumRows()){
-        EXCEPTION("IS solver only tested for quadratic matrices");
-      }
-      //gather info
-      UInt nnz = crs.GetNnz();
-      UInt dim = crs.GetNumRows();
-
-      Integer * rowPtr = (Integer *)crs.GetRowPointer();
-      Integer * colPtr = (Integer *)crs.GetColPointer();
-      Double * dataPtr = const_cast<Double*>(crs.GetDataPointer());
-
-      err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
-      err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
-      err = lis_matrix_assemble(A_); CHKERR(err);
-
-      // Create RHS vector only the first time, assuming that dimensions will not change
-      if(firstSetup_ ){//|| b_->n != dim){
-        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-        lis_vector_set_all(0.0,b_);
-      }
-      ownMatrixA_ = false;
+    if(crs.GetNumCols() != crs.GetNumRows()){
+      EXCEPTION("IS solver only tested for quadratic matrices");
     }
-    else {
-      // non-symmteric complex case
-      const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
+    //gather info
+    UInt nnz = crs.GetNnz();
+    UInt dim = crs.GetNumRows();
 
-      if(crs.GetNumCols() != crs.GetNumRows()){
-        EXCEPTION("IS solver only tested for quadratic matrices");
-      }
+    Integer * rowPtr = (Integer *)crs.GetRowPointer();
+    Integer * colPtr = (Integer *)crs.GetColPointer();
+    Double * dataPtr = const_cast<Double*>(crs.GetDataPointer());
 
-      //gather info
-      UInt dim = crs.GetNumRows();
+    err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
+    err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
+    err = lis_matrix_assemble(A_); CHKERR(err);
 
-      Integer * rowPtr = (Integer *)crs.GetRowPointer();
-      Integer * colPtr = (Integer *)crs.GetColPointer();
-      Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
+    // Create RHS vector only the first time, assuming that dimensions will not change
+    if(firstSetup_ ){//|| b_->n != dim){
+      err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      lis_vector_set_all(0.0, b_);
+    }
+    ownMatrixA_ = false;
+  }
+  else
+  {
+    // non-symmetric complex case
+    const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
 
-      err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
-      
-      for(UInt row=0; row<dim; row++) {
-        for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
-#if 0	  
-          LIS_INT i=row*2;
-          LIS_INT j=colPtr[col]*2;
-#endif	  
-          LIS_INT i=row;
-          LIS_INT j=colPtr[col];
-          Complex val=dataPtr[col];
-#if 0	  
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-          if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,i+1,  j,-val.imag(),A_);
-          if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,  i,j+1, val.imag(),A_);
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+1,j+1, val.real(),A_);
-#endif	  
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-          if(val.imag())
-          {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
-          }
-          else
-          {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
-          }
-          if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
+    if(crs.GetNumCols() != crs.GetNumRows())
+      EXCEPTION("IS solver only tested for quadratic matrices");
+
+    //gather info
+    UInt dim = crs.GetNumRows();
+
+    Integer * rowPtr = (Integer *)crs.GetRowPointer();
+    Integer * colPtr = (Integer *)crs.GetColPointer();
+    Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
+
+    err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
+
+    for(UInt row=0; row<dim; row++) {
+      for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
+/* #if 0
+        LIS_INT i=row*2;
+        LIS_INT j=colPtr[col]*2;
+#endif */
+        LIS_INT i=row;
+        LIS_INT j=colPtr[col];
+        Complex val=dataPtr[col];
+/* #if 0
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
+        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,i+1,  j,-val.imag(),A_);
+        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,  i,j+1, val.imag(),A_);
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+1,j+1, val.real(),A_);
+#endif */
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
+        if(val.imag())
+        {
+          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
+          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
         }
+        else
+        {
+          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
+          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
+        }
+        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
       }
-      err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
-      err = lis_matrix_assemble(A_); CHKERR(err);
-      if(firstSetup_ ){//|| b_->n != dim){
-        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-        lis_vector_set_all(0.0,b_);
-      }
-      ownMatrixA_ = true;
     }
+    err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
+    err = lis_matrix_assemble(A_); CHKERR(err);
+    if(firstSetup_ ){//|| b_->n != dim){
+      err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      lis_vector_set_all(0.0,b_);
+    }
+    ownMatrixA_ = true;
   }
-
   if(firstSetup_){
     err = lis_vector_duplicate(b_,&x_); CHKERR(err);
+    lis_vector_set_all(0.0,b_);
   }
   if(resetXZero_ || firstSetup_){
     lis_vector_set_all(0.0,x_);
   }
 
+  //copy matrix (needed as a workaround for multiple iterations with different system matrices to solve without memory leak)
+  err = lis_matrix_duplicate(A_,&A0_); CHKERR(err);
+  lis_matrix_set_type(A0_,LIS_MATRIX_CSR);
+  err = lis_matrix_convert(A_,A0_); CHKERR(err);
+
+
   //create the solver
 
-  std::string config;
-  if(firstSetup_ || solver_->A != A_){
-    createConfigString(xml_,config);
+
+  string config;
+  if(firstSetup_ ){//|| solver_->A != A0_){
+    CreateConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
-  }else{
+  } else {
     err = lis_precon_destroy(precond_);CHKERR(err);
   }
-  solver_->A = A_;
+  solver_->A = A0_;
 
   err = lis_precon_create(solver_, &precond_);
-  firstSetup_ = false;
   CHKERR(err);
   if( err ){
     std::cerr << "There was an error creating the preconditioner. Code: " << err << " ...Going to abort" << std::endl;
@@ -229,16 +259,13 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   firstSetup_ = false;
 }
 
-void LISSolver::Solve( const BaseMatrix &sysmat,
-                       const BaseVector &rhs, BaseVector &sol){
-  ParamNode::ActionType at = ParamNode::APPEND;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
-
+void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
+{
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
       Double myEnt =0;
       rhs.GetEntry((UInt)i,myEnt);
-
+    
       b_->value[i] = myEnt;
       //lis_vector_set_value(LIS_INS_VALUE,i,myEnt,b_);
     }
@@ -282,72 +309,61 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
       sol.SetEntry(i,myEnt);
     }
   }
-  Integer iterations;
-  Double lastTime;
-  Double norm;
-  Integer solverCode;
-  lis_solver_get_iters(solver_,&iterations);
-  lis_solver_get_time(solver_,&lastTime);
-  lis_solver_get_residualnorm(solver_,&norm);
+
+  // the general stuff
+  int solverCode;
   lis_solver_get_solver(solver_,&solverCode);
+  infoNode_->Get("solver")->SetValue(lisSolverType.ToString((LISSolverType) solverCode));
 
+  int precondCode;
+  lis_solver_get_precon(solver_,&precondCode);
+  infoNode_->Get("precond")->SetValue(lisPrecondType.ToString((LISPrecondType) precondCode));
 
-  out->Get("iterations")->SetValue(iterations);
-  PtrParamNode timing = out->Get("timing");
-  timing->Get("lastRun")->SetValue(lastTime);
-  PtrParamNode norms = out->Get("norms");
-  norms->Get("residualNorm")->SetValue(norm);
-  out->Get("solverType")->SetValue(lisSolverType.ToString((LISSolverType)solverCode));
+  //ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND); // for an iterative solve each solution should be interesting
+
+  double lastTime = 0.0;
+  lis_solver_get_time(solver_,&lastTime);
+  curr->Get("timing")->SetValue(lastTime);
+
+  double norm = 0.0;
+  lis_solver_get_residualnorm(solver_,&norm);
+  curr->Get("residualNorm")->SetValue(norm);
+  if(norm > tolerance_)
+    infoNode_->Get(ParamNode::SUMMARY)->SetWarning("residual norm " + lexical_cast<string>(norm) + " exceeds target " + lexical_cast<string>(tolerance_) + " but within minimal tolerance " + lexical_cast<string>(minTol_));
+
+  int iterations = 0;
+  lis_solver_get_iter(solver_,&iterations);
+  curr->Get("iterations")->SetValue(iterations);
+  if(norm > minTol_)
+    EXCEPTION("after " << iterations << " iterations reached residual " << norm << " with target " << tolerance_ << " exceeding minminal tolerance " << minTol_); // CFS.cc will add it to info.xml
 }
 
 
-void LISSolver::createConfigString(PtrParamNode configNode, std::string& output){
-  std::string solStr;
-  std::string precondStr;
-  createSolverString(configNode,solStr);
-  createPrecondString(configNode,precondStr);
+void LISSolver::CreateConfigString(PtrParamNode configNode, string& output){
+  string solStr;
+  string precondStr;
+  CreateSolverString(configNode,solStr);
+  CreatePrecondString(configNode,precondStr);
 
   std::stringstream globStream;
 
-  //lets read teh basics
-  PtrParamNode cNode = configNode->Get("maxIter",ParamNode::PASS);
-  if(cNode){
-    UInt maxIter = 1000;
-    configNode->GetValue("maxIter",maxIter);
-    globStream << " -maxiter " << maxIter;
-  }
+  //lets read the basics
+  globStream << " -maxiter " << maxIter_;
 
-  cNode = configNode->Get("tolerance",ParamNode::PASS);
-  if(cNode){
-    Double tol = 1e-12;
-    configNode->GetValue("tolerance",tol);
-    globStream << " -tol " << tol;
-  }
+  globStream << " -tol " << tolerance_;
 
-  cNode = configNode->Get("logging",ParamNode::PASS);
-  if(cNode){
-    bool log = false;
-    configNode->GetValue("logging",log);
-    if(log){
-      globStream << " -print out";
-    }else{
-      globStream << " -print none";
-    }
-  }
+  globStream << " -print " << (logging_ ? "out" : "none");
 
   output = solStr + " " + precondStr + " " + globStream.str() + " -initx_ones false -initx_zeros false";
-  //std::cout << " the config string for LIS was: " << output << std::endl;
-//#ifdef _OPENMP
-  //std::cout << "max number of threads = " << omp_get_num_procs() << std::endl;
-  //std::cout << "number of threads = " << omp_get_max_threads() << std::endl;
-//#endif
+  infoNode_->Get("config")->SetValue(output);
   return;
 }
 
 
-void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output){
-  std::string solverString;
-  std::string nodeName = solverNode->GetName();
+void LISSolver::CreateSolverString(PtrParamNode solverNode, string& output){
+  string solverString;
+  string nodeName = solverNode->GetName();
   PtrParamNode sNode = solverNode->Get("solver",ParamNode::PASS);
 
   std::stringstream solstream;
@@ -402,50 +418,20 @@ void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output)
         solstream << " -irestart "<< restart;
         break;
       case CG:
-        //nothing to do
-        break;
       case BICG:
-        //nothing to do
-        break;
       case CGS:
-        //nothing to do
-        break;
       case BICGSTAB:
-        //nothing to do
-        break;
       case GPBICG:
-        //nothing to do
-        break;
       case TFQMR:
-        //nothing to do
-        break;
       case JACOBI:
-        //nothing to do
-        break;
       case GS:
-        //nothing to do
-        break;
       case BICGSAFE:
-        //nothing to do
-        break;
       case CR:
-        //nothing to do
-        break;
       case BICR:
-        //nothing to do
-        break;
       case CRS:
-        //nothing to do
-        break;
       case BICRSTAB:
-        //nothing to do
-        break;
       case GPBICR:
-        //nothing to do
-        break;
       case BICRSAFE:
-        //nothing to do
-        break;
       case MINRES:
         //nothing to do
         break;
@@ -463,8 +449,8 @@ void LISSolver::createSolverString(PtrParamNode solverNode, std::string& output)
 }
 
 
-void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& output){
-  std::string precondString;
+void LISSolver::CreatePrecondString(PtrParamNode precondNode, string& output){
+  string precondString;
 
   PtrParamNode sNode = precondNode->Get("precond",ParamNode::PASS);
 
@@ -486,7 +472,7 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
 
       PtrParamNode curNode;
       Double fill = 0;
-      UInt restart = 1;
+      Double prec_omega = 1;
       Double alpha = 1.0;
       UInt m = 3;
       Double drop = 0.05;
@@ -500,9 +486,9 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
         solstream << " -ilu_fill "<< fill;
         break;
       case SSOR:;
-        restart = 1;
-        sol[1]->GetValue("restart",restart,ParamNode::PASS);
-        solstream << " -ssor_w "<< restart;
+        prec_omega = 1;
+        sol[1]->GetValue("omega",prec_omega,ParamNode::PASS);
+        solstream << " -ssor_w "<< prec_omega;
         break;
       case HYBRID:
         EXCEPTION("Hybrid preconditioner not supported right now...")

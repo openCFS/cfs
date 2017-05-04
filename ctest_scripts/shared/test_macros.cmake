@@ -516,8 +516,14 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
     if(NOT INTEL_COMPILER_PATH)
-      set(INTEL_COMPILER_PATH "/share/programs/intel/composer_xe_2015.2.164")
-      message("INTEL_COMPILER_PATH not defined, guessing ${INTEL_COMPILER_PATH}")
+      if(EXISTS "/opt/intel/compilers_and_libraries/linux/bin/compilervars.sh") # default for intel 2016
+         set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries/linux")
+      elseif(EXISTS "/share/programs/intel/composer_xe_2015.2.164/bin/compilervars.sh")  
+        set(INTEL_COMPILER_PATH "/share/programs/intel/composer_xe_2015.2.164")
+      else()
+        message(FATAL_ERROR "No INTEL_COMPILER_PATH provied and no default could be found")
+      endif()  
+      message("No INTEL_COMPILER_PATH provied but we will go for ${INTEL_COMPILER_PATH}")
     endif(NOT INTEL_COMPILER_PATH)
 
     SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")

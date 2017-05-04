@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include <boost/algorithm/string/trim.hpp>
 #include "Exception.hh"
 
 namespace CoupledField {
@@ -28,6 +27,12 @@ namespace CoupledField {
     {
         init(NULL, fileName, lineNum, message.c_str(), severity);
     }
+
+    Exception::Exception(const std::string& message, const Exception& reason) throw ()
+    {
+      init(&reason, "NO_FILENAME", 0, message.c_str(), EXCEPTION);
+    }
+
 
     void Exception::init(const Exception* reason,
                const char* const fileName, 

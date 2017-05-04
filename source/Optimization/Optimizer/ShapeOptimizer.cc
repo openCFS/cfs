@@ -93,18 +93,18 @@ void ShapeOptimizer::SolveProblem()
     assert(ptrLS_ != NULL);
   }
 
-  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble, design has changed
+  Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble, design has changed
   optimization->SolveStateProblem();
 
   while(curr_iter <= max_iter && !optimization->DoStopOptimization())
   {
     // in every iteration we need to solve the state problem again
     if(curr_iter > 0){
-      domain->GetBasePDE()->GetAssemble()->SetAllReassemble();
+      Optimization::context->pde->GetAssemble()->SetAllReassemble();
       optimization->SolveStateProblem();
     }
     
-    if(dynamic_cast<ErsatzMaterial*>(optimization)->ToPDE(Optimization::MECH, false) != NULL)
+    if(Optimization::context->ToPDE(App::MECH, false) != NULL)
     {
       if(topgrad_ && curr_iter > 0)
       {
@@ -132,7 +132,7 @@ void ShapeOptimizer::SolveProblem()
       ptrTG_->SolvePoissonProblem(curr_iter);
     }
     optimization->CalcObjective();
-    optimization->CommitIteration(false);
+    optimization->CommitIteration();
     curr_iter = optimization->GetCurrentIteration();
   }
 }

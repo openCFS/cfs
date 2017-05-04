@@ -55,15 +55,9 @@ void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
 
     CRS_Matrix<T>& crsSysMatrix = dynamic_cast<CRS_Matrix<T>&>(sysmatrix);
       // eventually change the layout of the matrix
-      if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
-	(*cla)
-	  << " --------------------------------------\n"
-	  << " MGPrecond::Setup( StdMatrix& ):\n"
-	  "   changing layout of  passed serial system matrix:"
-	  << std::endl;
-	crsSysMatrix.ChangeLayout( CRS_Matrix<T>::LEX_DIAG_FIRST );
-	(*cla) << " --------------------------------------"<<std::endl;
-      }
+    if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
+      crsSysMatrix.ChangeLayout( CRS_Matrix<T>::LEX_DIAG_FIRST );
+    }
     // setup the serial AMG object
     if( ! AMG_->Setup(&crsSysMatrix) ) {
       Error( "MGPrecond::Setup: could not set up the AMG "

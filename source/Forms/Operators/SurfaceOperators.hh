@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     SurfaceOperator.hh
+ *       \file     SurfaceOperators.hh
  *       \brief    Collection of Operators acting on the surfaces of volume elements
  *                 These operators assume always a local point defined on a surface
  *                 and a volume BaseFE. If Not, they will throw an exception

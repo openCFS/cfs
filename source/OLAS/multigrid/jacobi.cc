@@ -74,14 +74,14 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     // create a new array for the diagonal inverses
     if( DiagonalInverse_ == NULL ) {
         Size_ = matrix.GetNumRows();
-        NEWARRAY( DiagonalInverse_, T_Mtype, Size_ );
+        NEWARRAY( DiagonalInverse_, T, Size_ );
     }
 
     const Integer *const pRow = matrix.GetRowPointer();
-    const T_Mtype *const pDat = matrix.GetDataPointer();
+    const T *const pDat = matrix.GetDataPointer();
     // fill the array with the inverses of the diagonal entries
     for( Integer i = 1; i <= Size_; i++ ) {
-        DiagonalInverse_[i] = opType<T_Mtype>::invert(pDat[pRow[i]]);
+        DiagonalInverse_[i] = opType<T>::invert(pDat[pRow[i]]);
     }
 
     // create auxiliary vector
@@ -136,7 +136,7 @@ Step( const CRS_Matrix<T>&                  matrix,
 #endif
 
     // apply one Jacobi step
-    T_Vtype accumulator;
+    T accumulator;
     const Integer *const RowPtr  = matrix.GetRowPointer();
     const Integer *const ColPtr  = matrix.GetColPointer();
     const T       *const DataPtr = matrix.GetDataPointer();

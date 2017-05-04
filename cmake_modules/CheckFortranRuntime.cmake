@@ -59,7 +59,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
       STRING(REPLACE "=" ";" line "${line}")
       LIST(GET line 1 line)
       STRING(REPLACE ${DIRSEP} ";" GFORTRAN_SEARCH_DIRS "${line}")
-      # MESSAGE(FATAL_ERROR "GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+     # MESSAGE(FATAL_ERROR "GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
     ENDIF()
   endforeach()
 
@@ -85,7 +85,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
   # Let's find the shared version of the gfortran runtime lib.
   #---------------------------------------------------------------------------
   FIND_LIBRARY(GFORTRAN_LIBRARY
-    NAMES gfortran
+    NAMES gfortran 
     PATHS ${GFORTRAN_SEARCH_DIRS}
     NO_DEFAULT_PATH
     NO_CMAKE_ENVIRONMENT_PATH
@@ -93,6 +93,15 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     NO_SYSTEM_ENVIRONMENT_PATH
     NO_CMAKE_SYSTEM_PATH 
   )
+
+  # For some strange reason GFORTRAN_LIBRARY needs to be explicitly set to /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a
+  # either via set or -D cmake option with opensuse tumbleweed original packaged crosscompiler
+  IF(GFORTRAN_LIBRARY MATCHES "NOTFOUND")
+    MESSAGE("GFORTRAN_LIBRARY not found: ${GFORTRAN_LIBRARY}")
+    MESSAGE("GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+    MESSAGE("Try /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
+    SET(GFORTRAN_LIBRARY "/usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
+  ENDIF()
 
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY)
 
@@ -252,11 +261,29 @@ IF(CMAKE_CROSSCOMPILING)
     SET(FortranCInterface_EXE
         "${CFS_BINARY_DIR}/CMakeFiles/FortranCInterface/FortranCInterface.exe"
     )
+    
+    FIND_LIBRARY(QUADMATH_LIBRARY
+      NAMES quadmath
+      PATHS ${GFORTRAN_SEARCH_DIRS}
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH 
+    )
+    
+    IF(QUADMATH_LIBRARY MATCHES "NOTFOUND")
+      MESSAGE("WARNING quadmath not found! But this might be harmless?! ${QUADMATH_LIBRARY}")
+    ELSE()
+      LIST(APPEND GFORTRAN_LIBRARY "${QUADMATH_LIBRARY}")
+    ENDIF()
+    
   ENDIF()
 ENDIF()
 
 include(FortranCInterface)
 
+# this stuff is important such that the linker finds the functions if the names are different (uppercase, ...)
 FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS

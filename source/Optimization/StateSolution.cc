@@ -18,156 +18,209 @@ namespace CoupledField {
 DECLARE_LOG(statesol)
 DEFINE_LOG(statesol, "stateSolution")
 
-StateSolutions::StateSolutions()
+StateContainer::StateContainer()
 {
-  this->em_ = NULL;
-  forward_data_ = NULL;
-  isForward = false;
 }
 
-StateSolutions::~StateSolutions()
+StdVector<double> StateContainer::CollectEigenfrequencies(Excitation& ex)
 {
-  StdVector<Function*> funcs = GetFunctions();
-  for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
-  {
-    StdVector<StdVector<Unit*> >& list = data_[funcs[fi]];
-    for(unsigned int deriv = 0; deriv < list.GetSize(); deriv++){
-      for(unsigned int ts = 0; ts < list[deriv].GetSize(); ++ts)
-        delete list[deriv][ts];
-    }
-  }
-}
+  assert(Optimization::manager.context[ex.sequence-1].IsEigenvalue()); // 1-based
 
-void StateSolutions::Init(ErsatzMaterial* em)
-{
-  this->em_ = em;
-}
+  const StdVector<StateSolution*> states = Search(&ex, ex.sequence);
 
-void StateSolutions::Init(Function* f)
-{
-  assert(em_ != NULL);
+  StdVector<double> efs;
+  efs.Reserve(states.GetSize()); // shall be the final size ?!
 
-  StdVector<StdVector<Unit*> >& list = data_[f];
-  
-  unsigned int nts = domain->GetDriver()->GetNumSteps();
+  for(unsigned int i = 0; i < states.GetSize(); i++)
+    if(states[i]->eigenfreq != -1.0) // for degenerate structures we might have negative eigenvalues!!
+      efs.Push_back(states[i]->eigenfreq);
+    else
+      throw Exception("degenerate eigenfrequency for ex=" + ex.GetFullLabel()); // why shall this happen??
 
-  // we have to delete the old data before overwriting with new stuff!
-  for(unsigned int deriv = 0; deriv < list.GetSize(); deriv++){
-    for(unsigned int ts = 0; ts < list[deriv].GetSize(); ++ts)
-      delete list[deriv][ts];
-    list[deriv].Resize(0); // this is not costly, as reallocation is only done if needed
-  }
-  
-  unsigned int nderiv = SECOND_DERIV;
-  if(f != NULL || nts == 0){ // in case of non-transient or adjoint, do not allocate derivative space
-    nderiv = NO_DERIVTYPE;
-  }
+  assert(efs.GetSize() == states.GetSize()); // what shall be the scenario?! If one exists just delete the assert
 
-  // FIXME TODO This resize seems to cause memory leaks!
-  list.Resize(nderiv+1);
-
-  for(unsigned int deriv = NO_DERIVTYPE; deriv <= nderiv; deriv++){
-    list[deriv].Resize(nts);
-    for(unsigned int ts = 0; ts < nts; ++ts)
-      list[deriv][ts] = new Unit(em_);
-  }
-}
-
-
-StateSolutions::Unit::Unit(ErsatzMaterial* em)
-{
-  // we have to delete the old data before overwriting with new stuff!
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-      delete data[i];
-  
-  data.Clear();
-  data.Resize(em->me->excitations.GetSize());
-  
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-    data[i] = new StateSolution(em);
-}
-
-StateSolutions::Unit::~Unit()
-{
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-  {
-    delete data[i];
-    data[i] = NULL;
-  }
-}
-
-StdVector<double> StateSolutions::CollectEigenfrequencies(unsigned int wave_vector)
-{
-  StdVector<Unit*>& dat = (*forward_data_)[0];
-  // number of modesStdVector<Unit*>
-  unsigned int modes = dat.GetSize();
-  assert(domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY && domain->GetDriver()->GetNumSteps() == modes);
-
-  StdVector<double> efs(modes);
-
-  for(unsigned int m = 0; m < modes; m++)
-  {
-    efs[m] = dat[m]->data[wave_vector]->eigenfreq;
-    assert(efs[m] != -1.0);
-  }
+  // the current context is not necessarily the eigenvalue context and we typically don't have constraints for each state
+  assert(Optimization::manager.context[ex.sequence-1].num_eigenmodes >= efs.GetSize());
 
   return efs;
 }
 
-
-StateSolution* StateSolutions::Get(Excitation& excitation, Function* f, unsigned int timestep_mode, const DERIVType derivative)
+Matrix<double> StateContainer::CollectBlochEigenfrequencies(Context* ctxt)
 {
-  StateSolution* sol = Get(excitation.index, f, timestep_mode, derivative);
-  LOG_DBG2(statesol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative
-                  << " -> rhs=" << sol->ToString();
-  return sol;
+  assert(ctxt->DoBloch());
+  assert(ctxt->num_eigenmodes >= 1 && ctxt->num_bloch_wave_vectors >= 1);
+
+  Matrix<double> mat(ctxt->num_eigenmodes, ctxt->num_bloch_wave_vectors);
+  mat.Init();
+
+  for(unsigned int e = 0; e < ctxt->excitations.GetSize(); e++)
+  {
+    const Excitation* ex = ctxt->excitations[e];
+    const StdVector<StateSolution*> states = Search(ex, ex->sequence);
+    for(unsigned int i = 0; i < states.GetSize(); i++)
+    {
+      assert(states[i]->eigenfreq != -1); // why is this handled in CollectEigenfrequencies()?
+      mat[i][e] = states[i]->eigenfreq;
+    }
+  }
+  return mat;
 }
 
-StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned int timestep_mode, const DERIVType derivative)
-{
-  LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative << " iF=" << isForward;
 
-  if(isForward)
-  { // if this is true, f is ignored and forward_data_ is used to avoid one map access
-    if(forward_data_ == NULL)
-    {
-      if(data_.find(NULL) == data_.end())
-        Init((Function*)NULL);
-      forward_data_ = &data_[NULL];
-    }
-    return((*forward_data_)[derivative][timestep_mode]->data[excitation_index]);
+
+StateSolution* StateContainer::Get(const Excitation* ex, const Function* f, int timestep_mode, TimeDeriv derivative)
+{
+  assert(ex != NULL);
+  return Get(*ex, f, timestep_mode, derivative);
+}
+
+StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int timestep_mode, TimeDeriv derivative)
+{
+  LOG_DBG2(statesol) << "SC:G: ex=" << ex.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative;
+
+  assert(timestep_mode == -1 || Optimization::manager.any().eigenvalue); // add transient
+
+  if(data_.Capacity() == 0)
+  {
+    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
+    assert(em != NULL);
+
+    unsigned int size = 2; // more does not harm
+    for(unsigned int i = 0; i < em->constraints.active.GetSize(); i++)
+      if(em->constraints.active[i]->IsAdjointBased())
+        size++;
+    for(unsigned int i = 0; i < em->constraints.observe.GetSize(); i++)
+      if(em->constraints.observe[i]->IsAdjointBased())
+        size++;
+
+    size *= em->GetMultipleExcitation()->excitations.GetSize();
+
+    for(unsigned int i = 0; i < em->manager.context.GetSize(); i++)
+      size *= std::max(em->manager.context[i].num_eigenmodes, (unsigned int) 1);
+
+    data_.Reserve(size);
+
+    LOG_DBG(statesol) << "SC:G reserved " << size;
   }
+
+  StdVector<StateSolution*> found = Search(&ex, ex.sequence, f, timestep_mode, derivative);
+  if(found.GetSize() > 1)
+    EXCEPTION("request non-unique state from StateContainer: ex=" << ex.index << " func=" << (f == NULL ? "NULL" : f->ToString()) << " timestep_mode=" << timestep_mode << " deriv=" << derivative);
+
+  if(found.GetSize() == 1)
+    return found[0];
+
+  // we need to add one
+  if(data_.GetSize() >= data_.Capacity()) // We may not re-map the data as we might have returned pointers to the content before
+    EXCEPTION("StateContainer capacity " << data_.Capacity() << " turned out to be too small");
+
+  data_.Resize(data_.GetSize() + 1);
+  StateSolution& state = data_.Last();
+
+  state.excitation = &ex;
+  state.func = f;
+  state.timestep_mode = timestep_mode;
+  state.derivative = derivative;
+
+  LOG_DBG2(statesol) << "SC:G: add state ex=" << ex.index << " f=" << (f == NULL ? "NULL" : f->ToString()) << " tsm=" << timestep_mode << " der=" << derivative << " -> " << data_.GetSize();
+
+  return &state;
+}
+
+
+StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, const Function* f, int timestep_mode, const TimeDeriv derivative)
+{
+  StdVector<StateSolution*> found;
+
+  assert(seq == -1 || (seq >= 1 && seq <= (int) Optimization::manager.context.GetSize())); // 1-based!
+  assert(ex == NULL || (seq == -1 || ex->sequence == seq)); // require consistency
+  assert(!(ex == NULL && seq == -1)); // one needs to be given
+
+  LOG_DBG2(statesol) << "SC:C search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
+                     << " ts_m=" << timestep_mode << " der=" << derivative;
+
+  for(unsigned int i = 0, n = data_.GetSize(); i < n; i++)
+  {
+    StateSolution& s = data_[i];
+    bool ex_ok = ex == NULL || s.excitation == ex; // if no excitation is given we don't exclude
+    bool seq_ok = seq == -1 ? true : s.excitation->sequence == seq;
+    bool tsm_ok = timestep_mode == -1 ? true : s.timestep_mode == timestep_mode;
+
+    if(ex_ok && seq_ok && s.func == f && tsm_ok && s.derivative == derivative)
+      found.Push_back(&s);
+
+    LOG_DBG2(statesol) << "SC:C cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
+                       << (s.excitation == NULL ? -1 : s.excitation->sequence) << " f=" << (s.func == NULL ? "NULL" : s.func->ToString())
+                       << " ts_m=" << s.timestep_mode << " der=" << s.derivative << " set=" << s.ContainsState() << " -> " << found.GetSize();
+  }
+
+  return found;
+}
+
+void StateContainer::WriteAverage(SinglePDE* pde, int sequence, const Function* f)
+{
+  assert(sequence >= 1 && sequence <= (int) Optimization::manager.context.GetSize()); // 1-based
+
+  if(Optimization::manager.context[sequence-1].IsComplex())
+    WriteAverage<complex<double> >(pde, sequence, f);
+  else
+    WriteAverage<double>(pde, sequence, f);
+}
+
+
+
+template <class T>
+void StateContainer::WriteAverage(SinglePDE* pde, int sequence, const Function* f)
+{
+  StdVector<StateSolution*> states = Search(NULL, sequence, f);
+
+  if(states.GetSize() == 0)
+    return; // shall be only LBM?
+
+  if(states.GetSize() == 1)
+    states[0]->Write(pde);
   else
   {
-    // do we have to init first?
-    if(data_.find(f) == data_.end())
-      Init(f);
-    assert(data_.find(f) != data_.end());
-    return data_[f][derivative][timestep_mode]->data[excitation_index];
+    Vector<T>* raw = dynamic_cast<Vector<T>* >(states[0]->GetVector(StateSolution::RAW_VECTOR));
+
+    Vector<T> sum(raw->GetSize());
+
+    for(unsigned int i = 0; i < states.GetSize(); i++)
+    {
+      raw = dynamic_cast<Vector<T>* >(states[i]->GetVector(StateSolution::RAW_VECTOR));
+      assert(raw->GetSize() == sum.GetSize());
+      assert(states[i]->excitation != NULL);
+      sum.Add((T) states[i]->excitation->normalized_weight, *raw);
+    }
+    StateSolution::Write(pde, &sum);
   }
 }
 
-StdVector<Function*> StateSolutions::GetFunctions() const
-{
-  StdVector<Function*> result;
 
-  for(map<Function*, StdVector<StdVector<Unit*> > >::const_iterator it = data_.begin(); it != data_.end(); ++it)
-  {
-    // LOG_DBG2(statesol) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
-    if(it->first != NULL)
-      result.Push_back(it->first);
-  }
+StdVector<const Function*> StateContainer::GetFunctions() const
+{
+  StdVector<const Function*> result;
+
+  for(unsigned int i = 0; i < data_.GetSize(); i++)
+    if(data_[i].func != NULL && !result.Contains(data_[i].func ))
+      result.Push_back(data_[i].func);
 
   return result;
 }
 
-StateSolution::StateSolution(ErsatzMaterial* em)
+StateSolution::StateSolution()
 {
-  this->em_ = em;
   this->raw = NULL;
   this->rhs = NULL;
   this->select = NULL;
   this->eigenfreq = -1.0;
+  this->set_ = false;
+
+  // by this we identify the solution uniquely
+  this->func = NULL;
+  this->derivative = NO_DERIVTYPE;
+  this->timestep_mode = -1; // only set different for eigenmodes or transient
+  this->excitation = NULL;
 }
 
 StateSolution::~StateSolution()
@@ -176,7 +229,7 @@ StateSolution::~StateSolution()
   delete rhs;
   delete select;
 
-  std::map<Optimization::Application, StdVector<SingleVector* > >::iterator elem_iter;
+  std::map<App::Type, StdVector<SingleVector* > >::iterator elem_iter;
   for(elem_iter = elem.begin(); elem_iter != elem.end(); elem_iter++)
   {
     StdVector<SingleVector* >& data = elem_iter->second;
@@ -187,27 +240,27 @@ StateSolution::~StateSolution()
   }
 }
 
-SolutionType StateSolution::GetSolutionType(SinglePDE* pde, Optimization::Application app)
+SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 {
   switch(app)
   {
-  case Optimization::NO_APP: // up to now
+  case App::NO_APP: // up to now
     assert(pde != NULL);
     return pde->GetNativeSolutionType();
-  case Optimization::MECH:
+  case App::MECH:
     return MECH_DISPLACEMENT;
-  case Optimization::ELEC:
+  case App::ELEC:
     return ELEC_POTENTIAL;
-  case Optimization::HEAT:
+  case App::HEAT:
     return HEAT_TEMPERATURE;
-  case Optimization::ACOUSTIC:
+  case App::ACOUSTIC:
     return ACOU_POTENTIAL;
-  case Optimization::LAPLACE:
+  case App::LAPLACE:
     assert(false);
     break;
-    // app = MECH;
+    // app = App::MECH;
     //solt = MECH_DISPLACEMENT;
-  case Optimization::LBM:
+  case App::LBM:
     return LBM_PROBABILITY_DISTRIBUTION;
   default:
     EXCEPTION("Solution type not implemented");
@@ -225,18 +278,149 @@ std::string StateSolution::ToString()
   return ss.str();
 }
 
-SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app, bool save_sol, TimeDeriv derivative)
 {
-  if (em_->complex_)
+  if (Optimization::context->IsComplex())
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
   else
     return Read<double> (st, pde, app, save_sol, derivative);
 }
 
+template <class T>
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app, bool save_sol, TimeDeriv derivative)
+{
+  assert(derivative == NO_DERIVTYPE); // would change solt!
+
+  // if called via StateContainer::Get() many parameters are set - this is not the case when called via EigenvalueState::Init()
+
+  // these properties were set in StateContainer::Get() on the creation of the object
+  assert(this->derivative == derivative);
+  assert(this->excitation == NULL || this->excitation == Optimization::context->GetExcitation());
+
+  this->excitation = Optimization::context->GetExcitation(); // for EigenvalueState::Init()
+  set_ = true;  // might be already set in practice
+
+  SolutionType solt = GetSolutionType(pde, app);
+
+  LOG_DBG2(statesol) << "SS:R st=" << st << " org='" << ToString();
+
+  if(app == App::LAPLACE)
+  {
+    assert(false); // FIXME
+    app = App::MECH;
+    solt = MECH_DISPLACEMENT;
+  }
+
+  shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
+
+  switch(st)
+  {
+    case GRIDELEM_VECTORS:
+    {
+      Grid* grid = domain->GetGrid();
+
+      StdVector<SingleVector*>& elem_vec = gridelem[app];
+      int n = grid->GetNumElems();
+      if(elem_vec.GetSize() == 0)
+      {
+        elem_vec.Resize(n);
+        for(int ve = 0; ve < n; ve++)
+          elem_vec[ve] = new Vector<T>;
+      }
+
+      ElemList elemList(grid);
+      for(int e = 0; e < n; e++)
+      {
+        elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
+        assert(false);
+        // FIXME const EntityIterator& it = elemList.GetIterator();
+        // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo, derivative);
+      }
+      return NULL;
+    }
+    case ELEMENT_VECTORS:
+    {
+      DesignSpace* design = domain->GetOptimization()->GetDesign();
+
+      if(save_sol)
+      {
+        // we need to copy the solution from the algebraic system to the feFunction
+        LOG_DBG3(statesol) << "SS:R: fe sol=" << fe->GetSingleVector()->ToString();
+        Vector<T> tmpSol;
+        fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
+        LOG_DBG3(statesol) << "SS:R: sys sol=" << tmpSol.ToString();
+        dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
+      }
+
+      // we save the element vectors in elem_vec. Might be empty the first call
+      StdVector<SingleVector*>& elem_vec = elem[app];
+
+      int n = design->GetNumberOfElements(); // the standard design elements
+      int pn = design->CalcPseudoDesignElements(); // optional (multiple) pseudo design elements
+
+      // check for first call
+      if(elem_vec.GetSize() == 0)
+      {
+        elem_vec.Resize(n + pn); // save resize as the size was checked for zero
+        for(int ve = 0; ve < (n + pn); ve++)
+          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete
+      }
+
+      // store the results of the standard design elements in our own structure
+      for(int e = 0; e < n; e++)
+      {
+        DesignElement* de = &design->data[e];
+
+        fe->GetEntitySolution((Vector<T>&) *elem_vec[e], de->elem);
+      }
+
+      // the pseudo design if we have some
+      for(unsigned int r = 0; r < design->GetPseudoDesignRegions().GetSize(); r++)
+      {
+        StdVector<DesignElement>& data = design->GetPseudoDesignRegions()[r];
+
+        for(unsigned int e = 0; e < data.GetSize(); e++)
+        {
+          DesignElement* de = &data[e];
+          assert(de->GetElementSolutionIndex() >= design->GetNumberOfElements());
+          fe->GetEntitySolution(*elem_vec[de->GetElementSolutionIndex()], de->elem);
+          // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo, derivative);
+        }
+      }
+
+      return NULL;
+    }
+    case SEL_VECTOR: // interpreted as RHS_VECTOR
+    case RAW_VECTOR:
+    case RHS_VECTOR:
+    {
+      SingleVector* vec = GetVector<T>(st, true); // create when needed
+      if(st == RAW_VECTOR)
+      {
+        // we need to copy the solution from the algebraic system to the feFunction
+        // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
+        fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
+        assert(derivative == NO_DERIVTYPE);
+        // if not, the above might work ?!
+        // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
+      }
+      else
+        fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
+
+      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString();
+
+      return vec;
+    }
+  }
+  assert(false);
+  return(NULL);
+}
+
+
 /** Writes the solution (raw vector) back to the pde */
 void StateSolution::Write(SinglePDE* pde)
 {
-  if (em_->complex_)
+  if (Optimization::context->IsComplex())
     Write<std::complex<double> >(pde);
   else
     Write<double>(pde);
@@ -245,7 +429,9 @@ void StateSolution::Write(SinglePDE* pde)
 template <class T>
 void StateSolution::Write(SinglePDE* pde)
 {
-  // TODO make robust for LBM
+  assert(set_);
+
+  // TODO make robust for App::LBM
   if(raw != NULL)
   {
     assert(raw->GetSize() != 0);
@@ -255,47 +441,13 @@ void StateSolution::Write(SinglePDE* pde)
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
   }
   else
-    LOG_DBG2(statesol) << "S:W raw not written as it was not set";
-}
-
-
-void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
-{
-  if(domain->GetDriver()->IsComplex())
-    Write<complex<double> >(pde, sol, f, time_step, excitations);
-  else
-    Write<double>(pde, sol, f, time_step, excitations);
-}
-
-template <class T>
-void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int timestep_mode, StdVector<Excitation>& excitations)
-{
-  if(excitations.GetSize() == 1)
-  {
-    sol.Get(0, f)->Write(pde);
-  }
-  else
-  {
-    assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
-    StateSolutions::Unit* unit = sol.data_[f][NO_DERIVTYPE][timestep_mode];
-    assert(unit->data.GetSize() == excitations.GetSize());
-
-    Vector<T> sum(unit->data[0]->raw->GetSize());
-    sum.Init();
-
-    for(unsigned int ex = 0; ex < excitations.GetSize(); ex ++)
-    {
-      StateSolution* s =unit->data[ex];
-      sum.Add((T) excitations[ex].normalized_weight, *(s->raw));
-    }
-    Write(pde, &sum);
-  }
+    LOG_DBG2(statesol) << "SS:W raw not written as it was not set";
 }
 
 
 void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 {
-  LOG_DBG2(statesol) << "S:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
+  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
 
   // get the coefficients from the fefunction
   SingleVector* sys = pde->GetFeFunction(pde->GetNativeSolutionType())->GetSingleVector();
@@ -310,7 +462,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(statesol) << "S:GV st=" << st << ToString() << " create=" << create;
+  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create;
   switch(st)
   {
   case RAW_VECTOR:
@@ -353,123 +505,6 @@ Vector<double>& StateSolution::GetRealVector(StorageType st)
 Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
 {
   return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
-}
-
-template <class T>
-SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
-{
-  assert(derivative == NO_DERIVTYPE); // would change solt!
-
-  SolutionType solt = GetSolutionType(pde, app);
-
-  if(app == Optimization::LAPLACE)
-  {
-    assert(false); // FIXME
-    app = Optimization::MECH;
-    solt = MECH_DISPLACEMENT;
-  }
-
-  shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
-
-  switch(st)
-  {
-    case GRIDELEM_VECTORS:
-    {
-      Grid* grid = domain->GetGrid();
-
-      StdVector<SingleVector*>& elem_vec = gridelem[app];
-      int n = grid->GetNumElems();
-      if(elem_vec.GetSize() == 0)
-      {
-        elem_vec.Resize(n);
-        for(int ve = 0; ve < n; ve++)
-          elem_vec[ve] = new Vector<T>;
-      }
-
-      ElemList elemList(grid);
-      for(int e = 0; e < n; e++)
-      {
-        elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
-        assert(false);
-        // FIXME const EntityIterator& it = elemList.GetIterator();
-        // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo, derivative);
-      }
-      return NULL;
-    }
-    case ELEMENT_VECTORS:
-    {
-      if(save_sol)
-      {
-        // we need to copy the solution from the algebraic system to the feFunction
-        LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString();
-        Vector<T> tmpSol;
-        fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
-        LOG_DBG3(statesol) << "S:R: sys sol=" << tmpSol.ToString();
-        dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
-      }
-
-      // we save the element vectors in elem_vec. Might be empty the first call
-      StdVector<SingleVector*>& elem_vec = elem[app];
-
-      int n = em_->design->GetNumberOfElements(); // the standard design elements
-      int pn = em_->design->CalcPseudoDesignElements(); // optional (multiple) pseudo design elements
-
-      // check for first call
-      if(elem_vec.GetSize() == 0)
-      {
-        elem_vec.Resize(n + pn); // save resize as the size was checked for zero
-        for(int ve = 0; ve < (n + pn); ve++)
-          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete
-      }
-
-      // store the results of the standard design elements in our own structure
-      for(int e = 0; e < n; e++)
-      {
-        DesignElement* de = &em_->design->data[e];
-
-        fe->GetEntitySolution((Vector<T>&) *elem_vec[e], de->elem);
-      }
-
-      // the pseudo design if we have some
-      for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
-      {
-        StdVector<DesignElement>& data = em_->design->GetPseudoDesignRegions()[r];
-
-        for(unsigned int e = 0; e < data.GetSize(); e++)
-        {
-          DesignElement* de = &data[e];
-          assert(de->GetElementSolutionIndex() >= em_->design->GetNumberOfElements());
-          fe->GetEntitySolution(*elem_vec[de->GetElementSolutionIndex()], de->elem);
-          // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo, derivative);
-        }
-      }
-
-      return NULL;
-    }
-    case SEL_VECTOR: // interpreted as RHS_VECTOR
-    case RAW_VECTOR:
-    case RHS_VECTOR:
-    {
-      SingleVector* vec = GetVector<T>(st, true); // create when needed
-      if(st == RAW_VECTOR)
-      {
-        // we need to copy the solution from the algebraic system to the feFunction
-        // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
-        fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
-        assert(derivative == NO_DERIVTYPE);
-        // if not, the above might work ?!
-        // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
-      }
-      else
-        fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
-
-      LOG_DBG3(statesol) << "S:R: st=" << st << " vec=" << vec->ToString();
-
-      return vec;
-    }
-  }
-  assert(false);
-  return(NULL);
 }
 
 }

@@ -52,7 +52,7 @@ namespace CoupledField
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
         * @param observation stuff is added here in observation mode */
-       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
+       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints,int i = -1, std::string entName = "");
 
        /** usually for constraints plus globalSlope for objective */
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
@@ -65,14 +65,14 @@ namespace CoupledField
        /** The bound value for inhomogeneous constraints.
         * In slack bound case it returns 0 as the constraints g <= slack is transformed to g - slack <= 0
         * @see IsSlackBound() */
-       double GetBoundValue() const { return HasSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
+       double GetBoundValue() const { return HasGeneralSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
 
        /** allows to compare with a special bound value as GetBoundValue() woul return 0
-        * @param compare SLACK_VALUE, ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
-       double IsSlackBound(double compare) const { return boundValue_ == compare; }
+        * @param compare SLACK_VALUE, ALPHA_VALUE ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
+       double IsGeneralSlackBound(double compare) const { return boundValue_ == compare; }
 
-       /** is the bound value one of the three special slack cases? */
-       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
+       /** is the bound value one of the four special slack cases? includes alpha only */
+       bool HasGeneralSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
 
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
@@ -94,10 +94,10 @@ namespace CoupledField
 
        /** This is a nice statement for output which adds delta_logging and details for result output.
         * Contains the virtual element for slope */
-       virtual std::string ToString(MultipleExcitation* me = NULL) const;
+       virtual std::string ToString() const;
 
        /** log to info.xml. Overloads Function::ToInfo() */
-       void ToInfo(PtrParamNode in, MultipleExcitation* me);
+       void ToInfo(PtrParamNode in);
        
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
@@ -111,6 +111,9 @@ namespace CoupledField
 
        /** Is it a constraint on the permeability? */
        bool IsBiisotropy() const { return biisotropy_; }
+
+       /** When we do bloch, do we full bloch for all wave vectors? */
+       bool DoFullBloch() const { return !bloch_extremal_; }
 
        // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
 
@@ -149,9 +152,16 @@ namespace CoupledField
         * The vector is empty when we do not do design tracking */
        StdVector<double> pattern;
 
+       /** for bloch eigenvalues which are extremal (searched and not full) */
+       EigenInfo bloch;
+
        static double SLACK_VALUE;
+       static double ALPHA_VALUE;
        static double ALPHA_MINUS_SLACK_VALUE;
        static double ALPHA_PLUS_SLACK_VALUE;
+
+       // number of displacement constraints realized by multiple output constraints
+       UInt output_multiple_nodes;
 
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
@@ -188,16 +198,12 @@ namespace CoupledField
        * Set by AppendSubCondition() */
       bool blown_up_;
 
-
       /** This is only needed for biisotropy constraints, meaning that both permittitvity and permeability shall be isotropic
-       *  biisotropy == true indicates isotropy constraints on the permeability
-       */
+       *  biisotropy == true indicates isotropy constraints on the permeability  */
       bool biisotropy_;
 
-
       /** Information if the constraint is set for the imaginary part
-       *  default=false
-       */
+       *  default=false  */
       bool imag_;
 
       /** this is the virtual base index of this condition w.r.t. all conditions.
@@ -215,6 +221,9 @@ namespace CoupledField
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
+      /** Helper for AddCondition().
+       * Adds the number i to name of output nodes, necessary for displacement constraints */
+      static void AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, int i, std::string entName);
 
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
@@ -225,6 +234,9 @@ namespace CoupledField
 
       /** for bloch mode each constraint is multiplied by wave vector which corresponds to excitation */
       static void AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
+
+      /** In the bloch case shall we have a constraint for every wave vector or search for the extremal */
+      bool bloch_extremal_;
 
    };
 
@@ -309,6 +321,9 @@ namespace CoupledField
 
      /** Calculates the max |value| */
      double CalcMaxValue() const;
+
+     /** count the infeasible elements where the value is out of bound. This can be problematic for linear functions! */
+     int CountInfeasibles() const;
 
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
@@ -402,7 +417,7 @@ namespace CoupledField
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */
-     void ToInfo(PtrParamNode in, MultipleExcitation* me);
+     void ToInfo(PtrParamNode in);
 
      /** Searches in active constraints or all constraints !
       *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
@@ -413,8 +428,14 @@ namespace CoupledField
      }
      Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
+     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true, Function::Access access = Function::NO_ACCESS);
+
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
+
+     /** if so we need to add the bound to the name */
+     bool RequiresBoundForUniqueness(const Condition* g);
+
 
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */
@@ -435,8 +456,8 @@ namespace CoupledField
 
      Condition* Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception);
 
-     /** Helper */
-     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);
+     /* has unique bounds */
+     bool HasUniqueBounds(const StdVector<Condition*>&);
 
      /** save for maxSlope output */
      DesignSpace* space_;

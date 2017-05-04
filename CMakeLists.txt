@@ -205,6 +205,18 @@ IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 ENDIF()
 
 #-----------------------------------------------------------------------------
+# There are two options for an xml reader: xerces or libxml2. Depending on
+# the switch XmlReader::Parse*() use one of them. When a schema is given
+# validation and default values are applied based on DOM, otherwise a faster
+# interface is used. Xerces is the established but tends to make compile time
+# problems on some systems. XML_READER must be either xerces or libxml2. This
+# toggles the hidden USE_XERCES and USE_LIBXML
+#-----------------------------------------------------------------------------
+SET(XML_READER ${XML_READER_DEFAULT}
+  CACHE STRING
+  "Choose either 'xerces' or 'libxml2' as xml reader.")
+
+#-----------------------------------------------------------------------------
 # Options concerning linear algebra and  direct solver libraries The following
 # combinations are implemented
 #
@@ -218,7 +230,7 @@ ENDIF()
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
-  "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
+  "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
 
 SET(CFS_PARDISO "MKL"
   CACHE STRING
@@ -227,7 +239,7 @@ OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SC
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
-OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK."
+OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
   ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
   ${USE_SUITESPARSE_DEFAULT})
@@ -236,35 +248,20 @@ OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
   ${USE_SUPERLU_DEFAULT})
 
-IF(USE_PARDISO OR
-   USE_ARPACK OR
-   USE_ILUPACK OR
-   USE_SUITESPARSE)
-  SET(USE_BLAS ON CACHE BOOL
-    "Use the Basic Linear Algebra Subroutines library." FORCE)
-  SET(USE_LAPACK ON CACHE BOOL
-    "Use the LAPACK linear algebra library." FORCE)
-ELSE(USE_PARDISO OR
-     USE_ARPACK OR
-     USE_ILUPACK OR
-     USE_SUITESPARSE)
-  OPTION(USE_LAPACK
-    "Use the LAPACK linear algebra library."
-    ${USE_LAPACK_DEFAULT})
-  OPTION(USE_BLAS
-    "Use the Basic Linear Algebra Subroutines library."
-    ${USE_BLAS_DEFAULT})
-ENDIF(USE_PARDISO OR
-      USE_ARPACK OR
-      USE_ILUPACK OR
-      USE_SUITESPARSE)
+IF(USE_PARDISO OR USE_ARPACK OR USE_ILUPACK OR USE_SUITESPARSE)
+  SET(USE_BLAS ON CACHE BOOL "Use the Basic Linear Algebra Subroutines library." FORCE)
+  SET(USE_LAPACK ON CACHE BOOL "Use the LAPACK linear algebra library." FORCE)
+ELSE()
+  OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ${USE_LAPACK_DEFAULT})
+  OPTION(USE_BLAS "Use the Basic Linear Algebra Subroutines library." ${USE_BLAS_DEFAULT})
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
-    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
+    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not MKL"
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
@@ -274,6 +271,21 @@ ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 # in the build copy of the schema. Meant for deploying CFS++ to the public.
 # Note that this option is advanced, so you need to toggle in ccmake to see it.
 OPTION(DISABLE_OPTIMIZATION "Disables to run optimization problmes (still compiled)" ${DISABLE_OPTIMIZATION_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# set USE_XERCES and USE_LIBXML2 (disjunct!) according to XML_READER choice
+IF(NOT XML_READER STREQUAL "xerces" AND NOT XML_READER STREQUAL "libxml2")
+  MESSAGE(FATAL_ERROR "Set XML_READER to either 'xerces' or 'libxml2'!")
+ENDIF()
+
+IF(XML_READER STREQUAL "xerces")
+  SET(USE_XERCES ON CACHE BOOL "toggled by XML_READER" FORCE)
+  SET(USE_LIBXML2 OFF CACHE BOOL "toggled by XML_READER" FORCE)
+ELSE()
+  SET(USE_XERCES OFF CACHE BOOL "toggled by XML_READER" FORCE)
+  SET(USE_LIBXML2 ON CACHE BOOL "toggled by XML_READER" FORCE)
+ENDIF()  
+
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore.
@@ -367,18 +379,11 @@ OPTION(USE_FLANN
   "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
   ${USE_FLANN_DEFAULT})
 
-OPTION(DEBUG "Build debug version of the code."
-  ${DEBUG_DEFAULT})
-OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."
-  ${PROFILING_DEFAULT})
-OPTION(COVERAGE "Turn on code coverage output."
-  ${COVERAGE_DEFAULT})
-
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
-  ${CFSTOOL_DEFAULT})
-  
-OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
-  ${CFSDAT_DEFAULT})
+OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
+OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
+OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
+OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
@@ -451,6 +456,7 @@ MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
+MARK_AS_ADVANCED(INTEL_OPT_REPORT)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -460,6 +466,8 @@ MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
+MARK_AS_ADVANCED(USE_XERCES)
+MARK_AS_ADVANCED(USE_LIBXML2)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
 #-----------------------------------------------------------------------------
@@ -529,25 +537,31 @@ OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CFS_CXX_COMPILER_VER} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CMAKE_BUILD_TYPE}"
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables visualization tests for matviz.py
+# Enables python testsuite (contains matviz.py tests) used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS
-  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+OPTION(PYTHON_TESTS "Add testing of python modules (currently stuff from the optimization group)")
+  
+#-----------------------------------------------------------------------------
+# Switch on/off usage of intel optimization report
+#-----------------------------------------------------------------------------
+OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
+
+# The performance tests are meant for the nightly builds. For some strange reasons
+# PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
+OPTION(PERF_TESTS "Add performance tests to the test-cases")
+
 
 #-----------------------------------------------------------------------------
 # Enables tests of Python scripts via doctest

@@ -194,7 +194,7 @@ template<typename T> class ElemStoreSol;
     //! array will be de-allocated, if it belongs to the vector object, and
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
-    void Clear(bool keepCapacity = false) {
+    void Clear(bool keepCapacity = true) {
       size_ = 0;
       if( keepCapacity == false ) {
         if(memBelongsToMe_)
@@ -283,6 +283,11 @@ template<typename T> class ElemStoreSol;
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    /** Sum of all the vector's elements */
+    T Sum() const;
+
+    T Avg() const;
+
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
 
@@ -332,8 +337,6 @@ template<typename T> class ElemStoreSol;
     //! Equality operator
     bool operator==(const Vector<T> &x) const;
     
-    //! Sum of all the vector's elements
-    T Sum() const;
 //@}
 
 
@@ -555,6 +558,8 @@ template<typename T> class ElemStoreSol;
       return data_;
     }
 
+    /** Check if the vector contains the specific value. A way to assert() that is is completely set */
+    bool Contains(const T val) const;
 
     /** Check if the vector contains NAN. To be used by asserts() */
     bool ContainsNaN() const;
@@ -563,28 +568,6 @@ template<typename T> class ElemStoreSol;
     bool ContainsInf() const;
 
     //@}
-
-    // =======================================================================
-    // MISCELLANEOUS METHODS
-    // =======================================================================
-
-    //! \name Miscellaneous methods
-    //@{
-
-    //! Query tag for matrix entries compatible with vector
-    std::string GetTagM() {
-      return AssocType<T>::tagM;
-    }
-
-    //! Query tag for vector entries compatible with vector
-    std::string GetTagV() {
-      return AssocType<T>::tagV;
-    }
-
-    //! Query tag for scalar entries compatible with vector
-    std::string GetTagS() {
-      return AssocType<T>::tagS;
-    }
 
   protected:
 

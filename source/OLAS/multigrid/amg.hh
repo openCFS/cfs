@@ -101,7 +101,7 @@ namespace CoupledField {
  *        <td>alpha</td>
  *        <td>0.15</td>
  *        <td>Setup phase, coarsening. The "alpha" in the classical
- *            Ruge-St�ben setup phase. It controls the judgement
+ *            Ruge-St?ben setup phase. It controls the judgement
  *            whether a dependency is strong or weak: \f$ (i,j) \in S
  *            \Leftrightarrow  d(i,j) \ge \alpha \f$, with the dependency
  *            strength of point i from point j \f$ \displaystyle d(i,j)
@@ -184,7 +184,7 @@ namespace CoupledField {
  *        <td>false</td>
  *        <td>Setup phase, solution phase. If set to \c true, AMG will
  *            print some logging output to (*cla) during setup and
- *            solution cycles.</td>
+ *            solution cycles <b>(option removed!)</b>.</td>
  *     </tr>
  *  </table>
  *  <br><br>

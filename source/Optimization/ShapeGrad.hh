@@ -8,6 +8,7 @@
 #include "General/Environment.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -39,14 +40,16 @@ public:
   void GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                           const unsigned int e,
                           const SubTensorType type = PLANE_STRAIN,
-                          Application app = MECH);
+                          App::Type app = App::MECH);
 
   StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
+    assert(me->excitations.GetSize() == 1);
+    assert(context->GetExcitation() != NULL);
     if(forward_solution)
-      return forward.Get(0)->elem[MECH];
+      return forward.Get(context->GetExcitation())->elem[App::MECH];
     else // adjoint
-      return adjoint.Get(0)->elem[MECH];
+      return adjoint.Get(context->GetExcitation())->elem[App::MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */
@@ -68,9 +71,6 @@ private:
   /** \var int max_volume_to_remove_
    * \brief How much volume should be removed in total (from xml) */
   int max_volume_to_remove_;
-
-  /** This is our material shortcut, currently only mechanic. Set in PostInit() */
-  MechMat* mech_mat_;
 };
 
 } // namespace

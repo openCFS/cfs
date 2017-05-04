@@ -327,7 +327,7 @@ EOF
 EOF
         fi
     else
-        if [ ! -f /Developer/Applications/Xcode.app/Contents/MacOS/Xcode ]; then
+        if [ ! -f /Applications/Xcode.app/Contents/MacOS/Xcode ]; then
             echo "Xcode is  not installed. Please install it from your  MacOS X DVD or"
 	    echo "download it from Apple."
 	    ISOK=0
@@ -368,7 +368,7 @@ EOF
 	CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
 
         if [ $CMAKE_MAJOR_VERSION -ge 2 ]; then
-            if [ $CMAKE_MAJOR_VERSION -eq 2 -a $CMAKE_MINOR_VERSION -lt 8 ]; then
+            if [ $CMAKE_MAJOR_VERSION -eq 2 -a $CMAKE_MINOR_VERSION -lt 8 ] || [ $CMAKE_MAJOR_VERSION -eq 3 -a $CMAKE_MINOR_VERSION -lt 3 ]; then
                 ISOK=0
             fi
         else
@@ -385,7 +385,7 @@ EOF
     . $TMPFILE
     rm $TMPFILE
     if [ "$CMAKEDIR" = "" ]; then
-	echo "CMake 2.8 not found! Please go to www.cmake.org and download the latest"
+	echo "CMake 2.8 or 3.1 not found! Please go to www.cmake.org and download the latest"
 	echo "CMake package for Mac and place it in the /Applications folder.";
 	ISOK=0
     fi
@@ -400,10 +400,10 @@ EOF
 
     # Install required packages
     /opt/local/bin/port install doxygen graphviz texlive wget  || ExitFail
-    /opt/local/bin/port install git-core +svn || ExitFail
+    /opt/local/bin/port install git +svn || ExitFail
 
     for pckg in $PORTSLIST; do
-        /opt/local/bin/port $pckg || ExitFail
+        /opt/local/bin/port install $pckg || ExitFail
     done
 
     # Make sure CMake 2.8 is on PATH
@@ -445,10 +445,12 @@ SetupCMake() {
         return 1
     fi
 
-    CMAKE_MAJOR_VERSION=2
-    CMAKE_MINOR_VERSION=8
-    CMAKE_PATCH_LEVEL=12.2
-
+    CMAKE_MAJOR_VERSION=3
+    CMAKE_MINOR_VERSION=3
+    CMAKE_PATCH_LEVEL=1
+    #CMAKE_MAJOR_VERSION=2
+    #CMAKE_MINOR_VERSION=8
+    #CMAKE_PATCH_LEVEL=12.2
     PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"

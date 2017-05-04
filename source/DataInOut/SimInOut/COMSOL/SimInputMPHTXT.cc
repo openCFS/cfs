@@ -6,7 +6,7 @@
    ElmerGrid - A simple mesh generation and manipulation utility  
    Copyright (C) 1995- , CSC - IT Center for Science Ltd.   
 
-   Author: Peter Råback
+   Author: Peter Raback
    Email: Peter.Raback@csc.fi
    Address: CSC - IT Center for Science Ltd.
             Keilaranta 14
@@ -28,7 +28,7 @@
 #include <unzip.h>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "SimInputMPHTXT.hh"
 
@@ -650,10 +650,8 @@ namespace CoupledField {
       outData[outLength] = 0;
       std::string modelXmlStr = &outData[0];
       
-      // Parse model.xml into a ParamNode using our Xerces parser.
-      CoupledField::Xerces xerces;
-      xerces.SetString(modelXmlStr);
-      PtrParamNode modelNode = xerces.CreateParamNodeInstance();
+      // Parse model.xml into a ParamNode using the compile time set xml reader
+      PtrParamNode modelNode = XmlReader::ParseString(modelXmlStr);
 
       std::cout << modelNode->GetName() << std::endl;
       PtrParamNode selectionNode = modelNode->Get("selection");

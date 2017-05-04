@@ -32,27 +32,16 @@ template <typename T>
 class GaussSeidel : public Smoother<T>
 {
     public:
-
-        // on some systems you need these type definitions, although
-        // the types are already defined in the base class Smoother,
-        // on some systems you don't, even if you use identical compilers
-        //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename AssocType<T>::T_Mtype T_Mtype;
-        //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename AssocType<T>::T_Vtype T_Vtype;
-        //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename AssocType<T>::T_Stype T_Stype;
-
         GaussSeidel();
         ~GaussSeidel();
 
         //@{
         //! get value for the SOR damping parameter Omega
-        T_Stype& GetOmega() { return Omega_; }
-        const T_Stype& GetOmega() const { return Omega_; }
+        T& GetOmega() { return Omega_; }
+        const T& GetOmega() const { return Omega_; }
 
         //! set value for the SOR damping parameter Omega
-        void SetOmega( const T_Stype& omega ) {
+        void SetOmega( const T& omega ) {
             Omega_ = omega;
         }
         //@}
@@ -106,9 +95,9 @@ class GaussSeidel : public Smoother<T>
 
     protected:
 
-        T_Mtype    *DiagonalInverse_; //!< array with inverse diagonal entries
+        T    *DiagonalInverse_; //!< array with inverse diagonal entries
         Integer     Size_;            //!< size of the LES
-        T_Stype     Omega_;           //!< damping factor for a SOR
+        T           Omega_;           //!< damping factor for a SOR
         const bool *PenaltyFlags_;
 };
 

@@ -88,10 +88,11 @@ namespace CoupledField{
       virtual bool IsSolDependent() { return isSolDependent_;}
       
       //! Return if inearform uses updated Lagrangian formulation
-      bool IsCoordUpdate() { 
-        return coordUpdate_;
-      }
+      bool IsCoordUpdate() { return coordUpdate_; }
       
+      /** set coordUpdate, required by shape opt */
+      void SetCoordUpdate(bool val) { coordUpdate_ = val; }
+
       //! Set explicit that linearform is solution dependent
       virtual void SetSolDependent() {isSolDependent_ = true;}
 

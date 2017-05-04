@@ -183,7 +183,7 @@ namespace CoupledField {
       std::map<UInt, std::vector<UInt> >& surfTopo,
       std::map<UInt, Elem::FEType >& surfTypes);
 
-#if(WIN32 || __MINGW32__)
+#if(defined(WIN32) || defined(__MINGW32__))
     bool GetLine(std::string& line, __int64 pos);
 #else
     bool GetLine(std::string& line, std::streampos pos);
@@ -265,7 +265,7 @@ namespace CoupledField {
     std::vector<std::string > lineKEYOPTCmnds_;
     UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numMATCmnds_, numTYPECmnds_, numCMBlocks_, numSFECmnds_;
     UInt numEselCmnds_, numNselCmnds_, numCMCmnds_, numPtsPSECmnds_, linePtsPSEStop_;
-#if(WIN32 || __MINGW32__)
+#if(defined(WIN32) || defined(__MINGW32__))
     std::vector<__int64> linePtsNBlocks_;
     std::vector<__int64> linePtsEBlocks_;
     std::vector<__int64> linePtsNCmnds_;

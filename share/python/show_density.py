@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 from optimization_tools import *
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image, ImageDraw
 import sys
 import argparse
 import glob
@@ -23,12 +22,17 @@ def refine(vals, size):
 
 
 #@ return image, density_array
-def density_to_image(filename, set, design):
+def density_to_image(filename, set, design, fillval=0.0):
   if not is_valid_density_file(filename):
-    print "not a valid density file given!"
+    print("not a valid density file given!")
     sys.exit(1)
 
-  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=0.0)
+
+  if not design and not test_density_xml_attribute(filename, 'physical', set):
+    print("the 'physical' design is not present, use non-physical 'design'")
+    design = 'desgin'
+  
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=fillval)
 
   x, y, z = getDim(dens)
   
@@ -42,7 +46,7 @@ def density_to_image(filename, set, design):
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-      ret[y-i-1][j] = 255 - int(255 * dens[j][i])
+      ret[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
 
   return Image.fromarray(ret), dens
 
@@ -66,8 +70,9 @@ def print_grid_on_image(I, dens):
     draw.line((iii, 0, iii, ysize), fill="Black")
 
 
-def get_image(input, set, design):
-  img,dens = density_to_image(input, set, design)
+# return image and density
+def get_image(input, set, design, fill=0.0):
+  img, dens = density_to_image(input, set, design, fill)
   img.convert('L')
   
   if args.grid:
@@ -76,46 +81,72 @@ def get_image(input, set, design):
   if not args.orgsize:
     ix, iy = dens.shape[0:2]
     f = 800 / max(ix, iy)
-    img = img.resize((f * ix, f * iy))
+    img = img.resize((int(f * ix), int(f * iy)))
   
-  return img
+  return img, dens
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="the density.xml file to visualize or the files with saveall")
+parser.add_argument("input", nargs='*',  help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
-parser.add_argument('--saveall', help="uses input as filter (using wildcards like '*.density.xml' as input) and saves all files as png", action='store_true')
+parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
+parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
+parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default="0.0")
+
 args = parser.parse_args()
 
+input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
+if not args.saveall:
+  if not os.path.exists(input[0]):
+    print("file '" + input[0] + "' not found")
+    os.sys.exit()
+
 if args.info:
-  ids = read_set_ids(args.input)
-  print 'number of sets in ' + args.input + ': ' + str(len(ids)) 
-  if len(ids) > 0:
-    print "first set: '" + ids[0] + "'"
-  if len(ids) > 1:
-    print "last set: '" + ids[-1] + "'"
-    
+  for file in input:
+    ids = read_set_ids(file)
+    print('number of sets in ' + file + ': ' + str(len(ids)))
+    if len(ids) > 0:
+      print("first set: '" + ids[0] + "'")
+    if len(ids) > 1:
+      print("last set: '" + ids[-1] + "'")
+  
+    print_design_info(file, 'design', args.set)
+    print_design_info(file, 'physical', args.set)
   os.sys.exit()  
 
 if args.saveall:
-  files = glob.glob(args.input)
-  print "saveall with filter '" + args.input + "' finds " + str(len(files)) + " files"
-  for f in files:
-    print "read image '" + f + "'"
-    img = get_image(f, args.set, args.design)
+  for f in input:
+    img, den = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
+    print("save '" + base + ".png'")
     img.save(base + '.png')
-
 else:
-  img = get_image(args.input, args.set, args.design)
+  for file in input:
+    img, den = get_image(file, args.set, args.design, args.fill)
   
-  if args.save:
-    print "saving image to file " + args.save
-    img.save(args.save)
-  else:
-    img.show()
+    if args.tile:
+        assert(img.size[0] == img.size[1]) # extend if you need  
+        img = img.resize((int(1000/args.tile), int(1000/args.tile)))
+        nx = img.size[0]
+        ny = img.size[1]
+        dat = numpy.array(img) 
+        tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
+        for i in range(args.tile):
+          for j in range(args.tile):
+            tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
+            if i > 0:
+              tiled[i*nx,:] = 0
+            if j > 0:  
+              tiled[:,j*nx] = 0
+        img = Image.fromarray(tiled)
+    if args.save:
+      print("saving image to file " + args.save)
+      img.save(args.save)
+    else:
+     img.show()
+              

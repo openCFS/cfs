@@ -36,7 +36,7 @@ class Data:
 
     self.data = scipy.interpolate.griddata(input_space, input_data, out, method, self.NO_VAL)
   
-    if method <> 'nearest':
+    if method != 'nearest':
       self.nearest = scipy.interpolate.griddata(input_space, input_data, out, 'nearest')
 
 
@@ -82,7 +82,7 @@ class Data:
         x = self.min[0] + i * self.dx + 0.5 * self.dx
         y = self.min[1] + j * self.dy + 0.5 * self.dy
         o = self.getData(x, y)
-        print 'i=' + str(i) + ' j=' + str(j) + ' -> ' + str((x, y)) + ' -> ' + str(o) 
+        print('i=' + str(i) + ' j=' + str(j) + ' -> ' + str((x, y)) + ' -> ' + str(o)) 
         
   ## dumps the data as image for debug purpose
   def dump_image(self, data_idx):
@@ -91,8 +91,8 @@ class Data:
     minv = min(self.data[:,data_idx])
     maxv = max(self.data[:,data_idx])
     
-    print minv
-    print maxv
+    print(minv)
+    print(maxv)
     
     for j in range(self.ny):
       for i in range(self.nx):
@@ -162,7 +162,7 @@ class Fields:
   # @param prominent see Trace
   # return a list with two trace objects for both indices
   def streamline(self, steplength, minimal, idx, cell, coord = None, prominent = False):
-    x, y = coord if coord <> None else self.index2coord(cell)
+    x, y = coord if coord != None else self.index2coord(cell)
     
     # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
 
@@ -253,7 +253,7 @@ def draw_trace(fig, trace):
       #print path
       gray = max((1.0 - val, 0.0))
       if gray > 1.0:
-        print 'invalid color v=' + str(val) + ' -> ' + str(gray)
+        print('invalid color v=' + str(val) + ' -> ' + str(gray))
         gray = 0.5 
       patch = matplotlib.patches.PathPatch(path, edgecolor=str(gray), facecolor='none', lw=1)
       fig.add_patch(patch)
@@ -344,13 +344,13 @@ def force_prominent_streamline(traces, fields, minimal, step, x, y):
   idx = 0 if fields[0].macro.getData(x,y)[0] > fields[1].macro.getData(x,y)[0] else 1 
   cell = (coord2index(fields[idx].macro, (x, y)))
   trace = fields[idx].streamline(step, minimal[idx], idx, cell, coord = (x, y), prominent = True)
-  if trace <> None:
+  if trace != None:
     traces.append(trace)
 
  
 def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info, force):            
 
-  assert(not (s1_samples == None and s2_samples <> None))
+  assert(not (s1_samples == None and s2_samples != None))
  
   centers, min, max, elem = coords
 
@@ -363,7 +363,7 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
   minimal = (s1_minimal, s1_minimal if s2_samples == None else (1.0 * s2_samples / s1_samples) * s1_minimal)
 
   # separate fields due to possibly separate sampling
-  fields = (Fields(coords, s1, angle, s1_samples), Fields(coords, s2, angle, s2_samples if s2_samples <> None else s1_samples))
+  fields = (Fields(coords, s1, angle, s1_samples), Fields(coords, s2, angle, s2_samples if s2_samples != None else s1_samples))
   
   fig, sub = create_figure(min, max, res, do_save)
 
@@ -387,7 +387,7 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
        if len(val) > 0:
          traces.append(Trace([i[0] for i in tmp], val, cell, 0, prominent=True))
        else:
-         print 'zero forced trace at x=' + str(x)
+         print('zero forced trace at x=' + str(x))
 
   if force == 'rhombus': # assumes 0,0 -> 2,1 two-load case
     assert(not s1_samples == None)
@@ -404,7 +404,7 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
       for j in range(field.macro.ny):
         for i in range(field.macro.nx):
           trace = field.streamline(step, minimal[idx], idx, cell = (i,j))
-          if trace <> None:
+          if trace != None:
             traces.append(trace)
   else:
     trace = fields[0].streamline(step, minimal[0], 0, cell = (0.2/fields[0].macro.nx, 0.2/fields[0].macro.ny))
@@ -435,8 +435,8 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
           
   # finally some statistics        
           
-  print 'drawn traces for s1: ' + str(count[0]) + ' and s2: ' + str(count[1])
-  if info <> None:
+  print('drawn traces for s1: ' + str(count[0]) + ' and s2: ' + str(count[1]))
+  if info != None:
     traces = xml.etree.ElementTree.SubElement(info, "drawnTraces")
     traces.set("s1", str(count[0]))  
     traces.set("s2", str(count[1]))
@@ -463,9 +463,9 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
   
   # print void_sum       
   # print mat_sum
-  print 'below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1]))
-  print 'below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1])) 
-  if info <> None:
+  print('below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1])))
+  print('below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1]))) 
+  if info != None:
     stream = xml.etree.ElementTree.SubElement(info, "streamline")
     stream.set("max_traces_per_sell", str(max_traces_per_cell))
     cells = xml.etree.ElementTree.SubElement(stream, "belowMinimalCells")

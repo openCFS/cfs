@@ -14,14 +14,13 @@ from numpy import sin
 from numpy import cos
 from numpy import sqrt
 
-## print tensor, pyhton makes for 6x6 tensors too early line breaks
+## print tensor nicely
 def dump_tensor(tensor):
   for y in range(tensor.shape[0]):
-    sys.stdout.write(str(y+1) + ": ")
+    msg = '{:2}: '.format(y+1)
     for x in range(tensor.shape[1]):
-      #sys.stdout.write(str(tensor[y][x]) + "\t")
-      print '%(val)10.4g ' % {"val": tensor[y][x]},
-    print ""    
+      msg += '{:10.4g} '.format(tensor[y][x])
+    print(msg)    
 
 
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
@@ -501,30 +500,28 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
   else:
     return first, second
 
-
   
-  
-e2d = numpy.zeros((2,2))
-e2d[0,0] = 1.51
-e2d[0,1] = 0.0
-e2d[1,0] = 0.0
-e2d[1,1] = 1.27
-
-p0 = numpy.zeros((2,3))
-p0[0,0] = 0.01
-p0[0,1] = 0.01
-p0[0,2] = 17.0
-p0[1,0] = -6.5
-p0[1,1] = 23.3
-p0[1,2] = 0.01
-
-e3d = numpy.zeros((6,6))
-e3d[0,0] = 1.0
-
-iso3d = to_mech_tensor(eval("[9.999406e-01,2.999666e-01,9.999406e-01,2.999666e-01,2.999666e-01,9.999406e-01,0.0,0.0,0.0,3.499870e-01,0,0,0,0,3.499870e-01,0,0,0,0,0,3.499870e-01]"))
-
-t3d = HillMandel2Voigt(to_mech_tensor(eval("[0.00401617093935,-2.56173585052e-07,0.00401617094245,2.20294623258e-07,2.2027694833e-07,0.00401566744551,3.38547287661e-07,3.38534101428-07,-5.93702112942e-07,0.00401568927622,-4.13754162037e-08,-6.18071141999e-08,6.94156633186e-08,2.81430319706e-07,0.00401628783183,-6.181071466e-08,-4.13602971057e-08,6.94018181029e-08,2.81408882188e-07,-1.66007908852e-07,0.00401628785427]")))
-  
-triv3d = to_mech_tensor(eval("[1, 0, 0.5, 0, 0, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ]"))  
-  
-orient_0_degrees = to_mech_tensor(eval("[2.022,0.615,0.0148,0.0,0.0,0.0949]"))  
+# e2d = numpy.zeros((2,2))
+# e2d[0,0] = 1.51
+# e2d[0,1] = 0.0
+# e2d[1,0] = 0.0
+# e2d[1,1] = 1.27
+# 
+# p0 = numpy.zeros((2,3))
+# p0[0,0] = 0.01
+# p0[0,1] = 0.01
+# p0[0,2] = 17.0
+# p0[1,0] = -6.5
+# p0[1,1] = 23.3
+# p0[1,2] = 0.01
+# 
+# e3d = numpy.zeros((6,6))
+# e3d[0,0] = 1.0
+# 
+# iso3d = to_mech_tensor(eval("[9.999406e-01,2.999666e-01,9.999406e-01,2.999666e-01,2.999666e-01,9.999406e-01,0.0,0.0,0.0,3.499870e-01,0,0,0,0,3.499870e-01,0,0,0,0,0,3.499870e-01]"))
+# 
+# t3d = HillMandel2Voigt(to_mech_tensor(eval("[0.00401617093935,-2.56173585052e-07,0.00401617094245,2.20294623258e-07,2.2027694833e-07,0.00401566744551,3.38547287661e-07,3.38534101428-07,-5.93702112942e-07,0.00401568927622,-4.13754162037e-08,-6.18071141999e-08,6.94156633186e-08,2.81430319706e-07,0.00401628783183,-6.181071466e-08,-4.13602971057e-08,6.94018181029e-08,2.81408882188e-07,-1.66007908852e-07,0.00401628785427]")))
+#   
+# triv3d = to_mech_tensor(eval("[1, 0, 0.5, 0, 0, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ]"))  
+#   
+# orient_0_degrees = to_mech_tensor(eval("[2.022,0.615,0.0148,0.0,0.0,0.0949]"))  

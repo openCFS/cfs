@@ -54,11 +54,10 @@ namespace CoupledField{
   //! Calculate the element matrix
   template< class COEF_DATA_TYPE,
             class B_DATA_TYPE>
-  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat, EntityIterator& ent1, EntityIterator& ent2) {
-
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat, EntityIterator& ent1, EntityIterator& ent2)
+  {
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-
     MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
@@ -69,48 +68,56 @@ namespace CoupledField{
     const UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =
-        ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
-                              intPoints, weights );
+    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, intPoints, weights );
 
-    elemMat.Resize( nrFncs * bOperator_->GetDimDof());
+    elemMat.Resize(nrFncs * bOperator_->GetDimDof());
     elemMat.Init();
     
-
     // Loop over all integration points
     LocPointMapped lp;
+    // if MSFEM get Element Matrix from material catalog
+    if(domain->GetDesign() != NULL && domain->GetDesign()->designMaterial != NULL && domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
+      lp.Set( intPoints[0], esm, weights[0] );
+      dData_->GetMsfemElementMatrix(dynamic_cast <Matrix<Double> &> (elemMat),lp);
+      LOG_DBG3(bdbint) << "BDB elemMatrix=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum<<" elemMat=" << elemMat.ToString();
+      return;
+    }
     const UInt numIntPts = intPoints.GetSize();
-    for( UInt i = 0; i < numIntPts; i++  ) {
-
+    for( UInt i = 0; i < numIntPts; i++  )
+    {
       // Calculate for each integration point the LocPointMapped
       lp.Set( intPoints[i], esm, weights[i] );
 
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
-      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString();
-
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
+      assert(dMat_.IsSymmetric(1e-8) > 0);
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
+
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
 #ifdef NDEBUG
-      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
-      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0);
+      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_
+      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
-      elemMat += Transpose(bMat_) * dbMat_ * factor_;
+      elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
     }
 
     // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();
@@ -325,6 +332,9 @@ namespace CoupledField{
     // Calculate D-Mat
     dData_->GetTensor(dMat_,lpm);
     dbMat_.Resize(dMat_.GetNumRows(),nrFncs* bOperator_->GetDimDof());
+
+    // this calculates K = B^* C B with B^* is conjugate complex. The effect is only seen form Bloch mode analysis
+    // where we have a complex B matrix.
 
 #ifdef NDEBUG
     dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);

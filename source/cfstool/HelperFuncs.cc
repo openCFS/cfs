@@ -28,7 +28,7 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 
@@ -498,11 +498,7 @@ namespace CFSTool {
       hdf5Reader->ReadStringFromUserData(xmlFile, xml);
     }
 
-    PtrParamNode pNode;
-    
-    CoupledField::Xerces xerces;
-    xerces.SetString(xml);
-    pNode = xerces.CreateParamNodeInstance();
+    PtrParamNode pNode = XmlReader::ParseString(xml);
 
     return pNode;
   }
@@ -586,9 +582,7 @@ namespace CFSTool {
     std::string str = sstr.str();
 
     // Create ParamNode tree from XML.
-    CoupledField::Xerces xerces;
-    xerces.SetString(str);
-    pNode = xerces.CreateParamNodeInstance();
+    pNode = XmlReader::ParseString(str);
 
     return pNode;
   }

@@ -1,4 +1,4 @@
-function [f dfdx dfdy dfdz d2fdxdy d2fdxdz d2fdydz d3fdxdydz] = tricubic_parderiv(i,j,k,E,dx,dy,dz) 
+function [f, dfdx, dfdy, dfdz, d2fdxdy, d2fdxdz, d2fdydz, d3fdxdydz] = tricubic_parderiv(i,j,k,E,dx,dy,dz) 
 % tmp = zeros(5,5,5);
 % tmp(2:end-1,2:end-1,2:end-1) = E;
 % E = tmp;

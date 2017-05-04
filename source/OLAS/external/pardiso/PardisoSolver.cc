@@ -138,6 +138,8 @@ extern "C" {
     // Set default solver type to direct sparse solver
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
+
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -178,8 +180,8 @@ extern "C" {
   PardisoSolver<T>::~PardisoSolver() {
 
     // PARDISO - Last Phase: Cleaning up the parameters
-    if ( firstCall_ == false ) {
-
+    if ( firstCall_ == false )
+    {
       int errorFlag = 0;
       int phase = -1;
 
@@ -197,10 +199,10 @@ extern "C" {
                 &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != PARDISO_NO_ERROR) {
+      if(errorFlag != PARDISO_NO_ERROR) {
         std::cout << "Error occured during cleanup: " << GetErrorString(errorFlag) << std::endl;
         domain->GetInfoRoot()->ToFile();
-        exit(-1); // no exceptions in desctructors
+        exit(-1); // no exceptions in destructors
       }
 
     // Read iterative solver statistics
@@ -219,7 +221,7 @@ extern "C" {
       } catch (std::exception &ex) {
         std::cout << "Error while trying to remove pardiso-ml.out: " << ex.what() << std::endl;
         domain->GetInfoRoot()->ToFile();
-        exit(-1); // no exceptions in desctructors
+        exit(-1); // no exceptions in destructors
       }      
     }
 
@@ -402,7 +404,7 @@ extern "C" {
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
     xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
 
-    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
+    dparm_[6] = 10;    // Maximum number of fill-in in each column in the factor.
     xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
 
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
@@ -600,7 +602,7 @@ extern "C" {
 
 
     // write out additional information in info xml file
-    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
     node->Get("number")->SetValue(tNumfact_.GetCalls());
 
 
@@ -611,8 +613,7 @@ extern "C" {
 
       tSymfact_.ResetStart();
       // log report
-      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
-                               << " ... ";
+      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation) ... ";
 
       // only analyse
       int phase = 11;
@@ -686,7 +687,6 @@ extern "C" {
       tNumfact_.Stop();
       node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
       node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
-      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
 
     node->Get("symbfact/peakMem")->SetValue(iparm_[14]);

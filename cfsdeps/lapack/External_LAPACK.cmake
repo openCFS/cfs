@@ -48,7 +48,6 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/${LAPACK_GZ}"
   "http://www.netlib.org/lapack/${LAPACK_GZ}"
   "${LAPACK_URL}/${LAPACK_GZ}"
 )

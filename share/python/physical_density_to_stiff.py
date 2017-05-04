@@ -14,6 +14,8 @@ parser.add_argument("--hom_stiff", help="hom_start with stiff1 and stiff2", defa
 parser.add_argument("--stiff1", help="dat file with values for stiff1")
 parser.add_argument("--stiff2", help="dat file with values for stiff2")
 parser.add_argument("--rotAngle", help="dat file with values for rotAngle")
+parser.add_argument("--density", help="normal density file is written")
+
 
 args = parser.parse_args()
 if args.stiff1 and args.stiff2 and args.rotAngle:
@@ -69,12 +71,19 @@ else:
         data[i, 2] = args.angle
     write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"], nr)
   else:
-    data = numpy.zeros((len(d), 2))
+    if args.density:
+      data = numpy.zeros((len(d), 1))
+      ndata = numpy.zeros((len(nr), 1))
+    else:
+      data = numpy.zeros((len(d), 2))
     if args.vts:
       for i in range(len(d)):
         data[i, 0] = 1. - numpy.sqrt(1. - d[i])
         data[i, 1] = 1. - numpy.sqrt(1. - d[i])
+    if args.density:
+      for i in range(len(d)):
+        data[i,0] = d[i]
+        ndata[i,0] = nr[i]
+      write_density_file(args.output, data,elemnr=ndata)
     else:
-      data[:, 0] = d
-      data[:, 1] = d
-    write_multi_design_file(args.output, data, ["stiff1", "stiff2"], nr)
+      write_multi_design_file(args.output, data, ["stiff1", "stiff2"], nr)

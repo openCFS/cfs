@@ -277,7 +277,7 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   
   std::ostringstream sstr("");
   sstr << std::setprecision(std::numeric_limits<Double>::digits10)
-      // 1 rpm = 360° / 60 s = 6 °/s
+      // 1 rpm = 360 / 60 s = 6 /s
        << std::scientific << (6.0*rpm) << "*t";
   offsetExpr_.Resize(coordSys_->GetDim());
   offsetExpr_[1] = sstr.str();

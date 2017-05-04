@@ -1,4 +1,4 @@
-function [ file, volume ] = generateFrame(point,filepath,nx)
+function [ file, volume, dimension ] = generateFrame(point,filepath,nx)
 % GENERATEFRAME  -  Generates a quadratic frame.
 %
 % @param:
@@ -49,6 +49,8 @@ density = zeros(nx);
 s1 = point(1)*nx;
 s2 = point(2)*nx;
 
+dimension = 2;
+
 % Frame
 horzBar = [1:round(s1/2),nx-round(s1/2)+1:nx];
 vertBar = [1:round(s2/2),nx-round(s2/2)+1:nx];
@@ -67,4 +69,4 @@ fullpath=pwd;
 cd(oldpath)
 filename = fullfile(fullpath,filename);
 
-file = Homogenization.matrixToMeshOrDensity(density,filename);
+file = Homogenization.matrixToMeshAndDensity(density,filename);

@@ -26,13 +26,13 @@ namespace CoupledField
   struct Elem;
   struct ResultInfo;
   class CoefFunctionOpt;
-  class Context;
   struct LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
   struct MultiMaterial;
+  class Context;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -41,12 +41,12 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param pn we search for design, transferFunction, result and pamping  */
-     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** Creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -54,10 +54,20 @@ namespace CoupledField
      virtual void PostInit(int objectives, int constraints);
 
      /** Consist all regions of the design of a regular grid?.
-      * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
+      * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT
+      * Regular means: All elements have same size but not filled cube*/
      virtual bool IsRegular() const
      {
        return all_regions_regular_;
+     }
+
+     /**
+      * Is the design the whole mesh consisting of regular elements and completely filled by elements?
+      * Is not true for a sparse mesh?
+      */
+     bool IsCubic() const
+     {
+       return is_cubic_;
      }
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
@@ -88,13 +98,22 @@ namespace CoupledField
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
 
+     /** Performs the optimization for the scalar case. This
+      * @return true if design and retScal is set */
+     template <class T>
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
+
+     /** Checks if tensor is positive definite. */
+     template <class T>
+     bool TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
       *  a single element -> as in the coupling term of Piezo SIMP.
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial = false);
+     double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -116,7 +135,7 @@ namespace CoupledField
      
      /** Calculates the corresponding ErsatzElementMatrix for the given element
       * @param t holds the resulting Element Matrix
-      * @param elem Element
+      * @param elem Elem pointer
       * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
       * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
      bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
@@ -146,7 +165,7 @@ namespace CoupledField
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found!
       * @param use_single when there is only one transfer function, use this one and ignore design and application */
-     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true, bool use_single = false);
+     TransferFunction* GetTransferFunction(DesignElement::Type design, App::Type application, bool throw_exception = true, bool use_single = false);
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
@@ -163,10 +182,11 @@ namespace CoupledField
       };
 */
 
-     /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
+     /**<p>check the optResult_1/2/3/... from the optimization/simp/result elements against
       * element results in the pde and conditionally add it as store results to the pde.</p>
-      * @param pde in the current implementation a MechPDE */
-     void AppendOptimizationResults(SinglePDE* pde);
+      * @param pde where to checke for store results
+      * @param warn shall an warning be printed if the result is not referred in the pde */
+     void AppendOptimizationResults(SinglePDE* pde, bool warn);
 
      /** <p>Copies the relevant data from the design element to the result such that it can be written
       * to the output (e.g. gid). This is called from the CalcResults() methods of the relevant pdes
@@ -203,12 +223,17 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
+       // this contains the density filtered gradient or the shape mapping gradient calculation
+       write_gradient_timer_->Start();
+
        if(f == NULL || f->HasDenseJacobian())
          WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
        else
          WriteSparseGradientToExtern(out, vs, access, f, scaling);
+
+       write_gradient_timer_->Stop();
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
@@ -219,6 +244,9 @@ namespace CoupledField
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
      
+     /** creates a gnuplot file for the current iteration. To be triggered by cfs -d and only implemented in shape map design */
+     virtual void WriteGradientFile() {} ;
+
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
       * in SIMP to calculate the original stiffness matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */
@@ -231,9 +259,10 @@ namespace CoupledField
      /** throws also in release mode an exception if there is more than one design */
      void AssertOneDesignOnly();
 
-     /** Service method to find our index in the design vector
-      * @return -1 if not throw_exception and not found */
-     int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+     /** Service method to find our index in the design vector.
+      * @return -1 if not throw_exception and not found
+      * @see double context for ShapeMapDesign::FindDesign()! */
+     virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
@@ -247,11 +276,48 @@ namespace CoupledField
       * @param throw_region_exception if no region matches returns -1 or throws exception
       * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
       * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
-     int Find(const Elem* elem, bool throw_region_exception);
+     //int Find(const Elem* elem, bool throw_region_exception);
 
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+     //int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+
+
+     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false)
+     {
+       // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
+       int idx = elemToDesign[elemNum].first;
+       // reset pseudo designs when we don't look for them explicitly
+       if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
+         idx = -1;
+       if(idx == -1 && throw_exception)
+         EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
+       return idx;
+     }
+
+     int Find(const Elem* elem, bool throw_exception)
+     {
+       // no extensions for pseudo designs implemented, yet!
+       if(FindRegion(elem->regionId) >= 0)
+         return Find(elem->elemNum, throw_exception);
+       // we might have surface element and it is pointing to a design element
+       const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
+       // no chance, we are wrong
+       if(se == NULL) {
+         if(!throw_exception) return -1;
+         EXCEPTION("element " << elem->ToString() << " not in design regions" );
+       }
+       else
+         for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
+           if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
+             return Find(se->ptVolElems[i]->elemNum);
+
+       if(!throw_exception)
+         return -1;
+       EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
+     }
+
+
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
@@ -268,6 +334,9 @@ namespace CoupledField
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
+     /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
+     virtual int GetNumberOfShapeMappingVariables() const { return 0; }
+
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
@@ -276,13 +345,15 @@ namespace CoupledField
      /** Do we do non_design_vicinity for larger filter/slopes */
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
 
+     PtrParamNode GetInfo() { return info_; }
+
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements
       * @see pseudoDesigns_
       * @see totalElements_*/
      StdVector<DesignElement> data;
 
-     /** This is the total set of design variables, including aux designs.
+     /** This is the total set of design variables, including aux designs. Only used for own optimizers like FeasPP
       * @see the difference to totalElements_ */
      StdVector<BaseDesignElement*> full_data;
 
@@ -321,6 +392,9 @@ namespace CoupledField
      /** returns the current design id */
      int GetCurrentDesignId() const { return design_id; }
 
+     /** Currently only used by SGP::OuterToDesign() */
+     void IncrementDesignId() { design_id++; }
+
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />
       * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>
@@ -334,8 +408,9 @@ namespace CoupledField
      /** Dumps the design space */
      std::string ToString();
 
-     /** Writes summary information about design variables and transfer functions into the node */
-     virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+     /** Writes summary information about design variables and transfer functions into the node
+      * @param em might be NULL if called from read ersatz material */
+     virtual void ToInfo(ErsatzMaterial* em);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
@@ -373,7 +448,6 @@ namespace CoupledField
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
-
 
      private:
 
@@ -421,6 +495,15 @@ namespace CoupledField
       * index can be set for extended pde vector element solution storage. */
      unsigned int CalcPseudoDesignElements() const;
 
+     /** Helper function for state tracking (nodeId ist 1-based). Function: 4 * s * (1 - s), where s is the interpolated density at node with nodeId, elemId is necessary for derivative */
+     double EvalInterfaceFunction(int nodeId, bool derivative = false);
+
+     /** Helper function for state tracking; elemId is necessary for derivative */
+     double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
+
+     /** for heat optimization with interface function: this = load * temperate; load is normed to 1 */
+     double CalcTemperatureAtInterface(int nodeId);
+
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
      unsigned int elements;
@@ -440,6 +523,9 @@ namespace CoupledField
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
      int design_id;
+
+     /** This is the design space info node */
+     PtrParamNode info_;
 
   private:
 
@@ -480,19 +566,18 @@ namespace CoupledField
       * -1 for element numbers with no associated design */
      StdVector<std::pair<int, bool> > elemToDesign;
 
-     /** This transforms FormName (Integrator) to Application -> so the enum is actually Application 
+     /** This transforms FormName (Integrator) to App::Type -> so the enum is actually App::Type 
       * but here int because of circular includes :( */
      Enum<int> applicationForm;
 
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
 
-     /** When we do optimization we have a context */
-     Context* context_;
-
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
      bool all_regions_regular_;
+
+     bool is_cubic_;
 
      /** just a cache from regions */
      StdVector<RegionIdType> regionIds_;
@@ -521,8 +606,8 @@ namespace CoupledField
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
 
-     /** This is the design space info node */
-     PtrParamNode info_;
+     /** this contains applying density filtered gradient or chain rule for shape mapping */
+     boost::shared_ptr<Timer> write_gradient_timer_;
 
      ErsatzMaterial::Method method_;
   };
@@ -535,7 +620,7 @@ namespace CoupledField
     BaseMaterial* GetMultiMaterial(const MaterialClass mc);
 
     /** for all material classes */
-    void ToInfo(PtrParamNode in, ErsatzMaterial* opt);
+    void ToInfo(PtrParamNode in);
 
     /** material name, to be allow creation on the fly. */
     std::string name;

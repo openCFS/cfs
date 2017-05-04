@@ -1,4 +1,4 @@
-function [ file, volume ] = generateFramedCrossExact(point,filepath,nx)
+function [ file, volume, dimension ] = generateFramedCrossExact(point,filepath,~)
 % GENERATEFRAMEDCROSS  -  Generates a quadratic frame overlayed with an
 % orthogonal cross, which is rotated by 45 degrees.
 %
@@ -50,8 +50,10 @@ s2 = point(2);
 s3 = point(3);
 s4 = point(4);
 
+dimension = 2;
+
 % Describe shape with Constructive Solid Geometry
-% basicshape = [id; #edges; x-coords; y-coords]
+% basicshape = [id; #edges; x-coords; y-coords; fill]
 % Lower horizontal bar
 rect11 = [3; 4; 0; 1; 1; 0; 0; 0; s1/2; s1/2; zeros(4,1)];
 % Upper horizontal bar
@@ -72,7 +74,7 @@ diag23 = [2; 3; s4/2; 0; 0; 1; 1; 1-s4/2; zeros(6,1)];
 rect0 = [3; 4; 0; 1; 1; 0; 0; 0; 1; 1; zeros(4,1)];
 
 % Combine shapes
-gd = [rect11, rect12, rect21, rect22, diag11, diag12, diag13, diag21, diag22, diag23, rect0];
+gd = [rect11, rect12, rect21, rect22, diag11, diag12, diag13, diag21, diag22, diag23];
 
 % Delete empty shapes
 idx = csgchk(gd);
@@ -80,18 +82,9 @@ gd = gd(:,idx==0);
 
 assert(~isempty(gd),'Assertion failed: Geometry is empty.')
 
-% Shape names
-ns = char('R11', 'R12', 'R21', 'R22', 'D11', 'D12', 'D13', 'D21', 'D22', 'D23', 'R00')';
-ns = ns(:,idx==0);
-
-% Set formula
-sf = ns(:,1)';
-for i=2:size(ns,2)-1
-    sf = [sf,'+',ns(:,i)'];
-end
-
 % Get decomposed CSG
-[geom,bt] = decsg(gd,sf,ns);
+[geom,bt] = decsg(gd);
+gd = [gd, rect0];
 [fullgeom,fullbt] = decsg(gd);
 % Remove subdomain boundaries
 geom = csgdel(geom,bt);
@@ -107,8 +100,20 @@ if nargout == 2
     volume = sum( abs(v1(1,:).*v2(2,:)-v1(2,:).*v2(1,:)) / 2 );
 end
 
-% Mark holes as subdomain 2
-geom(7,~ismember(geom',fullgeom','rows')) = 2;
+% Mark holes as subdomain
+holemarker = max(max(geom(6:7,:))) + 1;
+borders = ~(ismember(geom(1:end-2,:)',fullgeom(1:end-2,:)','rows')...
+          | ismember(geom([1,3,2,5,4],:)',fullgeom(1:end-2,:)','rows'));
+A = fullgeom(6:7,:);
+A(A == 1) = holemarker;
+fullgeom(6:7,:) = A;
+A = geom(6:7,borders);
+A(A == 0) = holemarker;
+geom(6:7,borders) = A;
+boundaries = ~(ismember(fullgeom(1:end-2,:)',geom(1:end-2,:)','rows')...
+          | ismember(fullgeom(1:end-2,:)',geom([1,3,2,5,4],:)','rows'));
+geom = [geom,fullgeom(:,boundaries)];
+
 
 % Write mesh (and possible density) file
 [~,filename] = fileparts(tempname);
@@ -121,4 +126,4 @@ cd(oldpath)
 filename = fullfile(fullpath,filename);
 meshfile = [filename,'.mesh'];
 
-file = Homogenization.geometryToMeshAndDensity(geom,meshfile);
+file = Homogenization.geometryToMeshAndDensity(geom,meshfile,holemarker);

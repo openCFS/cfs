@@ -1,11 +1,10 @@
-#include <def_use_xerces.hh>
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 
 // header for materials
@@ -43,14 +42,7 @@ namespace CoupledField {
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Material/CFS_Material.xsd";
 
-    // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces( schema);
-    xerces->SetFile(fileName);
-
-    parser_ = xerces->CreateParamNodeInstance();
-
-    // release the xerces ressources, the parser_ is not affected
-    delete xerces; 
+    parser_ = XmlReader::ParseFile(fileName, schema);
   }
 
   void XMLMaterialHandler::LoadFromString( const std::string& str ) {
@@ -58,14 +50,7 @@ namespace CoupledField {
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Material/CFS_Material.xsd";
 
-    // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces(schema);
-    xerces->SetString(str);
-
-    parser_ = xerces->CreateParamNodeInstance();
-
-    // release the xerces ressources, the parser_ is not affected
-    delete xerces; 
+    parser_ = XmlReader::ParseString(str, schema);
   }
   
   BaseMaterial * XMLMaterialHandler::LoadMaterial( const std::string matName,

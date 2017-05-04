@@ -24,13 +24,14 @@ class AuxDesign : public DesignSpace
 {
   public:
 
-    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL, unsigned int naux = 0);
+    /** @param naux 1 for slack, 2 for slack and alpha, -1 to identify automatically by pn */
+    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, int naux = -1);
 
     virtual ~AuxDesign() { } ;
 
     /** only for slack variable
      * @see DesignSpace::PostInit() */
-    void PostInit(int objectives, int constraints);
+    virtual void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
     virtual int ReadDesignFromExtern(const double* space_in);
@@ -43,13 +44,7 @@ class AuxDesign : public DesignSpace
 
     /** write gradient out to the vector, appending with shape gradient
      * Sparse and dense! */
-    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const;
-
-    /** write the aux gradient part */
-    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
-    
-    /** sparse version of WriteAuxGradientToExtern */
-    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
+    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
 
     /** same as in DesignSpace, setting elements to zero, but also aux elements */
     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
@@ -67,26 +62,46 @@ class AuxDesign : public DesignSpace
     /** @see DesignSpace::HasSlackVariable() */
     bool HasSlackVariable() const { return slack_ != NULL; }
 
-    bool HasAlphaVariable() const { return alpha_ != NULL; }
+    bool HasAlphaVariable() const { assert(!(slack_ == NULL && alpha_ != NULL)); return alpha_ != NULL; }
+
+    BaseDesignElement* GetSlackDesign() { return &(aux_design_[0]); }
+
+    BaseDesignElement* GetAlphaDesign() { return &(aux_design_[1]); }
 
     /** @see DesignSpace::GetSlackVariable() */
     double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
 
     double GetAlphaVariable() const { assert(alpha_ != NULL); return aux_design_[1].GetDesign(); }
 
-
     /** see DesignSpace::ToInfo() */
-    void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+    virtual void ToInfo(ErsatzMaterial* em);
 
     /** @see DesignSpace::GetDesignElement() */
-    BaseDesignElement* GetDesignElement(unsigned int idx);
+    virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
     /** design element with only Aux idx */
     BaseDesignElement* GetAuxDesignElement(unsigned int idx);
 
   protected:
 
-    bool alsomatopt_;
+    /** write the aux gradient part */
+    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
+
+    /** sparse version of WriteAuxGradientToExtern */
+    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
+
+    /** compute the offset of aux design. It depends on exoprt_fe_design_, DesignSpace::data and */
+    unsigned int AuxDesignOffset() const;
+
+    /** is DesignSpace::data seen from an external optimizer?
+     * This covers WriteDesignToExtern(), CompareDesign(), ...
+     * If not we either do shape optimization or we do shape mapping where we actually use DesignSpace::data but do not export it */
+    bool exoprt_fe_design_;
+
+    /** are the aux parameters located last? Only for non shape opt but with standard simp and shape mapping. false does not mean first
+     * but can be intermediate.
+      @see AuxDesignOffset() */
+    bool tailing_aux_design_;
 
     StdVector<BaseDesignElement> aux_design_;
 

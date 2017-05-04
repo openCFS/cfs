@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
+#include "TypeDefs.hh"
 #include "General/Exception.hh"
-#include "MatVec/TypeDefs.hh"
 
 //! \file opdefs.hh
 
@@ -219,13 +219,8 @@ namespace CoupledField {
       return Abs2( z );
     }
 
-    //! this function takes the transpose of the first argument A
-    //! and multiplies it by the second argument x. This is the same
-    //! as the standard product defined on the two types T_Mtype and
-    //! T_Vtype unless T_Mtype is an actual tiny matrix in which case
-    //! the transpose of the matrix is used. The result is stored in y.
-    inline static T multT( const T &A,
-                           const typename AssocType<T>::T_Vtype &x ) {
+    /** this implementation does noting als than mutiplying two scalars */
+    inline static T multT( const T& A, const T& x) {
       return A*x;
     }
 

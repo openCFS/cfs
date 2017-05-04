@@ -26,7 +26,8 @@ if strcmp(ext,'.mesh')
         line = fgetl(fid);
     end
     numTriangle = str2double(line(20:end));
-    fgetl(fid);
+    line = fgetl(fid);
+    numTriangleQuad = str2double(line(20:end));
     line = fgetl(fid);
     numQuadr = str2double(line(20:end));
 
@@ -55,11 +56,15 @@ if strcmp(ext,'.mesh')
 
     % Read 2D elements
     if numTriangle > 0
-        elems = fscanf(fid,'%d 4 3 mech\n%d %d %d',[4,num2DElems]);
+        elems = fscanf(fid,'%d 4 3 mech\n%d %d %d',[4,numTriangle]);
+        elems = elems(2:4,:)';
+    end
+    if numTriangleQuad > 0
+        elems = fscanf(fid,'%d 5 3 mech\n%d %d %d',[4,numTriangleQuad]);
         elems = elems(2:4,:)';
     end
     if numQuadr > 0
-        elems = fscanf(fid,'%d 6 4 mech\n%d %d %d %d',[5,num2DElems]);
+        elems = fscanf(fid,'%d 6 4 mech\n%d %d %d %d',[5,numQuadr]);
         elems = elems(2:5,:)';
     %     elems = fscanf(fid,'%d 6 4 region%d\n %d %d %d %d',[6,num2DElems]);
     %     elems = elems(3:6,:)';

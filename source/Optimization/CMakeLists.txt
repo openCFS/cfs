@@ -5,6 +5,7 @@ SET(OPTIMIZATION_SRCS
   LevelSet.cc
   Condition.cc
   ShapeOpt.cc
+  ShapeMapping.cc
   TopGrad.cc
   OptimizationMaterial.cc
   Excitation.cc
@@ -12,7 +13,6 @@ SET(OPTIMIZATION_SRCS
   StateSolution.cc
   SIMP.cc
   PiezoSIMP.cc
-  LBMSIMP.cc
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc

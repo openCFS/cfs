@@ -15,8 +15,6 @@ namespace CoupledField
 {
 
 class Optimization;
-class Timer;
-
 using std::string;
 
 /** Interface class to the SnOpt-Optimizer
@@ -96,11 +94,11 @@ private:
   /** Helper function for setting an integer option
    *  currently known options are:
    *  minor_iterations_limit: maximum (total!) number of iterations of the simplex method or the QP algo
-   *  superbasics_limit: default min{500, #nonlin-vars + 1}, limit of storage allocated for suberbasics variables
+   *  superbasics_limit: default min{500, nonlin-vars + 1}, limit of storage allocated for suberbasics variables
    *  timing_level: default = 3, 0 suppresses output
-   *  verify_level: \in [-1,.., 3], finite difference checks for gradients
-   *  major_print_level: \in {0, 1, 11, 111, 1111, 11111}, controls amount of output
-   *  minor_print_level: \in {0, 1, 11}, controls amount of output for QP subproblem
+   *  verify_level: in [-1,.., 3], finite difference checks for gradients
+   *  major_print_level: in {0, 1, 11, 111, 1111, 11111}, controls amount of output
+   *  minor_print_level: in {0, 1, 11}, controls amount of output for QP subproblem
    */
   void SetIntegerValue(const std::string& key, integer value);
   
@@ -109,7 +107,7 @@ private:
    *  major_optimality_tolerance: final accuracy of dual variables
    *  major_feasibility_tolerance: how accurately should the nonlin constraints be fulfilled
    *  minor_feasibility_tolerance: tolerance with which all variables satisfy upper/lower bounds
-   *  linesearch_tolerance: \in [0, 1], default 0.9, higher is less accurate
+   *  linesearch_tolerance: in [0, 1], default 0.9, higher is less accurate
    */
   void SetNumericValue(const std::string& key, double value);
   
@@ -220,11 +218,6 @@ private:
   
   /** filename of snopt output file */
   std::string outfilename;
-
-  /** Timer for SnOpt */ 
-  boost::shared_ptr<Timer> timer_;
-  /** Timer for callback function */ 
-  boost::shared_ptr<Timer> timer_callback_;
 };
 
 } // end of namespace

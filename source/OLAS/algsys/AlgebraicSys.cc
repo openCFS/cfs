@@ -49,13 +49,13 @@ namespace CoupledField {
   // ***********************
   AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
   {
+    size_ = 0;
     myParam_ = param;
     myInfo_ = info;
     graphManager_       = NULL;
     solver_             = NULL;
     eigenSolver_        = NULL;
     precond_            = NULL;
-    
     
     numFcts_            = 0;
     numBlocks_          = 0;
@@ -105,9 +105,6 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
-    
-    // create timer object
-    graphTimer_ = boost::shared_ptr<Timer>(new Timer());
   }
 
 
@@ -455,9 +452,6 @@ namespace CoupledField {
           "AlgebraicSys::CreateLinSys() first!" );
     }
     
-    // start setup timer of preconditioner
-    precond_->GetSetupTimer()->Start();
-    
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
@@ -465,10 +459,6 @@ namespace CoupledField {
     } else {
       precond_->Setup( *(effMat_));
     }
-    
-    // stop setup timer of preconditioner
-    precond_->GetSetupTimer()->Stop();
-
   }
 
   void AlgebraicSys::SetupSolver() {
@@ -502,8 +492,7 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch ) {
+  void AlgebraicSys::SetupEigenSolver(UInt numFreq, Double shift, bool isQuadratic, bool sort, bool bloch) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -535,9 +524,7 @@ namespace CoupledField {
       }
 
       // Setup the quadratic eigenvalue solver
-      eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                           (*sysMat_[MASS])(0,0),
-                           (*sysMat_[DAMPING])(0,0), numFreq, shift );
+      eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), (*sysMat_[DAMPING])(0,0), numFreq, shift, sort);
     } else {
       if( dampPresent == true ) {
         WARN("Although a damping matrix is present, only a generalized "
@@ -547,13 +534,10 @@ namespace CoupledField {
       
       if( massPresent == true ) {
         // Setup the eigenvalue solver for generalized EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             (*sysMat_[MASS])(0,0),
-                             numFreq, shift, bloch);
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), numFreq, shift, sort, bloch);
       } else {
         // Setup the eigenvalue solver for standard EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             numFreq, shift );
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), numFreq, shift, sort);
       }
     }
 
@@ -642,8 +626,6 @@ namespace CoupledField {
     	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
     }
 
-    myInfo_->GetRoot()->ToFile(); // write current info state
-
     // start timer of solver
     solver_->GetSolveTimer()->Start();
     
@@ -659,8 +641,6 @@ namespace CoupledField {
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
         usingPenalty_ ) {
       idbcHandler_->SetDofsToIDBC( effSol_, deltaIDBC );
-      (*cla) << " Inserted Dirichlet values into initial guess"
-          << std::endl;
     }
 
     // Assume that everything will go well
@@ -922,10 +902,6 @@ namespace CoupledField {
     
     LOG_DBG(algSys) << "Setup matrix graph for " << numFcts << " functions.";
     LOG_DBG(algSys) << "Use distinct graphs:" << useDistinctGraphs << std::endl;
-    
-    
-    // start timer for graph setup
-    graphTimer_->Start();
     
     distinctMatGraphs_ = useDistinctGraphs;
     
@@ -1517,8 +1493,6 @@ namespace CoupledField {
       } // loop functions
     } // loop blocks
     
-    // stop timer for graph setup
-    graphTimer_->Stop();
   }
 
 
@@ -1602,7 +1576,7 @@ namespace CoupledField {
                                          const StdVector<Integer>& eqns,
                                          StdVector<UInt>& blockNums,
                                          StdVector<UInt>& indices ) {
-    LOG_DBG(algSys) << "Mapping fctId,eqnNr to blockNum,indices";
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
     
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
@@ -2289,12 +2263,12 @@ namespace CoupledField {
                                     const FeFctIdType fctId,
                                     StdVector<Integer>& eqnNrs ) {
 
-    LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
-    LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
-    LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
+    LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
+    LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
+    LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
     
     // Ensure that there are as many equations as vector entries
-    assert( eqnNrs.GetSize() == elemRHS.GetSize());
+    assert(eqnNrs.GetSize() == elemRHS.GetSize());
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
@@ -2785,7 +2759,7 @@ namespace CoupledField {
       if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
 
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
-
+        //sbmSymm_ = false;
         // Trigger generation of sub-matrix
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable
@@ -2896,8 +2870,7 @@ namespace CoupledField {
       //  Check Eigenvalue Solver 
       // -------------------------
       std::string eSolverId = solStrat_->GetEigenSolverId();
-      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", 
-                                               ParamNode::INSERT);
+      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", ParamNode::INSERT);
       ParamNodeList esNodes =  eSolverList->GetChildren();
       PtrParamNode eSolverNode;
       for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
@@ -2924,8 +2897,7 @@ namespace CoupledField {
       // .. if not defined -> LDL / ILDL (depending on symmetry)
       // .. if defined -> Check if solver suites symmetry type of matrix
       std::string solverId = solStrat_->GetSolverId();
-      PtrParamNode solverList = myParam_->Get("solverList", 
-                                              ParamNode::INSERT);
+      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
       ParamNodeList sNodes =  solverList->GetChildren();
       PtrParamNode solverNode;
       for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
@@ -3136,9 +3108,6 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Print matrix information";
     
     PtrParamNode setupNode = myInfo_->Get("setup");
-    
-    // add timer
-    setupNode->Get("setupTime")->SetValue(graphTimer_);
     
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");

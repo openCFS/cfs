@@ -18,79 +18,8 @@
 namespace CoupledField
 {
 class SinglePDE;
-class StateSolution;
 class SingleVector;
 
-/** As the solutions come for multiple excitations in sets we store the list and the
- * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1.
- *
- * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only is we
- * do Bloch mode optimization where an excitation is a wave_vector.  */
-class StateSolutions
-{
-public:
-  friend class StateSolution;
-
-  StateSolutions();
-
-  ~StateSolutions();
-
-  /** init when em is known */
-  void Init(ErsatzMaterial* em);
-
-  /** The solution is identified by Function, excitation index (0-based) and time step.
-   * @param f the function is NULL for the forward problems, for the adjoints it needs to be given!
-   * @param timestep_mode only for transient or eigenvalue problems */
-  StateSolution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep_mode = 0, const DERIVType derivative = NO_DERIVTYPE);
-
-  StateSolution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep_mode = 0, const DERIVType derivative = NO_DERIVTYPE);
-
-  /** Returns the currently stored functions. Empty for forward */
-  StdVector<Function*> GetFunctions() const;
-
-  /** Helper which collects the eigenfrequencies for a wave_vector. If no Bloch the wave_vector is 0. */
-  StdVector<double> CollectEigenfrequencies(unsigned int wave_vector = 0);
-
-  /** Return whether this is the Solution of the forward problem */
-  bool IsForward(){ return(isForward); };
-
-  /** Set whether this Solution is the Solution of the forward problem */
-  void SetIsForward(bool forward){ isForward = forward; };
-
-private:
-
-  /** On the fly init when the function has not been used before */
-  void Init(Function* f);
-
-  /** Contain the excitations and summarized multiple data for one problem.
-   * For almost all cases there is only one problem. */
-  struct Unit
-  {
-    Unit() { }; // only for compiler
-
-    Unit(ErsatzMaterial* em);
-
-    ~Unit();
-
-    /* Contains at least one element, more when doing multiple excitations.*/
-    StdVector<StateSolution*> data;
-  };
-
-  /** Stores the excitation by function and by derivative and time step (or mode in the eigenvalue case).
-   * data_[function][derivative][timestep/mode]
-   * Stored are units which contains eventually multiple excitations.
-   * @see Unit() */
-  std::map<Function*, StdVector<StdVector<Unit*> > > data_;
-
-
-  // if this Solutions is forward, it does not use the value in function in Get
-  bool isForward;
-
-  // Pointer to data[NULL] to speed up things
-  StdVector<StdVector<Unit*> >* forward_data_;
-
-  ErsatzMaterial* em_;
-};
 
 /** This class holds the solution of the PDE. It is in a class such that it
  * helps to encapsulate real and complex solutions. Note that the Piezo
@@ -99,7 +28,7 @@ class StateSolution
 {
 public:
 
-  StateSolution(ErsatzMaterial* em);
+  StateSolution();
 
   ~StateSolution();
 
@@ -108,7 +37,7 @@ public:
     ELEMENT_VECTORS = 0, RAW_VECTOR = 1, RHS_VECTOR = 2, SEL_VECTOR = 3, GRIDELEM_VECTORS = 4
   } StorageType;
 
-  static SolutionType GetSolutionType(SinglePDE* pde, Optimization::Application app = Optimization::NO_APP);
+  static SolutionType GetSolutionType(SinglePDE* pde, App::Type app = App::NO_APP);
 
   /** Copies the solution for the pde in our own storage.
    * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
@@ -116,30 +45,28 @@ public:
    * In ELEMENT_VECTORS also the registered pseudo elements are considered.
    * @param st if we copy the vector as RAW_VECTOR or element wise
    * @param pde will me mech in SIMP and also elec in PiezoSIMP
-   * @param app redundant to pde. NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
+   * @param app redundant to pde. App::NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
    * @param save_sol when an adjoint system was solved, one has to call
    *        "SaveSolution()" in the pde such that we can extract it element wise.
    *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
    * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-  SingleVector* Read(StorageType st, SinglePDE* pde, Optimization::Application app = Optimization::NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+  SingleVector* Read(StorageType st, SinglePDE* pde, App::Type app = App::NO_APP, bool save_sol = false, TimeDeriv derivative = NO_DERIVTYPE);
 
   template<class T>
-  SingleVector* Read(StorageType st, SinglePDE* pde, Optimization::Application app,  bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+  SingleVector* Read(StorageType st, SinglePDE* pde, App::Type app,  bool save_sol = false, TimeDeriv derivative = NO_DERIVTYPE);
+
+  /** do we contain the state solution? Already read? */
+  bool ContainsState() const { return set_; }
 
   /** Writes the solution (raw vector) back to the pde */
   void Write(SinglePDE* pde);
 
   static void Write(SinglePDE* pde, SingleVector* vec);
 
-  /** average the raw solutions by the excitations.
-   * @param excitations average or solution by one entry only. Is strictly speaking already known
-   * by the em_ parameter but is more explicit this way.  */
-  static void Write(SinglePDE* pde, StateSolutions& sol, Function* f, int timestep_mode, StdVector<Excitation>& excitations);
-
   /** return an existing nodal vector.
    * As the type is not known we cannot create on the fly.
    * @param st RHS_VECTOR, RAW_VECTOR, SEL_VECTOR
-   * asser() if vector exists (debug mode, NULL in release) */
+   * assert() if vector exists (debug mode, NULL in release) */
   SingleVector* GetVector(StorageType st);
 
   /** return (eventually create) a nodal vector.
@@ -154,13 +81,27 @@ public:
   std::string ToString();
 
   /** This is an element wise storage of the solution
-   * the Application shall be MECH or ELEC */
-  std::map<Optimization::Application, StdVector<SingleVector*> > elem;
+   * the App::Type shall be App::MECH or App::ELEC */
+  std::map<App::Type, StdVector<SingleVector*> > elem;
 
   /** This is an element wise storage of the solution
    * considering all elements from the grid instead of all design elements only
    * needed by shape optimization */
-  std::map<Optimization::Application, StdVector<SingleVector*> > gridelem;
+  std::map<App::Type, StdVector<SingleVector*> > gridelem;
+
+  /** For identification: for adjoint problems the corresponding function. NULL indicates forward state problem */
+  const Function* func;
+
+  /** For identification: the derivative time is only for transient problems */
+  TimeDeriv derivative;
+
+  /** For identification: the timestep is only for transient problems, the mode is for eigenmodes. We use this as a union.
+   * For eigenvalue problems (hence also Bloch) one solution has as many states as
+   * eigenmodes and eigenvalues are calculated. With Bloch mode all modes share one excitation */
+  int timestep_mode;
+
+  /** For identification: This is the active excitation when storing the state. Contains also the sequence */
+  const Excitation* excitation;
 
   /** for eigenvalue problems, this is the frequency (not the eigenvalue)
    * @see StateSolutions::CollectEigenfrequencies() */
@@ -171,33 +112,87 @@ private:
   template<class T>
   void Write(SinglePDE* pde);
 
-  template<class T>
-  static void Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
-
   /** common helper for the Get*Vector() stuff */
   template<class T>
   SingleVector* GetVector(StorageType st, bool create);
 
   /** This is the algsys solution vector. */
   SingleVector* raw;
-  //std::map<Application, SingleVector* > raw;
+  //std::map<App::Type, SingleVector* > raw;
 
   /** This stores the right hand sides in raw format.
    * In the adjoint case this might be based on select for output like objectives.
    * In the forward case this stores the rhs from the forward excitation to perform multiple
    * load cases. */
   SingleVector* rhs;
-  // std::map<Application, SingleVector* > rhs;
+  // std::map<App::Type, SingleVector* > rhs;
 
   /** For output like objectives this stores the selection l resp. L which is found by
    * an artificial load-case in the adjoint section. Otherwise it is not used.
    * This kind of base for the rhs information which is additionally multiplied by -1, -1 u^*, ...*/
   SingleVector* select;
-  //std::map<Application, SingleVector* > select;
+  //std::map<App::Type, SingleVector* > select;
 
-  /** Reference to our optimization problem */
-  ErsatzMaterial* em_;
+  /** read already performed? */
+  bool set_;
 };
+
+
+/** As the solutions come for multiple excitations in sets we store the list and the
+ * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1.
+ *
+ * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only is we
+ * do Bloch mode optimization where an excitation is a wave_vector.  */
+class StateContainer
+{
+public:
+  StateContainer();
+
+  /** The solution is identified by Function, excitation index (0-based) and time step.
+   * Similar to ParamNode the requested item is created if it does not exist yet!.
+   * If data_ was not initialized (capacity set, does it on the fly)
+   * @param f the function is NULL for the forward problems, for the adjoints it needs to be given!
+   * @param timestep_mode only for transient or eigenvalue problems */
+  StateSolution* Get(const Excitation& excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
+  StateSolution* Get(const Excitation* excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
+
+  /** Averages the specified states over all excitations.
+   * @param sequence 1-based context
+   * @param func NULL for forward state solution */
+  void WriteAverage(SinglePDE* pde, int sequence, const Function* func = NULL);
+
+  /** Returns the currently stored functions (uniquely). Empty for forward */
+  StdVector<const Function*> GetFunctions() const;
+
+  /** Helper which collects the eigenfrequencies for a wave_vector. If no Bloch the wave_vector is 0.
+   * @param sequence 1-based*/
+  StdVector<double> CollectEigenfrequencies(Excitation& ex);
+
+  /** Return all eigenfrequencies of all wave vectors */
+  Matrix<double> CollectBlochEigenfrequencies(Context* ctxt);
+
+private:
+
+  /** returns all matching items.
+   * @param excitation might be NULL for WriteAverage()
+   * @param sequence the context as encoded in StateSolution::excitation->sequence. -1 == unspecific. For WriteAverage() where no specific excitation can be given */
+  StdVector<StateSolution*> Search(const Excitation* excitation, int sequence = -1, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
+
+  /** @see WriteAverage() */
+  template<class T>
+  void WriteAverage(SinglePDE* pde, int sequence, const Function* func);
+
+
+  /** the data is actually conditionally multidimensional; by adjoint function, by excitation, by
+   * eigenmode, by timestep in transient optimization, by time drivative in transient optimization.
+   * It proved too complex to map this for direct access, therefore we simply make an array and perform
+   * sequential search. This shall be fast enough as searching the state is negligible compared to
+   * calculating the state :). As we return pointers to the states they must not be re-mapped! Therefore
+   * it is essential to reserve a sufficiently large array, done in Get() */
+  StdVector<StateSolution> data_;
+};
+
+
 
 } // namespace
 

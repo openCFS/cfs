@@ -9,7 +9,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -25,6 +25,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
+#include <boost/lexical_cast.hpp>
 
 using std::string;
 using std::pair;
@@ -37,6 +38,7 @@ DECLARE_LOG(conditions)
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
 double Condition::SLACK_VALUE = -45217861;
+double Condition::ALPHA_VALUE = -45217858;
 double Condition::ALPHA_MINUS_SLACK_VALUE = -45217860;
 double Condition::ALPHA_PLUS_SLACK_VALUE = -45217859;
 
@@ -47,7 +49,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-  // fmo_pos_def_minor_ = 0;
+  special_result_idx = -1;
 
   observation_ = pn->Get("mode")->As<string>() == "observation";
 
@@ -58,19 +60,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = -1.0;
-  if(pn->Has("value"))
-  {
-    string v = pn->Get("value")->As<string>();
-    if(v == "slack")
-      this->boundValue_ = SLACK_VALUE;
-    else if (v == "alpha+slack")
-      this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
-    else if (v == "alpha-slack")
-      this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
-    else
-      this->boundValue_ = pn->Get("value")->As<double>();
 
-  }
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
@@ -93,6 +83,44 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // default is set in Function, may this moves later to Function, too
   if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
+
+  // set number of displacement constraints realized by multiple output constraints
+  if (pn->Has("output") && pn->Get("output")->Has("displacement") && pn->Get("output")->Get("displacement")->Has("multiple_nodes"))
+    output_multiple_nodes = pn->Get("output")->Get("displacement")->Get("multiple_nodes")->As<double>();
+  else
+    output_multiple_nodes = 0;
+
+  bloch_extremal_ = false; // set in the proper case
+
+  if(pn->Has("value"))
+  {
+    string v = pn->Get("value")->As<string>();
+    if(v == "slack")
+      this->boundValue_ = SLACK_VALUE;
+    else if (v == "alpha")
+      this->boundValue_ = ALPHA_VALUE;
+    else if (v == "alpha+slack")
+      this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
+    else if (v == "alpha-slack")
+      this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
+    else
+    {
+      // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
+      // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
+      // local function performance
+      this->boundValue_ = pn->Get("value")->MathParse<double>();
+      LOG_DBG(conditions) << "C: " << type.ToString(type_) << " p=" << penalty << " os=" << objective_scaling_ << " msv=" << manual_scaling_value
+                          << " bv=" << boundValue_ << " -> " << (boundValue_ * manual_scaling_value);
+      if(!objective_scaling_)
+        this->boundValue_ *= manual_scaling_value;
+    }
+
+    if((boundValue_ == ALPHA_PLUS_SLACK_VALUE && bound_ == UPPER_BOUND) || (boundValue_ == ALPHA_MINUS_SLACK_VALUE && bound_ == LOWER_BOUND)) {
+      std::string msg =  "are you sure about value '" + v + "' and bound '" + bound.ToString(bound_) + "' in constraint '" + ToString() + "'?";
+      domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("constraints")->SetWarning(msg, true); // domain->GetOptimization() does not work yet!
+    }
+  }
+
 
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!observation_)
@@ -121,7 +149,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case DETERMINANT_MAPPING:
     case TRACE_MAPPING:
     if(!pn->Has("parameter"))
-        throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
+        throw Exception("'parameter' (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
     case ISOTROPY:
     case ISO_ORTHOTROPY:
@@ -129,6 +157,18 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
+    case EIGENFREQUENCY:
+      if(Optimization::context->DoBloch()) {
+        if(!pn->Has("bloch"))
+           throw Exception("For Bloch optimization constraints '" + type.ToString(type_) + "' require the 'bloch' attribute to be set");
+        bloch_extremal_ = pn->Get("bloch")->As<string>() == "extremal";
+      }
+      break;
+    case EXPRESSION:
+      if(!pn->Has("parameter"))
+        throw Exception("'parameter' mandatory for '" + type.ToString(type_) + "' to formulate e.g. 'parameter' larger alpha-slack");
+      // warn about boundValue != alpha +/- slack in ToInfo
+     break;
 
     default:
       if(!pn->Has("value"))
@@ -145,13 +185,22 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
 
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != MECH)
-  {
-    // it might be that we do piezo stresses on a pure elastic optimization problem.
-    // Then register the ELEC PDE such that it is stored for the stress calculation by StressConstraint()
-    // if we do PiezoSIMP this is simply redundant
-    em->pdes[Optimization::ELEC] = domain->GetSinglePDE("electrostatic");
+  if(boundValue_ == ALPHA_VALUE|| boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE) {
+    if(!space->HasAlphaVariable())
+      throw Exception("design variable 'alpha' is missing.");
+    if(!space->HasSlackVariable())
+      throw Exception("design variable 'alpha' requires also design variable 'slack'.");
   }
+
+
+  // shall not be necessary when we register all pdes!
+  //if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != App::MECH)
+  // {
+    // it might be that we do piezo stresses on a pure elastic optimization problem.
+    // Then register the App::ELEC PDE such that it is stored for the stress calculation by StressConstraint()
+    // if we do PiezoSIMP this is simply redundant
+    // Optimization::context->pdes[App::ELEC] = domain->GetSinglePDE("electrostatic");
+  // }
 
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure, em);
@@ -173,7 +222,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 
 
 
-void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
+void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list, int i, std::string entName)
 {
   Type t = type.Parse(pn->Get("type")->As<string>());
   list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
@@ -190,12 +239,34 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 
+  // if OUTPUT is defined and the multiple_node option is turned on, multiple constraints are added to represent displacement constraints
+  if(g->type_ == OUTPUT && i > 0)
+    AddOutputConstraints(pn,list,g,i,entName);
+
+
 
   //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || POS_DEF_DET_MINOR_3)
   //  AddFMOPosDefConstraints(pn, list, g);
 }
 
+// modify ParamNode pn of constraint, add number i to node name of output constraint. Necessary for automatic numbering of displacement constraints with multiple_node option
+void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g,int i,std::string entName) {
+  assert(g->GetType() == OUTPUT && i > 0);
 
+  PtrParamNode output;
+  ParamNodeList elems;
+  if (pn->Has("output"))
+    output = pn->Get("output");
+  if (output->Has("displacement"))
+    elems = output->GetList ("displacement");
+
+  // add number i to node name of output constraint
+  assert(elems.GetSize() == 1);
+  PtrParamNode xml = elems[0];
+  //std::string entName = xml->Get("name")->As<std::string>();
+  entName.assign(entName + boost::lexical_cast<std::string>(i));
+  xml ->Get("name")->SetValue(entName);
+}
 
 
 void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
@@ -440,7 +511,8 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
   {
     if(list[i]->GetType() == STRESS || list[i]->GetType() == STRESS_DENSITY)
     {
-      if(list[i]->DoEvaluateAlways())
+      assert(!Optimization::context->DoMultiSequence());
+      if(list[i]->DoEvaluateAlways(1)) // sequence 1
         blow_up = i;
       else
         if(blow_up != -1)
@@ -453,7 +525,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
   Condition& g = *(list[blow_up]);
   g.SetExcitation(me, me->excitations[0].index);
-
+  assert(!Optimization::context->DoMultiSequence());
   for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
   {
     Condition* tmp = new Condition(g);
@@ -464,34 +536,70 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 }
 
 
-void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
+void Condition::AddBlochEigenConstraints(StdVector<Condition*>& all_cond, MultipleExcitation* me)
 {
-  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency())
-    return;
-
-  // we need to find all eigenvalue constraints. Then extend each by excitation
-
-  StdVector<Condition> ev; // instances as list will be enlarged which involves copying
-  for(unsigned int i = 0; i < list.GetSize(); i++)
-    if(list[i]->GetType() == EIGENFREQUENCY)  {
-      // reset excitation to the first wave vector
-      list[i]->SetExcitation(me, 0);
-      ev.Push_back(*(list[i]));
-    }
-
-  for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
+  // this is a static function
+  for(unsigned int c = 0; me->IsEnabled() && c < Optimization::manager.context.GetSize(); c++)
   {
-    for(unsigned int g = 0; g < ev.GetSize(); g++)
+    Context& ctxt = Optimization::manager.context[c];
+
+    if(ctxt.DoBloch())
     {
-      assert(ev[g].IsExcitationSensitive());
+      // we need to find all eigenvalue constraints. Then extend the ones by excitation which are bloch=full
 
-      Condition* tmp = new Condition(ev[g]);
-      tmp->SetExcitation(me, me->excitations[e].index);
+      // extract all eigenfrequency constraints to become full to full_ev
+      StdVector<Condition> full_ev; // instances as list will be enlarged which involves copying
+      for(unsigned int i = 0; i < all_cond.GetSize(); i++)
+      {
+        if(all_cond[i]->GetType() == EIGENFREQUENCY)
+        {
+          Condition* g = all_cond[i];
+          assert(g->ctxt->sequence == ctxt.sequence);
+          assert(ctxt.excitations[0]->index >= 0);
 
-      list.Push_back(tmp);
+          // expand the the constraints to all wave vectors?
+          if(g->DoFullBloch())
+          {
+            // reset excitation to the first wave vector
+            g->SetExcitation(me, ctxt.excitations[0]->index);
+            full_ev.Push_back(*g);
+            LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " ev=" << full_ev.GetSize() << " ex=" << ctxt.excitations[0]->index << " -> " <<  full_ev.Last().ToString();
+          }
+          else
+          {
+            // we evaluate the function at the very last wave vector as we have to search for the extremals
+            g->SetExcitation(me, ctxt.excitations.Last()->index);
+            LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " g=" << g->ToString();
+          }
+
+        }
+      }
+
+      // expand only for bloch=full
+      if(!full_ev.IsEmpty())
+      {
+
+        assert(ctxt.num_bloch_wave_vectors * me->GetNumberRobust(&ctxt, true) == ctxt.excitations.GetSize());
+        for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++) // start from 1!
+        {
+          LOG_DBG2(conditions) << "ABEC: e=" << e << " -> " << ctxt.excitations[e]->index;
+          // note that we traverse ev and not list again!
+          for(unsigned int g = 0; g < full_ev.GetSize(); g++)
+          {
+            assert(full_ev[g].IsExcitationSensitive());
+            assert(full_ev[g].GetExcitation()->index >= 0);
+
+            Condition* tmp = new Condition(full_ev[g]);
+            tmp->SetExcitation(me, ctxt.excitations[e]->index);
+            LOG_DBG2(conditions) << "ABEC: e=" << e << " g=" << g << " -> " << tmp->ToString();
+            assert(ctxt.excitations[e]->index >= 0);
+
+            all_cond.Push_back(tmp);
+          }
+        }
+      }
     }
   }
-
 }
 
 
@@ -554,9 +662,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
   string file = pn->Get("designTarget")->As<string>();
-  Xerces xerces;
-  xerces.SetFile(file);
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(file);
 
   // check this file
   if (xml->Count("set") == 0)
@@ -618,7 +724,7 @@ bool Condition::IsFeasibilityConstraint() const
   case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MAPPING:
   case TRACE_MAPPING:
-  case DESIGN_BOUND:
+  case DESIGN:
     return true;
   default:
     return false;
@@ -626,7 +732,7 @@ bool Condition::IsFeasibilityConstraint() const
 }
 
 
-string Condition::ToString(MultipleExcitation* me) const
+string Condition::ToString() const
 {
   std::ostringstream os;
   
@@ -644,19 +750,30 @@ string Condition::ToString(MultipleExcitation* me) const
     os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
-  if(type_ == OUTPUT && !output_forms.IsEmpty())
+  if((type_ == OUTPUT || type_ == SQUARED_OUTPUT) && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
-  if(me != NULL && me->IsEnabled())  {
+  if(GetExcitation() != NULL && domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
+  {
     if(type_ == STRESS || type_ == STRESS_DENSITY)
-      os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
-    else if(me->DoMetaExcitation())
-      os << "_" << me->excitations[excite_].GetMetaLabel();
-  }
+      os << "_" << GetExcitation()->GetFullLabel(); // change to excite label
+    else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation(GetExcitation()->sequence))
+      os << "_" << GetExcitation()->GetMetaLabel();  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
+
+  if(type_ == EIGENFREQUENCY && GetExcitation() != NULL && GetExcitation()->DoBloch()) // might not be set meantime - e.g. due to early logging
+  {
+    if(DoFullBloch())
+      os << "_wv_" << GetExcitation()->GetWaveNumber();
+    else
+      os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
+  }
+  // add bound type if multiple unique conditions exist
+  if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
+    os << "_" << bound.ToString(bound_);
 
   return os.str();  
 }
@@ -692,32 +809,44 @@ string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coo
 }
 
 
-void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
+void Condition::ToInfo(PtrParamNode in)
 {
   Function::ToInfo(in);
 
-  in->Get("mode")->SetValue(observation_ ? "observation" : "constraint");
-  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
   if(IsActive())
   {
-    in->Get("bound")->SetValue(bound.ToString(bound_));
     if(type_ != HOM_TRACKING)
     {
       if(boundValue_ == SLACK_VALUE)
         in->Get("bound_value")->SetValue("slack");
+      else if (boundValue_ == ALPHA_VALUE)
+        in->Get("bound_value")->SetValue("alpha");
       else if(boundValue_ == ALPHA_MINUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha-slack");
       else if(boundValue_ == ALPHA_PLUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha+slack");
       else
-        in->Get("bound_value")->SetValue(boundValue_);
+        // FIXME: does not handle objective_scaling. Also the scaling shall not be encoded in the bound value :(
+        in->Get("bound_value")->SetValue(boundValue_ / manual_scaling_value);
     }
+    in->Get("bound")->SetValue(bound.ToString(bound_));
+
+    if(objective_scaling_)
+      in->Get("scaling")->SetValue("objective");
+    else if(manual_scaling_value != 1.0)
+      in->Get("scaling")->SetValue(manual_scaling_value);
   }
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
 
+  if(observation_)
+      in->Get("mode")->SetValue("observation");
+
+    in->Get("design")->SetValue(DesignElement::type.ToString(design_));
+
+
   // if(delta_logging_ignored_)
-  //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
+  //  in->Get("delta_logging")->SetWarning("no value given");
   // else
   //  in->Get("delta_logging")->SetValue(delta_logging);
 
@@ -730,20 +859,37 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(me->IsEnabled())
-    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].GetFullLabel());
+  if(type_ == EIGENFREQUENCY && GetExcitation()->DoBloch())
+    in->Get("bloch")->SetValue(bloch_extremal_ ? "extremal" : "full");
+
+  if(type_ == EXPRESSION && (boundValue_ != ALPHA_MINUS_SLACK_VALUE && boundValue_ != ALPHA_PLUS_SLACK_VALUE))
+   info_->SetWarning("be sure to know what condition 'expression' with alpha+/-slack bound means");
+
+  if(domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
+  {
+    if(DoEvaluateAlways(ctxt->sequence))
+      in->Get("excitation")->SetValue(Optimization::context->DoMultiSequence() ? "always within sequence" : "always");
+    else
+      in->Get("excitation")->SetValue(GetExcitation()->GetFullLabel());
+  }
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
-  //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
+  //  in->SetWarning("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
 
   if(type_ == VOLUME && IsPhysical() && !observation_)
-    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
+    info_->SetWarning("a physical volume constraint should make no sense");
 
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
     info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
+  // the bounds are essential as we have to flip sign!
+  if(type_ == OVERHANG_HOR && bound_ != LOWER_BOUND)
+    throw Exception("overhang constraints for horizontal structures restrict the lower boundary only and this boundary shall be steep enough -> 'lower_bound'");
+
+  if(type_ == OVERHANG_VERT && bound_ != UPPER_BOUND)
+    throw Exception("overhang constraints for vertical structures restrict the left boundary for left overhangs and vice versa. -> 'upper_bound'");
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -785,16 +931,21 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
-    assert(de != NULL);
+    BaseDesignElement* bde = id.GetElement(i);
+    assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = de->GetIndex();
+    int other_idx = bde->GetOptIndex();
     indices.push_back(other_idx);
-    if(this->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+
+    if(this->ForDensityFiltering())
     {
-      const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
-      for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
-        indices.push_back(neighborhood[j].neighbour->GetIndex());
+      DesignElement* de = dynamic_cast<DesignElement*>(bde);
+      if(de != NULL && !de->simp->filter.IsEmpty())
+      {
+        const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
+        for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
+          indices.push_back(neighborhood[j].neighbour->GetOptIndex());
+      }
     }
   }
 
@@ -826,11 +977,11 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetOptIndex();
 
     break;
   }
@@ -838,41 +989,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
 
-    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
+    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
     break;
   default:
@@ -940,17 +1091,15 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 
 double LocalCondition::CalcMeanValue() const
 {
-  // we sum up only non-zero values
-  int counter = 0;
   double sum = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
   {
     double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
-    if(IsNoise(v)) continue;
     sum += v;
-    counter++;
   }
-  return counter > 0 ? sum / counter : 0.0;
+  double res = local->virtual_elem_map.GetSize() > 0 ? sum / local->virtual_elem_map.GetSize() : 0.0;
+  LOG_DBG(conditions) << "LC:CMV: " << ToString() << " sum=" << sum << " c=" << local->virtual_elem_map.GetSize() << " -> " << res;
+  return res;
 }
 
 double LocalCondition::CalcMaxValue() const
@@ -965,6 +1114,31 @@ double LocalCondition::CalcMaxValue() const
   return max;
 }
 
+
+int LocalCondition::CountInfeasibles() const
+{
+  int cnt = 0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = local->virtual_elem_map[i].EvalFunction(local);
+    double d = v - GetBoundValue();
+    LOG_DBG2(conditions) << "LC:CI check f=" << ToString() << " i=" << i << " b=" << Condition::bound.ToString(bound_) << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+
+    // upper_bound: 0 < 3 -> -3 < 0 (ok)   4 < 3 -> 1 < 0 (false)
+    // lower_bound: 3 > 2 ->  1 > 0 (ok)   3 > 4 -> -1 > 0 (false)
+
+
+    if((bound_ == Condition::EQUAL && std::abs(d) > 1e-5) ||
+       (bound_ == Condition::LOWER_BOUND && d <= 1e-6) ||
+       (bound_ == Condition::UPPER_BOUND && d >= -1e-6))
+    {
+      cnt++;
+      LOG_DBG(conditions) << "LC:CI -> count f=" << ToString() << " i=" << i << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+    }
+  }
+
+  return cnt;
+}
 
 double LocalCondition::GetValue() const
 {
@@ -1027,11 +1201,36 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   assert(all.IsEmpty());
 
   // slope constraints need to be post processed in ErsatzMaterial
+  bool displacement_constr;
   for(unsigned int i = 0; i < pn_list.GetSize(); i++)
   {
     PtrParamNode pn = pn_list[i];
     bool act = pn->Get("mode")->As<string>() == "constraint";
-    Condition::AddCondition(pn, act ? active : observe);
+
+    // Add multiple displacement constraints using output displacement constraint on multiple numbered nodes
+    PtrParamNode output;
+    ParamNodeList elems;
+    displacement_constr = false;
+    if (pn->Has("output")) {
+      output = pn->Get("output");
+      if (output->Has("displacement")) {
+        elems = output->GetList ("displacement");
+        assert(elems.GetSize() == 1);
+        PtrParamNode xml = elems[0];
+       if (xml->Has("multiple_nodes")) {
+          UInt end = xml->Get("multiple_nodes")->As<UInt>();
+          displacement_constr = true;
+          std::string entName = xml->Get("name")->As<std::string>();
+
+          for (UInt j = 0; j < end; j++) {
+            Condition::AddCondition(pn, act ? active : observe,j+1,entName);
+          }
+        }
+      }
+    }
+    // General constraint (Non displacement constraint case)
+    if (!displacement_constr)
+      Condition::AddCondition(pn, act ? active : observe);
   }
 
   // process the virtual containers
@@ -1092,9 +1291,9 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   }
 
   // check for uniqueness of the eigenvalue id
-  if(em->IsEigenvalue())
+  if(Optimization::context->IsEigenvalue())
   {
-    unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumSteps();
+    unsigned int max = Optimization::context->GetEigenFrequencyDriver()->GetNumSteps();
 
     StdVector<unsigned int> ids;
 
@@ -1121,17 +1320,17 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   Condition::AddExcitationStressConstraints(observe, me);
 
 
-  // in the bloch mode optimization case we need to multiply the eigenvalue constraints by excitations which are the wave_vectors
+  // in the bloch mode optimization case we either have a constraint for every wave vector or search for the extremals
   Condition::AddBlochEigenConstraints(active, me);
   Condition::AddBlochEigenConstraints(observe, me);
 
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
-void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
+void ConditionContainer::ToInfo(PtrParamNode in)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
-    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
+    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
 }
 
 
@@ -1150,20 +1349,69 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   return NULL;
 }
 
-StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
+StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active, Function::Access access)
 {
   StdVector<Condition*> result;
 
-  for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
-      result.Push_back(active[i]);
+  for(unsigned int i = 0, n = active.GetSize() + (only_active ? 0 : observe.GetSize()); i < n; i++)
+  {
+    assert(!(only_active && i >= active.GetSize()));
+    Condition* g = i < active.GetSize() ? active[i] : observe[i-active.GetSize()];
 
-  for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
-      result.Push_back(observe[i]);
+    if(g->GetType() != type)
+      continue;
 
+    if(design != DesignElement::NO_TYPE && g->design_ != design)
+      continue;
+
+    if(access != Function::NO_ACCESS && g->GetAccess() != access)
+      continue;
+
+      result.Push_back(g);
+  }
   return result;
 }
+
+
+bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
+{
+  bool lower = false;
+  bool upper = false;
+  bool equal = false;
+
+  for(unsigned int i = 0;i < list.GetSize();i++) {
+    switch (list[i]->GetBound()) {
+     case Condition::LOWER_BOUND:
+       if (lower) {
+         return false;
+       } else {
+         lower = true;
+       }
+       break;
+     case Condition::UPPER_BOUND:
+       if (upper) {
+         return false;
+       } else {
+         upper = true;
+       }
+       break;
+     case Condition::EQUAL:
+       if (equal) {
+         return false;
+       } else {
+         equal = true;
+       }
+       break;
+    }
+  }
+  return true;
+}
+
+bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
+  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false, g->GetAccess());
+  return list.GetSize() > 1 && HasUniqueBounds(list);
+}
+
 
 bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
@@ -1187,7 +1435,7 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
       return NULL;
   }
 
-  if(list.GetSize() > 1 && throw_exception)
+  if(list.GetSize() > 1 && !HasUniqueBounds(list) && throw_exception)
     throw Exception("constraint " + Condition::type.ToString(type) + " is not unique");
 
   return list[0];
@@ -1255,7 +1503,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:R g=" << Condition::type.ToString(g->GetType()) << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }

@@ -300,6 +300,13 @@ namespace CoupledField
      * @param size_tolerant if set this matrix and other_mat may have different size with 0 entries for the unused. */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant = false);
     
+    /** Set the matrix out of a vector.
+     * This matrix is resized. rows times cols needs to match vec.GetSize()
+     * @param row_major = true assumes a11, a12, a13, a21, a22, ... (C style)
+     *        row_major = false = col_major assumes a11, a21, a31, ... (Fotran style)
+     * @see https://en.wikipedia.org/wiki/Row-major_order */
+    void Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major);
+
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
@@ -430,6 +437,9 @@ namespace CoupledField
 
     /** Sum up the square of all entries */
     TYPE NormL2() const;
+
+    /** Computes the average of all entries. Weaker than L1 norm */
+    TYPE Avg() const;
 
     /** does something like (this - other).NormL2().
      * @see NormL2() */
@@ -602,9 +612,9 @@ namespace CoupledField
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
     void solveWithLapack( Matrix<Complex> & b1,
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
-    
-    //! Computes eigenvalues of an hermitian matrix
-    void eigenvaluesWithLapack(Vector<Double> & b1);
+
+    //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
+    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
     //@}
 #endif
   
@@ -681,6 +691,9 @@ namespace CoupledField
     /** Convert from Hill-Mandel to Voigt Notation */
     void HillMandelToVoigt();
 
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
+    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+
     //! Only for testing the switching state of Preisach planes
     void matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel = NULL);
     void matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
@@ -716,6 +729,10 @@ namespace CoupledField
     //! content, as defined by the rotation matrix rotMatrix.
     //! \note This method will only work with matrices of size 2,3, and 6.
     void PerformRotation( const Matrix<Double>& rotMatrix,  Matrix<TYPE>& matMatrix ) const;
+
+    //! This method generates a copy of this matrix, which contains the rotated in HILL_MANDEL notation
+        //! content, as defined by the rotation matrix rotMatrix.
+    void PerformHMRotation(Double rotAngle,  Matrix<Double>& matMatrix, std::string notation) const;
 
     //@}
 

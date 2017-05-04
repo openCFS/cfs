@@ -1,15 +1,24 @@
 # This collects some tool routines for optimization
 
-import libxml2
 import numpy
 import numpy.linalg
 import math
 import os
+import sys
 from lxml import etree
-
+from PIL import Image
 from cfs_utils import *
-from distutils.command.build_scripts import first_line_re
-from numpy.distutils.misc_util import cxx_ext_match
+
+# dump some information about a density file
+def print_design_info(filename, attribute, set = None, fill = None):
+  try: 
+    dens = read_density(filename, attribute, set=set, fill=fill)
+    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
+  except:  
+    print("failed to read '" + attribute + "'")
+    #print  sys.exc_info()
+
+
 
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
@@ -19,7 +28,7 @@ from numpy.distutils.misc_util import cxx_ext_match
 # @param set optional name of set, if not given use default
 # @param fill if the density is a subset of the mesh return 1D or fill with fill_value if fill is set
 def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None):
-  vals = read_density_as_vector(filename, attribute, set)
+  vals = read_density_as_vector(filename, 'density', attribute, set)
   mx, my, mz = read_mesh_info(filename, silent=True)
 
   if x == None:
@@ -58,22 +67,23 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
   if len(vals) < x * y * z:
     if fill == None:
       # we need to be 1D
-      print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
+      print("read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute)
       x = len(vals)
       ret = numpy.zeros((x)) # overwrite full array
       for i in range(x):
         ret[i] = vals[i]    
     else:
-      print "fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
-           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z)
+      print("fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
+           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z))
 
       ret += fill # was zeros, fill with default value
-      num = read_density_as_vector(filename, 'nr', set)
+      num = read_density_as_vector(filename, 'density', 'nr', set)
       nt = x * y * z
       for c in range(len(num)):
         n = int(num[c] -1)
-        setNDArrayEntry(ret, n % x, n/y, n/(x*y), vals[c]) # 'nr' is one base in general
+        coords = numpy.unravel_index(n,(z,y,x))
+        setNDArrayEntry(ret, coords[2], coords[1], coords[0], vals[c]) # 'nr' is one base in general
         
   return ret
 
@@ -93,6 +103,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   
     assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
+  #print(len(sett))
   
   designs = 1
   if design2:
@@ -125,10 +136,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 4
     if design6 and type == design6:
       idx = 5
-    if idx <> -1:
+    if not idx == -1:
       tmp = element.get(attribute)
       if tmp is None:
-        print "Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'."
+        print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
       des = float(tmp)
       out[nr - 1, idx] = des
@@ -152,10 +163,28 @@ def read_set_ids(filename):
   sett = root.xpath("//set/@id")
   return sett
   
+  
+## tests for an attribute in the density.xml
+# @param attribute you might want to check for physical which is not present when generated via create_density.py
+# @return True if the attribute is given
+def test_density_xml_attribute(filename, attribute, set = None):
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))      
+  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
+  query += '/element/@' + attribute
+  s = tree.getroot().xpath(query)
+  return len(s) > 0
+    
+  
 ## parse the 'mesh' information of the header of a density.xml file
-# @param silent if True and no mesh info is found return None, None, None otherwise raise exception
+# @param silent if True and no mesh info is found return None, None, None. otherwise raise exception
 # return x, y, z as ints
-def read_mesh_info(filename, silent):
+def read_mesh_info(filename, silent = True):
+  if not os.path.exists(filename):
+    if silent:
+      return None, None, None
+    else:
+      raise RuntimeError("cannot find '" + filename + "'")
+  
   tree = etree.parse(filename)
   root = tree.getroot()
   mesh = root.xpath('//cfsErsatzMaterial/header/mesh')
@@ -167,33 +196,71 @@ def read_mesh_info(filename, silent):
   
   else:
     assert(len(mesh) == 1)
-    return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    nx = int(mesh[0].get("x"))
+    ny = int(mesh[0].get("y"))
+    nz = int(mesh[0].get("z"))
+    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    return nx, ny, nz    
+       
   
-# # Reads a density.xml file as vector
+# # Reads a density.xml file as vector. 
 # @param filename from which the last 'set' is used
+# @param dt = type, assume shapeParamElement for node or profile, else query element
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
-# @param set optionally give a set name (string) when not given the last is used 
-def read_density_as_vector(filename, attribute="design", set=None):
+# @param set optionally give a set name (string) when not given the last is used
+def read_density_as_vector(filename, dt="density", attribute="design", set=None):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  qset = 'last()' if set is None else '@id="' + set + '"'
+  qelement = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element' 
   
-  root = tree.getroot()
-  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
-  sett = root.xpath(query)[0]
-  
-  # print "check for attribute " + attribute
-  counter = 0
-  vals = [0] * len(sett)
-  for element in sett:
+  xml = open_xml(filename)
+  query = '//set[' + qset + ']/' + qelement + '[@type="' + dt + '"]/@' + attribute
+
+  res = xml.xpath(query)
+  vals = [0] * len(res)
+  for idx, element in enumerate(res):
     # traverse the elements and get the design
-    vals[counter] = float(element.get(attribute))
-    counter = counter + 1
-  
-  # print "found " + str(length) + " elements, read " + str(counter) + " elements"
+    vals[idx] = float(element)
   
   return vals
+  
+## wraps density data into an xml file
+# @param bulk a string or a list of size D of strings with the full data
+# @param setname either a string or D strings (list, tuple, ...)
+# @param silend if False prints that the file is created
+def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setname='optimization_tools.py', param = 1, silent=True):
+  
+  if not silent:
+    print("create '" + filename + "'")
+    
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  if x and y and z:
+    out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
+  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
+  out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
+  out.write('  </header>\n')
+  
+  assert((type(bulk) == str and type(setname) == str) or len(bulk) == len(setname))
+
+  if type(setname) == str:  
+    out.write('  <set id="' + setname + '">\n')
+    out.write(bulk)
+    out.write('  </set>\n')
+  else:
+    for idx, set in enumerate(setname):
+      assert(type(set) == str)
+      assert(type(bulk[idx]) == str)
+      out.write('  <set id="' + set + '">\n')
+      out.write(bulk[idx])
+      out.write('  </set>\n')
+  
+  out.write(' </cfsErsatzMaterial>\n')
+  out.close()
   
 # # write the data to a density.xml file
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
@@ -210,54 +277,38 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
   else:
     data_list.append(data_inp)
     setname_list.append(setname_inp)
-
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-
-  data = data_list[0]
-  x, y, z = getDim(data)
-  out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  if param > 0:
-    out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
-  else:
-    out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
-  out.write('  </header>\n')
-
- 
-  for i in range(len(data_list)):
-    data = data_list[i]
-    setname = setname_list[i]
-    out.write('  <set id="' + setname + '">\n')
-    dim = data.ndim
-    x, y, z = getDim(data)
+  
+  x, y, z = getDim(data_list[0])
+  
+  bulk_list = []
+  for i, data in enumerate(data_list):
+    string_list = []
     nr = 1
-
     for k in range(z):
       for j in range(y):
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
-           if elemnr <> None:
-             nr = int(getNDArrayEntry(elemnr, i, j , k))
+           if elemnr is not None:
+             nr = int(getNDArrayEntry(data, i, j , k))
             
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
-            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
+             string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
            else:
-            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
-           nr = nr + 1       
-         
-    out.write('  </set>\n')
+            string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
+           if elemnr is None:
+             nr = nr + 1       
 
-  out.write(' </cfsErsatzMaterial>\n')
-  out.close()
-
+    # this is a fast way to create a large string which is added to bulk_list: https://waymoot.org/home/python_string/
+    bulk_list.append(''.join(string_list)) 
+ 
+  write_density_file_bulk(filename, bulk_list, x, y, z, setname_list, param)
 
 # # write simple multi-design density files
+# @data matrix with N rows of D colums
+# @data desings list of D designs
+# @elemnr optional array of N numbers
 def write_multi_design_file(filename, data, designs, elemnr=None):
-
   # assert(data.shape[1] == len(designs))
   out = open(filename, "w")
   out.write('<?xml version="1.0"?>\n')
@@ -275,10 +326,12 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   out.close()
 
 ## reads partial domain within a full array. E.g. if the design domain is circular
+# visualize via img = Image.fromarray(a, 'RGB'), img.show()
+# @param dt -> type 
 def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
   msh  = read_mesh_info(filename, silent = False)
-  vals = read_density_as_vector(filename, attribute, set)
-  nrs  = read_density_as_vector(filename, 'nr', set)
+  vals = read_density_as_vector(filename, 'density', attribute, set)
+  nrs  = read_density_as_vector(filename, 'density', 'nr', set)
 
   assert(msh[2] == 1) # implement 3D if you need it
   
@@ -290,10 +343,12 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
   assert(len(nrs) <= nx * ny)
   
   for i in range(len(nrs)):
-    n = int(nrs[i])
+    n = int(nrs[i]) -1 # the element number is 1 based!
     # assume a lexicographic order
     y = int(n / ny)
     x = n % ny
+    #print 'i=' + str(i) + ' y=' + str(y) + ' x=' + str(x) 
+    
     a[y, x] = vals[i]
       
   return a
@@ -323,6 +378,8 @@ def apply_elmennr_mapping(org, map):
             
   return result
   
+
+
 
 
 # # evaluates the physical volume fraction
@@ -392,7 +449,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
   while upper - lower > 1e-14:
     mid = lower + 0.5 * (upper - lower)
     val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
-    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    print(" lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val))
     # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
     if val > target:
       lower = mid
@@ -623,16 +680,15 @@ def find_closes_info_xml(filename, key, start, end):
   for i in range(start, end + direction, direction):
     name = string.replace(filename, key, str(i))
     
-    print  "check " + name + "\n"
+    print("check " + name + "\n")
     
     if not os.path.exists(name):
       continue
     
-    doc = libxml2.parseFile(name)
-    xml = doc.xpathNewContext()
+    xml = open_xml(name)
     
     status = xpath(xml, "/cfsInfo/@status")
-    print "file " + name + " has status " + status
+    print("file " + name + " has status " + status)
 
     if status == "finished":
       return i
@@ -709,7 +765,7 @@ def extract_old_header(infile):
   infi = open(infile, "r")
   for event, element in etree.iterparse(infi):
     if element.tag == "header":
-      print "found header"
+      print("found header")
       # we use the header from the original file
       header = etree.tostring(element)
       break
@@ -735,31 +791,30 @@ class LumpedMechDisplacement:
 # @return an list of tuples. the first item is the frequency, the next is a list of  LumpedMechDisplacement elements.
 #        Multiple frequencies are not possible but the last one is used.
 def readLumpedMechDisplacement(info_xml, region):
-  doc = libxml2.parseFile(info_xml)
-  xml = doc.xpathNewContext()
+  xml = open_xml(info_xml)
   # detect multiple eigenfrequencies
   last_freq = "-1.0"
   result = []
   for step in range(0, 5000):
     xpath_base = "//result[@data='lumpedMechDisplacement'][@location='" + region + "']/item[@step='" + str(step) + "']"
-    res = xml.xpathEval(xpath_base + "/@step_val")
-    if len(res) == 0 or res[0].getContent() == last_freq:
+    res = xml.xpath(xpath_base)
+    if len(res) == 0 or not 'step_val' in res[0].attrib or res[0].attrib['step_val'] == last_freq:
       continue
-    last_freq = res[0].getContent()
+    last_freq = res[0].attrib['step_val']
     item = []
     item.append(float(last_freq))
     # read data
-    e = xml.xpathEval(xpath_base + "/@id")
-    x = xml.xpathEval(xpath_base + "/@x")
-    y = xml.xpathEval(xpath_base + "/@y")
-    z = xml.xpathEval(xpath_base + "/@z")
+    e = xml.xpath(xpath_base + "/@id")
+    x = xml.xpath(xpath_base + "/@x")
+    y = xml.xpath(xpath_base + "/@y")
+    z = xml.xpath(xpath_base + "/@z")
     # assume len(res) = len(x) = len(y), eventually also len(z)
     data = []
     for i in range(len(e)):
-      e_val = int(e[i].getContent())
-      x_val = float(x[i].getContent())
-      y_val = float(y[i].getContent())
-      z_val = cond(len(z) == 0, 0.0, float(z[i].getContent()))
+      e_val = int(e[i])
+      x_val = float(x[i])
+      y_val = float(y[i])
+      z_val = cond(len(z) == 0, 0.0, float(z[i]))
       data.append(LumpedMechDisplacement(e_val, x_val, y_val, z_val))
     item.append(data)
     result.append(item)
@@ -798,7 +853,7 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode="auto
   # determine interpolation parameter, normalized to 1
   beta = (f - lower) / (upper - lower)
   alpha = 1.0 - beta
-  print "f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n"
+  print("f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n")
 
   # preliminary result, before normalizing to 1.0
   tmp = []
@@ -886,7 +941,7 @@ def make2DWindow(divider, strength, lower):
 # extrudes an 2D array to the third dimenstion
 def extrude(data_2d):
   edge = data_2d.shape[0] 
-  if edge <> data_2d.shape[1]:
+  if edge != data_2d.shape[1]:
     raise RuntimeError("require quadratic input")
   
   ret = numpy.zeros((edge, edge, edge))
@@ -994,12 +1049,126 @@ def rotate(data, center, angle):
        by = 0.5*h + y*h
        bx2 = 0.5*h + x2*h
        by2 = 0.5*h + y2*h
-       print "org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")"
+       print("org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")")
         
        if x2 >= 0 and x2 < nx and y2 >= 0 and y2 < ny:
          ret[y, x] = data[y2, x2] 
        
   return ret
+  
+  
+## returns an image out of an numpy array.
+# @param data numpy array
+# @param scale if not given the original size is given 
+# @return visualize with .show()
+def get_image(data, scale = None):
+  
+  x, y = data.shape
+    
+  ret = numpy.zeros((y, x), dtype="uint8")
+  
+  # copy data from linear list
+  for i in range(y):
+    for j in range(x):
+      ret[y-i-1][j] = 255 - int(255 * data[j][i])
+
+  img = Image.fromarray(ret)
+  if scale:
+    img = img.resize((scale, y/x * scale), Image.NEAREST) # higher quality with ANTIALIAS
+  return img
+
+
+## calculate the normalized perimeter
+# @param data array
+# @param eps for continuation, 0.0 is ok
+# @param order TV order, 2 = taxi cap or 4. See Petersson, Beckers and Duysinx, 1999
+# @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain  
+def perimeter(data, eps = 0.0, order = 2, normalize = True):
+  
+  assert(order == 2 or order == 4)
+ 
+  n2, n1 = data.shape
+  per = 0.0
+
+  h1 = 1.0/n1
+  h2 = 1.0/n2
+
+   
+  for j in range(0,n2): 
+    for i in range(1,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j,i-1] # rho_i-1,j
+      scale = h2/(n1-1) if normalize else h2
+      per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  for j in range(1,n2):
+    for i in range(0,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j-1,i] # rho_i,j-1
+      scale = h1/(n2-1) if normalize else h1
+      per += h1 * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  if order == 4:
+    # Petersson, Beckers and Dun2sinn1, "Almost Isotropic Perimeters in Topologn2 Optimization: Theoretical and Numerical Aspects", 1999  
+    # -> (5)      
+    h = numpy.sqrt(h1**2 + h2**2)
+
+    for j in range(0,n2-1):
+      for i in range(0,n1-1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i+1] # rho_i+1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h) 
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+  
+    for j in range(0,n2-1):
+      for i in range(1,n1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i-1] # rho_i-1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h)
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+
+  # normalization is done for TV_2, for TV_4 we need to correkt the diagonal elements -> c_4^-1 = 1 + 2 | cos(theta) | below (3)
+  if not normalize and order ==4:
+    per /= 1 + 2 * numpy.cos(numpy.pi / 4)
+  
+  return per
+  
+# add a save ghost cell around an array
+# @param reproduce shall the outer boundary be copied 
+def add_ghost_cells(data, reproduce = False):
+  x, y = data.shape
+  result = numpy.zeros((x + 2, y + 2))
+  result[1:x+1, 1:y+1] = data
+
+  # copy the boundary
+  if reproduce:
+    result[0,]    = result[1,]
+    result[y+1,]  = result[y,]
+    result[:,0]   = result[:,1]
+    result[:,x+1] = result[:,x] 
+
+  return result
+  
+
+# read properties from an bloch mode optimization
+# returns a dictionary with the most relevant properteis
+def read_bloch_properties(xml):
+  iter = xml.xpath("//iteration[last()]")[0]
+  
+  for ev in range(1,30):
+    if 'ev_'+ str(ev) + '_max' in iter.attrib and 'ev_'+ str(ev+1) + '_min' in iter.attrib:  
+      lower = float(iter.attrib['ev_'+ str(ev) + '_max'])
+      upper = float(iter.attrib['ev_'+ str(ev+1) + '_min'])
+      assert(lower > 0)
+      
+      norm = (upper-lower) / (lower + .5*(upper-lower))
+      rel  = (upper-lower) / lower
+
+      dict = {'iter' : int(iter.get('number')), 'lower' : lower, 'upper' : upper, 'ev' : ev, 'norm' : norm, 'rel' : rel}
+      return dict 
+      
+  raise RuntimeError("no ev_(i)_max and ev_(i+i)_min pair found")
+
     
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11

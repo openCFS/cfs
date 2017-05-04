@@ -60,6 +60,9 @@ namespace CoupledField
 
     //@}
 
+    /**  @see Grid::ExportGrid() */
+    void ExportGrid(PtrParamNode out);
+
 
     // =======================================================================
     // GENERAL GRID INFORMATION
@@ -184,7 +187,12 @@ namespace CoupledField
     
     //! Returns a single element with the given element number
     //! \param elemNr element number
-    const Elem * GetElem( UInt elemNr );
+    const Elem* GetElem(UInt elemNr)
+    {
+      assert(orderedElems_[elemNr-1] != NULL);
+      assert(orderedElems_[elemNr-1]->elemNum == elemNr);
+      return orderedElems_[elemNr-1];
+    }
 
     virtual UInt GetMaxNumNodesPerElem()
     {
@@ -240,6 +248,15 @@ namespace CoupledField
     //! \param iElem (in) element number
     void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
+
+    //! Returns element neighbors of given node
+    //! \param node number of interest
+    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
+    {
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
+      return mapNodeToElems_[node];
+    }
 
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
@@ -357,10 +374,18 @@ namespace CoupledField
     Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                    bool updated = false );
 
+    /** Total volume of a sparse grid. Works only for parallelograms. */
+    Double CalcHullVolume(bool updated = false);
+
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
                                   CoordSystem* cSys);
+
+    /** @see Grid::CalcRegulardGridDiscretization() */
+    StdVector<unsigned int> CalcRegulardGridDiscretization();
+
+
     //@}
 
 
@@ -450,6 +475,19 @@ namespace CoupledField
      * Can be expensive!
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
+
+    /**
+     * Stores information on which elements belong to which nodes in a vector
+     */
+    void SetNodesToElemsMap();
+
+    inline double CalcVolumeOfAllRegions(bool updated=false) {
+      // Volume of all regions
+      Double s = 0.0;
+      for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+      return s;
+    }
 
 
     //! helper struct for passing information about nodes
@@ -588,6 +626,12 @@ namespace CoupledField
     std::map<Elem::FEType, UInt> numElemTypes_;
 
     UInt maxNumElemNodes_;
+
+    //! Maps from a node number to all neighbor elements
+    StdVector<StdVector<Elem*> > mapNodeToElems_;
+
+    //! Flag to ensure that mapNodeToElems_ is only set up once
+    bool mappedNodeToElems_ = false;
     //@}
   
     //! Vector containing all faces 

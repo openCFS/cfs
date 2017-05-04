@@ -6,7 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <limits.h>
 
 #include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
@@ -494,8 +494,8 @@ namespace CoupledField
   {
     Complex EModul(emod);
     Complex poisson(poi); 
-    Complex LameLambda = (poisson*EModul)/
-          ((Complex(1.0,0) + poisson)*(Complex(1.0,0)  - Complex(2.0,0)*poisson));
+    Complex LameLambda = (poisson*EModul);
+    LameLambda /=  ((Complex(1.0,0) + poisson)*(Complex(1.0,0)  - Complex(2.0,0)*poisson));
     Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
     
     Matrix<Complex> elasticityTensor;
@@ -996,14 +996,15 @@ void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
     return res;
   }
 
-  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* bm, SubTensorType stt, double vol)
   {
+    LOG_DBG2(mat) << "GOP tensor=" << tensor.ToString();
     Matrix<double> D;
     tensor.Invert(D);
 
     StdVector<std::pair<std::string, double> > res;
 
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, bm, stt, vol);
 
     res.Push_back(std::make_pair("E_1", E[0]));
     res.Push_back(std::make_pair("E_2", E[1]));
@@ -1011,7 +1012,7 @@ void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
       res.Push_back(std::make_pair("E_3", E[2]));
     }
 
-    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
+    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, bm, stt, vol);
     // v_21=0, v_12=1, v_31=2, v_13=3, v_32=4, v_23=5
     res.Push_back(std::make_pair("v_21", v[0]));
     res.Push_back(std::make_pair("v_12", v[1]));

@@ -1,4 +1,4 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
@@ -112,6 +112,20 @@
                 </xsd:element>
 
                 <!-- heat specific boundary conditions -->
+                <xsd:element name="heatSource" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines nodal heat</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <!-- heat specific boundary conditions -->
+                <xsd:element name="designDependentHeatSource" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Creates heat sources at interfaces betweens void and solid </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <!-- heat specific boundary conditions -->
                 <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines volume heat</xsd:documentation>
@@ -122,7 +136,7 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="elecPowerDensity" type="DT_BcInhomScalarCoupled">
                   <xsd:annotation>
-                    <xsd:documentation>Defines the elctric power density as a volume source from a coupled computation</xsd:documentation>
+                    <xsd:documentation>Defines the electric power density as a volume source from a coupled computation</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
 
@@ -250,6 +264,11 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
+
+			<!-- non-physical design variable for simp topology optimization -->
+			<xsd:enumeration value="mechPseudoDensity" />
+			<!-- physical application of design variable in the simulation -->
+			<xsd:enumeration value="physicalPseudoDensity" />
     </xsd:restriction>
   </xsd:simpleType>
 

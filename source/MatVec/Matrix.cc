@@ -4,21 +4,20 @@
 
 #include <fstream>
 #include <string>
-#include <cmath>
 #include <def_build_type_options.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
 
 #include "BLASLAPACKInterface.hh"
 
-using namespace std;
-
 using boost::tokenizer;
+
 namespace CoupledField
 {      
 
@@ -113,7 +112,7 @@ namespace CoupledField
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
-    std::string offset(n_offset, ' ');
+    std::string offset(std::max(n_offset,0), ' ');
 
     std::ostringstream os;
 
@@ -146,14 +145,25 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
-
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= sqrt(2);
-      data_[size_row_-1][i] *= sqrt(2);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= sqrt(2);
+        data_[size_row_-1][i] *= sqrt(2);
+      }
+      data_[size_row_-1][ size_row_-1] *= 2.0;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= sqrt(2);
+            data_[j][i] *= sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 2.0;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][ size_row_-1] *= 2.0;
   }
 
     /** Convert from Hill-Mandel to Voigt Notation */
@@ -163,14 +173,26 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= 1/sqrt(2);
+        data_[size_row_-1][i] *= 1/sqrt(2);
+      }
 
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= 1/sqrt(2);
-      data_[size_row_-1][i] *= 1/sqrt(2);
+      data_[size_row_-1][size_row_-1] *= 0.5;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= 1/sqrt(2);
+            data_[j][i] *= 1/sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 0.5;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][size_row_-1] *= 0.5;
   }
 
   template<class TYPE>
@@ -817,6 +839,26 @@ namespace CoupledField
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");
   }
   
+  template<>
+  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, std::string notation ) const {
+    if (notation == "HILL_MANDEL") {
+      Matrix<Double> theta(3,3);
+      Matrix<Double> help(3,3);
+      theta[0][0] = pow(cos(a),2);
+      theta[0][1] = pow(sin(a),2);
+      theta[0][2] = -sqrt(2)/2*sin(2.*a);
+      theta[1][0] = theta[0][1];
+      theta[1][1] = theta[0][0];
+      theta[1][2] = -theta[0][2];
+      theta[2][0] = theta[1][2];
+      theta[2][1] = theta[0][2];
+      theta[2][2] = cos(2.*a);
+      this->Mult(theta, help);
+      theta.MultT(help, retMat);
+    } else {
+      EXCEPTION("Material tensor should be Hill-Mandel!")
+    }
+  }
   
   template<class TYPE>
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
@@ -825,23 +867,43 @@ namespace CoupledField
     // However, we should generalize the rotation also for 2x2, 2x4 and 4x4 matrices for the
     // 2D and axi case for mechanics.
 
-    // get memory for transposed rotation matrix
-    Matrix<Double> RT;
-    RT.Resize(3,3);
-    R.Transpose(RT);
-
     //get dimension of matrix
     UInt rowSize = size_row_;
     UInt colSize = size_col_;
 
     Matrix<TYPE> helpMat;
 
-    if ( rowSize == 3 && colSize == 3) {
+    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 and R.GetNumRows() == 3) {
+      // get memory for transposed rotation matrix
+      Matrix<Double> RT;
+      RT.Resize(3,3);
+      R.Transpose(RT);
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    }
-    else if( (rowSize == 3 && colSize == 6) ||
+    } else if (R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+      // 2D tensor rotation
+
+      Matrix<Double> Q;
+      Q.Resize(3,3);
+      Q[0][0] = R[0][0]*R[0][0];
+      Q[0][1] = R[0][1]*R[0][1];
+      Q[0][2] = 2.0*R[0][0]*R[0][1];
+      Q[1][0] = R[1][0]*R[1][0];
+      Q[1][1] = R[1][1]*R[1][1];
+      Q[1][2] = 2.0*R[1][0]*R[1][1];
+      Q[2][0] = R[0][0]*R[1][0];
+      Q[2][1] = R[0][1]*R[1][1];
+      Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+
+      Matrix<Double> QT;
+      QT.Resize(3,3);
+      Q.Transpose(QT);
+      helpMat   = (*this) * QT;
+      retMat = Q * helpMat;
+      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+
+    } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
       // we also need Q;
       Matrix<Double> Q;
@@ -1272,6 +1334,18 @@ namespace CoupledField
     }
   }
   
+  template<class TYPE>
+  void Matrix<TYPE>::Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major)
+  {
+    assert(vec.GetSize() == rows * cols);
+    assert(vec.GetSize() > 0);
+
+    Resize(rows, cols);
+
+    for(unsigned int r = 0; r < rows; r++)
+      for(unsigned int c = 0; c < cols; c++)
+        data_[r][c] = row_major ? vec[r*cols + c] : vec[c*rows+r];
+  }
   
   // perform matrix-matrix multiplication using BLAS (general case)
   template<class TYPE>
@@ -1785,8 +1859,8 @@ namespace CoupledField
 
 #ifdef USE_LAPACK
   // Compile OLAS and CFS++ with USE_LAPACK
-  template<>
-  void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
+  template <class T>
+  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
     // computes all eigenvalues of a complex hermitian matrix
 
@@ -1799,6 +1873,9 @@ namespace CoupledField
     //    Vector<Double> lp_w;
     lp_w.Resize(size_row_);
     lp_w.Init();
+    if (ev_vec != NULL) {
+      (*ev_vec).Resize(size_row_,size_row_);
+    }
     Integer lp_lworkf77=99;
       
     // workspace array - complex 16 array
@@ -1806,7 +1883,7 @@ namespace CoupledField
     lp_work.Resize(lp_lworkf77);
     lp_work.Init();
       
-    // workspace array - double precission
+    // workspace array - double precision
     Vector<Double> lp_rwork;
     lp_rwork.Resize(3*size_row_-2);
     lp_rwork.Init();
@@ -1843,6 +1920,19 @@ namespace CoupledField
     for ( UInt count = 0; count < size_row_; count++ ) 
       lp_w[count] = lp_wf77[count];
     
+    UInt c=0;
+    if (ev_vec != NULL) {
+      for ( UInt count = 0; count < size_row_; count++ ) {
+        for (UInt count2 = 0; count2 < size_row_;count2++) {
+          (*ev_vec)[count][count2] = lp_af77[c].real();
+          if (std::abs(lp_af77[c].imag()) > std::numeric_limits<float>::epsilon() ) {
+            EXCEPTION("Eigenvector is non real! ")
+          }
+          c++;
+        }
+      }
+    }
+
     delete[] lp_workf77;
     delete[] lp_rworkf77;
     delete[] lp_af77;
@@ -2494,6 +2584,19 @@ namespace CoupledField
 
     return static_cast<TYPE>(std::sqrt(result)); // for compilers
   }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::Avg() const
+  {
+    assert(size_row_*size_col_ > 0);
+    TYPE v(0);
+    for(unsigned int i = 0, n = size_row_*size_col_; i < n; i++)
+      v += data_[0][i];
+    return v * (1./(size_row_*size_col_));
+  }
+
+
+
 
   template<class TYPE>
   TYPE Matrix<TYPE>::DiffNormL2(const Matrix<TYPE>& other) const

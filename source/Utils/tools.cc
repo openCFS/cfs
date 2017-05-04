@@ -1,15 +1,18 @@
 #include <fstream>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Exception.hh"
+#include "Domain/Domain.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 using boost::char_separator;
 using boost::tokenizer;
@@ -59,6 +62,16 @@ namespace CoupledField {
 
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
+  }
+
+  std::string ConvertToFilename(std::string org)
+  {
+    std::string result = org;
+    boost::replace_all(result, ":", "_");
+    boost::replace_all(result, ",", "_");
+    boost::replace_all(result, "(", "");
+    boost::replace_all(result, ")", "");
+    return result;
   }
 
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
@@ -330,6 +343,40 @@ namespace CoupledField {
       target[i] = factor * other[i];
   }
 
+  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val, EigenInfo* info)
+  {
+    // make sure we have an info to operate on
+    EigenInfo tmp;
+    if(info == NULL)
+      info = &tmp;
+
+    info->col = 0;
+    info->max = mat[row][0];
+    info->min = mat[row][0];
+
+    for(unsigned int c = 1, n = mat.GetNumCols(); c < n; c++)
+    {
+      double val = mat[row][c];
+      if(val < info->min)
+      {
+        info->min = val;
+        if(minimum)
+          info->col = c;
+      }
+      if(val > info->max)
+      {
+        info->max = val;
+        if(!minimum)
+          info->col = c;
+      }
+    }
+
+    if(val != NULL)
+      *val = minimum ? info->min : info->max;
+
+    return info->col;
+  }
+
   void Conj(Matrix<Complex>& mat)
   {
 
@@ -518,6 +565,23 @@ namespace CoupledField {
     assert(eps >= 0);
     assert(abs(x) + eps > 0);
     return x / std::sqrt(x*x + eps*eps);
+  }
+
+
+  double MathParse(const std::string& expr)
+  {
+    // obtain handle
+    MathParser* parser = domain->GetMathParser();
+    MathParser::HandleType handle = parser->GetNewHandle(false);
+
+    // Set expression and evaluate
+    parser->SetExpr(handle, expr);
+    double ret = parser->Eval(handle);
+
+    // release handle
+    parser->ReleaseHandle(handle);
+
+    return ret;
   }
 
 
