@@ -78,10 +78,10 @@ class Marching_Triangle():
     self.edge.append(edge_node_1)
     self.edge.append(edge_node_2)
     self.next = edge_node_2
-    if edge_node_1.dir == edge_node_2.dir:
-      print("edge_node_1:",edge_node_1.dir)
-      print("edge_node_2:",edge_node_2.dir)
-    assert(edge_node_1.dir != edge_node_2.dir)
+#     if edge_node_1.dir == edge_node_2.dir:
+#       print("edge_node_1:",edge_node_1.dir)
+#       print("edge_node_2:",edge_node_2.dir)
+#     assert(edge_node_1.dir != edge_node_2.dir)
     
   def __str__(self):
     return "vertices: " + str(self.vertices[0].id) + " "  + str(self.vertices[1].id) + " " + str(self.vertices[2].id)
@@ -1021,7 +1021,8 @@ def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
 # returns array of size 2 x n with end nodes objects for fix_gaps()
 def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
   end_nodes = []
-  
+  end_nodes_ids = []
+  end_nodes_tris = []
   for i in range(0,nodes_ids.shape[0]):
     this_line = nodes_ids[i]
     right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
@@ -1051,16 +1052,34 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           right_prev_id = right_line[j-1]
           
           end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+          end_nodes_ids.append(this_id)
           vtkArray.SetValue(this_id,dir+0.5)
+          
+          # store triangle with an end node as a vertex
+          if i < nodes_ids.shape[0]-1:
+            vertices = []
+            vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+            vertices.append(End_Node(nodes[i+1,j,:],right_id,dir,i+1,j))
+            vertices.append(End_Node(nodes[i,j+1,:],next_id,dir,i,j+1))
+            end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
       else:
         if this_id >= 0 and j > 0: # first point in line is not end point
           
           end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+          end_nodes_ids.append(this_id)
           vtkArray.SetValue(this_id,dir+0.5)
           
           # fill gaps that form a triangle
           if right_id >= 0 and right_next_id >= 0:
             add_triangle(this_id,right_id,right_next_id,cells)
+            if this_id in end_nodes_ids and i < nodes_ids.shape[0]-1:
+              # if we have just created a triangle with an end node as a vertex,
+              # save this information in a Marchin_Triangle
+              vertices = []
+              vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+              vertices.append(End_Node(nodes[i+1,j,:],right_id,dir,i+1,j))
+              vertices.append(End_Node(nodes[i+1,j+1,:],right_next_id,dir,i+1,j+1))
+              end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
       
       # divide rectangle into 2 triangles, this one is the second triangle 
       if right_id >= 0 and next_id >= 0 and right_next_id >=0:
@@ -1069,8 +1088,16 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
       # fill gaps that form a triangle    
       if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0:
         add_triangle(this_id,right_next_id,next_id,cells)
-           
-  return end_nodes
+        if this_id in end_nodes_ids and i < nodes_ids.shape[0]-1: 
+          # if we have just created a triangle with an end node as a vertex,
+          # save this information in a Marchin_Triangle
+          vertices = []
+          vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
+          vertices.append(End_Node(nodes[i+1,j+1,:],right_next_id,dir,i+1,j+1))
+          vertices.append(End_Node(nodes[i,j+1,:],next_id,dir,i,j+1))
+          end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
+        
+  return end_nodes, end_nodes_tris
 
 def add_triangle(id1,id2,id3,cells):
   tri = vtk.vtkTriangle()
@@ -1152,17 +1179,17 @@ def generate_basecell(args,info,log):
     vtkData.SetName("intersection")
     vtkData.SetNumberOfValues(num_surf_points+1)
     
-    end_nodes_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
-    end_nodes_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
-    end_nodes_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
-    
+    end_nodes_1, triangles_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
+    end_nodes_2, triangles_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
+    end_nodes_3, triangles_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
+
     id = num_surf_points+1
     id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
     id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
     
     if not args.skip_surface_gaps:  
-      fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3, cells)
+      fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3,cells,triangles_1+triangles_2+triangles_3)
     
 #     for i in range(cells.GetNumberOfCells()):
 #       idList = vtk.vtkIdList()
@@ -1395,6 +1422,10 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 def triangle_contains_point(vertices,point):
   origin=np.array((0.5,0.5,0.5))
   assert(type(point) is list or type(point) is tuple or type(point) is numpy.ndarray)
+  
+  # if distance between one vertex and point is too big, omit point
+  if calc_distance(vertices[0].coords, point) > 5.0/res:
+    return False
   # line equation from origin to point in parametric form                             
   # P = origin + k * d
   # plane equation in parametric form
@@ -1425,7 +1456,8 @@ def triangle_contains_point(vertices,point):
   sol = linsolve_3x3(mat,rhs)
   # sol[0] -> s, sol[1] -> t, sol[2] -> k
 #   print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
-  if sol[0] > -eps and sol[1] > -eps and sol[0]+sol[1] < 1.0+eps and abs(sol[2]) < 0.5:
+  
+  if sol[0] > -eps and sol[1] > -eps and sol[0]+sol[1] < 1.0+eps:
     log("projected point inside triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + ","  + str(vertices[2].id) + ")")
     log("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]) + " k: " + str(sol[2]))
     return True
@@ -1748,8 +1780,10 @@ def pop_triangles(triangles):
 # start with one given triangle defined by end nodes of two profiles (assume each profile has a different color'
 # we call the edge that connects two differently colored nodes an 'active' edge
 # when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
-# in the neighborhood of the two edge vertices              
-def fix_profile_intersection_gaps(profiles,end_nodes,cells):
+# in the neighborhood of the two edge vertices
+# @param triangles_history: contains all already defined triangles which has at
+# least one end nodes as vertex; need this info for overlap check              
+def fix_profile_intersection_gaps(profiles,end_nodes,cells,triangles_history):
   # find profiles with biggest radius
   start_dir = 0
   start_radius = 0
@@ -1758,9 +1792,9 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
       start_dir = p.direction
       start_radius = p.radius_left
   
-  # save all valid created triangles
-  # we need to store it to make sure no triangle is defined more than once
-  triangles_history = []    
+#   # save all valid created triangles
+#   # we need to store it to make sure no triangle is defined more than once
+#   triangles_history = []    
   # start from profile with biggest radius
   nodes = sort_end_nodes_list(profiles,end_nodes) 
   for n in nodes:
@@ -1788,7 +1822,7 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
 #       break 
     perc = count/num_nodes*100
     print(count/num_nodes*100,"% of end nodes")
-    if perc > 10:
+    if perc > 30:
       break
       
     
@@ -2391,7 +2425,7 @@ def sort_end_nodes_list(profiles,end_nodes):
   dirs = [profiles[0].direction,profiles[1].direction,profiles[2].direction] 
    
   # sort directions depending on profile radii 
-  sorted_dirs = np.array(dirs)[np.argsort(radii)][::-1] 
+  sorted_dirs = np.array(dirs)[np.argsort(radii)]#[::-1] 
    
   new_list = [] 
    
