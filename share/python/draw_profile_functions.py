@@ -39,16 +39,14 @@ class End_Node():
   j = -1 # second index in surface map, where on surface line 
   dir = -1 # to which structure does this end node belongs to (x,y,z)(1,2,3)?
   next = None # store next end node in clock-wise direction when we have to step over a valley
-  neighbors = None # list with coordinates of all (inner + end) nodes
     
-  def __init__(self,coords,id,dir,i,j,neighbors):
+  def __init__(self,coords,id,dir,i,j):
     assert(len(coords) == 3)
     self.coords = coords
     self.id = id
     self.i = i
     self.j = j
     self.dir = dir
-    self.neighbors = neighbors
     
   def __str__(self):
 #     return str(self.id) + "   " + str(self.coords[0]) + " " + str(self.coords[1]) + " " + str(self.coords[2]) + " " + str(self.dir)
@@ -1052,15 +1050,12 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
           left_prev_id = left_line[j-1]
           right_prev_id = right_line[j-1]
           
-          neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
-          
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
           vtkArray.SetValue(this_id,dir+0.5)
       else:
         if this_id >= 0 and j > 0: # first point in line is not end point
           
-          neighbors = give_all_neighbor_coords(i, j, nodes, nodes_ids)
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j,neighbors))
+          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
           vtkArray.SetValue(this_id,dir+0.5)
           
           # fill gaps that form a triangle
@@ -1077,27 +1072,6 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
            
   return end_nodes
 
-# returs a list with indices associated with locations of neighbors in the grid
-# e.g. next neighbor has indices (i,j+1), left next (i-1,j+1)
-def give_all_neighbor_coords(i,j,nodes,nodes_ids):
-  right_line_idx = i+1 if i < nodes_ids.shape[0]-1 else 0
-  left_line_idx = i-1 if i > 0 else nodes_ids.shape[0]-1
-  # indices of neighborhood
-  idx = [(i,j+1),(left_line_idx,j+1),(left_line_idx,j),(left_line_idx,j-1),(i,j-1),(right_line_idx,j-1),(right_line_idx,j),(right_line_idx,j+1)]
-  neighbors = []
-  
-  for v in idx:
-    # skip the ones that don't exist
-    if v[0] < 0 or v[0] >= nodes_ids.shape[0] or v[1] < 0 or v[1] >= nodes_ids.shape[1]:
-      continue
-    
-    # if v is a surface node id
-    if nodes_ids[v[0],v[1]] > -1:
-      # for each neighbor, store its coordinates and id
-      neighbors.append((nodes[v[0],v[1],:],nodes_ids[v[0],v[1]]))
-      
-  return neighbors
-  
 def add_triangle(id1,id2,id3,cells):
   tri = vtk.vtkTriangle()
   tri.GetPointIds().SetId(0, id1)
@@ -1420,6 +1394,7 @@ def get_end_node_by_grid_coords(i,j,end_nodes):
 # intersect line and plane to find projection (and parameters)  
 def triangle_contains_point(vertices,point):
   origin=np.array((0.5,0.5,0.5))
+  assert(type(point) is list or type(point) is tuple or type(point) is numpy.ndarray)
   # line equation from origin to point in parametric form                             
   # P = origin + k * d
   # plane equation in parametric form
@@ -1428,6 +1403,8 @@ def triangle_contains_point(vertices,point):
   # setting line equation equals plane equation in order 
   # to find parameters for projected point onto plane
   # origin - A = s*u + t*v - k*d
+  
+  eps= 1e-4
   
   coords = []
   for v in vertices:
@@ -1446,11 +1423,11 @@ def triangle_contains_point(vertices,point):
   rhs = origin - A 
   
   sol = linsolve_3x3(mat,rhs)
-  # sol[0] -> s, sol[1] -> t, sol[2] -> d
+  # sol[0] -> s, sol[1] -> t, sol[2] -> k
 #   print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
-  if sol[0] > 0.0 and sol[1] > 0.0 and sol[0]+sol[1] < 1.0:
+  if sol[0] > -eps and sol[1] > -eps and sol[0]+sol[1] < 1.0+eps and abs(sol[2]) < 0.5:
     log("projected point inside triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + ","  + str(vertices[2].id) + ")")
-    log("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]))
+    log("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]) + " k: " + str(sol[2]))
     return True
   else:
     return False
@@ -1558,7 +1535,6 @@ def give_next_neighbor_in_other_profile(tree,node,end_nodes):
   
   assert(next is not None)  
   assert(next.dir != node.dir)
-  
   return next
 
 # similar to give_next_neighbor_in_other_profile, but here
@@ -1583,7 +1559,7 @@ def give_next_neighbor_on_circle(tree,node,end_nodes):
   return next
 
 # from a list of candidates, choose the third triangle vertice such that the resulting triangle has the smallest aspect_ratio
-def give_best_next_neighbor(history,triangles,candidates, vert1, vert2, quality_bound):
+def give_best_next_neighbor(history, triangles, candidates, vert1, vert2, quality_bound,tree,end_nodes):
   if len(candidates) == 1 and (candidates[0].id == vert1.id or candidates[0].id == vert2.id):
     return candidates[0]
   best_ratio = 1e9
@@ -1595,7 +1571,7 @@ def give_best_next_neighbor(history,triangles,candidates, vert1, vert2, quality_
     log(str(alt.id) + " ",linebreak=False)  
   log("")
   
-  feasible_cands = give_feasible_candidates(history,triangles,candidates,vert1,vert2)
+  feasible_cands = give_feasible_candidates(history,triangles,candidates,vert1,vert2,tree,end_nodes)
   
   for node in feasible_cands:
     ratio = calc_triangle_ratio(vert1.coords, vert2.coords, node.coords)
@@ -1660,7 +1636,7 @@ def give_next_end_node_on_inner_circle(outer_node,inner_end_nodes):
 # take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
 # corresponds to going one step backwards in algorithm
 # remove latest triangle and check second best candidate    
-def handle_bad_triangle(history,triangles,quality_bound):
+def handle_bad_triangle(history,triangles,quality_bound,tree,end_nodes):
   next = None
   # if we don't have alternatives for neighbor end nodes
 #   if alternatives is None or len(alternatives) == 0:
@@ -1675,7 +1651,7 @@ def handle_bad_triangle(history,triangles,quality_bound):
     b = tri.edge[1]
     log("active edge: " + str(a.id) + "," + str(b.id))
     tri.next = None
-    next = give_best_next_neighbor(history,triangles,alternatives, a, b, quality_bound)
+    next = give_best_next_neighbor(history,triangles,alternatives, a, b, quality_bound,tree,end_nodes)
     if next is not None:
       # next is good, so it is not a candidate anymore
       tri.other_candidates = [v for v in tri.other_candidates if v.id != next.id]
@@ -1725,7 +1701,7 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
   log("b: " + str(b.id))
   
   next_cands = give_next_end_nodes_in_ball(tree, a, end_nodes)
-  next = give_best_next_neighbor(history,triangles,next_cands,a,b,quality_bound)
+  next = give_best_next_neighbor(history,triangles,next_cands,a,b,quality_bound,tree,end_nodes)
   if next is not None:
     add_good_triangle(triangles, a, b, next_cands, next)
     return True
@@ -1733,7 +1709,7 @@ def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_e
     # dummy, will be removed in handle_bad_triangle    
     triangles.append(Marching_Triangle([a,b,b],a,b,[]))   
     # returns False if no alternatives left at all  
-    return handle_bad_triangle(history,triangles,quality_bound)
+    return handle_bad_triangle(history,triangles,quality_bound,tree,end_nodes)
       
 # pop triangles that have no alternative candidates    
 def pop_triangles(triangles):
@@ -1792,7 +1768,8 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
   assert(nodes)
   tree = build_tree(end_nodes)
   count = 0
-  for n in nodes:
+  num_nodes = len(nodes)
+  for count,n in enumerate(nodes):
     start_node = n
     
     next = give_next_neighbor_in_other_profile(tree,start_node,end_nodes)
@@ -1809,6 +1786,11 @@ def fix_profile_intersection_gaps(profiles,end_nodes,cells):
 #     count += 1
 #     if count == 20:
 #       break 
+    perc = count/num_nodes*100
+    print(count/num_nodes*100,"% of end nodes")
+    if perc > 10:
+      break
+      
     
   for tri in triangles_history:
     verts = tri.vertices
@@ -1860,7 +1842,7 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
     coords_right[major_dir] = 1.0 
     
     # assign any other direction to end node as triangulation routine assumes two different directions  
-    nodes_left.append(End_Node(coords_left,id,dir,line,0,[]))
+    nodes_left.append(End_Node(coords_left,id,dir,line,0))
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_left)
@@ -1871,11 +1853,10 @@ def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set
       assert(vtk_id == nodes_left[-1].id)  
     
     # assign any other direction to end node as triangulation routine assumes two different directions
-    nodes_right.append(End_Node(coords_right,id,dir,line,res-1,[]))
+    nodes_right.append(End_Node(coords_right,id,dir,line,res-1))
     if set_id:
       id += 1  
       vtk_id = points.InsertNextPoint(coords_right)
-      print(vtk_id)
       vtkData.InsertValue(vtk_id,-1)
       if vtk_id != nodes_right[-1].id:
         print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id)))
@@ -1963,7 +1944,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
   initial_edge = [start,next]
   
   other_cands = give_next_end_nodes_in_ball(tree, start, end_nodes)
-  other = give_best_next_neighbor(history,triangles,other_cands,start,next,100)
+  other = give_best_next_neighbor(history,triangles,other_cands,start,next,100,tree,end_nodes)
   
   # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
   for tri in history:
@@ -2005,6 +1986,7 @@ def start_triangulation(history,start,next,end_nodes,tree,cells):
       log("increased quality_bound to " + str(quality_bound))
       if quality_bound > 30:
         print("Quality bound exceeded: ",quality_bound)
+#       triangles.pop()
     else:
       edge = triangles[-1].edge
       # if we have reached the very first edge, we're done
@@ -2343,7 +2325,8 @@ def check_duplicated_triangles(triangles):
       if i == j:
         continue
       if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
-        raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
+        #raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
+        print("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
 
 # returns a list of end nodes that can form feasible triangles with vert1 and vert2
 # @param history is a list with Marching Triangles that should not be modified anymore
@@ -2353,7 +2336,8 @@ def check_duplicated_triangles(triangles):
 # - if cand is on same profile as vert1 or vert2, it must be a direct neighbor
 # - triangle defined by cand, vert1, vert2 must not already exist and must not overlap other already created triangles
 # - vert1, vert2 and cand must differ from each other (not the same id) 
-def give_feasible_candidates(history,triangles,candidates,vert1,vert2):
+# @param end_nodes: triangle is infeasible if one of other end_nodes lies inside triangle
+def give_feasible_candidates(history,triangles,candidates,vert1,vert2,tree,end_nodes):
   cands = []
   for node in candidates:
     test_triangle = [vert1,vert2,node]
@@ -2370,7 +2354,9 @@ def give_feasible_candidates(history,triangles,candidates,vert1,vert2):
       continue
     if triangle_overlap_others(history+triangles,test_triangle):
       continue
-    if triangle_contains_any_neighbors(test_triangle):
+    if triangle_contains_any_neighbors(tree,test_triangle,end_nodes):
+      continue
+    if triangle_contains_any_end_nodes(test_triangle,end_nodes):
       continue
     # found a feasible candidate
     cands.append(node)
@@ -2419,20 +2405,36 @@ def sort_end_nodes_list(profiles,end_nodes):
    
   return new_list
 
-# vertices contains 3 end nodes that form a triangle
 # for each end node, check if any of its neighbors is contained in triangle
-# spanned by these 3 end nodes    
-def triangle_contains_any_neighbors(vertices):
-  for vertice in vertices:
-    for n in vertice.neighbors: # n[0] -> coords, n[1] -> id
-      # if we are one of the vertices skip
-      if n[1] == vertices[0].id or n[1] == vertices[1].id or n[1] == vertices[2].id:
-        continue
-      
+# @param tree: built-in kd-tree of end_nodes
+# @param vertices: list with 3 end nodes that span a triangle
+# @param end_nodes: list with all end_nodes
+# @param radius: radius for neighborhood search    
+def triangle_contains_any_neighbors(tree,vertices,end_nodes,radius=5.0/res):
+  other_nodes = []
+  for vert in vertices:
+    other_nodes += give_next_end_nodes_in_ball(tree, vert, end_nodes)
+  
+  other_nodes = [v for v in other_nodes if v.id != vertices[0].id and v.id != vertices[1].id and v.id != vertices[2].id]  
+  
+  for n in other_nodes:
+    assert(n.id != vertices[0].id)
+    assert(n.id != vertices[1].id)
+    assert(n.id != vertices[2].id)
 #       log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + " contains node " + str(n[1]))
-      if triangle_contains_point(vertices,n[0]):
-        log("triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(n[1]))
-        return True    
+    if triangle_contains_point(vertices,n.coords):
+      log("TCAN:triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(n.id))
+      return True    
+  
+  return False
+
+def triangle_contains_any_end_nodes(vertices,end_nodes):
+  for node in end_nodes:
+    if vertices[0].id == node.id or vertices[1].id == node.id or vertices[2].id == node.id:
+        continue
+    if triangle_contains_point(vertices, node.coords):
+      log("triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(node.id))
+      return True
   
   return False
 
