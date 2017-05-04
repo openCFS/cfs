@@ -36,9 +36,9 @@ template<class DATA_TYPE>
                                                           PtrParamNode configNode,
                                                           shared_ptr<RegionList> regions)
                                    :CoefFunctionGrid(ptDomain, configNode, regions){
-    lastStepUpdate_ = std::numeric_limits<uint>::max();
-    stepNumberInterpolationA_ = std::numeric_limits<uint>::max();
-    stepNumberInterpolationB_ = std::numeric_limits<uint>::max();
+    lastStepUpdate_ = std::numeric_limits<unsigned int>::max();
+    stepNumberInterpolationA_ = std::numeric_limits<unsigned int>::max();
+    stepNumberInterpolationB_ = std::numeric_limits<unsigned int>::max();
     initializedSpaceFactors_ = false;
     initializedRegionNodes_ = false;
     initializedUsedRegionNodesForSum_ = false;
@@ -696,7 +696,7 @@ template<class DATA_TYPE>
       return false;
     }
     if (this->dependType_ == CoefFunction::SPACE) {
-      bool updated = this->lastStepUpdate_ == std::numeric_limits<uint>::max();
+      bool updated = this->lastStepUpdate_ == std::numeric_limits<unsigned int>::max();
       if (updated) {
         this->ReadSolution(stepValueMap_.begin()->first,this->solVec_);
       }
@@ -753,7 +753,7 @@ template<class DATA_TYPE>
         const Double newBValue = Apre ? postStepValue : preStepValue;
         
         if (this->stepNumberInterpolationA_ != newA) {
-          if (this->stepNumberInterpolationA_ == std::numeric_limits<uint>::max()) {
+          if (this->stepNumberInterpolationA_ == std::numeric_limits<unsigned int>::max()) {
             this->solVecInterpolationA_.Resize(this->numEqns_);
             this->solVecInterpolationA_.Init(0.0);
           }
@@ -761,7 +761,7 @@ template<class DATA_TYPE>
           this->stepNumberInterpolationA_ = newA;
         }
         if (this->stepNumberInterpolationB_ != newB) {
-          if (this->stepNumberInterpolationB_ == std::numeric_limits<uint>::max()) {
+          if (this->stepNumberInterpolationB_ == std::numeric_limits<unsigned int>::max()) {
             this->solVecInterpolationB_.Resize(this->numEqns_);
             this->solVecInterpolationB_.Init(0.0);
           }
