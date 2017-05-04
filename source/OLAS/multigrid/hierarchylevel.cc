@@ -278,17 +278,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
  //////////////////// 
  // setup THIS level
 
-    // some logging information
-    if( logging_ ) {
-        if( ! GetLevelID() ) {
-            (*cla) <<LOGLINE<<" AMG: SETTINGS:\n";
-            settings->Print( *cla );
-            (*cla) << LOGLINE;
-        }
-        (*cla) << " AMG: starting setup on level ["<<GetLevelID()
-               << "]"<<std::endl;
-    }
-
 #ifdef AMG_DIRICHLET_MIXED_SMOOTHING
     if( !GetLevelID() ) {
         NEWARRAY( penaltyFlags, bool, SysMatrix_->GetNumRows() ); }
@@ -307,11 +296,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     const Integer SizeH =
     Topology_->CalcCoarseFineSplitting( settings->maxCoarseDepend,
                                         settings->gamma );
-    if( logging_ ) {
-        (*cla)
-        << " AMG: coarsening nh:"<<Topology_->GetSizeh()
-        << " -> nH:"<<SizeH<<std::endl;
-    }
 
     // create auxiliary data. Here we need the sizes of both, the
     // fine and the coarse system (this is the reason, why we stored it)
@@ -337,31 +321,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     if( settings->minSystemSize     >  SizeH             ||
         settings->numBadCoarsenings <  numBadCoarsenings ||  
         Topology_->GetSizeh()       == SizeH                ) {
-        // If logging is switched on, write some information to
-        // the (*cla) stream. If profiling is switched on, write
-        // additionally the profiling result. Note that profiling
-        // implicitly switches on the logging.
-        if( logging_ ) {
-            if( settings->minSystemSize > SizeH ) {
-                (*cla)
-                 << " AMG: minimal system size "
-                 << settings->minSystemSize<<std::endl
-                 << " AMG:  => reached coarsest level of size "
-                 << Topology_->GetSizeh()<<std::endl;
-            // settings->numBadCoarsenings < numBadCoarsenings
-            } else if( settings->numBadCoarsenings < numBadCoarsenings ) {
-                (*cla)
-                 << " AMG: had too many ("<<numBadCoarsenings<<") "
-                    "\"bad coarsenings\""<<std::endl
-                 << " AMG:  => reached coarsest level of size "
-                 << Topology_->GetSizeh()<<std::endl;
-            // Topology_->GetSizeh() == SizeH
-            } else {
-                (*cla)
-                 << " AMG: nh = "<<SizeH<<" could not be reduced\n"
-                 << " AMG:  => reached coarsest level\n";
-            }
-        }
 
         // remove topology object and eventually the penalty flags
         delete Topology_;  Topology_ = NULL;
@@ -369,11 +328,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
         // setup direct solver
         const bool rValue = SetupDirectSolver( settings );
 
-        if( logging_ ) {
-            (*cla)
-            << " AMG: finished setup on level ["<<GetLevelID()<<"]";
-            (*cla) <<std::endl<<LOGLINE;
-        }
         // eventualy export the system matrix
         HIERARCHY_EXPORT_COMPONENTS;
         return rValue;
@@ -420,12 +374,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     // calc the Galerkin product using a temporary PreMatrix
     Transfer_->GalerkinProduct( &coarseMatrix, *SysMatrix_ );
 #endif
-
-    // some logging and profiling
-    if( logging_ ) {
-        (*cla) << " AMG: finished setup on level ["<<GetLevelID()<<"]:\n"
-               << LOGLINE;
-    }
 
  ////////////////////////////////////////////////////
  // continue setup process recursively on next level
@@ -519,11 +467,6 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
             IdPrecond idprecond;
             directSolver_->Solve( *DirSysMatrix_, idprecond, rhs, sol );
         } else {
-            if( logging_ ) {
-                (*cla) << " AMG: using smoother as direct solver, "
-                       << "maximal "<<maxNumSmoothingSteps<<" steps"
-                       << std::endl;
-            }
             Integer nExactSmoothingSteps = 0;
             Double residualL2Norm = 0;
             typename Smoother<T>::Direction dir = Smoother<T>::FORWARD;
@@ -543,11 +486,6 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
                        Smoother<T>::BACKWARD : Smoother<T>::FORWARD);
                 SysMatrix_->CompRes( *vh1_, sol, rhs );
                 residualL2Norm = vh1_->NormL2();
-                if( logging_ ) {
-                    (*cla) << " AMG: smoother: step "<<nExactSmoothingSteps
-                           << " : ||r|| = "<<std::scientific<<residualL2Norm
-                           << std::endl;
-                }
             } while( residualL2Norm > 1e-15 );
         }
 
@@ -616,15 +554,12 @@ SetupTopology( const Double alpha,
                bool *const  penaltyFlags )
 {
 
-    if( logging_ )  (*cla) << " AMG: setup topology\n";
-
     // Create topology object. The constructor, we use here
     // also creates the graphs of strong dependencies S and ST.
     if( Topology_ ) { delete Topology_;  Topology_ = NULL; }
     
     // create new topology object
     if( NULL == (Topology_ = New Topology<T>) ) {
-        (*cla) << " AMG: creation of topology object failed\n";
         return false;
     }
 
@@ -638,7 +573,6 @@ SetupTopology( const Double alpha,
                 , penaltyFlags
 #endif
     ) ) {
-        (*cla) << " AMG: topology setup failed\n";
         return false;
     }
 
@@ -652,8 +586,6 @@ bool HierarchyLevel<T>::
 SetupSmoother( const Settings *const settings,
                bool *const penaltyFlags )
 {
-
-    if( logging_ ) (*cla) << " AMG: setup smoother\n";
 
     // create smoother object
     if( Smoother_ ) { delete Smoother_; Smoother_ = 0x0; }
@@ -675,20 +607,14 @@ SetupSmoother( const Settings *const settings,
             break;
         }
         default: {
-            (*cla)
-            << " AMG: not supported smoother type ID "
-            << settings->SmootherType<<std::endl;
         }
     }
 
     if( ! Smoother_ ) {
-        (*cla)
-        << " AMG: creation of smoother object failed"<<std::endl;
         return false;
     } else {
         // setup the smoother
         if( ! Smoother_->Setup(*SysMatrix_) ) {
-            (*cla) << " AMG: setup of smoother failed\n";
             delete Smoother_;
             Smoother_ = 0x0;
             return false;
@@ -707,8 +633,8 @@ SetupSmoother( const Settings *const settings,
 //     cannot be specified dynamically
 #define CASE_CONVERT_CRS_TO_LAPACKGB( FTypeID, entryF ) \
 case FTypeID: { \
-    LapackGBMatrix< entryF, T_Mtype >* lapackA = \
-        dynamic_cast<LapackGBMatrix< entryF, T_Mtype >*>(DirSysMatrix_); \
+    LapackGBMatrix< entryF, T >* lapackA = \
+        dynamic_cast<LapackGBMatrix< entryF, T >*>(DirSysMatrix_); \
     if( lapackA == NULL ) { \
         Error( "HierarchyLevel<T>::SetupDirectSolver: dynamic cast " \
                "failed", __FILE__, __LINE__ ); \
@@ -723,8 +649,6 @@ template <typename T>
 bool HierarchyLevel<T>::
 SetupDirectSolver( const Settings* const settings )
 {
-
-    if( logging_ ) (*cla)<<" AMG: setup exact solver\n";
 
     switch( settings->directSolver ) {
 
@@ -832,7 +756,7 @@ SetupDirectSolver( const Settings* const settings )
             DirSysMatrix_ = 
             GenerateStdMatrixObject( SysMatrix_->GetEntryType(),
                                      SPARSE_SYM,
-                                     BlockSize<T_Mtype>::size,
+                                     BlockSize<T>::size,
                                      SysMatrix_->GetNumRows(),
                                      SysMatrix_->GetNumCols(),
                                      SysMatrix_->GetNnz() );
@@ -857,10 +781,10 @@ SetupDirectSolver( const Settings* const settings )
             // convert the system matrix into the symmetrix sparse format
             Integer *const crsRow  = SysMatrix_->GetRowPointer();
             Integer *const crsCol  = SysMatrix_->GetColPointer();
-            T_Mtype *const crsDat  = SysMatrix_->GetDataPointer();
+            T *const crsDat  = SysMatrix_->GetDataPointer();
             Integer *const scrsRow = scrs->GetRowPointer();
             Integer *const scrsCol = scrs->GetColPointer();
-            T_Mtype *const scrsDat = scrs->GetDataPointer();
+            T *const scrsDat = scrs->GetDataPointer();
             Integer  crs_ij = 1,
                     scrs_ij = 1;
             scrsRow[1] = scrs_ij;

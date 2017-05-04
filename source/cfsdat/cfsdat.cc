@@ -16,6 +16,22 @@
 #include <iostream>
 #include <stdio.h>
 
+//boost parameter handling and command line
+#include <boost/program_options/cmdline.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 //CFS includes
 #include <def_cfs_stats.hh>

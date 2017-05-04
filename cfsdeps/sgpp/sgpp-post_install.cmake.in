@@ -4,7 +4,7 @@
 # * copy the libs to the cfs bin dir
 #=============================================================================
 # copy libraries to correct names
-FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppbasestatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppbase.a")
+#FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppbasestatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppbase.a")
 #FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppoptimizationstatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppoptimization.a")
 
 # copy data from install dir to the target.

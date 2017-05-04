@@ -3,7 +3,6 @@
 # extracts a single set from a density.xml file (e.g. the last) and creates a new density file.
 # practically this extracts the final result from an optimization where all iterations were written
 
-#import libxml2
 from lxml import etree
 import os
 import sys

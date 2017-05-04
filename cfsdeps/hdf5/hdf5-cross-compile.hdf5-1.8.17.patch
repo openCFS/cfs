@@ -1,0 +1,48 @@
+--- src/CMakeLists.orig.txt	2016-10-18 14:32:38.600379282 +0200
++++ src/CMakeLists.txt	2016-10-18 14:34:07.104721720 +0200
+@@ -616,13 +616,14 @@
+   target_link_libraries (H5detect "ws2_32.lib")
+ endif (MSVC OR MINGW)
+ 
+-set (CMD $<TARGET_FILE:H5detect>)
+-add_custom_command (
+-    OUTPUT ${HDF5_BINARY_DIR}/H5Tinit.c
+-    COMMAND ${CMD}
+-    ARGS > ${HDF5_BINARY_DIR}/H5Tinit.c
+-    DEPENDS H5detect
+-)
++# CFS: disable
++# set (CMD $<TARGET_FILE:H5detect>)
++# add_custom_command (
++#     OUTPUT ${HDF5_BINARY_DIR}/H5Tinit.c
++#     COMMAND ${CMD}
++#     ARGS > ${HDF5_BINARY_DIR}/H5Tinit.c
++#     DEPENDS H5detect
++# )
+ 
+ add_executable (H5make_libsettings ${HDF5_SRC_DIR}/H5make_libsettings.c)
+ TARGET_C_PROPERTIES (H5make_libsettings STATIC " " " ")
+@@ -630,14 +631,15 @@
+   target_link_libraries (H5make_libsettings "ws2_32.lib")
+ endif (MSVC OR MINGW)
+ 
+-set (CMD $<TARGET_FILE:H5make_libsettings>)
+-add_custom_command (
+-    OUTPUT ${HDF5_BINARY_DIR}/H5lib_settings.c
+-    COMMAND ${CMD}
+-    ARGS > ${HDF5_BINARY_DIR}/H5lib_settings.c
+-    DEPENDS H5make_libsettings
+-    WORKING_DIRECTORY ${HDF5_BINARY_DIR}
+-)
++# CFS: disable
++# set (CMD $<TARGET_FILE:H5make_libsettings>)
++# add_custom_command (
++#    OUTPUT ${HDF5_BINARY_DIR}/H5lib_settings.c
++#    COMMAND ${CMD}
++#    ARGS > ${HDF5_BINARY_DIR}/H5lib_settings.c
++#    DEPENDS H5make_libsettings
++#    WORKING_DIRECTORY ${HDF5_BINARY_DIR}
++# )
+ 
+ if (GENERATE_ERROR_HEADERS)
+   find_package (Perl)

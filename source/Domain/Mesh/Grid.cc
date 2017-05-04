@@ -73,22 +73,14 @@ namespace CoupledField
     barycenters = false;
   }
 
-  double Grid::CalcGridVolume(bool updated)
-  {
-    double s = 0.0;
-    for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
-      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
-
-    return s;
-  }
-
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     Matrix<double>& box = grid_bounding_box_;
     if(box.GetNumRows() == 0)
     {
       // set the box ignoring force_3D!
-      if(sys == NULL) sys = domain->GetCoordSystem();
+      if(sys == NULL)
+        sys = domain->GetCoordSystem();
 
       StdVector<RegionIdType> regs;
       GetVolRegionIds(regs);
@@ -165,8 +157,10 @@ namespace CoupledField
         // decision by element number is a piece of crap. we can cache some shape maps
         // to avoid memory reallocation but otherwise, it just does not work out
         return elemShapeMapUpdated[(UInt)idx];
-      }else{
-        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+      }
+      else
+      {
+        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapUpdated.GetSize();aIdx++){
          if(elemShapeMapUpdated[aIdx].use_count()==1){
             elemShapeMapUpdated[aIdx]->SetElem(ptElem, isUpdated );
@@ -331,13 +325,20 @@ namespace CoupledField
 
   bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
   {
-    bool regular = true;
-
     for(unsigned int i = 0; i < regions.GetSize(); i++)
       if(!regionData[regions[i]].regular)
-        regular = false;
+        return false;
 
-    return regular;
+    return true;
+  }
+
+  bool Grid::IsGridRegular() const
+  {
+    for(unsigned int i = 0; i < regionData.GetSize(); i++)
+      if(!regionData[i].regular)
+        return false;
+
+    return true;
   }
 
   std::string Grid::GetRegionName( RegionIdType& id )
@@ -350,7 +351,7 @@ namespace CoupledField
     EXCEPTION( "No Region name found for id " << id ) ;
     return std::string("");
   }
-  
+
   void Grid::GetRegionNames( StdVector<std::string>& regionNames )
   {
     regionNames.Resize(regionData.GetSize());
@@ -461,7 +462,8 @@ namespace CoupledField
   {
     RegionData& rd = regionData[reg];
 
-    if(rd.barycenters) return 0;
+    if(rd.barycenters)
+      return 0;
 
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
@@ -471,7 +473,6 @@ namespace CoupledField
     rd.barycenters = true; // don't do it again!
 
     return elems.GetSize();
-    return 0;
   }
 
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
@@ -895,8 +896,8 @@ namespace CoupledField
 
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
+    this->SetElementBarycenters(region,false);
 
-    this->SetElementBarycenters(0,false);
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
         if (elems[i]->extended->barycenter[j] > max[j])

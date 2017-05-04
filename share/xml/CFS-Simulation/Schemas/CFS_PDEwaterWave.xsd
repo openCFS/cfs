@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
@@ -149,7 +150,7 @@
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="freeSurfaceCondition" type="DT_AbsorbingBC">
                   <xsd:annotation>
-                    <xsd:documentation>Substitutes dp/dn by -(1/g)d²p/dt²</xsd:documentation>
+			  <xsd:documentation>Substitutes dp/dn by -(1/g)d^2p/dt^2</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1">

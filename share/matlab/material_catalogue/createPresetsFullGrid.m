@@ -1,33 +1,27 @@
-dim  = 3;
-npoints = 2^8-1; % 2^n-1
+dim  = 2;
+n = 3;
+mini = .01;
+maxi = .99;
+
+npoints = 2^n-1;
 sz = [ npoints^dim, dim ];
 
-% npoints = 6;
-% sz = [ 6^2, dim ];
-
-fprintf('number of grid points:  %d, 4096\n', sz(1));
+fprintf('number of grid points:  %d\n', sz(1));
 
 pointsPerDim = 1:npoints;
 
-% points = zeros(sz);
-% idx = 1;
-% for i=pointsPerDim
-%     for j=pointsPerDim
-%         for k=pointsPerDim
-% %             points(idx,:) = [ 2/128*2-1, 2/128*2-1, i/(npoints+1)*2-1, j/(npoints+1)*2-1 ];
-% %             points(idx,:) = [ 2/128*2-1, 2/128*2-1, i*2-1, j*2-1 ];
-%             points(idx,:) = [ i, j, k ];
-%             idx = idx + 1;
-%         end
-%     end
-% end
+if dim == 3
+    x = reshape(repmat(pointsPerDim,npoints^2,1),[],1);
+    y = repmat(reshape(repmat(pointsPerDim,npoints,1),[],1),npoints,1);
+    z = repmat(pointsPerDim',npoints^2,1);
+    points = [x,y,z];
+elseif dim == 2
+    x = reshape(repmat(pointsPerDim,npoints,1),[],1);
+    y = repmat(pointsPerDim',npoints,1);
+    points = [x,y];
+end
 
-x = reshape(repmat(pointsPerDim,npoints^2,1),[],1);
-y = repmat(reshape(repmat(pointsPerDim,npoints,1),[],1),npoints,1);
-z = repmat(pointsPerDim',npoints^2,1);
-
-points = [x,y,z];
-points = points/(npoints+1)*2-1;
+points = points/(npoints+1)*(maxi-mini)+mini;
 
 % Write coordinates
 if sz(2) > 3
@@ -41,7 +35,7 @@ end
 if ~exist('presets','dir')
     mkdir('presets')
 end
-dlmwrite( sprintf('presets/presets%dD_%d',dim,npoints), data, 'delimiter', ',', 'precision', '%f' );
+dlmwrite( sprintf('presets/byCoords/presets%dD_%d',dim,npoints), data, 'delimiter', ',', 'precision', '%.10f' );
 
 % Clean up
 clear

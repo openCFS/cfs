@@ -570,7 +570,6 @@ namespace CoupledField {
       try {
         in->Get("name")->SetValue(currStepFile_.getFileName());
         in->Get("size")->SetValue((int) currStepFile_.getFileSize());
-        myInfo_->GetRoot()->ToFile();
       } catch (H5::FileIException &h5ex) {}
     }
 
@@ -1145,8 +1144,7 @@ namespace CoupledField {
       for( ; solIt != solEnd; solIt++ ) {
         actResInfo = (*solIt)->GetResultInfo();
 
-        entityNames.
-          push_back((*solIt)->GetEntityList()->GetName());
+        entityNames.push_back((*solIt)->GetEntityList()->GetName());
       }
 
       // Reset solIt to beginning of result vector
@@ -1173,35 +1171,34 @@ namespace CoupledField {
         // which is either the case if the simulation is not restarted or
         // if the simulation is restarted, but the restarted sequenceStep
         // is not the current one.
-        if( !isRestart_ ||
-            (isRestart_ && !H5IO::GroupExists(resGroup, resultName) ) ) {
+        if( !isRestart_ || (isRestart_ && !H5IO::GroupExists(resGroup, resultName) ) )
+        {
           H5::Group actGroup = resGroup.createGroup(resultName );
 
           H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
-          H5IO::Write1DArray( actGroup, "EntityNames", entityNames.size(),
-                              &entityNames[0], dPropList_ );
+          H5IO::Write1DArray( actGroup, "EntityNames", entityNames.size(), &entityNames[0], dPropList_ );
           H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
-          H5IO::Write1DArray( actGroup, "DOFNames", resInfo->dofNames.GetSize(),
-                              &(resInfo->dofNames[0]), dPropList_ );
+          H5IO::Write1DArray( actGroup, "DOFNames", resInfo->dofNames.GetSize(), &(resInfo->dofNames[0]), dPropList_ );
           H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
           H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
           // In order to write a valid entry, we also set the initial stepNumber/
           // stepValues array
-          UInt dummyStepNum;;
+          UInt dummyStepNum = 0;
           H5IO::Extend1DArray(actGroup, "StepNumbers", 0, &dummyStepNum, dPropList_ );
-          Double dummyStepVal;
+          Double dummyStepVal = 0.0;
           H5IO::Extend1DArray(actGroup, "StepValues", 0, &dummyStepVal, dPropList_ );
           
           actGroup.close();
-          
-        } else {
+        }
+        else
+        { // general restart case
           H5::Group actGroup = resGroup.openGroup(resultName );
           
           // Obtain already written stepValue and stepNumbers and
           // store them in the meshResultStepNums_, meshResultStepVal_.
           // These array may not be created yet.
-          if( H5IO::DatasetExists(actGroup, "StepNumbers") &&
-              H5IO::DatasetExists(actGroup, "StepValues") ) {
+          if( H5IO::DatasetExists(actGroup, "StepNumbers") && H5IO::DatasetExists(actGroup, "StepValues") )
+          {
             if( isHistory ) {
 
               StdVector<UInt> & oldStepNums = histResultStepNums_[resultName];

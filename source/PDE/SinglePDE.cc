@@ -166,9 +166,15 @@ namespace CoupledField {
       inputIt->first->Finalize();
       delete inputIt->second;
     }
-
   }
 
+
+  std::string SinglePDE::ToString() const
+  {
+    std::stringstream ss;
+    ss << pdename_ << " s=" << sequenceStep_ << " at=" << BasePDE::analysisType.ToString(analysistype_);
+    return ss.str();
+  }
 
   // ********
   //   Init
@@ -398,7 +404,9 @@ namespace CoupledField {
       
       // pass regions of primary function also RHS one
       StdVector< shared_ptr<EntityList> > support =  actFct->GetEntityList();
+      LOG_DBG(singlepde) << "IS3: support=" << support.GetSize();
       for( UInt i = 0; i < support.GetSize(); ++i ) {
+        LOG_DBG3(singlepde) << "IS3: support[" << i << "]=" << support[i]->GetName() << " size=" << support[i]->GetSize();
         rhsFeFunctions_[fncIt->first]->AddEntityList( support[i] );
       }
 
@@ -1729,8 +1737,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           boost::shared_ptr<SimInputHDF5> in;
           in.reset(new SimInputHDF5(fileName, node, infoNode));
           inState->SetInputHdf5Reader(in);
@@ -2098,6 +2105,7 @@ namespace CoupledField {
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
+        actBc->name = name;
         if( masterDof.empty() ) {
           actBc->masterDof = 0;
         } else {
@@ -2378,10 +2386,21 @@ namespace CoupledField {
 
     ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
 
+    // necessary for constraints on displacements
+    UInt end = 0;
+    if (elemName == "displacement_constraint") {
+      assert(elems.GetSize() == 1);
+      PtrParamNode xml = elems[0];
+      // read number of nodes where displacement constraint is applied
+      end = xml->Get("multiple_nodes")->As<int>();
+    } else {
+      end = elems.GetSize();
+    }
+
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
 
-    for( UInt i = 0; i < elems.GetSize(); ++i ) {
+    for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
       bool hasName = xml->Has("name");
       bool hasRegionList = xml->Has("regionList");
@@ -2584,8 +2603,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
 
@@ -3233,7 +3251,7 @@ namespace CoupledField {
 
   void SinglePDE::DefineFeFunctions(){
     //This is the default creation of spaces
-    //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
+    //idee: die PDE gibt zum attribute formulation die passenden space zurueck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);

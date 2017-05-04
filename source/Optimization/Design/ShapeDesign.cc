@@ -4,7 +4,8 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "General/Exception.hh"
@@ -24,7 +25,7 @@ ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, Ers
   : AuxDesign(regions, pn, method)
 {
   dim_ = domain->GetGrid()->GetDim();
-  alsomatopt_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
+  exoprt_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
 ShapeDesign::~ShapeDesign(){
@@ -36,13 +37,10 @@ ShapeDesign::~ShapeDesign(){
 
 void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   // done as in domain.cc Domain::ReadErsatzMaterial
-  /* it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example 
+  // it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example
   std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd";
-  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>(), schema); */
-  Xerces xerces;
-  xerces.SetFile(pn->Get("meshdeformationfile")->As<std::string>());
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(pn->Get("meshdeformationfile")->As<std::string>());
   PtrParamNode meshdefs = xml->Get("meshdeformations");
   unsigned int nshapeparams = meshdefs->Get("parameters")->As<Integer>();
   ParamNodeList deformations = meshdefs->GetList("deformation");
@@ -168,7 +166,7 @@ bool ShapeDesign::IsElemDependentAtAll(const StdVector<UInt>& connect){
   return(false);
 }
 
-bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter){
+bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double>& coordMat, const StdVector<UInt>& connect, const int parameter){
   bool allIsZero = true;
   coordMat.Resize(dim_, connect.GetSize());
   for (UInt k=0; k < connect.GetSize(); k++) {

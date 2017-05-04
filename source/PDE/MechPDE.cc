@@ -86,8 +86,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // Get problem geometry and PDE subtype
     myParam_->GetValue("subType", subType_ );
 
-    std::string probGeo;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", probGeo );
+    std::string probGeo = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -124,16 +123,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       stressDim_ = 3;
       dofNames_ = "x", "y";
     }
-    else {
-      EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
-                 <<  pdename_ <<  "' does not fit to problem  geometry '"
-                 << probGeo << "'"; );
-    }
+    else
+      EXCEPTION("Subtype '" <<  subType_ << "' of PDE '" <<  pdename_ <<  "' does not fit to problem  geometry '" << probGeo << "'");
     
     // Sanity check: 3D can only be computed if 3D elements are present/
-    if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
+    if(subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0)
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
-    }
 
     // thermal stress coefFunction
     thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
@@ -1142,8 +1137,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         return;
 
       // fetch parameter node specifying spring
-      ParamNodeList springNodes =
-          bcNode->GetList("concentratedElem");
+      ParamNodeList springNodes = bcNode->GetList("concentratedElem");
 
       // Iterate over all springs
       std::string name, dofName;
@@ -1159,16 +1153,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
         UInt dof = results_[0]->GetDofIndex( dofName );
 
-        shared_ptr<EntityList> nodes = 
-            ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
+        shared_ptr<EntityList> nodes = ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
         UInt numNodes = nodes->GetSize();
 
         // Ensure, that only lists with 1 or 2 nodes are present
         if( numNodes > 2 ) {
-          WARN( "Concentrated mechanical element on '" 
-                 << name << "' is omitted, as it consists of more than "
-                 << "2 nodes!"; );
-          continue;
+          if(myFct->HasConstraint(name,dof)) {
+            numNodes = 1; // is technically reduced to one node
+          } else {
+            WARN( "Concentrated mechanical element on '"  << name << "' is omitted, as it consists of more than " << "2 nodes!"; );
+            continue;
+          }
         }
 
         StdVector<FEMatrixType> matrices;
@@ -1187,10 +1182,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
               continue;
             }
             
-            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt( dim_, vals[i], dof,
-                                                                   mp_ );
-            BiLinFormContext * intCtx =
-                new BiLinFormContext( myInt, matrices[i] );
+            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt(dim_, vals[i], dof, mp_);
+            BiLinFormContext * intCtx = new BiLinFormContext(myInt, matrices[i]);
             intCtx->SetEntities( nodes, nodes );
             intCtx->SetFeFunctions( myFct, myFct );
             
@@ -1717,6 +1710,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     StdVector<PtrCoefFct> strain(dim_ == 2 ? 3 : 6);
     strain.Init(zero);
     strain[dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test] = one; // xy goes to the third element (z) for 2D
+    LOG_DBG(mechpde) << "DTSI: idx=" << (dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test) << " -> one";
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
@@ -1730,8 +1724,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrCoefFct ts = CoefFunction::Generate(mp_, Global::REAL, strain);
       assert(regionStiffness_[actRegion]->GetDimType() == CoefFunction::TENSOR);
       assert(ts->GetDimType() == CoefFunction::VECTOR);
-      LinearForm* lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
-
+      LinearForm* lin = NULL;
+      if(dim_ == 3)
+        lin = new BDUIntegrator<StrainOperator3D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+      else
+        lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
       LinearFormContext* ctx = new LinearFormContext(lin);
       ctx->SetEntities(actSDList);
       ctx->SetFeFunction(myFct);
@@ -1745,7 +1742,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
   BaseBDBInt* MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex)
   {
-
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
 
@@ -2709,6 +2705,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     stiffFormCoefs_.insert(dedFunc);
 
     // === MECHANIC DEFORMATION ENERGY ===
+    // 1/2 <u,Ku>
     shared_ptr<ResultInfo> defEnergy(new ResultInfo);
     defEnergy->resultType = MECH_DEFORM_ENERGY;
     defEnergy->dofNames = "";
@@ -3058,8 +3055,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     try{
       std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
       PtrParamNode node(new ParamNode());
-      PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                          false));
+      PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
       boost::shared_ptr<SimInputHDF5> in;
       in.reset(new SimInputHDF5(fileName, node, infoNode));
       inState->SetInputHdf5Reader(in);

@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <map>
 #include <ostream>
 
@@ -11,6 +11,7 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "FeBasis/FeSpace.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
@@ -41,38 +42,37 @@ namespace CoupledField {
 DECLARE_LOG(ShOpt)
 DEFINE_LOG(ShOpt, "shapeOpt")
 
-ShapeOpt::ShapeOpt() : ParamMat() {
-  assert(false);
-  /* FIXME
+ShapeOpt::ShapeOpt() : ParamMat()
+{
   shapedesign = dynamic_cast<ShapeDesign*>(design);
 
   PtrParamNode sopn = pn->Get("shapeOpt");
   shapedesign->Configure(sopn, objectives.data.GetSize(), constraints.view->GetNumberOfActiveConstraints());
-  alsomatopt_ = shapedesign->AlsoMatOpt();
+  exoprt_fe_design_ = shapedesign->AlsoMatOpt();
+
+  Assemble* assemble = context->pde->GetAssemble();
 
   // all (bi)linear forms need to use updated coordinates
-  StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
-  for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){
-    biLinForms[i]->GetIntegrator()->SetUseCoordUpdate(true);
+  std::set<BiLinFormContext*>& forms = assemble->GetBiLinForms();
+  for(std::set<BiLinFormContext*>::iterator it = forms.begin(); it != forms.end(); ++it)
+   (*it)->GetIntegrator()->SetCoordUpdate(true);
+
+  // set the linearForms used in multiple excitations, note that this does contain all linear forms (some even several times)
+  for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
+  {
+    StdVector<LinearFormContext*>& linForms = me->excitations[i].forms;
+    for(unsigned int j = 0; j < linForms.GetSize(); ++j)
+      linForms[j]->GetIntegrator()->SetCoordUpdate(true);
   }
-  // set the linearForms used in multiple excitations, note that this does contain all linearforms (some even several times)
-  for(unsigned int i = 0; i < me->excitations.GetSize(); i++){
-    StdVector<LinearFormContext*>& linForms = me->excitations[i].GetLinForms();
-    for(unsigned int j = 0; j < linForms.GetSize(); ++j){
-      linForms[j]->GetIntegrator()->SetUseCoordUpdate(true);
-    }
-  }
-  */
 }
 
 double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool normalized){
   // the exponent is used in Ersatzmaterial for the volume cost function
   // if an exponent != 1.0 at this point makes any sense is unknown
-  assert(false);
-  /* FIXME
-  Function* f = Function::GetFunction(c, g);
+/*  Function* f = Function::GetFunction(c, g);
 
-  if(derivative){
+  if(derivative)
+  {
     StdVector<double> der; // solution
     Matrix<double> CornerCoords;
     Matrix<double> J;
@@ -83,24 +83,79 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
 
     int np = shapedesign->GetNumberOfAuxParameters();
     der.Resize(np, 0);
-    if(alsomatopt_){
+    if(exoprt_fe_design_){
       // this needs to be done before, we do use fraction
       ErsatzMaterial::CalcVolume(c, g, derivative, normalized);
     }
-    if(!alsomatopt_ || (g && g->GetDesignType() == DesignElement::UNITY)){
-      if(!normalized){
+    if(!exoprt_fe_design_ || (g && g->GetDesignType() == DesignElement::UNITY))
+    {
+      if(!normalized)
+      {
         // this is independent of material optimization, simply the derivative of the real volume
         Grid* grd = domain->GetGrid();
         StdVector<RegionIdType> regs;
         grd->GetVolRegionIds(regs);
-        for(unsigned int ri = 0; ri < regs.GetSize(); ri++){
+        for(unsigned int ri = 0; ri < regs.GetSize(); ri++) // loop regions
+        {
           RegionIdType rid = regs[ri];
-          if(!g || g->IsForRegion(rid)){
+          if(!g || g->IsForRegion(rid))
+          {
             StdVector<Elem*> elems;
             grd->GetElems(elems,rid);
-            for( UInt i = 0; i < elems.GetSize(); i++ ) {
+            for( UInt i = 0; i < elems.GetSize(); i++ ) // loop elements
+            {
               const Elem* elem = elems[i];
-              if(shapedesign->IsElemDependentAtAll(elem->connect)){ // if this element does not depent on any parameters, we can simply skip all the calculations
+              if(shapedesign->IsElemDependentAtAll(elem->connect))
+              {
+                // if this element does not depend on any parameters, we can simply skip all the calculations
+                shared_ptr<ElemShapeMap> esm = grd->GetElemShapeMap(elem, true); // updated ?!
+                shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
+                shared_ptr<IntScheme> intScheme = fe->GetFeSpace()->GetIntScheme();
+                // Obtain FE element from feSpace and integration scheme
+                ElemList elemList(grd);
+                elemList.SetElement(elem);
+                IntegOrder order;
+                IntScheme::IntegMethod method;
+                BaseFE* ptFe = fe->GetFeSpace()->GetFe(elemList.GetIterator(), method, order );
+                // Get integration points
+                StdVector<LocPoint> intPoints;
+                StdVector<Double> weights;
+                intScheme->GetIntPoints(Elem::GetShapeType(elem->type), IntScheme::GAUSS, order, intPoints, weights);
+                // Loop over all integration points
+
+                LocPointMapped lpm;
+                for(unsigned int i = 0; i < intPoints.GetSize(); i++) // loop integration points
+                {
+                  lpm.Set(intPoints[i], esm, weights[i]);
+                  lpm.jac;
+                  lpm.jacInv;
+
+                  double w = lpm.jacDet * lpm.weight;
+
+                  // this is for the derived corner coords
+
+                  shared_ptr<ElemShapeMap> der_esm = grd->GetElemShapeMap(elem, true); // updated ?!
+                  LocPointMapped der_lpm;
+
+                  for(int p = 0; p < np; p++) // loop over all parameters
+                  {
+                    // sets dCornerCoords
+                    if(shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p))
+                    { // returns false if dCornerCoords == 0
+                      der_esm->SetElem(dCornerCoords, elem);
+                      der_lpm.Set(intPoints[i], esm, weights[i]);
+
+                      ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
+                      diJ.Resize(dimJ, dimJ);
+                      iJ.Mult(dJ, diJ); // diJ = iJ * dJ;
+                      // double tr = diJ.Trace(); // tr = trace(iJ*dJ) = trace(dJ*iJ)
+                      der[p] += w * diJ.Trace();
+                    } // if dCornerCoords
+                  }
+                }
+
+
+
                 BaseFE* ptelem = elem->ptElem;
                 grd->GetElemNodesCoord(CornerCoords, elem->connect, true );
                 const int nip = ptelem->GetNumIntPoints();
@@ -182,7 +237,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
     // these derivatives are independent of our parameters and can be calculated as before
     shapedesign->AddAuxDerivatives(c, g, der, 1.0);
   }else{ // derivative
-    if(!alsomatopt_ || (g && g->GetDesignType() == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
+    if(!exoprt_fe_design_ || (g && g->GetDesignType() == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
       // if design is unity, we use the grid instead of designspace
       if(normalized) return(1.0);
       Grid* grd = domain->GetGrid();
@@ -196,16 +251,16 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
         }
       }
       return(s);
-    }else{ // working on a design, alsomatopt_ must be true
+    }else{ // working on a design, exoprt_fe_design_ must be true
       return(ErsatzMaterial::CalcVolume(c, g, derivative, normalized));
     }
-  }*/
+  } */
   return 0.0;
 }
 
-void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
-  assert(false);
-  /* FIXME
+void ShapeOpt::CalcMinusU1dKU2(StateContainer& forward, StateContainer& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff)
+{
+  /*
   StdVector<double> der; // solution
   int np = shapedesign->GetNumberOfAuxParameters();
   der.Resize(np, 0.0);
@@ -270,8 +325,8 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
     forwards[e].Resize(timesteps);
     adjoints[e].Resize(timesteps);
     for(unsigned int t = 0; t < timesteps; ++t){
-      forwards[e][t] = &forward.Get(e, NULL, t)->gridelem[MECH];
-      adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[MECH];
+      forwards[e][t] = &forward.Get(e, NULL, t)->gridelem[App::MECH];
+      adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[App::MECH];
     }
   }
   if(transient){
@@ -281,8 +336,8 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
       forwarddt[e].Resize(timesteps);
       forwarddtt[e].Resize(timesteps);
       for(unsigned int t = 0; t < timesteps; ++t){
-        forwarddt[e][t] = &forward.Get(e, NULL, t, FIRST_DERIV)->gridelem[MECH];
-        forwarddtt[e][t] = &forward.Get(e, NULL, t, SECOND_DERIV)->gridelem[MECH];
+        forwarddt[e][t] = &forward.Get(e, NULL, t, FIRST_DERIV)->gridelem[App::MECH];
+        forwarddtt[e][t] = &forward.Get(e, NULL, t, SECOND_DERIV)->gridelem[App::MECH];
       }
     }
   }
@@ -450,9 +505,9 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
   */
 }
 
-void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constraint, double w){
-  assert(true);
-  /* FIXME
+void ShapeOpt::CalcUdF(StateContainer& adjoint, Objective* f, Condition* constraint, double w)
+{
+  /*
   int np(shapedesign->GetNumberOfAuxParameters());
   const unsigned int ex_size(me->excitations.GetSize());
   UInt timesteps(domain->GetDriver()->GetNumSteps());
@@ -487,7 +542,7 @@ void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constra
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(t+1)); // GetPressureFactor uses this
       parser->SetValue(MathParser::GLOB_HANDLER, "step", t+1);
       StateSolution* u = adjoint.Get(ex, f, t);
-      StdVector<SingleVector*>* u_vec = &u->gridelem[MECH];
+      StdVector<SingleVector*>* u_vec = &u->gridelem[App::MECH];
       
       Excitation& excite = me->excitations[ex];
       
@@ -596,7 +651,8 @@ void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constra
   */
 }
 
-double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
+double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative)
+{
   if(derivative){
     // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape
     if(excite.index == (int) me->excitations.GetSize() - 1){
@@ -604,7 +660,7 @@ double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* con
       CalcUdF(IsTransient() ? adjoint : forward, f, constraint, 2.0); // in Transient case the system is not self-adjoint any more
     }
     // this however is done per excite
-    if(alsomatopt_){
+    if(exoprt_fe_design_){
       ErsatzMaterial::CalcCompliance(excite, f, constraint, true);
     }
   }else{
@@ -621,7 +677,7 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
       CalcUdF(adjoint, f, constraint);
     }
     // this however is done per excite
-    if(alsomatopt_){
+    if(exoprt_fe_design_){
       ErsatzMaterial::CalcTracking(excite, f, constraint, true);
     }
   }else{
@@ -644,9 +700,8 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
   
   Matrix<double> result(ex_size, ex_size);
   result.Init();
-
-  assert(false);
 /*
+  assert(false);
   double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
 
   Matrix<double> elemMat;
@@ -671,11 +726,11 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
       grid->GetElemNodesCoord(CornerCoords, elem->connect, true);
       form->CalcElementMatrix(elemMat, it, it);
       for(unsigned int ij = 0; ij < ex_size; ++ij){
-        u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[MECH][e]);
+        u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[App::MECH][e]);
         SubtractTestDisplacement(ij, CornerCoords, u1diff, tmp_strain, tmp_displacement);
         Ku = elemMat * u1diff;
         for(unsigned int kl = ij; kl < ex_size; ++kl){ // only upper triangle
-          u2diff = *dynamic_cast<Vector<double>* >(forward.Get(kl)->gridelem[MECH][e]);
+          u2diff = *dynamic_cast<Vector<double>* >(forward.Get(kl)->gridelem[App::MECH][e]);
           SubtractTestDisplacement(kl, CornerCoords, u2diff, tmp_strain, tmp_displacement);
           result[ij][kl] += Ku * u2diff;
         }
@@ -694,15 +749,14 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
   }
 
   homogenizedTensor.Assign(result, 1.0);
-
-  */
+*/
   return result;
 }
 
-void ShapeOpt::StorePDESolution(StateSolutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
+void ShapeOpt::StorePDESolution(StateContainer& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment){
   ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep, derivative)->Read(StateSolution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
+    solutions.Get(excite, f, timestep, derivative)->Read(StateSolution::GRIDELEM_VECTORS, Optimization::context->pde, App::MECH, false, derivative);
   }
 }
 

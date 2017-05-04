@@ -454,8 +454,8 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
       // theta in spherical coordinates is defined as the angle between the
-      // zenith direction and the line segment (origin->point) with a range [0°;180°]
-      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      // zenith direction and the line segment (origin->point) with a range [0;180]
+      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
       angleBTheta = abs(90 - angleBTheta);
 
       // take care that theta does not exceed its limits
@@ -488,7 +488,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     // Interpolation method of coefficients
     // ------------------------------------
     //
-    //                90°
+    //                90
     //                 o
     //                / \
     //               /   \
@@ -498,7 +498,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //         3 o           o
     //          /     x       \
     //         /               \
-    //     0° o-----o-----o-----o 90°
+    //     0 o-----o-----o-----o 90
     //              1     2
     //                phi
     //
@@ -549,9 +549,9 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
       
-      // value of coefficient interpolated within the xy-plane and theta=0°
-//      coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs)
-//                      + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
+      // value of coefficient interpolated within the xy-plane and theta=0
+      //  coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs)
+      //                 + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
       Double VALklo, VALkhi;
       nLinFnc_[klo]->GetScalar(VALklo, lpm);
       nLinFnc_[khi]->GetScalar(VALkhi, lpm);
@@ -626,7 +626,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
         Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
         Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
   
-        // value of coefficient interpolated along z-direction and phi=0°
+        // value of coefficient interpolated along z-direction and phi=0
         // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
         //       nu = 1/mu; c*mu => 1/c*mu
         Double VALkhi, VALklo;
@@ -723,8 +723,8 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
       // theta in spherical coordinates is defined as the angle between the
-      // zenith direction and the line segment (origin->point) with a range [0°;180°]
-      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      // zenith direction and the line segment (origin->point) with a range [0;180]
+      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
       angleBTheta = abs(90 - angleBTheta);
 
       // take care that theta does not exceed its limits
@@ -756,7 +756,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // Interpolation method of coefficients
     // ------------------------------------
     //
-    //                90°
+    //                90
     //                 o
     //                / \
     //               /   \
@@ -766,7 +766,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     //         3 o           o
     //          /     x       \
     //         /               \
-    //     0° o-----o-----o-----o 90°
+    //     0 o-----o-----o-----o 90
     //              1     2
     //                phi
     //
@@ -818,7 +818,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
 
-      // value of nuPrime interpolated within the xy-plane and theta=0°
+      // value of nuPrime interpolated within the xy-plane and theta=0
       Double VALklo, VALkhi;
       nLinFnc_[klo]->GetScalar(VALklo, lpm);
       nLinFnc_[khi]->GetScalar(VALkhi, lpm);
@@ -920,7 +920,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
         Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
         Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
   
-        // value of nuPrime interpolated along z-direction and phi=0°
+        // value of nuPrime interpolated along z-direction and phi=0
         // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
         // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
         // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative

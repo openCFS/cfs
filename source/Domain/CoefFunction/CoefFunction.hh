@@ -253,6 +253,14 @@ public:
         << "CoefFunction object." );
   }
 
+  //! Return real-valued Msfem Element Matrix at integration point
+  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
+      const LocPointMapped& lpm) {
+    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
+  }
+
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, 
                          const LocPointMapped& lpm ) {
@@ -260,6 +268,7 @@ public:
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
+
   //! Return real-valued element averaged value
   virtual void GetAvgElemValue(Double & vec, 
                          const Elem* elem) {
@@ -512,7 +521,6 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
-
   //! Functions needed for Hystersis
   virtual void SetPreviousHystVals(bool setNextToLastTS_too = false) {
 	  EXCEPTION("SetPreviousHystVals not available");
@@ -559,11 +567,9 @@ public:
   virtual RegionIdType GetNeighborRegionId() {
 	  return neighborRegionId_;
   }
-
   //@}
 
   //@}
-protected:
 
   // ========================
   //  HELPER METHODS
@@ -591,7 +597,8 @@ protected:
   //! Returns true, if expression depends on space
   static bool ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr);
   //@}
-  
+protected:
+
   //TODO: CHANGE THIS TO SHARED POINTER
   // i.e. change the domain to hold a shared_ptr to the coordinate systems!
   CoordSystem* coordSys_;

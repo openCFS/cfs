@@ -113,7 +113,10 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() const = 0;
 
-        
+    /** exports the grid to a param node. For command line option --export-grid or for streaming with mesh. */
+    virtual void ExportGrid(PtrParamNode out)
+    { EXCEPTION( "Not implemented" ); }
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -202,7 +205,8 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    //! Return the shape representation for a given element
+    //! Return the shape representation for a given element. Note that it is
+    //! dangerous to call ElemShapeMap::SetElem()!
 
     //! This method returns the element shape map for a given geometrical
     //! element. In the case of Lagrangian-mapped elements, we keep internally
@@ -277,7 +281,7 @@ namespace CoupledField
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
-				     bool onlyLinNodes = false ) = 0;
+				                             bool onlyLinNodes = false ) = 0;
 
     //! Return element at global position and the locally projected coordinate
     
@@ -371,11 +375,13 @@ namespace CoupledField
     /** are all regions regular? */
     bool IsRegionRegular(StdVector<RegionIdType>& regions) const;
 
+    /** does the grid consist of regular regions? */
+    bool IsGridRegular() const;
+
     //! Get name of region using a region id
     std::string GetRegionName( RegionIdType& id );
     
     //! Get vector containing all region names
-
     //! Get a vector which contains all region nodes. The order is in that way,
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
@@ -505,9 +511,8 @@ namespace CoupledField
     //! \param volRegIds (out) list
     virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
-
-    /** total volume of all volume regions by using CalcVolumeOfRegion() */
-    double CalcGridVolume(bool updated = false);
+    /** total volume of a sparse or dense grid */
+    virtual Double CalcHullVolume( bool updated = false ) = 0;
 
     //! Returns the volume of a given region
 
@@ -536,6 +541,11 @@ namespace CoupledField
                                           Matrix<Double> & minMax,
                                           CoordSystem* cSys) = 0;
 
+
+    /** if the grid is regular gives the element discretization, e.g. 20, 20, 1 for 2D.
+     * Is reasonable fast but the result is not cached by itself.
+     * @return if not regular returns an empty array otherwise always 3 entries of value at least 1*/
+    virtual StdVector<unsigned int> CalcRegulardGridDiscretization() { EXCEPTION("not implemented"); }
 
     //! Returns the volume of a given entitylist (\see Grid::CalcVolumeOfRegion)
     virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
@@ -588,7 +598,8 @@ namespace CoupledField
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
 
-
+    //! Get all elem neighbors for given node id
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

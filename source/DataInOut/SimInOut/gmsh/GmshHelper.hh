@@ -163,11 +163,11 @@ namespace CoupledField {
     
     inline T EndianSwapBytes(T value)
     {
-      // A : La donnée à swapper à une taille de 2, 4 ou 8 octets
+      // A : La donnee a swapper a une taille de 2, 4 ou 8 octets
       BOOST_STATIC_ASSERT(sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8);
-      // A : La donnée à swapper est d'un type arithmetic
+      // A : La donnee a swapper est d'un type arithmetic
       BOOST_STATIC_ASSERT(boost::is_arithmetic<T>::value);
-      // Si from et to sont du même type on ne swap pas.
+      // Si from et to sont du meme type on ne swap pas.
       if (!swap)
       {
         return value;

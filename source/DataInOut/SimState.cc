@@ -15,7 +15,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/Domain.hh"
@@ -71,7 +71,7 @@ class MaterialHandler;
         
   }
 
-  Domain * SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
+  Domain* SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
 
     LOG_TRACE(simState) << " GetDomain for sequenceStep " << sequenceStep;
     if( map.size() > 0 ) {
@@ -103,15 +103,12 @@ class MaterialHandler;
     LOG_DBG3(simState) << "Content of Parameter file:\n" << paramContent;
     LOG_DBG3(simState) << "Content of Material file:\n" << matContent;
 
-    // Generate Xerces parameter reader
+    // Generate xml parameter reader
     LOG_TRACE(simState) << "Generating parameter node from xml file";
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Simulation/CFS.xsd";
+    PtrParamNode rootNode = XmlReader::ParseString(paramContent, schema);
 
-    Xerces * reader = new Xerces(schema);
-    reader->SetString( paramContent );
-    PtrParamNode rootNode = reader->CreateParamNodeInstance();
-    delete reader;
 
     // Generate material reader
     
@@ -119,8 +116,7 @@ class MaterialHandler;
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node
-    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
-                                        false));
+    PtrParamNode infoNode = ParamNode::GenerateWriteNode("", ""); // empty filename means we don't write and ignore ParamNode::ToFile()
 
     // Load grids only if not provided 
     std::map<std::string, shared_ptr<SimInput> > inFiles;
@@ -308,8 +304,7 @@ class MaterialHandler;
       // check for restart
       bool restart = progOpts->GetRestart();
       
-      PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
-                                          false));
+      PtrParamNode infoNode = ParamNode::GenerateWriteNode("", ""); // empty filename means we don't write and ignore ParamNode::ToFile()
       PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");

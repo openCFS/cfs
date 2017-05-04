@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -333,6 +334,15 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          
+          <xsd:element name="loggingPerformance" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Print in .info.xml file information on time consumption of symbolic and
+                numerical factorization for each PARDISO call.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
           <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
             <xsd:annotation>
@@ -494,8 +504,8 @@
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         SuperLU package contains a set of subroutines to solve sparse linear
-        systems AX = B. Here A is a square, nonsingular, n × n sparse matrix,
-        and X and B are dense n × nrhs matrices, where nrhs is the number of
+        systems AX = B. Here A is a square, nonsingular, n x n sparse matrix,
+        and X and B are dense n x nrhs matrices, where nrhs is the number of
         right-hand sides and solution vectors. Matrix A need not be symmetric
         or definite; indeed, SuperLU is particularly appropriate for matrices
         with very unsymmetric structure.
@@ -872,7 +882,7 @@
       <xsd:documentation xml:lang="en">
         Lis, a Library of Iterative Solvers for linear systems, is a parallel
         numerical library for solving the linear equations Ax = b
-        and the standard eigenvalue problems Ax = λx with real sparse matrices
+        and the standard eigenvalue problems Ax = lambda x with real sparse matrices
         using iterative methods.
         
         http://www.ssisc.org/
@@ -904,8 +914,11 @@
         <xsd:sequence>
           <xsd:element name="precond" type="DT_PreCondLIS" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="solver" type="DT_SolverLIS" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="maxIter" type="xsd:int" default="1000" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="tolerance" type="xsd:double" default="1e-10" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
+          <!-- This is the target residual given to lis. Note, that lis knows three norms -->
+          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
+          <!-- When maxIter is exceeded but the achieved resual is not worse the minimalTolerance no exception is thrown -->
+          <xsd:element name="minimalTolerance" type="xsd:double" default="1e-11" maxOccurs="1" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
           <xsd:element name="zeroInitialValue" type="xsd:boolean" default="false" minOccurs="0"/>
         </xsd:sequence>
@@ -983,7 +996,8 @@
           <xsd:element name="jacobi"/>
           <xsd:element name="iluk">
             <xsd:complexType>
-              <xsd:attribute name="fill" type="xsd:double" default="0" use="optional"/>
+              <!-- even when given as float, it will be interpretet as int by lis -->
+              <xsd:attribute name="fill" type="xsd:int" default="0" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="ssor">
@@ -1120,6 +1134,51 @@
           </xsd:element>-->
           <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <!-- The arnoldi vectors are at least n+1 and typcally 2*n. Chose a Factor from 1.1 ... 2 or larger -->
+          <xsd:element name="arnoldiFactor" type="xsd:float" minOccurs="0"/>
+          <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
+          <xsd:element name="which" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="LA"/>
+                <xsd:enumeration value="SA"/>
+                <xsd:enumeration value="LM"/>
+                <xsd:enumeration value="SM"/>
+                <xsd:enumeration value="LR"/>
+                <xsd:enumeration value="SR"/>
+                <xsd:enumeration value="LI"/>
+                <xsd:enumeration value="SI"/>
+                <xsd:enumeration value="BE"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+      
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    FEAST EIGENVALUE SOLVER                    == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  
+  <xsd:element name="feast" type="DT_EigenSolverFEAST" substitutionGroup="EigenSolverBasic"/>
+  
+  <xsd:complexType name="DT_EigenSolverFEAST">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+        <xsd:sequence>
+        
+          <!-- Allow separate solver within eigenfrequency calculation -->
+          <!-- <xsd:element name="solver" minOccurs="0" >
+            <xsd:complexType>
+              <xsd:attribute name="id"  type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>-->
+          <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="which" minOccurs="0">
@@ -1142,5 +1201,6 @@
       
     </xsd:complexContent>
   </xsd:complexType>
+
   
 </xsd:schema>

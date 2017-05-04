@@ -4,7 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <limits.h>
 #include <string>
 
@@ -363,7 +363,7 @@ namespace CoupledField
                                                    MaterialType matType,
                                                    bool persistent) {
     // Calculate rotation matrix( based on Kardan-Angles)
-    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
 

@@ -76,6 +76,8 @@ void BaseOptimizer::Scale::PostInit()
   LOG_TRACE(optimizer) << "Scale::PostInit() target=" << target << " tol=" << tol << " -> scale=" << scaling.value;
 }
 
+
+
 void BaseOptimizer::Scale::CalcAutoscale()
 {
   if(target == 0.0)
@@ -193,7 +195,6 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   info_(opt->optInfoNode->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
-  timer_(new Timer()),
   design_(DesignMemory(-1, 0.0))
 {
   assert(pn != NULL);
@@ -203,13 +204,40 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   LOG_DBG(optimizer) << "BO: gen_opt_pn_=" << gen_opt_pn_->GetName();
   LOG_DBG(optimizer) << "BO: this_opt_pn_=" << (this_opt_pn_ != NULL ? this_opt_pn_->GetName() : "null") ;
 
-  info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
+  optimizer_timer_ = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
+  eval_obj_timer_        = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_objective/timer")->AsTimer();
+  eval_const_timer_      = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_constraints/timer")->AsTimer();
+  eval_grad_obj_timer_   = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_grad_objective/timer")->AsTimer();
+  eval_grad_const_timer_ = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_grad_constraints/timer")->AsTimer();
 }
 
 BaseOptimizer::~BaseOptimizer()
 { 
   if(objective != NULL) { delete objective; objective = NULL; }
 }
+
+
+boost::shared_ptr<Timer> BaseOptimizer::GetRunnungEvalTimer()
+{
+  // only one may run
+  assert(!(eval_obj_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
+  assert(!(eval_const_timer_->IsRunning() && (eval_obj_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
+  assert(!(eval_grad_obj_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
+  assert(!(eval_grad_const_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_obj_timer_->IsRunning() )));
+
+  if(eval_obj_timer_->IsRunning())
+    return eval_obj_timer_;
+  if(eval_const_timer_->IsRunning())
+    return eval_const_timer_;
+  if(eval_grad_obj_timer_->IsRunning())
+    return eval_grad_obj_timer_;
+  if(eval_grad_const_timer_->IsRunning())
+    return eval_grad_const_timer_;
+  // Nothing is running when we no a direct eval constraint call
+  //std::cout << "BO:GRET -> NULL\n";
+  return boost::shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
+}
+
 
 void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 {
@@ -220,14 +248,14 @@ void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 
 void BaseOptimizer::SolveOptimizationProblem()
 {
-  timer_->Start();
+  optimizer_timer_->Start();
   SolveProblem();
 
   // dirty fix to have the final status streamed for iTop
    // if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
   // optimization->CommitIteration(true);
 
-  timer_->Stop();
+  optimizer_timer_->Stop();
 }
 
 void BaseOptimizer::LogFileHeader(Optimization::Log& log)
@@ -252,15 +280,17 @@ void BaseOptimizer::LogFileHeader(Optimization::Log& log)
 
 void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
-  if(out) *out << " \t" << objective->current.value;
+  if(out && optimization->log.gradNorm)
+    *out << " \t" << objective->current.value;
   
   if(optimization->log.gradNorm)
     iteration->Get("max_f_grad")->SetValue(objective->current.value);
 
   if(objective->target != 0.0)
   {
-    if(out) *out << " \t" << objective->scaling.value
-                 << " \t" << objective->opt_scaling.value;
+    if(out)
+      *out << " \t" << objective->scaling.value
+           << " \t" << objective->opt_scaling.value;
 
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
@@ -281,18 +311,22 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
 
       iteration->Get("max_" + g->ToString() + "_grad")->SetValue(mv);
-      if(out) *out << " \t" << mv;
+      if(out)
+        *out << " \t" << mv;
     }
   }
-
 }
 
 
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
+  // we might come from another eval, then the optimizer is already stopped and we must not restart it
+  bool restart_timer = optimizer_timer_->IsRunning();
+  optimizer_timer_->Stop();
 
-  timer_->Stop();
+  assert(!GetRunnungEvalTimer()); // no currently running timer!
+  eval_obj_timer_->Start();
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -306,7 +340,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = true;
     
     // tell assemble, the design has changed
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble();    
+    for(unsigned int c = 0; c < optimization->manager.context.GetSize(); c++)
+      optimization->manager.context[c].pde->GetAssemble()->SetAllReassemble();
 
     // does a lot of work.
     optimization->SolveStateProblem();
@@ -336,18 +371,24 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   
   LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
 
-  timer_->Start();
-  
+  eval_obj_timer_->Stop();
+  if(restart_timer)
+    optimizer_timer_->Start();
+
   return ret;
 }
 
-bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale){
+bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale)
+{
+  // we need to take care about measurement! We don't want to count times double!
+  assert(!optimizer_timer_->IsRunning());
+  // we eval objective next so there must not be anything running at the moment!
+  assert(!eval_grad_obj_timer_->IsRunning());
+  assert(!eval_grad_const_timer_->IsRunning());
   // The function has to be evaluated before the gradient can be computed
   // This is true most times, as usually the rhs of the adjoint problem depends on the solution
-  // On the other hand, it is called be the Optimizer before usually and so generates no cost. (But one cannot rely on this behaviour.)
+  // On the other hand, it is has usually been called by the Optimizer before and so generates no cost. (But one cannot rely on this behavior.)
   EvalObjective(n, x, cfs_scale);
-
-  timer_->Stop();
   
   bool need_eval = design_.design_id != design_.gradient_design_id; 
   
@@ -356,18 +397,19 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
     optimization->SolveAdjointProblems();
     design_.gradient_design_id = design_.design_id;
   }
-  
-  timer_->Start();
-  
+
   return(need_eval);  
 }
 
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
 {
+  optimizer_timer_->Stop();
+
+  // might trigger EvalObjective so start timer afterwards
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
-  
-  timer_->Stop();
-  
+
+  eval_grad_obj_timer_->Start();
+
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
     
@@ -404,52 +446,51 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
                      << " need_eval=" << need_eval << " -> grad.scale=" << objective->scaling.value
                      << " grad.opt_scaling=" << objective->opt_scaling.value;
 
-  timer_->Start();
+  optimizer_timer_->Start();
+  eval_grad_obj_timer_->Stop();
   
   return !restart_requested;
 }
 
 void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val, bool normalize)
 {
+  optimizer_timer_->Stop();
+
   assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
 
   // Before the constraints can be calculated it might be the case, that the forward problem needs recalculation
   // if it does not, this does not cost more than reading the design
   EvalObjective(n, x, cfs_scale);
   
-  timer_->Stop();
+  eval_const_timer_->Start(); // After EvalObjective();
   
   // iterate over all constraints
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
 
-    double val = EvalConstraint(g, cfs_scale, normalize);
+    double val = EvalConstraint(g, cfs_scale, normalize, false); // no direct call
 
     g_val[i] = val;
   }
   optimization->constraints.view->Done(); // reset local constraint to global mode
 
-  timer_->Start();
+  eval_const_timer_->Stop();
+  optimizer_timer_->Start();
 }
 
-double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize)
+double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call)
 {
-
-  // do a complicated detection of local conditions handle the Local::active counter for logging
-  if(g->IsLocalCondition())
-  {
-    assert(dynamic_cast<LocalCondition*>(g) != NULL);
-    assert(g->GetLocal() != NULL);
-
-    // reset the active counter for the first element
-    if(static_cast<LocalCondition*>(g)->GetCurrentRelativePosition() == 0)
-      g->GetLocal()->infeasible = 0;
-
-    if(!g->IsFeasible())
-      g->GetLocal()->infeasible++;
+  // for a proper time measurement we have to know if we are called by EvalConstraints() or directly (FeasPP)
+  assert(!(!direct_call && !eval_const_timer_->IsRunning()));
+  if(direct_call) {
+    assert(optimizer_timer_->IsRunning());
+    assert(!GetRunnungEvalTimer());
+    optimizer_timer_->Stop();
+    eval_const_timer_->Start();
   }
 
+  // do a complicated detection of local conditions handle the Local::active counter for logging
   double manual_scaling = 1.0;
   double objective_scaling = 1.0;
   if(cfs_scale)
@@ -461,13 +502,15 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
   }
   double org = optimization->CalcConstraint(g);
   double base = org;
-  if(g->HasSlackBound())
+  if(g->HasGeneralSlackBound())
   {
-    if(g->IsSlackBound(Condition::SLACK_VALUE))
+    if(g->IsGeneralSlackBound(Condition::SLACK_VALUE))
       base -= optimization->GetDesign()->GetSlackVariable();
-    else if(g->IsSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
+    if(g->IsGeneralSlackBound(Condition::ALPHA_VALUE))
+      base -= optimization->GetDesign()->GetAlphaVariable();
+    else if(g->IsGeneralSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
       base -= optimization->GetDesign()->GetAlphaVariable() + optimization->GetDesign()->GetSlackVariable();
-    else if(g->IsSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
+    else if(g->IsGeneralSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
       base -= optimization->GetDesign()->GetAlphaVariable() - optimization->GetDesign()->GetSlackVariable();
   }
 
@@ -478,52 +521,26 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
       << " base=" << base << " ms=" << manual_scaling
       << " os=" << objective_scaling << " scaled=" << scaled << " -> " << val;
 
+ if(direct_call) {
+    eval_const_timer_->Stop();
+    optimizer_timer_->Start();
+  }
+
   return val;
 }
 
 
-int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values)
-{
-  timer_->Stop();
-  
-  // always initialize the window!!
-  int nnz(0); 
-  values.window.Set(start, nnz);
-  
-  LOG_DBG(optimizer) << "EGC g=" << g->ToString(NULL) << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
-  assert(g->GetSparsityPatternSize() == g->GetSparsityPattern().GetSize());
-  nnz = g->GetSparsityPatternSize();
-  values.window.Set(start, nnz);
-
-  // evaluate
-  optimization->CalcConstraintGradient(g, &values);
-
-  // we might ignore that value
-  double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
-
-  for(int p = 0; cfs_scale && p < nnz; p++)
-  {
-    values[start + p] *= scaling;
-    assert(values.InWindow(start + p));
-  }
-
-  double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
-  for(int p = 0; normalize && p < nnz; p++)
-    values[start + p] *= flip_sign;
-
-  timer_->Start();
-  
-  return nnz;
-}
 
 void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
       StdVector<double>& values, GradientType grtype)
 {
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
+  optimizer_timer_->Stop();
 
+  // might trigger EvalObjective so start timer afterwards
   SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
-  
-  timer_->Stop();
+
+  eval_grad_const_timer_->Start();
 
   // note, that we have dense gradients!
   // iterate over the gradients
@@ -541,7 +558,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
     if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
     {
-      int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, normalize, values);
+      int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, normalize, values, false); // no direct call
       LOG_DBG3(optimizer) << "EvalGradConstraint: co=" << c << " scaled val=" << values.ToString(true);
       start += tmp;
     }
@@ -550,15 +567,61 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
   assert(start == nentries);
 
-  timer_->Start();
+  eval_grad_const_timer_->Stop();
+  optimizer_timer_->Start();
 }
+
+int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call)
+{
+  // for a proper time measurement we have to know if we are called by EvalGradConstraints() or directly (FeasPP)
+  assert(!(!direct_call && !eval_grad_const_timer_->IsRunning()));
+  if(direct_call) {
+    assert(optimizer_timer_->IsRunning());
+    assert(!GetRunnungEvalTimer());
+    optimizer_timer_->Stop();
+    eval_grad_const_timer_->Start();
+  }
+  // always initialize the window!!
+  int nnz(0);
+  values.window.Set(start, nnz);
+
+  LOG_DBG(optimizer) << "EGC g=" << g->ToString() << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
+  assert(g->GetSparsityPatternSize() == g->GetSparsityPattern().GetSize());
+  nnz = g->GetSparsityPatternSize();
+  values.window.Set(start, nnz);
+
+  // evaluate
+  optimization->CalcConstraintGradient(g, &values);
+
+  // we might ignore that value
+  double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+
+  for(int p = 0; cfs_scale && p < nnz; p++)
+  {
+    values[start + p] *= scaling;
+    assert(values.InWindow(start + p));
+  }
+
+  // apply flip_sign only when we normalize
+  double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
+  for(int p = 0; normalize && p < nnz; p++)
+    values[start + p] *= flip_sign;
+
+  if(direct_call) {
+     eval_grad_const_timer_->Stop();
+     optimizer_timer_->Start();
+   }
+  return nnz;
+}
+
 
 
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)
 {
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
 
-  timer_->Stop();
+  bool restart_timer = optimizer_timer_->IsRunning();
+  optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
@@ -569,24 +632,36 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    // handle as in IPOPT 
-    g_l[i] = g_u[i] = g->GetBoundValue();
-    
+
+    // this is the equal case
+    g_u[i] = g->GetBoundValue();
+    g_l[i] = g_u[i];
+
     // Snopt alone is able to handle bounding boxes for constraints. This needs to
     // be reflected when the number of constraints is determined. Here Function::Local::Local()
-    // only when we have NO box box constraints we need NEXT_AND_REVERSE
-    // FIXME can this be removed?
-    if( (g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT)
-     || g->GetType() == Condition::SHAPE_INF
-      )
-      g_l[i] *= -1.0;
+    // only when we have NO box constraints we need NEXT_AND_REVERSE
+    if(g->IsDoubleBounded() && g->GetBound() != Condition::EQUAL) {// checks the locality!!
+      // the snopt solver was necessary to set to a non-REVERSE locality. This check needs to be done when the number of constraints is to
+      // be determined.
+      assert(type_ == Optimization::SNOPT_SOLVER);
+      g_u[i] =  g->GetBoundValue();
+      g_l[i] = -g->GetBoundValue();
+    }
     else
     {
-      if(g->GetBound() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
-      if(g->GetBound() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
+      if(g->GetBound() == Condition::LOWER_BOUND) {
+        g_u[i] = GetInfBound();
+        g_l[i] = g->GetBoundValue();
+      }
+      if(g->GetBound() == Condition::UPPER_BOUND) {
+        g_u[i] = g->GetBoundValue();
+        g_l[i] = -GetInfBound();
+      }
     }
+    LOG_DBG2(optimizer) << "BO::GB i=" << i << " g=" << g->ToString() << " bv=" << g->GetBoundValue() << " DB=" << g->IsDoubleBounded() << " l=" << g_l[i] << " u=" << g_u[i];
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   
-  timer_->Start();
+  if(restart_timer)
+    optimizer_timer_->Start();
 }

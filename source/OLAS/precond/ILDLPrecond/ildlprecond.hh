@@ -84,7 +84,7 @@ namespace CoupledField {
   //!           factorisation). For 1 information on the factorisation process
   //!           is logged and for 2 also some information on the application of
   //!           the preconditioner is written to the standard %OLAS
-  //!           report stream (*cla).
+  //!           report stream (*cla) ---code for logging removed---.
   //!       </td>
   //!     </tr>
   //!   </table>

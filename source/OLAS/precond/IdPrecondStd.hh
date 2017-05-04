@@ -27,7 +27,7 @@ namespace CoupledField {
     ~IdPrecondStd() {
     };
 
-    //! Application of preconditioner
+    //! App::Type of preconditioner
 
     //! This method applies the identity preconditioner to solve Id * sol = rhs
     //! for sol. As a consequence it simply copies the rhs entries into the sol
@@ -75,7 +75,7 @@ namespace CoupledField {
 //    ~IdPrecondSBM() {
 //    };
 //
-//    //! Application of preconditioner
+//    //! App::Type of preconditioner
 //
 //    //! This method applies the identity preconditioner to solve Id * sol = rhs
 //    //! for sol. As a consequence it simply copies the rhs entries into the sol

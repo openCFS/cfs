@@ -16,7 +16,7 @@
 /*
  * Folgende Konzepte sollen verwendet werden:
  *  1. Normale Interpolation:
- *     Es gibt einen zus������tzlichen tag im XML ������ber den der user eine Ordnung einstellen kann.
+ *     Es gibt einen zusaetzlichen tag im XML ueber den der user eine Ordnung einstellen kann.
  *     Die CoefFunction wird immer LagrangeElemente verwenden. Dei Ordnung richtet sich dann dabei
  *     nach der Ansatzordnung des Zielgitters.
  *     Der Vorteil liegt darin, dass man nur noch die DOF des Zielgitters speichert und dennoch schnell an
@@ -27,10 +27,10 @@
  *     Folgender Ablauf:
  *     1. Beschaffe die Koordinaten des Zielgitters
  *        a. Wenn Knoteninterpolation gewuenscht, nimm einfach die Gitterknoten
- *        b. Bei h������heren ordungen versuchen die DOF Koordinaten zu beschaffen. (Es werden nur nodal Spaces erstellt!)
+ *        b. Bei hoeheren ordungen versuchen die DOF Koordinaten zu beschaffen. (Es werden nur nodal Spaces erstellt!)
  *     2. Hole elementliste des Quellgitters
  *        Wir sind hierbei auf Knotenergebnisse fixiert, benutzen also die Referenzelemente und Ansatzfunktionen des H1NodalExpl
- *     3. Vielleicht kann man sogar noch die M������glichkeit schaffen direkt Ableitungsoperatoren an die Coeffunction zu geben
+ *     3. Vielleicht kann man sogar noch die Moeglichkeit schaffen direkt Ableitungsoperatoren an die Coeffunction zu geben
  *     4. Starten der Vorberechnung, welche Knoten des Zeilgitters liegen in welchem Element des Quellgitters
  *     5. Interpolation der Quellergebnisse auf die Knotenfreiheitsgrade des Zielgitters
  *     6. In GetScalar/Vector/Tensor
@@ -42,19 +42,19 @@
  *      - Wie sind die Referenzelemente zu erstellen. Brauch ich nen Space?
  *        -> Eigentlich braucht man keinen space, man kann einfach Knotenelemente nehmen
  *           Nochmal Map aus elemType auf referenzelement
- *      - Wie erhalte ich die Koordinaten der Freiheitsgrade bei H������heren Ordnungen
- *        -> Speizalisierte Funktion f������r die H1LagExpl und H1LagVar Elemente
+ *      - Wie erhalte ich die Koordinaten der Freiheitsgrade bei hoeheren Ordnungen
+ *        -> Speizalisierte Funktion fuer die H1LagExpl und H1LagVar Elemente
  *
  *  2. Conservativ:
  *     Vorberechnungen
  *     1. Hole Knotenkoordinaten des Quellgitters
  *     2. Hole Elementlisten des Zielgitters
- *     3. F������hre Punktsuche aus
- *     4. F������r jedes Element des Zielgitters:
+ *     3. Fuehre Punktsuche aus
+ *     4. Fuer jedes Element des Zielgitters:
  *        a. Hole die Gleichungsnummern
- *        b. F������r jeden Punkt innerhalb des Zielelements
+ *        b. Fuer jeden Punkt innerhalb des Zielelements
  *           I.  Bereche Ansatzfunktion an lokalem Punkt
- *           II. F������ge entsprechende Daten in CoordMatrix ein
+ *           II. Fuege entsprechende Daten in CoordMatrix ein
  *        c. Convert CoordMatrix->CRS
  *
  *     InterpolateConservative:
@@ -66,12 +66,12 @@
  *  3. NoInterpolation:
  *     GetScalar/Vector/Tensor:
  *      1. Hole elementnummer
- *      2. Extrahiere Elementl������sung
+ *      2. Extrahiere Elementloesung
  *      3. Inteproliere mit Operator
  *
  *  4. MapToCoefFunction mit Coordinaten.
  *     Das kann vom Space oder von FeFunction aufgerufen werden
- *     Konzeptionell besser w������re von Space aber mal sehen
+ *     Konzeptionell besser waere von Space aber mal sehen
  *
  */
 

@@ -122,6 +122,9 @@ namespace CoupledField
      * Might get really big!! */
     virtual bool DoExportGrid() const;
 
+    /** shall a .map be created using StdPDE::CreateEquationMapFile() */
+    bool DoEquationMapping() const;
+
     //! Return Restart flag
 
     //! This method can be used to query the status of the restart flag.
@@ -150,7 +153,7 @@ namespace CoupledField
     /** Also more detailed info.xml output as with DoListMapping */
     virtual bool DoDetailedInfo() const;
 
-    /** Is cfs invoked with the quite flag to compress console output? */
+    /** Is cfs invoked with the quite flag to compress console output to just a minimu. */
     virtual bool IsQuiet() const;
 
     /** Get number of threads for CFS supplied on the command line */

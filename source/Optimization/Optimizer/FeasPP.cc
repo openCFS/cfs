@@ -136,14 +136,14 @@ void FeasPP::PostInit()
 
   // setup functions
   Function* f = optimization->objectives.data[0];
-  obj = new Approximation(this, -1, approx_linear || !f->IsLinear());
+  obj = new MMAApproximation(this, -1, approx_linear || !f->IsLinear());
   obj->PostInit();
 
   constr.Resize(m);
   non_approx_constraints = false;
   for(unsigned int i = 0; i < m; i++)
   {
-    // this is the only place where we are allowed not to use Approximation::GetCondition()
+    // this is the only place where we are allowed not to use MMAApproximation::GetCondition()
     Condition* g = cc.view->Get(i);
 
     bool approx = approx_linear || !g->IsLinear();
@@ -156,7 +156,7 @@ void FeasPP::PostInit()
     }
     if(!approx)
       non_approx_constraints = true;
-    Approximation* func = new Approximation(this, i, approx);
+    MMAApproximation* func = new MMAApproximation(this, i, approx);
     constr[i] = func;
   }
   cc.view->Done();
@@ -176,12 +176,12 @@ void FeasPP::PostInit()
     {
       Function::Type det = TranslateFeasibilityConstraint(g->GetType()); // the other function
       if(!cc.Has(det, g->GetDesignType(), false)) { // also observation
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("using benson vanderbei constraints requires to have positive definite determinant constraints in observation");
+        info_->Get(ParamNode::HEADER)->SetWarning("using benson vanderbei constraints requires to have positive definite determinant constraints in observation");
         continue;
       }
       LocalCondition* other = dynamic_cast<LocalCondition*>(cc.Get(det, g->GetDesignType(), false));
       if(!other->IsObservation()) {
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("having benson vanderbei constraints requires the positive definite determinant constraints to be in observation mode");
+        info_->Get(ParamNode::HEADER)->SetWarning("having benson vanderbei constraints requires the positive definite determinant constraints to be in observation mode");
         continue;
       }
 
@@ -195,7 +195,7 @@ void FeasPP::PostInit()
           constr[a]->determinant_shift = shift;
 
       if((other->GetBoundValue() != loc_g->GetBoundValue()) || (other->GetParameter() != loc_g->GetParameter()) || (other->GetBound() != loc_g->GetBound()) || (other->GetDesignType() != loc_g->GetDesignType()))
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
+        info_->Get(ParamNode::HEADER)->SetWarning("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
 
       approx_vanderbei_by_determinants = true;
       break;
@@ -225,10 +225,10 @@ void FeasPP::PostInit()
     assert(dt >= 0);
     DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
     assert(de.GetType() == dt);
-    Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
+    Condition* g = optimization->constraints.Get(Function::DESIGN, dt, Condition::LOWER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
     lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
-    g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
+    g = optimization->constraints.Get(Function::DESIGN, dt, Condition::UPPER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
@@ -480,7 +480,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
       in->Get("inc_rho")->SetValue(rho.NormL2());
       CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
       if(grad_phi  * d  > -0.5 * rho_eta_ * dist)
-        in->Get(ParamNode::WARNING)->SetValue("increasing penalty rho was not sufficient");
+        in->SetWarning("increasing penalty rho was not sufficient");
       // assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
     }
   }
@@ -655,7 +655,7 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
 
     bool case1 = -y / rho <= c;
 
-    Approximation* appr = constr[ci];
+    MMAApproximation* appr = constr[ci];
     Condition*     g    = appr->GetCondition();
     c_grad.Resize(appr->jac_pattern.GetSize());
     EvalGradConstraint(g, 0, true, true, c_grad); // scale and normalize
@@ -809,7 +809,7 @@ void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool de
   optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
 
   if(sub)
-    obj->Evaluate(x.GetPointer(), Approximation::GRAD, &grad);
+    obj->Evaluate(x.GetPointer(), MMAApproximation::GRAD, &grad);
   else
     EvalGradObjective(n, x.GetPointer(), true, grad);
   tmp.Fill(grad.GetPointer(), n);
@@ -822,8 +822,8 @@ void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool de
     Condition* g = constr[c]->GetCondition(det);
 
     if(sub && det) {
-      c_val[c]= constr[c]->Evaluate(x.GetPointer(), Approximation::FUNC);
-      constr[c]->Evaluate(x.GetPointer(), Approximation::GRAD, &grad);
+      c_val[c]= constr[c]->Evaluate(x.GetPointer(), MMAApproximation::FUNC);
+      constr[c]->Evaluate(x.GetPointer(), MMAApproximation::GRAD, &grad);
     } else {
       c_val[c] = EvalConstraint(g, true, true);
       EvalGradConstraint(g, 0, true, true, grad);
@@ -936,16 +936,18 @@ Function::Type FeasPP::TranslateFeasibilityConstraint(Function::Type type) const
   }
 }
 
-Approximation::Approximation(FeasPP* feas_pp, int constraint_idx, bool approx)
+MMAApproximation::MMAApproximation(FeasPP* feas_pp, int constraint_idx, bool approx)
 {
   this->common = feas_pp;
   this->constraint_idx = constraint_idx;
   this->outer_val = -1.0;
   this->approximate = approx;
   this->determinant_shift = -1;
+  this->lower = -1;
+  this->upper = -1;
 }
 
-void Approximation::PostInit()
+void MMAApproximation::PostInit()
 {
   Function*  f = GetFunction(true);
   Condition* g = f->IsObjective() ? NULL : GetCondition(true);
@@ -972,7 +974,7 @@ void Approximation::PostInit()
   upper = 0.0;
 }
 
-double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<double>* out)
+double MMAApproximation::Evaluate(const double* x_inner, Eval eval, StdVector<double>* out)
 {
   assert(outer_grad.GetSize() == jac_pattern.GetSize());
   assert((eval == FUNC && out == NULL) || (eval != FUNC && out != NULL));
@@ -990,7 +992,7 @@ double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<doubl
   return result;
 }
 
-double Approximation::EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out)
+double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out)
 {
   // Svanberg (2):
   // f(xi) = f(xo) - sum(p/(U-xo) + q/(xo-L)) + sum(p/(U-xi) + q/(xi-L))
@@ -1059,7 +1061,7 @@ double Approximation::EvalApproximation(const double* x_inner, Eval eval, StdVec
   return result;
 }
 
-double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out)
+double MMAApproximation::EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out)
 {
   double result = 0.0;
 
@@ -1103,19 +1105,19 @@ double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<dou
 
 
 
-std::string Approximation::ToString(bool determinant)
+std::string MMAApproximation::ToString(bool determinant)
 {
   return Function::type.ToString(GetFunction(determinant)->GetType());
 }
 
-Condition* Approximation::GetCondition(bool determinant)
+Condition* MMAApproximation::GetCondition(bool determinant)
 {
   Function* f = GetFunction(determinant);
   assert(!f->IsObjective());
   return static_cast<Condition*>(f);
 }
 
-Function* Approximation::GetFunction(bool determinant)
+Function* MMAApproximation::GetFunction(bool determinant)
 {
   assert(constraint_idx >= -1);
   assert(constraint_idx > 0 || common->optimization->objectives.data.GetSize() == 1);
@@ -1126,7 +1128,7 @@ Function* Approximation::GetFunction(bool determinant)
     return common->optimization->constraints.view->Get(constraint_idx + (determinant && determinant_shift > 0 ? determinant_shift : 0));
 }
 
-void Approximation::AddHessianPattern(compressed_matrix<double>& hessian)
+void MMAApproximation::AddHessianPattern(compressed_matrix<double>& hessian)
 {
   if(hess_pattern.GetNumRows() == 0)
     return;
@@ -1139,7 +1141,7 @@ void Approximation::AddHessianPattern(compressed_matrix<double>& hessian)
   LOG_DBG3(feasPP) << "A:AHP f=" << ToString() << " -> " << hess_pattern.ToString(0, false);
 }
 
-unsigned int Approximation::FindGradIndex(unsigned int design) const
+unsigned int MMAApproximation::FindGradIndex(unsigned int design) const
 {
   if(jac_pattern.GetSize() == common->n)
     return design;
@@ -1153,7 +1155,7 @@ unsigned int Approximation::FindGradIndex(unsigned int design) const
 }
 
 
-double Approximation::TransformMultiplyer(double lambda_ipopt)
+double MMAApproximation::TransformMultiplyer(double lambda_ipopt)
 {
   if(determinant_shift <= 0)
     return lambda_ipopt;

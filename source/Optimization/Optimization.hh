@@ -15,6 +15,7 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 {
@@ -30,9 +31,10 @@ namespace CoupledField
    class StdPDE;
 
    // FIXME: this is originally from timestepping.hh and has to be replaced
-   typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} DERIVType;
+   typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} TimeDeriv;
 
-   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
+   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble
+    * only for tracking and transient
    class AdjointParameters {
    public:
      AdjointParameters(Function* f, Excitation* e) {
@@ -48,10 +50,10 @@ namespace CoupledField
    private:
      Function* function;
      Excitation* excite;
-   };
+   };*/
    
   /** This is a general optimization object. The optimiziation loop is around
-   *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
+   *  Driver::SolveProblem() and as such general. Note convention,
    * that Optimization solves an optimization problem and an Optimizer is the
    * solver to be used.*/
   class Optimization
@@ -82,25 +84,19 @@ namespace CoupledField
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
 
-         /** Where we apply the transformation.
-          * A subset of the values are PDE identifiers for ToPDE() and ToApp().
-          * The heat and acoustic transfer functions are Laplace! */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Application;
-
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
-                        FEAS_PP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
+                        FEAS_PP_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
 
-         static Enum<Application> application;
+         static Enum<App::Type> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
          typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
-         
 
          /** The DesignSpace element is a container for the complex DesignElements.
           * There are service methods in the container to exchange with external
@@ -140,22 +136,27 @@ namespace CoupledField
         void EvaluateSpecialResults();
 
         /** Evaluates the state problem, does not increment the iteration counter.
+         * This is actually a mere helper for the overwritten version in ErsatzMaterial!
          * @param excite provide for multiharmonic steps */
         virtual void SolveStateProblem(Excitation* excite = NULL);
-        
-        /** Solves the Adjoint problem, for given excite and objective
-         * This does the real work
-         * @param excite multi-excitation
-         * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
-        
+
         /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
-         * if the functions needs it
+         * if the functions needs it.
+         * The reason for separating state and adjoint problem is that we need the adjoint for gradient evaluation
+         * and in the line search case we need only states and not the adjoint
          * @see Function::IsAdjointBased() */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
+        /** Solves the Adjoint problem, for given excite and objective
+         * This does the real work
+         * Only Bastian had an implementation for transient and tracking in Optimization.cc
+         * @param excite multi-excitation
+         * @param cost multi-objective */
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f) { assert(false); }
+        
         /** Sets the rhs for the adjoint, called by assemle */
-        virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
+        // only for transient and tracking
+        // virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
 
         /** The maximal number of iterations */
         int GetMaxIterations() { return maxIterations; }
@@ -172,25 +173,17 @@ namespace CoupledField
          * For the multiharmonic case one can commit each frequency but keep the
          * iteration number.
          * @see FinalizeStoreResults() for calling after the last CommitIteration()
-         * @param keep_iteration_number will keep currentIteration and not rest problemsWithinIteration
          * @return the iteration element we added */
-        virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
+        virtual PtrParamNode CommitIteration();
 
         /** the break condition for the optimization loop.
          * Checks the stopping rule from the XML file an searches for an HALTOPT file.
-         * Shall be called after CommitIteration() ! */
-        virtual bool DoStopOptimization();
+         * Shall be called after CommitIteration() !
+         * user_stop_reason_ contains the reason if true is returned */
+        bool DoStopOptimization();
 
-        /** Do we have a harmonic problem? Then we are complex. Even if not, we might be eigenvalue and also complex*/
-        bool IsHarmonic() const { return harmonic_; }
-        
-        /** we are complex in the harmonic or eigenvalue case */
-        bool IsComplex() const { return complex_; }
-
-        /** do we solve eigenvalue problems? Then we are complex! */
-        bool IsEigenvalue() const { return eigenvalue_; }
-
-        /** are we in transient optimization? */
+        /** are we in transient optimization?
+         * FIXE -> Context */
         static bool IsTransient();
         
         /** in transient, first step can be static, so that start displacement can depend on material parameters */
@@ -206,16 +199,16 @@ namespace CoupledField
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
-        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
-         * Always creates the list, so use only rarely. */
-        StdVector<Function*> GetActiveFunctions() const;
+        /** Returns all functions. Does not blow up local constraints. Combines objective and constraints.
+         * Always creates the list, so use only rarely.
+         * @param only_active use only active constraints */
+        StdVector<Function*> GetFunctions(bool only_active) const;
 
         /** Our base ParamNode pointer, pointing to input <optimization> */
         PtrParamNode optParamNode;
 
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
-
 
         /** This is the list of concurrent objective functions.
          * It is guaranteed to have at least one entry.
@@ -226,39 +219,26 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
-        /** The current context with our optimization. Very important for meta excitation as it holds the excitation */
-        static Context context;
+        /** The current context with our optimization. Very important for meta excitation as it holds the excitation.
+         * A context corresponds to a multi sequence step, e.g. bloch mode optimization with concurrent stiffness control.
+         * @see ContextManager */
+        static Context* context;
+
+        /** Manages the context. Enables to deal with multi sequence optimization, e.g. for different pdes */
+        static ContextManager manager;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
-        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
+//        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
         
         /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
-        virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
+  //      virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
         
-        Assemble* GetAssemble() { return assemble_; }
-
         /** Helper to convert from natural solution/design to application
-         * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
-        static Application ToApp(DesignElement::Type dt);
+         * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */
+        static App::Type ToApp(DesignElement::Type dt);
 
         /** Default standard design type (not mass) by PDE */
         DesignElement::Type ToDesign(const SinglePDE* pde) const;
-
-        /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
-         * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
-         *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
-         * @throws if neither mechPDE nor elecPDE
-         * @see ToPDE()
-         * @see SetPDEs() */
-        Application ToApp(const SinglePDE* pde) const;
-
-        /** Find our PDE in SIMP by application from the pdes map
-         * @see ToApp()*/
-        SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
-
-        /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
-         * PiezoSIMP does it simply in the constructor */
-        virtual void SetPDEs(OptimizationMaterial::System sys);
 
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
@@ -275,10 +255,10 @@ namespace CoupledField
 
           /** @param log_name is interpreted. If allows a file, the logFile is created.
            * @param pn_log pointer to the 'log' element. Might be NULL */
-          void Init(const std::string& log_name, PtrParamNode pn_log);
+          void Init(Optimization* opt, const std::string& log_name, PtrParamNode pn_log);
 
           /** append an item to the fileHeader and adds the index to the label */
-          void AddToHeader(std::string label);
+          void AddToHeader(const std::string& label);
 
           /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
            * writes this string to logFile_ a the first execution.
@@ -288,14 +268,18 @@ namespace CoupledField
            /** if set write the design to the logfile */
            bool design;
 
+           /** shall the ev constraints be written to plot.dat? Not in full bloch case when not in detail mode */
+           bool plot_ev;
+
+           /** here ErsatzMaterial::CommitIteration() stores bloch information for plot.dat writing.
+            * First entry is bandgap then the ev_min or ev_max info for each ev constraint. First label then the value */
+           StdVector<boost::tuple<std::string, double> > bloch_info;
+
            /** if set write the gradient of the design to logfile */
            bool designGradient;
 
            /** if set write the constraint gradient of the design to the logfile */
            bool designConstraintGradients;
-
-           /** write mean and max for local constraints */
-           bool localDetail;
 
            /** write the gradient norms */
            bool gradNorm;
@@ -317,17 +301,15 @@ namespace CoupledField
          * @param step_val the "label" of the "transient" step. -1 is the integer counter */
         virtual void StoreResults(double step_val = -1.0);
 
-        /** The order of the pdes is not defined, Therefore we use the map
-         * @see ToApp()
-         * @see ToPDE() */
-        std::map<Application, SinglePDE*> pdes;
 
-        /** This is simple one SinglePDE from pdes. */
-        SinglePDE* pde;
-
-        /** Our MultipleExcitation objecte - by default disabled */
+        /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
+         * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
+         * only one MultipleExcitaiton object. However some of the information is stored in the corresponding context
+         * @see Optimization::contextManager */
         MultipleExcitation* me;
 
+        /** the reason we did a user break in DoStopIteration() */
+        std::string user_break_reason;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -352,8 +334,13 @@ namespace CoupledField
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
 
-        /** The assemble class for our PDE */
-        Assemble* assemble_;
+        /** Determines if the adjoint problem shall be solved directly after the state problem.
+         * Note that we have one adjoint for every adjoint sensitive function.
+         * Usually they are separated as the adjoint is only necessary for the gradient and in the line search case we don't need it.
+         * However it is necessary to solve the adjoint directly after the state in case of multiple harmonic excitations
+         * (each frequency assembles a new system matrix) and in the case of multiple sequences as for each sequence step a
+         * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence). */
+        bool DoSolveAdjointWithState() const;
 
         /** The way the date is stored. Forward/ adjoint/ both and stride. 
          * Set in the <commit> element */
@@ -368,8 +355,7 @@ namespace CoupledField
         /** The current iteration, 0 is the first run. Note that the state problem might be
          * executed more often (-> line search).
          * @see problemSolvedCounter. */
-        int currentIteration;
-
+        unsigned int currentIteration;
 
         /** This checks how often the state problem is solved. This is not necessary equal
          * to the iterations, e.g. for line search of an external optimizer. Incremented by
@@ -392,21 +378,6 @@ namespace CoupledField
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** are we harmonic/EV or static/transient? */
-        bool complex_;
-        
-        /** only for the driver, not for complex_! */
-        bool harmonic_;
-
-        /** do we solve an eigenvalue problem. Includes block mode problems */
-        bool eigenvalue_;
-
-        /** bloch mode analyis is also eigenvalue but special due to the wave vectors encapsualted in excitations */
-        bool bloch_;
-
-        /** Do we use MSFEM or not? */
-        bool msfem;
-
         /** is the first step static */
         bool firstStepStatic;
         
@@ -415,6 +386,9 @@ namespace CoupledField
 
         /** shortcut to domain->GetGrid() */
         Grid* grid;
+
+        /** This holds our optimizer instance. */
+        BaseOptimizer* baseOptimizer_;
 
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
@@ -428,8 +402,12 @@ namespace CoupledField
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
 
-        /** This holds our optimer instance. */
-        BaseOptimizer* baseOptimizer_;
+        /** checks the time of the iterations to be written and used as stopping criteria.
+         * This is a shortcut the the main cfs timer, taken from infoNode */
+        shared_ptr<Timer> cfs_timer_;
+
+        /** The time in seconds when. Set in CommitIteration() */
+        StdVector<double> time_;
   };
 
 } // namespace

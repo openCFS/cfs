@@ -1,11 +1,13 @@
-#include <cstdio>
-#include <cmath>
 
 #include "Vector.hh"
 #include "opdefs.hh"
 #include <boost/type_traits/is_complex.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
-using namespace std;
+#include <cstdio>
+#include <cmath>
+#include <cfloat>
+
 
 namespace CoupledField {
 
@@ -276,7 +278,7 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  Double Vector<T>::NormL2() const
+  inline Double Vector<T>::NormL2() const
   {				
     double sum = 0;
 
@@ -289,7 +291,7 @@ namespace CoupledField {
 
 
   template <typename T>
-  double Vector<T>::NormL2(const Vector<T>& other) const
+  inline double Vector<T>::NormL2(const Vector<T>& other) const
   {
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
 
@@ -301,6 +303,27 @@ namespace CoupledField {
 
     return sqrt(sum);
   }
+
+
+  template <typename T>
+  inline T Vector<T>::Sum() const
+  {
+    T s(0);
+    for(unsigned int i = 0; i < size_; ++i)
+      s+=data_[i];
+
+    return s;
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Avg() const
+  {
+    assert(size_ > 0);
+
+    return Sum() * (1.0/size_);
+  }
+
 
 
   template<class TYPE> 
@@ -476,7 +499,7 @@ namespace CoupledField {
   {
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
-      EXCEPTION( "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
+      EXCEPTION( "Vector<>::SetVectorEntry: "
                << "Detected index error:"
                << "\n index = " << i
                << "\n size  = " << size_ );
@@ -892,6 +915,15 @@ namespace CoupledField {
       OpType<T>::MultWithComplex( data_[i], factor ); 
   }
 
+  template<class TYPE>
+  bool Vector<TYPE>::Contains(const TYPE val) const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+      if(data_[k] == val) return true;
+
+    return false;
+  }
+
 
   template<class TYPE>
   bool Vector<TYPE>::ContainsNaN() const
@@ -992,14 +1024,6 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
-  template<typename T>
-  T Vector<T>::Sum() const {
-    T sum = (T) 0;
-    for (UInt i = 0; i < size_; ++i) {
-      sum += data_[i];
-    }
-    return sum;
-  }
   
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates

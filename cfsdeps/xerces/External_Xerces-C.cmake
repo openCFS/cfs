@@ -56,9 +56,9 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.de.cw.net/pub/FreeBSD/ports/distfiles/${XERCES_GZ}"
+  "http://archive.apache.org/dist/xerces/c/3/sources/${XERCES_GZ}"
   "http://xml.apache.org/dist/xerces-c/3/sources/${XERCES_GZ}"
-  "http://archive.apache.org/dist/xerces/c/3/sources//xerces-c-3.1.1.tar.gz"
+  "http://archive.apache.org/dist/xerces/c/3/sources/${XERCES_GZ}"
   "${XERCES_URL}/${XERCES_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/xerces/${XERCES_GZ}")

@@ -16,7 +16,7 @@
 #define COEFFUNCTIONPML_HH_
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include "CoefFunction.hh"
 #include <boost/tr1/type_traits.hpp>

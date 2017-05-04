@@ -265,11 +265,6 @@ namespace CoupledField {
     //! prints the complete Graph for Debugging
     void Print(std::ostream &os) const;
   
-    //! print the Graph to the .las file
-    void Print() const {
-      Print(*cla);
-    }
-
     //@}
 
   protected:

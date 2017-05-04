@@ -10,6 +10,8 @@
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
 
+using std::string;
+
 namespace CoupledField
 {
   
@@ -101,16 +103,21 @@ namespace CoupledField
      */
     typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML, BULK } NodeType;
     
-    /** The default constructor
+    /** The default constructor.
+     * Can also be used to generate a root node. For a root node of a to be written structure (info.xml) see GenerateWriteNode())
      * @param type Type of the node (defaults to UNDEF)
-     * @param allowFileOutput If false, no file will be written in ToFile()
-     * @return
-     */
-    ParamNode( ActionType defaultAction = EX, NodeType type = UNDEF,
-               bool allowFileOutput = true);
+     * @return */
+    ParamNode(ActionType defaultAction = EX, NodeType type = UNDEF);
 
     /** Recursively delete the child nodes */
     virtual ~ParamNode();
+
+    /** Generates the root node for a tree to be written, e.g. info.xml
+     * @param root the name of the root element
+     * @param filename if empty any ToFile() will return silently
+     * @param lazy_write will in non debug only write when the last ToFile() was sufficiently long ago
+     * @param add_counter adds write and reject counter to the root element */
+    static PtrParamNode GenerateWriteNode(const string& root, const string& filename, ActionType defaultAction = INSERT, bool lazy_write = false, bool add_counter = false);
 
     /************************************************************************
     * S E T    M E T H O D S
@@ -126,8 +133,9 @@ namespace CoupledField
      * Any other type which has no special SetValue() implementation is lost!! */
     void SetValue(const boost::any& value);
 
-    void SetValue( const char* value);
-    
+    /** a string is a string :) */
+    void SetValue(const char* value);
+
     /** Special version which handles the precision of the value. See implementation note! */
     void SetValue(const double, const int precision);
 
@@ -137,7 +145,10 @@ namespace CoupledField
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
-      
+
+    /** Creates a ParamNode::WARNING node and sets the msg as content. */
+    void SetWarning(const std::string& msg, bool append = false);
+
     /** Add child parameter nod*/
     void AddChildNode( PtrParamNode child);
     
@@ -244,6 +255,10 @@ namespace CoupledField
     template<typename TYPE>
     TYPE As() const;
 
+    /** This is a special case where the timer is created if it does not already exist.
+     * Therefore no constness */
+    boost::shared_ptr<Timer> AsTimer();
+
     /** @return the integer if this is convertible
     * @throws an exception if the value is not set or not convertible */
     template<typename TYPE>
@@ -348,13 +363,19 @@ namespace CoupledField
     /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
-     * @param depth number of ident steps, will be interpreted as one space */
-    void ToXML(std::ostream& os, int depth = 0);
+     * @param depth number of ident steps, will be interpreted as one space
+    * @param adjust_element_type this is done in ToFile(), here only for the stream output writer */
+    void ToXML(std::ostream& os, int depth = 0, bool adjust_element_type = false);
     
-    /** Print Param / INfo node to file 
+    /** Print node tree to file. If the name ends with .gz it will be automatically compressed!
+     * Normally the tree will be created by GenerateWriteNode() where a name will be given. But you can write any element
+     * @param filename if not given an created by GenerateWriteNode() we will use the name from there (no name=silent no write)
+     * @param force if not debug and lacy write this to File might ignored
      * Note: This is just a temporary solution, until we move the serialization of the 
      * ParamNode to the WriteInfo class  */
-    void ToFile( const std::string& name = std::string(), bool force = false);
+    void ToFile(const std::string& filename = std::string(), bool force = false);
+
+    void ToFile(bool force) { ToFile(std::string(), force); }
 
     /** This is a recursive Dump of the tree to std::cout
     * @param level start with 0, is used for ident */
@@ -417,20 +438,42 @@ namespace CoupledField
     
     /** cache variable for last Get() result */
     int lastresultidx_;
-    
-    /** Flag if file output is allowed */
-    bool fileOutput_;
-    
+
   private:
-    /** write_timer restricts the number of times the info.xml file is written
-     *  if not enough time has passed, the file is not written
-     *  this only affects ParamNode::ToFile()
-     *  writing can be force via new parameter of ToFile */
-    boost::shared_ptr<Timer> write_timer_;
-    /** how often the file is actually written */
-    unsigned int write_counter_;
-    /** how often we rejected writing the info.xml-file */
-    unsigned int reject_counter_;
+    
+    /** Some attributes are only necessary for the root node of a writing ParamNode.
+     * Collect them here to save footprint for all nodes. Easier than class hierarchy */
+    struct RootNode
+    {
+      RootNode();
+      ~RootNode();
+
+      /** if ToString() provides another name this one is not overwritten but just temporarily ignored.
+       * Nothing is written if filename is empty. */
+      std::string filename;
+
+      /** lazy write means that we only write for ToFile() w/o name and w/o force when the last write
+       * was too long ago and when we are not in debug */
+      bool lazy_write = false;
+
+      /** shall we add the write_counter and recejt_counter information to the root element as attributes */
+      bool add_counters = true;
+
+      /** write_timer restricts the number of times the info.xml file is written
+       *  if not enough time has passed, the file is not written
+       *  this only affects ParamNode::ToFile()
+       *  writing can be force via new parameter of ToFile */
+      Timer* write_timer = NULL;
+
+      /** how often the file is actually written */
+      unsigned int write_counter = 0;
+      /** how often we rejected writing the info.xml-file */
+      unsigned int reject_counter = 0;
+    };
+    
+    /** only a root node which is meant to be written with ToFile() needs it.
+     * @see GenerateWriteNode() */
+    RootNode* rootNode = NULL;
   }; 
 
 

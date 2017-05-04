@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -43,22 +44,22 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   type.Add(TRAJECTORY, "trajectory");
   type.Add(EXTREMIZE, "extremize");
   
-  this->lambda_ = 1000; // just to set a value
+  this->lambda_ = 0; // just to set a value
 
   // the following values are standard in mech SIMP -> see e.g. the 99 lines paper
   this->move_limit_ = 0.2;
   this->oc_damping_ = 0.5;
-  this->lambda_min_ = 1e-30;
+  this->lambda_min_ = 1e-20;
   this->lambda_iters_ = 0;
   this->max_lambda_iters_ = 70;
-  this->err_eps_    = 1e-3;
+  this->feasibility_    = 1e-6;
   this->type_       = optimization->objectives.Has(Objective::COMPLIANCE) ? FRAMED : FUMBLE;
 
   // framed
   this->upper_ = 0.0;
   this->lower_ = 0.0;
   this->start_lower_ = 0;
-  this->start_upper_ = 1000;
+  this->start_upper_ = 100000;
   this->enlarge_lower_ = 0.5;
   this->enlarge_upper_ = 2.0;
   this->always_enlarge_ = true;
@@ -78,7 +79,8 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     move_limit_ = pn->Get("move_limit")->As<Double>();
     oc_damping_ = pn->Get("damping")->As<Double>();
     lambda_min_ = pn->Get("lambda_min")->As<Double>();
-    err_eps_    = pn->Get("err_eps")->As<Double>();
+    feasibility_    = pn->Get("feasibility")->As<Double>();
+    max_lambda_iters_ = pn->Get("max_lambda_iters")->As<int>();
 
     // it doesn't harm to read the parameters for all types!
     if(pn->Has(type.ToString(FRAMED)))
@@ -129,8 +131,11 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
 void OptimalityCondition::SolveProblem()
 {
+  // we measure the optimizer in the loops only
+  optimizer_timer_->Stop();
+
   // solve the state problem first
-  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed    
+  Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed
   optimization->SolveStateProblem();
 
   // start with iteration 0 which is the initial design
@@ -141,27 +146,37 @@ void OptimalityCondition::SolveProblem()
   {
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
+
+
     optimization->SolveAdjointProblems();
+
+    eval_grad_obj_timer_->Start();
     optimization->CalcObjectiveGradient(NULL);
+    eval_grad_obj_timer_->Stop();
     
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
     
-    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
+    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
+      eval_grad_const_timer_->Start();
       optimization->CalcConstraintGradient(NULL);
+      eval_grad_const_timer_->Stop();
+    }
     
     // store iteration 0
     if(iter == 0)
     {
+      eval_obj_timer_->Start();
       optimization->CalcObjective();   // for output
+      eval_obj_timer_->Stop();
       // the gradients are (here only! )pointing to the next design vector, 
       // hence the gradients for iteration "0" and 1 are identical
       optimization->CommitIteration(); 
       iter++;
       continue; // redo gradients and start optimization
     }
-    
-    
+
+    optimizer_timer_->Start();
     // do a SIMP Optimality Condition step -> calc new design vector
     switch(type_)
     {
@@ -179,14 +194,18 @@ void OptimalityCondition::SolveProblem()
                      
     default: assert(false); 
     }
+    optimizer_timer_->Stop();
     
     // solve the state problem for the new design vector
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble();    
+    Optimization::context->pde->GetAssemble()->SetAllReassemble();
     optimization->SolveStateProblem();
 
     // calc the objective for the logging in CommitIteration(),
     // for the optimality condition it is not required.
+
+    eval_obj_timer_->Start();
     optimization->CalcObjective();
+    eval_obj_timer_->Stop();
     
     // every state problem is an iteration 
     // The gradients "point" to this design vector. 
@@ -254,10 +273,10 @@ void OptimalityCondition::CalcNextFramedIteration()
     LOG_DBG2(oc) << "lambda_iter/lambda/err/lower/upper = " <<  lambda_iters_ << "\t" 
                  << lambda_ << "\t" << err << "\t" << lower_ << "\t" << upper_; 
    }
-   while(abs(err) > err_eps_  && lambda_iters_ < max_lambda_iters_);
+   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_);
   
    if(lambda_iters_ >= max_lambda_iters_)
-     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
+     std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check bounds in 'optimalityCondition/framed/upper'\n";
 }
 
 void OptimalityCondition::CalcNextFumbleIteration()
@@ -326,7 +345,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
                  << Evaluate(lambda_ - expand_ * step_) << "\t" << Evaluate(lambda_ - contract_ * step_) << "\t"
                  << Evaluate(lambda_ + contract_ * step_) << "\t" <<  Evaluate(lambda_ + expand_ * step_);
   }
-  while(abs(min_err) > err_eps_ && lambda_iters_ < max_lambda_iters_);
+  while(abs(min_err) > feasibility_ && lambda_iters_ < max_lambda_iters_);
 
   if(lambda_iters_ >= max_lambda_iters_)
     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << min_err << std::endl;
@@ -348,7 +367,7 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
   double factor;
   lambda_iters_ = 0;
 
-  while(abs(err) > err_eps_ && lambda_iters_ < max_lambda_iters_)
+  while(abs(err) > feasibility_ && lambda_iters_ < max_lambda_iters_)
   {
     // we have to support to step over zero!
     if(abs(lambda_) < lambda_min_)
@@ -486,11 +505,16 @@ double OptimalityCondition::Evaluate(double lambda)
                   << " old= " << rho_e << " next=" << next << " lower=" << lower
                   << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }
-   
+   optimizer_timer_->Stop();
    // store the new values in the design variables
    optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
+   eval_const_timer_->Start();
    double vol = optimization->CalcConstraint(g);
+   eval_const_timer_->Stop();
+
+   optimizer_timer_->Start();
+
    double err = g->GetBoundValue() - vol;
    return err;
 }

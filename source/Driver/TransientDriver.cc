@@ -3,7 +3,7 @@
 #include <string>
 #include <stdio.h>
 #include <list>
-#include <math.h>
+#include <cmath>
 
 // signal handling for catching Ctrl-C
 #include <signal.h>
@@ -127,7 +127,7 @@ namespace CoupledField {
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        std::cerr << "Could not assign default signal action" << std::endl;
+        std::cerr << "Could not assign default signal action" << std::endl; // to exceptions is destructors with gcc 6
         domain->GetInfoRoot()->ToFile();
         exit(-1);
       }

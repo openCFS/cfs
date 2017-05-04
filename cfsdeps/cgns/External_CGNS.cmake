@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------
 # CFD General Notation System (CGNS)
-# Needed for ADF routines by STARCCM+ reader. Also provides cgnsview, which
-# can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF).
+# Needed for ADF routines by STARCCM+ reader. 
+# To build cgnsview which can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF)
+# install it manually or reenable BUILD_CGNSTOOL.
 #
 # Project Homepage
 # http://www.cgns.org
@@ -36,7 +37,7 @@ SET(CMAKE_ARGS
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
   -DCGNS_BUILD_SHARED:BOOL=ON
   -DCGNS_USE_SHARED:BOOL=OFF
-  -DBUILD_CGNSTOOLS:BOOL=ON
+  -DBUILD_CGNSTOOLS:BOOL=OFF
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=${CFLAGS}
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
@@ -50,39 +51,6 @@ SET(CMAKE_ARGS
    )
 ENDIF()
 
-Find_Package(TCL)
-Find_Package(X11)
-Find_Package(OpenGL)
-
-IF(TCLTK_FOUND AND
-   TCL_INCLUDE_PATH AND
-   TK_INCLUDE_PATH AND
-   X11_Xmu_FOUND AND
-   X11_Xmu_INCLUDE_PATH AND
-   OPENGL_FOUND AND
-   OPENGLU_FOUND AND
-   OPENGL_INCLUDE_PATH)
-  SET(BUILD_CGNSTOOLS OFF)
-ELSE()
-  #-------------------------------------------------------------------------------
-  # Let's only build the CGNS tools on platforms, which provide a TCL 
-  # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
-  # have not installed them on our nightly test systems.
-  #-------------------------------------------------------------------------------
-  SET(BUILD_CGNSTOOLS OFF)
-  IF(MINGW)
-    SET(BUILD_CGNSTOOLS OFF)
-  ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
-    IF(CMAKE_CROSSCOMPILING)
-      SET(BUILD_CGNSTOOLS OFF)
-    ENDIF()
-  ENDIF()
-ENDIF()
-
-LIST(APPEND CMAKE_ARGS
-  -DBUILD_CGNSTOOLS:BOOL=${BUILD_CGNSTOOLS}
-)
-
 IF(CFS_DISTRO STREQUAL "MACOSX")
   # Explicitly set build architectures and  system SDK root dir to match
   # those given in CMake.
@@ -91,7 +59,6 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
     ${CMAKE_ARGS}
     -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
     -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    "-DCMAKE_EXE_LINKER_FLAGS:STRING=-L/usr/X11/lib -lX11 -lXmu"
   )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 

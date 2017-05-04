@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
@@ -415,7 +416,7 @@
           default="nodeCmpToSurfRegions">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              ANSYS Workbench  Mechanical (Tools  -> Write Input  File) and
+              ANSYS Workbench  Mechanical (Tools to Write Input  File) and
               Finite  Element Modeler  (Write APDL  Solver File)  write named  
               selections of surfaces  as node  components. Therefore,  the CDB  reader
               reconstructs  surface  elements from  node  components and adds them as
@@ -914,11 +915,29 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputStreaming">
     <xsd:attribute name="id" type="xsd:token" default="streaming"/>
-    <xsd:attribute name="host" type="xsd:token" default="localhost"/>
-    <xsd:attribute name="port" type="xsd:nonNegativeInteger" default="8888"/>
+    <!-- e.g. "127.0.0.1" or "localhost". Mandatory for protocol = http -->
+    <xsd:attribute name="host" type="xsd:token" use="optional" default="localhost"/>
+    <!-- e.g. "80" -->
+    <xsd:attribute name="port" type="xsd:nonNegativeInteger" use="optional" default="80"/>
+    <!-- e.g. "/iTop/cfspost.php" or the file -->
     <xsd:attribute name="path" type="xsd:token" use="required"/>
+    <!-- the protocol. http is what streaming is meant for, file for iTop compression test. A fast
+    XML output -->
+    <xsd:attribute name="protocol" default="http">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="http"/>
+          <xsd:enumeration value="file"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <!-- shall also the grid be transmitted -->
+    <xsd:attribute name="sendMesh" type="xsd:boolean" use="optional" default="false" />
+    <!-- compress is not zipped but no identation and no redundand 'id' attribute for element results -->
+    <xsd:attribute name="compressed" type="xsd:boolean" use="optional" default="true" />
+    <!-- if not silent prints on which port a connectiont is attempted to -->
     <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
-    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>    
   </xsd:complexType>
 
 

@@ -42,6 +42,11 @@ public:
     GetTensor<Complex>(coefMat, lpm);
   }
 
+  //! \copydoc CoefFunction::GetMsfemElementMatrix
+  void GetMsfemElementMatrix(Matrix<double>& elemMat, const LocPointMapped& lpm) {
+    GetMsfemElementMatrix<double>(elemMat, lpm);
+  }
+
   //! \copydoc CoefFunction::GetScalar
   void GetScalar(double& scal, const LocPointMapped& lpm) {
     GetScalar<double>(scal, lpm);
@@ -50,6 +55,11 @@ public:
   //! \copydoc CoefFunction::GetScalar
   void GetScalar(Complex& scal, const LocPointMapped& lpm) {
     GetScalar<Complex>(scal, lpm);
+  }
+
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) {
+    GetVector<double>(vec, lpm);
   }
 
 
@@ -79,6 +89,8 @@ public:
     return form;
   }
 
+  std::string ToString() const{ return "CoefFunctionOpt";};
+
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();
 
@@ -106,7 +118,13 @@ protected:
   void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
 
   template <class T>
+   void GetMsfemElementMatrix(Matrix<T>& elemMat, const LocPointMapped& lpm);
+
+  template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);
+
+  template <class T>
+  void GetVector(Vector<T>& scal, const LocPointMapped& lpm);
 
   /** This is the DesignSpace we use -> could be also requested from domain */
   DesignSpace* design;

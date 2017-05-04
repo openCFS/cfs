@@ -25,6 +25,8 @@ DECLARE_LOG(fefunc)
  BaseFeFunction::BaseFeFunction(MathParser* mp){
 
   fctId_ = NO_FCT_ID;
+  pde_ = NULL;
+  grid_ = NULL;
   if(mp) {
     mp_ = mp;
     mHandle_ = mp_->GetNewHandle();
@@ -77,24 +79,40 @@ DECLARE_LOG(fefunc)
   void BaseFeFunction::AddEntityList( shared_ptr<EntityList> list ){
     // Security check: If entity list was already added, leave
     
-    // Note: As the shared_ptr to an Entitylist is not
-    // unique within CFS, we have to ensure, that the names of 
-    // the entity lists rather than the pointers match!
-    
-    std::string entName = list->GetName();
+    // Note: As the shared_ptr to an Entitylist is not unique within CFS, we have to ensure,
+    // that the names of the entity lists rather than the pointers match!
+
+    // This can be very expensive for periodic B.C. (Constraints) as there
+    // are at least each 2-node pair added twice (@see BaseFeFunction::AddConstraint())
+    // for that case only check via two_node_entries_cache_
     bool found = false;
-    for( UInt i = 0; i < entities_.GetSize(); ++i ) {
-      if( entities_[i]->GetName() == entName ){
+
+    if(list->GetSize() == 2 && list->GetType() == EntityList::NODE_LIST)
+    {
+      assert(boost::dynamic_pointer_cast<NodeList>(list) != NULL); // we ask for it in if, so make a static_cast
+      shared_ptr<NodeList> nl = boost::static_pointer_cast<NodeList>(list);
+
+      assert(nl->GetNodes().GetSize() == 2);
+      std::list<unsigned int>& list = two_node_entries_cache_[nl->GetNodes()[0]];
+      if(find(list.begin(), list.end(), nl->GetNodes()[1]) != list.end())
         found = true;
-        break;
+      else
+        list.push_back(nl->GetNodes()[1]); // not found? Then add to cache and below the entry will be added
+    }
+    else
+    {
+      const std::string& entName = list->GetName();
+      for(unsigned int i = 0; !found && i < entities_.GetSize(); ++i) {
+        if(entities_[i]->GetName() == entName) {
+          found = true;
+          break;
+        }
       }
     }
-    if( found ) {
-      // nothing to be done
-    } else {
+
+    if(!found) {
       entities_.Push_back(list);
-      regions_.insert( list->GetRegion() );
-      
+      regions_.insert(list->GetRegion());
     }
   }
   
@@ -204,6 +222,15 @@ DECLARE_LOG(fefunc)
         return true;
     return false;
   }
+
+  bool BaseFeFunction::HasConstraint(std::string& name, unsigned int dof) const {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++) {
+      if(constraints_[i]->name == name && constraints_[i]->masterDof == dof)
+        return true;
+    }
+    return false;
+  }
+
 
   UInt BaseFeFunction::GetVecSize() const {
     assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );

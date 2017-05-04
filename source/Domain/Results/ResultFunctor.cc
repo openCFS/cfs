@@ -237,8 +237,7 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
         // Get integration points
         StdVector<LocPoint> intPoints;
         StdVector<Double> weights;
-        intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, 
-                                 intPoints, weights );
+        intScheme->GetIntPoints(Elem::GetShapeType(el->type), IntScheme::GAUSS, order, intPoints, weights);
         // Loop over all integration points
         LocPointMapped lpm;
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {

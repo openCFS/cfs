@@ -11,10 +11,12 @@
 #include "General/Environment.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/Matrix.hh"
+#include "def_use_sgpp.hh"
 
 #ifdef USE_SGPP
 #include "sgpp/base/grid/Grid.hpp"
 #include "sgpp/base/operation/hash/OperationEval.hpp"
+#include "sgpp/base/operation/hash/OperationNaiveEval.hpp"
 #include "sgpp/base/operation/hash/OperationNaiveEvalPartialDerivative.hpp"
 #include "sgpp/base/datatypes/DataVector.hpp"
 #endif
@@ -51,6 +53,12 @@ class TransferFunction;
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
+    /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
+    typedef enum { CW, CCW } Clock;
+
+    /** Method used for interpolation of material tensor and volume */
+    typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
+
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em);
@@ -79,8 +87,8 @@ class TransferFunction;
 
     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
-    /** returns MSFEM element matrix for a regular grid from material catalogue*/
-    void GetErsatzElementMatrixMSFEM(Matrix<double>& A, DesignElement::Type direction);
+    /** Calculates MSFEM element matrix for a regular grid from material catalogue*/
+    bool GetErsatzElementMatrixMSFEM(Matrix<double>& A,const Elem* elem, DesignElement::Type direction);
 
     /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
     void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param);
@@ -106,7 +114,11 @@ class TransferFunction;
 
     void static SetEnums();
 
-    Type GetType() const { return type_; }
+    Type GetType() const { return type_; };
+
+    void SetType(Type type) {type_ = type;};
+
+    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -114,6 +126,27 @@ class TransferFunction;
 
     const Elem* current_elem;
 
+    double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
+
+    Interpolation GetInterpolationMethod() const { return interpolation_; };
+
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order or rz,ry,rx
+     *  in 2d: rotates the material by ROTANGLE or rx
+     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+     * @param notation can be HILL_MANDEL or VOIGT notation
+     * @param clock can be CCW (counter-clockwise) or CW (clockwise)
+     * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
+     */
+    void RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
+
+    /** Calculate the Isotropic tensor */
+    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
   protected:
 
@@ -153,7 +186,7 @@ class TransferFunction;
 
 #ifdef USE_SGPP
     /** Grid for SGPP interpolation */
-    SGPP::base::Grid* grid_;
+    std::unique_ptr<sgpp::base::Grid> grid_;
 #endif
 
     /** returns the numbers of parameters required for this material */
@@ -164,8 +197,6 @@ class TransferFunction;
   private:
     /* note that most of these functions are called really often, so inlining is used */
 
-    /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Lame Tensor */
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -188,10 +219,6 @@ class TransferFunction;
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
-
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
@@ -223,6 +250,9 @@ class TransferFunction;
     /** put values from Voigt vector to correct positions in tensor */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
     
+    /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
+    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
+
     /** put the entries of the orthotropic tensor at the right places */
     inline void SetOrthotropicTensor(Matrix<double>& t, SubTensorType subTensor, double e11, double e12, double e13, double e22,
         double e23, double e33, double e44, double e55, double e66);
@@ -232,17 +262,8 @@ class TransferFunction;
     
     /** put the entries of the isotropic tensor at the right places */
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
-    
-    /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
-    
-    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
-     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
-     *  in 2d: rotates the material by ROTANGLE
-     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-     */
-    void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+
+    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = HILL_MANDEL);
 
     /** helper function to set a rotation matrix of size 3x3
      * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
@@ -346,6 +367,8 @@ class TransferFunction;
        * @param vector p has the values of the design variable */
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
+    void EvaluateFullGrid();
+
     /** Fill sparse grid with data values*/
     void FillSparseGridWithFullGridData(Matrix<double>& data);
     void FillSparseGridWithSparseGridData(Matrix<double>& data);
@@ -355,9 +378,8 @@ class TransferFunction;
     void InitializeSparseGrid(const char * filename);
 
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
-    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
-    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
-#endif
+    double EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const;
+#endif //USE_SGPP
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -410,25 +432,29 @@ class TransferFunction;
     /** only for ROTATION to get OptimizationMaterial */
     ErsatzMaterial* em_;
 
-    enum Interpolation { C1, SGPP, FULL_BSPLINE } interpolation_;
+    Interpolation interpolation_;
     unsigned int level_;
 
 #ifdef USE_SGPP
     /** members for SGPP interpolation */
     enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
-    SGPP::base::DataVector alpha1_;
-    SGPP::base::DataVector alpha2_;
-    SGPP::base::DataVector alpha3_;
-    SGPP::base::DataVector alpha4_;
-    SGPP::base::DataVector alpha5_;
-    SGPP::base::DataVector alpha6_;
+    sgpp::base::DataVector alpha1_;
+    sgpp::base::DataVector alpha2_;
+    sgpp::base::DataVector alpha3_;
+    sgpp::base::DataVector alpha4_;
+    sgpp::base::DataVector alpha5_;
+    sgpp::base::DataVector alpha6_;
+    sgpp::base::DataVector alpha7_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;
     Matrix<double> full_bspline_coeff22_;
     Matrix<double> full_bspline_coeff23_;
     Matrix<double> full_bspline_coeff33_;
+    std::unique_ptr<sgpp::base::OperationEval> op_eval_;
+    std::unique_ptr<sgpp::base::OperationNaiveEval> op_naive_eval_;
+    std::unique_ptr<sgpp::base::OperationNaiveEvalPartialDerivative> op_naive_eval_partial_derivative_;
 #endif //USE_SGPP
   };
 

@@ -73,6 +73,7 @@ ObjectiveContainer::StoppingRule::StoppingRule()
   value = 1e-3;
   queue = 5;
   type_ = DESIGN_CHANGE;
+  max_hours = -1;
 }
 
 void ObjectiveContainer::StoppingRule::Init(PtrParamNode pn)
@@ -80,13 +81,15 @@ void ObjectiveContainer::StoppingRule::Init(PtrParamNode pn)
   if(pn == NULL) return;
 
   type_ = type.Parse(pn->Get("type")->As<std::string>());
-  value = pn->Get("value")->As<Double>();
-  queue = pn->Get("queue")->As<Integer>();
+  value = pn->Get("value")->As<double>();
+  queue = pn->Get("queue")->As<int>();
+  max_hours = pn->Get("maxHours")->MathParse<double>();
 }
 
 ObjectiveContainer::ObjectiveContainer()
 {
   last_design_ = -121354;
+  minimize_ = false; // set later
 }
 
 

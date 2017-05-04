@@ -85,7 +85,7 @@ namespace CoupledField
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        std::cerr << "Could not assign default signal action" << std::endl;
+        std::cerr << "Could not assign default signal action" << std::endl; // no exceptions in destructors!
         domain->GetInfoRoot()->ToFile();
         exit(-1);
       }
@@ -154,6 +154,14 @@ namespace CoupledField
     return true;
   }
 
+  unsigned int HarmonicDriver::GetNumFreq(PtrParamNode node)
+  {
+    if(node->Has("numFreq"))
+      return node->Get("numFreq")->As<unsigned int>();
+    else
+      return node->Get("frequencyList")->GetChildren().GetSize();
+  }
+
   bool HarmonicDriver::ReadParametrizedFrequencies()
   {
     // check for existence
@@ -216,12 +224,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      info_->Get(ParamNode::HEADER)->SetWarning("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        info_->Get(ParamNode::HEADER)->SetWarning("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }

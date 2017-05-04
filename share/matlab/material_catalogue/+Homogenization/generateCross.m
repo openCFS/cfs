@@ -1,4 +1,4 @@
-function [ file, volume ] = generateCross(point,filepath,nx)
+function [ file, volume, dimension ] = generateCross(point,filepath,nx)
 % GENERATECROSS  -  Generates a vertical cross.
 %
 % @param:
@@ -49,6 +49,8 @@ density = zeros(nx);
 s1 = round(point(1)*nx);
 s2 = round(point(2)*nx);
 
+dimension = 2;
+
 % To ensure periodic boundary conditions meshes are not allowed to have
 % one and only one void row or column (which would be located at the 
 % boundary). So if s1 or s2 would leave one and only one row or column
@@ -80,4 +82,4 @@ fullpath=pwd;
 cd(oldpath)
 filename = fullfile(fullpath,filename);
 
-file = Homogenization.matrixToMeshOrDensity(density,filename);
+file = Homogenization.matrixToMeshAndDensity(density,filename);

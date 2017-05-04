@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -21,6 +21,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -29,17 +30,21 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Context.hh"
 #include "Optimization/Excitation.hh"
+#include "Optimization/Context.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
+#include <iomanip>
 
 using namespace CoupledField;
 
 template <class TYPE> class Vector;
 
 using std::complex;
+using std::string;
+using boost::lexical_cast;
+
 // declare class specific logging stream
 DECLARE_LOG(designSpace)
 DEFINE_LOG(designSpace, "designSpace")
@@ -47,32 +52,41 @@ DEFINE_LOG(designSpace, "designSpace")
 DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
 
+
   method_ = method;
   pn_ = pn;
-  info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
-  context_ = context;
+  info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
+
+  write_gradient_timer_ = boost::shared_ptr<Timer>(new Timer("gradient_chain_rule", true)); // sub-timer
+  info_->Get("gradient_chain_rule/timer")->SetValue(write_gradient_timer_);
+
+  // make sure we have a context, even when we have no optimization
+  if(!Optimization::manager.IsInitialized())
+    Optimization::manager.Init();
+
   // for convenience
   regionIds_ = reg_data;
   design_id = 0;
   optimizer_ = NULL;
   designMaterial = NULL;
   applicationForm.SetName("DesignSpace::ApplicationForm");
-  applicationForm.Add(Optimization::ELEC, "linGradBDBInt");
-  applicationForm.Add(Optimization::MECH, "LinElastInt");
+  applicationForm.Add(App::ELEC, "linGradBDBInt");
+  applicationForm.Add(App::MECH, "LinElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
-  applicationForm.Add(Optimization::MECH, "MechStressStrain", false);
-  applicationForm.Add(Optimization::MECH, "PiezoStressStrain", false);
-  applicationForm.Add(Optimization::PIEZO_COUPLING, "linPiezoCoupling");
-  applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
-  applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
-  applicationForm.Add(Optimization::MASS, "MassInt");
+  applicationForm.Add(App::MECH, "MechStressStrain", false);
+  applicationForm.Add(App::MECH, "PiezoStressStrain", false);
+  applicationForm.Add(App::HEAT, "HeatConductivity", false);
+  applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
+  applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
+  applicationForm.Add(App::PRESSURE, "PressureLinForm");
+  applicationForm.Add(App::MASS, "MassInt");
   // acoustic and heat
-  applicationForm.Add(Optimization::LAPLACE, "LaplaceInt");
+  applicationForm.Add(App::LAPLACE, "LaplaceInt");
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
@@ -120,6 +134,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // tolerate non unique designs - e.g. for different regions
   }
 
+  is_cubic_ = all_regions_regular_ && design.GetSize() == Product(domain->GetGrid()->CalcRegulardGridDiscretization());
+
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
   if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
@@ -147,7 +163,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     for(unsigned int i = 0; i < tr_in.GetSize(); i++) {
       transform.Push_back(Transform(tr_in[i], this));
       transform.Last().index = i;
-      if(boost::lexical_cast<std::string>(i) != transform.Last().excitation_str)
+      if(lexical_cast<string>(i) != transform.Last().excitation_str)
         EXCEPTION("The " << (i+1) << ".transformation has excitation '" << transform.Last().excitation_str << "' but should have '" << i << "'");
     }
   }
@@ -229,8 +245,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
-            //if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
-            if(curr_design_pn->Get("fixed")->As<bool>())
+            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>()) // for load ersatz material only we have no default value from the schema!
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
@@ -239,7 +254,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.SetBiMaterial(design_bim);
             double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
-            TransferFunction* tf = GetTransferFunction(dt, Optimization::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
+            TransferFunction* tf = GetTransferFunction(dt, App::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
             double lower = DetermineLowerBound(curr_design_pn, tf);
 
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
@@ -247,21 +262,47 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.translate_design = lower;
             }
             bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
-            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+            double initial = -1;
 
-            if(!random && (initial < lower || initial > upper))
-              info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+            MathParser* mp = domain->GetMathParser();
+            MathParser::HandleType mHandle = -1;
+            std::string expr = curr_design_pn->Get("initial")->As<std::string>();
+            bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
+            if (initDependsOnSpace) {
+              mHandle = mp->GetNewHandle(true);
+              mp->SetExpr(mHandle,expr);
+              domain->GetGrid()->SetElementBarycenters(reg_data[r], true);
+            }
+            else
+              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper)) {
+              info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              if (initDependsOnSpace)
+                info_->Get(ParamNode::HEADER)->SetWarning("Set initial value for design " + DesignElement::type.ToString(dt) + " to next valid value");
+            }
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
+
+              if (initDependsOnSpace) {
+                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->extended->barycenter.GetCoordVector());
+                initial = mp->Eval(mHandle);
+                if (initial < lower || initial > upper) {
+                  if (initial < lower)
+                    initial = lower;
+                  if (initial > upper)
+                    initial = upper;
+                }
+              }
 
               de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT)
+              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT || method == ErsatzMaterial::SHAPE_MAP)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -369,18 +410,20 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   switch(method)
   {
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     return new ShapeDesign(reg_data, pn, method);
+  case ErsatzMaterial::SHAPE_MAP:
+    return new ShapeMapDesign(reg_data, pn, method);
   default:
-    if(pn->HasByVal("design", "name", "slack"))
-      return new AuxDesign(reg_data, pn, method, context, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
+    if(pn->HasByVal("design", "name", "slack") ||  pn->HasByVal("design", "name", "alpha"))
+      return new AuxDesign(reg_data, pn, method); // slack variable and eventually also alpha
     else
-      return new DesignSpace(reg_data, pn, method, context);
+      return new DesignSpace(reg_data, pn, method);
   }
 }
 
@@ -388,12 +431,17 @@ void DesignSpace::PostInit(int objectives, int constraints)
 {
   if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
-    if(domain->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
-      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silent
-      if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
-        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
-        PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-        in->SetValue("no transfer function 'mass' given for harmonic model");
+    assert(Optimization::manager.IsInitialized());
+    for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++)
+    {
+      Context& ctxt = Optimization::manager.context[i];
+      // FIXME there might be an multi sequence issue
+      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+        TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
+        if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
+          PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
+          in->SetValue("no transfer function 'mass' given for harmonic model");
+        }
       }
     }
   }
@@ -470,6 +518,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   }
   return added;
 }
+
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
@@ -483,7 +532,7 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::Syste
   designMaterial = new DesignMaterial(dm, material, design, em);
 }
 
-void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
+void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 {
   // set the result descriptions which identify the solution types
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
@@ -496,22 +545,72 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
-    if(!added)
-    {
-      std::ostringstream os;
-      os << "'optimization defines' '" << SolutionTypeEnum.ToString(rd.solutionType) << "' but no PDE references it in it's 'storeResults'";
-      WARN(os.str().c_str());
-    }
+    if(warn && !added)
+      info_->SetWarning("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
   }
 }
 
-  double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
+{
+  double dens = CalcAverageDensityAtNode(nodeId,false);
+  // with shape mapping density might be slightly larger one for tanh_sum or much larger with sum
+  assert(dens < 1.01);
+  dens = std::min(1.0, dens); // not very smooth but otherwise we open hell :(
+
+  if (derivative)
+    return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
+  else
+    return 4.0 *  dens * (1.0 - dens);
+}
+
+double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
+{
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
+  double tmp = 0;
+  int found = 0;
+  double lower = 0.0;
+  //FIXME Assume design elements are all of the same type and application is HEAT
+  TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
+  lower = tf->Transform(data[0].GetLowerBound());
+  double den = 1.0 / (1.0 - lower);
+
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    // s_i = 1/N_i \sum_{e \in N_i} [(rho_e - rho_min) / (1 - rho_min)]
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+      DesignElement& de = data[design_index];
+
+      tmp += (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+      found++;
+
+      LOG_DBG3(designSpace) << "EIF el="  << elems[index]->elemNum << " f=" << (de.GetPhysicalDesign(domain->GetOptimization()->context) - lower) * den;
+    }
+  }
+
+  if(found == 0)
+    EXCEPTION("CADAN: Node has no neighbor elements!!")
+
+  if (derivative) {
+    return 1.0 / (double) found * den;
+  }
+  else
+    return tmp / (double) found;
+}
+
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
-  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+//  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+  // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
-  if(shopt->ptrLS_ == NULL) return 0.0;
-  assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  if (shopt != NULL) {
+    if (shopt->ptrLS_ == NULL)
+      return 0.0;
+    else
+      assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  }
 
   switch(vs)
   {
@@ -533,6 +632,10 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 4);
   case DesignElement::LEVEL_SET_GRAD_ZN:
     return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
+  case DesignElement::TEMP_AT_INTERFACE:
+    return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcTempAtInterface(nodeNumber);
   default:
     EXCEPTION("case not implemented")
   }
@@ -550,7 +653,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + "_"
                    + DesignElement::access.ToString(rd.access)
-                   + (rd.excitation >= 0 ? ("_ex_" + boost::lexical_cast<std::string>(rd.excitation)) : "");
+                   + (rd.excitation >= 0 ? ("_ex_" + lexical_cast<string>(rd.excitation)) : "");
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
@@ -568,6 +671,8 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   case DesignElement::LEVEL_SET_GRAD_YN:
   case DesignElement::LEVEL_SET_GRAD_ZP:
   case DesignElement::LEVEL_SET_GRAD_ZN:
+  case DesignElement::HEAT_NODAL_TRACK_VAL:
+  case DesignElement::TEMP_AT_INTERFACE:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:
@@ -586,7 +691,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     // two step check
     if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
     // second check
-    if(rd.excitation >= 0 && boost::lexical_cast<std::string>(rd.excitation) != excitation) continue;
+    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation) continue;
     // we are right.
     switch(rd.solutionType)
     {
@@ -661,18 +766,35 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   */
 
-
-
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) {
-    // easy to extend to piezo and other stuff!
-    // FIXME -> see DesignMaterial::GetMechTensor()
+  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  {
+    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1)
+    {
+      if (this->IsRegular())
+      {
+        /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
+        double dx = ptCoord_[0][0]-ptCoord_[0][1];
+        double dy = ptCoord_[1][0]-ptCoord_[1][1];
+        elemMatrix *= 0.25*dx*dy;*/
+        //elemMatrix *= 1.;
+      } else {
+        EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
+      }
+      //if (retMat.GetNumCols() > 0) {
+      //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+      //}
+      return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+    }
+    //if (retMat.GetNumCols() > 0) {
+    //  assert(TestTensorPosDef(retMat , lpm, coef->GetMaterialDerivative()));
+    //}
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
   double bimat_factor = -1.0;
 
-  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
@@ -689,7 +811,10 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   }
 
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString();
+  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
+  //if (retMat.GetNumCols() > 0) {
+  //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+  //}
   return true;
 }
 
@@ -715,7 +840,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   double bimat_factor = -1.0;
 
-  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetScalar(retScal, *lpm);
@@ -730,17 +855,50 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
     retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
   }
-
   LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " f=" << factor;
+  return true;
+}
+
+/** Performs the optimization for scalar material as for the mass
+ * @return true if it is a design  variable and retVec is set */
+template <class T>
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
+{
+  assert(Optimization::context->pde != NULL);
+  assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
+
+  coef->orgMat->GetVector(retVec, *lpm);
+
+  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
 
   return true;
 }
 
+template <class T>
+bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm, DesignElement::Type direction) {
+  Vector<Double> lp_w;
+  assert(retMat.GetNumRows() == retMat.GetNumCols());
+  lp_w.Resize(retMat.GetNumRows());
 
-double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial)
+  //lp_w.Init();
+  retMat.eigenvaluesWithLapack(lp_w);
+  if (direction == BaseDesignElement::NO_DERIVATIVE) {
+    for (unsigned int i = 0; i < lp_w.GetSize();i++) {
+      if (lp_w[i] < EPS) {
+        throw Exception("The material tensor of element '" + lexical_cast<string>(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
+
   double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
   // it is two
@@ -768,7 +926,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << (domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->index : -1)
+                       << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -786,7 +944,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   if(de == NULL)
     return false;
   // we use the physical design variable to match better
-  TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
+  TransferFunction* tf = GetTransferFunction(de->GetType(), App::MASS);
   double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
   // now the original mass matrix
   const Matrix<double>& mass = dynamic_cast<const Matrix<double>&>(mm.Mass(de->elem)); // FIXME might be complex!
@@ -808,9 +966,8 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
 
 */
 bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
-  // collect all parameters
   if(designMaterial != NULL){
-    designMaterial->GetErsatzElementMatrixMSFEM(t, direction);
+    designMaterial->GetErsatzElementMatrixMSFEM(t, elem, direction);
     return(true);
   }
   return(false);
@@ -841,7 +998,7 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
   if(tf == NULL && derivative != NULL)
     tf = GetTransferFunction(derivative);
   if(tf == NULL)
-    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, Optimization::MECH);
+    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, App::MECH);
 
   if(derivative != NULL)
   {
@@ -908,7 +1065,7 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
   return res;
 }
 
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, App::Type application, bool throw_exception, bool use_single)
 {
   //if(HasNonDensityDesignMaterial())
   //  return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
@@ -919,7 +1076,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
-    // it would be better to call CalcTrivialVolume() not unconditionally with app = MECH (fails for LBM)
+    // it would be better to call CalcTrivialVolume() not unconditionally with app = App::MECH (fails for App::LBM)
     if(transfer.GetSize() > 1 && tf->GetApplication() != application) // be only that sensitive when we have more than one transfer function
       continue;
     if(tf->GetDesign() == design)
@@ -930,15 +1087,16 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   if(designMaterial != NULL)
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization with no / not all TransferFunctions given
 
-  if(!throw_exception) return NULL;
-  else throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
-                        + "' in application '" + Optimization::application.ToString(application)
-                        + "' is not contained");
+  if(throw_exception)
+   throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
+                    + "' in application '" + Optimization::application.ToString(application) + "' is not contained");
+  return NULL;
 }
 
 DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
 {
   DesignElement* found = NULL;
+  Context* ctxt = Optimization::context;
 
   if(transform.IsEmpty() && trans == NULL)
     return fallback;
@@ -949,11 +1107,10 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   }
   else
   {
-    assert(!(context_ != NULL && context_->excitation->transform == NULL && transform.GetSize() > 1));
+    Excitation* excite = ctxt->GetExcitation();
+    assert(!(excite->transform == NULL && transform.GetSize() > 1));
 
-    Excitation* excite = context_->excitation;
-
-    if(context_ != NULL && context_->excitation->transform != NULL)
+    if(excite->transform != NULL)
     {
       found = excite->transform->FindSource(de);
       LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << excite->label << " a=" << excite->transform->ToString() << " -> " << DesignElement::ToString(found);
@@ -1144,7 +1301,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
   assert(f != NULL); // only constraints can have sparse Jacobians
   
-  unsigned int data_size = DesignSpace::GetNumberOfVariables();
+  unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 
   StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
 
@@ -1170,7 +1327,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
 
-  f->GetExcitation()->Apply(); // this take the proper gradient for robustness and transformation
+  f->GetExcitation()->Apply(); // this takes the proper gradient for robustness and transformation
 
   for(unsigned int des = 0; des < nd; des++)
   {
@@ -1185,7 +1342,6 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
-          //const DesignElement* de = ApplyTransformations(&data[s], true);
           LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, f);
           assert(out.InWindow(n));
           out[n++] = data[s].GetValue(vs, access, f) * scaling;
@@ -1218,20 +1374,22 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
   unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
-  for(unsigned int i = start; i < end; i++)
+
+  // speed up by repeating loops
+  switch(vs)
   {
-    DesignElement& de = data[i];
-    switch(vs)
-    {
-      case DesignElement::DESIGN:
-           de.SetDesign(0.0);
-           break;
-      case DesignElement::CONSTRAINT_GRADIENT:
-      case DesignElement::COST_GRADIENT:
-           de.Reset(vs);
-           break;
-      default: throw Exception("value specifier not handled");
-    }
+  case DesignElement::DESIGN:
+    for(unsigned int i = start; i < end; i++)
+      data[i].SetDesign(0.0);
+    break;
+  case DesignElement::CONSTRAINT_GRADIENT:
+  case DesignElement::COST_GRADIENT:
+    for(unsigned int i = start; i < end; i++)
+      data[i].Reset(vs);
+    break;
+  default:
+    if(end-start > 0)
+      throw Exception("value specifier not handled");
   }
 }
 
@@ -1245,7 +1403,8 @@ BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs, int mm_index)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);
-  if(idx == -1) return NULL; // an exception was already thrown if desired
+  if(idx == -1)
+    return NULL; // an exception was already thrown if desired
   // check for real design or pseudo design
   if(elemToDesign[elemNum].second == true)
   {
@@ -1272,45 +1431,16 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
         return &(pseudoDesigns_[i][idx]);
     }
   }
-  if(throw_exception) throw Exception("design type not in design or pseudo design region problem");
+  if(throw_exception)
+    throw Exception("design type not in design or pseudo design region problem");
   return NULL;
 }
 
-inline
-int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
+void DesignSpace::ToInfo(ErsatzMaterial* em)
 {
-  // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
-  int idx = elemToDesign[elemNum].first;
-  // reset pseudo designs when we don't look for them explicitly
-  if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
-    idx = -1;
-  if(idx == -1 && throw_exception)
-    EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
-  return idx;
-}
+  // em == null for the case we create this design space only for loading ersatz material within a simulation
+  PtrParamNode in = em != NULL ? info_ : domain->GetInfoRoot()->Get("loadErsatzMaterial");
 
-int DesignSpace::Find(const Elem* elem, bool throw_exception)
-{
-  // no extensions for pseudo designs implemented, yet!
-  if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
-  // we might have surface element and it is pointing to a design element
-  const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
-  // no chance, we are wrong
-  if(se == NULL) {
-    if(!throw_exception) return -1;
-    EXCEPTION("element " << elem->ToString() << " not in design regions" );
-  }
-  else
-    for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
-      if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
-        return Find(se->ptVolElems[i]->elemNum);
-
-  if(!throw_exception) return -1;
-  EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
-}
-
-void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
-{
   PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
     transfer[i].ToInfo(tf->Get("transferFunction", ParamNode::APPEND));
@@ -1334,7 +1464,7 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
     if(design[this->FindDesign(de.GetType())].relative_bound > 0.) {
       dv->Get("design", ParamNode::APPEND)->Get("relative_bound")->SetValue(design[this->FindDesign(de.GetType())].relative_bound);
     }
-    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false), em); // silent!
+    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), App::MECH, false), em); // silent!
   }
 
   in->Get("pamping")->SetValue(pamping_);
@@ -1346,6 +1476,7 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
       regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
 }
+
 std::string DesignSpace::ToString()
 {
   std::stringstream ss;
@@ -1507,7 +1638,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
-  Excitation* ex = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation : NULL;
+  Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
   {
@@ -1588,10 +1719,9 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
     }
   }
 
-  if(!throw_exception)
-    return NULL;
-  else
+  if(throw_exception)
     EXCEPTION("cannot find design region");
+  return NULL;
 }
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg)
@@ -1683,8 +1813,7 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialTy
     case MECH_STIFFNESS_TENSOR:
     {
       SinglePDE* mech = domain->GetSinglePDE("mechanic");
-
-      if(domain->GetDriver()->DoBlochModeEigenfrequency() || mech->HasComplexMatData(regionId))
+      if(Optimization::context->DoBloch() || mech->HasComplexMatData(regionId))
         bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::COMPLEX);
       else
         bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::REAL);
@@ -1710,27 +1839,30 @@ void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
   node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
 }
 
-void MultiMaterial::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void MultiMaterial::ToInfo(PtrParamNode in)
 {
-  assert(em != NULL);
   Matrix<double> E;
   BaseMaterial* bm = NULL;
 
-  switch(em->GetMaterial()->GetSystem())
+  SubTensorType stt = Optimization::context->pde->GetSubTensorType();
+
+  assert(!Optimization::context->DoMultiSequence());
+
+  switch(Optimization::context->mat->GetSystem())
   {
   case OptimizationMaterial::PIEZOCOUPLING:
     bm = GetMultiMaterial(ELECTROSTATIC);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(ELECTROSTATIC), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(ELECTROSTATIC), Global::REAL, stt);
     in->Get("electrostatic")->SetValue(E);
 
     bm = GetMultiMaterial(PIEZO);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(PIEZO), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(PIEZO), Global::REAL, stt);
     in->Get("piezo")->SetValue(E);
 
     // no break by intention
   case OptimizationMaterial::MECH:
     bm = GetMultiMaterial(MECHANIC);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(MECHANIC), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(MECHANIC), Global::REAL, stt);
     in->Get("mechanic")->SetValue(E);
     break;
 
@@ -1763,7 +1895,11 @@ template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<doub
 template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
 template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Vector<double>& retVEc, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+
 #endif

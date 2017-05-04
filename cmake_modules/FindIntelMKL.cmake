@@ -234,6 +234,7 @@ SET (MKL_POSSIBLE_PATHS
   ${MKL_ROOT_DIR}
   # Path the user may have specified as environment variable
   $ENV{MKL_ROOT_DIR}
+  $ENV{MKL_BASE}
   # Path which may have been given in a platform_defaults_*.cmake file 
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
@@ -252,6 +253,10 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/composer_xe_2015.2.164/mkl
   # path for mdmt
   /share/programs/intel-mkl/latest/mkl
+  # Paths on Lima
+  /apps/intel/ComposerXE2013/composer_xe_2013.5.192/mkl
+  # intel 2016 tools
+  /opt/intel/compilers_and_libraries/linux/mkl
  )
 
 #-------------------------------------------------------------------------------
@@ -266,7 +271,6 @@ FIND_FILE(MKL_ROOT_DIR
   NO_SYSTEM_ENVIRONMENT_PATH
   NO_CMAKE_SYSTEM_PATH
   )
-
 
 #-------------------------------------------------------------------------------
 # Replace include/mkl.h with nothing to get the MKL root dir.
@@ -320,37 +324,33 @@ ELSE(WIN32)
   #-----------------------------------------------------------------------------
   IF(CFS_ARCH STREQUAL "I386")
     SET(MKL_ARCH_ID "lib32")
-  ENDIF(CFS_ARCH STREQUAL "I386")
+  ENDIF()
 
   IF(CFS_ARCH STREQUAL "X86_64")
     SET(MKL_ARCH_ID "intel64")
-  ENDIF(CFS_ARCH STREQUAL "X86_64")
+  ENDIF()
 
   IF(CFS_ARCH STREQUAL "IA64")
     SET(MKL_ARCH_ID "lib64")
-  ENDIF(CFS_ARCH STREQUAL "IA64")
+  ENDIF()
 
   #-----------------------------------------------------------------------------
   # Specify compiler type for make file.
   #-----------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(MKL_COMPILER_ID "intel")
-  ELSE(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  ELSE()
     SET(MKL_COMPILER_ID "gnu")
-  ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") 
+  ENDIF() 
 
   #-----------------------------------------------------------------------------
   # We always want to link against the parallel version of MKL.
   #-----------------------------------------------------------------------------
-#  IF(USE_OPENMP)
-     IF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
-       SET(MKL_THREADING_ID "parallel")
-     ELSE(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
-       SET(MKL_THREADING_ID "omp")
-     ENDIF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
-#  ELSE(USE_OPENMP)
-#    SET(MKL_THREADING_ID "sequential")
-#  ENDIF(USE_OPENMP)  
+  IF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
+    SET(MKL_THREADING_ID "parallel")
+  ELSE()
+    SET(MKL_THREADING_ID "omp")
+  ENDIF()
 
   #-----------------------------------------------------------------------------
   # Make a directory for the test compile
@@ -425,11 +425,11 @@ ELSE(WIN32)
       COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
       USES_TERMINAL)
 
-  ELSE(RETVAL EQUAL 0)
+  ELSE()
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem. Script output was\n ${MKL_INFO}")
-  ENDIF(RETVAL EQUAL 0)
+  ENDIF()
   
 ENDIF(WIN32)
 # MESSAGE("MKL_ROOT_DIR ${MKL_ROOT_DIR}")
@@ -448,7 +448,7 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 MARK_AS_ADVANCED(MKL_OMP_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
-# TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+# TODO: fuer libmkl_intel_lp64.a libmkl_gf_lp64.a fuer gnu einsetzen.
 ELSE(NOT CMAKE_CROSSCOMPILING)
   IF(APPLE)
     # At the moment we just hard code the paths to MKL.    

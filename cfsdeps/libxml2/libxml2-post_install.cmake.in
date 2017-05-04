@@ -1,0 +1,12 @@
+# move the include directory include/libxml2/libxml to include/libxml
+FILE(COPY "@libxml2_install@/include/libxml2/libxml/" DESTINATION "@libxml2_install@/include/libxml/")
+FILE(COPY "@libxml2_install@/lib64/libxml2.a" DESTINATION "@libxml2_install@/lib64/@CFS_ARCH_STR@/")
+
+# remove the now empty libxml2 directory
+FILE(REMOVE_RECURSE "@libxml2_install@/include/libxml2")
+
+# we don't need the bin stuff
+FILE(REMOVE_RECURSE "@libxml2_install@/bin/")
+
+# we don't need the share stuff
+FILE(REMOVE_RECURSE "@libxml2_install@/share/")

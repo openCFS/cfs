@@ -1,5 +1,4 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ColoredConsole.hh"
 #include "General/defs.hh"
 #include "MatVec/Matrix.hh"
@@ -8,9 +7,11 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 
-
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
 #include <fstream>
 #include <string>
 
@@ -33,24 +34,42 @@ const string ParamNode::FAIL = "error";
  * "extern PtrParamNode param;" is in ParamNode.hh */
 
 
-ParamNode::ParamNode(ActionType defaultAction, NodeType type,
-                     bool allowFileOutput  ) :
+ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
   precision_(5), 
   name_("DD"), 
   type_(type),
   defaultAction_(defaultAction),
-  lastresultidx_(-1),
-  fileOutput_(allowFileOutput),
-  write_timer_(), 
-  write_counter_(0), 
-  reject_counter_(0)
+  lastresultidx_(-1)
+
 { }
 
 ParamNode::~ParamNode()
 {
-  // explicit delete is not needed anymore
+  if(rootNode) {
+    delete rootNode;
+    rootNode = NULL;
+  }
+
 }
-/************************************************************************
+
+PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& filename, ActionType defaultAction, bool lazy_write, bool add_counter)
+{
+  assert(defaultAction != DEFAULT);
+
+  PtrParamNode node = PtrParamNode(new ParamNode(defaultAction, ParamNode::ELEMENT));
+  node->SetName("cfsInfo");
+  node->rootNode = new RootNode();
+  node->rootNode->filename = filename;
+  #ifndef NDEBUG
+    node->rootNode->lazy_write = lazy_write;
+  #else
+    node->rootNode->lazy_write = false;
+  #endif
+  node->rootNode->add_counters = add_counter;
+  return node;
+}
+
+/*****************static PtrParamNode GenerateWriteNode(const string& root, const string& filename, bool lazy_write, bool add_counter);*******************************************************
  * S E T    M E T H O D S
  *************************************************************************/
 
@@ -59,9 +78,8 @@ void ParamNode::SetValue(const boost::any& value)
   this->value_ = value;
 
   // check for a valid string if it is a string
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
-
+//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos)); //FIXME second expression does not allow &lt; and &gt; but we might need this for MathParser
+//  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
   if(this->name_ == WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
@@ -115,6 +133,12 @@ void ParamNode::SetComment(const std::string& comment)
   newChild->parent_ = shared_from_this();
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
+}
+
+void ParamNode::SetWarning(const std::string& msg, bool append)
+{
+  PtrParamNode pn = Get(ParamNode::WARNING, append ? APPEND : DEFAULT);
+  pn->SetValue(msg);
 }
 
 void ParamNode::AddChildNode(PtrParamNode child)
@@ -204,7 +228,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
     const int chsize(children_.GetSize());
 
     // check if the last result is close to the currently requested node
-    // This is a harc-coded optimization coming from F. Wein
+    // This is a hard-coded optimization coming from F. Wein
     if (lastresultidx_ > 0 && lastresultidx_ < chsize)
     {
       if (children_[lastresultidx_]->name_ == myName)
@@ -347,7 +371,6 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,
             " but not also child " << child2 << " with value " << value2);
 }
 
-
 ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
@@ -469,36 +492,39 @@ AS_INTEGRAL(Double)
 AS_INTEGRAL(std::string)
 
 // special implementation for bool
-template<>\
- bool ParamNode::As<bool>() const
+template<>
+bool ParamNode::As<bool>() const
 {
-  bool retVal = false;
-  if (value_.type() == typeid(bool))
-  {
+  if(value_.type() == typeid(bool))
     return boost::any_cast<bool>(value_);
-  }
-  else
+
+  if(value_.type() == typeid(std::string))
   {
-    if (value_.type() == typeid(std::string))
-    {
-      std::string str = boost::any_cast<std::string>(value_);
-      if (str == "yes" || str == "true" || str == "on")
-        retVal = true;
-      if (str == "no" || str == "false" || str == "off")
-        retVal = false;
-    }
-    else
-    {
-      EXCEPTION("Could not convert node '" << name_ << "' to bool value");
-    }
+    std::string str = boost::any_cast<std::string>(value_);
+    if(str == "yes" || str == "true" || str == "on" || str == "enable" || str == "1")
+      return true;
+    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0")
+      return false;
+
+   EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");
   }
-  return retVal;
+  EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
+}
+
+boost::shared_ptr<Timer> ParamNode::AsTimer()
+{
+  if(value_.empty())
+    value_ = boost::shared_ptr<Timer>(new Timer());
+
+  if(value_.type() != typeid(boost::shared_ptr<Timer>))
+    EXCEPTION("param node " << name_ << " cannot be returned as timer");
+
+  return boost::any_cast<boost::shared_ptr<Timer> >(value_);
 }
 
 template<typename TYPE>
 const TYPE& ParamNode::AsConst() const
 {
-
   // first, try to directly use any_cast<Integer>
   try
   {
@@ -513,21 +539,20 @@ const TYPE& ParamNode::AsConst() const
 }
 
 template<typename TYPE>
-TYPE ParamNode::MathParse() const {
-  
-  
-  // obtain handle
-  MathParser * parser = domain->GetMathParser();
-  MathParser::HandleType handle = parser->GetNewHandle(false);
-  std::string expr = "";
-  if( value_.empty()) return TYPE();\
+TYPE ParamNode::MathParse() const
+{
+  if(value_.empty())
+    return TYPE();
 
-  if( value_.type() == typeid(std::string) ) {\
-    expr = boost::any_cast<std::string>(value_);\
-  } else {\
-    EXCEPTION("XML node '" << name_\
-              << "' can not be parsed, as it is no string type.");
-  }
+  // obtain handle
+  MathParser* parser = domain->GetMathParser();
+  MathParser::HandleType handle = parser->GetNewHandle(false);
+
+  std::string expr = "";
+  if(value_.type() == typeid(std::string))
+    expr = boost::any_cast<std::string>(value_);
+  else
+    EXCEPTION("XML node '" << name_ << "' can not be parsed, as it is no string type.");
 
   // Set expression and evaluate
   parser->SetExpr(handle, expr);
@@ -824,7 +849,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if (value_.type() == typeid(boost::shared_ptr<Timer>))
+  if(value_.type() == typeid(boost::shared_ptr<Timer>))
   {
     boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
@@ -832,15 +857,20 @@ void ParamNode::ToString(std::string& ret, int depth) const
     return;
   }
 
-  if (value_.type() == typeid(StdVector<std::string>))
+  if(value_.type() == typeid(StdVector<std::string>))
   {
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
   }
 }
 
-void ParamNode::ToXML(std::ostream& os, int depth)
+void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
 {
+  // normally this does not need to be called!
+  if(adjust_element_type)
+    AdjustElementType(); // is recursively!
+
+  assert(name_ != "");
   // note, that this is an recursive method!
 
   std::string strValue;
@@ -978,55 +1008,56 @@ void ParamNode::ToXML(std::ostream& os, int depth)
 }
 
 void ParamNode::ToFile(const std::string& filename, bool force)
-{ 
-  // If ParamNode is silent, never write anything
-  if( ! fileOutput_)
+{
+  assert(rootNode != NULL || !filename.empty());
+
+  // silent mode, meant for dummy
+  if(rootNode != NULL && rootNode->filename.empty())
     return;
   
-  // determine correct filename (if not given)
-  std::string myFileName;
-  if (!filename.empty())
+  std::string myFileName = !filename.empty() ? filename : rootNode->filename;
+
+  if(rootNode != NULL)
   {
-    myFileName = filename;
-  }
-  else
-  {
-    if(write_timer_ == NULL)
-      write_timer_ = boost::shared_ptr<Timer>(new Timer());
-    
-    write_timer_->Start();
-    
     // only really write the file if at least a certain amount of time has passed since last write
-    // or if forced
-    if(!force && write_timer_->GetWallTime() < 2.0)
+    // or if forced. Write always in the debug mode
+    if(rootNode->lazy_write && !force && rootNode->write_timer->IsRunning() && rootNode->write_timer->GetWallTime() < 2.0)
     {
-      ++reject_counter_;
+      rootNode->reject_counter++;
       return;
     }
 
-    write_timer_->ResetStart();    
-    ++write_counter_;
-    
-    myFileName = progOpts->GetSimName() + ".info.xml";
+    // we will write in some microseconds
+    rootNode->write_timer->ResetStart();
+    rootNode->write_counter++;
   }
-  // write preamble
 
-  std::ofstream info_file(myFileName.c_str());
-  info_file << "<?xml version=\"1.0\"?>" << std::endl;
-  
+  bool compress = ends_with(myFileName, ".gz");
+
+  // a little complicated by transparent for encoding
+  ofstream file(myFileName.c_str(), ios_base::out);
+  boost::iostreams::filtering_ostream out;
+  if(compress)
+    out.push(boost::iostreams::gzip_compressor()); // gzip might not compress as good as bzip2 but is ways faster!
+  out.push(file);
+
+  // write preamble
+  out << "<?xml version=\"1.0\"?>" << std::endl;
+
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
   //    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
   // just for info.xml put write counter to info.xml
-  Get("infoWriteCounter")->SetValue(write_counter_);
-  Get("infoRejectCounter")->SetValue(reject_counter_);
+  if(rootNode != NULL && rootNode->add_counters) {
+    Get("infoWriteCounter")->SetValue(rootNode->write_counter);
+    Get("infoRejectCounter")->SetValue(rootNode->reject_counter);
+  }
 
   // First we determine the type of nodes
   AdjustElementType();
 
   // Then we print the tree
-  ToXML(info_file);
-  info_file.close();
+  ToXML(out);
 }
 
 void ParamNode::Dump(int level) const
@@ -1172,6 +1203,20 @@ inline std::string ParamNode::ToValidLabel(std::string out) const
   boost::erase_all(out, ")");
   // don't touch the slash '/', it is a 'xpath' element
   return out;
+}
+
+ParamNode::RootNode::RootNode()
+{
+  write_timer = new Timer();
+}
+
+
+ParamNode::RootNode::~RootNode()
+{
+  if(write_timer != NULL) {
+    delete write_timer;
+    write_timer = NULL;
+  }
 }
 
 // ========================================================================
