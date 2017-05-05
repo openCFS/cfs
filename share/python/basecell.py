@@ -4,7 +4,7 @@ import mesh_tool
 import cfs_utils
 import argparse
 import draw_profile_functions
-from draw_profile_functions import generate_basecell
+from draw_profile_functions import generate_basecell, add_triangle
 import numpy as np
 import matviz_rot
 from matviz_vtk import *
@@ -25,9 +25,8 @@ def visualize_structure(array,show,save):
   # create vtk cells and points
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
-  
 #   count = 0
-  
+
   res, res, res = array.shape
   
   h = 1.0 / res
@@ -53,14 +52,89 @@ def visualize_structure(array,show,save):
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
   polydata.SetPolys(cells)
-
-#   print count," surface elements"
   
   if save:
     show_write_vtk(polydata,1000,save)
   if show: 
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
+    
+def extract_cell_centers(array,vtk_points):
+  center_ids = np.ones(array.shape[0:3],dtype=int) * (-1)
+  
+  res = array.shape[0]
+  h = 1.0/res
+  count = 0
+  for i in range(0,res):
+    for j in range(0,res):
+      for k in range(0,res):
+        x = i * h + h / 2.0
+        y = j * h + h / 2.0 
+        z = k * h + h / 2.0
+        
+        # detect cell on surface
+        if array[i,j,k] >= 0: # this is a valid cell
+          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
+            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+              center_ids[i,j,k] = vtk_points.InsertNextPoint((x,y,z))
+              count +=1
+          else: # cells on the boundary
+            center_ids[i,j,k] =  vtk_points.InsertNextPoint((x,y,z))
+            count +=1
+            
+  return center_ids    
+         
+def connect_cell_centers_to_triangles(center_ids,vtk_cell_centers):
+  cells = vtk.vtkCellArray()
+  polydata = vtk.vtkPolyData()
+  
+  #validate_triangle(center_ids,(i,j,k),(i,j,k),(i,j,k), cells)
+  
+  res = center_ids.shape[0]
+  h = 1.0/center_ids.shape[0]
+  for i in range(0,res):
+    for j in range(0,res):
+      for k in range(0,res):
+        if center_ids[i,j,k] > -1: # a valid cell
+          # x-y plane
+          validate_triangle(center_ids,(i,j,k),(i+1,j,k),(i+1,j+1,k),cells)
+          validate_triangle(center_ids,(i,j,k),(i+1,j+1,k),(i,j+1,k), cells)
+          # x-z plane
+          validate_triangle(center_ids,(i,j,k),(i+1,j,k),(i+1,j,k+1), cells)
+          validate_triangle(center_ids,(i,j,k),(i+1,j,k+1),(i,j,k+1), cells)
+          # y-z plane
+          validate_triangle(center_ids,(i,j,k),(i,j+1,k),(i,j+1,k+1), cells)
+          validate_triangle(center_ids,(i,j,k),(i,j+1,k+1),(i,j,k+1), cells)
+              
+  polydata.SetPoints(vtk_cell_centers)
+  polydata.SetPolys(cells)              
+  show_write_vtk(polydata,1000,"voxels_triangles.vtp")  
+
+# @param ids: 3d numpy array that stores vtk point id
+# @param vert1/2/3: tuples with grid coordinates
+# check if all three vertices are surface points and add them to vtk cells list
+# assume vert1 is already approved as surface point 
+def validate_triangle(ids,vert1,vert2,vert3,cells):
+  res_i, res_j, res_k = ids.shape
+  
+  # check if given grid coords are within array bounds
+  if not (vert1[0] >= 0 and vert1[0] < res_i and vert2[0] >= 0 and vert2[0] < res_i and vert3[0] >= 0 and vert3[0] < res_i):
+    return
+  if not (vert1[1] >= 0 and vert1[1] < res_j and vert2[1] >= 0 and vert2[1] < res_j and vert3[1] >= 0 and vert3[1] < res_j):
+    return
+  if not (vert1[2] >= 0 and vert1[2] < res_k and vert2[2] >= 0 and vert2[2] < res_k and vert3[2] >= 0 and vert3[2] < res_k):
+    return 
+  
+  id1 = ids[vert1[0],vert1[1],vert1[2]]
+  id2 = ids[vert2[0],vert2[1],vert2[2]]
+  id3 = ids[vert3[0],vert3[1],vert3[2]]
+  if ids[vert2[0],vert2[1],vert2[2]] > -1 and ids[vert3[0],vert3[1],vert3[2]] > -1:
+    add_triangle(id1, id2, id3, cells) 
+    
+def define_vtk_line(cells,id1,id2):
+  cells.InsertNextCell(2) # specify number of following nodes
+  cells.InsertCellPoint(id1)
+  cells.InsertCellPoint(id2)
   
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
@@ -117,6 +191,10 @@ def create_mesh_with_profiles(args,infoXml,log):
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
   array = generate_basecell(args,infoXml,log)
+  
+  vtk_cell_centers = vtk.vtkPoints()
+  center_ids = extract_cell_centers(array,vtk_cell_centers)
+  connect_cell_centers_to_triangles(center_ids,vtk_cell_centers)
   
   if args.target.startswith("volume"):
     assert(array is not None)

@@ -1100,12 +1100,13 @@ def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
   return end_nodes, end_nodes_tris
 
 def add_triangle(id1,id2,id3,cells):
+  assert(id1 != id2 and id2 != id3)
   tri = vtk.vtkTriangle()
   tri.GetPointIds().SetId(0, id1)
   tri.GetPointIds().SetId(1, id2)
   tri.GetPointIds().SetId(2, id3)
   cells.InsertNextCell(tri)
-
+  
 # calc distance between two points
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
@@ -1253,7 +1254,6 @@ def generate_basecell(args,info,log):
           polygon = vtk.vtkPolyData()
           
           points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,points,lines)
-          
           polygon.SetPoints(points)
           polygon.SetLines(lines)
           show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
