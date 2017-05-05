@@ -1,6 +1,6 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest -S <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
@@ -8,66 +8,31 @@
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-shared_opt")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-shared_opt")
 
-# Set source and binary directories on the machine
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-shared_opt")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-shared_opt")
+include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
-# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
-INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
 
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/gcc")
-SET(ENV{CXX} "/usr/bin/g++")
-SET(ENV{FC} "/usr/bin/gfortran")
-SET(ENV{LC_MESSAGES} "C")
-SET(ENV{LC_ALL} "C")
-SET(ENV{LANG} "C")
-SET(ENV{LANGUAGE} "C")
+IDENTIFY_DISTRO()
+# empty binary directory
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
-# Compiler identification can be simplified by just letting cmake do the job.
-# Note that the identification is done again within the real cfs build
-SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
-SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-# Let's first find out some infos about the system GNU compiler first.
-SET(COMPILER "$ENV{CXX}")
-SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
-
-# create build/tmp directory
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
-
-# read ID_CXX 
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-# determine OS and revision
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
-  ARGS
-  OUTPUT_VARIABLE DISTRO_OUT
-  RETURN_VALUE RETVAL)
-
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
-INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
-
+# set the compiler environment
+SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "Shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+set(CTEST_SITE "${HOSTNAME}") 
 
-# redundant to site_specific_init
-SET(CTEST_SITE "eamc080")
-SET(CTEST_BUILD_NAME "${BUILDNAME}")
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
 
-# Start out with an empty binary directory.
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
-
+#-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
-# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure run.
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
+#-----------------------------------------------------------------------------
 INIT_CACHE(CTEST_INITIAL_CACHE)
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
@@ -79,17 +44,20 @@ SET(CTEST_INITIAL_CACHE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/deps.cache-shared_opt
    CFSDAT:BOOL=ON
    USE_PARDISO:BOOL=ON
-   USE_CGAL:BOOL=OFF
-   USE_CGNS:BOOL=OFF
+   USE_CGAL:BOOL=ON
+   USE_CGNS:BOOL=ON
    USE_CCMIO:BOOL=OFF
+   USE_FLANN:BOOL=OFF   
+   USE_ENSIGHT:BOOL=OFF
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
-   MKL_ROOT_DIR:PATH=/opt/intel/composer_xe_2011_sp1.8.273/mkl
-   BUILDNAME:STRING=${BUILDNAME}")
+   MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
 DO_TESTING()
