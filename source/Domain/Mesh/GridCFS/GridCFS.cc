@@ -2081,15 +2081,15 @@ namespace CoupledField {
       }
     }
     
-    uint count = 0;
+    UInt count = 0;
 #pragma omp parallel for reduction(+:count)
-    for (uint i = 1; i <= numNodes_;++i) {
+    for (UInt i = 1; i <= numNodes_;++i) {
       if (usedNode[i]) {
         count++;
       }
     }
     nodeList.Reserve(count);
-    for (uint i = 1; i <= numNodes_;++i) {
+    for (UInt i = 1; i <= numNodes_;++i) {
       if (usedNode[i]) {
         nodeList.Push_back(i);
       }

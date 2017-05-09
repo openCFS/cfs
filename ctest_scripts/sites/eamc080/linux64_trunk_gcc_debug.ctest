@@ -8,8 +8,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_gcc_debug")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-trunk")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/debug-trunk")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
@@ -36,14 +36,14 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/trunk_cfs-test
+   TESTSUITE_DIR:STRING=$ENV{HOME}/cfstest-trunk
    MATVIZ_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/trunk_cfsdepscache
-   CFSDAT:BOOL=OFF
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/deps.cache-trunk
+   CFSDAT:BOOL=ON
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=ON
-   USE_CGNS:BOOL=OFF
+   USE_CGNS:BOOL=ON
    USE_CCMIO:BOOL=OFF
    USE_FLANN:BOOL=OFF   
    USE_ENSIGHT:BOOL=OFF
@@ -53,7 +53,7 @@ SET(CTEST_INITIAL_CACHE
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
-   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
+   BUILDNAME:STRING=${BUILDNAME}")
 
 find_program(CTEST_SVN_COMMAND NAMES svn) 
 set(CTEST_UPDATE_TYPE "svn")
