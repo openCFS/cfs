@@ -21,10 +21,6 @@
 
 namespace CFSDat{
 
-/*********************************************************************************
- * BEFORE IMPLEMENTING PLEASE READ INFORMATION AT AdaptFilterResults() down below
- *********************************************************************************/
-
 //! Class which provides methods to compute the Lamb- and LighthillSource-vector as well as
 //! the whole LighthillSource-term
 class Lighthill : public AeroacousticBase{
@@ -33,15 +29,17 @@ class Lighthill : public AeroacousticBase{
   struct Matrix {
     CF::UInt numTargets;
     CF::UInt numSources;
-    StdVector<CF::UInt> targetSourceIndexNtE; // NtE...node to element
-    StdVector<CF::UInt> targetSourceIndexEtN; // EtN...element to node
+    StdVector< StdVector<CF::UInt> > targetSourceIndexNtE;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexDiv;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexGrad;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexCurl;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexEtN; // EtN...element to node
     StdVector<CF::UInt> targetSourceNtE;
     StdVector<CF::UInt> targetSourceEtN;
     StdVector< CF::Matrix<CF::Double> > targetSourceFactorDiv;
     StdVector< CF::Matrix<CF::Double> > targetSourceFactorGrad;
     StdVector< CF::Matrix<CF::Double> > targetSourceFactorCurl;
-    StdVector<CF::Double> targetSourceNNFactor;
-
+    StdVector< CF::Matrix<CF::Double> > targetSourceNNFactor;
   };
 
 
@@ -79,7 +77,7 @@ private:
   void LighthillSourceTerm(Vector<Double>& tempRetVec);
 
 
-  Grid* Grid_;
+  Grid* inGrid_;
 
   //! Entity map used for source values
   str1::shared_ptr<EqnMapSimple> scrMap_;
@@ -95,8 +93,8 @@ private:
 
   std::vector<QuantityStruct> derivData_;
 
-  //! Exponent for calculation of interpolation weight function.
-  Double p_;
+  //! Scaling of epsilon-parameter for RBF-basis function
+  Double epsScal_;
 
   //! index in the static matrices vector to use
   UInt matrixIndex_;

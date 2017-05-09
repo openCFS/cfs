@@ -12,7 +12,7 @@
   </xsd:annotation>
   
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
-  <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
+  <xsd:include schemaLocation="CFSDat_DiffScheme.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
   <xsd:include schemaLocation="CFSDat_DifferentiationType.xsd"/>
   
@@ -23,7 +23,7 @@
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
-          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="RBF_Settings" type="DT_DiffScheme" minOccurs="0"/>
           <xsd:element name="targetMesh">
             <xsd:complexType>
               <xsd:choice>
