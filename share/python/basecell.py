@@ -44,9 +44,9 @@ def visualize_structure(array,show,save):
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):
-        x = i * h + h / 2.0
-        y = j * h + h / 2.0 
-        z = k * h + h / 2.0
+        x = i * h + h/2.0
+        y = j * h + h/2.0 
+        z = k * h + h/2.0
         
         if array[i,j,k] >= 0:
           if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
@@ -91,115 +91,22 @@ def extract_cell_centers(array,vtk_points):
             count +=1
             
   return center_ids    
-         
-def connect_cell_centers_to_triangles(center_ids,vtk_cell_centers):
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
+
+def get_surface_voxels(array):
+  surface = np.ones(array.shape[0:3], dtype=int) * (-1)
+  res = array.shape[0]
   
-  #validate_triangle(center_ids,(i,j,k),(i,j,k),(i,j,k), cells)
-  
-  res = center_ids.shape[0]
   for i in range(0,res):
     for j in range(0,res):
       for k in range(0,res):
-        if center_ids[i,j,k] > -1: # a valid cell
-          
-          # x-y plane
-          if not validate_triangle(center_ids,(i,j,k),(i+1,j,k),(i+1,j+1,k),cells) and not validate_triangle(center_ids,(i,j,k),(i+1,j+1,k),(i,j+1,k), cells):
-            validate_triangle(center_ids,(i,j,k),(i+1,j,k),(i+1,j+1,k+1), cells)
-            validate_triangle(center_ids,(i,j,k),(i+1,j+1,k+1),(i,j+1,k+1), cells)
-          if center_ids[i-1,j,k] == -1 : # if we cannot create diagonal triangles   
-            # x-z plane
-            validate_triangle(center_ids,(i,j,k),(i+1,j,k),(i+1,j,k+1), cells)
-            validate_triangle(center_ids,(i,j,k),(i+1,j,k+1),(i,j,k+1), cells)
-          # y-z plane
-          validate_triangle(center_ids,(i,j,k),(i,j+1,k),(i,j+1,k+1), cells)
-          validate_triangle(center_ids,(i,j,k),(i,j+1,k+1),(i,j,k+1), cells)
-              
-  polydata.SetPoints(vtk_cell_centers)
-  polydata.SetPolys(cells)              
-  show_write_vtk(polydata,1000,"voxels_triangles.vtp")
+        if array[i,j,k] > -1:
+          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
+            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+              surface[i,j,k] = 0
+          else: # on the boundary of array
+            surface[i,j,k] = 0   
   
-def connect_cell_centers_to_quads(center_ids,vtk_cell_centers):
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
-  
-  #validate_triangle(center_ids,(i,j,k),(i,j,k),(i,j,k), cells)
-  
-  res = center_ids.shape[0]
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        if center_ids[i,j,k] > -1: # a valid cell
-          # x-y plane
-          if not validate_quad(center_ids, (i,j,k), (i+1,j,k), (i+1,j+1,k), (i,j+1,k), cells):
-            # diagonal quads
-            validate_quad(center_ids, (i,j,k), (i+1,j,k), (i+1,j+1,k+1), (i,j+1,k+1), cells)
-            validate_quad(center_ids, (i,j,k), (i+1,j,k), (i+1,j-1,k+1), (i,j-1,k+1), cells)
-          # x-z plane
-          if not validate_quad(center_ids, (i,j,k), (i+1,j,k), (i+1,j,k+1), (i,j,k+1), cells):
-            validate_quad(center_ids, (i,j,k), (i+1,j-1,k), (i+1,j,k+1), (i,j,k+1), cells)
-#             validate_quad(center_ids, (i,j,k), (i+1,j,k), (i+1,j-1,k+1), (i,j,k+1), cells)
-          # y-z plane
-          validate_quad(center_ids, (i,j,k), (i,j+1,k), (i,j+1,k+1), (i,j,k+1), cells)
-          
-  polydata.SetPoints(vtk_cell_centers)
-  polydata.SetPolys(cells)              
-  show_write_vtk(polydata,1000,"voxels_quads.vtp")      
-
-# @param ids: 3d numpy array that stores vtk point id
-# @param vert1/2/3: tuples with grid coordinates
-# check if all three vertices are surface points and add them to vtk cells list
-# assume vert1 is already approved as surface point
-# returns True if triangle was succesfully created 
-def validate_triangle(ids,vert1,vert2,vert3,cells):
-  res_i, res_j, res_k = ids.shape
-  
-  # check if given grid coords are within array bounds
-  if not (vert1[0] >= 0 and vert1[0] < res_i and vert2[0] >= 0 and vert2[0] < res_i and vert3[0] >= 0 and vert3[0] < res_i):
-    return False
-  if not (vert1[1] >= 0 and vert1[1] < res_j and vert2[1] >= 0 and vert2[1] < res_j and vert3[1] >= 0 and vert3[1] < res_j):
-    return False
-  if not (vert1[2] >= 0 and vert1[2] < res_k and vert2[2] >= 0 and vert2[2] < res_k and vert3[2] >= 0 and vert3[2] < res_k):
-    return False 
-  
-  id1 = ids[vert1[0],vert1[1],vert1[2]]
-  id2 = ids[vert2[0],vert2[1],vert2[2]]
-  id3 = ids[vert3[0],vert3[1],vert3[2]]
-  if ids[vert2[0],vert2[1],vert2[2]] > -1 and ids[vert3[0],vert3[1],vert3[2]] > -1:
-    add_triangle(id1, id2, id3, cells) 
-    return True
-  else:
-    return False
-  
-def validate_quad(ids,vert1,vert2,vert3,vert4,cells):
-  res_i, res_j, res_k = ids.shape
-  
-  # check if given grid coords are within array bounds
-  if not (vert1[0] >= 0 and vert1[0] < res_i and vert2[0] >= 0 and vert2[0] < res_i and vert3[0] >= 0 and vert3[0] < res_i and vert4[0] >= 0 and vert4[0] < res_i):
-    return False
-  if not (vert1[1] >= 0 and vert1[1] < res_j and vert2[1] >= 0 and vert2[1] < res_j and vert3[1] >= 0 and vert3[1] < res_j and vert4[1] >= 0 and vert4[1] < res_j):
-    return False
-  if not (vert1[2] >= 0 and vert1[2] < res_k and vert2[2] >= 0 and vert2[2] < res_k and vert3[2] >= 0 and vert3[2] < res_k and vert4[2] >= 0 and vert4[2] < res_k):
-    return False 
-  
-  id1 = ids[vert1[0],vert1[1],vert1[2]]
-  id2 = ids[vert2[0],vert2[1],vert2[2]]
-  id3 = ids[vert3[0],vert3[1],vert3[2]]
-  id4 = ids[vert4[0],vert4[1],vert4[2]]
-  if ids[vert2[0],vert2[1],vert2[2]] > -1 and ids[vert3[0],vert3[1],vert3[2]] > -1 and ids[vert4[0],vert4[1],vert4[2]] > -1:
-    add_vtk_quad(id1, id2, id3, id4, cells) 
-    return True
-  else:
-    return False  
-
-def add_vtk_quad(id1,id2,id3,id4,cells):  
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0,id1)
-  quad.GetPointIds().SetId(1,id2)
-  quad.GetPointIds().SetId(2,id3)
-  quad.GetPointIds().SetId(3,id4)
-  cells.InsertNextCell(quad)
+  return surface   
   
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
@@ -227,6 +134,13 @@ def calc_radius(stiff):
   
 #   print val/2.0  
   return val 
+
+def add_ghost_layer(array):
+  res = array.shape[0] + 1
+  new_array = np.ones((res+1,res+1,res+1),dtype=int) * (-1)
+  new_array[1:res,1:res,1:res] = array
+  
+  return new_array
 
 # def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args,infoXml,log):
@@ -257,46 +171,43 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   array = generate_basecell(args,infoXml,log)
   
+  # same as array, but only voxels on the boundary are > -1 (or 0)
+  surface_voxels = get_surface_voxels(array)
+  print("points on boundary:",sum(surface_voxels == 0))
+  count = 0 
+  # set voxels on boundary wit value 0 
+  # set voxels inside structure with value 1
+  # voxels outside structure have value -1
   for i in range(0,args.res):
     for j in range(0,args.res):
       for k in range(0,args.res):
-        if array[i,j,k] > -1:
+        if array[i,j,k] > -1: # valid voxel
           array[i,j,k] = 1
-    
-  print(np.amax(array),np.amin(array))
+  
+#   array = add_ghost_layer(array)        
+  
   # Use marching cubes to obtain the surface mesh of voxelized structure
-  verts, faces, normals, values = measure.marching_cubes(array,level=0.0,spacing=(1.0/args.res,1.0/args.res,1.0/args.res))
+  h = 1.0/args.res
+  verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h))
   
   new_points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
   for v in verts:
-    new_points.InsertNextPoint(v)
+    new_points.InsertNextPoint(v+(h/2.0,h/2.0,h/2.0))
   for f in faces:
-    add_triangle(f[0], f[1], f[2], cells)  
-   
+    add_triangle(f[0], f[1], f[2], cells)
+    
   polydata.SetPoints(new_points)
-  polydata.SetPolys(cells)              
-  show_write_vtk(polydata,1000,"voxels_quads.vtp")
+  polydata.SetPolys(cells)
+  show_write_vtk(polydata,1000,"voxels_surface.vtp")
   
-  sys.exit() 
-#     print(v)
-#   # Display resulting triangular mesh using Matplotlib. This can also be done
-#   # with mayavi (see skimage.measure.marching_cubes docstring).
-#   fig = plt.figure(figsize=(9,15))
-#   ax = fig.add_subplot(111, projection='3d')
-#   
-#   # Fancy indexing: `verts[faces]` to generate a collection of triangles
-#   mesh = Poly3DCollection(verts[faces])
-#   mesh.set_edgecolor('k')
-#   ax.add_collection3d(mesh)
-# #   plt.tight_layout()
-#   plt.show()
-  
+  # cell centers
   vtk_cell_centers = vtk.vtkPoints()
   center_ids = extract_cell_centers(array,vtk_cell_centers)
-#   connect_cell_centers_to_triangles(center_ids,vtk_cell_centers)
-  connect_cell_centers_to_quads(center_ids,vtk_cell_centers)
+  polydata = vtk.vtkPolyData() 
+  polydata.SetPoints(vtk_cell_centers)
+  show_write_vtk(polydata,1000,"cell_centers.vtp")
   
   if args.target.startswith("volume"):
     assert(array is not None)
