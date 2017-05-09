@@ -322,6 +322,7 @@ void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVect
   //ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND); // for an iterative solve each solution should be interesting
 
+  // this is only the solver time, in some rare cases the preconditioner can be much more expensive
   double lastTime = 0.0;
   lis_solver_get_time(solver_,&lastTime);
   curr->Get("timing")->SetValue(lastTime);
