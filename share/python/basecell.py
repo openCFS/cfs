@@ -14,8 +14,6 @@ from draw_profile_functions import generate_basecell, add_triangle
 import numpy as np
 import matviz_rot
 from matviz_vtk import *
-from skimage import measure
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def calc_volume(array,infoXml):
   res, res, res = array.shape
@@ -57,9 +55,17 @@ def visualize_structure(array,show,save):
   
   create_centered_bars(cells,points,centers,[h,h,h])
   
+  vtkData = vtk.vtkFloatArray()
+  vtkData.SetName("order")
+  vtkData.SetNumberOfValues(points.GetNumberOfPoints())
+  
+  for i in range(0,points.GetNumberOfPoints()):
+    vtkData.SetValue(i, i)
+  
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
   polydata.SetPolys(cells)
+  polydata.GetPointData().SetScalars(vtkData)
   
   if save:
     show_write_vtk(polydata,1000,save)
@@ -67,47 +73,6 @@ def visualize_structure(array,show,save):
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
     
-def extract_cell_centers(array,vtk_points):
-  center_ids = np.ones(array.shape[0:3],dtype=int) * (-1)
-  
-  res = array.shape[0]
-  h = 1.0/res
-  count = 0
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        x = i * h + h / 2.0
-        y = j * h + h / 2.0 
-        z = k * h + h / 2.0
-        
-        # detect cell on surface
-        if array[i,j,k] >= 0: # this is a valid cell
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              center_ids[i,j,k] = vtk_points.InsertNextPoint((x,y,z))
-              count +=1
-          else: # cells on the boundary
-            center_ids[i,j,k] =  vtk_points.InsertNextPoint((x,y,z))
-            count +=1
-            
-  return center_ids    
-
-def get_surface_voxels(array):
-  surface = np.ones(array.shape[0:3], dtype=int) * (-1)
-  res = array.shape[0]
-  
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        if array[i,j,k] > -1:
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              surface[i,j,k] = 0
-          else: # on the boundary of array
-            surface[i,j,k] = 0   
-  
-  return surface   
-  
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
   # area F = circle area - 4*circle segment (outside of bounding box)
@@ -170,44 +135,6 @@ def create_mesh_with_profiles(args,infoXml,log):
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
   array = generate_basecell(args,infoXml,log)
-  
-  # same as array, but only voxels on the boundary are > -1 (or 0)
-  surface_voxels = get_surface_voxels(array)
-  print("points on boundary:",sum(surface_voxels == 0))
-  count = 0 
-  # set voxels on boundary wit value 0 
-  # set voxels inside structure with value 1
-  # voxels outside structure have value -1
-  for i in range(0,args.res):
-    for j in range(0,args.res):
-      for k in range(0,args.res):
-        if array[i,j,k] > -1: # valid voxel
-          array[i,j,k] = 1
-  
-#   array = add_ghost_layer(array)        
-  
-  # Use marching cubes to obtain the surface mesh of voxelized structure
-  h = 1.0/args.res
-  verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h))
-  
-  new_points = vtk.vtkPoints()
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
-  for v in verts:
-    new_points.InsertNextPoint(v+(h/2.0,h/2.0,h/2.0))
-  for f in faces:
-    add_triangle(f[0], f[1], f[2], cells)
-    
-  polydata.SetPoints(new_points)
-  polydata.SetPolys(cells)
-  show_write_vtk(polydata,1000,"voxels_surface.vtp")
-  
-  # cell centers
-  vtk_cell_centers = vtk.vtkPoints()
-  center_ids = extract_cell_centers(array,vtk_cell_centers)
-  polydata = vtk.vtkPolyData() 
-  polydata.SetPoints(vtk_cell_centers)
-  show_write_vtk(polydata,1000,"cell_centers.vtp")
   
   if args.target.startswith("volume"):
     assert(array is not None)
