@@ -55,17 +55,9 @@ def visualize_structure(array,show,save):
   
   create_centered_bars(cells,points,centers,[h,h,h])
   
-  vtkData = vtk.vtkFloatArray()
-  vtkData.SetName("order")
-  vtkData.SetNumberOfValues(points.GetNumberOfPoints())
-  
-  for i in range(0,points.GetNumberOfPoints()):
-    vtkData.SetValue(i, i)
-  
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
   polydata.SetPolys(cells)
-  polydata.GetPointData().SetScalars(vtkData)
   
   if save:
     show_write_vtk(polydata,1000,save)
