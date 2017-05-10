@@ -202,6 +202,27 @@
       </piezoCouplingTensor>
     </piezo>
   </material>
+  
+  <material name="Chromium">
+    <!-- Data from:
+    [1] https://en.wikipedia.org/wiki/Chromium
+    [2] http://www.matweb.com/
+    [3] Marx, V. M.; Toth, F.; Wiesinger, A.; Berger, J.; Kirchlechner, C.; Cordill, M. J.; Fischer, F. D.; Rammerstorfer, F. G. & Dehm, G.;
+        The influence of a brittle Cr interlayer on the deformation behavior of thin Cu films on flexible substrates: Experiment and model;
+        Acta Materialia, Elsevier BV, 2015, 89, 278-289
+    -->
+    <mechanical>
+      <density>7190.0</density> <!-- [1,2] -->
+      <elasticity>
+        <isotropic> <!-- [3] -->
+          <real>
+            <elasticityModulus>279.0e+9</elasticityModulus>
+            <poissonNumber>0.21</poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+    </mechanical>
+  </material>
 
   <material name="Copper">
     <mechanical>
@@ -833,13 +854,76 @@
         <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 170.3559e+000 0.0000e-003 0.0000e-003
           0.0000e-003 0.0000e-003 170.3559e+000 0.0000e-003 0.0000e-003 -6.6210e+000 -6.6210e+000
           23.2190e+000 0.0000e-003 0.0000e-003 0.0000e-003
-          <!-- this is the e tensor	
+          <!-- this is the d tensor	
           0.000E+00   0.000E+00   0.000E+00   0.000E+00   7.410E-10   0.000E+00
           0.000E+00   0.000E+00   0.000E+00   7.410E-10   0.000E+00   0.000E+00
           -2.740E-10   -2.740E-10   5.930E-10   0.000E+00   0.000E+00   0.000E+00-->
         </real>
       </piezoCouplingTensor>
     </piezo>
+  </material>
+  
+  <material name="AlN">
+    <!-- aluminium nitride      
+    Data from the following references:
+    [1] Schneider, M.; Bittner, A. & Schmid, U. Improved piezoelectric constants of sputtered aluminium nitride thin films by pre-conditioning of the silicon surface;
+        Journal of Physics D: Applied Physics, IOP Publishing, 2015, 48, 40530
+    [2] McNeil, L. E.; Grimsditch, M. & French, R. H. Vibrational Spectroscopy of Aluminum Nitride;
+        Journal of the American Ceramic Society, Wiley-Blackwell, 1993, 76, 1132-1136
+    -->
+    <mechanical>
+      <density>3300.0</density><!-- [1] -->
+      <elasticity> <!-- [2] -->
+        <tensor dim1="6">
+          <real> 4.105e+11  1.485e+11  9.890e+10  0.000e+00  0.000e+00  0.000e+00
+                 1.485e+11  4.105e+11  9.890e+10  0.000e+00  0.000e+00  0.000e+00
+                 9.890e+10  9.890e+10  3.885e+11  0.000e+00  0.000e+00  0.000e+00
+                 0.000e+00  0.000e+00  0.000e+00  1.246e+11  0.000e+00  0.000e+00
+                 0.000e+00  0.000e+00  0.000e+00  0.000e+00  1.246e+11  0.000e+00
+                 0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00  1.310e+11
+          </real> 
+        </tensor>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <permittivity><!-- [1] -->
+        <tensor dim1="3">
+          <real> 8.153e-11  0.000e+00  0.000e+00
+                 0.000e+00  8.153e-11  0.000e+00
+                 0.000e+00  0.000e+00  9.082e-11            
+          </real>
+        </tensor>
+      </permittivity>
+    </electric>
+    <piezo><!-- [1] -->
+      <piezoCouplingTensor dim1="3" dim2="6">
+        <real>  0.000e+00  0.000e+00  0.000e+00  0.000e+00 -3.840e-12  0.000e+00
+                0.000e+00  0.000e+00  0.000e+00 -3.840e-12  0.000e+00  0.000e+00
+               -1.580e-12 -1.580e-12  4.000e-12  0.000e+00  0.000e+00  0.000e+00        
+        </real>
+      </piezoCouplingTensor>
+    </piezo>
+  </material>
+  
+  <material name="Silicon_Orthotropic">
+    <!-- Data from the following references:
+    [1] Hopcroft, M. A.; Nix, W. D. & Kenny, T. W. What is the Young's Modulus of Silicon?
+        Journal of Microelectromechanical Systems, Institute of Electrical and Electronics Engineers (IEEE), 2010, 19, 229-238
+    -->
+    <mechanical>
+      <density>2330.0</density> <!-- [1] -->
+      <elasticity>
+        <tensor dim1="6"> <!-- [1] the 1 and 2-directions of the tensor are in the <110> crystal plane -->
+          <real>194.5e+9  35.7e+9  64.1e+9     0.0     0.0     0.0
+                 35.7e+9 194.5e+9  64.1e+9     0.0     0.0     0.0 
+                 64.1e+9  64.1e+9 165.7e+9     0.0     0.0     0.0
+                     0.0      0.0      0.0 79.6e+9     0.0     0.0
+                     0.0      0.0      0.0     0.0 79.6e+9     0.0
+                     0.0      0.0      0.0     0.0     0.0 50.9e+9 
+          </real>
+        </tensor>
+      </elasticity>
+    </mechanical>
   </material>
 
   <material name="Silicon">
