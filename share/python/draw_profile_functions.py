@@ -370,6 +370,7 @@ def point_inside_profile(p,profile):
 #   print("radii:",r,val)
   assert(val**2 <= 0.5+1e-6)
   if (val - r < 1e-6):
+    print("point ",p, " inside ", profile.direction)
     return True
   
   return False
@@ -1124,6 +1125,7 @@ def generate_basecell(args,info,log):
   infoXml = info
   
   array = np.ones((res,res,res)) * (-1)
+  overlap = np.zeros(array.shape[0:3],dtype=object)
   vec = None
   t = np.linspace(0, 1.0, args.res)
   
@@ -1248,7 +1250,8 @@ def generate_basecell(args,info,log):
         # if basecell is symmetric, calculate only 1/8 and mirror the rest
         symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
         symmetric = False
-        write_profile_to_array(array, profiles[i], i)
+        # overlap: same size as array; elem has value 1 if overlap of profiles, else 0
+        write_profile_to_array(array, profiles[i], overlap)
         
       if args.target == "3dlines":
         if args.save_vtp: #write 3 .vtp files
@@ -1285,9 +1288,11 @@ def generate_basecell(args,info,log):
   
   for v in verts:
     v += (h/2.0,h/2.0,h/2.0)
+  
+  assert(overlap is not None)  
   # use info on connectivity in voxjel array and Profiles to move 
   # surface points to correct position  
-  new_surf_points = adjust_surface_points(profiles,verts,array)
+  new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
 
   new_points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
@@ -1421,13 +1426,10 @@ def calc_radius(profile,x,rad):
 # rasterize profile functions
 # if basecell is symmetric, rasterize only 1/8 of structure
 # and mirror the rest
-def write_profile_to_array(array,profile,dir):
+def write_profile_to_array(array,profile,overlap):
   res = array.shape[0]
-  assert(dir >=0 and dir <=2)
   
   bound = res if not symmetric else int(res/2)
-  
-  overlap = np.zeros(array.shape[0:3],dtype=float)
   
   for i in range(0,bound):
     for j in range(0,bound):
@@ -1441,15 +1443,18 @@ def write_profile_to_array(array,profile,dir):
         
         r = calc_radius(profile, x, phi)
         # get right indices depending on profile's direction
-        major = dir 
+        major = profile.direction
         minor_1, minor_2 = give_normal_plane_axes(major)
         idx = [i,j,k]
         if (valx-r <= 1e-6):
-          array[idx[major],idx[minor_1],idx[minor_2]] = major
-          
           # detected overlap of profiles
-          if array[idx[major],idx[minor_1],idx[minor_2]] != -1: 
-            overlap[idx[major],idx[minor_1],idx[minor_2]] = 1
+          if array[idx[major],idx[minor_1],idx[minor_2]] > -1:
+            if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
+              overlap[idx[major],idx[minor_1],idx[minor_2]] = (array[idx[major],idx[minor_1],idx[minor_2]],major,) # set tuple if this is the first overlap
+            else:
+              overlap[idx[major],idx[minor_1],idx[minor_2]] += (major,) # add element to tuple
+              
+          array[idx[major],idx[minor_1],idx[minor_2]] = major
             
   if symmetric:
     # mirror octant
@@ -1461,6 +1466,7 @@ def write_profile_to_array(array,profile,dir):
     array[bound:res,bound:res,0:bound] = array[0:bound,0:bound,0:bound][::-1,::-1,:]
     array[bound:res,bound:res,bound:res] = array[0:bound,0:bound,0:bound][::-1,::-1,::-1] 
   
+  return overlap
 # find end node object in list with matching grid coordinates
 def get_end_node_by_grid_coords(i,j,end_nodes):
   for idx,node in enumerate(end_nodes):
@@ -2622,7 +2628,9 @@ def get_next_array_indices(i,j,k,array):
 # surface points to correct position
 # @param verts: list of vertices from scikit's Marching cube algorithm
 # @param voxels: array with info which voxel was created by which profile
-def adjust_surface_points(profiles,verts,voxels):
+# @param overlap: same dimensions as array; stores info whether a voxel
+#        contains overlap of profiles
+def adjust_surface_points(profiles,verts,normals,voxels,overlap):
   
   h = 1.0/res
   
@@ -2650,23 +2658,74 @@ def adjust_surface_points(profiles,verts,voxels):
       i = i_p
       j = j_p
       k = k_p
-      
-    # find out which profile(direction) created this voxel/point
-    major_dir = int(voxels[i,j,k])
-    assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
     
-    # which 2D plane?
-    minor_1, minor_2 = give_normal_plane_axes(major_dir)
-    # angle in radians
-    phi = angle_to_center((v[minor_1],v[minor_2]))
+    point = None
+    # do wo have a overlap of profiles?
+    if overlap[i,j,k] != 0:
+      overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
+      # calculated candidates for all 3 profiles
+      points = []
+      for d in overlap_dirs:
+        points.append(adjust_surface_point(profiles,v,int(d)))
+
+      point = give_furthest_point_from_plane(v,normals[count],points)  
+#       print(np.argsort(distances)[0])
+#       point = points[np.argsort(distances)[0]] # take largest distance
+    else:  
+      # find out which profile(direction) created this voxel/point
+      point = adjust_surface_point(profiles,v,int(voxels[i,j,k]))
     
-    rad = calc_radius(profiles[major_dir], v[major_dir], phi)   
-    px,py = polar_to_cartesian(rad,phi)
-    point = np.ones(3)*(-1)
-    point[major_dir] = v[major_dir]
-    point[minor_1] = px
-    point[minor_2] = py
-    
+    assert(point is not None)  
     new_verts.append(point)
   
   return new_verts       
+
+# calculates a correct surface point location using info on profiles
+# based on an approximation
+# @param profiles: array with all 3 profiles
+# @param v: approximation for point of interest; tuple/list with 3 coord components
+# @param major_dir: major profile direction
+def adjust_surface_point(profiles,v,major_dir):
+  assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
+    
+  # which 2D plane?
+  minor_1, minor_2 = give_normal_plane_axes(major_dir)
+  # angle in radians
+  phi = angle_to_center((v[minor_1],v[minor_2]))
+  
+  rad = calc_radius(profiles[major_dir], v[major_dir], phi)   
+  px,py = polar_to_cartesian(rad,phi)
+  point = np.ones(3)*(-1)
+  point[major_dir] = v[major_dir]
+  point[minor_1] = px
+  point[minor_2] = py
+  
+  return point
+
+# for a given set of points, determine the point which is further away
+# from plane than the others
+# @param base: point in plane
+# @param normal: normal vector of plane
+# @param points: list of points for testing
+def give_furthest_point_from_plane(base,normal,points):
+  distances = []
+  for p in points:
+    distances.append(calc_distance_plane_point(base,normal,p))
+  
+  # argsort sorts for smallest distance  
+  return points[np.argsort(distances)[-1]]  
+
+# calculates distance of a point from a plane defined by normal vector and 1 point in plane
+# normal: n = (a,b,c)
+# base: x=(x0,y0,z0)
+# plane equation: a*x + b*y + c*z + d = 0
+# with d = -a*x0 - b*y0 - c*z0
+# distance from point p = (px,py,pz) to plane: D = 1/sqrt(a**2+b**2+c**2) * (dot(n,p)+d)
+def calc_distance_plane_point(base,normal,point):
+  a = normal[0]
+  b = normal[1]
+  c = normal[2]
+  
+  d = -a*base[0] - b*base[1] - c*base[2]
+  
+  return 1.0/np.sqrt(a**2+b**+2+c**2) * (np.dot(normal,point)+d)
