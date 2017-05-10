@@ -244,9 +244,9 @@ def degree_to_rad_quadrant(degree):
   else:
     return 2*np.pi-rad
   
-def cartesian_to_grid_coords(x,res):
+def cartesian_to_grid_coords(x,res,eps):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return int((x) / h) 
+  return int(round((x-h/2.0) / h+eps)) 
 
 def grid_to_cartesian_coords(i,res):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
@@ -1283,13 +1283,11 @@ def generate_basecell(args,info,log):
   h = 1.0/args.res
   verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h))
   
-  print(faces)
-
   for v in verts:
     v += (h/2.0,h/2.0,h/2.0)
   # use info on connectivity in voxjel array and Profiles to move 
   # surface points to correct position  
-  new_surf_points = verts#adjust_surface_points(profiles,verts,array)
+  new_surf_points = adjust_surface_points(profiles,verts,array)
 
   new_points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
@@ -1426,28 +1424,33 @@ def calc_radius(profile,x,rad):
 def write_profile_to_array(array,profile,dir):
   res = array.shape[0]
   assert(dir >=0 and dir <=2)
-  map = create_profile_map(profile, res)
   
   bound = res if not symmetric else int(res/2)
+  
+  overlap = np.zeros(array.shape[0:3],dtype=float)
   
   for i in range(0,bound):
     for j in range(0,bound):
       for k in range(0,bound):
+        x = grid_to_cartesian_coords(i, res)
         y = grid_to_cartesian_coords(j, res)
         z = grid_to_cartesian_coords(k, res)
         valx = cartesian_to_polar(y, z, (0.5,0.5))
         
         phi = angle_to_center((y,z))
         
-        p = map[int(phi/np.pi*180),i]
-        if (valx**2 <= p*p+1e-3):
-          if dir == 0:
-            array[i,k,j] = dir
-          if dir == 1:
-            array[j,i,k] = dir
-          if dir == 2:
-            array[k,j,i] = dir
-  
+        r = calc_radius(profile, x, phi)
+        # get right indices depending on profile's direction
+        major = dir 
+        minor_1, minor_2 = give_normal_plane_axes(major)
+        idx = [i,j,k]
+        if (valx-r <= 1e-6):
+          array[idx[major],idx[minor_1],idx[minor_2]] = major
+          
+          # detected overlap of profiles
+          if array[idx[major],idx[minor_1],idx[minor_2]] != -1: 
+            overlap[idx[major],idx[minor_1],idx[minor_2]] = 1
+            
   if symmetric:
     # mirror octant
     array[0:bound,0:bound,bound:res] = array[0:bound,0:bound,0:bound][:,:,::-1]
@@ -2592,47 +2595,6 @@ def extract_cell_centers(array,vtk_points):
             
   return center_ids
 
-# check if a given point is part (inside/on) a cube
-# @param point p
-# @param 8 corners of the cube
-def point_inside_cube(p,corners):
-  minx = corners[0][0]
-  miny = corners[0][1]
-  minz = corners[0][2]
-  maxx = -1
-  maxy = -1
-  maxz = -1
-  
-  for corn in corners:
-    if minx > corn[0]:
-      minx = corn[0]
-    if maxx < corn[0]:
-      maxx = corn[0]  
-    
-    if miny > corn[1]:
-      miny = corn[1]
-    if maxy < corn[1]:
-      maxy = corn[1]
-      
-    if minz > corn[2]:
-      minz = corn[2]
-    if maxz < corn[2]:
-      maxz = corn[2]
-  
-  px = p[0]
-  py = p[1]
-  pz = p[2]
-  
-#   print("\np:",p)
-#   print("min:",minx,miny,minz)
-#   print("max:",maxx,maxy,maxz)
-  
-  eps = 1e-6
-  if px < minx-eps or px > maxx+eps or py < miny-eps or py > maxy+eps or pz < minz-eps or pz > maxz+eps:
-    return False # outside bounding box
-  else:
-    return True
-  
 def get_next_array_indices(i,j,k,array):
   assert(array.shape[0] == array.shape[1] and array.shape[1] == array.shape[2])
   lenx = array.shape[0]
@@ -2666,41 +2628,32 @@ def adjust_surface_points(profiles,verts,voxels):
   
   new_verts = []
   for count,v in enumerate(verts):
-    i = j = k = 0
-#     print(v)
-    # find out in which voxel we are; a surface voxel can contain at most 2 vertices
-    # coordinates of voxel's centroid
-    center = []
-    center.append(grid_to_cartesian_coords(i, res))
-    center.append(grid_to_cartesian_coords(j, res))
-    center.append(grid_to_cartesian_coords(k, res))
+    # for corner voxels, v may lie on interface between two (surface and invalid) voxels
+    # thus, consider both voxels and check which one to go for
+    i_p = cartesian_to_grid_coords(v[0], res, 1e-6)
+    j_p = cartesian_to_grid_coords(v[1], res, 1e-6)
+    k_p = cartesian_to_grid_coords(v[2], res, 1e-6)
     
-    # get 8 corner points for this cube
-    corners = create_point_vector_centered_bar(center,(h,h,h))
+    i_m = cartesian_to_grid_coords(v[0], res, -1e-6)
+    j_m = cartesian_to_grid_coords(v[1], res, -1e-6)
+    k_m = cartesian_to_grid_coords(v[2], res, -1e-6)
     
-#     if i == 0: # first vertex is always part of first cube as ordering is the same
-#       assert(point_inside_cube(verts[0],create_point_vector_centered_bar(center,(h,h,h))))
-    # search for correct voxel
-    # this loop should be cycled max. 2 times
-    while not point_inside_cube(v,create_point_vector_centered_bar(center,(h,h,h))) or voxels[i,j,k] < 0:
-      # go to next cube
-      i,j,k = get_next_array_indices(i,j,k,voxels)
-      # find out in which voxel we are; a surface voxel can contain at most 2 vertices
-      # coordinates of voxel's centroid
-      center = []
-      center.append(grid_to_cartesian_coords(i, res))
-      center.append(grid_to_cartesian_coords(j, res))
-      center.append(grid_to_cartesian_coords(k, res))
-            
-      # get 8 corner points for this cube
-      corners = create_point_vector_centered_bar(center,(h,h,h))
+#     print("\nv:",v)
+#     print("+eps:",i_p,j_p,k_p)
+#     print("-eps:",i_m,j_m,k_m)
     
+    if voxels[i_m,j_m,k_m] > -1:
+      i = i_m
+      j = j_m
+      k = k_m
+    else:  
+      i = i_p
+      j = j_p
+      k = k_p
+      
     # find out which profile(direction) created this voxel/point
     major_dir = int(voxels[i,j,k])
     assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
-    
-    print("\n",i,j,k,major_dir)
-    print(count)
     
     # which 2D plane?
     minor_1, minor_2 = give_normal_plane_axes(major_dir)
