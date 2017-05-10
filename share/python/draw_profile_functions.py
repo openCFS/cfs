@@ -17,6 +17,8 @@ matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate, spatial
+from skimage import measure
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 try:
   from meshpy.tet import MeshInfo, build
@@ -1247,6 +1249,7 @@ def generate_basecell(args,info,log):
         symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
         symmetric = False
         write_profile_to_array(array, profiles[i], i)
+        
       if args.target == "3dlines":
         if args.save_vtp: #write 3 .vtp files
           points = vtk.vtkPoints()
@@ -1262,6 +1265,59 @@ def generate_basecell(args,info,log):
 
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
+  
+  ############################ new surface mesh approach ####################
+  # binary helper array
+  helper = np.zeros(array.shape[0:3],dtype=int)
+  # use voxel info for Marching cubes algorithm
+  # set voxels on boundary wit value 0 
+  # set voxels inside structure with value 1
+  # voxels outside structure have value -1
+  for i in range(0,args.res):
+    for j in range(0,args.res):
+      for k in range(0,args.res):
+        if array[i,j,k] > -1: # valid voxel
+          helper[i,j,k] = 1
+  
+  # Use marching cubes to obtain the surface mesh of voxelized structure
+  h = 1.0/args.res
+  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h))
+  
+  print(faces)
+
+  for v in verts:
+    v += (h/2.0,h/2.0,h/2.0)
+  # use info on connectivity in voxjel array and Profiles to move 
+  # surface points to correct position  
+  new_surf_points = verts#adjust_surface_points(profiles,verts,array)
+
+  new_points = vtk.vtkPoints()
+  cells = vtk.vtkCellArray()
+  polydata = vtk.vtkPolyData()
+  
+  vtkData = vtk.vtkFloatArray()
+  vtkData.SetName("order")
+  vtkData.SetNumberOfValues(len(verts))
+#   for v in verts:
+#     new_points.InsertNextPoint(v)
+  for i,v in enumerate(new_surf_points):
+    id = new_points.InsertNextPoint(v)
+    assert(i == id)
+    vtkData.SetValue(i,i)
+  for f in faces:
+    add_triangle(f[0], f[1], f[2], cells)
+    
+  polydata.SetPoints(new_points)
+  polydata.SetPolys(cells)
+  polydata.GetPointData().SetScalars(vtkData)
+  show_write_vtk(polydata,1000,"voxels_surface.vtp")
+  
+  # cell centers
+  vtk_cell_centers = vtk.vtkPoints()
+  center_ids = extract_cell_centers(array,vtk_cell_centers)
+  polydata = vtk.vtkPolyData() 
+  polydata.SetPoints(vtk_cell_centers)
+  show_write_vtk(polydata,1000,"cell_centers.vtp") 
   
   return array
 
@@ -2509,3 +2565,155 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
   
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1
+
+# for given voxel array, extract cell centers of surface voxels
+def extract_cell_centers(array,vtk_points):
+  center_ids = np.ones(array.shape[0:3],dtype=int) * (-1)
+  
+  res = array.shape[0]
+  h = 1.0/res
+  count = 0
+  for i in range(0,res):
+    for j in range(0,res):
+      for k in range(0,res):
+        x = i * h + h / 2.0
+        y = j * h + h / 2.0 
+        z = k * h + h / 2.0
+        
+        # detect cell on surface
+        if array[i,j,k] >= 0: # this is a valid cell
+          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
+            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+              center_ids[i,j,k] = vtk_points.InsertNextPoint((x,y,z))
+              count +=1
+          else: # cells on the boundary
+            center_ids[i,j,k] =  vtk_points.InsertNextPoint((x,y,z))
+            count +=1
+            
+  return center_ids
+
+# check if a given point is part (inside/on) a cube
+# @param point p
+# @param 8 corners of the cube
+def point_inside_cube(p,corners):
+  minx = corners[0][0]
+  miny = corners[0][1]
+  minz = corners[0][2]
+  maxx = -1
+  maxy = -1
+  maxz = -1
+  
+  for corn in corners:
+    if minx > corn[0]:
+      minx = corn[0]
+    if maxx < corn[0]:
+      maxx = corn[0]  
+    
+    if miny > corn[1]:
+      miny = corn[1]
+    if maxy < corn[1]:
+      maxy = corn[1]
+      
+    if minz > corn[2]:
+      minz = corn[2]
+    if maxz < corn[2]:
+      maxz = corn[2]
+  
+  px = p[0]
+  py = p[1]
+  pz = p[2]
+  
+#   print("\np:",p)
+#   print("min:",minx,miny,minz)
+#   print("max:",maxx,maxy,maxz)
+  
+  eps = 1e-6
+  if px < minx-eps or px > maxx+eps or py < miny-eps or py > maxy+eps or pz < minz-eps or pz > maxz+eps:
+    return False # outside bounding box
+  else:
+    return True
+  
+def get_next_array_indices(i,j,k,array):
+  assert(array.shape[0] == array.shape[1] and array.shape[1] == array.shape[2])
+  lenx = array.shape[0]
+  next_i = i 
+  next_j = j 
+  next_k = k 
+  # first, try to increase k
+  if k == lenx-1:
+    next_k = 0
+    if j == lenx-1:
+      next_j = 0
+      next_i += 1
+    else:
+      next_j += 1
+  else:
+    next_k += 1
+  
+  assert(next_i >= 0 and next_i < lenx)
+  assert(next_j >= 0 and next_j < lenx)
+  assert(next_k >= 0 and next_k < lenx)  
+  
+  return next_i, next_j, next_k            
+
+# use info on connectivity in voxel array and Profiles to move 
+# surface points to correct position
+# @param verts: list of vertices from scikit's Marching cube algorithm
+# @param voxels: array with info which voxel was created by which profile
+def adjust_surface_points(profiles,verts,voxels):
+  
+  h = 1.0/res
+  
+  new_verts = []
+  for count,v in enumerate(verts):
+    i = j = k = 0
+#     print(v)
+    # find out in which voxel we are; a surface voxel can contain at most 2 vertices
+    # coordinates of voxel's centroid
+    center = []
+    center.append(grid_to_cartesian_coords(i, res))
+    center.append(grid_to_cartesian_coords(j, res))
+    center.append(grid_to_cartesian_coords(k, res))
+    
+    # get 8 corner points for this cube
+    corners = create_point_vector_centered_bar(center,(h,h,h))
+    
+#     if i == 0: # first vertex is always part of first cube as ordering is the same
+#       assert(point_inside_cube(verts[0],create_point_vector_centered_bar(center,(h,h,h))))
+    # search for correct voxel
+    # this loop should be cycled max. 2 times
+    while not point_inside_cube(v,create_point_vector_centered_bar(center,(h,h,h))) or voxels[i,j,k] < 0:
+      # go to next cube
+      i,j,k = get_next_array_indices(i,j,k,voxels)
+      # find out in which voxel we are; a surface voxel can contain at most 2 vertices
+      # coordinates of voxel's centroid
+      center = []
+      center.append(grid_to_cartesian_coords(i, res))
+      center.append(grid_to_cartesian_coords(j, res))
+      center.append(grid_to_cartesian_coords(k, res))
+            
+      # get 8 corner points for this cube
+      corners = create_point_vector_centered_bar(center,(h,h,h))
+    
+    # find out which profile(direction) created this voxel/point
+    major_dir = int(voxels[i,j,k])
+    assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
+    
+    print("\n",i,j,k,major_dir)
+    print(count)
+    
+    # which 2D plane?
+    minor_1, minor_2 = give_normal_plane_axes(major_dir)
+    # angle in radians
+    phi = angle_to_center((v[minor_1],v[minor_2]))
+    
+    rad = calc_radius(profiles[major_dir], v[major_dir], phi)   
+    px,py = polar_to_cartesian(rad,phi)
+    point = np.ones(3)*(-1)
+    point[major_dir] = v[major_dir]
+    point[minor_1] = px
+    point[minor_2] = py
+    
+    new_verts.append(point)
+  
+  return new_verts       
