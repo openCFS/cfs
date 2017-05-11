@@ -138,11 +138,11 @@ def create_mesh_with_profiles(args,infoXml,log):
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
     mesh_tool.validate_periodicity(mesh)
-  elif args.target.startswith("surface") and not args.skip_surface_gaps:
+  elif args.target.startswith("surface"):
     stlName = args.save if args.save else "surface"
     if not stlName.endswith(".stl"):
       stlName += ".stl"
-      
+    if args.tets: # create tetrahedralized volume mesh from surface description
       mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
@@ -174,11 +174,10 @@ parser.add_argument('--skip_x', help="don't show bar in x direction", action='st
 parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
 parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
 parser.add_argument('--show', help="show final structure in new window", action='store_true')
-parser.add_argument('--skip_surface_gaps', help="show final structure in new window", action='store_true',default=False)
 parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-parser.add_argument('--target', help="what to generate",choices=["volume_vtk","volume_mesh","3dlines","None","surface_mesh"], required=True)
+parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
@@ -189,6 +188,7 @@ parser.add_argument('--eta', help="midpoint heaviside function", type=float, def
 parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
 parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
 parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
+parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
 
 args = parser.parse_args()
 
@@ -277,7 +277,7 @@ if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
 
 mesh = create_mesh_with_profiles(args,infoXml,log)
 
-if args.target == "volume_mesh" or (args.target == "surface_mesh" and not args.skip_surface_gaps):   
+if args.target == "volume_mesh" or args.target == "surface_mesh" and args.tets:   
   file = meshName + '.mesh'
   assert(file.endswith('.mesh'))
   
