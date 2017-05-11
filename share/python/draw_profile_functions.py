@@ -20,6 +20,8 @@ from scipy import interpolate, spatial
 from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import matplotlib.tri as tri
+import meshpy.triangle as triangle
 try:
   from meshpy.tet import MeshInfo, build
 except:
@@ -907,29 +909,33 @@ def generate_basecell(args,info,log):
     
     for v in verts:
       v += (h/2.0,h/2.0,h/2.0)
-    
+      
     assert(overlap is not None)  
     # use info on connectivity in voxjel array and Profiles to move 
     # surface points to correct position  
     new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
     
-    new_points = vtk.vtkPoints()
+    vtk_points = vtk.vtkPoints()
     cells = vtk.vtkCellArray()
     polydata = vtk.vtkPolyData()
     
-    for i,v in enumerate(new_surf_points):
-      id = new_points.InsertNextPoint(v)
-      assert(i == id)
+    mesh_boundary_circles(new_surf_points,vtk_points,cells)
+    
+    # adding triangles connectivity from Marching Cube
     for f in faces:
       add_triangle(f[0], f[1], f[2], cells)
       
-    polydata.SetPoints(new_points)
+    polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
     
     stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
     write_stl(polydata,stlName)
-      
-    show_write_vtk(polydata,1000,args.save+".vtp")      
+    
+    if args.save_vtp:  
+      show_write_vtk(polydata,1000,args.save+".vtp")
+    
+    if args.tets:
+      triangulate_boundary_circles(profile, nodes_ids, id, points, cells, vtkData)      
 
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1567,6 +1573,12 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
 # @param overlap: same dimensions as array; stores info whether a voxel
 #        contains overlap of profiles
 def adjust_surface_points(profiles,verts,normals,voxels,overlap):
+  xmin = min(verts, key=lambda t: t[0])[0]
+  xmax = max(verts, key=lambda t: t[0])[0]
+  ymin = min(verts, key=lambda t: t[1])[1]
+  ymax = max(verts, key=lambda t: t[1])[1]
+  zmin = min(verts, key=lambda t: t[2])[2]
+  zmax = max(verts, key=lambda t: t[2])[2]
   
   h = 1.0/res
   
@@ -1611,7 +1623,23 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       # find out which profile(direction) created this voxel/point
       point = adjust_surface_point(profiles,v,int(voxels[i,j,k]))
     
-    assert(point is not None)  
+    assert(point is not None) 
+    
+    # move point on the boundaries of x/y/z axis to match [0,1]
+    # as we're shifted by h/2.0
+    if close(point[0], xmin, 1e-6):
+      point[0] = 0.0
+    if close(point[0], xmax, 1e-6):
+      point[0] = 1.0
+    if close(point[1], ymin, 1e-6):
+      point[1] = 0.0
+    if close(point[1], ymax, 1e-6):
+      point[1] = 1.0
+    if close(point[2], zmin, 1e-6):
+      point[2] = 0.0
+    if close(point[2], zmax, 1e-6):
+      point[2] = 1.0    
+         
     new_verts.append(point)
   
   return new_verts       
@@ -1665,3 +1693,104 @@ def calc_distance_plane_point(base,normal,point):
   d = -a*base[0] - b*base[1] - c*base[2]
   
   return 1.0/np.sqrt(a**2+b**2+c**2) * (np.dot(normal,point)+d)
+
+def extract_boundary_points(points,vtk_points):
+  lists = [[] for i in range(6)]
+  for p in points:
+    id = vtk_points.InsertNextPoint(p)
+    # x
+    if close(p[0],0,1e-6):
+      lists[0].append((p,id))
+    if close(p[0],1,1e-6):
+      lists[1].append((p,id))
+    # y
+    if close(p[1],0,1e-6):
+      lists[2].append((p,id))
+    if close(p[1],1,1e-6):
+      lists[3].append((p,id))  
+    # z
+    if close(p[2],0,1e-6):
+      lists[4].append((p,id))
+    if close(p[2],1,1e-6):
+      lists[5].append((p,id))
+      
+  return lists
+ 
+def round_trip_connect(start, end):
+  result = []
+  for i in range(start, end):
+    result.append((i, i+1))
+  result.append((end, start))
+  return result
+
+# for a given list with 3d points, return a list with 2d points
+# omitting the coordinate component 'dir'
+def extract_plane_coordinates(list,dir):
+  new = []
+  
+  for e in list:
+    # get components except that one equals 'dir'
+    new.append([ e[0][(dir+1)%3],e[0][(dir+2)%3],e[1] ])
+    
+  return new
+
+def mesh_boundary_circles(surf_points,vtk_points,cells):
+  # extract points on the boundary circles
+  # each entry contains a list representing one boundary face of the base cell
+  lists = extract_boundary_points(surf_points,vtk_points)
+  assert(len(lists) == 6)
+  
+  lists_2d = []
+  
+  count = 0
+  for dir in (0,1,2):
+    lists_2d.append(extract_plane_coordinates(lists[count], dir))
+    count += 1
+    lists_2d.append(extract_plane_coordinates(lists[count], dir))
+    count += 1
+    
+  for count,l in enumerate(lists_2d):  
+    # component 0 and 1 store plane coordinates
+    # component 2 store vtk point id
+    l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
+  
+    info = triangle.MeshInfo()
+    test = [ [elem[0],elem[1]] for elem in l]
+    info.set_points(test)
+    info.set_facets(round_trip_connect(0,len(l)-1))
+    mesh = triangle.build(info,generate_faces=True) 
+  
+    mesh_points = np.array(mesh.points)
+    mesh_tris = np.array(mesh.elements)
+    
+#     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
+#     plt.show()
+    
+    major_dir = -1
+    if count == 0 or count == 1:
+      major_dir = 0
+    elif count == 2 or count == 3:  
+      major_dir = 1
+    else:
+      major_dir = 2
+     
+    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
+    # up to len(l), l and mesh_points have the same ordering of points
+    # map from local mesh_points point ids to global ones from points in vtk_points
+    lookup = np.ones(len(mesh_points),dtype=int) * (-1)
+    for i in range(0,len(l)):
+      lookup[i] = l[i][2]
+    for i in range (len(l),len(mesh_points)):
+      point = np.zeros(3)
+      if count%2 == 0: # left side of profile
+        point[major_dir] = 0.0
+      else:
+        point[major_dir] = 1.0
+          
+      point[minor_dir_2] = mesh_points[i][0]
+      point[minor_dir_1] = mesh_points[i][1] 
+      lookup[i] = vtk_points.InsertNextPoint(point)
+      
+    # use lookup table to set new triangles from meshed boundary circle
+    for tri in mesh_tris:
+      add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
