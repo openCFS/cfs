@@ -1250,7 +1250,7 @@ def generate_basecell(args,info,log):
         # if basecell is symmetric, calculate only 1/8 and mirror the rest
         symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
         symmetric = False
-        # overlap: same size as array; elem has value 1 if overlap of profiles, else 0
+        # overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0
         write_profile_to_array(array, profiles[i], overlap)
         
       if args.target == "3dlines":
@@ -1423,9 +1423,12 @@ def calc_radius(profile,x,rad):
   assert(val is not None)
   return val - 0.5
     
-# rasterize profile functions
+# rasterize given profile function
 # if basecell is symmetric, rasterize only 1/8 of structure
 # and mirror the rest
+# @param array: stores voxelized info on profile
+# @param profile: profile of interest
+# @param overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0 
 def write_profile_to_array(array,profile,overlap):
   res = array.shape[0]
   
@@ -2728,4 +2731,4 @@ def calc_distance_plane_point(base,normal,point):
   
   d = -a*base[0] - b*base[1] - c*base[2]
   
-  return 1.0/np.sqrt(a**2+b**+2+c**2) * (np.dot(normal,point)+d)
+  return 1.0/np.sqrt(a**2+b**2+c**2) * (np.dot(normal,point)+d)
