@@ -57,43 +57,6 @@ class End_Node():
   def __eq__(self,other):
     return self.id == other.id
   
-class Marching_Triangle():
-  # describes active edge (by two points) where we append next triangle
-  # the two points always consist of one point from one profile and and second point from another profile
-  edge = None
-  # stores upcoming decisions
-  # 0th entry is always the next node we decide to create next triangle with
-  # 1st entry is node after next node we decide to create next triangle with
-  # ...
-  next = None
-  # before deciding which one is the next node, we search in neighborhood for
-  # possible candidates and a eval the possibly resulting triangles with a defined metric
-  other_candidates = []
-  vertices = None
-    
-  # define active edge where edge_node_2 is assumed to be next_node in different profile than edge_node_1  
-  def __init__(self,vertices,edge_node_1,edge_node_2,alt_cand):
-    self.edge = []
-    self.other_candidates = alt_cand
-    # array of three nodes
-    self.vertices = vertices
-    self.edge.append(edge_node_1)
-    self.edge.append(edge_node_2)
-    self.next = edge_node_2
-#     if edge_node_1.dir == edge_node_2.dir:
-#       print("edge_node_1:",edge_node_1.dir)
-#       print("edge_node_2:",edge_node_2.dir)
-#     assert(edge_node_1.dir != edge_node_2.dir)
-    
-  def __str__(self):
-    return "vertices: " + str(self.vertices[0].id) + " "  + str(self.vertices[1].id) + " " + str(self.vertices[2].id)
-  
-  def is_triangle(self,vert1,vert2,vert3):  
-    if vert1 not in self.vertices or vert2 not in self.vertices or vert3 not in self.vertices:
-      return False
-    else:
-      return True
-    
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -213,7 +176,6 @@ def dirToString(dir):
    
   return res
 
-
 # checks if logging should be used and adds a line break
 def log(text,linebreak=True):
   if logger:
@@ -326,55 +288,6 @@ class Heaviside():
 def calc_tanh(beta,eta,x):
   assert(x >= -1e-6 and x <= 1.0 + 1e-6)
   return 1.0 - 1.0 / (np.exp(2.0*beta*(x-eta)) + 1)
-   
-def profileCirc(x1,res):
-  x = np.linspace(0, 1.0, res)
-  r = 0.5-x1/2.0 # radius for circular holes not stiffness
-  r2 = r**2
-  cornerx = np.sqrt(r2/2.0)
-  cornery = 1 - cornerx
-  
-  vec = np.zeros(res)
-  
-  for i in range(res):
-    if x[i] <= cornerx:
-      vec[i] = 0.5 - np.sqrt(r2 - x[i]**2)
-    elif x[i] < 1 - cornerx:
-      vec[i] = cornery - 0.5
-    else:
-      vec[i] = 0.5 - np.sqrt(r2 - (1-x[i])**2)
-  
-  return vec
-
-# for a given profile and point p, check if p lies inside (not on surface of) profile
-def point_inside_profile(p,profile):
-  assert(p[0] >= 0.0 and p[0] <= 1.0)
-  assert(p[1] >= 0.0 and p[1] <= 1.0)
-  assert(p[2] >= 0.0 and p[2] <= 1.0)
-  
-#   print("\np:",p)
-  
-  # depending on direction, estimate plane in which we perform check
-  major = profile.direction
-  minor_1, minor_2 = give_normal_plane_axes(major)
-#   minors = [ d for d in [0,1,2] if d != major ]
-#   minor_1=minors[0]
-#   minor_2=minors[1]
-#   print("major: ",major," minor1:",minor_1," minor2:",minor_2)
-#   print(p[major],p[minor_1],p[minor_2])  
-  phi = angle_to_center((p[minor_1],p[minor_2]))
-#   print("angle:",degrees(phi),phi)
-  assert(phi >= 0 and phi <= 2*np.pi)
-  r = calc_radius(profile, p[major], phi)
-  val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
-#   print("radii:",r,val)
-  assert(val**2 <= 0.5+1e-6)
-  if (val - r < 1e-6):
-    print("point ",p, " inside ", profile.direction)
-    return True
-  
-  return False
-    
 
 # obejct defines spline in a principle plane, e.g. spline for 0 or 90 degree
 class PrincipleSpline():
@@ -889,219 +802,6 @@ def get_surface_lines(profile):
   
   return nodes
 
-# @param alpha in radians
-def get_surface_point_candidate(profile,alpha,x):
-  assert(alpha >= 0 and alpha <= 2.0*np.pi)
-  
-  radius = calc_radius(profile, x, alpha)
-  px,py = polar_to_cartesian(radius, alpha)
-  
-  point = np.zeros(3)
-  major_dir = profile.direction
-  minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
-  point[major_dir] = x
-  point[minor_dir_1] = px
-  point[minor_dir_2] = py
-  
-  return point
-  
-def get_surface_points(profile,otherProfile1,otherProfile2,n_points,intersections):
-  interval = np.linspace(0, 1.0, res)
-  dir = profile.direction
-
-  nodes = np.zeros((res_surf_lines,res, 3))
-  nodes_ids = np.ones(nodes.shape[0:2], dtype=np.int) * (-1)
-  
-  for i,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
-    for j,x in enumerate(interval):
-      point = get_surface_point_candidate(profile,radians(alpha),x)
-      nodes[i,j] = point
-      
-      if not point_inside_profile(point, otherProfile1) and not point_inside_profile(point, otherProfile2):
-#         nodes_ids[i,j] = vtk_points.InsertNextPoint(point)
-        nodes_ids[i,j] = n_points
-        n_points += 1
-        
-  return nodes,nodes_ids,n_points
-
-# check if any surface point is too close to an intersection point
-# if too close, omit it as surface point
-def postproc_surface_points(nodes,nodes_ids,profile,otherProfile1,otherProfile2,intersections,vtk_points):
-  for i,line in enumerate(nodes_ids):
-    for j,p in enumerate(line):
-      # detect jump from surface point to inner point
-      if j > 1 and nodes_ids[i,j] == -1 and nodes_ids[i,j-1] > -1:
-        intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
-        intersections.InsertNextPoint(intersect)
-        if calc_distance(nodes[i,j-1], intersect) < 0.5/res:
-          # don't draw if too close
-          nodes_ids[i,j-1] = -1
-      # jump from inner point to surface point    
-      if j > 2 and nodes_ids[i,j] > -1 and nodes_ids[i,j-1] == -1:
-        intersect = find_intersection_point(nodes[i,j-1],nodes[i,j], profile, otherProfile1, otherProfile2)
-        intersections.InsertNextPoint(intersect)
-        if calc_distance(nodes[i,j], intersect) < 0.5/res:
-          # don't draw if too close
-          nodes_ids[i,j] = -2
-    
-#   vtk_points.SetNumberOfPoints(sum(nodes_ids > -1))
-  count = 0
-  for i,line in enumerate(nodes_ids):
-    for j,p in enumerate(line):
-      if p > -1:
-        assert(nodes_ids[i,j] > -1)
-        # reset vtk point ids after deleting some surface points in loop above
-        count = vtk_points.InsertNextPoint(nodes[i,j])
-        nodes_ids[i,j] = count
-        
-  return count      
-# use bisection algorithm to find intersection point between two profiles
-# left and right are tuples/lists with x,y,z coordinates
-# assume:
-# left is a surface point on profile
-# right is a neighbor (same profile) of left but not a surface point
-def find_intersection_point(left, right, profile, otherProfile1, otherProfile2):
-  dir = profile.direction
-  phi = -1.0
-  lower = -1.0
-  upper = -1.0
-  
-  # as both left and right lie on same surface line, the angle to (0.5,0.5) is the same
-  # find out on which coordinate component we have to perform bisection
-  dir1,dir2 = give_normal_plane_axes(dir)
-  # convert to degrees and modulo 45 degrees to stay in first quadrant
-  phi = angle_to_center((left[dir1],left[dir2])) 
-  lower = left[dir]
-  upper = right[dir]
-    
-  return bisection(lower,upper,phi,profile, otherProfile1, otherProfile2)
-
-# for a given interval [lower,upper] and profile angle:
-# find a point that is on the intersection of two/three profiles
-# a point fulfills this requirement if the interval is small
-# and lower is a surface point whereas upper is an inner point     
-def bisection(lower,upper,phi,profile, otherProfile1, otherProfile2):
-  dir = profile.direction
-#   print "dir: ", dir
-  l = lower
-  u = upper
-  
-  eps = 1e-12
-  midpoint = -1.0
-  midpoint_node = np.zeros(3)
-  while abs(u-l) > eps:
-    midpoint = 0.5 * (l + u)
-    # get coordinates of node with midpoint as one coordinate component (depends on profile direction)
-    plane_coordinates = polar_to_cartesian(calc_radius(profile, midpoint, phi), phi)
-    # direction of axes of plane normal to profile.direction
-    # e.g. we have x profile --> dir1=2, dir2=1 (z,y plane)
-    dir1, dir2 =  give_normal_plane_axes(profile.direction)
-    assert(dir != dir1 and dir != dir2)
-    # assign plane coordinates to correct 3d coordinate components
-    midpoint_node[dir] = midpoint
-    midpoint_node[dir1] = plane_coordinates[0]
-    midpoint_node[dir2] = plane_coordinates[1]
-    
-    assert(midpoint_node[dir] >= -eps and midpoint_node[dir] <= 1.0+eps)
-    assert(midpoint_node[dir1] >= -eps and midpoint_node[dir1] <= 1.0+eps)
-    assert(midpoint_node[dir2] >= -eps and midpoint_node[dir2] <= 1.0+eps)
-     
-    otherDir1 = otherProfile1.direction
-    otherDir2 = otherProfile2.direction
-    
-    # midpoint is inner, take interval from [lower,midpoint]
-    if point_inside_profile(midpoint_node, otherProfile1) or point_inside_profile(midpoint_node, otherProfile2):
-      u = midpoint
-    else:
-    # midpoint is on surface, take interval from [midpoint,upper]
-      l = midpoint
-      
-  return midpoint_node
-  
-# list is list of lists contains surface lines and all respective points
-# base used for setting right ids
-# nodes is a 3d array with (x,y,z) coords for one profile
-# returns array of size 2 x n with end nodes objects for fix_gaps()
-def define_triangles(nodes_ids,nodes,cells,dir,vtkArray):
-  end_nodes = []
-  end_nodes_ids = []
-  end_nodes_tris = []
-  for i in range(0,nodes_ids.shape[0]):
-    this_line = nodes_ids[i]
-    right_line = nodes_ids[i+1 if i < nodes_ids.shape[0]-1 else 0] # wrap arround
-    left_line = nodes_ids[i-1 if i > 0 else nodes_ids.shape[0]-1] # wrap arround
-    for j in range(0,len(this_line)-1):
-      this_id = this_line[j]
-      prev_id = -1 if j == 0 else this_line[j-1]
-      next_id = this_line[j+1] 
-#       next_id = this_line[j+1 if j < len(this_line)-1 else 0]
-      right_id = right_line[j]
-      left_id = left_line[j]
-      right_next_id = right_line[j+1]
-#       right_next_id = right_line[j+1 if j < len(this_line)-1 else 0]
-      # divide rectangle into 2 triangles, this one is the first triangle
-      if this_id >= 0 and next_id >= 0 and right_id >= 0:
-        add_triangle(this_id,right_id,next_id,cells)
-        
-        vtkArray.SetValue(this_id,dir)
-        vtkArray.SetValue(next_id,dir)
-        vtkArray.SetValue(right_id,dir)
-        
-        if j > 0 and (left_id < 0 or prev_id < 0): 
-#         if j > 0 and (left_id < 0 or prev_id < 0) and j+1 < len(this_line)-1 :
-          # next, left next, left, left previous, previous, right previous, right, right next
-          left_next_id = left_line[j+1]
-          left_prev_id = left_line[j-1]
-          right_prev_id = right_line[j-1]
-          
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
-          end_nodes_ids.append(this_id)
-          vtkArray.SetValue(this_id,dir+0.5)
-          
-          # store triangle with an end node as a vertex
-          if i < nodes_ids.shape[0]-1:
-            vertices = []
-            vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
-            vertices.append(End_Node(nodes[i+1,j,:],right_id,dir,i+1,j))
-            vertices.append(End_Node(nodes[i,j+1,:],next_id,dir,i,j+1))
-            end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
-      else:
-        if this_id >= 0 and j > 0: # first point in line is not end point
-          
-          end_nodes.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
-          end_nodes_ids.append(this_id)
-          vtkArray.SetValue(this_id,dir+0.5)
-          
-          # fill gaps that form a triangle
-          if right_id >= 0 and right_next_id >= 0:
-            add_triangle(this_id,right_id,right_next_id,cells)
-            if this_id in end_nodes_ids and i < nodes_ids.shape[0]-1:
-              # if we have just created a triangle with an end node as a vertex,
-              # save this information in a Marchin_Triangle
-              vertices = []
-              vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
-              vertices.append(End_Node(nodes[i+1,j,:],right_id,dir,i+1,j))
-              vertices.append(End_Node(nodes[i+1,j+1,:],right_next_id,dir,i+1,j+1))
-              end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
-      
-      # divide rectangle into 2 triangles, this one is the second triangle 
-      if right_id >= 0 and next_id >= 0 and right_next_id >=0:
-        add_triangle(right_id,right_next_id,next_id,cells)
-      
-      # fill gaps that form a triangle    
-      if this_id >= 0 and right_id < 0 and next_id >= 0 and right_next_id >= 0:
-        add_triangle(this_id,right_next_id,next_id,cells)
-        if this_id in end_nodes_ids and i < nodes_ids.shape[0]-1: 
-          # if we have just created a triangle with an end node as a vertex,
-          # save this information in a Marchin_Triangle
-          vertices = []
-          vertices.append(End_Node(nodes[i,j,:],this_id,dir,i,j))
-          vertices.append(End_Node(nodes[i+1,j+1,:],right_next_id,dir,i+1,j+1))
-          vertices.append(End_Node(nodes[i,j+1,:],next_id,dir,i,j+1))
-          end_nodes_tris.append(Marching_Triangle(vertices, vertices[0], vertices[1], []))
-        
-  return end_nodes, end_nodes_tris
-
 def add_triangle(id1,id2,id3,cells):
   assert(id1 != id2 and id2 != id3)
   tri = vtk.vtkTriangle()
@@ -1126,8 +826,6 @@ def generate_basecell(args,info,log):
   
   array = np.ones((res,res,res)) * (-1)
   overlap = np.zeros(array.shape[0:3],dtype=object)
-  vec = None
-  t = np.linspace(0, 1.0, args.res)
   
   profiles = create_profiles(args,infoXml)
   
@@ -1142,185 +840,99 @@ def generate_basecell(args,info,log):
   
   assert(len(profiles) == 3)
   
-  surfNodesXLeft = []
-  surfNodesYLeft = []
-  surfNodesZLeft = []
-  surfNodesXRight = []
-  surfNodesYRight = []
-  surfNodesZRight = []
-  
   id = 0 # assign an id to each surface point 
   
-  if args.target == "surface_mesh":
-    assert(not args.skip_x and not args.skip_y and not args.skip_z)
-    
-    # if distance between potential surface and intersection points of two profiles
-    # is smaller than this distance, suspend first point as surface point 
-    min_distance = 0    # store all intersection points computed in find_points_on_surface
-    # and visualize them
-    surf_points = vtk.vtkPoints()
-    intersections = vtk.vtkPoints()
-    
-    # first dimension of nodes : surface lines
-    # second dimension of nodes: resolution of unit cube
-    # third dimension: tuple with x,y,z coordinate
-    num_surf_points = 0
-    nodes_1, nodes_ids_1, num_surf_points = get_surface_points(profiles[0],profiles[1],profiles[2],num_surf_points,intersections)
-    nodes_2, nodes_ids_2, num_surf_points = get_surface_points(profiles[1],profiles[0],profiles[2],num_surf_points,intersections)
-    nodes_3, nodes_ids_3, num_surf_points = get_surface_points(profiles[2],profiles[0],profiles[1],num_surf_points,intersections)
-    
-    num_surf_points = postproc_surface_points(nodes_1,nodes_ids_1,profiles[0],profiles[1],profiles[2],intersections,surf_points)
-    num_surf_points = postproc_surface_points(nodes_2,nodes_ids_2,profiles[1],profiles[0],profiles[2],intersections,surf_points)
-    num_surf_points = postproc_surface_points(nodes_3,nodes_ids_3,profiles[2],profiles[0],profiles[1],intersections,surf_points)
-    
-    intersect_poly = vtk.vtkPolyData()
-    intersect_poly.SetPoints(intersections)
-    show_write_vtk(intersect_poly, 1000, "intersections.vtp")
-    # create vtk cells and points
-    cells = vtk.vtkCellArray()
-    
-    # set scalar info of intersection points to 1.0 to make them visible
-    vtkData = vtk.vtkFloatArray()
-    vtkData.SetName("intersection")
-    vtkData.SetNumberOfValues(num_surf_points+1)
-    
-    end_nodes_1, triangles_1 = define_triangles(nodes_ids_1,nodes_1,cells,0,vtkData)
-    end_nodes_2, triangles_2 = define_triangles(nodes_ids_2,nodes_2,cells,1,vtkData)
-    end_nodes_3, triangles_3 = define_triangles(nodes_ids_3,nodes_3,cells,2,vtkData)
-
-    id = num_surf_points+1
-    id = triangulate_boundary_circles(profiles[0],nodes_ids_1,id,surf_points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[1],nodes_ids_2,id,surf_points,cells,vtkData)
-    id = triangulate_boundary_circles(profiles[2],nodes_ids_3,id,surf_points,cells,vtkData)
-    
-    if not args.skip_surface_gaps:  
-      fix_profile_intersection_gaps(profiles,end_nodes_1+end_nodes_2+end_nodes_3,cells,triangles_1+triangles_2+triangles_3)
-    
-#     for i in range(cells.GetNumberOfCells()):
-#       idList = vtk.vtkIdList()
-#       cells.GetNextCell(idList)
-#     ps, cs = read_vtk("surface.vtp")
-#     surface_to_volume_mesh(ps,cs)
-
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(surf_points)
-    polydata.GetPointData().SetScalars(vtkData)
-    
-    if args.export == "surface_points":
-      show_write_vtk(polydata, 1000, "surface_points.vtp")
+  for i in range(0,3):
+    if profiles[i] == None:
+      continue
+    if args.verbose == "profile_map" or args.export == "radius_maps" or args.verbose == "polar_plot":
+      create_profile_map(profiles[i], res, args.verbose,args.export == "radius_map", ha)
+    if args.verbose == "interpolation":
+      y1 = []
+      y2 = []
+      rad = np.linspace(0,pi/2.0,500)
+      for r in rad:
+        y1.append(calc_radius(profiles[i], 0.1, r))
+        y2.append(calc_radius(profiles[i], 0.9, r))
+        
+      plt.gcf().clear()
+      fig = plt.figure(1)
+      sub1 = fig.add_subplot(211)
+      sub1.set_title("x=0.1")
+      sub1.plot(rad,y1,linewidth=5.0)
+      sub2 = fig.add_subplot(212)
+      sub2.set_title("x=0.9")
+      sub2.plot(rad,y2,linewidth=5.0)
       
+      plt.show()
+      
+    if args.target == "volume_mesh" or args.target == "surface_mesh":
+      global symmetric
+      # if basecell is symmetric, calculate only 1/8 and mirror the rest
+      symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
+      symmetric = False
+      # overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0
+      write_profile_to_array(array, profiles[i], overlap)
+      
+    if args.target == "3dlines":
+      if args.save_vtp: #write 3 .vtp files
+        points = vtk.vtkPoints()
+        lines = vtk.vtkCellArray()
+        polygon = vtk.vtkPolyData()
+        
+        points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,points,lines)
+        polygon.SetPoints(points)
+        polygon.SetLines(lines)
+        show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
+      else:  
+        plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+  
+  if args.target == "surface_mesh":
+    ############################ new surface mesh approach ####################
+    # binary helper array
+    helper = np.zeros(array.shape[0:3],dtype=int)
+    # use voxel info for Marching cubes algorithm
+    # set voxels on boundary wit value 0
+    # set voxels inside structure with value 1
+    # voxels outside structure have value -1
+    for i in range(0,args.res):
+      for j in range(0,args.res):
+        for k in range(0,args.res):
+          if array[i,j,k] > -1: # valid voxel
+            helper[i,j,k] = 1
+    
+    # Use marching cubes to obtain the surface mesh of voxelized structure
+    h = 1.0/args.res
+    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h))
+    
+    for v in verts:
+      v += (h/2.0,h/2.0,h/2.0)
+    
+    assert(overlap is not None)  
+    # use info on connectivity in voxjel array and Profiles to move 
+    # surface points to correct position  
+    new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
+    
+    new_points = vtk.vtkPoints()
+    cells = vtk.vtkCellArray()
+    polydata = vtk.vtkPolyData()
+    
+    for i,v in enumerate(new_surf_points):
+      id = new_points.InsertNextPoint(v)
+      assert(i == id)
+    for f in faces:
+      add_triangle(f[0], f[1], f[2], cells)
+      
+    polydata.SetPoints(new_points)
     polydata.SetPolys(cells)
     
-    if args.show:
-      show_vtk(polydata, 1000, [], True)
-    
-    if not args.skip_surface_gaps:  
-      stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"  
-      write_stl(polydata,stlName)  
-     
-    if args.save_vtp:  
-      show_write_vtk(polydata,1000,args.save+".vtp")
-  else:
-    for i in range(0,3):
-      if profiles[i] == None:
-        continue
-      if args.verbose == "profile_map" or args.export == "radius_maps" or args.verbose == "polar_plot":
-        create_profile_map(profiles[i], res, args.verbose,args.export == "radius_map", ha)
-      if args.verbose == "interpolation":
-        y1 = []
-        y2 = []
-        rad = np.linspace(0,pi/2.0,500)
-        for r in rad:
-          y1.append(calc_radius(profiles[i], 0.1, r))
-          y2.append(calc_radius(profiles[i], 0.9, r))
-          
-        plt.gcf().clear()
-        fig = plt.figure(1)
-        sub1 = fig.add_subplot(211)
-        sub1.set_title("x=0.1")
-        sub1.plot(rad,y1,linewidth=5.0)
-        sub2 = fig.add_subplot(212)
-        sub2.set_title("x=0.9")
-        sub2.plot(rad,y2,linewidth=5.0)
-        
-        plt.show()
-        
-      if args.target == "volume_mesh" or args.target == "volume_vtk":
-        global symmetric
-        # if basecell is symmetric, calculate only 1/8 and mirror the rest
-        symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
-        symmetric = False
-        # overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0
-        write_profile_to_array(array, profiles[i], overlap)
-        
-      if args.target == "3dlines":
-        if args.save_vtp: #write 3 .vtp files
-          points = vtk.vtkPoints()
-          lines = vtk.vtkCellArray()
-          polygon = vtk.vtkPolyData()
-          
-          points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,points,lines)
-          polygon.SetPoints(points)
-          polygon.SetLines(lines)
-          show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
-        else:  
-          plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+    stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
+    write_stl(polydata,stlName)
+      
+    show_write_vtk(polydata,1000,args.save+".vtp")      
 
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
-  
-  ############################ new surface mesh approach ####################
-  # binary helper array
-  helper = np.zeros(array.shape[0:3],dtype=int)
-  # use voxel info for Marching cubes algorithm
-  # set voxels on boundary wit value 0 
-  # set voxels inside structure with value 1
-  # voxels outside structure have value -1
-  for i in range(0,args.res):
-    for j in range(0,args.res):
-      for k in range(0,args.res):
-        if array[i,j,k] > -1: # valid voxel
-          helper[i,j,k] = 1
-  
-  # Use marching cubes to obtain the surface mesh of voxelized structure
-  h = 1.0/args.res
-  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h))
-  
-  for v in verts:
-    v += (h/2.0,h/2.0,h/2.0)
-  
-  assert(overlap is not None)  
-  # use info on connectivity in voxjel array and Profiles to move 
-  # surface points to correct position  
-  new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
-
-  new_points = vtk.vtkPoints()
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
-  
-  vtkData = vtk.vtkFloatArray()
-  vtkData.SetName("order")
-  vtkData.SetNumberOfValues(len(verts))
-#   for v in verts:
-#     new_points.InsertNextPoint(v)
-  for i,v in enumerate(new_surf_points):
-    id = new_points.InsertNextPoint(v)
-    assert(i == id)
-    vtkData.SetValue(i,i)
-  for f in faces:
-    add_triangle(f[0], f[1], f[2], cells)
-    
-  polydata.SetPoints(new_points)
-  polydata.SetPolys(cells)
-  polydata.GetPointData().SetScalars(vtkData)
-  show_write_vtk(polydata,1000,"voxels_surface.vtp")
-  
-  # cell centers
-  vtk_cell_centers = vtk.vtkPoints()
-  center_ids = extract_cell_centers(array,vtk_cell_centers)
-  polydata = vtk.vtkPolyData() 
-  polydata.SetPoints(vtk_cell_centers)
-  show_write_vtk(polydata,1000,"cell_centers.vtp") 
   
   return array
 
@@ -1470,135 +1082,6 @@ def write_profile_to_array(array,profile,overlap):
     array[bound:res,bound:res,bound:res] = array[0:bound,0:bound,0:bound][::-1,::-1,::-1] 
   
   return overlap
-# find end node object in list with matching grid coordinates
-def get_end_node_by_grid_coords(i,j,end_nodes):
-  for idx,node in enumerate(end_nodes):
-    if node.i == i and node.j == j:
-      return node, idx
-  
-  return None, -1
-
-# check if projection of point onto triangle plane lies within triangle
-# @param vertices(coordinates) defining the triangle
-# @param point(coordinates) for testing
-# basic idea: express location of point via barycentric coordinates (using vertices)
-# if barycentric coordinates(s,t) >= 0 and sum <= 1, triangle contains point
-# calculation of barycentric coordinates:
-# - define line going from origin to point in parametric form
-# - define plane spanned by triangle's vertices
-# intersect line and plane to find projection (and parameters)  
-def triangle_contains_point(vertices,point):
-  origin=np.array((0.5,0.5,0.5))
-  assert(type(point) is list or type(point) is tuple or type(point) is numpy.ndarray)
-  
-  # if distance between one vertex and point is too big, omit point
-  if calc_distance(vertices[0].coords, point) > 5.0/res:
-    return False
-  # line equation from origin to point in parametric form                             
-  # P = origin + k * d
-  # plane equation in parametric form
-  # P = A + s*u + t*v
-
-  # setting line equation equals plane equation in order 
-  # to find parameters for projected point onto plane
-  # origin - A = s*u + t*v - k*d
-  
-  eps= 1e-4
-  
-  coords = []
-  for v in vertices:
-    coords.append(v.coords)
-  
-  A = np.array(coords[0])
-  B = np.array(coords[1])
-  C = np.array(coords[2])
-  
-  u = B - A
-  v = C - A
-  d = point - origin
-  
-  # intersect line and plane to find projected point (and respective parameters)
-  mat = np.transpose(np.asarray((u,v,-d), dtype=float))
-  rhs = origin - A 
-  
-  sol = linsolve_3x3(mat,rhs)
-  # sol[0] -> s, sol[1] -> t, sol[2] -> k
-#   print("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " d: " + str(sol[2]))
-  
-  if sol[0] > -eps and sol[1] > -eps and sol[0]+sol[1] < 1.0+eps:
-    log("projected point inside triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + ","  + str(vertices[2].id) + ")")
-    log("point: " + str(point) + " s: " + str(sol[0]) + " t:" + str(sol[1]) + " sum: " + str(sol[0]+sol[1]) + " k: " + str(sol[2]))
-    return True
-  else:
-    return False
-  
-# applying Cramer's rule
-# assume A is a numpy array, b a list
-def linsolve_3x3(A,b):
-  assert(isinstance(A,np.ndarray))
-  res = [None] * 3
-  
-  det = np.linalg.det(A)
-  
-  assert(det > 0.0 or det < 0.0)
-  
-  A1 = np.zeros((3,3))
-  A1[:,0] = b 
-  A1[:,1] = A[:,1]
-  A1[:,2] = A[:,2]
-  
-  A2 = np.zeros((3,3))
-  A2[:,0] = A[:,0]
-  A2[:,1] = b
-  A2[:,2] = A[:,2]
-  
-  A3 = np.zeros((3,3))
-  A3[:,0] = A[:,0] 
-  A3[:,1] = A[:,1]
-  A3[:,2] = b
-  
-  # x1 = det(A1)/det(A)
-  res[0] = np.linalg.det(A1) / det
-  # x2 = det(A2)/det(A)
-  res[1] = np.linalg.det(A2) / det
-  # x3 = det(A3)/det(A) 
-  res[2] = np.linalg.det(A3) / det
-  
-  return res
-    
-# @param: vertices defining triangle (coordinates)
-# for evaluating quality of triangle, we take the ration of the exradius to twice the inradius
-def calc_triangle_ratio(v1,v2,v3):
-  d1 = calc_distance(v1, v2) # a
-  d2 = calc_distance(v1, v3) # b
-  d3 = calc_distance(v2, v3) # c
-  
-  aspect_ratio = 0
-  denom = (d2+d3-d1) * (d1-d2+d3) * (d1+d2-d3)
-  if not close(denom,0,1e-10):
-    aspect_ratio = d1*d2*d3 / denom
-  else: # all three points form a line
-    aspect_ratio = 1e6
-  
-  assert(aspect_ratio >= 1-1e-12)
-  
-  return aspect_ratio
-
-# for a given end node, find another end node in 'end_nodes' list
-# which is the nearest (euclidean distance) one    
-def find_closest_point(ref_node,end_nodes):
-  # iterate over all end nodes in list and compare distances to 'ref' node
-  min_distance = 1e6
-  min_node = None
-   
-  for node in end_nodes:
-    dist = calc_distance(ref_node.coords, node.coords)
-    if dist < min_distance:
-      min_distance = dist
-      min_node = node
-  
-  log("closest node to id=" + str(ref_node.id) + ": id=" + str(min_node.id))
-  return min_node 
 
 # returns list with end nodes in neighborhood with certain radius
 # search for neighborhood is performed via kd-tree query  
@@ -1658,35 +1141,6 @@ def give_next_neighbor_on_circle(tree,node,end_nodes):
   
   return next
 
-# from a list of candidates, choose the third triangle vertice such that the resulting triangle has the smallest aspect_ratio
-def give_best_next_neighbor(history, triangles, candidates, vert1, vert2, quality_bound,tree,end_nodes):
-  if len(candidates) == 1 and (candidates[0].id == vert1.id or candidates[0].id == vert2.id):
-    return candidates[0]
-  best_ratio = 1e9
-  best_neighbor = None
-  
-  log("possible candidates: ",linebreak=False)
-  assert(candidates is not None)
-  for alt in candidates:
-    log(str(alt.id) + " ",linebreak=False)  
-  log("")
-  
-  feasible_cands = give_feasible_candidates(history,triangles,candidates,vert1,vert2,tree,end_nodes)
-  
-  for node in feasible_cands:
-    ratio = calc_triangle_ratio(vert1.coords, vert2.coords, node.coords)
-    log("triangle (" + str(vert1.id) + "," + str(vert2.id) + "," + str(node.id) + ") ratio=" + str(ratio))
-    if ratio < best_ratio:
-      best_ratio = ratio
-      best_neighbor = node
-  
-  assert(quality_bound is not None)
-  if quality_bound and best_ratio > quality_bound:
-    return None
-      
-  assert(best_neighbor is not None)
-  return best_neighbor
-
 def give_next_end_node_on_circle(node,end_nodes,max_i):
 #   assert(list_contains_end_nodes(node,end_nodes))
   if len(end_nodes) == 1:
@@ -1732,174 +1186,6 @@ def give_next_end_node_on_inner_circle(outer_node,inner_end_nodes):
   assert(not list_contains_end_nodes(outer_node, inner_end_nodes))
   return find_closest_point(outer_node, inner_end_nodes)
 
-# if we don't have alternatives (other candidates for next end node):
-# take care of triangle if detected a bad triangle (aspect ratio too big, contains projection of neighbors, ...)
-# corresponds to going one step backwards in algorithm
-# remove latest triangle and check second best candidate    
-def handle_bad_triangle(history,triangles,quality_bound,tree,end_nodes):
-  next = None
-  # if we don't have alternatives for neighbor end nodes
-#   if alternatives is None or len(alternatives) == 0:
-  while next is None:
-    # removes triangles as long as we don't have candidates for these triangles
-    if not pop_triangles(triangles):
-      return False
-
-    tri = triangles[-1] 
-    alternatives = tri.other_candidates
-    a = tri.edge[0]
-    b = tri.edge[1]
-    log("active edge: " + str(a.id) + "," + str(b.id))
-    tri.next = None
-    next = give_best_next_neighbor(history,triangles,alternatives, a, b, quality_bound,tree,end_nodes)
-    if next is not None:
-      # next is good, so it is not a candidate anymore
-      tri.other_candidates = [v for v in tri.other_candidates if v.id != next.id]
-      # reset all information with new next node  
-      tri.edge[0] = a if next.dir!=a.dir else b
-      assert(tri.edge[0].dir != next.dir) 
-      tri.edge[1] = next
-      tri.next = next
-      tri.vertices[2] = next
-      best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
-      log("set new triangle " + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + " with ratio " + str(best_ratio))
-      log("set active edge to (" + str(tri.edge[0].id) + "," + str(tri.edge[1].id) + ")")
-#       triangles.append(tri)
-      return True
-    else:
-      triangles.append(tri)
-      # best neighbor not found, so candidates are invalid
-      triangles[-1].other_candidates = []
-  return False  
-
-def add_good_triangle(triangles, a, b, next_cands, next):
-# decide whether a or b is member based on triangle ratios
-# and not profile directions as a.dir might be equal b.dir
-  edge_0 = a if a.dir != next.dir else b
-  alternatives = [v for v in next_cands if v.id != next.id]
-  triangles.append(Marching_Triangle([a, b, next], edge_0, next, alternatives))
-  best_ratio = calc_triangle_ratio(a.coords, b.coords, next.coords)
-#   assert(best_ratio < 30)
-  log("next:" + str(next.id))
-  log("created triangle " + str(a.id) + "," + str(b.id) + "," + str(next.id) + "  edge: " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id) + " with ratio " + str(best_ratio))
-  log("")
-
-def check_next_triangle(history,triangles,end_nodes,tree,quality_bound,initial_edge=None):
-  # take active edge from last triangle
-  active_edge = triangles[-1].edge
-  a = active_edge[0]
-  b = active_edge[1]
-  
-#   if a.id == 1386 and b.id == 2234:
-#     return False
-  
-  # don't compare last element in triangles to avoid self-comparison
-  if edge_already_connected(history+triangles[:-1],active_edge) and (initial_edge[0].id != a.id or initial_edge[1].id != b.id):
-    return False
-
-  log("\na: " + str(a.id))
-  log("b: " + str(b.id))
-  
-  next_cands = give_next_end_nodes_in_ball(tree, a, end_nodes)
-  next = give_best_next_neighbor(history,triangles,next_cands,a,b,quality_bound,tree,end_nodes)
-  if next is not None:
-    add_good_triangle(triangles, a, b, next_cands, next)
-    return True
-  else: # if both candidates are bad, we have go back to previous triangle an try alternative candidate
-    # dummy, will be removed in handle_bad_triangle    
-    triangles.append(Marching_Triangle([a,b,b],a,b,[]))   
-    # returns False if no alternatives left at all  
-    return handle_bad_triangle(history,triangles,quality_bound,tree,end_nodes)
-      
-# pop triangles that have no alternative candidates    
-def pop_triangles(triangles):
-  log("pt: number of triangles: " + str(len(triangles)))
-  log("pt: number of candidates: " + str(len(triangles[-1].other_candidates))) 
-
-  while len(triangles[-1].other_candidates) == 0:
-    vertices = triangles[-1].vertices
-    
-    if len(triangles) == 1:
-      return False
-    
-    log("number of triangles: " + str(len(triangles)))
-    log("remove triangle: " + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id))
-    triangles.pop()
-    
-  if len(triangles) == 1:
-    return False
-  vertices = triangles[-1].vertices
-  if triangles[-1].edge[0] == triangles[-1].next:
-    triangles[-1].edge[0] = [v for v in triangles[-1].vertices if v.id != triangles[-1].next.id and v.id != triangles[-1].edge[1].id][0]
-  else: #triangles[-1].edge[1] == triangles[-1].next
-    triangles[-1].edge[1] = [v for v in triangles[-1].vertices if v.id != triangles[-1].next.id and v.id != triangles[-1].edge[0].id][0]
-      
-  log("previous triangle: " + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id))
-  log("set edge to " + str(triangles[-1].edge[0].id) + "," + str(triangles[-1].edge[1].id))
-  log("with other_candidates: ",linebreak=False)
-  for cand in triangles[-1].other_candidates:
-    log(str(cand.id) + " ",linebreak=False)
-  log("")
-    
-  return True
- 
-# given 3 lists with end nodes of all 3 profiles
-# using a marching algorithm, we connect theses nodes step by step to triangles
-# start with one given triangle defined by end nodes of two profiles (assume each profile has a different color'
-# we call the edge that connects two differently colored nodes an 'active' edge
-# when a triangle was defined, continue with active edge and search for possible candidates (for new triangle)
-# in the neighborhood of the two edge vertices
-# @param triangles_history: contains all already defined triangles which has at
-# least one end nodes as vertex; need this info for overlap check              
-def fix_profile_intersection_gaps(profiles,end_nodes,cells,triangles_history):
-  # find profiles with biggest radius
-  start_dir = 0
-  start_radius = 0
-  for p in profiles:
-    if p.radius_left > start_radius:
-      start_dir = p.direction
-      start_radius = p.radius_left
-  
-#   # save all valid created triangles
-#   # we need to store it to make sure no triangle is defined more than once
-#   triangles_history = []    
-  # start from profile with biggest radius
-  nodes = sort_end_nodes_list(profiles,end_nodes) 
-  for n in nodes:
-    log(str(n))
-  assert(nodes)
-  tree = build_tree(end_nodes)
-  count = 0
-  num_nodes = len(nodes)
-  for count,n in enumerate(nodes):
-    start_node = n
-    
-    next = give_next_neighbor_in_other_profile(tree,start_node,end_nodes)
-    
-    log("\nstarting with " + str(start_node.id) + "," + str(next.id))
-    log("start: " + str(start_node.id) + " " + str(start_node.coords))
-    log("next: " + str(next.id) + " " + str(next.coords))
-    
-    out, out2 = start_triangulation(triangles_history,start_node,next,end_nodes,tree,cells)
-    if out2:
-      break
-    if not out:
-      log("skip " + str(n.id))
-#     count += 1
-#     if count == 20:
-#       break 
-    perc = count/num_nodes*100
-    print(count/num_nodes*100,"% of end nodes")
-    if perc > 30:
-      break
-      
-    
-  for tri in triangles_history:
-    verts = tri.vertices
-    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-        
-  check_duplicated_triangles(triangles_history)    
-        
 # generate points on the bounding circle (left and right) of a profile
 # radius is the current radius of a circle where we already have the boundary points
 # step is the step size we use to reduce the radius 
@@ -2030,98 +1316,6 @@ def list_contains_end_nodes(node,list):
       return True
   return False
 
-# starts triangulation algorithm for given initial triangle
-# all three nodes must be of type End_Node
-# next_node is on same 'circle/direction' as start_node
-# other_node is on other 'circle/direction' as start_node
-# @param history: list of triangles that we don't want to modify anymore,
-# need this list to make sure no triangle is defined more than once
-# @param start: starting node
-# @param next: node that lies on other profile than start
-# @param end_nodes: list with all end_nodes
-# @param kd-tree: needed for neigborhood search
-# @param cells: vtk list storing all valid triangles
-def start_triangulation(history,start,next,end_nodes,tree,cells):
-  triangles = [] # saves all triangles found by marching
-  initial_edge = [start,next]
-  
-  other_cands = give_next_end_nodes_in_ball(tree, start, end_nodes)
-  other = give_best_next_neighbor(history,triangles,other_cands,start,next,100,tree,end_nodes)
-  
-  # if first triangle already exists, go back to loop in fix_profile_intersection_gaps
-  for tri in history:
-    #if other is None or edge_already_connected(history, (start,next)):
-    if other is None:
-      #log("triangle " + str(start.id) + "," + str(next.id) + "," + str(other.id) + " already exists.")
-      log("edge (" + str(start.id) + "," + str(next.id) + ") already exists")
-      return False, False
-
-  assert(other is not None)
-  
-  log("other: " + str(other))
-
-  add_good_triangle(triangles, start, next, [], other)
-  
-  quality_bound = 5  
-  end = False
-  stop = False
-  #while not end and quality_bound < 30:
-  while not end:
-    # 3 possibilities: - False, nothing to go back we need to increase quality bound
-    # - True: Process next triangle
-    # - True: Reached the end
-    failed = not check_next_triangle(history,triangles, end_nodes, tree, quality_bound, initial_edge)
-    # check if we have just created a triangle where new active edge is 
-    # identical to active edge of very first triangle --> we are finished!
-    if failed:
-      # for debugging
-#       if len(triangles) > 1:
-#         history += triangles
-#         return False, True
-      
-      # if check_next_triangle failed because we have reached an edge which was
-      # already part of previous triangulations, stop this triangulation
-      if edge_already_connected(history+triangles[:-1],(triangles[-1].edge)):
-        break
-      # Start again with more tolerant quality bound
-      quality_bound *= 1.5
-      log("increased quality_bound to " + str(quality_bound))
-      if quality_bound > 30:
-        print("Quality bound exceeded: ",quality_bound)
-#       triangles.pop()
-    else:
-      edge = triangles[-1].edge
-      # if we have reached the very first edge, we're done
-      if len(triangles) > 2 and (edge[0].id == initial_edge[0].id and edge[1].id == initial_edge[1].id) or (edge[0].id == initial_edge[1].id and edge[1].id == initial_edge[0].id):
-        log("filled")
-        print("filled")
-        end = True
-        break
-      # find out if we have reached an edge which is already part of another triangle
-      # if this is the case, we are done for this given starting node
-      # this is the case when we have gaps going through all 3 profiles 
-      # (e.g x1=y1=z1)
-      # triangles[:-1]:don't compare edge with its own triangle
-      if len(triangles) > 2 and edge_already_connected(history+triangles[:-1],edge):
-        log("filled")
-        print("filled")
-
-#         history += triangles
-#         print("here")
-#         return True, True
-        break
-      
-#   if quality_bound >= 30:
-#     print(len(history))
-#     print(len(triangles))
-#     print("Quality bound exceeded limit of 30!")
-#     history += triangles
-#     return False,True
-    
-  history += triangles
-  
-  return True, stop  
-
 # connects points on an outer (larger radius) circle with 
 # points on an inner circle(smaller radius) by using triangles; 
 # similar to start_triangulation, but simpler as trianglulation
@@ -2173,36 +1367,6 @@ def get_max_grid_coords(end_nodes):
       max_i = n.i
   
   return max_i
-
-def read_vtk(filename):
-  reader = vtk.vtkXMLPolyDataReader()
-  reader.SetFileName(filename)
-  reader.Update()
-  polydata = reader.GetOutput()
-  points = vtk_to_numpy(polydata.GetPoints().GetData())
-  cells = vtk_to_numpy(polydata.GetPolys().GetData())
-  
-  points = points.tolist()
-    
-  print(points)
-  print(cells) 
-
-  return points,cells
-
-def surface_to_volume_mesh(ps,cs):
-  mesh_info = MeshInfo()
-  
-  mesh_info.set_points(ps)
-  mesh_info.set_facets(tris)
-  
-  mesh = build(mesh_info)
-  print("Mesh Points:")
-  for i, p in enumerate(mesh.points):
-      print(str(i) + "," + str(p) + "\n")
-  print("Point numbers in tetrahedra:")
-  for i, t in enumerate(mesh.elements):
-      print(str(i) + "," + str(t) + "\n")
-  mesh.write_vtk("test.vtk")
 
 # helper function for calc_radius_for_quadrant
 # return linear interpolation between principal spline and bisec
@@ -2342,78 +1506,6 @@ def calc_radius_heaviside_asymm(splines,bisecs,x,rad):
   
   return calc_radius_heaviside((spline_1,spline_2),bisec,x,rad,phi,offset)
     
-# helper function for building a kd-tree
-# @param list containing end nodes objects
-# @returns scipy.spatial.kdtree object
-def build_tree(end_nodes):
-  # copy all end node coordinates to one 2d array
-  points = np.ones((len(end_nodes),3)) * (-1.0)
-  for idx,n in enumerate(end_nodes):
-    points[idx] = n.coords
-  # build tree
-  return spatial.cKDTree(points)#
-
-# calculates barycenter/centroid of a triangle
-# @param coordinates of the three vertices defining that triangle
-def calc_triangle_barycenter(vert1,vert2,vert3):
-  return 1.0/3.0 * (np.array(vert1)+np.array(vert2)+np.array(vert3))
-
-# returns 3 points
-# 1st point lies on median between triangle's barycenter and vert1 and distance from vert1 to that point is eps
-# 2nd point lies on median between triangle's barycenter and vert2 and distance from vert1 to that point is eps
-# 3rd point lies on median between triangle's barycenter and vert3 and distance from vert1 to that point is eps
-def calc_points_on_triangle_medians(vert1,vert2,vert3,eps=1e-3):
-  centroid = calc_triangle_barycenter(vert1, vert2, vert3)
-  
-  # directional vector from vert1 to centroid 
-  d1 = centroid - vert1 
-  p1 = vert1 + eps * d1
-  # directional vector from vert2 to centroid
-  d2 = centroid - vert2 
-  p2 = vert2 + eps * d2
-  # directional vector from vert3 to centroid
-  d3 = centroid - vert3 
-  p3 = vert3 + eps * d3
-  
-  return p1,p2,p3
-
-# check if triangle defined by its 3 vertices overlaps with
-# other triangles in list
-# @param list of triangles that are o.k. so far
-# @param vertices(end nodes) defining triangle that we want to check
-# a triangle overlaps a second one if three of its inner points,
-# projected on plane of second triangle, lie inside second triangle
-# the three inner points are chosen such that they lie on the
-# three medians of the triangle and are close to the three vertices
-# (distance controlled by eps)
-def triangle_overlap_others(triangles,vertices):
-  assert(len(vertices) == 3)
-  # points for testing
-  sample1, sample2, sample3 = calc_points_on_triangle_medians(vertices[0].coords, vertices[1].coords, vertices[2].coords,eps=0.01)
-  bary1 = calc_triangle_barycenter(vertices[0].coords, vertices[1].coords, vertices[2].coords)
-  # don't check last triangle as it might be the one we want to modify
-  for tri in triangles:
-    if tri.next is None:
-      log("skip overlap check for (" + str(tri.vertices[0].id) + "," + str(tri.vertices[1].id) + "," + str(tri.vertices[2].id) + ") and (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ")")
-      continue
-    
-    # if triangles are too far away from each other, we don't care about overlapping projections
-    bary2 = calc_triangle_barycenter(tri.vertices[0].coords, tri.vertices[1].coords, tri.vertices[2].coords)
-    if (calc_distance(bary1, bary2) > 0.3):
-#       log("distance = " + str(calc_distance(bary1, bary2)))
-      continue
-    
-#     log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") overlap other with (",linebreak=False)
-#     for vert in tri.vertices:
-#       log(str(vert.id) + ",", linebreak=False)
-#     log("")
-    
-    if triangle_contains_point(tri.vertices,sample1) or triangle_contains_point(tri.vertices,sample2) or triangle_contains_point(tri.vertices,sample3):
-      return True
-    
-  # no overlapping found  
-  return False
-
 def dump_end_nodes(list):
   out = open("end_nodes.txt","w")
   for n in list:
@@ -2429,116 +1521,6 @@ def check_duplicated_triangles(triangles):
       if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
         #raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
         print("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
-
-# returns a list of end nodes that can form feasible triangles with vert1 and vert2
-# @param history is a list with Marching Triangles that should not be modified anymore
-# @param triangles is list with current Marchin Triangles that we are working on, 
-#        e.g. new triangles are added or bad ones are deleted
-# a candidate 'cand' is feasible when all following criteria are fulfilled:
-# - if cand is on same profile as vert1 or vert2, it must be a direct neighbor
-# - triangle defined by cand, vert1, vert2 must not already exist and must not overlap other already created triangles
-# - vert1, vert2 and cand must differ from each other (not the same id) 
-# @param end_nodes: triangle is infeasible if one of other end_nodes lies inside triangle
-def give_feasible_candidates(history,triangles,candidates,vert1,vert2,tree,end_nodes):
-  cands = []
-  for node in candidates:
-    test_triangle = [vert1,vert2,node]
-    if node.id == vert1.id or node.id == vert2.id:
-      continue
-    # if not direct neighbor; take care of modulo res as i = 0 and i = res-1 are also neighbors!
-    if node.dir == vert1.dir and (abs(node.i - vert1.i) > 1 and not abs(node.i - vert1.i) == res-1 or abs(node.j - vert1.j) > 1 and not abs(node.j - vert1.j) == res-1):
-      continue
-    if node.dir == vert2.dir and (abs(node.i - vert2.i) > 1 and not abs(node.i - vert2.i) == res-1 or abs(node.j - vert2.j) > 1 and not abs(node.j - vert2.j) == res-1):
-      continue
-    if len(triangles) > 0 and triangles[-1].is_triangle(vert1,vert2,node):
-      continue
-    if node.id == vert1.id or node.id == vert2.id:
-      continue
-    if triangle_overlap_others(history+triangles,test_triangle):
-      continue
-    if triangle_contains_any_neighbors(tree,test_triangle,end_nodes):
-      continue
-    if triangle_contains_any_end_nodes(test_triangle,end_nodes):
-      continue
-    # found a feasible candidate
-    cands.append(node)
-    log("feasible candidate for " + str(vert1.id) + "," + str(vert2.id) + ": " + str(node.id))
-    
-  return cands
-  
-# find out if we have reached an edge which is already part of another triangle
-# if this is the case, we are done for this given starting node
-# this is the case when we have gaps going through all 3 profiles 
-# (e.g x1=y1=z1)
-def edge_already_connected(triangles,edge):
-  for tri in triangles:
-    # copy ids in lists
-    ref = [tri.vertices[0].id,tri.vertices[1].id,tri.vertices[2].id]
-    comp = [edge[0].id,edge[1].id]
-    # check if all items in comp are also included in ref
-    if all([item in ref for item in comp]):
-      log("edge " + str(comp) + " already connected to triangle " + str(ref))
-      
-      return True
-    
-  return False
-
-# sort list of end nodes from profile direct with largest radius to smallest 
-def sort_end_nodes_list(profiles,end_nodes): 
-  # dont't sort if all radii are the same 
-  if profiles[0].radius_left == profiles[1].radius_left and profiles[1].radius_left == profiles[2].radius_left: 
-    return end_nodes 
- 
-  radii = [profiles[0].radius_left,profiles[1].radius_left,profiles[2].radius_left] 
-  dirs = [profiles[0].direction,profiles[1].direction,profiles[2].direction] 
-   
-  # sort directions depending on profile radii 
-  sorted_dirs = np.array(dirs)[np.argsort(radii)]#[::-1] 
-   
-  new_list = [] 
-   
-  # append nodes in the order of sorted directions 
-  for d in sorted_dirs: 
-    for n in end_nodes: 
-      if n.dir == d: 
-        new_list.append(n) 
-   
-  assert(len(new_list) == len(end_nodes)) 
-   
-  return new_list
-
-# for each end node, check if any of its neighbors is contained in triangle
-# @param tree: built-in kd-tree of end_nodes
-# @param vertices: list with 3 end nodes that span a triangle
-# @param end_nodes: list with all end_nodes
-# @param radius: radius for neighborhood search    
-def triangle_contains_any_neighbors(tree,vertices,end_nodes,radius=5.0/res):
-  other_nodes = []
-  for vert in vertices:
-    other_nodes += give_next_end_nodes_in_ball(tree, vert, end_nodes)
-  
-  other_nodes = [v for v in other_nodes if v.id != vertices[0].id and v.id != vertices[1].id and v.id != vertices[2].id]  
-  
-  for n in other_nodes:
-    assert(n.id != vertices[0].id)
-    assert(n.id != vertices[1].id)
-    assert(n.id != vertices[2].id)
-#       log("check if triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + " contains node " + str(n[1]))
-    if triangle_contains_point(vertices,n.coords):
-      log("TCAN:triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(n.id))
-      return True    
-  
-  return False
-
-def triangle_contains_any_end_nodes(vertices,end_nodes):
-  for node in end_nodes:
-    if vertices[0].id == node.id or vertices[1].id == node.id or vertices[2].id == node.id:
-        continue
-    if triangle_contains_point(vertices, node.coords):
-      log("triangle (" + str(vertices[0].id) + "," + str(vertices[1].id) + "," + str(vertices[2].id) + ") contains node " + str(node.id))
-      return True
-  
-  return False
 
 def write_polylines_to_vtk(profile,res,numLines,points,lines):
   nodes = get_surface_lines(profile)
@@ -2577,55 +1559,6 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
   
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1
-
-# for given voxel array, extract cell centers of surface voxels
-def extract_cell_centers(array,vtk_points):
-  center_ids = np.ones(array.shape[0:3],dtype=int) * (-1)
-  
-  res = array.shape[0]
-  h = 1.0/res
-  count = 0
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        x = i * h + h / 2.0
-        y = j * h + h / 2.0 
-        z = k * h + h / 2.0
-        
-        # detect cell on surface
-        if array[i,j,k] >= 0: # this is a valid cell
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              center_ids[i,j,k] = vtk_points.InsertNextPoint((x,y,z))
-              count +=1
-          else: # cells on the boundary
-            center_ids[i,j,k] =  vtk_points.InsertNextPoint((x,y,z))
-            count +=1
-            
-  return center_ids
-
-def get_next_array_indices(i,j,k,array):
-  assert(array.shape[0] == array.shape[1] and array.shape[1] == array.shape[2])
-  lenx = array.shape[0]
-  next_i = i 
-  next_j = j 
-  next_k = k 
-  # first, try to increase k
-  if k == lenx-1:
-    next_k = 0
-    if j == lenx-1:
-      next_j = 0
-      next_i += 1
-    else:
-      next_j += 1
-  else:
-    next_k += 1
-  
-  assert(next_i >= 0 and next_i < lenx)
-  assert(next_j >= 0 and next_j < lenx)
-  assert(next_k >= 0 and next_k < lenx)  
-  
-  return next_i, next_j, next_k            
 
 # use info on connectivity in voxel array and Profiles to move 
 # surface points to correct position
