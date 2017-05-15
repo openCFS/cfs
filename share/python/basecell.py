@@ -177,7 +177,7 @@ parser.add_argument('--show', help="show final structure in new window", action=
 parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
 parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
 parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh"], required=True)
+parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh","contour"], required=True)
 parser.add_argument('--save', help="overwrite default target name")
 parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
 parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
