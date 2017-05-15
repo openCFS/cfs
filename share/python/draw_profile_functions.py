@@ -861,7 +861,7 @@ def generate_basecell(args,info,log):
       
       plt.show()
       
-    if args.target == "volume_mesh" or args.target == "surface_mesh":
+    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "contour":
       global symmetric
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
@@ -882,7 +882,7 @@ def generate_basecell(args,info,log):
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
-  if args.target == "surface_mesh":
+  if args.target == "surface_mesh" or args.target == "contour":
     ############################ new surface mesh approach ####################
     # binary helper array
     helper = np.zeros(array.shape[0:3],dtype=int)
@@ -898,21 +898,33 @@ def generate_basecell(args,info,log):
     
     # Use marching cubes to obtain the surface mesh of voxelized structure
     h = 1.0/args.res
-    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h))
+    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h),allow_degenerate=True)
     
+    verts = verts.astype(np.float64)
+
     for v in verts:
       v += (h/2.0,h/2.0,h/2.0)
       
-    assert(overlap is not None)  
-    # use info on connectivity in voxjel array and Profiles to move 
-    # surface points to correct position  
-    new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
+    assert(overlap is not None)
+    new_surf_points = None
+    if args.target == "contour": 
+      new_surf_points = verts
+    else: 
+      # use info on connectivity in voxjel array and Profiles to move 
+      # surface points to correct position  
+      new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
+    
+    assert(new_surf_points is not None)
     
     vtk_points = vtk.vtkPoints()
     cells = vtk.vtkCellArray()
     polydata = vtk.vtkPolyData()
     
-    mesh_boundary_circles(new_surf_points,vtk_points,cells)
+    if args.tets:
+      mesh_boundary_circles(new_surf_points,vtk_points,cells)
+    else:
+      for p in new_surf_points:
+        vtk_points.InsertNextPoint(p)
     
     # adding triangles connectivity from Marching Cube
     for f in faces:
@@ -927,8 +939,6 @@ def generate_basecell(args,info,log):
     if args.save_vtp:  
       show_write_vtk(polydata,1000,args.save+".vtp")
     
-    if args.tets:
-      triangulate_boundary_circles(profile, nodes_ids, id, points, cells, vtkData)      
 
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1308,7 +1318,8 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       for d in overlap_dirs:
         points.append(adjust_surface_point(profiles,v,int(d)))
 
-      point = give_furthest_point_from_plane(v,normals[count],points)  
+#       point = give_furthest_point_from_plane(v,normals[count],points)
+        point = give_average_point(points)  
 #       print(np.argsort(distances)[0])
 #       point = points[np.argsort(distances)[0]] # take largest distance
     else:  
@@ -1369,7 +1380,14 @@ def give_furthest_point_from_plane(base,normal,points):
     distances.append(calc_distance_plane_point(base,normal,p))
   
   # argsort sorts for smallest distance  
-  return points[np.argsort(distances)[-1]]  
+  return points[np.argsort(distances)[-1]]
+
+def give_average_point(points):
+  new = np.zeros(3)
+  for p in points:
+    new += p
+    
+  return new / len(points)
 
 # calculates distance of a point from a plane defined by normal vector and 1 point in plane
 # normal: n = (a,b,c)
