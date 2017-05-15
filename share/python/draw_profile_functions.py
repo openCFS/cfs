@@ -1369,19 +1369,6 @@ def adjust_surface_point(profiles,v,major_dir):
   
   return point
 
-# for a given set of points, determine the point which is further away
-# from plane than the others
-# @param base: point in plane
-# @param normal: normal vector of plane
-# @param points: list of points for testing
-def give_furthest_point_from_plane(base,normal,points):
-  distances = []
-  for p in points:
-    distances.append(calc_distance_plane_point(base,normal,p))
-  
-  # argsort sorts for smallest distance  
-  return points[np.argsort(distances)[-1]]
-
 def give_average_point(points):
   new = np.zeros(3)
   for p in points:
