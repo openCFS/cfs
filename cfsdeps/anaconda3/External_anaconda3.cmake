@@ -1,4 +1,5 @@
 # anaconda by continuum analytics
+cmake_policy(VERSION 3.6) # needed for "DOWNLOAD_NO_EXTRACT 1"
 
 #-------------------------------------------------------------------------------
 # Set prefix path and path to sources according to ExternalProject.cmake 
