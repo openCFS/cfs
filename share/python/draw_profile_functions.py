@@ -36,29 +36,6 @@ infoXml = None
 interpolation = None
 symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 
-class End_Node():
-  coords = None
-  id = -1 # vtk id of point
-  i = -1 # first index in surface map, corresponds to surface line
-  j = -1 # second index in surface map, where on surface line 
-  dir = -1 # to which structure does this end node belongs to (x,y,z)(1,2,3)?
-  next = None # store next end node in clock-wise direction when we have to step over a valley
-    
-  def __init__(self,coords,id,dir,i,j):
-    assert(len(coords) == 3)
-    self.coords = coords
-    self.id = id
-    self.i = i
-    self.j = j
-    self.dir = dir
-    
-  def __str__(self):
-#     return str(self.id) + "   " + str(self.coords[0]) + " " + str(self.coords[1]) + " " + str(self.coords[2]) + " " + str(self.dir)
-    return "id=" + str(self.id) + " coords:" + str(self.coords) + " i=" + str(self.i) + " j=" + str(self.j) + " dir=" + str(self.dir)
-  
-  def __eq__(self,other):
-    return self.id == other.id
-  
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
   # a cubic spline is defined by its base functions and control polygon
@@ -804,6 +781,22 @@ def get_surface_lines(profile):
   
   return nodes
 
+# @param alpha in radians
+def get_surface_point_candidate(profile,alpha,x):
+  assert(alpha >= 0 and alpha <= 2.0*np.pi)
+ 
+  radius = calc_radius(profile, x, alpha)
+  px,py = polar_to_cartesian(radius, alpha)
+ 
+  point = np.zeros(3)
+  major_dir = profile.direction
+  minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+  point[major_dir] = x
+  point[minor_dir_1] = px
+  point[minor_dir_2] = py
+ 
+  return point
+
 def add_triangle(id1,id2,id3,cells):
   assert(id1 != id2 and id2 != id3)
   tri = vtk.vtkTriangle()
@@ -1089,291 +1082,6 @@ def write_profile_to_array(array,profile,overlap):
   
   return overlap
 
-# returns list with end nodes in neighborhood with certain radius
-# search for neighborhood is performed via kd-tree query  
-# @param 'node' of interest
-# @param list with all 'end_nodes' 
-# @param ball 'radius' for neighborhood
-def give_next_end_nodes_in_ball(tree,node,end_nodes):
-  radius=10.0/res
-  # get indices of nearest neighbors within ball radius
-  indices = tree.query_ball_point(node.coords,radius)
-  candidates = []
-  # extract nearest end nodes
-  for i in indices:
-    candidates.append(end_nodes[i])
-  
-  assert(len(candidates) > 0)
-  return candidates
-
-# returns nearest end node to 'node' which is on a different profile than 'node'
-# @param kd-tree which we are using to find neighbors within a ball
-# @param node for which we are searching a neighbor for
-# @param end_nodes list for search
-def give_next_neighbor_in_other_profile(tree,node,end_nodes):
-  candidates = give_next_end_nodes_in_ball(tree, node, end_nodes)
-  next = None
-  distance = 1e6
-  # search for end node on other profile with smallest distance to 'node'
-  for c in candidates:
-    if c.dir != node.dir:
-      d = calc_distance(c.coords, node.coords)
-      if d < distance:
-        distance = d
-        next = c
-  
-  assert(next is not None)  
-  assert(next.dir != node.dir)
-  return next
-
-# similar to give_next_neighbor_in_other_profile, but here
-# we are looking for a neighbor on a given list of end_nodes defining a circle
-# (in the same profile!)
-# @param kd-tree which we are using to find neighbors within a ball
-# @param node for which we are searching a neighbor for
-# @param list with search end nodes defining a circle
-def give_next_neighbor_on_circle(tree,node,end_nodes):
-  candidates = give_next_end_nodes_in_ball(tree, node, end_nodes)
-  next = None
-  distance = 1e6
-  # search for end node on other profile with smallest distance to 'node'
-  for c in candidates:
-    d = calc_distance(c.coords, node.coords)
-    if d < distance and c != node:
-      distance = d
-      next = c
-  
-  assert(next is not None)  
-  
-  return next
-
-def give_next_end_node_on_circle(node,end_nodes,max_i):
-#   assert(list_contains_end_nodes(node,end_nodes))
-  if len(end_nodes) == 1:
-    return node
-  
-  # find direct neighbors
-  next = [v for v in end_nodes if v.i == (node.i+1)%(max_i+1) and v.j == node.j]
-  
-  assert(len(next) == 1)
- 
-  return next[0]
-
-def give_best_next_end_node_on_circle(triangles,outer_node,inner_node,outer_end_nodes,inner_end_nodes,first,second):
-    
-  max_i_outer = get_max_grid_coords(outer_end_nodes)
-  max_i_inner = get_max_grid_coords(inner_end_nodes) 
-#   log("max_i_outer:" + str(max_i_outer))
-#   log("max_i_inner:" + str(max_i_inner))
-  
-  next_outer = give_next_end_node_on_circle(outer_node,outer_end_nodes,max_i_outer)
-  next_inner = give_next_end_node_on_circle(inner_node,inner_end_nodes,max_i_inner)
-  
-  if len(triangles) > 2:
-    if outer_node == first:
-      next_outer = first
-    if inner_node == second:
-      next_inner = second
-  
-  log("next_outer:" + str(next_outer.id))
-  log("next_inner:" + str(next_inner.id))
-  
-  rat_outer = calc_triangle_ratio(outer_node.coords,inner_node.coords,next_outer.coords)
-  rat_inner = calc_triangle_ratio(outer_node.coords,inner_node.coords,next_inner.coords)
-  
-    
-  next = next_outer if rat_outer < rat_inner else next_inner
-  log("next: " + str(next.id) + " ratio: " + str(min(rat_outer,rat_inner)))
-  
-  return next
-  
-# for a given node on outer circle, return closest node on inner circle
-def give_next_end_node_on_inner_circle(outer_node,inner_end_nodes):
-  assert(not list_contains_end_nodes(outer_node, inner_end_nodes))
-  return find_closest_point(outer_node, inner_end_nodes)
-
-# generate points on the bounding circle (left and right) of a profile
-# radius is the current radius of a circle where we already have the boundary points
-# step is the step size we use to reduce the radius 
-# the reduced radius is then used to sample end nodes
-# when introducing new nodes in the mesh, we also have to assign them an unique id
-# id+1 is the current number of points in the surface mesh
-def generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,set_id=True):
-  global res
-  dir = profile.direction
-  
-  # number of points change with circle radius
-  tmp_res = 0
-  # in case step size is so big such that radius -= step becomes negative
-  if radius < 0:
-    radius = 1e-4
-  
-  step_angle = degrees(arc_length / radius)
-  
-  log("arc length:" + str(arc_length))
-  log("radius: " + str(radius))
-  log("step_angle: " + str(step_angle))
-  
-  nodes_left = []
-  nodes_right = []
-  
-  for line,angle in enumerate(np.arange(0,360,step_angle)):
-    if angle > 0 and (360.0 - angle) < step_angle/2.0:
-      break
-    tmp_res += 1
-    x,y = polar_to_cartesian(radius, radians(angle), 0.5)
-    coords_left = np.zeros(3)
-    coords_right = np.zeros(3)
-    major_dir = dir
-    minor_dir_1, minor_dir_2 = give_normal_plane_axes(dir)
-    assert(major_dir != minor_dir_1 and major_dir != minor_dir_2)
-    coords_left[minor_dir_1] = x
-    coords_left[minor_dir_2] = y
-    coords_left[major_dir] = 0.0
-    
-    coords_right[minor_dir_1] = x
-    coords_right[minor_dir_2] = y
-    coords_right[major_dir] = 1.0 
-    
-    # assign any other direction to end node as triangulation routine assumes two different directions  
-    nodes_left.append(End_Node(coords_left,id,dir,line,0))
-    if set_id:
-      id += 1  
-      vtk_id = points.InsertNextPoint(coords_left)
-      
-      vtkData.InsertValue(vtk_id,-1)
-      if vtk_id != nodes_left[-1].id:
-        print(("vtk_id:" + str(vtk_id) + " id: " + str(nodes_left[-1].id)))
-      assert(vtk_id == nodes_left[-1].id)  
-    
-    # assign any other direction to end node as triangulation routine assumes two different directions
-    nodes_right.append(End_Node(coords_right,id,dir,line,res-1))
-    if set_id:
-      id += 1  
-      vtk_id = points.InsertNextPoint(coords_right)
-      vtkData.InsertValue(vtk_id,-1)
-      if vtk_id != nodes_right[-1].id:
-        print(("vtk_id" + str(vtk_id) + " id: " + str(nodes_right[-1].id)))
-      assert(vtk_id == nodes_right[-1].id)   
-    # if radius is too small, we only have one point left
-    if radius < 1e-3:
-      break    
-  
-  return nodes_left, nodes_right, id, tmp_res
-
-# meshes the left and right boundary circles of a profile with triangles
-# for this, we need to add additional points on smaller circles within starting circle
-# we need nodes_ids to determine ids of points on starting circle 
-def triangulate_boundary_circles(profile,nodes_ids,id,points,cells,vtkData):
-  radius = profile.radius_left
-  arc_length = radius * radians(360.0/np.size(nodes_ids,1))
-  outer_points_left, outer_points_right,id, blah = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id,False)
-  set_correct_point_ids(outer_points_left, outer_points_right,nodes_ids)
-   
-  inner_points_left = []
-  inner_points_right = []
-  triangles = []
-  step = 4.0/res
-  tmp_res = 0
-  
-  # create points on circles lying in the same plane as original circle
-  while len(outer_points_left) > 1 and len(outer_points_right) > 1:
-    radius -= step
-    inner_points_left, inner_points_right, id, tmp_res = generate_end_nodes_in_circle(profile,arc_length,radius,points,vtkData,id)
-     
-    # previous_points_* are the points on the outer circle
-    # left: x=0, right: x = 1
-    for lists in [(outer_points_left,inner_points_left),(outer_points_right,inner_points_right)]:
-      # set fictional profile affiliation to distinguish which
-      # nodes are on outer circle and which ones are on inner circle
-      # in fact, they are all in the same profile
-      for p in lists[0]:
-        p.dir = 5
-      for p in lists[1]:
-        p.dir = 6
-          
-      start = lists[0][0]
-      next = give_next_end_node_on_inner_circle(start,lists[1])
-      log("\nstart:" + str(start.id))
-      log("next:" + str(next.id))
-      start_boundary_circle_triangulation(start,next,lists[0],lists[1],cells)
-       
-    outer_points_left = inner_points_left
-    outer_points_right = inner_points_right
-    
-  return id
-
-# this is called after first call of generate_end_nodes_in_circle
-# as that method returns end nodes on the outmost circles, but with wrong ids
-# here we set the right (original) ids     
-def set_correct_point_ids(nodes_left, nodes_right, nodes_ids):
-  for node in nodes_left:
-    assert(nodes_ids[node.i,node.j] > -1)
-    node.id = nodes_ids[node.i,node.j]
-
-  for node in nodes_right:
-    assert(nodes_ids[node.i,node.j] > -1)
-    node.id = nodes_ids[node.i,node.j]  
-    
-# checks if node is in list    
-def list_contains_end_nodes(node,list):
-  for n in list:
-    if n.id == node.id:
-      return True
-  return False
-
-# connects points on an outer (larger radius) circle with 
-# points on an inner circle(smaller radius) by using triangles; 
-# similar to start_triangulation, but simpler as trianglulation
-# here is straightforward and we don't need to check quality bounds
-# @param first is first end node of triangulation and lies on outer circle
-# @param second is second end node of triangulation and lies on inner circle
-def start_boundary_circle_triangulation(first,second,outer_end_nodes,inner_end_nodes,cells):
-  triangles = [] # saves all triangles found by marching
-  
-  end = False
-  # we know that first lies on outer circle and next on inner circle
-  outer_dir = first.dir 
-  inner_dir = second.dir
-  outer_node = first
-  inner_node = second
-  count = 0
-  next = None # third vertex of triangle
-  while not end: 
-    log("\nouter:" + str(outer_node.id))
-    log("inner:" + str(inner_node.id))
-    
-    next = give_best_next_end_node_on_circle(triangles,outer_node, inner_node, outer_end_nodes, inner_end_nodes,first,second)
-    assert(next is not None)
-    log("next:" + str(next.id))
-    # find node that is first vertex of next triangle
-    # next is second vertex of next triangle
-    add_good_triangle(triangles, outer_node, inner_node, [], next)
-    
-    edge = triangles[-1].edge
-    if len(triangles) > 2 and (edge[0].id == first.id and edge[1].id == second.id) or (edge[0].id == second.id and edge[1].id == first.id):
-      log("filled")
-      end = True
-      
-    outer_node = next if next.dir == outer_dir else edge[0]
-    inner_node = next if next.dir == inner_dir else edge[0]
-    
-    assert(next.dir != edge[0].dir)
-    
-  for triangle in triangles:
-    verts = triangle.vertices
-    add_triangle(verts[0].id, verts[1].id, verts[2].id, cells)
-  
-  return True
-
-def get_max_grid_coords(end_nodes):
-  max_i = 0
-  for n in end_nodes:
-    if n.i > max_i:
-      max_i = n.i
-  
-  return max_i
-
 # helper function for calc_radius_for_quadrant
 # return linear interpolation between principal spline and bisec
 # @param funcs: array with 3 entries: spline1, bisec, spline2
@@ -1512,22 +1220,6 @@ def calc_radius_heaviside_asymm(splines,bisecs,x,rad):
   
   return calc_radius_heaviside((spline_1,spline_2),bisec,x,rad,phi,offset)
     
-def dump_end_nodes(list):
-  out = open("end_nodes.txt","w")
-  for n in list:
-    out.write(str(n) + "\n")
-  
-  out.close()
-
-def check_duplicated_triangles(triangles):
-  for i,this in enumerate(triangles):
-    for j,other in enumerate(triangles):
-      if i == j:
-        continue
-      if this.is_triangle(other.vertices[0],other.vertices[1],other.vertices[2]):
-        #raise Exception("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
-        print("found duplicated triangle (" + str(this.vertices[0].id) + "," + str(this.vertices[1].id) + "," + str(this.vertices[2].id) + ")")
-
 def write_polylines_to_vtk(profile,res,numLines,points,lines):
   nodes = get_surface_lines(profile)
   for i in range(numLines):
