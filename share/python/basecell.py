@@ -158,132 +158,176 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   return mesh
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
-parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
-# for profile functions
-parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
-parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 < x1 < 1", type=float)
-parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 < x2 < 1", type=float)
-parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 < y1 < 1", type=float)
-parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 < y2 < 1", type=float)
-parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
-parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
-parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
-parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
-parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
-parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
-parser.add_argument('--show', help="show final structure in new window", action='store_true')
-parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
-parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
-parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh","contour"], required=True)
-parser.add_argument('--save', help="overwrite default target name")
-parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
-parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
-parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
-parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
-parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
-parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
-parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
-parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
-parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
-parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
+if __name__ == "__main__":
+  import doctest, draw_profile_functions
+  doctest.testmod(draw_profile_functions)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
+  parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
+  # for profile functions
+  parser.add_argument('--stiffness', help="stiffness for profile of bar in all directions (x1,x2,y1,...); in [0,1]", type=float)
+  parser.add_argument('--x1', help="first stiffness for profile of bar in x-direction; 0 < x1 < 1", type=float)
+  parser.add_argument('--x2', help="second stiffness for profile of bar in x-direction; 0 < x2 < 1", type=float)
+  parser.add_argument('--y1', help="first stiffness for profile of bar in y-direction; 0 < y1 < 1", type=float)
+  parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 < y2 < 1", type=float)
+  parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
+  parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
+  parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
+  parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
+  parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
+  parser.add_argument('--skip_z', help="don't show bar in z direction", action='store_true')
+  parser.add_argument('--show', help="show final structure in new window", action='store_true')
+  parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
+  parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
+  parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
+  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh","contour"], required=True)
+  parser.add_argument('--save', help="overwrite default target name")
+  parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
+  parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
+  parser.add_argument('--export', help="export different stuff", choices=['radius_maps','surface_points'], required=False)
+  parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
+  parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
+  parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
+  parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
+  parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
+  parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
+  parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
+  
+  args = parser.parse_args()
+  
 
-args = parser.parse_args()
-
-# if __name__ == "__main__":
-#   import doctest, draw_profile_functions
-#   doctest.testmod(draw_profile_functions)
-
-if args.res_surf_lines is None:
-  args.res_surf_lines = args.res
-
-if args.stiffness is not None:
-  args.x1 = args.stiffness
-  args.x2 = args.stiffness
-  args.y1 = args.stiffness
-  args.y2 = args.stiffness
-  args.z1 = args.stiffness
-  args.z2 = args.stiffness
-else:
-  if args.x1 == None or args.y1 == None or args.z1 == None:
-    print("Error:stiffness or x1, y1, z1 necessary!")
-    sys.exit(1)
-
-  if args.x2 == None:
-    args.x2 = args.x1
-    
-  if args.y2 == None:
-    args.y2 = args.y1
-    
-  if args.z2 == None:
-    args.z2 = args.z1
-    
-val = args.x1
-
-if args.target == "volume_mesh":
-  args.save_vtp = True
-
-meshName = None
-if args.save is None: # set default gid mesh name
-  if args.force_bisec:
-    meshName = "basecell_interp_" + args.interpolation + "_force_" + args.force_bisec
+  if args.res_surf_lines is None:
+    args.res_surf_lines = args.res
+  
+  if args.stiffness is not None:
+    args.x1 = args.stiffness
+    args.x2 = args.stiffness
+    args.y1 = args.stiffness
+    args.y2 = args.stiffness
+    args.z1 = args.stiffness
+    args.z2 = args.stiffness
   else:
-    meshName = "basecell_interp_" + args.interpolation
-    if args.interpolation == 'heaviside':
-      meshName += "_beta_" + str(args.beta) + "_eta_" + str(args.eta)
+    if args.x1 == None or args.y1 == None or args.z1 == None:
+      print("Error:stiffness or x1, y1, z1 necessary!")
+      sys.exit(1)
+  
+    if args.x2 == None:
+      args.x2 = args.x1
       
+    if args.y2 == None:
+      args.y2 = args.y1
+      
+    if args.z2 == None:
+      args.z2 = args.z1
+      
+  val = args.x1
+  
+  if args.target == "volume_mesh":
+    args.save_vtp = True
+  
+  meshName = None
+  if args.save is None: # set default gid mesh name
+    if args.force_bisec:
+      meshName = "basecell_interp_" + args.interpolation + "_force_" + args.force_bisec
+    else:
+      meshName = "basecell_interp_" + args.interpolation
+      if args.interpolation == 'heaviside':
+        meshName += "_beta_" + str(args.beta) + "_eta_" + str(args.eta)
+        
+      
+    assert(meshName is not None)
+    meshName += "_stiff_" + str(args.x1)
     
-  assert(meshName is not None)
-  meshName += "_stiff_" + str(args.x1)
+    if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
+      meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
+    
+    meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+    
+    meshName += "_skip_x" if args.skip_x else ""
+    meshName += "_skip_y" if args.skip_y else ""
+    meshName += "_skip_z" if args.skip_z else ""
+    
+    args.save = meshName  
+  else:
+    meshName = args.save  
   
-  if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
-    meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
+  infoXml = None
   
-  meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+  if args.to_info_xml:
+    # command line
+    cmd = sys.argv[0].split('/')[-1]
+    for i in range(1, len(sys.argv)):
+      cmd += ' ' + sys.argv[i] 
+    
+    infoXmlName = meshName + ".info.xml"
+    infoXml = open(infoXmlName,"w") 
+    infoXml.write('<?xml version="1.0"?>\n\n')
+    infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
+    infoXml.write('  <cmd value="' + cmd + '"/>\n')
+    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
   
-  meshName += "_skip_x" if args.skip_x else ""
-  meshName += "_skip_y" if args.skip_y else ""
-  meshName += "_skip_z" if args.skip_z else ""
+  log = None 
   
-  args.save = meshName  
-else:
-  meshName = args.save  
-
-infoXml = None
-
-if args.to_info_xml:
-  # command line
-  cmd = sys.argv[0].split('/')[-1]
-  for i in range(1, len(sys.argv)):
-    cmd += ' ' + sys.argv[i] 
+  if args.logging:
+    log = open(meshName+".log","w")
+    
+  # sanity checks
+  if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
+    raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")
   
-  infoXmlName = meshName + ".info.xml"
-  infoXml = open(infoXmlName,"w") 
-  infoXml.write('<?xml version="1.0"?>\n\n')
-  infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
-  infoXml.write('  <cmd value="' + cmd + '"/>\n')
-  infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
-
-log = None 
-
-if args.logging:
-  log = open(meshName+".log","w")
+  mesh = create_mesh_with_profiles(args,infoXml,log)
   
-# sanity checks
-if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
-  raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")
-
-mesh = create_mesh_with_profiles(args,infoXml,log)
-
-if args.target == "volume_mesh" or args.target == "surface_mesh" and args.tets:   
-  file = meshName + '.mesh'
-  assert(file.endswith('.mesh'))
-  
-  mesh_tool.write_gid_mesh(mesh, file)
-  
-
+  if args.target == "volume_mesh" or args.target == "surface_mesh" and args.tets:   
+    file = meshName + '.mesh'
+    assert(file.endswith('.mesh'))
+    
+    mesh_tool.write_gid_mesh(mesh, file)
+    
+class Basecell_Data():
+  x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
+  def __init__(self,res,x1,x2,y1,y2,z1,z2,interpolation,bend=0.5,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
+    self.res = res
+    self.x1 = x1
+    self.x2 = x2
+    self.y1 = y1
+    self.y2 = y2
+    self.z1 = z1
+    self.z2 = z2
+    self.bend = bend
+    self.tets = tets
+    assert(interpolation == "linear" or interpolation == "heaviside")
+    if interpolation == "heaviside":
+      assert(beta is not None and eta is not None)
+    
+    self.beta = beta
+    self.eta = eta  
+    self.interpolation = interpolation
+    self.target = target
+    
+    # set debugging stuff 
+    self.verbose = None
+    self.skip_x = False
+    self.skip_y = False
+    self.skip_z = False
+    self.plot_bisec = False
+    self.force_bisec = False
+    self.export = None
+    self.save = None
+    self.save_vtp = False
+    self.to_info_xml = False
+    self.stiffness_as_radius = False
+    
+    if not res_surf_lines:
+      self.res_surf_lines = res
+    
+class Basecell():
+  data = cell = None
+  # data is an object of type Basecell_Data()
+  def __init__(self,data):
+    assert(type(data) is Basecell_Data)
+    self.data = data
+    dumm, self.cell = generate_basecell(data,None,None)
+      
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>

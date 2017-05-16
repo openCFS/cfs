@@ -730,7 +730,7 @@ class Profile:
 # return information on profiles 
 def create_profiles(args,infoXml=None):
   profiles = [None]*3 # x-,y-,z-part
-  
+
   if not args.skip_x:
     profiles[0] = Profile(args,0)
     
@@ -815,7 +815,8 @@ def add_triangle(id1,id2,id3,cells):
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
-def generate_basecell(args,info,log):
+# generates
+def generate_basecell(args,info,log,offset=0):
   global res, res_surf_lines, interpolation, logger
   res = args.res
   res_surf_lines = args.res_surf_lines
@@ -939,8 +940,9 @@ def generate_basecell(args,info,log):
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
     
-    stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
-    write_stl(polydata,stlName)
+    if args.save:
+      stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
+      write_stl(polydata,stlName)
     
     if args.save_vtp:  
       show_write_vtk(polydata,1000,args.save+".vtp")
@@ -949,7 +951,7 @@ def generate_basecell(args,info,log):
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array
+  return array, polydata
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
