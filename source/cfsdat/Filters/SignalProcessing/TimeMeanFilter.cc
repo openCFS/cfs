@@ -40,6 +40,7 @@ TimeMeanFilter1::TimeMeanFilter1(UInt numWorkers, CoupledField::PtrParamNode con
     InOutBiMap::value_type pair(oRes,iRes);
     inOutNames_.insert(pair);
   }
+  //TODO FIR FILTER SETUP general
 }
 
 bool TimeMeanFilter1::Run(){
