@@ -401,6 +401,8 @@ void Lighthill::PrepareCalculation(){
 
 //#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    StdVector<CF::UInt> sM, nL, nodeList;
+    if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       targetSourceNtE.Push_back(globEntityNumber);
@@ -412,9 +414,8 @@ void Lighthill::PrepareCalculation(){
           inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
 //          }
 
-      StdVector<UInt> nodeList;
       inGrid_->GetElemNodes(nodeList, globEntityNumber);
-      StdVector<UInt> nL = nodeList;
+      nL = nodeList;
       /*
       StdVector<CF::Elem*> elemList;
       inGrid_->GetElemsNextToNodes(elemList, nodeList, rId);
@@ -430,7 +431,7 @@ void Lighthill::PrepareCalculation(){
       CF::Vector<CF::Double> tmpCoords;
 
       /****************** 1) Divergence ****************************************/
-      StdVector<CF::UInt> sM;
+      sM.Clear(false);
       Double maxd = 0.0;
       for(UInt i = 0; i < nodeList.GetSize(); ++i){
         if(!sM.Contains(sEnt[nodeList[i]])){
@@ -552,10 +553,10 @@ void Lighthill::PrepareCalculation(){
 
       sM.Clear(false);
       for(UInt i = 0; i < nL.GetSize(); ++i){
-        sM.Push_back(nodeList[i]);
+        sM.Push_back(sEnt[nodeList[i]]);
       }
       sourceMN2C[trgEnt] = sM;
-
+    }
     }
   }
 
@@ -567,6 +568,7 @@ void Lighthill::PrepareCalculation(){
    ********************************************************************/
   // unfortunately the Grid-class is not able to return all elements, which
   // share a common node, therefore we use a nn-search
+  if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 4/4 Creating interpolation matrices for interpolators " << std::endl;
 //#pragma omp parallel num_threads(NUM_CFS_THREADS)
 //  {
@@ -664,7 +666,7 @@ void Lighthill::PrepareCalculation(){
 //  }//omp parallel
 
 
-
+  }
   std::cout << "\t\t Lighthill prepared!" << std::endl;
 }
 

@@ -108,7 +108,6 @@ void CurlDifferentiator::PrepareCalculation(){
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
 
 
-  const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
   StdVector<CF::UInt> globSrcEntity;
   GetUsedMappedEntities(scrMap_, globSrcEntity, srcRegions_, inGrid_);
   const CF::UInt numSrcEntities = CountUsedEntities(globSrcEntity);
@@ -282,7 +281,7 @@ void CurlDifferentiator::AdaptFilterResults(){
   resultManager_->SetEntryType(filterResIds[0],ExtendedResultInfo::VECTOR);
 
   // if we have a 2D-mesh, the output will be a scalar value (per definition, then all
-  // differentiation- and aeroacoustic-filters are conistent)
+  // differentiation- and aeroacoustic-filters are consistent)
   CF::StdVector<std::string> dofnames;
   if(trgGrid_->GetDim() == 2){
     dofnames.Push_back("x");
