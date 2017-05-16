@@ -657,6 +657,8 @@ template<class DATA_TYPE>
   polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("false");
   polyNode_->Get("gridOrder",ParamNode::INSERT);
   //polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("2");
+  //comment: actually this would only make sense for a field interpolation,
+  // for a conservative interpolation this does not result in a better quality
   
   PtrParamNode integMotherNode = this->myConfigNode_->GetRoot()->
       Get("integrationSchemeList", ParamNode::INSERT );
