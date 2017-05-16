@@ -237,8 +237,10 @@ class Linear_1D():
     self.x1 = x1
     self.x2 = x2
     
+  # f(0) = x1/2.0 + 0.5
+  # f(0.5) = x2/2.0 + 0.5  
   def eval(self,x):
-    return ((self.x2-self.x1) * x + self.x1) / 2.0 + 0.5
+    return (self.x2-self.x1) * 2.0 * x + self.x1
 
 class Heaviside():
   beta = 0
@@ -359,7 +361,7 @@ class BisecSpline:
   
   # @param force: bisec curve to be enforced
   # @param interpolation: interpolation type between splines (linear or heaviside)
-  def __init__(self,x1,y1,z1,bend,beta,eta,interpolation,force=None,left=True):
+  def __init__(self,x1,y1,z1,bend,beta,eta,interpolation,force=None,left=True,x2=-1):
     self.x1 = x1
     self.y1 = y1
     self.z1 = z1
@@ -428,7 +430,7 @@ class BisecSpline:
     
     #### case 3: linear --> lin ###########
     # in case undershooting for x1=0.9, y1=0.1, z1=0.1
-    lin = Linear_1D(x1, x1)
+    lin = Linear_1D(x1/2.0+0.5, height)
     
     self.bicubic.append(left_spline)
     self.bicubic.append(cubic)
@@ -477,7 +479,7 @@ class BisecSpline:
     for i in x:
       assert(i >= 0 and i <=1)
       if self.left:
-        assert(max(x) <= 0.5)
+        assert(max(x) <= 0.5 + 1e-6)
         val = self.spline.eval_x(i)
       else:
         assert(max(x) >= 0.5 and max(x) <= 1.0)
@@ -517,7 +519,10 @@ class BisecSpline:
     return res
   
   def eval_linear(self,x):
-    return self.linear.eval(x)
+    if self.left:
+      return self.linear.eval(x)
+    else:
+      return self.linear.eval(1-x)
   
   def eval_heaviside(self,x):
     # make x iterable in case it's one float element and not a list
@@ -662,7 +667,7 @@ class Profile:
       self.bisecs_right[1] = BisecSpline(args.x2, args.y2, args.z1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,left=False)
       self.bisecs_right[2] = BisecSpline(args.x2, args.z1, args.y1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,left=False)
       self.bisecs_right[3] = BisecSpline(args.x2, args.y1, args.z1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,left=False)
-
+      
       self.radius_left = args.x1 / 2.0
       self.radius_right = args.x2 / 2.0
     elif dir == 1:
@@ -743,7 +748,8 @@ def create_profiles(args,infoXml=None):
       f.suptitle("dir "+str(i), fontsize=20)
       figs.append(f)
 
-    x = np.linspace(0, 1.0, 1000)
+    x_left = np.linspace(0, 0.5, 1000)
+    x_right = np.linspace(0.5, 1.0, 1000)
     
     for dir,profile in enumerate(profiles):
       if profile == None:
@@ -755,12 +761,12 @@ def create_profiles(args,infoXml=None):
         sub1.set_ylim((0.5,1.0))
         if args.verbose == "all_splines":
           sub1.set_title(str(degrees(profile.splines_left[i].angle)) + "°")
-          sub1.plot(x,profile.splines_left[i].eval(x),linewidth=5.0)
-          sub1.plot(x,profile.splines_right[i].eval(x),linewidth=5.0)
+          sub1.plot(x_left,profile.splines_left[i].eval(x_left),linewidth=5.0)
+          sub1.plot(x_right,profile.splines_right[i].eval(x_right),linewidth=5.0)
         else: # all_bisecs
           sub1.set_title(str(degrees(profile.bisecs_left[i].angle)) + "°")
-          sub1.plot(x,profile.bisecs_left[i].eval(x),linewidth=5.0)
-          sub1.plot(x,profile.bisecs_right[i].eval(x),linewidth=5.0)
+          sub1.plot(x_left,profile.bisecs_left[i].eval(x_left),linewidth=5.0)
+          sub1.plot(x_right,profile.bisecs_right[i].eval(x_right),linewidth=5.0)
         count += 1
       
     plt.show()
@@ -847,8 +853,8 @@ def generate_basecell(args,info,log):
       y2 = []
       rad = np.linspace(0,pi/2.0,500)
       for r in rad:
-        y1.append(calc_radius(profiles[i], 0.1, r))
-        y2.append(calc_radius(profiles[i], 0.9, r))
+        y1.append(calc_radius(profiles[i], 0.495, r))
+        y2.append(calc_radius(profiles[i], 0.51, r))
         
       plt.gcf().clear()
       fig = plt.figure(1)
@@ -969,9 +975,16 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     plt.gcf().clear()
     ax = plt.axes(polar=True)
     theta = np.linspace(0, 2.0*np.pi,360)
-    plt.plot(theta,map[:,0],linewidth=5.0)
-    plt.plot(theta,map[:,int(res/4)],linewidth=5.0)
-    plt.plot(theta,map[:,int(res/2)],linewidth=5.0)
+    #plt.plot(theta,map[:,0],linewidth=5.0)
+    for i,bisec in enumerate(profile.bisecs_left):
+      phi = bisec.angle + np.pi/2.0 * i
+      plt.plot(phi,map[int(degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
+    plt.plot(theta,map[:,int(res/2)+1],linewidth=5.0)
+    
+    for i,bisec in enumerate(profile.bisecs_left):
+      phi = bisec.angle + np.pi/2.0 * i
+      plt.plot(phi,map[int(degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
+    plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
     plt.rcParams.update({'font.size': 18})
     plt.show()
         
