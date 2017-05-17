@@ -2418,6 +2418,8 @@ source/cfsdat/Filters/Interpolators/FEBasedInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/FEBasedInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.cc -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.hh -text
+source/cfsdat/Filters/Interpolators/L2norm.cc -text
+source/cfsdat/Filters/Interpolators/L2norm.hh -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/Node2CellInterpolator.cc -text
