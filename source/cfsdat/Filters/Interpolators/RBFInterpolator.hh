@@ -55,6 +55,12 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
+  virtual Double DistanceECLID(CF::Vector<Double> p1, CF::Vector<Double> p2);
+
+  virtual void PreparePATCH();
+
+  virtual void PrepareCGAL();
+
   virtual void AdaptFilterResults();
 
 private:

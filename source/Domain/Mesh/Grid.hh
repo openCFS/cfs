@@ -182,6 +182,10 @@ namespace CoupledField
                                       const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
                                       & regionIds ) = 0;
+    //! Get the inverse mapping of the connectivity (used in RBF -> fast PATCH search)
+
+    virtual void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
+        const StdVector<RegionIdType>   & regionIds) = 0;
 
     //! Get coordinates of element nodes
 
@@ -280,8 +284,12 @@ namespace CoupledField
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                     const StdVector<Elem*> & elemList,
+                                     StdVector<const Elem*> & elemList,
 				                             bool onlyLinNodes = false ) = 0;
+
+    virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                                     StdVector<Elem*> & elemList,
+             bool onlyLinNodes = false ) = 0;
 
     //! Return element at global position and the locally projected coordinate
     

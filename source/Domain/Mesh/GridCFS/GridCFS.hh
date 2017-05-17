@@ -274,6 +274,10 @@ namespace CoupledField
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
                             const StdVector<UInt> & connect,
                             bool updated );
+
+
+    void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
+        const StdVector<RegionIdType>   & regionIds);
   
     //! Get elements associated with given nodes
 
@@ -402,9 +406,13 @@ namespace CoupledField
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                             const StdVector<Elem*> & elemList,
+                             StdVector<const Elem*> & elemList,
 			     bool onlyLinNodes = false);
     
+    void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                             StdVector<Elem*> & elemList,
+           bool onlyLinNodes = false);
+
 
     //! Set offset for coordinates due to updated Lagrangian formulation
     void SetNodeOffset( const StdVector<UInt>& nodes, 

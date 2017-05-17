@@ -2632,6 +2632,48 @@ namespace CoupledField {
 
   }
 
+  void GridCFS::GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
+      const StdVector<RegionIdType>   & regionIds){
+    // Step 1 loop over connectivity of the elements in region
+    // Extract connectivity
+    // Write number of element in all where it belongs to
+    // Do this for all elements and we have the connectivity
+    Integer index = 0;
+    for (UInt isd=0; isd<regionIds.GetSize(); isd++)
+    {
+
+    index = volRegionIds_.Find(regionIds[isd]);
+    if ( index == -1 ) {
+      EXCEPTION( "GetElemsNextToNodes: A region with id '"
+                 << regionIds[isd] << "' was not found in the list of "
+                 << "of volume regions." );
+    }
+    // Get element of given region
+    StdVector<Elem*> const & elems = volElems_[index];
+
+    // loop over all elements in subdomain
+    for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
+    {
+
+
+      Elem *aux = elems[iNS];
+      StdVector<UInt>  const & aux_connect = aux->connect;
+      for (UInt inode=0; inode<aux_connect.GetSize(); inode++) {
+
+        if(inverseConnec.find(aux_connect[inode]) == inverseConnec.end()){
+          StdVector<UInt> tmp;
+          tmp.Push_back(aux->elemNum);
+          inverseConnec[aux_connect[inode]] = tmp;
+        }else{
+          StdVector<UInt>& tmp = inverseConnec[aux_connect[inode]];
+          if(!tmp.Contains(aux->elemNum)) tmp.Push_back(aux->elemNum);
+        }
+
+      }
+    }
+    }
+  }
+
 
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
@@ -2698,7 +2740,37 @@ namespace CoupledField {
   // ======================================================
 
   void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                    const StdVector<Elem*> & elemList,
+                                    StdVector<const Elem*> & elemList,
+                                    bool onlyLinNodes) {
+
+    std::set<UInt> elemNodes;
+    std::set<UInt>::iterator it;
+    UInt iElem, iNode, numElemCorners;
+
+    // First, create a set with node numbers of elements
+    for ( iElem = 0; iElem < elemList.GetSize(); iElem++ ) {
+      StdVector<UInt> const & connecth = elemList[iElem]->connect;
+      ElemShape & actShape = Elem::shapes[elemList[iElem]->type];
+      if (onlyLinNodes == true)
+        numElemCorners = actShape.numNodes;
+      else
+        numElemCorners = connecth.GetSize();
+
+      for ( iNode = 0; iNode < numElemCorners; iNode++ ) {
+        elemNodes.insert(connecth[iNode]);
+      }
+    }
+
+    // Then copy this set into the nodeList vector
+    nodeList.Resize(elemNodes.size());
+    iNode = 0;
+    for ( it = elemNodes.begin(); it != elemNodes.end(); it++) {
+      nodeList[iNode++] = *it;
+    }
+  }
+
+  void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
+                                    StdVector<Elem*> & elemList,
                                     bool onlyLinNodes) {
 
     std::set<UInt> elemNodes;
