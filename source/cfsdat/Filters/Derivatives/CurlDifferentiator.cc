@@ -100,9 +100,13 @@ void CurlDifferentiator::PrepareCalculation(){
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+
+  //TODO equation number for a SCALAR value in 2D !
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
+
+//  if(numEquPerEnt_ == 1 && trgGrid_->GetDim() == 3){
   if(numEquPerEnt_ == 1){
-    EXCEPTION("Curl of a scalar is not defined in this context!");
+    EXCEPTION("Curl of a scalar is not defined in 3D!");
   }
 
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
@@ -283,6 +287,7 @@ void CurlDifferentiator::AdaptFilterResults(){
   // if we have a 2D-mesh, the output will be a scalar value (per definition, then all
   // differentiation- and aeroacoustic-filters are consistent)
   CF::StdVector<std::string> dofnames;
+  //TODO 2D changes
   if(trgGrid_->GetDim() == 2){
     dofnames.Push_back("x");
     dofnames.Push_back("y");
