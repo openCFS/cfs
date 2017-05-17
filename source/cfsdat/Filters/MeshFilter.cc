@@ -499,7 +499,22 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
     }
     switch( numEquPerEnt ){
     case 1:
-      EXCEPTION("Curl of a scalar field!");
+      // TODO change ?? I think no changes must be applied
+      // EXCEPTION("Curl of a scalar field!");
+
+      if (grid->GetDim() == 2){
+        derivVec.Resize(numNeighbors,2);
+        if (l2Distances[i] == 0) {
+          derivVec[i][0] = 0.0;
+          derivVec[i][1] = 0.0;
+        }else{
+          derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+          derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+        }
+      }else{
+        EXCEPTION("2D mesh and 3D-values!")
+      }
+
       break;
     case 2:
       if (grid->GetDim() == 2){
@@ -798,6 +813,7 @@ void MeshFilter::CalcCurl(Vector<Double>& returnVec,
     vec.Resize(3);
     vec.Init(0.0);
     //now we have to combine the tempvec-entries in order to obtain the curl
+    // TODO add here the variants
     if(gridDim == 2){
       // in 2D the vector actually points in z-direction
       // but here we define it to point in x !!!!
