@@ -30,7 +30,8 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       "hom_sheared_rot_cross" : 3,
       "hom_frame" : 2,
       "hom_framed_cross" : 4,
-      "hom_rect" : 3}
+      "hom_rect" : 3,
+      "hom_ortho_3d": 3}
     if args.show in number_of_parameters:
       try:
         res['microparams'] = [get_element(f, "design_microparam{}_{}".format(i + 1, args.hom_access), args.h5_region, args.h5_step) for i in range(number_of_parameters[args.show])]
@@ -175,9 +176,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp"):
+    if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
 
-      if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect"):
+      if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect", "hom_ortho_3d"):
         microparams = read_stiff_angle(f, dim_2D, args)
         if args.show == "hom_sheared_rot_cross":
           s1 = microparams['s1']
@@ -313,14 +314,17 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
-                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, angles, ip_nx, grad, thresh, csize)     
+                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
                 samples = [float(tmp[0]),float(tmp[0]),float(tmp[0])]
               else:
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
+              if args.show == "hom_ortho_3d":
+                viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)  
+              else:
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
