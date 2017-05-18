@@ -285,7 +285,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,x1,x2,y1,y2,z1,z2,interpolation,bend=0.5,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -299,6 +299,9 @@ class Basecell_Data():
     if interpolation == "heaviside":
       assert(beta is not None and eta is not None)
     
+    eps = 1e-12  
+    assert(x1 > eps and x2 > eps and y1 > eps and y2 > eps and z1 > eps and z2 > eps)  
+      
     self.beta = beta
     self.eta = eta  
     self.interpolation = interpolation
