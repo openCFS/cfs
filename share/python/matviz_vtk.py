@@ -938,3 +938,105 @@ def write_stl(polydata,save=None):
   stlWriter.Write()
   
   print("saved polydata to file " + fName)  
+
+# similar to create_3d_cross_ip; # without rotation and shearing
+# returns
+def create_3d_interpretation_ortho(args,coords,s1,s2,s3,angles,ip_nx,grad,thresh,csize=None):
+  # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
+  # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
+  # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
+  # grad: type of interpolation ('linear', 'nearest')
+  # scale: parameter for scaling the cell size if necessary
+  # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  # csize: size of one cell, e.g. [8,8,8]
+  
+  # point coordinates from h5 file
+  centers, min, max = coords[0:3] 
+  
+  # tranformation of vtk poly data
+  transform = vtk.vtkTransform()
+  
+  # appendind cells
+  appends = vtk.vtkAppendPolyData()
+  
+  if scale <= 0:
+    scale = 1.0
+    
+  # set size dx/dy/dz of one cell
+  if csize is None:
+    dx = (max[0] - min[0]) / ip_nx[0]
+    dy = (max[1] - min[1]) / ip_nx[1]
+    dz = (max[2] - min[2]) / ip_nx[2]
+  else:
+    dx = csize[0]
+    dy = csize[1]
+    dz = csize[2]
+    
+  delta = (abs(max[0] - min[0]), abs(max[1] - min[1]), abs(max[2] - min[2]))
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)    
+  
+  ip_data, ip_near, out, ndim, scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz)
+  
+  assert(len(ip_data) == len(out))
+  assert(len(out) == nx*ny*nz)
+  data_grid = np.asarray(ip_data.reshape((nx,ny,nz)))
+  # convert coordinates of sample to 3d numpy array
+  sample_coords = np.asarray(out.reshape((nx,ny,nz)))  
+  
+  for i in range(0, nx):
+    for j in range(0, ny):
+      for k in range(0, nz):
+        this = access_3darray_elem(data_grid,(i,j,k))
+        assert(this is not None)
+        west = access_3darray_elem(data_grid,(i-1,j,k))
+        east = access_3darray_elem(data_grid,(i+1,j,k))
+        top = access_3darray_elem(data_grid,(i,j+1,k))
+        bottom = access_3darray_elem(data_grid,(i,j-1,k))
+        front = access_3darray_elem(data_grid,(i,j,k+1))
+        back = access_3darray_elem(data_grid,(i,j,k-1))
+        
+        x1 = np.mean([this[0],west[0]]) if west is not None else this[0]
+        x2 = np.mean([this[0],east[0]]) if west is not None else this[0]
+        y1 = np.mean([this[0],bottom[0]]) if west is not None else this[0]
+        y2 = np.mean([this[0],top[0]]) if west is not None else this[0]
+        z1 = np.mean([this[0],back[0]]) if west is not None else this[0]
+        z2 = np.mean([this[0],front[0]]) if west is not None else this[0]
+        
+    if x1 >= thres or x2 >= thres or y1 >= thres or y2 >= thres or z1 >= thres or z2 >= thres:
+      bc_input  = Basecell_Data(args.bc_res,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,args.bc_bend)
+      cell_obj = Basecell(bc_input)
+      
+      # translate cell to correct position
+      coord = np.asarray(sample_coords[i,k,k]) - 0.5 
+      transform.Translate(coord)
+      
+      # filter to perform transformation
+      transformFilter=vtk.vtkTransformPolyDataFilter()
+      transformFilter.SetTransform(transform)
+      transformFilter.SetInputData(cell_obj.cell)
+      transformFilter.Update()
+      
+      # append cells in vtk
+      appends.AddInputConnection(transformFilter.GetOutputPort())
+      appends.Update() # not sure if we have to do this in each loop iteration
+  
+  return appends.GetOutput()
+    
+# @param idx: tuple of three ints storing array indices(i,j,k)
+# @param array: return element of array at position idx if exist
+# if out of range, return None       
+def access_3darray_elem(array,idx):
+  # must be a ndarray so that indexing with tuples works
+  assert(type(array) == numpy.ndarray)
+  assert(array.ndim == 3)
+  nx, ny, nz = array.shape
+  
+  assert(idx[0] >= 0 and idx[1] >= 0 and idx[2] >= 0)
+  
+  if idx[0] >= nx or idx[1] >= ny or idx[2] >= nz:
+    return None
+  else:
+    return array[idx]  
