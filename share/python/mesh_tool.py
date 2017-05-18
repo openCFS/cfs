@@ -2552,6 +2552,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
+def reate_validation_mesh_for_box_varel(coords, s1, s2, s3,design_interp):
+  return "Not implemented yet"
+
 def create_volume_mesh_from_stl(stlName,write_vtk=False):
   assert(stlName.endswith(".stl"))
   # -p Tetrahedralizes a piececwise linear complex

@@ -300,14 +300,20 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 if args.show == 'simp':
                   me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
-                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                  if args.type == "apod6" or args.type == "robot": 
+                    me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                  else:
+                    assert(args.type == "box")
+                    me = create_validation_mesh_for_box_varel(coords, s1, s2, s3,design_interp)  
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
                   viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
                 elif args.show == "hom_rect":
-                  viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
+                  viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
+                elif args.show == "hom_ortho_3d":
+                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, angles, ip_nx, grad, thresh, csize)     
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
@@ -406,7 +412,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -426,7 +432,7 @@ parser.add_argument("--stream_max_traces_per_cell", help="maximum number of trac
 parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'])
 parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'])
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
-parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
+parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['simp','hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
@@ -437,7 +443,14 @@ parser.add_argument("--nodefile", help="name of the design to node file", defaul
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
-parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot'])
+parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','box'])
+# 3d ortho basecell stuff
+parser.add_argument("--bc_res", help="resolution of voxelized ortho basecell", type=int)
+parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'])
+parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
+parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
+parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
+                                                                                                                      
 
 # print sys.argv
 
@@ -449,6 +462,21 @@ if not args.symmetries == "default" and not args.show == None and not args.symme
   sys.exit(1)
 aux_code = args.show if not args.show == None else args.symmetries  # might still be default
 
+# check 3d ortho basecell parameters
+if args.show == "hom_ortho_3d":
+  if not args.bc_res:
+    print("bc_res required")
+    sys.exit(1)
+  if not args.bc_bend:
+    print("bc_bend parameter required")
+    sys.exit(1) 
+  if not args.bc_interpolation:
+    print("interpolation type (linear or heaviside) required")
+    sys.exit(1)
+  elif not args.bc_beta or not args.bc_eta:
+    print("beta and eta values required for heaviside interpolation")  
+    sys.exit(1)
+    
 # in this global variable we can store meta-information to be exported as xml file 
 info = None
 if args.info is not None:
