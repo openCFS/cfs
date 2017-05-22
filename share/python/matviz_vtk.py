@@ -3,7 +3,7 @@ import vtk
 from numpy import *
 from matviz_rot import *
 import scipy.interpolate as ip 
-from basecell import Basecell_Data, Basecell
+import basecell
 
 # # creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
@@ -1010,8 +1010,8 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     
 #         if x1 >= thresh and x2 >= thresh and y1 >= thresh and y2 >= thresh and z1 >= thresh and z2 >= thresh:
         if x1 >= thresh or x2 >= thresh or y1 >= thresh or y2 >= thresh or z1 >= thresh or z2 >= thresh:
-          bc_input  = Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-          cell_obj = Basecell(bc_input)
+          bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+          cell_obj = basecell.Basecell(bc_input)
           
           # translate cell to correct position
           coord = numpy.asarray(sample_coords[i,j,k]) - min
