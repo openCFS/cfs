@@ -9,10 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import mesh_tool
 import cfs_utils
 import argparse
-import draw_profile_functions
 from draw_profile_functions import generate_basecell, add_triangle
 import numpy as np
-import matviz_rot
 from matviz_vtk import *
 
 def calc_volume(array,infoXml):
@@ -105,7 +103,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   mesh = None
   
-  if not args.stiffness_as_radius:
+  if not args.stiffness_as_diameter:
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
     args.x1 = calc_radius(args.x1)
     infoStr = '  <radii rx1="' + str(args.x1) + '" '
@@ -190,7 +188,7 @@ if __name__ == "__main__":
   parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
   parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
   parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
-  parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
+  parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
   
   args = parser.parse_args()
@@ -318,7 +316,7 @@ class Basecell_Data():
     self.save = None
     self.save_vtp = False
     self.to_info_xml = False
-    self.stiffness_as_radius = False
+    self.stiffness_as_diameter = False
     
     if not res_surf_lines:
       self.res_surf_lines = res
