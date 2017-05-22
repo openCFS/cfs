@@ -3,6 +3,7 @@ import vtk
 from numpy import *
 from matviz_rot import *
 import scipy.interpolate as ip 
+import pymp
 import basecell
 
 # # creates 3D data to vtkPolyData
@@ -863,8 +864,6 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   scale_y = delta[1]/(ny*dy)
   scale_z = delta[2]/(nz*dz)
   
-  print("delta: " + str(delta))
-  print("dx,dy,dz: " + str(dx) + ", "+ str(dy) + ", " + str(dz)) 
   if ny == 0 or nz == 0 or nx == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
@@ -894,6 +893,49 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
+def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
+  # we make our own regular element grid
+  centers, mi, ma = coords[0:3]  # skip elem
+ 
+  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)
+  
+  scale_x = delta[0]/(nx*dx)
+  scale_y = delta[1]/(ny*dy)
+  scale_z = delta[2]/(nz*dz)
+  
+  if ny == 0 or nz == 0 or nx == 0:
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
+    exit()
+
+  out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
+  idx = 0
+  
+  for x in range(nx + 1):
+    for y in range(ny + 1):
+      for z in range(nz + 1):
+        out[idx] = ((mi[0] + 0.5*dx + float(x) / nx * delta[0], mi[1] + 0.5*dy +  float(y) / ny * delta[1], mi[2] + 0.5*dx + float(z) / nz * delta[2]))
+        idx += 1
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3 if angle is None else 6))
+    v[:, 0] = s1[:, 0]
+    v[:, 1] = s2[:, 0]
+    v[:, 2] = s3[:, 0]
+    if angle is not None:
+       v[:, 3:6] = angle[:, :]
+  
+  ip_data = ip.griddata(centers, v, out, grad, -1.0)
+  # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
+  # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
+  
+  return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
 # # litte helper
 # @param save filename or none
@@ -952,9 +994,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   # csize: size of one cell, e.g. [8,8,8]
   
   # point coordinates from h5 file
-  centers, min, max = coords[0:3]
+  centers, min, maximum = coords[0:3]
   
-  print("min:",min," max:",max) 
+  print("min:",min," max:",maximum)
   
   # appendind cells
   appends = vtk.vtkAppendPolyData()
@@ -964,76 +1006,90 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     
   # set size dx/dy/dz of one cell
 #   if csize is None:
-  dx = (max[0] - min[0]) / samples[0]
-  dy = (max[1] - min[1]) / samples[1]
-  dz = (max[2] - min[2]) / samples[2]
+  dx = (maximum[0] - min[0]) / samples[0]
+  dy = (maximum[1] - min[1]) / samples[1]
+  dz = (maximum[2] - min[2]) / samples[2]
 #   else:
 #     dx = csize[0]
 #     dy = csize[1]
 #     dz = csize[2]
 
-  thresh = 1e-3
+  thresh = 2.0/args.bc_res
     
-  delta = (abs(max[0] - min[0]), abs(max[1] - min[1]), abs(max[2] - min[2]))
+  delta = (abs(maximum[0] - min[0]), abs(maximum[1] - min[1]), abs(maximum[2] - min[2]))
   # where we want nodes
   nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
   nz = int(delta[2] / dz)    
   
-  ip_data, ip_near, out, ndim, scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz)
+  ip_data, ip_near, out, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
+#   
+#   print(out[0],ip_data[0])
+#   print(out[1],ip_data[1])
+#   print(out[2],ip_data[2])
+#   
+#   sys.exit()
   
   assert(len(ip_data) == len(out))
   assert(len(out) == (nx+1)*(ny+1)*(nz+1))
   data_grid = numpy.asarray(ip_data.reshape((nx+1,ny+1,nz+1,3)))
   data_grid_near = numpy.asarray(ip_near.reshape((nx+1,ny+1,nz+1,3)))
   # convert coordinates of sample to 3d numpy array
-  sample_coords = numpy.asarray(out.reshape((nx+1,ny+1,nz+1,3)))  
+  sample_coords = numpy.asarray(out.reshape((nx+1,ny+1,nz+1,3)))
   
-  for i in range(0, nx+1):
-    for j in range(0, ny+1):
-      for k in range(0, nz+1):
-        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-        assert(this is not None)
-        west = get_interp_3darray_elem(data_grid,data_grid_near,(i-1,j,k))
-        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-        bottom = get_interp_3darray_elem(data_grid,data_grid_near,(i,j-1,k))
-        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-        back = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k-1))
-        
-        x1 = numpy.mean([this[0],west[0]]) if west is not None else this[0]
-        x2 = numpy.mean([this[0],east[0]]) if east is not None else this[0]
-        y1 = numpy.mean([this[1],bottom[1]]) if bottom is not None else this[1]
-        y2 = numpy.mean([this[1],top[1]]) if top is not None else this[1]
-        z1 = numpy.mean([this[2],back[2]]) if back is not None else this[2]
-        z2 = numpy.mean([this[2],front[2]]) if front is not None else this[2]
-    
-#         if x1 >= thresh and x2 >= thresh and y1 >= thresh and y2 >= thresh and z1 >= thresh and z2 >= thresh:
-        if x1 >= thresh or x2 >= thresh or y1 >= thresh or y2 >= thresh or z1 >= thresh or z2 >= thresh:
-          bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-          cell_obj = basecell.Basecell(bc_input)
+  with pymp.Parallel(4) as p:
+    for id in p.range(nx*ny*nz):
+      i, j, k = get_3d_grid_coords(id,nx,ny,nz)
+      
+      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+      
+      assert(this is not None and east is not None and top is not None and front is not None)
+
+      # if one of the values is < thresh, set it to thresh        
+      x1 = max(this[0],thresh)
+      x2 = max(east[0],thresh)
+      y1 = max(this[1],thresh)
+      y2 = max(top[1],thresh)
+      z1 = max(this[2],thresh)
+      z2 = max(front[2],thresh)
           
-          # translate cell to correct position
-          coord = numpy.asarray(sample_coords[i,j,k]) - min
-            # tranformation of vtk poly data
-          transform = vtk.vtkTransform() 
-          transform.Translate(coord)
-          transform.Scale(dx,dy,dz)
+      #print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2,"z1:",z1,"z2:",z2) 
+#             
+      #if x1 >= thresh or x2 >= thresh or y1 >= thresh or y2 >= thresh or z1 >= thresh or z2 >= thresh:
+      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+      bc_input.eta = 0.9
+      bc_input.stiffness_as_diameter = True
+      cell_obj = basecell.Basecell(bc_input)
+       
+      # translate cell to correct position
+      coord  = numpy.asarray(sample_coords[i,j,k] + [scale * 0.5 *dx,scale * 0.5 *dy,scale * 0.5 *dz])
+        # tranformation of vtk poly data
+      transform = vtk.vtkTransform() 
+      transform.Translate(coord)
+      transform.Scale(dx,dy,dz)
+         
+      # filter to perform transformation
+      transformFilter=vtk.vtkTransformPolyDataFilter()
+      transformFilter.SetTransform(transform)
+      transformFilter.SetInputData(cell_obj.cell)
+      transformFilter.Update()
           
-          print("coords:",coord,this[0],this[1],this[2])
-          
-          # filter to perform transformation
-          transformFilter=vtk.vtkTransformPolyDataFilter()
-          transformFilter.SetTransform(transform)
-          transformFilter.SetInputData(cell_obj.cell)
-          transformFilter.Update()
-          
+#         with p.lock:
+#           li.append(transformFilter) 
           # append cells in vtk
-          appends.AddInputConnection(transformFilter.GetOutputPort())
-          appends.Update() # not sure if we have to do this in each loop iteration
-        else:
-          print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2,"z1:",z1,"z2:",z2)
-          
+      #with p.lock:
+      appends.AddInputConnection(transformFilter.GetOutputPort())
+      appends.Update() # not sure if we have to do this in each loop iteration
+      print("appended another base cell:",i,j,k)
+  #       else:
+  #         print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2,"z1:",z1,"z2:",z2)
+  
+#   for l in li:
+#     appends.AddInputConnection(l.GetOutputPort())
+#     appends.Update()         
   return appends.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
@@ -1047,10 +1103,19 @@ def get_interp_3darray_elem(array,fallback,idx):
 #   assert(array.ndim == 3)
   nx, ny, nz, _ = array.shape
   
-  if idx[0] >= nx or idx[0] < 0  or idx[1] >= ny or idx[1] < 0  or idx[2] >= nz  or idx[2] < 0 :
+  if idx[0] >= nz or idx[0] < 0  or idx[1] >= ny or idx[1] < 0  or idx[2] >= nx  or idx[2] < 0 :
     return None
   else:
-    if array[idx][0] == -1 or array[idx][1] or array[idx][2]:
+    if array[idx][0] == -1 or array[idx][1] == -1 or array[idx][2] == -1:
       return fallback[idx]
     else:
-      return array[idx]  
+      return array[idx]
+
+# @param id: idx in 1D array (row major)
+# @return i,j,k: indices of equivalent 3D array
+def get_3d_grid_coords(index,nx,ny,nz):
+  i = index % nx
+  j = (index - i)/nx % ny
+  k = ((index - i)/nx-j)/ny
+  
+  return int(i),int(j),int(k)

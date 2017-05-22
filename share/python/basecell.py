@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import mesh_tool
 import cfs_utils
 import argparse
-from draw_profile_functions import generate_basecell, add_triangle
+import draw_profile_functions
 import numpy as np
 from matviz_vtk import *
 
@@ -124,7 +124,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array = generate_basecell(args,infoXml,log)
+  array, _ = draw_profile_functions.generate_basecell(args,infoXml,log)
   
   if args.target.startswith("volume"):
     assert(array is not None)
@@ -306,7 +306,7 @@ class Basecell_Data():
     self.target = target
     
     # set debugging stuff 
-    self.verbose = None
+    self.verbose = "off"
     self.skip_x = False
     self.skip_y = False
     self.skip_z = False
@@ -327,7 +327,7 @@ class Basecell():
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
-    dumm, self.cell = generate_basecell(data,None,None)
+    dumm, self.cell = draw_profile_functions.generate_basecell(data,None,None)
       
 ############## info xml scheme #####################
 # <basecell>
