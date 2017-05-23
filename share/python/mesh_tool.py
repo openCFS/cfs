@@ -1155,7 +1155,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
   
-<<<<<<< .working
   if type == "box_lufo":
     top = (("force",[]))
     mesh.bc.append(top)

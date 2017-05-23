@@ -459,6 +459,10 @@
       <xsd:enumeration value="optResult_10"/>
       <xsd:enumeration value="optResult_11"/>
       <xsd:enumeration value="optResult_12"/>
+      <xsd:enumeration value="optResult_13"/>
+      <xsd:enumeration value="optResult_14"/>
+      <xsd:enumeration value="optResult_15"/>
+      <xsd:enumeration value="optResult_16"/>
     </xsd:restriction>
   </xsd:simpleType>
 
