@@ -1029,7 +1029,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   start = time.time()
   ip_data, ip_near, out, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
   end = time.time()
-  print("got ip data. elapsed time:",end-start)
+  print("got ip data. elapsed time:",end-start," s")
   
   assert(len(ip_data) == len(out))
   assert(len(out) == (nx+1)*(ny+1)*(nz+1))
