@@ -157,7 +157,7 @@ private:
   void SolveSubProblem();
 
   /** updates the design and the outer function values and gradients */
-  void UpdateToCurrentStep(bool inner = false);
+  void UpdateToCurrentStep(bool inner = false, double ppeni = -1.);
 
   /** Performs a gradient check with central difference quotient for necessary derivatives */
   StdVector<double> GradientCheck(double & max_grad_error);
@@ -182,6 +182,11 @@ private:
   /** update the asymptotes as long as they are not set to fixed!
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
+
+  void Update_L(Vector<double> l_min,int tau);
+
+  /** Reset L to 0-matrix*/
+  void Reset_L();
 
   /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
   void DesignToOuter(bool inner = false, bool only_update_outer = false);
@@ -242,6 +247,9 @@ public:
 
   /** evaluate function according to the SGP approximation, parameterization FMO*/
   double SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc);
+
+  /** calculates min eigenvalue for each Element of matrix E_in */
+  void CalcMinEigenvalue(StdVector<Matrix<double> > & E_in, Vector<double> & l_min);
 
   /** helper for logging
    * @param determinant @see GetCondition() */

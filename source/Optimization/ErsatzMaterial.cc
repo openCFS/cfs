@@ -1852,6 +1852,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
                     design->designMaterial->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                     double des = material.Trace();
                     val *= exponent * std::pow(des, exponent - 1.0);
+                    LOG_DBG(em) << " material = "<< material.ToString();
+                    LOG_DBG(em) << " trace = "<< des;
                   }
                 }
                 else
