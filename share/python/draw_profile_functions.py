@@ -786,7 +786,7 @@ def get_surface_lines(profile):
   
   for i,alpha in enumerate(np.arange(0,360,360.0/res_surf_lines)):
     for j,x in enumerate(interval):
-      nodes[i,j] = get_surface_point_candidate(profile,radians(alpha),x)
+      nodes[i,j] = get_surface_point_candidate(profile,np.radians(alpha),x)
   
   return nodes
 
@@ -836,6 +836,8 @@ def generate_basecell(args,info,log,offset=0):
   
   hf = None
   polydata = None
+  new_surf_points = None
+  faces = None
   
   if args.verbose != "off" or args.target == "3dlines":
     hf = plt.figure()
@@ -889,7 +891,7 @@ def generate_basecell(args,info,log,offset=0):
         points,lines = write_polylines_to_vtk(profiles[i],res,args.res_surf_lines,points,lines)
         polygon.SetPoints(points)
         polygon.SetLines(lines)
-        show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
+        matviz_vtk.show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
