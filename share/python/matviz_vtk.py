@@ -5,6 +5,7 @@ from matviz_rot import *
 import scipy.interpolate as ip 
 import pymp
 import basecell
+import time
 
 # # creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
@@ -1014,6 +1015,8 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 #     dy = csize[1]
 #     dz = csize[2]
 
+  print(dx,dy,dz)
+
   thresh = 2.0/args.bc_res
     
   delta = (abs(maximum[0] - min[0]), abs(maximum[1] - min[1]), abs(maximum[2] - min[2]))
@@ -1022,13 +1025,11 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   ny = int(delta[1] / dy)
   nz = int(delta[2] / dz)    
   
+  print("before ip data")
+  start = time.time()
   ip_data, ip_near, out, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
-#   
-#   print(out[0],ip_data[0])
-#   print(out[1],ip_data[1])
-#   print(out[2],ip_data[2])
-#   
-#   sys.exit()
+  end = time.time()
+  print("got ip data. elapsed time:",end-start)
   
   assert(len(ip_data) == len(out))
   assert(len(out) == (nx+1)*(ny+1)*(nz+1))
@@ -1037,7 +1038,8 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   # convert coordinates of sample to 3d numpy array
   sample_coords = numpy.asarray(out.reshape((nx+1,ny+1,nz+1,3)))
   
-  with pymp.Parallel(4) as p:
+  basecells = pymp.shared.list()
+  with pymp.Parallel(args.bc_num_threads) as p:
     for id in p.range(nx*ny*nz):
       i, j, k = get_3d_grid_coords(id,nx,ny,nz)
       
@@ -1055,41 +1057,54 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       y2 = max(top[1],thresh)
       z1 = max(this[2],thresh)
       z2 = max(front[2],thresh)
-          
-      #print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2,"z1:",z1,"z2:",z2) 
-#             
-      #if x1 >= thresh or x2 >= thresh or y1 >= thresh or y2 >= thresh or z1 >= thresh or z2 >= thresh:
+      
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
       bc_input.eta = 0.9
       bc_input.stiffness_as_diameter = True
       cell_obj = basecell.Basecell(bc_input)
-       
+      
       # translate cell to correct position
-      coord  = numpy.asarray(sample_coords[i,j,k] + [scale * 0.5 *dx,scale * 0.5 *dy,scale * 0.5 *dz])
-        # tranformation of vtk poly data
-      transform = vtk.vtkTransform() 
-      transform.Translate(coord)
-      transform.Scale(dx,dy,dz)
-         
-      # filter to perform transformation
-      transformFilter=vtk.vtkTransformPolyDataFilter()
-      transformFilter.SetTransform(transform)
-      transformFilter.SetInputData(cell_obj.cell)
-      transformFilter.Update()
-          
-#         with p.lock:
-#           li.append(transformFilter) 
-          # append cells in vtk
-      #with p.lock:
-      appends.AddInputConnection(transformFilter.GetOutputPort())
-      appends.Update() # not sure if we have to do this in each loop iteration
-      print("appended another base cell:",i,j,k)
-  #       else:
-  #         print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2,"z1:",z1,"z2:",z2)
+      coord  = numpy.asarray(sample_coords[i,j,k] - min - [0.5*dx,0.5*dy,0.5*dz])
+      
+      with p.lock:
+        basecells.append((cell_obj.points,cell_obj.cells,coord))
+        print("appended ",i,j,k)
   
-#   for l in li:
-#     appends.AddInputConnection(l.GetOutputPort())
-#     appends.Update()         
+  for bc in basecells:
+    
+    vtk_points = vtk.vtkPoints()
+    for p in bc[0]:
+      vtk_points.InsertNextPoint(p)
+      
+    vtk_cells = vtk.vtkCellArray()
+    for ce in bc[1]:
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0,ce[0])
+      tri.GetPointIds().SetId(1,ce[1])
+      tri.GetPointIds().SetId(2,ce[2])
+      vtk_cells.InsertNextCell(tri)
+    
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(vtk_points)
+    polydata.SetPolys(vtk_cells)
+          
+    # tranformation of vtk poly data
+    transform = vtk.vtkTransform() 
+    transform.Translate(bc[2])
+    transform.Scale(dx,dy,dz)
+       
+    # filter to perform transformation
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInputData(polydata)
+    transformFilter.Update()
+    
+    # append cells in vtk
+    appends.AddInputConnection(transformFilter.GetOutputPort())
+    appends.Update() # not sure if we have to do this in each loop iteration
+#     show_vtk(appends.GetOutput(), 100)
+
+  
   return appends.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
@@ -1103,7 +1118,7 @@ def get_interp_3darray_elem(array,fallback,idx):
 #   assert(array.ndim == 3)
   nx, ny, nz, _ = array.shape
   
-  if idx[0] >= nz or idx[0] < 0  or idx[1] >= ny or idx[1] < 0  or idx[2] >= nx  or idx[2] < 0 :
+  if idx[0] >= nx or idx[0] < 0  or idx[1] >= ny or idx[1] < 0  or idx[2] >= nz  or idx[2] < 0 :
     return None
   else:
     if array[idx][0] == -1 or array[idx][1] == -1 or array[idx][2] == -1:
@@ -1119,3 +1134,7 @@ def get_3d_grid_coords(index,nx,ny,nz):
   k = ((index - i)/nx-j)/ny
   
   return int(i),int(j),int(k)
+
+class polyDataWrapper:
+  def __init__(self,polydata):
+    self.polydata = polydata      

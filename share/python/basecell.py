@@ -327,7 +327,7 @@ class Basecell():
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
-    dumm, self.cell = draw_profile_functions.generate_basecell(data,None,None)
+    dumm, self.points, self.cells = draw_profile_functions.generate_basecell(data,None,None)
       
 ############## info xml scheme #####################
 # <basecell>
