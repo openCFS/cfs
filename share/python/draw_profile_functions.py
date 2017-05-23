@@ -10,7 +10,7 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 import matviz_vtk
 # except:
-#   print("WARNING: failed to load vtk!")  
+#   print("WARNING: failed to load vtk!")
 
 import matplotlib
 matplotlib.use('tkagg')
@@ -955,7 +955,7 @@ def generate_basecell(args,info,log,offset=0):
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, polydata
+  return array, new_surf_points, faces
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)

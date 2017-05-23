@@ -454,6 +454,7 @@ parser.add_argument("--bc_interpolation", help="interpolation type for ortho bas
 parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
+parser.add_argument("--bc_num_threads", help="number of threads for parallelized basecell generation (default:4)", type=int,default=4)
                                                                                                                       
 
 # print sys.argv
