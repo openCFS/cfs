@@ -47,7 +47,7 @@ public:
   StdVector<Condition*> constr;
 
   /** volume of the structure */
-  double volume, volume_observe;
+  double volume, volume_observe, volume_cfs;
 
   /** volume constraint bound */
   double volume_bound;
@@ -157,7 +157,7 @@ private:
   void SolveSubProblem();
 
   /** updates the design and the outer function values and gradients */
-  void UpdateToCurrentStep(bool inner = false, double ppeni = -1.);
+  void UpdateToCurrentStep(bool inner = false, double ppeni = -1., bool widening = false);
 
   /** Performs a gradient check with central difference quotient for necessary derivatives */
   StdVector<double> GradientCheck(double & max_grad_error);
@@ -188,8 +188,8 @@ private:
   /** Reset L to 0-matrix*/
   void Reset_L();
 
-  /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
-  void DesignToOuter(bool inner = false, bool only_update_outer = false);
+  /** writes design to rho_outer, theta_outer and E_outer, E_outer is not updated for inner = true */
+  void DesignToOuter(bool inner, bool initial);
 
   /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated. */
   void OuterToDesign(bool filter = false);
@@ -283,7 +283,7 @@ private:
 
   double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
   double CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
-  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, double Vloc);
+  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double &rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, double Vloc);
   double CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
