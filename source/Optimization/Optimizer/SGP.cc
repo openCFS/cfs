@@ -244,7 +244,7 @@ void SGP::SolveProblem()
   }
 
   // writes design to outer variables, e.g. rho_outer
-  DesignToOuter();
+  DesignToOuter(false,true);
   // updates outer variables e.g. rho_outer, writes outer_variables to design, and evaluates objective and constraint functions and gradients
   UpdateToCurrentStep();
 
@@ -289,8 +289,8 @@ void SGP::SolveProblem()
     Vector<double> l_min(n_elem);
 
     // Reset L asymptote to zero matrix
-    Reset_L();
-    while ( tau < 5 && !tau_cond) {
+    //Reset_L();
+    //while ( tau < 5 && !tau_cond) {
       if (abs(pmin_vol-pmax_vol) < tolerance) {
         // solves sub-model and updates rho_outer and theta_outer
         if (configuration == DENSITY_ROTANGLE) {
@@ -361,10 +361,19 @@ void SGP::SolveProblem()
           // writes merit function
           UpdateToCurrentStep(true,ppeni);
 
+          //dirty solution volume fmo + fomo
+          if (configuration == FMO || configuration == FOMO) {
+            volume = 0;
+            for (unsigned int elem = 0; elem < n_elem; elem++) {
+              volume += E_inner[elem][0][0] + E_inner[elem][1][1] + E_inner[elem][2][2];
+            }
+            volume *= 1./float(n_elem);
+          }
+
           // Create output for bisection iterations
           double scale = (configuration == FMO || configuration == FOMO) ? 3. : 1.;
           if (volume > 0) {
-            output_str += " volume: " + lexical_cast<string>(volume/scale) + " ppeni: " + lexical_cast<string>(ppeni);
+            output_str += " volume: " + lexical_cast<string>(volume/scale) + " ppeni: " + lexical_cast<string>(ppeni);//+ " volume_cfs: " + lexical_cast<string>(volume_cfs/scale);
           } else if (volume_observe > 0) {
             output_str += " volume: " + lexical_cast<string>(volume_observe/scale);
           }
@@ -399,7 +408,7 @@ void SGP::SolveProblem()
        }
 
         // TODO option for widening is missing
-        UpdateToCurrentStep(false, 0., true);
+        /**UpdateToCurrentStep(false, 0., true);
 
         // Calculate min eigenvalues per element and update of asymptotes L
         obj->CalcMinEigenvalue(E_outer,l_min);
@@ -409,10 +418,10 @@ void SGP::SolveProblem()
         if (sub_min + merit > merit_inner) {
           tau_cond = true;
         } else {
-          tau ++;
+          tau++;
         }
 
-     }
+     } */
      if (filtering_gaps > 0) {
        // Update strategy for filtering gap penalty parameter
        if (abs(filtering_gaps) < filtering_gaps_bound) {
@@ -527,11 +536,11 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
 {
   // Update Design for new step
   DesignSpace* space = optimization->GetDesign();
-  DesignToOuter(inner,true);
+  DesignToOuter(inner,false);
   OuterToDesign();
   space->WriteDesignToExtern(x_outer);
 
-  // Update cost function and cost gradient only for non-inner (bisection) iterations
+  // Update cost function and cost gradient only for non-inner (non-bisection) iterations
   if (!inner) {
     // prepare all functions for the present design
     compliance = EvalObjective(n, x_outer.GetPointer(), true);
@@ -563,7 +572,7 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
     } else {
       if(constr[i] ->GetType() == Condition::VOLUME || constr[i] ->GetType() == Condition::GLOBAL_TWO_SCALE_VOL || constr[i] ->GetType() == Condition::GLOBAL_TENSOR_TRACE) {
         constr[i]->SetValue(optimization->CalcConstraint(g));
-        if (configuration == FMO || configuration == FOMO) {
+        /**if (configuration == FMO || configuration == FOMO) {
           EvalGradConstraint(g, 0, true, true, volume_grad);
           if (!constr[i]->IsObservation()) {
             for (unsigned int j=0; j < obj->outer_grad.GetSize(); j++) {
@@ -575,7 +584,7 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
             LOG_DBG3(sgp) << "SGP: volume_grad = "<<volume_grad.ToString();
             LOG_DBG3(sgp) << "SGP: ppen_vol = "<<ppen_vol;
           }
-        }
+        } */
       } else {
         if (!inner)
           throw Exception("Constraint type not handled in SGP Update function!");
@@ -592,11 +601,10 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
     filtering_gaps = 0;
     filtering_gaps_observe = 0;
   }
-  // calculate merit function: use cost function value including constraint multiplied by penalty term
   for(unsigned int i = 0; i < m; i++)
   {
     // Add non-physical constraint to merit functions
-    if (constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL || constr[i] ->GetType() == Condition::GLOBAL_TENSOR_TRACE) {
+    if ((constr[i]->GetType() == Condition::VOLUME || constr[i]->GetType() == Condition::GLOBAL_TWO_SCALE_VOL || constr[i] ->GetType() == Condition::GLOBAL_TENSOR_TRACE)) {
       if (!constr[i]->IsObservation()) {
         volume = constr[i]->GetValue(); //*n_elem;
       } else {
@@ -616,6 +624,8 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
         throw Exception("Constraint type not handled in SGP Update function!");
     }
   }
+
+  // calculate merit function: use cost function value including constraint multiplied by penalty term
   if (ppeni > 0)
     merit = compliance + ppen_filt * filtering_gaps + ppeni * volume;
   else
@@ -792,24 +802,20 @@ void SGP::Update_L(Vector<double> l_min,int tau) {
 }
 
 
-void SGP::DesignToOuter(bool inner,bool only_update_outer) {
+void SGP::DesignToOuter(bool inner,bool initial) {
   DesignSpace* space = optimization->GetDesign();
-
-  // 2D rotation matrix
-  Matrix<double> Rot;
-  Rot.Resize(2,2);
   unsigned int dens = 0., rot = 0., s1 = 0., s2 = 0.;
   Vector<double> p(2);
-  //designMaterial->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
-  if (!only_update_outer) {
+
+  // only used for initialization of variables before optimization
+  if (initial) {
     if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP || configuration == FOMO) {
       rot = space->FindDesign(DesignElement::ROTANGLE);
-      if (configuration == FOMO_TOP)
+      if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP)
         dens = space->FindDesign(DesignElement::DENSITY);
     } else if (configuration == STIFF1_STIFF2) {
       s1 = space->FindDesign(DesignElement::STIFF1);
       s2 = space->FindDesign(DesignElement::STIFF2);
-      rot = space->FindDesign(DesignElement::ROTANGLE);
     }
   }
   unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
@@ -819,42 +825,47 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
   unsigned int mech23 = space->FindDesign(DesignElement::MECH_23);
   unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
 
-
+  // Map inner to outer variables for all outer iterations
   for (unsigned int i = 0; i < n_elem; i++) {
     if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP || configuration == FOMO) {
-      if (!only_update_outer) {
-        if (configuration == FOMO_TOP)
+      if (initial) {
+        if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP) {
           rho_outer[i] = space->GetDesignElement(dens*n_elem+i)->GetDesign(DesignElement::SMART);
+        }
         theta_outer[i] = space->GetDesignElement(rot*n_elem+i)->GetDesign(DesignElement::SMART);
       }
       if (!inner) {
         E_outer[i].Resize(3,3);
+        // only for initialization
         Matrix<double> tmp(E_0);
+
         tmp = E_inner[i];
         space->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
-        //LOG_DBG3(sgp) << "A:before rho E_outer["<< i << "]= "<< E_outer[i].ToString();
         E_outer[i] = tmp;
-        if (configuration == FOMO_TOP)
+        if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP)
           E_outer[i] *= tf->Transform(rho_outer[i]);
       }
     } else if (configuration == STIFF1_STIFF2) {
-      if (!only_update_outer) {
+      if (initial) {
         s1_outer[i] = space->GetDesignElement(s1*n_elem+i)->GetDesign(DesignElement::SMART);
         s2_outer[i] = space->GetDesignElement(s2*n_elem+i)->GetDesign(DesignElement::SMART);
         theta_outer[i] = space->GetDesignElement(rot*n_elem+i)->GetDesign(DesignElement::SMART);
       }
-      p[0] = s1_outer[i];
-      p[1] = s2_outer[i];
       if (!inner) {
+        p[0] = s1_outer[i];
+        p[1] = s2_outer[i];
         helper_dm->ApplyHomRectC1Tensor(E_outer[i],p,DesignElement::NO_DERIVATIVE,PLANE);
         space->designMaterial->RotateTensor(E_outer[i],DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
       }
     } else if (configuration == FMO) {
+      if (!inner)
         E_outer[i] = E_inner[i];
     }
     LOG_DBG3(sgp) << "A:E_outer["<< i << "]= "<< E_outer[i].ToString();
   }
-  // write tensor to design in order to apply filter
+
+  // write tensor to design in order to apply filter for outer iterations
+  // for inner iterations: write non-changed E_outer to x_outer
   if (!inner)
     OuterToDesign(true);
   for (unsigned int i = 0; i < n_elem; i++) {
@@ -1163,11 +1174,11 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
 
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
 
-  double rho1 = 0, rho2 = 0,rho1_min,rho2_min;
-  Vector<double> ev(2);
-  Matrix<double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
-  Matrix<double> atmp(2,2),help(2,2);
-  double l1_min,l2_min;
+  double rho1 = 0, rho2 = 0, rho3 = 0, rho1_min,rho2_min, rho3_min;
+  Vector<double> ev(3);
+  Matrix<double> ev_vector(3,3),ev_vectorT(3,3), ev_vector_min(3,3),ev_vectorT_min(3,3);
+  Matrix<double> atmp(3,3),help(3,3);
+  double l1_min,l2_min, l3_min;
   double cost = 0;
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
@@ -1190,15 +1201,21 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
     obj_min = std::numeric_limits<double>::infinity();
     //brute force optimization
     for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
-      obj = CalcAnalyticSol_FOMO(rho1, rho2, ev,  ev_vector,  eval, BB,common->L[i], theta, ppen, Vloc);
+      obj = CalcAnalyticSol_FOMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB,common->L[i], theta, ppen, Vloc);
       ev_vector.Transpose(ev_vectorT);
       LOG_DBG3(sgp) << "Subsolve: theta =" << theta << " obj = " << obj << " rho1 = " << rho1 << " rho2 = " << rho2<< " ppen = " << ppen;
 
       if (obj < obj_min) {
+        // E_opt = V*diag(rho_i)*V' + L
         atmp[0][0] = rho1;
         atmp[1][1] = rho2;
+        atmp[2][2] = rho3;
+        atmp[0][2] = 0.;
+        atmp[2][0] = 0.;
         atmp[0][1] = 0.;
         atmp[1][0] = 0.;
+        atmp[1][2] = 0.;
+        atmp[2][1] = 0.;
 
         //atmp = ev_vector*tmp2*ev_vectorT
         atmp.Mult(ev_vectorT,help);
@@ -1209,17 +1226,19 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
         ev_vectorT_min = ev_vectorT;
         l1_min = ev[0];
         l2_min = ev[1];
+        l3_min = ev[2];
         rho1_min = rho1;
         rho2_min = rho2;
-        common->E_inner[i][0][0] = atmp[0][0];
-        common->E_inner[i][0][1] = atmp[0][1];
-        common->E_inner[i][0][2] = 0.;
-        common->E_inner[i][1][0] = atmp[1][0];
-        common->E_inner[i][1][1] = atmp[1][1];
-        common->E_inner[i][1][2] = 0.;
-        common->E_inner[i][2][2] = Vloc-atmp[0][0]-atmp[1][1];
-        common->E_inner[i][2][0] = 0.;
-        common->E_inner[i][2][1] = 0.;
+        rho3_min = rho3;
+        common->E_inner[i][0][0] = atmp[0][0] + common->L[i][0][0];;
+        common->E_inner[i][0][1] = atmp[0][1] + common->L[i][0][1];;
+        common->E_inner[i][0][2] = 0. + common->L[i][0][2];;
+        common->E_inner[i][1][0] = atmp[1][0] + common->L[i][1][0];;
+        common->E_inner[i][1][1] = atmp[1][1] + common->L[i][1][1];;
+        common->E_inner[i][1][2] = 0. + common->L[i][1][2];;
+        common->E_inner[i][2][2] = atmp[2][2] + common->L[i][2][2];
+        common->E_inner[i][2][0] = 0. + common->L[i][2][0];;
+        common->E_inner[i][2][1] = 0. + common->L[i][2][1];;
         obj_min = obj;
       }
     }
@@ -1390,31 +1409,38 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L,double theta_inner, double ppen, double Vloc) {
+double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double &rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L,double theta_inner, double ppen, double Vloc) {
 
-  Matrix<double> E_tmp(2,2);
+  Matrix<double> E_tmp(3,3);
   double result = 0;
     switch(eval)
   {
   case FUNC:
   {
     Matrix<double> tmp(BB);
-    ev.Resize(2);
-    ev_vector.Resize(2,2);
+    ev.Resize(3);
+    ev_vector.Resize(3,3);
     common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
     E_tmp[0][0] = tmp[0][0];
     E_tmp[0][1] = tmp[0][1];
+    E_tmp[0][2] = tmp[0][2];
     E_tmp[1][0] = tmp[1][0];
     E_tmp[1][1] = tmp[1][1];
+    E_tmp[1][2] = tmp[1][2];
+    E_tmp[2][0] = tmp[2][0];
+    E_tmp[2][1] = tmp[2][1];
+    E_tmp[2][2] = tmp[2][2];
     E_tmp.eigenvaluesWithLapack(ev,&ev_vector);
     double sqrB1 = sqrt(ev[0]);
     double sqrB2 = sqrt(ev[1]);
-    double sqrB3 = sqrt(tmp[2][2]);
+    double sqrB3 = sqrt(ev[2]);
+    double sqrPpen = sqrt(ppen);
 
-    rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
-    rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
+    rho1 = std::min(std::max(.01, .99*sqrB1/sqrPpen),.98);
+    rho2 = std::min(std::max(.01, .99*sqrB2/sqrPpen),.98);
+    rho3 = std::min(std::max(.01, .99*sqrB3/sqrPpen),.98);
 
-    result =  1./(Vloc - L[0][0] - L[1][1] - L[2][2]) * (ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(Vloc-rho1-rho2));//+ ppen * Vloc;
+    result = (ev[0]/rho1+ev[1]/rho2+ev[2]/rho3) + ppen * (rho1 + rho2 + rho3) + ppen * (L[0][0] + L[1][1] + L[2][2]);
     break;
   }
   default:
