@@ -229,6 +229,7 @@ void SGP::SolveProblem()
 
   bool converged = false;
   int iter = 1;
+  double Vloc =1.;
 
   // initialize merit functions and constraints
   double merit_old = -1.;
@@ -298,11 +299,11 @@ void SGP::SolveProblem()
         } else if (configuration == STIFF1_STIFF2) {
           sub_min = obj->SubSolve(SGPApproximation::FUNC,df,ppen_vol,s1_outer,s2_outer,theta_outer);
         } else if (configuration == FOMO_TOP) {
-          sub_min = obj->SubSolve_FOMO_Top(SGPApproximation::FUNC,df,ppen_vol,rho_outer,theta_outer);
+          sub_min = obj->SubSolve_FOMO_Top(SGPApproximation::FUNC,df,ppen_vol,rho_outer,theta_outer,Vloc);
         } else if (configuration == FOMO) {
-          sub_min = obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppen_vol,theta_outer,1.);
+          sub_min = obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppen_vol,theta_outer,Vloc);
         } else if (configuration == FMO) {
-          sub_min = obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppen_vol,1.);
+          sub_min = obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppen_vol,Vloc);
         } else {
           throw "SGP configuration not known!";
         }
@@ -346,11 +347,11 @@ void SGP::SolveProblem()
           } else if (configuration == STIFF1_STIFF2) {
             sub_min = obj->SubSolve(SGPApproximation::FUNC,df,ppeni,s1_outer,s2_outer,theta_outer);
           } else if (configuration == FOMO_TOP) {
-            sub_min = obj->SubSolve_FOMO_Top(SGPApproximation::FUNC,df,ppeni,rho_outer,theta_outer);
+            sub_min = obj->SubSolve_FOMO_Top(SGPApproximation::FUNC,df,ppeni,rho_outer,theta_outer,Vloc);
           } else if (configuration == FOMO) {
-            sub_min = obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppeni,theta_outer,1.);
+            sub_min = obj->SubSolve_FOMO(SGPApproximation::FUNC,df,ppeni,theta_outer,Vloc);
           } else if (configuration == FMO) {
-            sub_min = obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppeni,1.);
+            sub_min = obj->SubSolve_FMO(SGPApproximation::FUNC,df,ppeni,Vloc);
           } else {
             throw "SGP configuration not known!";
           }
@@ -371,11 +372,10 @@ void SGP::SolveProblem()
           }
 
           // Create output for bisection iterations
-          double scale = (configuration == FMO || configuration == FOMO) ? 3. : 1.;
           if (volume > 0) {
-            output_str += " volume: " + lexical_cast<string>(volume/scale) + " ppeni: " + lexical_cast<string>(ppeni);//+ " volume_cfs: " + lexical_cast<string>(volume_cfs/scale);
+            output_str += " volume: " + lexical_cast<string>(volume/Vloc) + " ppeni: " + lexical_cast<string>(ppeni);//+ " volume_cfs: " + lexical_cast<string>(volume_cfs/scale);
           } else if (volume_observe > 0) {
-            output_str += " volume: " + lexical_cast<string>(volume_observe/scale);
+            output_str += " volume: " + lexical_cast<string>(volume_observe/Vloc);
           }
           if (filtering_gaps > 0 && filtering_gaps_observe == 0) {
             output_str += " filtering_gaps: " + lexical_cast<string>(filtering_gaps) + " pmax_filt: " + lexical_cast<string>(pmax_filt) + " pmin_filt: " + lexical_cast<string>(pmin_filt) +  " ppen_filt: " + lexical_cast<string>(ppen_filt);
@@ -390,10 +390,10 @@ void SGP::SolveProblem()
 
           // Update strategy for penalty term of volume constraint
           if(penal_vol && volume > 0) {
-            if (abs(volume/(scale)-volume_bound) < volume_tolerance) {
+            if (abs(volume/(Vloc)-volume_bound) < volume_tolerance) {
               penal_vol = false;
             } else {
-              if (volume/(scale)-volume_bound > 0) {
+              if (volume/(Vloc)-volume_bound > 0) {
                 pmini = ppeni;
                 ppeni = 0.5 * (pmaxi + ppeni);
               } else {
@@ -1085,7 +1085,7 @@ double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<d
   return cost;
 }
 
-double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer) {
+double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer, double & Vloc) {
   double obj = 0.0;
 
   Matrix<double> dL,BB,dfdL,E_tmptmp(3,3);
@@ -1093,7 +1093,7 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
 
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
 
-  double rho1 = 0, rho2 = 0, rho,rho1_min,rho2_min;
+  double rho1 = 0, rho2 = 0, rho = 0,rho1_min,rho2_min;
   Vector<double> ev(2);
   Matrix<double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
   Matrix<double> atmp(2,2),help(2,2);
@@ -1117,8 +1117,9 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
     obj_min = std::numeric_limits<double>::infinity();
     //brute force optimization
+    double Vloc = 0;
     for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
-      obj = CalcAnalyticSol_FOMO_Top(rho1, rho2, rho, ev,  ev_vector,  eval, BB, theta, ppen, i);
+      obj = CalcAnalyticSol_FOMO_Top(rho1, rho2, rho, ev,  ev_vector,  eval, BB, theta, ppen, i,Vloc);
       ev_vector.Transpose(ev_vectorT);
       LOG_DBG3(sgp) << "Subsolve: theta =" << theta << " obj = " << obj <<" rho = " <<rho<< " rho1 = " << rho1 << " rho2 = " << rho2<< " ppen = " << ppen;
 
@@ -1140,15 +1141,15 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
         l2_min = ev[1];
         rho1_min = rho1;
         rho2_min = rho2;
-        common->E_inner[i][0][0] = atmp[0][0];
-        common->E_inner[i][0][1] = atmp[0][1];
-        common->E_inner[i][0][2] = 0.;
-        common->E_inner[i][1][0] = atmp[1][0];
-        common->E_inner[i][1][1] = atmp[1][1];
-        common->E_inner[i][1][2] = 0.;
-        common->E_inner[i][2][2] = 1.-atmp[0][0]-atmp[1][1];
-        common->E_inner[i][2][0] = 0.;
-        common->E_inner[i][2][1] = 0.;
+        common->E_inner[i][0][0] = atmp[0][0] + common->L[i][0][0];
+        common->E_inner[i][0][1] = atmp[0][1] + common->L[i][0][1];
+        common->E_inner[i][0][2] = 0. + common->L[i][0][2];
+        common->E_inner[i][1][0] = atmp[1][0] + common->L[i][1][0];
+        common->E_inner[i][1][1] = atmp[1][1] + common->L[i][1][1];
+        common->E_inner[i][1][2] = 0. + common->L[i][1][2];
+        common->E_inner[i][2][2] = Vloc-atmp[0][0]-atmp[1][1] + common->L[i][2][2];
+        common->E_inner[i][2][0] = 0. + common->L[i][2][0];
+        common->E_inner[i][2][1] = 0. + common->L[i][2][1];
         obj_min = obj;
       }
     }
@@ -1166,7 +1167,7 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
   return cost;
 }
 
-double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double Vloc) {
+double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double & Vloc) {
   double obj = 0.0;
 
   Matrix<double> dL,BB,dfdL;
@@ -1201,7 +1202,7 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
     obj_min = std::numeric_limits<double>::infinity();
     //brute force optimization
     for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
-      obj = CalcAnalyticSol_FOMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB,common->L[i], theta, ppen, Vloc);
+      obj = CalcAnalyticSol_FOMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB,common->L[i], theta, ppen, i, Vloc);
       ev_vector.Transpose(ev_vectorT);
       LOG_DBG3(sgp) << "Subsolve: theta =" << theta << " obj = " << obj << " rho1 = " << rho1 << " rho2 = " << rho2<< " ppen = " << ppen;
 
@@ -1245,8 +1246,8 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
     LOG_DBG3(sgp)<< "Subsolve: theta_min = " << theta_outer[i] << ", obj_min = "<<obj_min;
     LOG_DBG3(sgp) << "Subsolve: E_inner =" << common->E_inner[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: ev_vector_min =" << ev_vector_min.ToString();
-    LOG_DBG3(sgp) << "Subsolve: l1_min =" <<l1_min <<" l2_min = "<<l2_min;
-    LOG_DBG3(sgp) << "Subsolve: rho1_min =" <<rho1_min <<" rho2_min = "<<rho2_min;
+    LOG_DBG3(sgp) << "Subsolve: l1_min =" <<l1_min <<" l2_min = "<<l2_min <<" l3_min = "<<l3_min;
+    LOG_DBG3(sgp) << "Subsolve: rho1_min =" <<rho1_min <<" rho2_min = "<<rho2_min <<" rho3_min = "<<rho3_min;
     LOG_DBG3(sgp) << "Subsolve: atmp =" << atmp.ToString();
 
     // calculate full model function for globalization
@@ -1256,7 +1257,7 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
   return cost;
 }
 
-double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc) {
+double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double & Vloc) {
   double obj = 0.0;
 
   Matrix<double> dL,BB,dfdL;
@@ -1286,7 +1287,7 @@ double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, 
     LOG_DBG3(sgp) << "Subsolve: df =" << df[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
     obj_min = std::numeric_limits<double>::infinity();
-    obj = CalcAnalyticSol_FMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB, common->L[i],ppen,Vloc);
+    obj = CalcAnalyticSol_FMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB, common->L[i],ppen,i,Vloc);
     LOG_DBG3(sgp) << "Subsolve: obj = " << obj << " rho1 = " << rho1 << " rho2 = " <<rho2<< " rho3 = "<<rho3;
 
     if (obj < obj_min) {
@@ -1370,7 +1371,7 @@ double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Mat
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index) {
+double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index, double & Vloc) {
 
   Matrix<double> E_tmp(2,2);
   double result = 0;
@@ -1392,13 +1393,33 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
     double sqrB2 = sqrt(ev[1]);
     double sqrB3 = sqrt(tmp[2][2]);
 
-    rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
-    rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
+    DesignSpace* space = common->optimization->GetDesign();
+    unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+    unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+    unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+    unsigned int dens = space->FindDesign(DesignElement::DENSITY);
 
-    double rtmp = ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(1.0-rho1-rho2);
+    double lower_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetLowerBound();
+    double upper_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetUpperBound();
+    double lower_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetLowerBound();
+    double upper_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetUpperBound();
+    double lower_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetLowerBound();
+    double upper_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetUpperBound();
+    double lower_dens = space->GetDesignElement(dens*common->n_elem+index)->GetLowerBound();
+    double upper_dens = space->GetDesignElement(dens*common->n_elem+index)->GetUpperBound();
+
+    // Calculate Vloc
+    Vloc = upper_mech11 + upper_mech22 + upper_mech33 - lower_mech11 - lower_mech22 - lower_mech33;
+    double scale = Vloc - common->L[index][0][0] - common->L[index][1][1] - common->L[index][2][2];
+
+    // projection to bounds
+    rho1 = std::min(std::max(lower_mech11, .99 * scale * sqrB1/(sqrB1+sqrB2+sqrB3)),upper_mech11-lower_mech11);
+    rho2 = std::min(std::max(lower_mech22, .99 * scale * sqrB2/(sqrB1+sqrB2+sqrB3)),upper_mech22-lower_mech22);
+
+    double rtmp = ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(Vloc-rho1-rho2);
 
     rho = pow(psimp * rtmp/ppen,1./(psimp+1.));
-    rho = std::min(1.,std::max(.01,rho));
+    rho = std::min(upper_dens,std::max(lower_dens,rho));
     result =  pow(rho,(-psimp))*rtmp + ppen * rho;
     break;
   }
@@ -1409,7 +1430,7 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double &rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L,double theta_inner, double ppen, double Vloc) {
+double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double &rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L,double theta_inner, double ppen, int index, double & Vloc) {
 
   Matrix<double> E_tmp(3,3);
   double result = 0;
@@ -1436,9 +1457,24 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, double
     double sqrB3 = sqrt(ev[2]);
     double sqrPpen = sqrt(ppen);
 
-    rho1 = std::min(std::max(.01, .99*sqrB1/sqrPpen),.98);
-    rho2 = std::min(std::max(.01, .99*sqrB2/sqrPpen),.98);
-    rho3 = std::min(std::max(.01, .99*sqrB3/sqrPpen),.98);
+    DesignSpace* space = common->optimization->GetDesign();
+    unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+    unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+    unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+
+    double lower_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetLowerBound();
+    double upper_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetUpperBound();
+    double lower_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetLowerBound();
+    double upper_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetUpperBound();
+    double lower_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetLowerBound();
+    double upper_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetUpperBound();
+
+    // Calculate Vloc
+    Vloc = upper_mech11 + upper_mech22 + upper_mech33 - lower_mech11 - lower_mech22 - lower_mech33;
+
+    rho1 = std::min(std::max(lower_mech11, .99*sqrB1/sqrPpen),upper_mech11-lower_mech11);
+    rho2 = std::min(std::max(lower_mech22, .99*sqrB2/sqrPpen),upper_mech22-lower_mech22);
+    rho3 = std::min(std::max(lower_mech33, .99*sqrB3/sqrPpen),upper_mech33-lower_mech33);
 
     result = (ev[0]/rho1+ev[1]/rho2+ev[2]/rho3) + ppen * (rho1 + rho2 + rho3) + ppen * (L[0][0] + L[1][1] + L[2][2]);
     break;
@@ -1461,7 +1497,7 @@ void SGPApproximation::CalcMinEigenvalue(StdVector<Matrix<double> > & E_in, Vect
   }
 }
 
-double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc) {
+double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, int index, double & Vloc) {
 
   Matrix<double> E_tmp(3,3);
   double result = 0;
@@ -1487,12 +1523,24 @@ double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double 
     double sqrB3 = sqrt(ev[2]);
     double sqrPpen = sqrt(ppen);
 
-    //rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
-    //rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
-    //rho3 = std::min(std::max(.01, .99*sqrB3/(sqrB1+sqrB2+sqrB3)),.98);
-    rho1 = std::min(std::max(.01, .99*sqrB1/sqrPpen),.98);
-    rho2 = std::min(std::max(.01, .99*sqrB2/sqrPpen),.98);
-    rho3 = std::min(std::max(.01, .99*sqrB3/sqrPpen),.98);
+    DesignSpace* space = common->optimization->GetDesign();
+    unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+    unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+    unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+
+    double lower_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetLowerBound();
+    double upper_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetUpperBound();
+    double lower_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetLowerBound();
+    double upper_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetUpperBound();
+    double lower_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetLowerBound();
+    double upper_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetUpperBound();
+
+    // Calculate Vloc
+    Vloc = upper_mech11 + upper_mech22 + upper_mech33 - lower_mech11 - lower_mech22 - lower_mech33;
+
+    rho1 = std::min(std::max(lower_mech11, .99*sqrB1/sqrPpen),upper_mech11 - lower_mech11);
+    rho2 = std::min(std::max(lower_mech22, .99*sqrB2/sqrPpen),upper_mech22 - lower_mech22);
+    rho3 = std::min(std::max(lower_mech33, .99*sqrB3/sqrPpen),upper_mech33 - lower_mech33);
 
     //result = 1./(Vloc - L[0][0] - L[1][1] - L[2][2])*(ev[0]/rho1+ev[1]/rho2+ev[2]/rho3) + ppen * Vloc * (rho1+rho2+rho3);
     result = (ev[0]/rho1+ev[1]/rho2+ev[2]/rho3) + ppen * (rho1 + rho2 + rho3) + ppen * (L[0][0] + L[1][1] + L[2][2]);
