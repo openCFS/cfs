@@ -898,7 +898,7 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
   # we make our own regular element grid
   centers, mi, ma = coords[0:3]  # skip elem
  
-  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  delta = (abs(ma[0] + mi[0]), abs(ma[1] + mi[1]), abs(ma[2] + mi[2]))
   # where we want nodes
   nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
@@ -918,7 +918,7 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
   for x in range(nx + 1):
     for y in range(ny + 1):
       for z in range(nz + 1):
-        out[idx] = ((mi[0] + 0.5*dx + float(x) / nx * delta[0], mi[1] + 0.5*dy +  float(y) / ny * delta[1], mi[2] + 0.5*dx + float(z) / nz * delta[2]))
+        out[idx] = [x*dx,y*dy,z*dz]
         idx += 1
   if s2 is None and s3 is None:
       v = numpy.zeros((len(s1), 1))
@@ -995,9 +995,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   # csize: size of one cell, e.g. [8,8,8]
   
   # point coordinates from h5 file
-  centers, min, maximum = coords[0:3]
+  centers, minimum, maximum = coords[0:3]
   
-  print("min:",min," max:",maximum)
+  print("min:",minimum," max:",maximum)
   
   # appendind cells
   appends = vtk.vtkAppendPolyData()
@@ -1007,9 +1007,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     
   # set size dx/dy/dz of one cell
 #   if csize is None:
-  dx = (maximum[0] - min[0]) / samples[0]
-  dy = (maximum[1] - min[1]) / samples[1]
-  dz = (maximum[2] - min[2]) / samples[2]
+  dx = (maximum[0] + minimum[0]) / samples[0]
+  dy = (maximum[1] + minimum[1]) / samples[1]
+  dz = (maximum[2] + minimum[2]) / samples[2]
 #   else:
 #     dx = csize[0]
 #     dy = csize[1]
@@ -1017,10 +1017,10 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 
   print(dx,dy,dz)
 
-  min_thresh = 2.0/args.bc_res
+  min_thresh = 3.0/args.bc_res
   max_thresh = 0.82
     
-  delta = (abs(maximum[0] - min[0]), abs(maximum[1] - min[1]), abs(maximum[2] - min[2]))
+  delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
   # where we want nodes
   nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
@@ -1066,7 +1066,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       cell_obj = basecell.Basecell(bc_input)
       
       # translate cell to correct position
-      coord  = numpy.asarray(sample_coords[i,j,k] - min - [0.5*dx,0.5*dy,0.5*dz])
+      coord  = numpy.asarray(sample_coords[i,j,k] - minimum - [0.5*dx,0.5*dy,0.5*dz])
       
       with p.lock:
         basecells.append((cell_obj.points,cell_obj.cells,coord))
