@@ -38,7 +38,7 @@ SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   ubound = this_opt_pn_->Get("upper_bound")->As<double>();
   tolerance = this_opt_pn_->Get("tolerance")->As<double>();
   volume_tolerance = this_opt_pn_->Get("volume_tolerance")->As<double>();
-  tau = this_opt_pn_->Get("tau")->As<double>();
+  upper_tau = this_opt_pn_->Get("upper_tau")->As<double>();
   derivative_check = this_opt_pn_->Get("derivative_check")->As<bool>();
 
 
@@ -290,8 +290,9 @@ void SGP::SolveProblem()
     Vector<double> l_min(n_elem);
 
     // Reset L asymptote to zero matrix
-    //Reset_L();
-    //while ( tau < 5 && !tau_cond) {
+    Reset_L();
+    // globalization loop, varies asymptote L
+    while ( tau < upper_tau && !tau_cond) {
       if (abs(pmin_vol-pmax_vol) < tolerance) {
         // solves sub-model and updates rho_outer and theta_outer
         if (configuration == DENSITY_ROTANGLE) {
@@ -318,28 +319,13 @@ void SGP::SolveProblem()
           pmaxi = min(pmax_vol, 1.02*ppen_vol);
           pmini = max(pmin_vol, 0.98*ppen_vol);
         }
-  //      if (iter_filt > 5 && iter < 2000) {
-  //        pmaxi_filt = pmax_filt;
-  //        pmini_filt = pmin_filt;
-  //        ppen_filt = 0.5*(pmin_filt+pmax_filt);
-  //        iter_filt = 0;
-  //      }
-  //      } else if (iter_filt > 5 && iter > 10 && iter < 20) {
-  //        pmaxi_filt = min(pmax_filt,1.1*ppen_filt);
-  //        pmini_filt = max(pmin_filt,0.9*ppen_filt);
-  //        iter_filt = 0;
-  //      } else {
-  //        if (iter_filt > 5) {
-  //          pmaxi_filt = min(pmax_filt, 1.02*ppen_filt);
-  //          pmini_filt = max(pmin_filt, 0.98*ppen_filt);
-  //          iter_filt = 0;
-  //        }
-  //      }
 
         ppeni = ppen_vol;
         int ki = 0;
         bool penal_vol = true;
         std::string output_str = "";
+
+        //bisection for volume constraint
         while (ki < bisect && penal_vol) {
           output_str = "s-iteration: " + lexical_cast<string>(ki) + " compliance: " + lexical_cast<string>(compliance) + " merit: " + lexical_cast<string>(merit) + " pmaxi: " + lexical_cast<string>(pmaxi) + " pmini: " + lexical_cast<string>(pmini);
           if (configuration == DENSITY_ROTANGLE) {
@@ -356,19 +342,21 @@ void SGP::SolveProblem()
             throw "SGP configuration not known!";
           }
 
-          // evaluate all functions such that we have the function values for the current design
-          // the subproblem is based on the approximated values only
-          // writes design to outer variables rho_outer,... and evaluates objective and constraint functions, gradients
-          // writes merit function
+          // evaluates volume constraint for the current design (FOMO + Top, Density_Rotangle, 2sc)
+          // merit function is updated
+          // writes design to outer variables rho_outer, but does not write E_outer for bisection steps
           UpdateToCurrentStep(true,ppeni);
 
           //dirty solution volume fmo + fomo
           if (configuration == FMO || configuration == FOMO) {
+            // subtracts old volume from merit (dirty solution)
+            merit -= ppeni * volume;
             volume = 0;
             for (unsigned int elem = 0; elem < n_elem; elem++) {
               volume += E_inner[elem][0][0] + E_inner[elem][1][1] + E_inner[elem][2][2];
             }
             volume *= 1./float(n_elem);
+            merit += ppeni * volume;
           }
 
           // Create output for bisection iterations
@@ -407,21 +395,19 @@ void SGP::SolveProblem()
         ppen_vol = ppeni;
        }
 
-        // TODO option for widening is missing
-        /**UpdateToCurrentStep(false, 0., true);
-
         // Calculate min eigenvalues per element and update of asymptotes L
         obj->CalcMinEigenvalue(E_outer,l_min);
         Update_L(l_min,tau);
 
         // globalization criterion
-        if (sub_min + merit > merit_inner) {
+        if (sub_min + compliance > EvalCostFunction()) {
           tau_cond = true;
         } else {
           tau++;
-        }
+          std::cout << "Widening Step!!!!!"<<std::endl;
 
-     } */
+        }
+     }
      if (filtering_gaps > 0) {
        // Update strategy for filtering gap penalty parameter
        if (abs(filtering_gaps) < filtering_gaps_bound) {
@@ -531,6 +517,61 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
   }
   return diff_grad;
 }
+
+double SGP::EvalCostFunction(void) {
+  // write current solution E_inner to temporary outer variable x
+  Vector<double> x(x_outer.GetSize());
+  Matrix<double> E_tmp_outer(E_inner[0]);
+  Vector<double> p(2);
+  DesignSpace* space = optimization->GetDesign();
+  unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
+  unsigned int mech12 = space->FindDesign(DesignElement::MECH_12);
+  unsigned int mech13 = space->FindDesign(DesignElement::MECH_13);
+  unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
+  unsigned int mech23 = space->FindDesign(DesignElement::MECH_23);
+  unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+  for (unsigned int i = 0; i < n_elem; i++) {
+
+    // calculate temporary E_outer
+    if (configuration == FOMO || configuration == FOMO_TOP || configuration == DENSITY_ROTANGLE) {
+      E_tmp_outer = E_inner[i];
+      space->designMaterial->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
+      if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP)
+        E_tmp_outer *= tf->Transform(rho_outer[i]);
+    } else if ( configuration == FMO) {
+      E_tmp_outer = E_inner[i];
+    } else if (configuration == STIFF1_STIFF2) {
+      p[0] = s1_outer[i];
+      p[1] = s2_outer[i];
+      helper_dm->ApplyHomRectC1Tensor(E_tmp_outer,p,DesignElement::NO_DERIVATIVE,PLANE);
+      space->designMaterial->RotateTensor(E_tmp_outer,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_outer[i]);
+    } else {
+      throw("Configuration not known!");
+    }
+
+    // write temporary E_outer to outer variables
+    x[mech11*n_elem+i] = E_tmp_outer[0][0];
+    x[mech12*n_elem+i] = E_tmp_outer[0][1];
+    x[mech13*n_elem+i] = E_tmp_outer[0][2];
+    x[mech22*n_elem+i] = E_tmp_outer[1][1];
+    x[mech23*n_elem+i] = E_tmp_outer[1][2];
+    x[mech33*n_elem+i] = E_tmp_outer[2][2];
+  }
+
+  // evaluate objective and constraints for temporary outer variable x
+  double obj = EvalObjective(n, x.GetPointer(), true);
+  StdVector<double> constr_val(m);
+  EvalConstraints(n,x.GetPointer(),m,true,constr_val.GetPointer(),true);
+  for (unsigned int k=0; k < m;k++) {
+    if (constr[k]->GetType() == Condition::FILTERING_GAP) {
+        obj += ppen_filt * constr_val[k];
+    } else if (constr[k]->GetType() == Condition::VOLUME) {
+        obj += ppen_vol * constr_val[k];
+    }
+  }
+  return obj;
+}
+
 
 void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
 {
@@ -785,20 +826,22 @@ void SGP::Reset_L() {
 
 void SGP::Update_L(Vector<double> l_min,int tau) {
   double res = 2;
-  for (int i = 2; i < tau; i++) {
+  for (int i = 2; i < upper_tau-tau; i++) {
     res *= 2;
   }
-  for(unsigned int i = 0; i < n_elem; i++)
-    {
-      L[i].Resize(3,3);
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          if (k==j) {
-            L[i][j][k] = l_min[i]/res;
-          }
+  if (tau + 1 == upper_tau) {
+    res = 1.;
+  }
+  for(unsigned int i = 0; i < n_elem; i++) {
+    L[i].Resize(3,3);
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        if (k==j) {
+          L[i][j][k] = l_min[i]/res;
         }
       }
     }
+  }
 }
 
 
@@ -1347,9 +1390,9 @@ double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Mat
     E_tmp = E_tmptmp-common->L[index];
     E_tmp.Invert(E_tmpinv);
     // use E_tmp again for proximal point term, default: tau = 0
-    E_tmp = E_tmptmp - common->E_outer[index];
-    E_tmp *= common->tau;
-    BB += E_tmp;
+    //E_tmp = E_tmptmp - common->E_outer[index];
+    //E_tmp *= common->tau;
+    //BB += E_tmp;
     E_tmpinv.Mult(BB,LLL);
     result = LLL[0][0] + LLL[1][1] + LLL[2][2] + ppen * vol_inner_vars;
     LOG_DBG3(sgp) << "A:E f=" << ToString() << " func r_= " << result;
@@ -1561,7 +1604,7 @@ void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s
   // Rotate 2-scale tensor
   common->optimization->GetDesign()->designMaterial->RotateTensor(E_inner,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
   // only for debuggin purpose, delete afterwards
-  common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
+  //common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
 
 }
 
