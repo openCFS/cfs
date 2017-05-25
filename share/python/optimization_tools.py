@@ -1092,7 +1092,6 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
 
   h1 = 1.0/n1
   h2 = 1.0/n2
-
    
   for j in range(0,n2): 
     for i in range(1,n1):
@@ -1132,7 +1131,52 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
     per /= 1 + 2 * numpy.cos(numpy.pi / 4)
   
   return per
+
+## see perimeter()
+# @param data array
+# @param eps for continuation, 0.0 is ok
+# @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain
+# currently only neighborhood definde only over faces of a cube  
+def perimeter_3d(data, eps = 0.0, normalize = True):
+  assert(data.ndim == 3)
+  nx, ny, nz = data.shape
   
+  hx = 1.0/nx
+  hy = 1.0/ny
+  hz = 1.0/nz
+  
+  per = 0
+  
+  for i in range(nx):
+    for j in range(ny):
+      for k in range(nz):
+        this = data[i,j,k]
+        if i < nx-1:
+          scale = hx/(ny-1) if normalize else hx
+          next = data[i+1,j,k]
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if j < ny-1:
+          next = data[i,j+1,k]
+          scale = hy/(ny-1) if normalize else hy
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if k < nz-1:  
+          next = data[i,j,k+1]
+          scale = hz/(nz-1) if normalize else hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if i > 0:  
+          next = data[i-1,j,k]
+          scale = hx/(ny-1) if normalize else hx
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if j > 0:
+          next = data[i,j-1,k]
+          scale = hy/(ny-1) if normalize else hy
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if k > 0:
+          next = data[i,j,k-1]
+          scale = hz/(nz-1) if normalize else hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+          
+  return per            
 # add a save ghost cell around an array
 # @param reproduce shall the outer boundary be copied 
 def add_ghost_cells(data, reproduce = False):

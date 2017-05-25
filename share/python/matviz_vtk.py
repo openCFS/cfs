@@ -1017,7 +1017,8 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 
   print(dx,dy,dz)
 
-  thresh = 2.0/args.bc_res
+  min_thresh = 2.0/args.bc_res
+  max_thresh = 0.82
     
   delta = (abs(maximum[0] - min[0]), abs(maximum[1] - min[1]), abs(maximum[2] - min[2]))
   # where we want nodes
@@ -1050,13 +1051,14 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       
       assert(this is not None and east is not None and top is not None and front is not None)
 
-      # if one of the values is < thresh, set it to thresh        
-      x1 = max(this[0],thresh)
-      x2 = max(east[0],thresh)
-      y1 = max(this[1],thresh)
-      y2 = max(top[1],thresh)
-      z1 = max(this[2],thresh)
-      z2 = max(front[2],thresh)
+      # if one of the values is < min_thresh, set it to min_thresh        
+      # if one of the values is > max_thresh, set it to max_thresh
+      x1 = min(max(this[0],min_thresh),max_thresh)
+      x2 = min(max(east[0],min_thresh),max_thresh)
+      y1 = min(max(this[1],min_thresh),max_thresh)
+      y2 = min(max(top[1],min_thresh),max_thresh)
+      z1 = min(max(this[2],min_thresh),max_thresh)
+      z2 = min(max(front[2],min_thresh),max_thresh)
       
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
       bc_input.eta = 0.9

@@ -11,6 +11,7 @@ import cfs_utils
 import argparse
 import draw_profile_functions
 import numpy as np
+from scipy import interpolate
 from matviz_vtk import *
 
 def calc_volume(array,infoXml):
