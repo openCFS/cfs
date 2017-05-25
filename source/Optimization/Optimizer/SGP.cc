@@ -400,7 +400,7 @@ void SGP::SolveProblem()
         Update_L(l_min,tau);
 
         // globalization criterion
-        if (sub_min + compliance > EvalCostFunction()) {
+        if (sub_min + compliance + ppen_filt * filtering_gaps > EvalCostFunction()) {
           tau_cond = true;
         } else {
           tau++;
