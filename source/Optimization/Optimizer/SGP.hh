@@ -74,6 +74,9 @@ public:
   /** lower asymptote */
   StdVector<Matrix<double> > L;
 
+  /** lower asymptote */
+  StdVector<Vector<double> > L_ev;
+
   /** upper asymptote */
   StdVector<Matrix<double> > U;
 
@@ -86,8 +89,8 @@ public:
   /** convergence tolerance for volume bisection */
   double volume_tolerance;
 
-  /** tau of model function in subsolve */
-  double tau;
+  /** max number of widening steps in globalization */
+  int upper_tau;
 
   /** turn of finite differences derivative check*/
   bool derivative_check;
@@ -190,6 +193,9 @@ private:
 
   /** writes design to rho_outer, theta_outer and E_outer, E_outer is not updated for inner = true */
   void DesignToOuter(bool inner, bool initial);
+
+  /** calculates cost function without changing state of the variables, necessary for globalization reduction test */
+  double EvalCostFunction(void);
 
   /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated. */
   void OuterToDesign(bool filter = false);
