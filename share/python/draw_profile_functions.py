@@ -37,7 +37,7 @@ interpolation = None
 symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 
 class Cubic_spline():
-  # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=0
+  # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=13
   # a cubic spline is defined by its base functions and control polygon
   #f03 = (1-t)**3
   #f13 = 3*t*(1-t)**2
@@ -116,26 +116,28 @@ class Cubic_spline():
   # if not left, then we're at right branch -> compute spline as left branch
   # and mirror the result
   def plot(self,left=True):
+    matplotlib.rcParams.update({'font.size': 20})
+    matplotlib.rcParams['lines.linewidth'] = 5
     if left:
       t = np.linspace(0, 1, 100)
       C = self.eval_t(t)
-      plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15)
+      plt.plot(np.transpose(self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15,color='green')
       t1 = self.calc_param_grad_1()
       Ct = self.eval_t(t1)
-      plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]))
+      plt.plot(np.transpose(C[0,:]),np.transpose(C[1,:]),color='black')
       plt.plot(Ct[0],Ct[1],marker='o', markersize=15)
     else:
       t = np.linspace(0, 1, 100)
       C = self.eval_t(t)
-      plt.plot(np.transpose(1-self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15)
+      plt.plot(np.transpose(1-self.CP[0,:]),np.transpose(self.CP[1,:]),marker='o', markersize=15,color='green')
       t1 = self.calc_param_grad_1()
       Ct = self.eval_t(t1)
-      plt.plot(1-np.transpose(C[0,:]),np.transpose(C[1,:]))
+      plt.plot(1-np.transpose(C[0,:]),np.transpose(C[1,:]),color='black')
       plt.plot(1-Ct[0],Ct[1],marker='o', markersize=15)
-    plt.xlim((0,1.0))
+    plt.xlim((0,0.4))
       
-    plt.ylim((0.5,1.0))
-#     plt.show()
+    plt.ylim((0.6,1.0))
+    plt.show()
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
@@ -655,7 +657,9 @@ class Profile:
       self.splines_left[1] = PrincipleSpline(args.x1, args.y2, args.bend, np.pi/2.0)
       self.splines_left[2] = PrincipleSpline(args.x1, args.z1, args.bend, np.pi)
       self.splines_left[3] = PrincipleSpline(args.x1, args.y1, args.bend, 1.5*np.pi)
-
+      
+#       self.splines_left[0].spline.plot()
+      
       self.bisecs_left[0] = BisecSpline(args.x1, args.z2, args.y2, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,x2=args.x2)
       self.bisecs_left[1] = BisecSpline(args.x1, args.y2, args.z1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,x2=args.x2)
       self.bisecs_left[2] = BisecSpline(args.x1, args.z1, args.y1, args.bend,args.beta,args.eta,args.interpolation,args.force_bisec,x2=args.x2)
@@ -768,8 +772,8 @@ def create_profiles(args,infoXml=None):
           sub1.plot(x_right,profile.splines_right[i].eval(x_right),linewidth=5.0)
         else: # all_bisecs
           sub1.set_title(str(np.degrees(profile.bisecs_left[i].angle)) + "°")
-          sub1.plot(x_left,profile.bisecs_left[i].eval(x_left),linewidth=5.0)
-          sub1.plot(x_right,profile.bisecs_right[i].eval(x_right),linewidth=5.0)
+          sub1.plot(x_left,profile.bisecs_left[i].eval(x_left),linewidth=5.0,color='navy')
+          sub1.plot(x_right,profile.bisecs_right[i].eval(x_right),linewidth=5.0,color='navy')
         count += 1
       
     plt.show()
@@ -951,7 +955,7 @@ def generate_basecell(args,info,log,offset=0):
       matviz_vtk.write_stl(polydata,stlName)
     
     if args.save_vtp:  
-      show_write_vtk(polydata,1000,args.save+".vtp")
+      matviz_vtk.show_write_vtk(polydata,1000,args.save+".vtp")
     
 
   if args.target == '3dlines' and not args.save_vtp:
