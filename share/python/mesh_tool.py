@@ -12,6 +12,13 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
+import matviz_vtk  
+
+try:
+  import meshpy.triangle as triangle
+  from meshpy.tet import MeshInfo, build
+except:
+  print("Failed to load meshpy - need it for tetrahedralized mesh")
 
 
 # writes a dense two region mesh
@@ -2379,6 +2386,7 @@ def create_2d_mesh_from_array(array):
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
   return mesh
+
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position, valid_ring_position, type = "apod6",thres=0.0,csize = None,simp = None):
   centers, mi, ma = coords[0:3]  # design elements
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
@@ -2551,7 +2559,9 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
-def create_validation_mesh_for_box_varel(coords, s1, s2, s3,design_interp):
+def create_validation_mesh_for_box_varel(args, coords, s1, s2, s3, scale, samples, thresh):
+  polydata = matviz_vtk.create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, thresh)
+  num_points = polydata.GetPoint
   return "Not implemented yet"
 
 def create_volume_mesh_from_stl(stlName,write_vtk=False):

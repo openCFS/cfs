@@ -21,8 +21,8 @@ from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import matplotlib.tri as tri
-import meshpy.triangle as triangle
 try:
+  import meshpy.triangle as triangle
   from meshpy.tet import MeshInfo, build
 except:
   print("Failed to load meshpy - need it for tetrahedralized mesh")

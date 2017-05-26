@@ -1152,28 +1152,28 @@ def perimeter_3d(data, eps = 0.0, normalize = True):
       for k in range(nz):
         this = data[i,j,k]
         if i < nx-1:
-          scale = hx/(ny-1) if normalize else hx
           next = data[i+1,j,k]
+          scale = hy/(ny-1)*hz/(nz-1) if normalize else hy*hz
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
         if j < ny-1:
           next = data[i,j+1,k]
-          scale = hy/(ny-1) if normalize else hy
+          scale = hx/(nx-1)*hz/(nz-1) if normalize else hx*hz
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
         if k < nz-1:  
           next = data[i,j,k+1]
-          scale = hz/(nz-1) if normalize else hz
+          scale = hx/(nx-1)*hy/(ny-1) if normalize else hx*hy
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
         if i > 0:  
           next = data[i-1,j,k]
-          scale = hx/(ny-1) if normalize else hx
+          scale = hy/(ny-1)*hz/(nz-1) if normalize else hy*hz
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
         if j > 0:
           next = data[i,j-1,k]
-          scale = hy/(ny-1) if normalize else hy
+          scale = hx/(nx-1)*hz/(nz-1) if normalize else hx*hz
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
         if k > 0:
           next = data[i,j,k-1]
-          scale = hz/(nz-1) if normalize else hz
+          scale = hx/(nx-1)*hy/(ny-1) if normalize else hx*hy
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
           
   return per            
