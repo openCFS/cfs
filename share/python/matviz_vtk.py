@@ -912,24 +912,19 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
 
-  out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
+  out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
   idx = 0
   
   for x in range(nx + 1):
     for y in range(ny + 1):
       for z in range(nz + 1):
-        out[idx] = [x*dx,y*dy,z*dz]
-        idx += 1
-  if s2 is None and s3 is None:
-      v = numpy.zeros((len(s1), 1))
-      v[:, 0] = s1[:, 0]
-  else:
-    v = numpy.zeros((len(s1), 3 if angle is None else 6))
-    v[:, 0] = s1[:, 0]
-    v[:, 1] = s2[:, 0]
-    v[:, 2] = s3[:, 0]
-    if angle is not None:
-       v[:, 3:6] = angle[:, :]
+        out[x,y,z] = [x*dx,y*dy,z*dz]
+
+  assert(s1 is not None and s2 is not None and s3 is not None)      
+  v = numpy.zeros((len(s1),3))
+  v[:, 0] = s1[:, 0]
+  v[:, 1] = s2[:, 0]
+  v[:, 2] = s3[:, 0]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
@@ -1028,16 +1023,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   
   print("before ip data")
   start = time.time()
-  ip_data, ip_near, out, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
+  data_grid, data_grid_near, sample_coords, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
   end = time.time()
   print("got ip data. elapsed time:",end-start," s")
-  
-  assert(len(ip_data) == len(out))
-  assert(len(out) == (nx+1)*(ny+1)*(nz+1))
-  data_grid = numpy.asarray(ip_data.reshape((nx+1,ny+1,nz+1,3)))
-  data_grid_near = numpy.asarray(ip_near.reshape((nx+1,ny+1,nz+1,3)))
-  # convert coordinates of sample to 3d numpy array
-  sample_coords = numpy.asarray(out.reshape((nx+1,ny+1,nz+1,3)))
   
   basecells = pymp.shared.list()
   with pymp.Parallel(args.bc_num_threads) as p:
@@ -1061,16 +1049,16 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       z2 = min(max(front[2],min_thresh),max_thresh)
       
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-      bc_input.eta = 0.9
+      bc_input.eta = 0.7
       bc_input.stiffness_as_diameter = True
       cell_obj = basecell.Basecell(bc_input)
       
       # translate cell to correct position
-      coord  = numpy.asarray(sample_coords[i,j,k] - minimum - [0.5*dx,0.5*dy,0.5*dz])
+      coord  = numpy.asarray(sample_coords[i,j,k])
       
       with p.lock:
         basecells.append((cell_obj.points,cell_obj.cells,coord))
-        print("appended ",i,j,k)
+        print("appended ",i,j,k,coord)
   
   for bc in basecells:
     

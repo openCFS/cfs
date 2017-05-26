@@ -1099,13 +1099,16 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
+        elif inclusion == "top_panel" and z == nz-1:
+          e.region = 'non-design'
+          second += 1  
         elif type == "validation_test" and (y < int(0.1*ny) or y >= int(0.9*ny)):
           second += 1
           e.region = "non-design" if not threshold or e.density > threshold else 'void'    
         elif type == "traegerblz" and (z < 2./30.0001*nz ):
           e.region = "aluminium"
         elif type == "traegerblz" and ((z >= 2./30.0001*nz) and (x*dx < 24.9999)):
-          e.region = "void"            
+          e.region = "void"
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
           mech_count = mech_count + 1
@@ -2548,7 +2551,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
-def reate_validation_mesh_for_box_varel(coords, s1, s2, s3,design_interp):
+def create_validation_mesh_for_box_varel(coords, s1, s2, s3,design_interp):
   return "Not implemented yet"
 
 def create_volume_mesh_from_stl(stlName,write_vtk=False):
