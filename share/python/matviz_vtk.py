@@ -926,6 +926,11 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
   v[:, 1] = s2[:, 0]
   v[:, 2] = s3[:, 0]
   
+#   test = [(0.8,0.95,0.025),(0.8,0.05,0.025)]
+#   test_data = ip.griddata(centers, v, test, grad, -1.0)
+#   print(test_data)
+#   sys.exit()
+  
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
@@ -1052,13 +1057,15 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       bc_input.eta = 0.7
       bc_input.stiffness_as_diameter = True
       cell_obj = basecell.Basecell(bc_input)
+      if cell_obj.volume <= args.bc_volume_thresh:
+        continue
       
       # translate cell to correct position
       coord  = numpy.asarray(sample_coords[i,j,k])
       
       with p.lock:
         basecells.append((cell_obj.points,cell_obj.cells,coord))
-        print("appended ",i,j,k,coord)
+        print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
   
   for bc in basecells:
     

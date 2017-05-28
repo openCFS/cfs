@@ -14,7 +14,7 @@ import numpy as np
 from scipy import interpolate
 from matviz_vtk import *
 
-def calc_volume(array,infoXml):
+def calc_volume(array,infoXml=None):
   res, res, res = array.shape
   
   elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
@@ -25,6 +25,8 @@ def calc_volume(array,infoXml):
     infoXml.write('  <volume value="' + str(vol) + '"/>\n')
   
   print("volume:" + str(vol))
+  
+  return vol
 
 def visualize_structure(array,show,save):
   # create vtk cells and points
@@ -125,7 +127,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array, _, _ = draw_profile_functions.generate_basecell(args,infoXml,log)
+  array, _, _, _ = draw_profile_functions.generate_basecell(args,infoXml,log)
   
   if args.target.startswith("volume"):
     assert(array is not None)
@@ -323,12 +325,12 @@ class Basecell_Data():
       self.res_surf_lines = res
     
 class Basecell():
-  data = cell = None
+  data = cell = vol = None
   # data is an object of type Basecell_Data()
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
-    dumm, self.points, self.cells = draw_profile_functions.generate_basecell(data,None,None)
+    dumm, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
       
 ############## info xml scheme #####################
 # <basecell>

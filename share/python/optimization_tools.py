@@ -1138,6 +1138,7 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
 # @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain
 # currently only neighborhood definde only over faces of a cube  
 def perimeter_3d(data, eps = 0.0, normalize = True):
+  print(data.ndim)
   assert(data.ndim == 3)
   nx, ny, nz = data.shape
   
