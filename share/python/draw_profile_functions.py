@@ -27,6 +27,8 @@ try:
 except:
   print("Failed to load meshpy - need it for tetrahedralized mesh")
 
+import basecell
+
 res = 1
 res_surf_lines = 1
 # file object to log activities while fixing surface gaps
@@ -961,7 +963,7 @@ def generate_basecell(args,info,log,offset=0):
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, new_surf_points, faces
+  return array, new_surf_points, faces, basecell.calc_volume(array)
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)

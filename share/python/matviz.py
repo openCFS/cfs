@@ -455,6 +455,7 @@ parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_num_threads", help="number of threads for parallelized basecell generation (default:4)", type=int,default=4)
+parser.add_argument("--bc_volume_thresh", help="lower bound threshold (default 0.0)", type=float,default=0.0)
                                                                                                                       
 
 # print sys.argv
