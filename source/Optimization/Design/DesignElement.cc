@@ -47,8 +47,13 @@ Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
+
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
 Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
+
+
+
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -314,7 +319,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 {
   index_ = index;
   opt_index_ = std::numeric_limits<unsigned int>::max();
-  dof = -1;
+  dof_ = NOT_SET;
   coord.Resize(domain->GetGrid()->GetDim(), -1.0);
   idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
@@ -752,6 +757,14 @@ void DesignElement::SetEnums()
   ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
   ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
 
+
+  ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
+  ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
+  ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
+  ShapeParamElement::dof.Add(ShapeParamElement::Y, "y");
+  ShapeParamElement::dof.Add(ShapeParamElement::XY, "xy");
+  ShapeParamElement::dof.Add(ShapeParamElement::YZ, "yz");
+  ShapeParamElement::dof.Add(ShapeParamElement::XZ, "xz");
 
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");

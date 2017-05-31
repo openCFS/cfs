@@ -179,7 +179,7 @@ gaps = None if args.xml is None else etree.SubElement(root, "gaps")
 if args.gnuplot:
   if args.gnuplot == "eps":
     print('set size ratio 1.0')
-    print('set terminal postscript eps enhanced "Helvetica, 12" color') #  change to monochrome for papers
+    print('set terminal postscript eps enhanced "Helvetica, 18" color') #  change to monochrome for papers
     print('set output "' + args.bloch[:-len(".dat")] + '.eps"')
   if args.gnuplot == "png":
     print('set size ratio 1.0')
@@ -222,7 +222,7 @@ if args.gnuplot:
       print('set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')  
   
   if args.nicelabel:
-     print('set ylabel "eigenfrequency in Hz"')
+     print('set ylabel "eigenfrequency in Hz" offset 1')
      print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
      xtics = 'set xtics ("O" 0'
      for i in range(len(segments)):
