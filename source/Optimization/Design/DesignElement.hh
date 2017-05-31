@@ -318,12 +318,17 @@ public:
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
 
-
   /** overwrite to add opt_idx */
   virtual std::string ToString() const;
 
+  /** The dof for shape elements. This is the design variable, the other coordinates are implicitly given be the mesh.
+   * For 2D this is X and Y, for 3D this is for tubes XY in z-direction, or YZ in x-direction or XZ in y-direction. */
+  typedef enum { NOT_SET = -1, X=0, Y=1, XY = 3, YZ = 4, XZ = 5 } Dof;
+
+  static Enum<Dof> dof;
+
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
-  int dof;
+  Dof dof_;
 
   /** The dof variable is set to -1.0.  */
   StdVector<double> coord;

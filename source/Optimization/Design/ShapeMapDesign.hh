@@ -53,6 +53,10 @@ public:
 
   virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
 
+  /** Flip dof as for square symmetry */
+  static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
+
+
   /** In case DesignSpace::FindDesign() searches for NODE and PROFILE.
    * @return either DesignSpace::FindDesign() or the index within shape_ */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
@@ -103,12 +107,6 @@ public:
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
-  /** convert "x" to 0 and "y" to 1 */
-  static int Dof(const std::string& str);
-
-  /** @see Dof() */
-  static std::string Dof(int dof);
-
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
   {
@@ -134,7 +132,7 @@ public:
 
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -1;
-    int dof = -1; // x =0, y = 1, z = 2,
+    ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
     std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
     std::string upper; //
     std::string value; // initial or fixed
@@ -159,8 +157,8 @@ public:
     /** this is the end of the optimization, reflects symmetry and is -1 if no design */
     int end_opt = -1;
 
-    /** the orientiation of the shape is in 2D the complementary */
-    int orientation = -1;
+    /** the orientation of the shape is in 2D the complementary */
+    ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
 
     /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
      * additional shape */
@@ -179,14 +177,16 @@ public:
     ShapeParam* sym_ortho = NULL; // same direction
     ShapeParam* sym_diag  = NULL; // changed direction to base shape
     ShapeParam* sym_diag_ortho = NULL; // first diag, then ortho -> changed direction to base shape
-
   };
 
 protected:
 
-  /** Setup shape design variables from a shape map description
+  /** Setup shape variables from a shape map description. These are abstract structures
    * @param pn a shapeMap element from problem.xml */
   void SetupShapeDesign(PtrParamNode pn);
+
+  /** Assign the rho elements (ShapeParamElement) to the shapes */
+  void SetupShapeParam();
 
 
   /** map shape design to rho (DesignSpace::data). Sets DesignSpace::data. Shall be called by ReadDesignFromExtern().
@@ -207,7 +207,7 @@ protected:
   unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
 
   /** Search in shape_ */
-  StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, int dof);
+  StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, ShapeParamElement::Dof dof);
 
   /** search for the corresponding shape */
   ShapeParam* FindShape(const ShapeParamElement* spe);
@@ -464,6 +464,7 @@ protected:
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
+
 };
 
 } // end of name space
