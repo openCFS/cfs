@@ -185,9 +185,11 @@ protected:
    * @param pn a shapeMap element from problem.xml */
   void SetupShapeDesign(PtrParamNode pn);
 
-  /** Assign the rho elements (ShapeParamElement) to the shapes */
+  /** from the shapes creatate the rho ShapeParamElement variables to be post processed by SetupOptShapeParam() */
   void SetupShapeParam();
 
+  /** From the rho variables from SetupShapeParam() intialize the optimization variables which is complex due to symmetry. */
+  void SetupOptShapeParam();
 
   /** map shape design to rho (DesignSpace::data). Sets DesignSpace::data. Shall be called by ReadDesignFromExtern().
    * Sets Item::ip_param_idx within map_ for fast MapShapeGradient() */
@@ -213,9 +215,10 @@ protected:
   ShapeParam* FindShape(const ShapeParamElement* spe);
 
   /** helper to fill shape_param_
-   * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
+   * @param free_dof for 2D this is Flip(param.dof) (X or Y) for 3D xy, zy, xz this is the current one (X, Y or Z)
+   * @param free_idx corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
    * @param start_end indicate the first and last element to enable check for clamped */
-  void CreateShapeVariable(const ShapeParam* param, int free, bool start_end);
+  void CreateShapeVariable(const ShapeParam* param, ShapeParamElement::Dof free_dof, int free_idx, bool start_end);
 
   /** some sanity checks, e.g. volume shall not be linear */
   void CheckPlausibility();
@@ -443,6 +446,9 @@ protected:
   unsigned int ny_ = 0;
   unsigned int nz_ = 0; // 1 for 2D
 
+  /** repeats nx_, ny_ and nz_ */
+  StdVector<unsigned int> n_;
+
   /** this is the order of integration with order^dim evaluations.
    * Smaller 5 has poor numerics, larger 10 might become expensive */
   unsigned int order_;
@@ -464,7 +470,6 @@ protected:
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
-
 };
 
 } // end of name space

@@ -58,11 +58,15 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   if((relative_node_bound_ >= 0.0 || relative_profile_bound_ >= 0.0) && !DensityFile::NeedLoadErsatzMaterial())
     info_->Get(ParamNode::HEADER)->SetWarning("relative shape map bounds overwrite design bounds");
 
-  // copy the non-fixed stuff opt_shape_param_
+  // from the shapes create the rho equivalent ShapeParamElement variables
   SetupShapeParam();
+
+  // copy the non-fixed stuff to opt_shape_param_ and reflect symmetry
+  SetupOptShapeParam();
 
   // now with possibly induced shapes we may map to the design to be ready for initial evaluation
   MapShapeToDensity();
+
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }
 
@@ -74,6 +78,7 @@ void ShapeMapDesign::CheckPlausibility()
       throw Exception("Set 'volume' function to non-linear with shape mapping");
 }
 
+
 /* <shapeMap beta="2">
     <node dof="x" lower="0" upper=".5" initial=".25"/>
     <profile lower=".01" upper=".1" initial=".1"/>
@@ -84,13 +89,12 @@ void ShapeMapDesign::CheckPlausibility()
    assert(GetRegionIds().GetSize() == 1); // more is not implemented yet
    StdVector<int> elem_to_idx;
    StdVector<int> idx_to_elem;
-   StdVector<unsigned int> n = SetupLexicographicMesh(domain->GetGrid(), GetRegionIds().First(), elem_to_idx, idx_to_elem);
-   nx_ = n[0];
-   ny_ = n[1];
-   nz_ = n[2];
+   n_ = SetupLexicographicMesh(domain->GetGrid(), GetRegionIds().First(), elem_to_idx, idx_to_elem);
+   nx_ = n_[0];
+   ny_ = n_[1];
+   nz_ = n_[2];
    assert(data.GetSize() == nx_ * ny_ * nz_); // DesignSpace::data has an element for each FEM-Cell
-   assert(n[0] == n[1]); // up to now
-   assert((dim_ == 2 && n[2] == 1) || (dim_ == 3 && n[2] == n[1]));
+   assert(!(dim_ == 2 && nz_ != 1));
 
    // read shapeParam to shape_
    ParamNodeList nodes = pn->GetList("node"); // there must be at least one
@@ -173,91 +177,114 @@ void ShapeMapDesign::CheckPlausibility()
      }
      LOG_DBG(SMD) << "SSD i=" << i << " profile " << profile.ToString();
    }
+}
 
-   // setup nodes within shape_param_. When nx != ny we need the number of shapes to reserve proper space
-   StdVector<ShapeParam*> shape_x = FindShape(NODE, ShapeParamElement::X);
-   StdVector<ShapeParam*> shape_y = FindShape(NODE, ShapeParamElement::Y);
+ void ShapeMapDesign::SetupShapeParam()
+ {
+   // we assume that we may Resize() shape_param_ when we estimate the capacity wrong!
+   // for 3D with surfaces instead of tubes we estimate to low
+   assert(*std::max_element(&n_.First(), &n_.Last()) >= nx_);
+   shape_param_.Reserve(shape_.GetSize() * *std::max_element(&n_.First(), &n_.Last()));
+/*
+   // first determine the total number of shape_param elements such that we can reserve and and have no Resize()
+   // setup nodes within shape_param_.
+   num_node_shape_params_ = 0;
+   if(dim_ == 2) {
+     // a vertical bar has x-dofs and is assigned for each y-node
+     num_node_shape_params_ += (ny_+1) * FindShape(NODE, ShapeParamElement::X).GetSize(); // one node more than elements
+     num_node_shape_params_ += (nx_+1) * FindShape(NODE, ShapeParamElement::Y).GetSize();
+   }
+   else {
+     // a vertical tube has dofs on the xy plane and is assigned for each z-node
+     num_node_shape_params_ += 2 * (nz_+1) * FindShape(NODE, ShapeParamElement::XY).GetSize();
+     num_node_shape_params_ += 2 * (nx_+1) * FindShape(NODE, ShapeParamElement::YZ).GetSize();
+     num_node_shape_params_ += 2 * (ny_+1) * FindShape(NODE, ShapeParamElement::XZ).GetSize();
 
-   num_node_shape_params_ = (nx_+1) * shape_x.GetSize() + (ny_+1) * shape_y.GetSize(); // one node more than elements
+     // a surface has one dof, e.g. the height (z) on the xy plane
+     num_node_shape_params_ += (nx_+1) * (ny_+1) * FindShape(NODE, ShapeParamElement::Z).GetSize();
+     num_node_shape_params_ += (ny_+1) * (nz_+1) * FindShape(NODE, ShapeParamElement::X).GetSize();
+     num_node_shape_params_ += (nx_+1) * (nz_+1) * FindShape(NODE, ShapeParamElement::Y).GetSize();
+   }
+
    shape_param_.Reserve(2 * num_node_shape_params_); // all doubled for profile
    assert(shape_param_.Capacity() > 0);
-
+*/
    // take the shapes in the order they are stored in shape_ as read from xml plus induced shapes
-   for(int s = 0; s < num_node_shapes_; s++)
+   for (int s = 0; s < num_node_shapes_; s++)
    {
      ShapeParam& param = shape_[s];
      param.start_param = shape_param_.GetSize();
      // when dof=x then we traverse the ny_+1
      unsigned int end = param.dof == ShapeParamElement::X ? ny_ + 1 : nx_ + 1;
-     for(unsigned int e = 0; e < end; e++)
-       CreateShapeVariable(&param, e, e == 0 || e == (end-1));
+     for (unsigned int e = 0; e < end; e++)
+       CreateShapeVariable(&param, Flip(param.dof), e, e == 0 || e == (end - 1));
      param.end_param = shape_param_.GetSize();
    }
-
    // add the profiles
-   for(int n = 0; n < num_node_shapes_; n++)
+   for (int n = 0; n < num_node_shapes_; n++)
    {
      ShapeParam& node = shape_[n];
      ShapeParam& prof = shape_[num_node_shapes_ + n];
      assert(node.type == NODE && prof.type == PROFILE);
      prof.start_param = shape_param_.GetSize();
-     for(int e = 0; e < node.end_param - node.start_param; e++)
-       CreateShapeVariable(&prof, e, e == 0 || e == (node.end_param - node.start_param - 1));
+     for (int e = 0; e < node.end_param - node.start_param; e++)
+       CreateShapeVariable(&prof, Flip(prof.dof), e, e == 0 || e == (node.end_param - node.start_param - 1));
      prof.end_param = shape_param_.GetSize();
      assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
-   assert((int) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
-
+   assert((int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
    StdVector<Elem*> designElems;
-   domain->GetGrid()->GetElems(designElems,GetRegionIds().First()); // FIXME assume elements in designElems are ordered!
+   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assume elements in designElems are ordered!
    assert(map_.GetSize() == designElems.GetSize());
-   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
+   for (unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
      map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      map_[i].nodes.Reserve(2 * num_node_shapes_); // each design node connects to two density elements
-     if(overlap_ == MAX) {
+     if (overlap_ == MAX)
+     {
        map_[i].ip_param_idx.Resize(order_order_);
        map_[i].ip_param_idx.Init(-1);
      }
    }
-
-   for(int i = 0; i < num_node_shape_params_; i++)
+   for (int i = 0; i < num_node_shape_params_; i++)
    {
      ShapeParamElement& spe = shape_param_[i];
-     if(spe.dof_ == ShapeParamElement::X)
+     if (spe.dof_ == ShapeParamElement::X)
      {
        int y = spe.idx[1];
        assert(y >= 0);
-
        // exclude the case where the y node is at the upper boundary (one node more than elements!)
-       for(unsigned int x = 0; x < nx_; x++){
-         if(y < (int) ny_) // are we the topmost node ontop of the last element
+       for (unsigned int x = 0; x < nx_; x++)
+       {
+         if (y < (int) (ny_))
+           // are we the topmost node ontop of the last element
            map_[DensityIdx(x, y)].nodes.Push_back(&spe);
-         if(y-1 >= (int) 0) // node 2 participates to the lower element (2-1) and the upper element (2)
-           map_[DensityIdx(x, y-1)].nodes.Push_back(&spe);
+
+         if (y - 1 >= (int) (0))
+           // node 2 participates to the lower element (2-1) and the upper element (2)
+           map_[DensityIdx(x, y - 1)].nodes.Push_back(&spe);
        }
      }
-
-     if(spe.dof_ == ShapeParamElement::Y)
+     if (spe.dof_ == ShapeParamElement::Y)
      {
        int x = spe.idx[0];
-       for(unsigned y = 0; y < ny_; y++)  {
-         if(x < (int) nx_)
+       for (unsigned y = 0; y < ny_; y++)
+       {
+         if (x < (int) (nx_))
            map_[DensityIdx(x, y)].nodes.Push_back(&spe);
-         if(x-1 >= 0)
-           map_[DensityIdx(x-1, y)].nodes.Push_back(&spe);
+
+         if (x - 1 >= 0)
+           map_[DensityIdx(x - 1, y)].nodes.Push_back(&spe);
        }
      }
    }
-   assert(shape_.Capacity() == 2 * nodes.GetSize() * 4); // induced nodes (*4) doubled by profile
-   // don't map shape to density yet as symmetry might induce additional shapes
-}
+   // assert(shape_.Capacity() == 2 * nodes.GetSize() * 4); // induced nodes (*4) doubled by profile
+ }
 
-
-void ShapeMapDesign::SetupShapeParam()
+void ShapeMapDesign::SetupOptShapeParam()
 {
   // copy the non-fixed stuff opt_shape_param_
   // TODO one could do a better approximation using symmetries
@@ -1354,7 +1381,7 @@ ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
     }
  }
 
-void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool start_end)
+void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamElement::Dof free_dof, int free_idx, bool start_end)
 {
   // note that free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
 
@@ -1378,6 +1405,11 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   // M has free=4 and is for the 9 elements 0..8 with y=4 and y=5 (E4)
 
 
+  assert((int) free_dof >= 0 && (int) free_dof <= 2);
+  assert(free_dof == ShapeParamElement::X || free_dof == ShapeParamElement::Y || free_dof == ShapeParamElement::Z); // equivalent to the assert above
+  assert(free_dof >= 0);
+  assert(free_dof <= (int) n_[(int) free_dof]);
+
   // add element to shape_param_
   shape_param_.Push_back(ShapeParamElement(Convert(param->type), shape_param_.GetSize()));
   ShapeParamElement& spe = shape_param_.Last();
@@ -1385,11 +1417,16 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   MathParser* mp = domain->GetMathParser();
   MathParser::HandleType handle = mp->GetNewHandle();
 
-  // set the coordinate index ("xi", "yi") of the free value as integer value. "xi/nx" with make a double out of it. We simply don't know the real coordinate
-  std::string var = param->dof == ShapeParamElement::X ? "yi" : "xi";
-  mp->SetValue(handle, var, free);
+  // the value might be a formula like "0.5*xi/nx", to evaluate this we set xi to the free variable. Note: in 2D for dof=x the free_idx variable are the y-nodes
+  // TODO this has limitations in 3D with surfacs
+  std::string var = ShapeParamElement::dof.ToString(free_dof) + "i";
+  assert(var == "xi" || var == "yi" || var == "zi");
+  // set the variable which might be in the formula
+  mp->SetValue(handle, var, free_idx);
 
-  mp->SetExpr(handle, param->value);
+  // this might contain a formula or simply a value
+  mp->SetExpr(handle, param->value); // TODO: make faster by doing this outside the look
+
   double value = mp->Eval(handle);
 
   double lower = -1;
@@ -1427,19 +1464,13 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   }
 
   spe.dof_ = param->dof;
-  if(spe.dof_ == ShapeParamElement::X) {
-    spe.coord[1] = (double) free / ny_; // free is max ny_
-    spe.idx[1] = free;
-  }
-  if(spe.dof_ == ShapeParamElement::Y) {
-    spe.coord[0] = (double) free / nx_;
-    spe.idx[0] = free;
-  }
+  spe.coord[(int) free_dof] = (double) free_idx / n_[(int) free_dof];
+  spe.idx[(int) free_dof] = free_idx;
 
   mp->ReleaseHandle(handle);
   // PostInit() sets arrays for objective and constraint gradients
 
-  LOG_DBG3(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof_ << " free=" << free << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
+  LOG_DBG3(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof_ << " free_idx=" << free_idx << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
 }
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)

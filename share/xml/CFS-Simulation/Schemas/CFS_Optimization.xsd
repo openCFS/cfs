@@ -2281,6 +2281,7 @@
      <xsd:restriction base="xsd:token">
        <xsd:enumeration value="x"/>
        <xsd:enumeration value="y"/>
+       <xsd:enumeration value="z"/>
        <xsd:enumeration value="xy"/>
        <xsd:enumeration value="yz"/>
        <xsd:enumeration value="xz"/>
