@@ -322,8 +322,9 @@ public:
   virtual std::string ToString() const;
 
   /** The dof for shape elements. This is the design variable, the other coordinates are implicitly given be the mesh.
-   * For 2D this is X and Y, for 3D this is for tubes XY in z-direction, or YZ in x-direction or XZ in y-direction. */
-  typedef enum { NOT_SET = -1, X=0, Y=1, XY = 3, YZ = 4, XZ = 5 } Dof;
+   * For 2D this is X and Y, for 3D this is for tubes XY in z-direction, or YZ in x-direction or XZ in y-direction.
+   * X, Y and Z in 3D is a surface */
+  typedef enum { NOT_SET = -1, X=0, Y=1, Z=2, XY = 3, YZ = 4, XZ = 5 } Dof;
 
   static Enum<Dof> dof;
 

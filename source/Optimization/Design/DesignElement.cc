@@ -762,6 +762,7 @@ void DesignElement::SetEnums()
   ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
   ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
   ShapeParamElement::dof.Add(ShapeParamElement::Y, "y");
+  ShapeParamElement::dof.Add(ShapeParamElement::Z, "z");
   ShapeParamElement::dof.Add(ShapeParamElement::XY, "xy");
   ShapeParamElement::dof.Add(ShapeParamElement::YZ, "yz");
   ShapeParamElement::dof.Add(ShapeParamElement::XZ, "xz");
