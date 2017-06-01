@@ -1016,11 +1016,14 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   nx = x_res  
    
   if type == "bulk3d": 
-      ny = y_res if y_res != None else x_res 
-      nz = z_res if z_res != None else x_res 
-      width = scale
-      height = scale*float(ny)/nx 
-      depth = scale*float(nz)/nx 
+    ny = y_res if y_res != None else x_res 
+    nz = z_res if z_res != None else x_res 
+    width = scale
+    height = scale*float(ny)/nx 
+    depth = scale*float(nz)/nx
+    if inclusion == "top_panel":
+      height = 1.0
+      depth = 0.5   
   elif type == "cantilever3d": 
     ny = int(nx * (2./3.))
     nz = int(nx * (2./3.)) 
@@ -1035,11 +1038,11 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     height = 30.0 
     depth = 30.0 
   elif type == "validation_test":
-    ny = nx 
-    nz = nx 
-    width = 1.
-    height = 1.
-    depth = 1. 
+    ny = y_res if y_res != None else x_res  
+    nz = z_res if z_res != None else x_res
+    width = scale
+    height = scale*float(ny)/nx 
+    depth = scale*float(nz)/nx  
     
      
   dx = width / nx 
@@ -1106,7 +1109,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
-        elif inclusion == "top_panel" and z == nz-1:
+        elif inclusion == "top_panel" and y == ny-1:
           e.region = 'non-design'
           second += 1  
         elif type == "validation_test" and (y < int(0.1*ny) or y >= int(0.9*ny)):
@@ -1126,7 +1129,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
-    
+  
   if type == "traegerblz":
     mesh = name_bc_nodes(mesh)
     side = (("top_mech", []))
@@ -1158,7 +1161,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     for z in range(int(0.4*nnz), int(0.6*nnz)+1):
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
-  
+        
+  if type == "bulk3d" and inclusion == "top_panel":
+#     mesh.bc.append(("force", list(range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1)))))
+#     mesh.bc.append(("support",list(range(0,nnx,1))))
+#     mesh.bc.append(("support",list(range(0,nnx*nny,nnx))))
+    name_bc_nodes(mesh)  
+        
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
   msg += " with threshold " + str(threshold) 

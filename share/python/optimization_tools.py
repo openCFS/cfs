@@ -266,7 +266,7 @@ def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setnam
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
-#               The data can be obtained from read_density(...,elemnr=True)
+#               The data can be obtained from read_density  (...,"nr")
 def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
@@ -279,6 +279,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
     setname_list.append(setname_inp)
   
   x, y, z = getDim(data_list[0])
+  print(x,y,z)
   
   bulk_list = []
   for i, data in enumerate(data_list):
@@ -289,7 +290,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
            if elemnr is not None:
-             nr = int(getNDArrayEntry(data, i, j , k))
+             nr = int(getNDArrayEntry(elemnr, i, j , k))
             
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
@@ -388,19 +389,25 @@ def apply_elmennr_mapping(org, map):
 def physical_volume(data, penalty):
 
   dim = data.ndim
-  x = data.shape[0]
-  y = data.shape[1]
-  z = 1
-  if dim >= 3:
-    z = data.shape[2]
-  vol = 0.0
-  
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        org = getNDArrayEntry(data, i, j, k)
-        vol = vol + pow(org, penalty)
-        
+  if dim == 1:
+    if penalty == 1.0:
+      return sum(data) / len(data)
+    else:
+      return sum(data**penalty) / len(data)
+  else:  
+    x = data.shape[0]
+    y = data.shape[1]
+    z = 1
+    if dim >= 3:
+      z = data.shape[2]
+    vol = 0.0
+    
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          org = getNDArrayEntry(data, i, j, k)
+          vol = vol + pow(org, penalty)
+          
   return vol / data.size              
 
 
@@ -414,12 +421,11 @@ def threshold_filter(data, threshold, min, max):
   barrier = numpy.max((threshold, min))
   res = None  
   
-  if type(data) == list:
-    res = [0.0] * len(data)
+  if type(data) == list or data.ndim == 1:
+    res = numpy.zeros(len(data))
     for i in range(len(data)):
       res[i] = max if data[i] >= barrier else min
   else:
-    
     dim = data.ndim
     x, y, z = getDim(data)
     res = numpy.copy(data)
@@ -1138,7 +1144,6 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
 # @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain
 # currently only neighborhood definde only over faces of a cube  
 def perimeter_3d(data, eps = 0.0, normalize = True):
-  print(data.ndim)
   assert(data.ndim == 3)
   nx, ny, nz = data.shape
   
