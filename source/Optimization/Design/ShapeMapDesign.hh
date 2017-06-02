@@ -53,7 +53,7 @@ public:
 
   virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
 
-  /** Flip dof as for square symmetry */
+  /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D XY->Z, YZ->X, XZ->Y */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
 
 
@@ -203,10 +203,12 @@ protected:
   void MapShapeGradient(const Function* f);
 
   /** Index of rho in DesignSpace::data() by element coordinate */
-  unsigned int DensityIdx(int x, int y) const { return nx_ * y + x; }
+  unsigned int DensityIdx(int x, int y) const { return y * nx_ + x; }
+  unsigned int DensityIdx(int x, int y, int z) const { return z * nx_*ny_ + y * nx_ + x; }
 
   /** Index for integration point */
   unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
+  unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y, unsigned int ip_z) const { return ip_z*order_order_ + ip_y*order_ + ip_x; }
 
   /** Search in shape_ */
   StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, ShapeParamElement::Dof dof);
@@ -226,7 +228,7 @@ protected:
   /** helper for debugging */
   void DumpMap();
 
-  /** Evaluate the function at the given integration point. The integration mapping is cartesian oriented
+  /** 2D: Evaluate the function at the given integration point. The integration mapping is cartesian oriented
    * @oaram s1 and s2 are both nodes! Eval finds the profiles by itself!
    * @param coords of the density design element
    * @param beta @see tanh()
@@ -235,9 +237,21 @@ protected:
    * @param grad_w false for tanh, true for d_tanh_dw. */
   double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
+  /** 3D: Evaluate the function at the given integration point. See also the 2D Version of eval
+   * @oaram nodes Item::nodes
+   * @param coords of the density design element
+   * @param beta @see tanh()
+   * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
+   * @param grad_a false for tanh, true for d_tanh_da
+   * @param grad_w false for tanh, true for d_tanh_dw. */
+  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, unsigned int ip_z, bool grad_a, bool grad_b, bool grad_w) const;
+
+
   /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
-   * it is worth to consider them. */
-  bool CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const;
+   * it is worth to consider them.
+   * @param nodes the total shape pairs from Item::node
+   * @param base 0, 2, 4, ...  */
+  bool CloseEnough(const StdVector<ShapeParamElement*> nodes, unsigned int base, const Matrix<double>& coords) const;
 
   /** tanh performs the smoothing from the mapping
    * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
@@ -364,15 +378,17 @@ protected:
     /** our Design Element */
     DesignElement* rho;
 
-    /** the node variables the mapping is based on.
+    /** This is static information.
+     * The node variables the mapping is based on.
      * ShapeParamElement is connected to ShapeParam in shape_ (same order).
-     * nodes are sufficient as the profile is  */
+     * nodes are sufficient as the profile is accessible via the node shape */
     StdVector<ShapeParamElement*> nodes;
 
-    /** this is the current subset of nodes which gives the relevant shapes.
+    /** This is dynamic information.
+     * This is the current subset of nodes which gives the relevant shapes.
      * We wouldn't need it for overlap_ == MAX as ip_param_idx has this information more detailed.
      * Set in MapShapeDesign() when checking for CloseEnough() and used in MapShapeGradient().
-     * Has maximal size of nodes */
+     * Has maximal size of nodes.  */
     StdVector<int> relevant_nodes;
 
     /** For overlap == max only!
@@ -457,7 +473,7 @@ protected:
   unsigned int order_order_;
 
   /** shortcut to the dimension (2,3) */
-  unsigned int dim_;
+  static unsigned int dim_;
 
   /** checks lower and upper when loading from ersatz material */
   bool enforce_bounds_;

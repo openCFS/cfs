@@ -20,6 +20,8 @@ DECLARE_LOG(SMD)
 DEFINE_LOG(SMD, "shapeMapDesign")
 
 
+unsigned int ShapeMapDesign::dim_;
+
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : AuxDesign(regionIds, pn, method)
 {
@@ -185,43 +187,28 @@ void ShapeMapDesign::CheckPlausibility()
    // for 3D with surfaces instead of tubes we estimate to low
    assert(*std::max_element(&n_.First(), &n_.Last()) >= nx_);
    shape_param_.Reserve(shape_.GetSize() * *std::max_element(&n_.First(), &n_.Last()));
-/*
-   // first determine the total number of shape_param elements such that we can reserve and and have no Resize()
-   // setup nodes within shape_param_.
-   num_node_shape_params_ = 0;
-   if(dim_ == 2) {
-     // a vertical bar has x-dofs and is assigned for each y-node
-     num_node_shape_params_ += (ny_+1) * FindShape(NODE, ShapeParamElement::X).GetSize(); // one node more than elements
-     num_node_shape_params_ += (nx_+1) * FindShape(NODE, ShapeParamElement::Y).GetSize();
-   }
-   else {
-     // a vertical tube has dofs on the xy plane and is assigned for each z-node
-     num_node_shape_params_ += 2 * (nz_+1) * FindShape(NODE, ShapeParamElement::XY).GetSize();
-     num_node_shape_params_ += 2 * (nx_+1) * FindShape(NODE, ShapeParamElement::YZ).GetSize();
-     num_node_shape_params_ += 2 * (ny_+1) * FindShape(NODE, ShapeParamElement::XZ).GetSize();
 
-     // a surface has one dof, e.g. the height (z) on the xy plane
-     num_node_shape_params_ += (nx_+1) * (ny_+1) * FindShape(NODE, ShapeParamElement::Z).GetSize();
-     num_node_shape_params_ += (ny_+1) * (nz_+1) * FindShape(NODE, ShapeParamElement::X).GetSize();
-     num_node_shape_params_ += (nx_+1) * (nz_+1) * FindShape(NODE, ShapeParamElement::Y).GetSize();
-   }
-
-   shape_param_.Reserve(2 * num_node_shape_params_); // all doubled for profile
-   assert(shape_param_.Capacity() > 0);
-*/
    // take the shapes in the order they are stored in shape_ as read from xml plus induced shapes
-   for (int s = 0; s < num_node_shapes_; s++)
+   for(int s = 0; s < num_node_shapes_; s++)
    {
      ShapeParam& param = shape_[s];
      param.start_param = shape_param_.GetSize();
-     // when dof=x then we traverse the ny_+1
-     unsigned int end = param.dof == ShapeParamElement::X ? ny_ + 1 : nx_ + 1;
+
+     // up to now we do not support surfaces like dof=x in 3D which means (ny_+1)*(nz_+1) variables in the yz plane
+     assert(!(dim_ == 3 && (param.dof <= ShapeParamElement::Z)));
+
+     // when in 2D dof=x then we traverse the ny_+1, with 3D xy with traverse nz_+1
+     int other = (int) Flip(param.dof);
+     assert(other <= 2);
+     unsigned int end = (int) n_[other] + 1;
      for (unsigned int e = 0; e < end; e++)
-       CreateShapeVariable(&param, Flip(param.dof), e, e == 0 || e == (end - 1));
+       CreateShapeVariable(&param, (ShapeParamElement::Dof) other, e, e == 0 || e == (end - 1)); // makes a push_back to shape_param_
      param.end_param = shape_param_.GetSize();
    }
+   num_node_shape_params_ = shape_param_.GetSize();
+
    // add the profiles
-   for (int n = 0; n < num_node_shapes_; n++)
+   for(int n = 0; n < num_node_shapes_; n++)
    {
      ShapeParam& node = shape_[n];
      ShapeParam& prof = shape_[num_node_shapes_ + n];
@@ -234,54 +221,109 @@ void ShapeMapDesign::CheckPlausibility()
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
    assert((int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
+
+   // save a little of probably superfluous space
+   shape_param_.Trim();
+
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
    StdVector<Elem*> designElems;
-   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assume elements in designElems are ordered!
+   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
    assert(map_.GetSize() == designElems.GetSize());
    for (unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
      map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
-     map_[i].nodes.Reserve(2 * num_node_shapes_); // each design node connects to two density elements
+     // each design node connects to two density elements and for 3D tubes four density elements
+     // this comes from the bilinear interpolation.
+     // TODO: check we have no 3D surface stuff here!
+     map_[i].nodes.Reserve((dim_ == 2 ? 2 : 4) * num_node_shapes_);
      if (overlap_ == MAX)
      {
        map_[i].ip_param_idx.Resize(order_order_);
        map_[i].ip_param_idx.Init(-1);
      }
    }
-   for (int i = 0; i < num_node_shape_params_; i++)
+
+   // now set the nodes idx in map_::nodes. For every rho we store here the two (2D) or 4 (3D) ShapeParamElements which have an bilinear interpolation
+   // within the node.
+   for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeParamElements an set it to the proper map_::nodes
    {
      ShapeParamElement& spe = shape_param_[i];
-     if (spe.dof_ == ShapeParamElement::X)
-     {
-       int y = spe.idx[1];
-       assert(y >= 0);
-       // exclude the case where the y node is at the upper boundary (one node more than elements!)
-       for (unsigned int x = 0; x < nx_; x++)
-       {
-         if (y < (int) (ny_))
-           // are we the topmost node ontop of the last element
-           map_[DensityIdx(x, y)].nodes.Push_back(&spe);
 
-         if (y - 1 >= (int) (0))
-           // node 2 participates to the lower element (2-1) and the upper element (2)
-           map_[DensityIdx(x, y - 1)].nodes.Push_back(&spe);
-       }
-     }
-     if (spe.dof_ == ShapeParamElement::Y)
-     {
-       int x = spe.idx[0];
-       for (unsigned y = 0; y < ny_; y++)
-       {
-         if (x < (int) (nx_))
-           map_[DensityIdx(x, y)].nodes.Push_back(&spe);
+     // in 2D assume spe.dof == X. This spe has a given y in spe.idx[1].
+     // Then for all x in nx_ we add this spe to map_[DensityIdx(x, y)].nodes and map_[DensityIdx(x, y-1)].nodes
 
-         if (x - 1 >= 0)
-           map_[DensityIdx(x - 1, y)].nodes.Push_back(&spe);
+     // in 3D assume spe.dof == XY. This spe has a given z in spe.idx[1].
+     // Then for all x in nx_ and y in ny_ we add this spe to map_[DensityIdx(x, y, z)].nodes and map_[DensityIdx(x, y, z-1)].nodes
+
+     int other_idx = spe.idx[(int) Flip(spe.dof_)]; // 2D: for dof==X we read y_idx. 3D: for dof=XY we read z_idx. Must not be unsigned int!!
+     int other_max = n_[(int) Flip(spe.dof_)];
+     assert(other_idx >= 0);
+
+     switch(spe.dof_)
+     {
+     case ShapeParamElement::X:
+       assert(dim_ == 2);
+       for(unsigned x = 0; x < nx_; x++) {
+         // if we are not the last or "are we the topmost node ontop of the last element?"
+         if(other_idx < other_max)
+           map_[DensityIdx(x, other_idx  )].nodes.Push_back(&spe);
+
+         // if we are not the first or "node 2 participates to the lower element (2-1) and the upper element (2)"
+         if(other_idx -1 >= 0)
+           map_[DensityIdx(x, other_idx-1)].nodes.Push_back(&spe);
        }
-     }
-   }
-   // assert(shape_.Capacity() == 2 * nodes.GetSize() * 4); // induced nodes (*4) doubled by profile
+       break;
+
+     case ShapeParamElement::Y:
+       assert(dim_ == 2);
+       for(unsigned y = 0; y < ny_; y++) {
+         if(other_idx < other_max)
+           map_[DensityIdx(other_idx , y)].nodes.Push_back(&spe);
+
+         if(other_idx -1 >= 0)
+           map_[DensityIdx(other_idx-1, y)].nodes.Push_back(&spe);
+       }
+       break;
+
+     case ShapeParamElement::Z:
+       assert(false);
+       break;
+
+     case ShapeParamElement::XY: // other = Z
+         for(unsigned int x = 0; x < nx_; x++)
+           for (unsigned int y = 0; y < ny_; y++)  {
+             if(other_idx < other_max)
+               map_[DensityIdx(x, y, other_idx  )].nodes.Push_back(&spe);
+             if(other_idx -1 >= 0)
+               map_[DensityIdx(x, y, other_idx-1)].nodes.Push_back(&spe);
+           }
+         break;
+
+     case ShapeParamElement::YZ: // other = X
+       for(unsigned int y = 0; y < ny_; y++)
+         for (unsigned int z = 0; z < nz_; z++)  {
+           if(other_idx < other_max)
+             map_[DensityIdx(other_idx  , y, z)].nodes.Push_back(&spe);
+           if(other_idx -1 >= 0)
+             map_[DensityIdx(other_idx-1, y, z)].nodes.Push_back(&spe);
+         }
+       break;
+
+     case ShapeParamElement::XZ: // other = Y
+       for(unsigned int x = 0; x < nx_; x++)
+         for (unsigned int z = 0; z < nz_; z++)  {
+           if(other_idx < other_max)
+             map_[DensityIdx(x, other_idx  , z)].nodes.Push_back(&spe);
+           if(other_idx -1 >= 0)
+             map_[DensityIdx(x, other_idx-1, z)].nodes.Push_back(&spe);
+         }
+       break;
+
+     case ShapeParamElement::NOT_SET:
+       assert(false);
+     } // end switch
+   } // end loop
  }
 
 void ShapeMapDesign::SetupOptShapeParam()
@@ -987,9 +1029,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      // this are shapes we need to integrated. If too far away we dont't need them if all then the 0....n/2 with n size of item.para.GetSize()
      StdVector<int>& shapes = item.relevant_nodes; // shortcut
      shapes.Clear(true);
-     assert(item.nodes.GetSize() % 2 == 0); // we expect to have pairs
-     for(unsigned int s = 0; s < item.nodes.GetSize(); s+=2)
-       if(CloseEnough(item.nodes[s], item.nodes[s+1], coords))
+     unsigned int block = dim_ == 2 ? 2 : 4;
+     assert(item.nodes.GetSize() % block == 0); // we expect to have pairs
+     for(unsigned int s = 0; s < item.nodes.GetSize(); s+=block)
+       if(CloseEnough(item.nodes, s, coords)) // FIXME
          shapes.Push_back(s);
 
      if(res_idx_r >= 0)
@@ -1270,9 +1313,16 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // we assume the elements to be oriented ccw starting lower left
    assert(coords.GetNumRows() == 2); // dim == 2
    assert(coords.GetNumCols() == 4); // dim == 4 nodes
-   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left
-   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right
-   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right
+
+   //
+   //  d ------- c
+   //  |         |
+   //  |         |
+   //  a ------- b
+   //
+   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
+   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
+   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
    assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
    assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
    assert(coords[1][1] < coords[1][2]);       // y-pos: lower right smaller upper right
@@ -1304,14 +1354,70 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return val;
  }
 
- inline bool ShapeMapDesign::CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
+ inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, unsigned int ip_z, bool grad_a, bool grad_b, bool grad_w) const
  {
-   assert(dim_ == 2);
-   double max        = Eval(s1, s2, coords, 2*beta_, 0,               0, false, false); // false=no derivative
-   max = std::max(max, Eval(s1, s2, coords, 2*beta_, 0,        order_-1, false, false));
-   max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1,        0, false, false));
-   max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1, order_-1, false, false));
-   return max > sensitivity_;
+   assert(dim_ == 3);
+   assert(nodes.GetSize() == 4);
+   assert(nodes[0]->dof_ == nodes[1]->dof_ && nodes[2]->dof_ == nodes[3]->dof_ && nodes[0]->dof_ != nodes[2]->dof_);
+   assert(nodes[0]->GetType() == BaseDesignElement::NODE && nodes[2]->GetType() == BaseDesignElement::NODE);
+   assert(!(grad_a == true && grad_w == true) && (grad_b == true && grad_w == true));
+   // we assume the elements to be oriented ccw starting lower left
+   assert(coords.GetNumRows() == 3); // dim == 3
+   assert(coords.GetNumCols() == 8); // 8 nodes
+
+   ShapeParamElement::Dof dof_a = nodes[0]->dof_;
+   ShapeParamElement::Dof dof_b = nodes[1]->dof_;
+
+   // the parameters
+   double a1 = nodes[0]->GetPlainDesignValue();
+   double a2 = nodes[1]->GetPlainDesignValue();
+   double b1 = nodes[2]->GetPlainDesignValue();
+   double b2 = nodes[3]->GetPlainDesignValue();
+
+/*   // element position
+   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0];
+   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3];
+
+
+   // the profiles
+   assert(GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
+   double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
+   double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
+
+   double xy = start + (dof == ShapeParamElement::X ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
+   double a  = a1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
+   double w  = w1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (w2-w1);
+   double val = -1.0;
+   if(grad_a)
+     val = d_tanh_da(beta, xy, a, w);
+   if(grad_w)
+     val = d_tanh_dw(beta, xy, a, w);
+   if(!grad_a && !grad_w)
+     val = tanh(beta, xy, a, w);
+   LOG_DBG3(SMD) << "E: s1=" << s1->GetIndex() << " s2=" << s2->GetIndex() << " dof=" << dof << " start=" << start << " end=" << end  << " a=" << a1 << "..." << a2
+                 << " ip_x=" << ip_x << " ip_y=" << ip_y << " xy=" << xy << " a=" << a << " da:" << grad_a << " dw=" << grad_w << " -> " << val;
+   return val;
+   */
+   return -1;
+ }
+
+ inline bool ShapeMapDesign::CloseEnough(const StdVector<ShapeParamElement*> nodes, unsigned int base, const Matrix<double>& coords) const
+ {
+   if(dim_ == 2)
+   {
+     for(unsigned int x = 0; x <= 1; x++)
+       for(unsigned int y = 0; y <= 1; y++)
+         if(Eval(nodes[base], nodes[base+1], coords, 2*beta_, x * (order_ -1), y * (order_ -1), false, false) > sensitivity_) // false=no derivative
+           return true;
+   }
+   else
+   {
+     assert(dim_ == 3);
+     std::cout << coords.ToString(2) << "\n";
+     assert(false);
+   }
+
+   return false;
  }
 
 
@@ -1359,10 +1465,28 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
 ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
 {
-  assert(dof == ShapeParamElement::X || dof == ShapeParamElement::Y);
-  return dof == ShapeParamElement::X ? ShapeParamElement::Y : ShapeParamElement::X;
+  switch(dof) {
+  case ShapeParamElement::X:
+    return dim_ == 2 ? ShapeParamElement::Y : ShapeParamElement::YZ;
+  case ShapeParamElement::Y:
+    return dim_ == 2 ? ShapeParamElement::X : ShapeParamElement::XZ;
+  case ShapeParamElement::Z:
+    assert(dim_ == 3);
+    return ShapeParamElement::XY;
+  case ShapeParamElement::XY:
+    assert(dim_ == 3);
+    return ShapeParamElement::Z;
+  case ShapeParamElement::YZ:
+    assert(dim_ == 3);
+    return ShapeParamElement::X;
+  case ShapeParamElement::XZ:
+    assert(dim_ == 3);
+    return ShapeParamElement::Y;
+  case ShapeParamElement::NOT_SET:
+    assert(false);
+  }
+  return ShapeParamElement::NOT_SET;
 }
-
 
 
  void ShapeMapDesign::DumpMap()
@@ -1526,7 +1650,6 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, Shap
      if(!pn->Has("dof"))
        throw Exception("shapeParam of type 'node' requires 'dof'");
      dof = ShapeParamElement::dof.Parse(pn->Get("dof")->As<std::string>());
-     assert(dof == ShapeParamElement::X || dof == ShapeParamElement::Y);
      if(flip_orientation)
        dof = ShapeMapDesign::Flip(dof);
 
