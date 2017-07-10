@@ -1099,12 +1099,11 @@ def write_profile_to_array(array,profile,overlap):
         idx = [i,j,k]
         if (valx-r <= 1e-6):
           # detected overlap of profiles
-          if array[idx[major],idx[minor_1],idx[minor_2]] > -1:
-            if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
-              overlap[idx[major],idx[minor_1],idx[minor_2]] = (array[idx[major],idx[minor_1],idx[minor_2]],major,) # set tuple if this is the first overlap
-            else:
-              overlap[idx[major],idx[minor_1],idx[minor_2]] += (major,) # add element to tuple
-              
+          if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
+            overlap[idx[major],idx[minor_1],idx[minor_2]] = (major,) # set tuple if this is the first overlap
+          else:
+            overlap[idx[major],idx[minor_1],idx[minor_2]] += (major,) # add element to tuple
+
           array[idx[major],idx[minor_1],idx[minor_2]] = major
             
   if symmetric:
@@ -1323,10 +1322,6 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
     j_m = cartesian_to_grid_coords(v[1], res, -1e-6)
     k_m = cartesian_to_grid_coords(v[2], res, -1e-6)
     
-#     print("\nv:",v)
-#     print("+eps:",i_p,j_p,k_p)
-#     print("-eps:",i_m,j_m,k_m)
-    
     if voxels[i_m,j_m,k_m] > -1:
       i = i_m
       j = j_m
@@ -1344,16 +1339,13 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       points = []
       for d in overlap_dirs:
         assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
-        points.append(adjust_surface_point(profiles,v,int(d)))
-
-#       point = give_furthest_point_from_plane(v,normals[count],points)
+        points.append(adjust_surface_point(profiles[int(d)],v))
+        print(points)
         point = give_average_point(points)  
-#       print(np.argsort(distances)[0])
-#       point = points[np.argsort(distances)[0]] # take largest distance
     else:  
       # find out which profile(direction) created this voxel/point
       assert(int(voxels[i,j,k]) == 0 or int(voxels[i,j,k]) == 1 or int(voxels[i,j,k]) == 2)
-      point = adjust_surface_point(profiles,v,int(voxels[i,j,k]))
+      point = adjust_surface_point(profiles(int(voxels[i,j,k])),v)
     
     assert(point is not None) 
     
@@ -1381,7 +1373,8 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
 # @param profiles: array with all 3 profiles
 # @param v: approximation for point of interest; tuple/list with 3 coord components
 # @param major_dir: major profile direction
-def adjust_surface_point(profiles,v,major_dir):
+def adjust_surface_point(profile,v):
+  major_dir = profile.direction
   if not (major_dir == 0 or major_dir == 1 or major_dir == 2):
     print(major_dir)
   assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
@@ -1391,7 +1384,7 @@ def adjust_surface_point(profiles,v,major_dir):
   # angle in radians
   phi = angle_to_center((v[minor_1],v[minor_2]))
   
-  rad = calc_radius(profiles[major_dir], v[major_dir], phi)   
+  rad = calc_radius(profile, v[major_dir], phi)   
   px,py = polar_to_cartesian(rad,phi)
   point = np.ones(3)*(-1)
   point[major_dir] = v[major_dir]
