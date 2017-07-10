@@ -1331,21 +1331,26 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       j = j_p
       k = k_p
       
-    point = None
-    # do wo have a overlap of profiles?
-    if overlap[i,j,k] != 0:
-      overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
-      # calculated candidates for all 3 profiles
-      points = []
-      for d in overlap_dirs:
-        assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
-        points.append(adjust_surface_point(profiles[int(d)],v))
-        print(points)
-        point = give_average_point(points)  
-    else:  
-      # find out which profile(direction) created this voxel/point
-      assert(int(voxels[i,j,k]) == 0 or int(voxels[i,j,k]) == 1 or int(voxels[i,j,k]) == 2)
-      point = adjust_surface_point(profiles(int(voxels[i,j,k])),v)
+    cand = None
+    overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
+    # in case we have two candidates which almost overlap,
+    # point_inside_profile's numerical doesn't work then
+    point = adjust_surface_point(profiles[overlap_dirs[0]],v)
+    for d in overlap_dirs:
+      assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
+      p = adjust_surface_point(profiles[d],v)
+      if len(overlap_dirs) > 1:
+        # avoid self-comparison
+        for other in [v for v in overlap_dirs if v != d]:
+          if point_inside_profile(p, profiles[other]):
+            cand = None
+          else:
+            cand = p
+      else:
+        cand = adjust_surface_point(profiles[d],v)
+              
+      if cand is not None:
+        point = cand    
     
     assert(point is not None) 
     
@@ -1515,3 +1520,26 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
       add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
+
+# for a given profile and point p, check if p lies inside (not on surface of) profile
+def point_inside_profile(p,profile):
+  assert(p[0] >= 0.0 and p[0] <= 1.0)
+  assert(p[1] >= 0.0 and p[1] <= 1.0)
+  assert(p[2] >= 0.0 and p[2] <= 1.0)
+  
+#   print("\np:",p)
+  
+  # depending on direction, estimate plane in which we perform check
+  major = profile.direction
+  minor_1, minor_2 = give_normal_plane_axes(major)
+  phi = angle_to_center((p[minor_1],p[minor_2]))
+  assert(phi >= 0 and phi <= 2*np.pi)
+  r = calc_radius(profile, p[major], phi)
+  val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
+#   print("radii:",r,val)
+  assert(val**2 <= 0.5+1e-6)
+  if (val - r < 1e-6):
+#      print("point ",p, " inside ",major)
+    return True
+  
+  return False
