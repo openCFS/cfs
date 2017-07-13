@@ -1166,7 +1166,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
 #     mesh.bc.append(("force", list(range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1)))))
 #     mesh.bc.append(("support",list(range(0,nnx,1))))
 #     mesh.bc.append(("support",list(range(0,nnx*nny,nnx))))
-    name_bc_nodes(mesh)  
+    name_bc_nodes(mesh)
+  name_bc_nodes(mesh)    
         
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
