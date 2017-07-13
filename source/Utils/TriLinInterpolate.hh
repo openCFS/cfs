@@ -18,6 +18,16 @@ namespace CoupledField {
     //! constructor getting x, y(x)
     TriLinInterpolate(std::string nlFncName, MaterialType matType );
 
+    //! Copy Constructor
+    TriLinInterpolate(const TriLinInterpolate& right)
+      : ApproxData(right){
+      this->slices_ = right.slices_;
+    }
+
+    virtual TriLinInterpolate* Clone(){
+      return new TriLinInterpolate( *this );
+    }
+
     //! destructor
     virtual ~ TriLinInterpolate();
 

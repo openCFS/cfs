@@ -45,6 +45,20 @@ namespace CoupledField {
              PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
              bool coordUpdate = false);
 
+      //! Copy Constructor
+      BBInt(const BBInt& right)
+        : BaseBDBInt(right){
+        //here we would also need to create a new operator
+        this->bOperator_ = right.bOperator_->Clone();
+        this->factor_ = right.factor_;
+        this->coefScalar_ = right.coefScalar_;
+      }
+
+      virtual BBInt* Clone(){
+        return new BBInt( *this );
+      }
+
+
       //! Destructor
       ~BBInt(){
         delete this->bOperator_;
@@ -188,8 +202,17 @@ namespace CoupledField {
         this->name_ = "BBIntMassEdge";
       }
 
+      BBIntMassEdge(const BBIntMassEdge & right)
+      : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
+
+      }
+
+      virtual BBIntMassEdge* Clone(){
+        return new BBIntMassEdge( *this );
+      }
+
       //! Destructor
-      ~BBIntMassEdge(){
+      virtual ~BBIntMassEdge(){
 
       }
 
@@ -219,8 +242,17 @@ namespace CoupledField {
         this->isSymmetric_ = false;
       }
 
+     SurfaceBBInt(const SurfaceBBInt & right)
+     : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
+        this->volRegions_ = right.volRegions_;
+      }
+
+    virtual SurfaceBBInt* Clone(){
+      return new SurfaceBBInt( *this );
+    }
+
       //! Destructor
-      ~SurfaceBBInt(){
+      virtual ~SurfaceBBInt(){
 
       }
 

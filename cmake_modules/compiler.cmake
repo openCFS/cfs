@@ -104,7 +104,6 @@ IF(OPENMP_FOUND)
     # sets to -qopenmp for icc and -fopenmp for gcc
   ENDIF()
 ENDIF()
-
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
@@ -112,7 +111,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
   SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1 ${CFS_CXX_FLAGS}")
-  
   # Obtain major version number of GCC or Clang
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
@@ -122,8 +120,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   SET(CFS_C_FLAGS "-std=c11")
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-     # Fix a problem in Boost 1.5.2 bimap.
-     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-redeclared-class-member")
+     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
+     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
   ENDIF()
   
   #-----------------------------------------------------------------------------
@@ -155,30 +153,31 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
      
   ENDIF() # end debug/release
   
-  #-----------------------------------------------------------------------------
   # Disable some annoying warnings.
-  #-----------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes")
-  IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs") 
-  ENDIF()
+  # note we have at least gcc 4.8
+  # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
+  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow")
 
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address")
+  ENDIF()  
 
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.1")
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0")
     # -Wno-misleading-indentation -Wno-error=placement-new are for gcc 6.1.1 and boost 1.61 maybe remove when a newer boost ist available!
     # however cfsbin has linkin problems with boost 1.61 hence we have also -Wno-address for boost 1.58 
     # we must not set this to CFS_SUPRESSIONS because these also become CMAKE_C_FLAGS and then the following happens:
     # CheckFortranRuntime.cmake (CFS) ->  FortranCInterface.cmake (system) -> Detect.cmake (system) -> try_compile(FortranCInterface_COMPILED
-    # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option ‘-Wplacement-new=0’ is valid for C++ but not for C"
+    # this calls a C test (cfs/BUILD/CMakeFiles/FortranCInterface -> make) and reports "command line option *** is valid for C++ but not for C"
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new -Wno-address") 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new") 
   ENDIF()
-
+  
+  # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
@@ -264,7 +263,7 @@ ELSEIF(MSVC)
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc and the c++-compiler is icpcp?!
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -274,13 +273,13 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     # however it works without a flag, mabye the intel compiler checks the stdlib.
     # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
     # It's anoying that intel depends on the system stdlib :(
-    SET(CFS_CXX_FLAGS "-g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
     # see above with -std=c++11
-    SET(CFS_CXX_FLAGS "-w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
   
@@ -329,6 +328,8 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
 ENDIF() # close all CXX compiler specific blocks
 
 # common for all compilers
+# adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
+# this is different from adding gprof support by -pg wich adds changes the code to generate an output file
 IF(PROFILING)
  SET(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
 ENDIF()

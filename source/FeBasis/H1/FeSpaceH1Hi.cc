@@ -133,6 +133,13 @@ namespace CoupledField{
     MapNodalEqns(1);
     MapNodalEqns(2);
 
+#ifdef USE_OPENMP
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > >::iterator regIt = refElems_.begin();
+    while(regIt != refElems_.end()){
+      TL_RefElems_[regIt->first] = regIt->second;
+      ++regIt;
+    }
+#endif
     isFinalized_ = true;
   }
   
@@ -171,7 +178,15 @@ namespace CoupledField{
     }
 
     // Fetch reference element and set correct order
+#ifdef USE_OPENMP
+    FeH1Hi * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ent.GetElem()->type];
+    else
+      myFe = refElems_[eRegion][ent.GetElem()->type];
+#else
     FeH1Hi * myFe = refElems_[eRegion][ent.GetElem()->type];
+#endif
     std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
     assert( it != regionOrder_.end() );
     SetElemOrder( ent.GetElem(), myFe, it->second, true );
@@ -197,7 +212,15 @@ namespace CoupledField{
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is not supported by space");
     }
     // Fetch reference element and set correct order
+#ifdef USE_OPENMP
+    FeH1Hi * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ptElem->type];
+    else
+      myFe = refElems_[eRegion][ptElem->type];
+#else
     FeH1Hi * myFe = refElems_[eRegion][ptElem->type];
+#endif
     std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
     SetElemOrder( ptElem, myFe, it->second, true );
     
@@ -226,17 +249,17 @@ namespace CoupledField{
     refElems_[region][Elem::ET_TRIA3]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE6] = new FeH1HiWedge();
-    
+    refElems_[region][Elem::ET_TET4]   = new FeH1HiTet();
     // Generate reference elements for second order geometric element types
-    refElems_[region][Elem::ET_LINE3]  = new FeH1HiLine();
-    refElems_[region][Elem::ET_QUAD8]  = new FeH1HiQuad();
-    refElems_[region][Elem::ET_QUAD9]  = new FeH1HiQuad();
-    refElems_[region][Elem::ET_TRIA6]  = new FeH1HiTria();
+    refElems_[region][Elem::ET_LINE3]   = new FeH1HiLine();
+    refElems_[region][Elem::ET_QUAD8]   = new FeH1HiQuad();
+    refElems_[region][Elem::ET_QUAD9]   = new FeH1HiQuad();
+    refElems_[region][Elem::ET_TRIA6]   = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
     refElems_[region][Elem::ET_HEXA27]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
     refElems_[region][Elem::ET_WEDGE18] = new FeH1HiWedge();
-    
+    refElems_[region][Elem::ET_TET10]   = new FeH1HiTet();
     SetRegionOrder( region, order );
     
     infoNode->Get("order")->SetValue(order.ToString());

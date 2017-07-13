@@ -1,6 +1,7 @@
 #-----------------------------------------------------------------------------
 # Set the version number of CMake which is required to build CFS++.
 #-----------------------------------------------------------------------------
+
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
 SET(REQ_PATCH_VER 11)
@@ -86,6 +87,9 @@ PROJECT(CFS C CXX Fortran)
 SET(ENV{LC_MESSAGES} "en_EN")
 SET(ENV{LANG} C)
 
+# Include some standard macros
+include(CMakeDependentOption)
+
 #-----------------------------------------------------------------------------
 # Include some utility macros (for building ext. libs, etc...)
 #-----------------------------------------------------------------------------
@@ -94,15 +98,15 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "16")
-SET(CFS_VERSION_MONTH "10")
+SET(CFS_VERSION_YEAR "17")
+SET(CFS_VERSION_MONTH "4")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Back To The Future")
+SET(CFS_NAME "Aerosource")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -139,10 +143,14 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
 
 ELSEIF(UNIX OR MINGW)
   EXECUTE_PROCESS(
-    COMMAND id -u -nr
+    COMMAND id -unr # get user name (possibly DOMAIN\user)
+    COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER
+    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
+  if(res)
+    message("could not determine user: ${res}, ${out}")
+  endif(res)
   STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
 ENDIF()
 
@@ -168,30 +176,27 @@ OPTION(USE_PYTHON
   "Build our own Python for CFS++."
   ${USE_PYTHON_DEFAULT})
 
+# exteranl anaconda
+OPTION(USE_ANACONDA3
+  "Use anaconda3 from continuum analytics"
+  OFF)
+
+IF(USE_PYTHON AND USE_ANACONDA3)
+  message(FATAL_ERROR "cannot use python and anaconda at the same time")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
-OPTION(USE_MESH
-  "Use the mesh file reader for input from ANSYS/GiD."
-  ${USE_MESH_DEFAULT})
-OPTION(USE_COMSOL
-  "Use Comsol .mphtxt meshes for simulation input."
-  ${USE_COMSOL_DEFAULT})
-OPTION(USE_GIDPOST
-  "Use the GiD library for simulation output."
-  ${USE_GIDPOST_DEFAULT})
-OPTION(USE_GMSH
-  "Use Gmsh meshes for simulation input."
-  ${USE_GMSH_DEFAULT})
-OPTION(USE_GMV
-  "Use General Mesh Viewer (GMV) for simulation in/output."
-  ${USE_GMV_DEFAULT})
-OPTION(USE_UNV
-  "Use Universal File for simulation output."
-  ${USE_UNV_DEFAULT})
-OPTION(USE_SGPP
-  "Enable support for sparse grid interpolation."
-  ${USE_SGPP_DEFAULT})
+OPTION(USE_MESH "Use the mesh file reader for input from ANSYS/GiD."  ${USE_MESH_DEFAULT})
+OPTION(USE_COMSOL "Use Comsol .mphtxt meshes for simulation input." ${USE_COMSOL_DEFAULT})
+OPTION(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
+OPTION(USE_GMSH "Use Gmsh meshes for simulation input." ${USE_GMSH_DEFAULT})
+OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output."  ${USE_GMV_DEFAULT})
+OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
+# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
+OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
+OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   OPTION(USE_ANSYSRST
@@ -230,7 +235,6 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
 SET(CFS_PARDISO "MKL"
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
-
 OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
@@ -262,6 +266,12 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
+# Disables Optimization in CFS++. Optimization is (and shall) still compiled but
+# optimization problems don't run. Furthermore CFS_Optimiztion.xsd will be replaced
+# in the build copy of the schema. Meant for deploying CFS++ to the public.
+# Note that this option is advanced, so you need to toggle in ccmake to see it.
+OPTION(DISABLE_OPTIMIZATION "Disables to run optimization problmes (still compiled)" ${DISABLE_OPTIMIZATION_DEFAULT})
+
 #-----------------------------------------------------------------------------
 # set USE_XERCES and USE_LIBXML2 (disjunct!) according to XML_READER choice
 IF(NOT XML_READER STREQUAL "xerces" AND NOT XML_READER STREQUAL "libxml2")
@@ -291,7 +301,7 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 OPTION(USE_FFTW
   "Activate DFT and filtering capabilities of cfstool." 
   ${USE_FFTW_DEFAULT})
-
+ 
 #-----------------------------------------------------------------------------
 # CGNS - CFD General Notation System
 #-----------------------------------------------------------------------------
@@ -415,8 +425,7 @@ IF(NOT TESTSUITE_DIR_DEFAULT)
   SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
 ENDIF(NOT TESTSUITE_DIR_DEFAULT) 
 
-SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE STRING
-  "Path where the CFS++ testsuite is located.")
+SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
 
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
@@ -429,6 +438,7 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
     
     ADD_SUBDIRECTORY(${TESTSUITE_DIR}
       "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+
   ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
     SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
@@ -446,6 +456,7 @@ MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
+MARK_AS_ADVANCED(INTEL_OPT_REPORT)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -457,7 +468,7 @@ MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_LIBXML2)
-  
+MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
@@ -553,6 +564,12 @@ OPTION(PERF_TESTS "Add performance tests to the test-cases")
 
 
 #-----------------------------------------------------------------------------
+# Enables tests of Python scripts via doctest
+#-----------------------------------------------------------------------------
+CMAKE_DEPENDENT_OPTION(PYTHON_TESTS "Add python tests" OFF
+                       "BUILD_TESTING" OFF) # set to off all the time
+
+#-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.
 #-----------------------------------------------------------------------------
 CONFIGURE_FILE(
@@ -577,6 +594,20 @@ ENDIF(CFS_ARCH STREQUAL "X86_64")
 SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}
   CACHE INTERNAL "Single output directory for building all executables.")
 
+#-----------------------------------------------------------------------------
+# Create symlinks to lib & bin dirs allowing the build to run on (newer) linux
+#-----------------------------------------------------------------------------
+if(UNIX)
+  # lib dir
+  get_filename_component(wd ${LIBRARY_OUTPUT_PATH} DIRECTORY)
+  add_custom_target(symlink_lib_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY ${wd})
+  # bin dir
+  add_custom_target(symlink_bin_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY "${CFS_BINARY_DIR}/bin")
+endif(UNIX)
 
 #-----------------------------------------------------------------------------
 # Create and set a path where temporaries should go
@@ -619,8 +650,12 @@ INCLUDE_DIRECTORIES(
   ${CFS_SOURCE_DIR}/source)
 
 IF(USE_CGAL)
-  INCLUDE_DIRECTORIES(${CGAL_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${CGAL_INCLUDE_DIR} ${MPFR_INCLUDE_DIR})
 ENDIF(USE_CGAL)
+
+IF(USE_VTK)
+  INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
+ENDIF(USE_VTK)
 
 #-----------------------------------------------------------------------------
 # Make sure the linker can find the CFS base libraries once it is built.
@@ -709,6 +744,13 @@ ENDIF(USE_GIDPOST)
 IF(USE_UNV)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Unverg)
 ENDIF(USE_UNV)
+ 
+IF(USE_ENSIGHT)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/VTKBased/Ensight)
+  SET(USE_VTK ON  CACHE INTERNAL "Surplus comment for cached variable") 
+ELSE()
+  SET(USE_VTK OFF CACHE INTERNAL "Surplus comment for cached variable")      
+ENDIF()
 
 IF(USE_ANSYSRST)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
@@ -785,6 +827,11 @@ ADD_SUBDIRECTORY(share/doc)
 # Add targets for scripts
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/scripts)
+
+#-----------------------------------------------------------------------------
+# Add targets for mkmesh
+#-----------------------------------------------------------------------------
+ADD_SUBDIRECTORY(share/mkmesh)
 
 #-----------------------------------------------------------------------------
 # Add targets for XML schemata and XSL style sheets

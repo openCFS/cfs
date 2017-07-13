@@ -7,6 +7,7 @@
 #include "MatVec/Matrix.hh"
 #include "boost/lexical_cast.hpp"
 #include "boost/algorithm/string.hpp"
+#include "Domain/CoefFunction/CoefFunction.hh"
 
 namespace CoupledField
 {
@@ -117,7 +118,54 @@ namespace CoupledField
         EXCEPTION("Wrong size of tensor '" << node->GetName() << "'. It contains of " 
                   << ret.GetSize() << " entries and should be " << dim ); 
       }
-    } 
+    }
+
+    //! Read the immediate child of a node and return it as a string vector usable to create a
+    //! tensor valued coefficient function via CoefFunction::Generate
+    static void AsStringVoigtTensor(PtrParamNode node, StdVector<std::string>& ret )
+    {
+        StdVector<std::string> elems;
+        SplitStringList(node->As<std::string>(), elems, ' ' );
+        UInt nelems = elems.GetSize();
+        if ( nelems == 6 ) {
+            ret.Resize(9); // 3x3 components
+            ret[0] = Bracket( elems[0] ); // 11
+            ret[1] = Bracket( elems[5] ); // 12
+            ret[2] = Bracket( elems[4] ); // 13
+            ret[3] = Bracket( elems[5] ); // 21 = 12
+            ret[4] = Bracket( elems[1] ); // 22
+            ret[5] = Bracket( elems[3] ); // 23
+            ret[6] = Bracket( elems[4] ); // 31 = 13
+            ret[7] = Bracket( elems[3] ); // 32 = 23
+            ret[8] = Bracket( elems[2] ); // 33
+        }
+        else {
+            EXCEPTION("Your specified '" << nelems << "' but symmetric tensors from Voigt notation only implemented for 3D (=6 components)!");
+        }
+    }
+
+    static PtrCoefFct AsScalarCoefFct(MathParser* mp, PtrParamNode node) {
+        PtrCoefFct ret;
+        std::string sR,sI;
+        bool complex = false;
+        if ( node->Has("real") ) {
+            sR = node->Get("real")->As<std::string>();
+            //tRef = CoefFunction::Generate( mp_,
+           // material->SetScalar(refT->Get("real")->As<std::string>(),MECH_TE_REFTEMPERATURE, Global::REAL );
+        }
+        if ( node->Has("imag")) {
+            sI = node->Get("imag")->As<std::string>();
+            complex = true;
+        }
+        if (complex) {
+            ret = CoefFunction::Generate( mp, Global::REAL, sR, sI);
+        }
+        else {
+            ret = CoefFunction::Generate( mp, Global::REAL, sR);
+        }
+        //Global::COMPLEX
+        return ret;
+    }
 
   }; 
 

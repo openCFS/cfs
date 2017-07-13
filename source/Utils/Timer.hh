@@ -20,6 +20,8 @@ class Timer
        time for an action already measued. */
   Timer(const std::string& name = "", bool sub = false);
 
+  bool IsRunning() const { return running; }
+
   /** Start or resume a timer.
     If it is already running, let it continue running. */
   void Start();

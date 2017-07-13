@@ -9,13 +9,21 @@ namespace CoupledField{
 //! Basic Class for differential operators. These classes are passed as a 
 //! template parameter to the forms object. Thereby a PDE rather specifies
 //! an operator than a specific form.
-class BaseBOperator{
+class BaseBOperator : public CfsCopyable{
 public:
   
   //! Constructor
   BaseBOperator(){
     isSurfOpt_ = false;
   }
+
+  BaseBOperator(const BaseBOperator & other){
+    this->name_ = other.name_;
+    this->coef_ = other.coef_;
+    this->isSurfOpt_ = other.isSurfOpt_;
+  }
+
+  virtual BaseBOperator * Clone() = 0;
 
   //! Destructor
   virtual ~BaseBOperator(){
@@ -68,6 +76,7 @@ public:
                        const Vector<Double>& solVec ){
     Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
+
     retVec = bOp * solVec;
 
   }
@@ -145,7 +154,7 @@ public:
   
 protected:
 
-  //! Name of the integrator
+  //! Name of the operator
   std::string name_;
 
   //!pointer to coefficient function as used e.g. in Convective operators

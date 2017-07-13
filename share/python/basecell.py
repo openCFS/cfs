@@ -93,14 +93,6 @@ def calc_radius(stiff):
 #   print val/2.0  
   return val 
 
-def add_ghost_layer(array):
-  res = array.shape[0] + 1
-  new_array = np.ones((res+1,res+1,res+1),dtype=int) * (-1)
-  new_array[1:res,1:res,1:res] = array
-  
-  return new_array
-
-# def create_mesh_with_profiles(x1, x2, y1, y2, z1, z2, xres, yres, zres,ipo):
 def create_mesh_with_profiles(args,infoXml,log):
   print("stiffnesses: "  +str(args.x1) + "," + str(args.x2) + "," + str(args.y1) + "," + str(args.y2) + "," + str(args.z1) + "," + str(args.z2))
   
@@ -196,6 +188,7 @@ if __name__ == "__main__":
   
   args = parser.parse_args()
   
+  parser.add_argument('--stiffness_as_radius',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
 
   if args.res_surf_lines is None:
     args.res_surf_lines = args.res

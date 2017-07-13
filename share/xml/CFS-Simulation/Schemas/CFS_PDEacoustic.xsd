@@ -41,9 +41,11 @@
                       > </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="temperatureId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
-                    />
+                    <xsd:attribute name="lambId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="complexFluid" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -96,6 +98,26 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Type of LambData (optional) -->
+          <!-- List defining flows -->
+          <xsd:element name="lambList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="lamb" type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Type of FlowData (optional) -->
+          <!-- List defining flows -->
+          <xsd:element name="temperatureList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="temperature" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -126,6 +148,9 @@
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsDensity" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
@@ -157,6 +182,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="acouPressure"/>
+              <xsd:enumeration value="acouPressureSOSatLaplace"/>
               <xsd:enumeration value="acouPotential"/>
             </xsd:restriction>
           </xsd:simpleType>
@@ -620,7 +646,11 @@
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
-    </xsd:restriction>
+      <xsd:enumeration value="heatMeanTemperature"/>
+      <xsd:enumeration value="splitLamb"/>
+      <xsd:enumeration value="splitDivLamb"/>
+<!--      <xsd:enumeration value="splitDivLambRhsLoad"/>-->
+      </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of element result types of acoustic PDE -->
@@ -633,6 +663,7 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
+      <xsd:enumeration value="acouRhsLoadDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -640,6 +671,7 @@
   <xsd:simpleType name="DT_AcousticSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouSurfIntensity"/>
+      <xsd:enumeration value="acouNormalIntensity"/>
       <xsd:enumeration value="acouNormalVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -648,6 +680,7 @@
   <xsd:simpleType name="DT_AcousticSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPower"/>
+      <xsd:enumeration value="acouPowerPlaneWave"/>
     </xsd:restriction>
   </xsd:simpleType>
 

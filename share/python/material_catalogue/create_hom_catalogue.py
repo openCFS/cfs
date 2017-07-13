@@ -36,14 +36,14 @@ design = (' --design '+str(args.design)) if args.design else ''
 penalization = (' --penalization '+str(args.penalization)) if args.penalization else ""
 gmsh = (' --gmsh '+str(args.gmsh)) if args.gmsh else ''
 
-execute("calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+ design + penalization + gmsh)
+execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+ design + penalization + gmsh)
 
 
 
 if args.big: #and args.penalization and args.design:
-  execute("evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder) + ' --big '+ str(args.big) + design + penalization)
+  execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder) + ' --big '+ str(args.big) + design + penalization)
 elif args.qsub:
-  os.chdir(str(folder))
+  os.chdir(str(pwd)+'/'+str(folder))
   fobj = open("jobs")
   jobfile = open("qsub_jobs", "w")
   for line in fobj:
@@ -53,8 +53,9 @@ elif args.qsub:
   fobj.close()
   jobfile.close()
   os.chdir(str(pwd))
+  #execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+design+ penalization)
 else:
-  os.chdir(str(folder))
+  os.chdir(str(pwd)+'/'+str(folder))
   execute("bash jobs")
   os.chdir(str(pwd))
-  execute("evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+design+ penalization)
+  execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+design+ penalization)

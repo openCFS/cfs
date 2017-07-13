@@ -17,8 +17,14 @@ namespace CoupledField {
     //! Constructor
     FeH1Hi(Elem::FEType feType  );
 
+    //! Copy constructor
+    FeH1Hi(const FeH1Hi & other);
+
     //! Destructor
     virtual ~FeH1Hi();
+
+    //! Deep Copy
+    virtual FeH1Hi* Clone() = 0;
 
     //! Get total number of functions
     UInt GetNumFncs();
@@ -86,9 +92,19 @@ namespace CoupledField {
     //! Constructor
     FeH1HiLine();
 
+    FeH1HiLine(const FeH1HiLine & other)
+      : FeH1Hi(other){
+
+    }
+
     //! Destructor
     virtual ~FeH1HiLine();
     
+    //! Dolly method
+    virtual FeH1HiLine* Clone(){
+      return new FeH1HiLine(*this);
+    }
+
   protected:
 
     //! @copydoc FeH1::CalcShFnc
@@ -127,9 +143,18 @@ namespace CoupledField {
     //! Constructor
     FeH1HiTria();
 
+    //! Copy constructor
+    FeH1HiTria(const FeH1HiTria & other)
+      : FeH1Hi(other){
+    }
+
     //! Destructor
     virtual ~FeH1HiTria();
 
+    //! Dolly method
+    virtual FeH1HiTria* Clone(){
+      return new FeH1HiTria(*this);
+    }
   protected:
 
     //! @copydoc FeH1::CalcShFnc
@@ -170,8 +195,18 @@ namespace CoupledField {
     //! Constructor
     FeH1HiQuad();
 
+    //! Copy constructor
+    FeH1HiQuad(const FeH1HiQuad & other)
+      : FeH1Hi(other){
+    }
+
     //! Destructor
     virtual ~FeH1HiQuad();
+
+    //! Dolly method
+    virtual FeH1HiQuad* Clone(){
+      return new FeH1HiQuad(*this);
+    }
 
   protected:
 
@@ -210,8 +245,18 @@ namespace CoupledField {
     //! Constructor
     FeH1HiHex();
 
+    //! Copy constructor
+    FeH1HiHex(const FeH1HiHex & other)
+      : FeH1Hi(other){
+    }
+
     //! Destructor
     virtual ~FeH1HiHex();
+
+    //! Dolly method
+    virtual FeH1HiHex* Clone(){
+      return new FeH1HiHex(*this);
+    }
 
   protected:
 
@@ -250,8 +295,18 @@ namespace CoupledField {
      //! Constructor
      FeH1HiWedge();
 
+     //! Copy constructor
+     FeH1HiWedge(const FeH1HiWedge & other)
+       : FeH1Hi(other){
+     }
+
      //! Destructor
      virtual ~FeH1HiWedge();
+
+     //! Dolly method
+     virtual FeH1HiWedge* Clone(){
+       return new FeH1HiWedge(*this);
+     }
 
    protected:
 
@@ -280,6 +335,60 @@ namespace CoupledField {
      //! @copydoc FeH1::GetNumFncs
      void CalcNumUnknowns();
    };
+
+
+
+   // ============
+   //  TETRAHEDRAL
+   // ============
+   //! H1 conforming hierarchical higher order tetrahedral element
+   class  FeH1HiTet : public FeH1Hi {
+
+   public:
+
+     //! Constructor
+     FeH1HiTet();
+
+     //! Copy constructor
+     FeH1HiTet(const FeH1HiTet & other)
+       : FeH1Hi(other){
+     }
+
+     //! Destructor
+     virtual ~FeH1HiTet();
+
+     //! Dolly method
+     virtual FeH1HiTet* Clone(){
+       return new FeH1HiTet(*this);
+     }
+
+   protected:
+
+     //! @copydoc FeH1::CalcShFnc
+     void CalcShFnc( Vector<Double>& shape,
+                     const Vector<Double>& point,
+                     const Elem* ptElem,
+                     UInt comp = 1 );
+
+     //! @copydoc FeH1::CalcLocDerivShFnc
+     void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                             const Vector<Double>& point,
+                             const Elem* ptElem,
+                             UInt comp = 1 );
+
+     //! Templatized version of calculation for shape function
+     template<typename T_SCAL, typename T_VEC>
+     void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,
+                      const Elem * elem,
+                      T_VEC& ret );
+
+     //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+     virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem );
+
+     void CalcNumUnknowns();
+   };
+
 
 } // namespace CoupledField
 

@@ -24,7 +24,7 @@ INCLUDE(ExternalProject)
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalData)
 
-SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/sources")
+SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/cfsdeps/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
 #-----------------------------------------------------------------------------
@@ -140,10 +140,10 @@ ENDIF(USE_HDF5)
 #-------------------------------------------------------------------------------
 IF(USE_CGNS)
   SET(CGNS_URL "${CFS_DS_SOURCES_DIR}/cgns")
-  SET(CGNS_BASE "cgnslib")
-  SET(CGNS_VER "3.1.4-2")
-  SET(CGNS_GZ "${CGNS_BASE}_${CGNS_VER}.tar.gz")
-  SET(CGNS_MD5 "e2d57dc5e116ff723ee003eba667b9f9")
+  SET(CGNS_BASE "v")
+  SET(CGNS_VER "3.3.0")
+  SET(CGNS_GZ "${CGNS_BASE}${CGNS_VER}.tar.gz")
+  SET(CGNS_MD5 "64e5e8d97144c1462bee9ea6b2a81d7f")
 
   INCLUDE("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
 ENDIF(USE_CGNS)
@@ -307,9 +307,9 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 IF(USE_LIS)
   SET(LIS_URL "${CFS_DS_SOURCES_DIR}/lis")
   SET(LIS_BASE "lis")
-  SET(LIS_VER "1.3.16")
+  SET(LIS_VER "1.7.28")
   SET(LIS_GZ "${LIS_BASE}-${LIS_VER}.tar.gz")
-  SET(LIS_MD5 "7bbbcd2070cca367a98d17767c0ea408")
+  SET(LIS_MD5 "59fbaea19fbf443d9a991ebacd7e58cd")
   
   INCLUDE("${CFSDEPS_DIR}/lis/External_LIS.cmake")
 ENDIF(USE_LIS)
@@ -387,6 +387,17 @@ IF(USE_LIBXML2)
 ENDIF(USE_LIBXML2)
 
 #-----------------------------------------------------------------------------
+# Find VTK 
+#-----------------------------------------------------------------------------
+IF(USE_VTK)
+  SET(VTK_URL "${CFS_DS_SOURCES_DIR}/vtk")
+  SET(VTK_TAR "VTK-7.1.1.tar.gz")
+  SET(VTK_VERSION "7.1") # must be 2 digits for include-dir to be correct
+  SET(VTK_MD5 "daee43460f4e95547f0635240ffbc9cb")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
+ENDIF(USE_VTK)
+
+#-----------------------------------------------------------------------------
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_CGAL)
@@ -398,23 +409,23 @@ IF(USE_CGAL)
   IF(WIN32)
     IF(MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC)
       IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-      MESSAGE(FATAL_ERROR "${MSG}")
+        MESSAGE(FATAL_ERROR "${MSG}")
       ENDIF()
     ENDIF()
   ENDIF()
 
   SET(GMP_URL "${CFS_DS_SOURCES_DIR}/gmp")
   SET(GMP_BASE "gmp")
-  SET(GMP_VER "4.2.4")
+  SET(GMP_VER "6.1.2")
   SET(GMP_BZ2 "${GMP_BASE}-${GMP_VER}.tar.bz2")
-  SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
+  SET(GMP_MD5 "8ddbb26dc3bd4e2302984debba1406a5")
   INCLUDE("${CFSDEPS_DIR}/gmp/External_gmp.cmake")
   
   SET(MPFR_URL "${CFS_DS_SOURCES_DIR}/mpfr")
   SET(MPFR_BASE "mpfr")
-  SET(MPFR_VER "2.4.0")
+  SET(MPFR_VER "3.1.5")
   SET(MPFR_BZ2 "${MPFR_BASE}-${MPFR_VER}.tar.bz2")
-  SET(MPFR_MD5 "f5916d785d4f7e7282057f6a3ebff9ce")
+  SET(MPFR_MD5 "b1d23a55588e3b2a13e3be66bc69fd8d")
   INCLUDE("${CFSDEPS_DIR}/mpfr/External_mpfr.cmake")
 
   SET(CGAL_URL "${CFS_DS_SOURCES_DIR}/cgal")
@@ -453,9 +464,9 @@ INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 IF(USE_FLANN)
   SET(FLANN_URL "${CFS_DS_SOURCES_DIR}/flann")
   SET(FLANN_BASE "flann")
-  SET(FLANN_VER "1.8.4")
-  SET(FLANN_ZIP "${FLANN_BASE}-${FLANN_VER}-src.zip")
-  SET(FLANN_MD5 "a0ecd46be2ee11a68d2a7d9c6b4ce701")
+  SET(FLANN_VER "1.9.1")
+  SET(FLANN_ZIP "${FLANN_BASE}-${FLANN_VER}.zip")
+  SET(FLANN_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
   INCLUDE("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
 ENDIF(USE_FLANN)
 
@@ -510,6 +521,18 @@ IF(USE_SGPP)
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
 ENDIF(USE_SGPP)
 
+#-------------------------------------------------------------------------------
+# Build ZeroMQ distributed messaging library
+#-------------------------------------------------------------------------------
+IF(USE_ZEROMQ)
+  SET(ZEROMQ_URL "${CFS_DS_SOURCES_DIR}/zeromq")
+  SET(ZEROMQ_GZ "zeromq-4.1.3.tar.gz")
+  SET(ZEROMQ_MD5 "d0824317348cfb44b8692e19cc73dc3a")
+
+  INCLUDE("${CFSDEPS_DIR}/zeromq/External_zeromq.cmake")
+ENDIF(USE_ZEROMQ)
+
+
 #-----------------------------------------------------------------------------
 # Find ANSYS Customizations
 #-----------------------------------------------------------------------------
@@ -554,9 +577,9 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   SET(PARAVIEW_SB_URL "${CFS_DS_SOURCES_DIR}/paraview")
   SET(PARAVIEW_SB_BASE "pvsuperbuild")
-  SET(PARAVIEW_SB_VER "4.1.0")
+  SET(PARAVIEW_SB_VER "4.4.0")
   SET(PARAVIEW_SB_TGZ "${PARAVIEW_SB_BASE}-${PARAVIEW_SB_VER}.tgz")
-  SET(PARAVIEW_SB_MD5 94e49d03e38955c0cb98c1159f417feb)
+  SET(PARAVIEW_SB_MD5 f2c38c4f764f0ca5fdf54accf2e90233)
   INCLUDE("${CFSDEPS_DIR}/paraview/External_ParaViewSuperbuild.cmake")
 ENDIF(BUILD_PARAVIEW)
 
@@ -580,6 +603,16 @@ IF(USE_PYTHON)
   
   INCLUDE("${CFSDEPS_DIR}/python/External_Python.cmake")
 ENDIF(USE_PYTHON)
+
+#-------------------------------------
+# External anaconda 3
+#-------------------------------------
+if(USE_ANACONDA3)
+  SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
+  SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
+  SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
+  INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
+endif(USE_ANACONDA3)
 
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.

@@ -24,6 +24,19 @@ namespace CoupledField{
                          const std::string& imag, UInt dof,
                          MathParser* mp );
 
+    //! Copy constructor
+    SingleEntryBiLinInt(const SingleEntryBiLinInt& right)
+     : BiLinearForm(right) {
+      //here we would also need to create a new operator
+      //! Number of unknowns
+      this->numDofs_ = right.numDofs_;
+      this->val_ = right.val_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual SingleEntryBiLinInt* Clone(){
+      return new SingleEntryBiLinInt( *this );
+    }
     
     //! Destructor
     virtual ~SingleEntryBiLinInt();

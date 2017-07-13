@@ -10,6 +10,9 @@
  *         Basically, any type of entitiy list can be passed to the corresponding
  *         FeFunction. For each unique id of the entries of the list, one equation is added.
  *         This id is obtained from EntityIterator::GetIdString().
+ *         This can be dangerous if multiple entity types are added to the space with a
+ *         non-unique id. Hence, the entity types are restricted. However, basically any
+ *         entities could be connected by equations by this space.
  *
  * \date   May 6, 2014
  * \author dperchto
@@ -50,7 +53,7 @@ public:
   virtual UInt GetNumFunctions( const EntityIterator ent );
 
   //! Return equation numbers
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent );
 
   //! Return equation numbers, does the same as called with 2 arguments
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent

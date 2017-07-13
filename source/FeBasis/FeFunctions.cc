@@ -101,10 +101,13 @@ DECLARE_LOG(fefunc)
     }
     else
     {
-      std::string entName = list->GetName();
-      for(unsigned int i = 0; !found && i < entities_.GetSize(); ++i)
-        if(entities_[i]->GetName() == entName)
+      const std::string& entName = list->GetName();
+      for(unsigned int i = 0; !found && i < entities_.GetSize(); ++i) {
+        if(entities_[i]->GetName() == entName) {
           found = true;
+          break;
+        }
+      }
     }
 
     if(!found) {
@@ -362,6 +365,7 @@ DECLARE_LOG(fefunc)
     // derivative fe function
     if( timeDerivOrder_ == 0 ) {
       coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
+      coeffs_->Init();
     }
 
     /* Check: If boundary conditions are defined on node lists with more than
@@ -716,6 +720,7 @@ DECLARE_LOG(fefunc)
     // to use interpolation to interpolate the continuous result to the
     // nodal locations in the entity list
     if( eqns.GetSize() == 0){
+
       //ok so the space does not know about this particular entity
       //we try to determine its value via interpolation
       Vector<T> elemSolution;
@@ -746,13 +751,13 @@ DECLARE_LOG(fefunc)
 
       this->GetElemSolution(elemSolution,myElem);
       BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+
       idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
     } else {
 
-
       for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
         if( eqns[iDof] != 0 ) {
-          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+	    temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
         } else {
           temp[iDof] = 0.0;
         }
@@ -787,7 +792,7 @@ DECLARE_LOG(fefunc)
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
     StdVector<Integer> eqns;
-    Vector<T> & vals = *coeffs_;
+    const Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
@@ -807,9 +812,14 @@ DECLARE_LOG(fefunc)
     // ==================================================
     //loop over all inhomogeneous BCs
     LOG_DBG(fefunc) << PREFIX << "ApplyBC() (inhomogeneous)";
+
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
       InhomDirichletBc const & actBc = *(idBcs_[i]);
       
+      // get time derivation order of boundary condition
+      // (e.g. 2 for mech acceleration, 0 for mech displacement
+      UInt bcOrder = actBc.timeDerivOrder;
+            
       // check, if entity list is defined on elements or nodes
       if( actBc.entities->GetType() == EntityList::ELEM_LIST ||
           actBc.entities->GetType() == EntityList::SURF_ELEM_LIST ) {
@@ -831,11 +841,20 @@ DECLARE_LOG(fefunc)
           Integer eqnNr = coefIt->first; 
           T val = coefIt->second;
           
+		// if the solution order and the bc order do not match, adaptBC
+		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
+		if( this->GetTimeScheme() ) {
+			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqnNr);
+		} 
+		/*
           // In case of effective mass-formulation, 
           // the bcs have to be adjusted
           if( this->GetTimeScheme() ) {
             this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
           }
+          
+            */
           
           algsys_->SetDirichlet(  fctId_, eqnNr, val);
         }  // loop coefs 
@@ -848,6 +867,7 @@ DECLARE_LOG(fefunc)
         // Note: The legacy based is implemented only for 
         // coefficient functions not depending on space
         if( actBc.value->GetDependency() == CoefFunction::GENERAL ||
+            actBc.value->GetDependency() == CoefFunction::SPACE ||
             actBc.value->GetDependency() == CoefFunction::SOLUTION) {
           EXCEPTION("Boundary condition, which are not defined on elements "
               << "are not allowed to be spatially dependent!");
@@ -872,11 +892,19 @@ DECLARE_LOG(fefunc)
           UInt numEqns = eqns.GetSize();
 
           for( UInt i = 0; i < numEqns; ++i ) {
+		// if the solution order and the bc order do not match, adaptBC
+		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
+		if( this->GetTimeScheme() ) {
+			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqns[i]);
+		}
+		/*
             // In case of effective mass-formulation, 
             // the bcs have to be adjusted
             if( this->GetTimeScheme() ) {
               this->GetTimeScheme()->AdaptBC(val,val,0,eqns[i]);
             }
+            */
             algsys_->SetDirichlet(  fctId_, eqns[i], val);
           } // loop: eqns
         } // loop: dofs

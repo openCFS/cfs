@@ -38,8 +38,7 @@ endif(CFS_ARCH STREQUAL "I386")
 
 SET(ENV{CC} "@CMAKE_C_COMPILER@")
 SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
-SET(ENV{CFLAGS} "@CFSDEPS_C_FLAGS@")
-SET(ENV{CXXFLAGS} "@CFSDEPS_CXX_FLAGS@")
+# gmp must be configured without C_FLAGS and CXX_FLAGS !
 
 find_program(SH sh)
 
@@ -81,7 +80,14 @@ ENDIF()
 EXECUTE_PROCESS(
   COMMAND ${CONFIGURE_CMD}
   WORKING_DIRECTORY "${gmp_source}"
-  ERROR_FILE gmp-config.out
+  ERROR_FILE gmp-config.err
   OUTPUT_FILE gmp-config.out
   RESULT_VARIABLE rv
   )
+if(${rv})
+  message("Configure of gmp failed")
+  message("COMMAND: ${CONFIGURE_CMD}")
+  message("WORKING_DIRECTORY: ${gmp_source}")
+  message("ERROR_FILE: gmp-config.err")
+  message("OUTPUT_FILE gmp-config.out")
+endif(${rv})

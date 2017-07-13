@@ -139,7 +139,18 @@ namespace CoupledField
     bool IsSymmetric() const;
 
     /** symmetry check with eps sensitivity. */
-    bool IsSymmetric(double eps) const;
+    inline bool IsSymmetric(double eps) const
+    {
+      if(!IsQuadratic())
+        return false;
+
+      for(UInt i = 1; i < size_row_; ++i)
+        for(UInt j = i+1; j < size_col_; ++j)
+          if(!close(data_[i][j], data_[j][i]))
+            return false;
+
+      return true;
+    }
 
     /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
      * @param eps if true use close() to compare the values by an eps  */
@@ -683,6 +694,10 @@ namespace CoupledField
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
+    //! Only for testing the switching state of Preisach planes
+    void matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel = NULL);
+    void matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
+
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
@@ -1074,6 +1089,8 @@ namespace CoupledField
 #ifdef CHECK_INDEX
     if (size_col_ != x.GetSize()) 
     {
+	    std::cout << "Matrix r x c " << size_row_ << " x " << size_col_ << std::endl;
+	    std::cout << size_col_ << " vs " << x.GetSize() << std::endl;
       EXCEPTION("incompatible dimension");
     }
 #endif
@@ -1084,7 +1101,7 @@ namespace CoupledField
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         z[k] += data_[k][kk] * x[kk];
-  
+
     return z;
   }
 

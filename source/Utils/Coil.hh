@@ -1,3 +1,25 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+//=================================
+/*
+ * \file   Coil.hh
+ * \brief  This class is basically a container for all parameters required for
+ *         describing the different types of coils used in our coupled field
+ *         computations.
+ *         The file contains some code from NACS. The code for automatic
+ *         calculation of the direction of the current density is obsolete due
+ *         to the implementation of the possibility to use current densities
+ *         calculated by the electric current PDE. It can be chosen to use the
+ *         current density or only its direction, which makes the difference
+ *         between ideal (also called stranded) coils and solid conductors.
+ *
+ * \date   unknown
+ * \author ahauck, dperchto
+ */
+//=================================
+
 #ifndef COIL_FILE_HH
 #define COIL_FILE_HH
 
@@ -5,6 +27,7 @@
 #include "MatVec/Vector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
@@ -31,7 +54,7 @@ namespace CoupledField {
      typedef std::string IdType;
 
      //! Enumeration type for distinguishing the different source types of coils
-     typedef enum {NO_SOURCE_TYPE, CURRENT, VOLTAGE } SourceType;
+     typedef enum {NO_SOURCE_TYPE, CURRENT, VOLTAGE, EXTERNAL } SourceType;
      
      //! Constructor for coils
 
@@ -47,11 +70,11 @@ namespace CoupledField {
            PtrParamNode infoNode,
            Grid * ptGrid,
            MathParser * mp,
-           Global::ComplexPart type);
+           Global::ComplexPart type );
 
      
-     //! Simplified constructor for coils, just defined by string
-     Coil( const std::string& id, Grid * ptGrid );
+     /*//! Simplified constructor for coils, just defined by string
+     Coil( const std::string& id, Grid * ptGrid );*/
      
      //! Default destructor
 
@@ -86,12 +109,12 @@ namespace CoupledField {
 
        //! Coefficient function with unit vector for current density direction
        PtrCoefFct jUnitVec;
-       
-       //! Identifier of input surface region
+
+       /*//! Identifier of input surface region
        StdVector<std::string> inputSurfRegions;
        
        //! Identifier of input surface region
-       StdVector<std::string> outputSurfRegions;
+       StdVector<std::string> outputSurfRegions;*/
        
        //! Orientation flag (+/- 1)
        Integer orientFlag;
@@ -103,7 +126,7 @@ namespace CoupledField {
        
        //! This string contains the source value (current / voltage)
        //! multiplied by the orientation flag (which can be different per 
-       //! part).
+       //! coil).
        PtrCoefFct sourceVal;
        
        //! Resistance of coil part
@@ -112,20 +135,20 @@ namespace CoupledField {
        //! Number of coil turns
        UInt numTurns;
        
-       //! Cross section of coil
-       Double coilCrossSect;
+       /*! Cross section of coil
+       Double coilCrossSect;*/
        
        //! Cross section of wire
        Double wireCrossSect;
        
-       //! Fill factor kappa
-       Double fillFactor;
+       /*! Fill factor kappa
+       Double fillFactor;*/
        
-       //! Assume uniform current density
+       /*! Assume uniform current density
        bool uniformCurrentDens_;
        
        //! Flag if current density direction is analytical
-       bool hasAnalyticalDir_;
+       bool hasAnalyticalDir_;*/
 
      private:
        //! Prevent usage of copy constructor
@@ -138,6 +161,9 @@ namespace CoupledField {
      //! Part for each regionId
      std::map<RegionIdType, shared_ptr<Part> > parts_;
      
+     //! Contains parts having direction from external simulation
+     std::map<shared_ptr<Part>, PtrParamNode > partsExtJDir_;
+
    private:
 
      //! The default constructor is not allowed
@@ -146,13 +172,13 @@ namespace CoupledField {
      //! The copy constructor is not allowed
      Coil( const Coil &c );
 
-     //! Helper method for setting up a free coordinate system
+     /* Helper method for setting up a free coordinate system
      shared_ptr<CoordSystem>
      SetupCoosy( UInt iPart, 
                  const Part& actPart,
                  StdVector<RegionIdType>& regions,
                  const StdVector<std::string>& inSurfaces,
-                 const StdVector<std::string>& outSurfaces );
+                 const StdVector<std::string>& outSurfaces );*/
                  
      //! Parameter node
      PtrParamNode myParam_;

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "General/Environment.hh"
 #include "Utils/tools.hh"
@@ -23,23 +24,6 @@ namespace CoupledField
   //! Forward class declaration
   
   class BaseResult;
-
-  //! Abstract base class for handling exceptions and errors
-  class ErrorHandler {
-
-  public:
-    //! Constructor
-    ErrorHandler() {};
-
-    //! Destructor
-    virtual ~ErrorHandler() {};
-
-    //! Error (non-recoverable)
-    virtual void Error( const Exception &exc ) = 0;
-
-    //! WARN (recoverable)
-    virtual void Warning( const Exception &exc ) = 0;
-  };
 
   //! Abstract class for reading in mesh data
 
@@ -84,6 +68,13 @@ namespace CoupledField
     virtual void InitModule() = 0;
       
     virtual void ReadMesh( Grid *mi ) = 0;
+
+    //! Tries to copy all relevant mesh related information rather than creating a
+    //! mesh of its own. USefull if different results are defined in different
+    //! result files and one wants to combine those. Works only!!! for identical meshes.
+    virtual void CopyMeshInfo( shared_ptr<SimInput> otherInput ){
+      EXCEPTION("Copy of mesh data from other simInputs is not supported");
+    }
 
     // ========================================================================
     // GENERAL MESH INFORMATION
@@ -232,6 +223,28 @@ namespace CoupledField
     std::map<UInt, StdVector<std::string> > regionNamesOfDim_;
     StdVector<std::string> namedElems_;
     StdVector<std::string> namedNodes_;
+  
+  private:  
+    
+    //! Class for identifying cached information in GetResult() function.
+    class GetResultArguments {
+    
+    public:
+      //! Contructor taking the definite arguments of GetResult() function
+      GetResultArguments(UInt sequenceStep, SolutionType solType, std::string regionName);
+      
+      //! Less comparator for usage in std::map
+      const bool operator<(const GetResultArguments &r) const;
+      
+    private:
+      UInt sequenceStep_;
+      SolutionType solType_;
+      std::string regionName_;
+  
+    };
+    
+    //! Maps the arguments of the GetResult() function against raw BaseResult objects to be used
+    std::map< GetResultArguments, shared_ptr<BaseResult> > rawBaseResults_;
     
   };
 

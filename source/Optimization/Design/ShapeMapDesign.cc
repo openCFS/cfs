@@ -715,7 +715,7 @@ unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
   return opt && IsProfileFixed() ? shape_.GetSize() / 2 : shape_.GetSize();
 }
 
-void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality, Function::Local::Phase ph)
+void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
 {
   assert(f != NULL);
   assert(f->IsLocal(f->GetType()));
@@ -733,8 +733,8 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   // next is always true!
   bool two_signs = locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE;
 
-  int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
-  int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
+  int sign_1 = two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = -1;
 
   // we don't set Function::Local::element_dimension_, it would be 2 (dim==1 * two signs)
   // we wont't use the full space as the individual shape_ are not connected
@@ -802,7 +802,7 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   LOG_DBG(SMD) << "SVSEM final f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
 }
 
-void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality, Function::Local::Phase ph)
+void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
 {
   assert(f != NULL);
   assert(f->IsLocal(f->GetType()));
@@ -813,15 +813,15 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
   if(IsProfileFixed())
     throw Exception("Configuration error: cannot have local constraint of 'shape_map' when 'profile' is fixed.");
 
-  assert(locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE);
+  assert(locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT);
 
   // a lot copy&paste from SetupVirtualShapeElementMap()
   bool prev = locality == Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_PREV_NEXT;
   // next is always true!
   bool two_signs = locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE || locality == Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE;
 
-  int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
-  int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
+  int sign_1 = two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = -1;
 
   // in principle other functions are also possible but these two are for either vertical or horizontal structures.
   assert(f->GetType() == Function::OVERHANG_HOR || f->GetType() == Function::OVERHANG_VERT);
@@ -1404,11 +1404,34 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   // add element to shape_param_
   shape_param_.Push_back(ShapeParamElement(Convert(param->type), shape_param_.GetSize()));
   ShapeParamElement& spe = shape_param_.Last();
-  spe.SetDesign(param->value);
+
+  MathParser* mp = domain->GetMathParser();
+  MathParser::HandleType handle = mp->GetNewHandle();
+
+  // set the coordinate index ("xi", "yi") of the free value as integer value. "xi/nx" with make a double out of it. We simply don't know the real coordinate
+  std::string var = param->dof == 0 ? "yi" : "xi";
+  mp->SetValue(handle, var, free);
+
+  mp->SetExpr(handle, param->value);
+  double value = mp->Eval(handle);
+
+  double lower = -1;
+  double upper = -1;
+
+  if(!param->fixed)
+  {
+    mp->SetExpr(handle, param->lower);
+    lower = mp->Eval(handle);
+
+    mp->SetExpr(handle, param->upper);
+    upper = mp->Eval(handle);
+  }
+
+  spe.SetDesign(value);
   if(param->clamp >= 0.0 && start_end)
   {
-    spe.SetLowerBound(param->value - param->clamp/2);
-    spe.SetUpperBound(param->value + param->clamp/2);
+    spe.SetLowerBound(value - param->clamp/2);
+    spe.SetUpperBound(value + param->clamp/2);
     LOG_DBG(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " shape=" << param->ToString() << " clamped! lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
   }
   else
@@ -1416,13 +1439,13 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
     if(rb >= 0 && !DensityFile::NeedLoadErsatzMaterial()) // don't set the bounds relative to initial when we later load an external design
     {
-      spe.SetUpperBound(std::min(param->upper, std::max(param->value + rb/2, param->lower)));
-      spe.SetLowerBound(std::max(param->lower, std::min(param->value - rb/2, param->upper)));
+      spe.SetUpperBound(std::min(upper, std::max(value + rb/2, lower)));
+      spe.SetLowerBound(std::max(lower, std::min(value - rb/2, upper)));
     }
     else
     {
-      spe.SetLowerBound(param->lower);
-      spe.SetUpperBound(param->upper);
+      spe.SetLowerBound(lower);
+      spe.SetUpperBound(upper);
     }
   }
 
@@ -1436,6 +1459,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
     spe.idx[0] = free;
   }
 
+  mp->ReleaseHandle(handle);
   // PostInit() sets arrays for objective and constraint gradients
 
   LOG_DBG3(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
@@ -1535,11 +1559,12 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
    {
      if(pn->Has("fixed"))
        throw Exception("shapeParam cannot have 'initial' and 'fixed' concurrently.");
-     value = pn->Get("initial")->MathParse<double>();
+
+     value = pn->Get("initial")->As<string>();
      if(!pn->Has("lower") || !pn->Has("upper"))
        throw Exception("shapeParam which is not fixed needs 'lower' and 'upper'");
-     lower = pn->Get("lower")->MathParse<double>();
-     upper = pn->Get("upper")->MathParse<double>();
+     lower = pn->Get("lower")->As<string>();
+     upper = pn->Get("upper")->As<string>();
      fixed = false;
    }
    if(pn->Has("fixed"))
@@ -1549,7 +1574,7 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
      if(clamp > 0)
        throw Exception("don't use 'clamp' for shapeParam together with 'fixed'.");
 
-     value = pn->Get("fixed")->MathParse<double>();
+     value = pn->Get("fixed")->As<string>();
      fixed = true;
    }
 

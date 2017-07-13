@@ -24,8 +24,6 @@
 #include "BaseBOperator.hh"
 
 
-#define USE_BLAS_VERSION
-
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
@@ -58,6 +56,16 @@ namespace CoupledField{
 
     IdentityOperatorProjected(){
       return;
+    }
+
+    //! Copy constructor
+    IdentityOperatorProjected(const IdentityOperatorProjected & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorProjected * Clone(){
+      return new IdentityOperatorProjected(*this);
     }
 
     virtual ~IdentityOperatorProjected(){

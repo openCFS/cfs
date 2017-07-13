@@ -1,0 +1,100 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for FFT -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_FFT">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="numSamples" type="xsd:integer">
+            <xsd:annotation>
+              <xsd:documentation>
+                The number of samples to be used for the computation of the FFT.
+                If the number of time steps is smaller than the number of samples
+                zero-padding will be done. If the number of time steps is greater
+                than the number of samples averaging will be done according to
+                the given overlap. 
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="window">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="optional" default="blackman">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    The type of window function to be used on each time signal
+                  </xsd:documentation>
+                </xsd:annotation>
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="blackman"/>
+                    <xsd:enumeration value="blackmanHarris"/>
+                    <xsd:enumeration value="hamming"/>
+                    <xsd:enumeration value="hann"/>
+                    <xsd:enumeration value="nuttal"/>
+                    <xsd:enumeration value="rect"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="param" type="xsd:float" use="optional"
+                default="0.0">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Optional parameter for the window function (currently unused)
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="overlap" type="xsd:float" default="0.5">
+            <xsd:annotation>
+              <xsd:documentation>
+                If averaging is done each time signal will be cut into segments
+                according to the given overlap. 0 means no overlap. Default is
+                0.5, i.e. adjacent segments overlap by 50%.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="singleResult">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="inputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+    
+</xsd:schema>

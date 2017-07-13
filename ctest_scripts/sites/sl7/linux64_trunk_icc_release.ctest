@@ -1,0 +1,265 @@
+#-----------------------------------------------------------------------------
+# Run this script using: ctest -S /path/to/script/script.cmake -V
+#
+# Embedding this script into crontab:
+#  1  22   *   *   * /usr/bin/ctest -S /path/to/script/script.cmake -V \
+#                                   > /dash/logs/tests.log 2>&1
+#
+# The part of the line:
+#
+#  1  22   *   *   *
+#
+# specifies when to run the scheduled task. The columns correspond to minutes,
+# hours, days, months, day of the week. This gets translated to 10:01 PM every
+# day, every month.
+#
+# For further information concerning CTest and CDash please refer to:
+# http://www.cdash.org/cdash/resources/software.html
+# http://vtk.org/Wiki/CMake_Testing_With_CTest
+# http://vtk.org/Wiki/CMake_Scripting_Of_CTest
+# Mastering CMake (ISBN 1-930934-16-5)
+#
+# Notes for setting up a CDash server on openSUSE 11.x:
+# - Install schema 'Web and LAMP server' in yast (contains Apache2 and MySQL)
+# - Install php5-xsl module
+# - Change into /srv/www/htdocs
+# - Issue svn co https://www.kitware.com:8443/svn/CDash/Release-1-2-1 CDash
+# - Issue chown -R wwwrun:www CDash/backup CDash/rss
+# - Start and add apache and mysql services in yast runlevel editor
+# - Point your web browser to http://yourhostname/CDash - Done!
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Set source and binary directories on rom
+#-----------------------------------------------------------------------------
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/CFS_BUILD_NIGHTLY")
+
+#-----------------------------------------------------------------------------
+# Specify that we want to do an experimental build without updating the CFS++
+# working copy. I.e. we leave away the ExperimentalUpdate step between
+# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
+# done by simon on mac before the the test scripts on rom get executed.
+#-----------------------------------------------------------------------------
+SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
+#-----------------------------------------------------------------------------
+INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+#-----------------------------------------------------------------------------
+# Use CMake (cmake) executable corresponding to CTest executable used to run
+# this script.
+#-----------------------------------------------------------------------------
+SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(INTEL_COMPILER_PATH "/opt/pckg/intel/composer_xe_2015.2.164")
+
+SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
+SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
+
+FILE(WRITE "${INTEL_COMPVARS_SH}"
+"
+. ${INTEL_COMPILER_PATH}/bin/compilervars.sh intel64
+${CTEST_CMAKE_COMMAND} -E environment
+")
+
+SET(SHCMD
+#  env
+#  -i
+  sh
+  "${INTEL_COMPVARS_SH}"
+)
+EXECUTE_PROCESS(
+  COMMAND ${SHCMD}
+  OUTPUT_VARIABLE INTEL_ENV_SH
+)
+
+STRING(REPLACE "\n" ";" INTEL_ENV_SH ${INTEL_ENV_SH})
+
+SET(INTEL_ENV_CMAKE "")
+FOREACH(LINE IN ITEMS ${INTEL_ENV_SH})
+  STRING(REPLACE "=" ";" LINE_TOKENS ${LINE})
+  LIST(GET LINE_TOKENS 0 VAR_NAME)
+  LIST(GET LINE_TOKENS 1 VAR_VALUE)
+  IF(NOT VAR_NAME STREQUAL "INTEL_LICENSE_FILE" AND
+     NOT VAR_NAME STREQUAL "PWD" AND
+     NOT VAR_NAME STREQUAL "SHLVL" AND
+     NOT VAR_NAME STREQUAL "_")
+
+#    MESSAGE("SET(\$ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
+    SET(INTEL_ENV_CMAKE "${INTEL_ENV_CMAKE}\nSET(ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
+  ENDIF()
+ENDFOREACH()
+
+FILE(WRITE "${INTEL_COMPVARS_CMAKE}" "${INTEL_ENV_CMAKE}")
+INCLUDE("${INTEL_COMPVARS_CMAKE}")
+
+SET(ENV{LM_LICENSE_FILE} "/opt/pckg/intel/licenses/new.lic")
+SET(ENV{INTEL_LICENSE_FILE} "$ENV{LM_LICENSE_FILE}")
+SET(ENV{CC} "icc")
+SET(ENV{CXX} "icpc")
+SET(ENV{FC} "ifort")
+SET(ENV{LC_MESSAGES} "en_US.UTF-8")
+SET(ENV{LC_ALL} "en_US.UTF-8")
+SET(ENV{LANG} "en_US.UTF-8")
+SET(ENV{LANGUAGE} "en_US.UTF-8")
+
+SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
+SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
+SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
+
+#-----------------------------------------------------------------------------
+# Let's first find out some infos about the system GNU compiler first.
+#-----------------------------------------------------------------------------
+SET(COMPILER "$ENV{CXX}")
+
+SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
+CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp"
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+  RESULT_VARIABLE RETVAL
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}"
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp"
+  RESULT_VARIABLE RETVAL
+  )
+
+INCLUDE("${COMPILER_ID_FILE}")
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
+  ARGS
+  OUTPUT_VARIABLE DISTRO_OUT
+  RETURN_VALUE RETVAL)
+
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
+INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+
+
+# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
+# MESSAGE("${DIST} ${REV} ${ARCH}")
+
+SET(BUILDTYPE "RELEASE")
+SET(BUILDNAME "Trunk ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+
+SITE_NAME(CFS_BUILD_HOST)
+STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
+LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
+SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
+set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+#-----------------------------------------------------------------------------
+# Start out with an empty binary directory.
+#-----------------------------------------------------------------------------
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+
+#-----------------------------------------------------------------------------
+# Enter the following values into the initial cache
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
+#-----------------------------------------------------------------------------
+INIT_CACHE(CTEST_INITIAL_CACHE)
+SET(CTEST_INITIAL_CACHE
+  "${CTEST_INITIAL_CACHE}
+   DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
+#   USE_ANSYSRST:BOOL=ON
+   USE_SCPIP:BOOL=OFF
+   USE_PARDISO:BOOL=ON
+   CFS_PARDISO:STRING=MKL
+   MKL_ROOT_DIR:PATH=${INTEL_COMPILER_PATH}/mkl
+   USE_OPENMP:BOOL=ON
+   BUILDNAME:STRING=${BUILDNAME}")
+
+# Generate Unix Makefiles
+SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+# Since we only have one Intel license, we force a serial build here.
+# cf. http://www.kitware.com/blog/home/post/63
+SET(CTEST_BUILD_FLAGS "-j1")
+
+message("Start dashboard...")
+ctest_start(Nightly)
+#ctest_start(Experimental)
+#message("  Update")
+#ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+message("  Configure")
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# Manually reconfigure binary dir.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} .
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+  RESULT_VARIABLE RETVAL
+)
+
+#message("read custom files after configure")
+#ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
+message("  Build")
+ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+
+# Copy some extra shared objects from Intel runtime
+SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/RHEL_7_X86_64")
+SET(DLLS
+  libifport.so.5
+  libifcore.so.5
+  libimf.so
+  libsvml.so
+  libintlc.so.5
+  libiomp5.so
+)
+
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+ENDFOREACH()
+
+# Manually reconfigure binary dir.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} .
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+  RESULT_VARIABLE RETVAL
+)
+# 
+# SET(ENV{OMP_NUM_THREADS} 2)
+# SET(ENV{MKL_NUM_THREADS} $ENV{OMP_NUM_THREADS})
+# 
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Submit")
+ctest_submit(RETURN_VALUE res)
+
+# TODO: REENABLE IF NECESSARY  
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E create_symlink RHEL_5_X86_64 LINUX_X86_64
+#   WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/bin"
+#   RESULT_VARIABLE RETVAL
+# )
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E create_symlink RHEL_5_X86_64 LINUX_X86_64
+#   WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/lib64"
+#   RESULT_VARIABLE RETVAL
+# )
+# 
+message("  All done")
+

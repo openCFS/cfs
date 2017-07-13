@@ -116,6 +116,7 @@ public:
     OP_SUB,                   /*!< Binary - operation */
     OP_MULT,                  /*!< Binary * operation (scal-scal, scalar-vector)
                                    or inner product (vector-vector) */
+	OP_MULT_COMP,             /*!< component wise vector*vector */
     OP_MULT_CONJ,             /*!< Binary * operation (scal-scal, scalar-vector), conjugated */
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case) */
     OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated */
@@ -692,5 +693,52 @@ protected:
    //! Flag if transposed of tensor should be used
    bool transposed_;
 };
+
+
+// --------------------------------------------------------------------------
+//  TENSOR REPRESENTATION (Voigt Notation)
+// --------------------------------------------------------------------------
+//! Models the sub-tensor representation of mechanic tensors in Voigt notation
+
+//!
+class CoefXprMechSubVector : public CoefXpr {
+
+public:
+
+  //! Constructor
+  CoefXprMechSubVector( MathParser * mp,
+                        PtrCoefFct a );
+
+  //! Constructor for given coefficient function
+  CoefXprMechSubVector( MathParser * mp,
+                        const CoefXpr& a) ;
+
+  //! Set given subType and if tensor should be transposed
+  void SetSubTensorType(SubTensorType subType );
+
+
+  //! Get vector expression
+  void GetVectorXpr( StdVector<std::string>& real,
+                     StdVector<std::string>& imag ) const;
+
+  //! \copydoc CoefXpr::GetArgs
+  void GetArgs( std::map<std::string, PtrCoefFct > & vars ) const;
+
+protected:
+
+   //! Private initialization
+   void Init( PtrCoefFct );
+
+   //! Coefficient function representing the original tensor
+   PtrCoefFct a_;
+
+   //! Variable name of the first argument
+   std::string aName_;
+
+   //! Subtensor type
+   SubTensorType tensorType_;
+
+};
+
 }
 #endif // header guard

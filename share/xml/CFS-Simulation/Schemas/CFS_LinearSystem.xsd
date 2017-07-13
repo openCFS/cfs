@@ -117,9 +117,12 @@
     <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
     <xsd:attribute name="system" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="mass_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="stiffness_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="precond" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="damping_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="rhs" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="solution" use="optional" default="true" type="xsd:boolean"/>
@@ -252,7 +255,8 @@
       <xsd:element name="incStopCrit" type="DT_PosFloat"/>
       <xsd:element name="resStopCrit" type="DT_PosFloat"/>
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
-	  <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
       default="fixPoint"/>
