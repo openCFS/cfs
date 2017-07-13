@@ -42,7 +42,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
     x = len(vals)
     y = 1
     z = 1
-    
+  
   assert(x > 0 and y > 0 and z > 0)  
   
   # density files where not the whole domain is design domain are read and re-written
@@ -279,7 +279,6 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
     setname_list.append(setname_inp)
   
   x, y, z = getDim(data_list[0])
-  print(x,y,z)
   
   bulk_list = []
   for i, data in enumerate(data_list):
