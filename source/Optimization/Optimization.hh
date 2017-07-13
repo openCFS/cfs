@@ -149,9 +149,10 @@ namespace CoupledField
         
         /** Solves the Adjoint problem, for given excite and objective
          * This does the real work
+         * Only Bastian had an implementation for transient and tracking in Optimization.cc
          * @param excite multi-excitation
          * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f) { assert(false); }
         
         /** Sets the rhs for the adjoint, called by assemle */
         // only for transient and tracking
@@ -386,6 +387,9 @@ namespace CoupledField
         /** shortcut to domain->GetGrid() */
         Grid* grid;
 
+        /** This holds our optimizer instance. */
+        BaseOptimizer* baseOptimizer_;
+
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
          * set in the <commit> element. In case this method makes a StoreResults (not commit)
@@ -397,9 +401,6 @@ namespace CoupledField
 
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
-
-        /** This holds our optimer instance. */
-        BaseOptimizer* baseOptimizer_;
 
         /** checks the time of the iterations to be written and used as stopping criteria.
          * This is a shortcut the the main cfs timer, taken from infoNode */

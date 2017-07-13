@@ -199,6 +199,12 @@ namespace CoupledField {
                              couplings_[i]->rhsFeFunctions_.end() );
     }
      
+    //     std::cout << "DirectCoupledPDE: pde1_->IsNonLin()? " << singlePDEs_[0]->IsNonLin() << std::endl;
+    //     std::cout << "DirectCoupledPDE: pde2_->IsNonLin()? " << singlePDEs_[1]->IsNonLin() << std::endl;
+	//     std::cout << "this.IsNonLin()? " << this->nonLin_ << std::endl;
+	this->nonLin_ = singlePDEs_[0]->IsNonLin()||singlePDEs_[1]->IsNonLin();
+	//     std::cout << "this.IsNonLin()? " << this->nonLin_ << std::endl;
+     
     // define solveStep-driver
     DefineSolveStep();
 
@@ -213,7 +219,7 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       isIterCoupled_ |= singlePDEs_[i]->IsIterCoupled();
     }
-    
+      
   }
   
 

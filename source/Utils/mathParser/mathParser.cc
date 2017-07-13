@@ -3,12 +3,17 @@
 #include <def_build_type_options.hh>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/exception/diagnostic_information.hpp>
+
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/Interpolate1D.hh"
 #include "Domain/Domain.hh"
 #include "Utils/mathfunctions.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
+DECLARE_LOG(math)
+DEFINE_LOG(math, "mathParser")
 
 namespace CoupledField {
   
@@ -40,7 +45,7 @@ namespace CoupledField {
                 true, false );
     
     // Set default expression 0,0
-    SetExpr( GLOB_HANDLER, "0.0 ");
+    MathParser::SetExpr( GLOB_HANDLER, "0.0 ");
     
     // Add global handle to activeHandles
     activeHandles_.insert(GLOB_HANDLER);
@@ -96,7 +101,7 @@ namespace CoupledField {
                 false, setDefaults );
     
     // Initialize expression to 0.0
-    SetExpr( newHandle, "0.0 ");
+    MathParser::SetExpr( newHandle, "0.0 ");
 
     // return handle
     return newHandle;
@@ -234,6 +239,7 @@ namespace CoupledField {
   void MathParser::RegisterExternalVar(  HandleType handle,
                                          const std::string& varName,
                                          Double * ptVar ) {
+    LOG_DBG(math) << "registering '" << varName << "'\n";
     // Get parser related to handle
     mu::Parser & myParser  =  GetParser( handle );
     /// register function with related parser object
@@ -287,7 +293,7 @@ namespace CoupledField {
 
     for ( UInt i = 1; i <= maxDim; i++ ) {
       tempName = coosy.GetDofName(i);
-      SetValue( handler, tempName, locCoord[i-1] );
+      MathParser::SetValue( handler, tempName, locCoord[i-1] );
     }
 
   }
@@ -340,23 +346,27 @@ namespace CoupledField {
   }
 
 
-  Double MathParser::Eval( HandleType handler ) {
-
+  Double MathParser::Eval( HandleType handler )
+  {
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
 
-#ifdef CHECK_INDEX
+    #ifdef CHECK_INDEX
     // Consistency check: Ensure, that only 1 entry is set
     if( myParser.GetNumResults() > 1 ) {
       WARN("More than one expression set! Returning just last one.");
     }
-#endif
+    #endif
     
     // Evaluate expression with error checking
-    Double ret = 0.0;
-    MATHPARSER_EXEC( ret = myParser.Eval() );
-
-    return ret;
+    try {
+      return myParser.Eval();
+    } catch(mu::Parser::exception_type &e) {
+      std::string msg = "MathParser error '" + e.GetMsg() + "' in formula '" + e.GetExpr() + "' with registered variables " + GetRegisteredVariables(GLOB_HANDLER);
+      if(handler != GLOB_HANDLER && GetRegisteredVariables(handler) != "")
+        msg += ", " + GetRegisteredVariables(handler);
+      throw Exception(msg);
+    }
   }
   
   void MathParser::EvalVector( HandleType handle, Vector<Double>& vec ) {
@@ -387,32 +397,32 @@ namespace CoupledField {
     mu::value_type *v = NULL;
     Double f1,f2,f3,f4;
 
-    SetValue( handle, varName, buffer + 2*eps );
+    MathParser::SetValue( handle, varName, buffer + 2*eps );
     MATHPARSER_EXEC( v = myParser.Eval(nExpr));
     if(nExpr < VecPos)
       Exception("Invalid indices for vector diff");
     f1 = v[VecPos];
 
-    SetValue( handle, varName, buffer + 1*eps );
+    MathParser::SetValue( handle, varName, buffer + 1*eps );
     MATHPARSER_EXEC( v = myParser.Eval(nExpr));
     if(nExpr < VecPos)
       Exception("Invalid indices for vector diff");
     f2 = v[VecPos];
 
-    SetValue( handle, varName, buffer - 1*eps );
+    MathParser::SetValue( handle, varName, buffer - 1*eps );
     MATHPARSER_EXEC( v = myParser.Eval(nExpr));
     if(nExpr < VecPos)
       Exception("Invalid indices for vector diff");
     f3 = v[VecPos];
 
-    SetValue( handle, varName, buffer - 2*eps );
+    MathParser::SetValue( handle, varName, buffer - 2*eps );
     MATHPARSER_EXEC( v = myParser.Eval(nExpr));
     if(nExpr < VecPos)
       Exception("Invalid indices for vector diff");
     f4 = v[VecPos];
 
     curPool[varName] =  buffer;
-    SetValue( handle, varName, buffer );
+    MathParser::SetValue( handle, varName, buffer );
     return (-f1 + 8*f2 - 8*f3 + f4 ) / (12*eps);
   }
 
@@ -422,19 +432,19 @@ namespace CoupledField {
     divergence = 0.0;
 
     if(this->IsExprVariable(handle,"x")){
-      divergence += this->DiffVectorEntry(handle,"x",0);
+      divergence += MathParser::DiffVectorEntry(handle,"x",0);
     }
     if(this->IsExprVariable(handle,"y")){
-      divergence += this->DiffVectorEntry(handle,"y",1);
+      divergence += MathParser::DiffVectorEntry(handle,"y",1);
     }
     if(this->IsExprVariable(handle,"z")){
-      divergence += this->DiffVectorEntry(handle,"z",2);
+      divergence += MathParser::DiffVectorEntry(handle,"z",2);
     }
     if(this->IsExprVariable(handle,"r")){
-      divergence += this->DiffVectorEntry(handle,"r",0);
+      divergence += MathParser::DiffVectorEntry(handle,"r",0);
     }
     if(this->IsExprVariable(handle,"phi")){
-      divergence += this->DiffVectorEntry(handle,"phi",1);
+      divergence += MathParser::DiffVectorEntry(handle,"phi",1);
     }
   }
 
@@ -691,12 +701,28 @@ namespace CoupledField {
     return res;
   }
 
+  std::string MathParser::GetRegisteredVariables(HandleType handle) const
+  {
+    std::stringstream ss;
+
+    StdVector<std::pair<std::string, double> > list = GetRegisteredValues(handle);
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+    {
+      ss << list[i].first;
+      if(i < list.GetSize() -1)
+        ss << ", ";
+    }
+    return ss.str();
+  }
+
+
   void MathParser::ToInfo(PtrParamNode pn, HandleType handle) const
   {
     StdVector<std::pair<std::string, double> > res = GetRegisteredValues(handle);
     for(unsigned int i = 0; i < res.GetSize(); i++)
       pn->Get(res[i].first)->SetValue(res[i].second);
   }
+
 
   void MathParser::Dump( std::ostream& out) {
     

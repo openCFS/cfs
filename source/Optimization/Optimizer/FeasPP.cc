@@ -943,6 +943,8 @@ MMAApproximation::MMAApproximation(FeasPP* feas_pp, int constraint_idx, bool app
   this->outer_val = -1.0;
   this->approximate = approx;
   this->determinant_shift = -1;
+  this->lower = -1;
+  this->upper = -1;
 }
 
 void MMAApproximation::PostInit()

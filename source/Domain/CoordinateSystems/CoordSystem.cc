@@ -65,7 +65,7 @@ namespace CoupledField{
 
     angles.Resize(3);
 
-    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
     
@@ -133,7 +133,7 @@ namespace CoupledField{
     // This could be extended to further checks (e.g. orthonormality)
     Double det; 
     rotationMat_.Determinant(det);
-    if( std::abs(det-1.0) > EPS || (boost::math::isnan)(det) || (boost::math::isinf)(det) )
+    if(std::abs(det-1.0) > EPS || (boost::math::isnan)(det) || (boost::math::isinf)(det))
       WARN( "The determinant of the rotation matrix of the coordinate system '"
           << name_ << "' is " << det << " instead of 1.\n"
           << "This indicates an error. Please check the definition of the "

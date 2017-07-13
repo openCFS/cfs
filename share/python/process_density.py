@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 from optimization_tools import *
 from PIL import Image
+try:
+  from hdf5_tools import *
+except:
+  print("failed to import hdf5_tools, processing .h5 files won't work")    
 import argparse
 import sys
 
-# work in density files, e.g. perform threshold
+# work on density files, e.g. perform threshold
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input", nargs='*', help="input density.xml file(s)")
@@ -25,7 +29,11 @@ for input in args.input:
   if not os.path.exists(input):
     print('error: file not found: ' + input)
     sys.exit()
-    
+  
+  if input.endswith(".h5") or input.endswith(".h5ref") or input.endswith(".cfs"):
+     f = h5py.File(input, 'r')
+     dump_h5_meta(f)
+     os.sys.exit()   
   # usually 'design' or 'physical'  
   dens = read_density(input, args.attribute, set=args.set)
   # this is 'design'

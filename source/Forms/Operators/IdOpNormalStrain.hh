@@ -25,6 +25,18 @@ template<class FE, UInt DIM, class TYPE = Double >
   class IdNormalStrainOperator : public BaseBOperator{
 
     IdNormalStrainOperator();
+
+
+    //! Copy constructor
+    IdNormalStrainOperator(const IdNormalStrainOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdNormalStrainOperator * Clone(){
+      return new IdNormalStrainOperator(*this);
+    }
+
     ~IdNormalStrainOperator();
   };
 
@@ -77,6 +89,17 @@ template<class FE, UInt DIM, class TYPE = Double >
     //! \param useIcModes Use incompatible modes shape functions
     IdNormalStrainOperator( ) {
       this->name_ = "IdNormalStrainOperator";
+    }
+
+
+    //! Copy constructor
+    IdNormalStrainOperator(const IdNormalStrainOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdNormalStrainOperator * Clone(){
+      return new IdNormalStrainOperator(*this);
     }
 
     //! Destructor
@@ -242,6 +265,16 @@ template<class FE, UInt DIM, class TYPE = Double >
        this->name_ = "IdNormalStrainOperator";
      }
 
+     //! Copy constructor
+     IdNormalStrainOperator(const IdNormalStrainOperator & other)
+        : BaseBOperator(other){
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual IdNormalStrainOperator * Clone(){
+       return new IdNormalStrainOperator(*this);
+     }
+
      //! Destructor
      ~IdNormalStrainOperator(){
 
@@ -390,6 +423,17 @@ template<class FE, UInt DIM, class TYPE = Double >
   class ScaledIdNormalStrainOperator : public BaseBOperator{
 
     ScaledIdNormalStrainOperator();
+
+    //! Copy constructor
+    ScaledIdNormalStrainOperator(const ScaledIdNormalStrainOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledIdNormalStrainOperator * Clone(){
+      return new ScaledIdNormalStrainOperator(*this);
+    }
+
     ~ScaledIdNormalStrainOperator();
   };
 
@@ -445,6 +489,16 @@ template<class FE, UInt DIM, class TYPE = Double >
       this->scalingFactorNormal_ = scalingFactorNormal;
       this->scalingFactorTangential_ = scalingFactorTangential;
       this->name_ = "ScaledIdNormalStrainOperator";
+    }
+
+    //! Copy constructor
+    ScaledIdNormalStrainOperator(const ScaledIdNormalStrainOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledIdNormalStrainOperator * Clone(){
+      return new ScaledIdNormalStrainOperator(*this);
     }
 
     //! Destructor
@@ -637,6 +691,16 @@ template<class FE, UInt DIM, class TYPE = Double >
 
       this->name_ = "ScaledIdNormalStrainOperator";
     }
+
+     //! Copy constructor
+     ScaledIdNormalStrainOperator(const ScaledIdNormalStrainOperator & other)
+        : BaseBOperator(other){
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledIdNormalStrainOperator * Clone(){
+       return new ScaledIdNormalStrainOperator(*this);
+     }
 
     //! Destructor
     virtual ~ScaledIdNormalStrainOperator(){

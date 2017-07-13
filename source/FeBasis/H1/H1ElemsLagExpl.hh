@@ -22,6 +22,9 @@ public:
   //! Constructor
   FeH1LagrangeExpl();
 
+  //! Copy Constructor
+  FeH1LagrangeExpl(const FeH1LagrangeExpl & other);
+
   //! Destructor
   virtual ~FeH1LagrangeExpl();
 
@@ -103,6 +106,11 @@ public:
   //! @copydoc BaseFE::GetLocalDOFCoordinates
   virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
   
+  //! return index of triangulation
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    EXCEPTION("Triangulated not available for this element.");
+  }
+
 protected:
 
   //! @copydoc FeNodal::SetFunctionsAtIp
@@ -141,6 +149,11 @@ public:
   //! Constructor 
   FeH1LagrangeLine() : FeH1LagrangeExpl() {};
 
+  //! Copy Constructor
+  FeH1LagrangeLine(const FeH1LagrangeLine& other)
+   : FeH1LagrangeExpl(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeLine() {};
 
@@ -178,6 +191,11 @@ public:
   //! Constructor
   FeH1LagrangeTria() : FeH1LagrangeExpl() {};
 
+  //! Copy Constructor
+  FeH1LagrangeTria(const FeH1LagrangeTria& other)
+   : FeH1LagrangeExpl(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeTria() {};
 
@@ -209,6 +227,7 @@ protected:
   //! @copydoc BaseFE::ComputeMonomialCoefficients
   //! Overloaded method for lagrange Elements
   virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
+
 };
 
 //! Lagrangian quadrilateral element
@@ -218,6 +237,11 @@ public:
 
   //! Constructor
   FeH1LagrangeQuad() : FeH1LagrangeExpl() {};
+
+  //! Copy Constructor
+  FeH1LagrangeQuad(const FeH1LagrangeQuad& other)
+   : FeH1LagrangeExpl(other){
+  }
 
   //! Destructor
   virtual ~FeH1LagrangeQuad() {};
@@ -246,6 +270,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian hexahedral element
@@ -255,6 +280,11 @@ public:
 
   //! Constructor  
   FeH1LagrangeHex() : FeH1LagrangeExpl() {};
+
+  //! Copy Constructor
+  FeH1LagrangeHex(const FeH1LagrangeHex& other)
+   : FeH1LagrangeExpl(other){
+  }
 
   //! Destructor
   virtual  ~FeH1LagrangeHex() {};
@@ -295,6 +325,11 @@ public:
   //! Constructor  
   FeH1LagrangeWedge() : FeH1LagrangeExpl() {};
 
+  //! Copy Constructor
+  FeH1LagrangeWedge(const FeH1LagrangeWedge& other)
+   : FeH1LagrangeExpl(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeWedge() {};
 
@@ -322,6 +357,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian tetrahedron element
@@ -331,6 +367,11 @@ public:
 
   //! Constructor
   FeH1LagrangeTet() : FeH1LagrangeExpl() {};
+
+  //! Copy Constructor
+  FeH1LagrangeTet(const FeH1LagrangeTet& other)
+   : FeH1LagrangeExpl(other){
+  }
 
   //! Destructor
   virtual  ~FeH1LagrangeTet() {};
@@ -359,6 +400,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian pyramid element
@@ -368,6 +410,11 @@ public:
 
   //! Constructor
   FeH1LagrangePyra() : FeH1LagrangeExpl()  {};
+
+  //! Copy Constructor
+  FeH1LagrangePyra(const FeH1LagrangePyra& other)
+   : FeH1LagrangeExpl(other){
+  }
 
   //! Destructor
   virtual  ~FeH1LagrangePyra() {};
@@ -396,6 +443,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 // ========================================================================
@@ -410,9 +458,18 @@ public:
   //! Constructor 
   FeH1LagrangeLine1();
 
+  //! Copy Constructor
+  FeH1LagrangeLine1(const FeH1LagrangeLine1& other)
+   : FeH1LagrangeLine(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeLine1();
 
+  //! Create deep copy
+  virtual FeH1LagrangeLine1* Clone(){
+    return new FeH1LagrangeLine1(*this);
+  }
 protected:
 
   //! @copydoc FeH1::CalcShFnc
@@ -436,8 +493,18 @@ public:
   //! Constructor
   FeH1LagrangeTria1();
 
+  //! Copy Constructor
+  FeH1LagrangeTria1(const FeH1LagrangeTria1& other)
+   : FeH1LagrangeTria(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeTria1();
+
+  //! Create deep copy
+  virtual FeH1LagrangeTria1* Clone(){
+    return new FeH1LagrangeTria1(*this);
+  }
 
 protected:
 
@@ -452,6 +519,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
@@ -462,9 +532,21 @@ public:
   //! Constructor
   FeH1LagrangeQuad1();
 
+  //! Copy Constructor
+  FeH1LagrangeQuad1(const FeH1LagrangeQuad1& other)
+   : FeH1LagrangeQuad(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeQuad1();
 
+  //! Create deep copy
+  virtual FeH1LagrangeQuad1* Clone(){
+    return new FeH1LagrangeQuad1(*this);
+  }
+
+
+  virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 protected:
 
   //! @copydoc FeH1::CalcShFnc
@@ -494,6 +576,10 @@ protected:
                                  const Vector<Double>& point,
                                  const Elem* ptElem,
                                  UInt comp = 1 );
+
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEXA8)
@@ -504,8 +590,20 @@ public:
   //! Constructor  
   FeH1LagrangeHex1();
 
+  //! Copy Constructor
+  FeH1LagrangeHex1(const FeH1LagrangeHex1& other)
+   : FeH1LagrangeHex(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeHex1();
+
+  //! Create deep copy
+  virtual FeH1LagrangeHex1* Clone(){
+    return new FeH1LagrangeHex1(*this);
+  }
+
+  void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
 protected:
 
@@ -535,6 +633,9 @@ protected:
                                  const Vector<Double>& point,
                                  const Elem* ptElem,
                                  UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 
@@ -546,9 +647,18 @@ public:
   //! Constructor  
   FeH1LagrangeWedge1();
 
+  //! Copy Constructor
+  FeH1LagrangeWedge1(const FeH1LagrangeWedge1& other)
+   : FeH1LagrangeWedge(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeWedge1();
 
+  //! Create deep copy
+  virtual FeH1LagrangeWedge1* Clone(){
+    return new FeH1LagrangeWedge1(*this);
+  }
 protected:
 
   //! @copydoc FeH1::CalcShFnc
@@ -563,6 +673,9 @@ protected:
                           const Elem* ptElem,
                           UInt comp = 1 );
   
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
+
 };
 
 //! Lagrangian tetrahedron element of 1st order (ET_TET4)
@@ -573,8 +686,20 @@ public:
   //! Constructor
   FeH1LagrangeTet1();
 
+  //! Copy Constructor
+  FeH1LagrangeTet1(const FeH1LagrangeTet1& other)
+   : FeH1LagrangeTet(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeTet1();
+
+  //! Create deep copy
+  virtual FeH1LagrangeTet1* Clone(){
+    return new FeH1LagrangeTet1(*this);
+  }
+
+  void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
 protected:
 
@@ -589,6 +714,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian pyramid element of 1st order (ET_PYRA5)
@@ -599,8 +727,18 @@ public:
   //! Constructor
   FeH1LagrangePyra1();
 
+  //! Copy Constructor
+  FeH1LagrangePyra1(const FeH1LagrangePyra1& other)
+   : FeH1LagrangePyra(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangePyra1();
+
+  //! Create deep copy
+  virtual FeH1LagrangePyra1* Clone(){
+    return new FeH1LagrangePyra1(*this);
+  }
 
 protected:
 
@@ -615,6 +753,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 // ========================================================================
@@ -628,8 +769,18 @@ public:
   //! Constructor 
   FeH1LagrangeLine2();
 
+  //! Copy Constructor
+  FeH1LagrangeLine2(const FeH1LagrangeLine2& other)
+   : FeH1LagrangeLine(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeLine2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeLine2* Clone(){
+    return new FeH1LagrangeLine2(*this);
+  }
 
 protected:
 
@@ -654,8 +805,18 @@ public:
   //! Constructor
   FeH1LagrangeTria2();
 
+  //! Copy Constructor
+  FeH1LagrangeTria2(const FeH1LagrangeTria2& other)
+   : FeH1LagrangeTria(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeTria2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeTria2* Clone(){
+    return new FeH1LagrangeTria2(*this);
+  }
 
 protected:
 
@@ -680,8 +841,18 @@ public:
   //! Constructor
   FeH1LagrangeQuad2();
 
+  //! Copy Constructor
+  FeH1LagrangeQuad2(const FeH1LagrangeQuad2& other)
+   : FeH1LagrangeQuad(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeQuad2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeQuad2* Clone(){
+    return new FeH1LagrangeQuad2(*this);
+  }
 
 protected:
 
@@ -706,8 +877,18 @@ public:
   //! Constructor
   FeH1LagrangeQuad9();
 
+  //! Copy Constructor
+  FeH1LagrangeQuad9(const FeH1LagrangeQuad9& other)
+   : FeH1LagrangeQuad(other){
+  }
+
   //! Destructor
   virtual ~FeH1LagrangeQuad9();
+
+  //! Create deep copy
+  virtual FeH1LagrangeQuad9* Clone(){
+    return new FeH1LagrangeQuad9(*this);
+  }
 
 protected:
 
@@ -732,8 +913,18 @@ public:
   //! Constructor  
   FeH1LagrangeHex2();
 
+  //! Copy Constructor
+  FeH1LagrangeHex2(const FeH1LagrangeHex2& other)
+   : FeH1LagrangeHex(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeHex2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeHex2* Clone(){
+    return new FeH1LagrangeHex2(*this);
+  }
 
 protected:
 
@@ -758,8 +949,18 @@ public:
   //! Constructor
   FeH1LagrangeHex27();
 
+  //! Copy Constructor
+  FeH1LagrangeHex27(const FeH1LagrangeHex27& other)
+   : FeH1LagrangeHex(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeHex27();
+
+  //! Create deep copy
+  virtual FeH1LagrangeHex27* Clone(){
+    return new FeH1LagrangeHex27(*this);
+  }
 
 protected:
 
@@ -784,8 +985,18 @@ public:
   //! Constructor  
   FeH1LagrangeWedge2();
 
+  //! Copy Constructor
+  FeH1LagrangeWedge2(const FeH1LagrangeWedge2& other)
+   : FeH1LagrangeWedge(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeWedge2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeWedge2* Clone(){
+    return new FeH1LagrangeWedge2(*this);
+  }
 
 protected:
 
@@ -810,8 +1021,18 @@ public:
   //! Constructor
   FeH1LagrangeWedge18();
 
+  //! Copy Constructor
+  FeH1LagrangeWedge18(const FeH1LagrangeWedge18& other)
+   : FeH1LagrangeWedge(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeWedge18();
+
+  //! Create deep copy
+  virtual FeH1LagrangeWedge18* Clone(){
+    return new FeH1LagrangeWedge18(*this);
+  }
 
 protected:
 
@@ -836,8 +1057,18 @@ public:
   //! Constructor
   FeH1LagrangeTet2();
 
+  //! Copy Constructor
+  FeH1LagrangeTet2(const FeH1LagrangeTet2& other)
+   : FeH1LagrangeTet(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangeTet2();
+
+  //! Create deep copy
+  virtual FeH1LagrangeTet2* Clone(){
+    return new FeH1LagrangeTet2(*this);
+  }
 
 protected:
 
@@ -862,8 +1093,18 @@ public:
   //! Constructor
   FeH1LagrangePyra2();
 
+  //! Copy Constructor
+  FeH1LagrangePyra2(const FeH1LagrangePyra2& other)
+   : FeH1LagrangePyra(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangePyra2();
+
+  //! Create deep copy
+  virtual FeH1LagrangePyra2* Clone(){
+    return new FeH1LagrangePyra2(*this);
+  }
 
 protected:
 
@@ -888,8 +1129,18 @@ public:
   //! Constructor
   FeH1LagrangePyra14();
 
+  //! Copy Constructor
+  FeH1LagrangePyra14(const FeH1LagrangePyra14& other)
+   : FeH1LagrangePyra(other){
+  }
+
   //! Destructor
   virtual  ~FeH1LagrangePyra14();
+
+  //! Create deep copy
+  virtual FeH1LagrangePyra14* Clone(){
+    return new FeH1LagrangePyra14(*this);
+  }
 
 protected:
 

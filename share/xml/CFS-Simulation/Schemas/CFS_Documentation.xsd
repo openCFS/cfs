@@ -128,6 +128,7 @@
       <xsd:enumeration value="eigenFrequency"/>
       <xsd:enumeration value="multiSequence"/>
       <xsd:enumeration value="restart"/>
+      <xsd:enumeration value="cfsdat"/>
       
       <!-- ========================================================== -->
       <!--  Physic Related Keywords                                   -->
@@ -135,10 +136,17 @@
       
       <!-- Acoustic -->
       <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="aeroacoustics"/>
       
+      <!-- Water waves -->
+      <xsd:enumeration value="waterWaves"/>
+
+      <!-- electric conduction -->
+      <xsd:enumeration value="electricConduction"/>
+
       <!-- Electrostatic -->
       <xsd:enumeration value="electrostatic"/>
       
@@ -155,6 +163,7 @@
       <xsd:enumeration value="biot-savart"/>
       <xsd:enumeration value="coil"/>
       <xsd:enumeration value="magnet"/>
+      <xsd:enumeration value="magForceMaxwell"/>
       
       <!-- Mechanic -->
       <xsd:enumeration value="mechanic"/>
@@ -164,9 +173,7 @@
       <!-- Flow -->
       <xsd:enumeration value="flow"/>
       <xsd:enumeration value="CFD"/>
-      <xsd:enumeration value="FluidMechPerturbedPDE"/>
-      <xsd:enumeration value="Endress+Hauser"/>
-      
+      <xsd:enumeration value="FluidMechPerturbedPDE"/>      
       
       <!-- ========================================================== -->
       <!--  Coupling Related Keywords                                 -->
@@ -231,6 +238,15 @@
       <xsd:enumeration value="input"/>
       <xsd:enumeration value="output"/>
       <xsd:enumeration value="file format"/>
+      <xsd:enumeration value="ensight"/>
+      <xsd:enumeration value="hdf5"/>
+      <xsd:enumeration value="cgns"/>
+      
+      <!-- ========================================================== -->
+      <!--  CFSdat filter Related Keywords                            -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="interpolation"/>
+      <xsd:enumeration value="derivative"/>
       
     </xsd:restriction>
   </xsd:simpleType>

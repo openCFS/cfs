@@ -40,7 +40,7 @@ LocPointMapped::LocPointMapped() :
 }
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-    Double weight) {
+                         Double weight) {
 
   this->shapeMap = esm;
   this->lp = lp;
@@ -49,7 +49,64 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   this->isSurface = false;
 
   // Calculate Jacobian, its inverse as well as determinant for local point
-  esm->CalcJ(jac, lp);
+  esm->CalcJ(this->jac, lp);
+
+  // The inversion can only be performed in case we have a quadratic Jacobian
+  // i.e. the dimension of the element is the dimension of the grid
+  if (jac.GetNumCols() == jac.GetNumRows()) {
+    // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
+    jac.Invert(jacInv);
+    jac.Determinant(jacDet);
+
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
+    // === 2D elements in 3D ===
+    Vector<Double> normal;
+    normal.Resize(3);
+    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
+    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
+    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
+    jacDet = sqrt(
+        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
+    // === 1D elements in 3D ===
+    jacDet = sqrt( jac[0][0] * jac[0][0]
+                 + jac[1][0] * jac[1][0]
+                 + jac[2][0] * jac[2][0]);
+
+  } else if (jac.GetNumRows() == 2) {
+    // === 1D elements in 2D ===
+    //see kaltenbacher, p.23, eq.(2.122)
+    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
+  };
+
+  // safety check for negative Jacobian determinant
+  if (jacDet <= 0.0) {
+	  std::cout << jacDet << std::endl;
+    EXCEPTION(
+        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+  }
+
+  // Check, if geometry is axi-symmetric. In this case scale the
+  // Jacobian determinant with 2*pi*r
+  Vector<Double> globPoint;
+  if (esm->IsAxi()) {
+    esm->Local2Global(globPoint, lp);
+    jacDet *= 2 * M_PI * globPoint[0];
+  }
+}
+
+void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                         Double weight, Matrix<Double>& cornerCoord) {
+
+  this->shapeMap = esm;
+  this->lp = lp;
+  this->weight = weight;
+  this->ptEl = shapeMap->GetElem();
+  this->isSurface = false;
+
+  // Calculate Jacobian, its inverse as well as determinant for local point
+  esm->CalcJ(this->jac, lp, cornerCoord);
 
   // The inversion can only be performed in case we have a quadratic Jacobian
   // i.e. the dimension of the element is the dimension of the grid
@@ -80,11 +137,12 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
 
-  // safety check for negative Jacobian determinant
-  if (jacDet <= 0.0) {
-    EXCEPTION(
-        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative!");
-  }
+//  // safety check for negative Jacobian determinant
+//  if (jacDet <= 0.0) {
+//	  std::cout << jacDet << std::endl;
+//    EXCEPTION(
+//        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+//  }
 
   // Check, if geometry is axi-symmetric. In this case scale the
   // Jacobian determinant with 2*pi*r
@@ -94,6 +152,7 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet *= 2 * M_PI * globPoint[0];
   }
 }
+
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     const std::set<RegionIdType>& myRegions, Double weight) {
@@ -128,22 +187,38 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
   // get surface element
   const SurfElem* surfElem = (shapeMap->GetSurfElem());
-  //cast down to mortar element
+  // cast down to mortar element
   const MortarNcSurfElem * mortarElem =
-      dynamic_cast<const MortarNcSurfElem*>(surfElem);
+        dynamic_cast<const MortarNcSurfElem*>(surfElem);
   // if we have not previously selected the correct volume neighbor, we
   // have to do it now
   shared_ptr<ElemShapeMap> esmVol;
 
   const Elem * ptVolElem = NULL;
   const SurfElem * ptSurfElem = NULL;
-  if (useMaster){
-    ptVolElem = mortarElem->ptMaster->ptVolElems[0];
-    ptSurfElem = mortarElem->ptMaster;
+  if(mortarElem){
+      if (useMaster){
+         ptVolElem = mortarElem->ptMaster->ptVolElems[0];
+         ptSurfElem = mortarElem->ptMaster;
+      }else{
+        ptVolElem = mortarElem->ptSlave->ptVolElems[0];
+        ptSurfElem = mortarElem->ptSlave;
+      }
   }else{
-    ptVolElem = mortarElem->ptSlave->ptVolElems[0];
-    ptSurfElem = mortarElem->ptSlave;
+     ptVolElem = surfElem->ptVolElems[0];
+     ptSurfElem = surfElem;
+
+     if(!ptVolElem || !ptSurfElem){
+       Exception("Determination of volume element failed for not-mortar Case.");
+     }
   }
+
+  // kirill:
+  // For periodic boundary conditions, the intersection element may not coincide with the master/slave element.
+  // Therefore, the corresponding volume element will not lie adjacent to it. For this reason
+  // we must do the calculations with respect to the chosen 'ptSurfElem' which is either master or slave
+  // and definitely connected with 'ptVolElem'.
+  shared_ptr<ElemShapeMap> esmSurfElem = shapeMap->GetGrid()->GetElemShapeMap(ptSurfElem, shapeMap->IsUpdated());
 
   lpmVol.reset(new LocPointMapped());
   esmVol =  shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
@@ -156,6 +231,15 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   Vector<Double> globalPoint;
   Vector<Double> localPoint;
   esm->Local2Global(globalPoint, lp);
+
+  // kirill:
+  // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
+  // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
+  // the master (or slave) surface element in order to calculate the corresponding local point in the adjacent volume element.
+  // The mapping is performed in accordance with the transformation between the master and the slave surfaces.
+  if (mortarElem->transVect.GetSize())
+    esmSurfElem->TranslatePointOntoSurface(mortarElem->transVect, globalPoint);
+
   esmVol->Global2Local(localPoint, globalPoint);
   lpVol.coord = localPoint;
   lpVol.number = -1;
@@ -170,7 +254,8 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     normal *= -1.0;
 }
 
-void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions) {
+void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions,
+		                         const RegionIdType volRegId ) {
   // check, if previously set element is the same as this one
   bool isSameElem = (shapeMap->GetElem() == this->ptEl && isSurface == true);
 
@@ -192,11 +277,17 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions) {
     for (; it != surfElem.ptVolElems.end(); it++) {
       // check if element is set at all
       if (*it) {
-        // check if regionId is in the "allowed" list
-        if (myRegions.find((*it)->regionId) != myRegions.end()) {
-          ptVolElem = *it;
-          break;
-        }
+          // check if regionId is in the "allowed" list
+          if (myRegions.find((*it)->regionId) != myRegions.end()) {
+        	  if ( volRegId == NO_REGION_ID ) {
+        		  ptVolElem = *it;
+        		  break;
+        	  }
+        	  else if ( (*it)->regionId == volRegId ) {
+            	  ptVolElem = *it;
+            	  break;
+          	}
+          }
       }
     } // loop over volume element neighbors
 
@@ -223,6 +314,7 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions) {
   normal = Transpose(lpmVol->jacInv) * locNormal;
   normal /= normal.NormL2();
 }
+
 
 // ========================================================================
 //  ElemShapeMap
@@ -254,7 +346,7 @@ ElemShapeMap::~ElemShapeMap() {
 std::string ElemShapeMap::ToString() const
 {
   std::stringstream ss;
-  ss << "e=" << ptElem_->elemNum << " c=" << ptElem_->connect.ToString() << " bc=" << ptElem_->barycenter.ToString();
+  ss << "e=" << ptElem_->elemNum << " c=" << ptElem_->connect.ToString() << " bc=" << ptElem_->extended->barycenter.ToString();
   return ss.str();
 }
 
@@ -280,33 +372,49 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
 // ========================================================================
 
 LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
-  feMap_[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
-  feMap_[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
-  feMap_[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
-  feMap_[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
-  feMap_[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
-  feMap_[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
-  feMap_[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
-  feMap_[Elem::ET_TET4]    = new FeH1LagrangeTet1();
-  feMap_[Elem::ET_TET10]   = new FeH1LagrangeTet2();
-  feMap_[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
-  feMap_[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
-  feMap_[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
-  feMap_[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
-  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
-  feMap_[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
-  feMap_[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
-  feMap_[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
+  //obtain thread local copy this method will only be called once in the program!
+  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
+    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+    tMap[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
+    tMap[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
+    tMap[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
+    tMap[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
+    tMap[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
+    tMap[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
+    tMap[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
+    tMap[Elem::ET_TET4]    = new FeH1LagrangeTet1();
+    tMap[Elem::ET_TET10]   = new FeH1LagrangeTet2();
+    tMap[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
+    tMap[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
+    tMap[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
+    tMap[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
+    tMap[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+    tMap[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+    tMap[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
+    tMap[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
+    tMap[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
+  }
+}
+
+LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton(const LagrangeMapSingleton&) {
+  return;
+}            
+
+LagrangeElemShapeMap::LagrangeMapSingleton& LagrangeElemShapeMap::LagrangeMapSingleton::operator=(const LagrangeMapSingleton&) {
+  return *this;
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
   // delete reference elements
-  std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = feMap_.begin();
-  for (; it != feMap_.end(); ++it) {
-    delete it->second;
-  }
-  feMap_.clear();
+  feMap_.Clear();
+//  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
+//    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+//    std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = tMap.begin();
+//    for (; it != tMap.end(); ++it) {
+//      delete it->second;
+//    }
+//    tMap.clear();
+//  }
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton&
@@ -319,6 +427,8 @@ LagrangeElemShapeMap::LagrangeElemShapeMap(Grid* ptGrid) :
     ElemShapeMap(ptGrid), elems_(LagrangeMapSingleton::getInstance()) {
   type_ = LAGRANGE;
   intScheme_ = ptGrid_->GetIntegrationScheme();
+  ptFe_ = NULL;
+  shape_ = NULL;
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
@@ -355,7 +465,7 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   Elem::FEType curType = ptFe_->FeType();
   switch (curType) {
   case Elem::ET_LINE3:
-    WARN("Using Global2LocalLine2 for ET_LINE3!");
+    //WARN("Using Global2LocalLine2 for ET_LINE3!");
   case Elem::ET_LINE2:
     Global2LocalLine2(locPoint, globalPoint);
     break;
@@ -392,25 +502,101 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   }
 }
 
+void LagrangeElemShapeMap::TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point)
+{
+  const ElemShape& shape = *shape_;
+
+  // make sure that we are not trying to project the point onto a volume element
+  if (shape.dim == ptGrid_->GetDim())
+  {
+    EXCEPTION("It is possible to project onto a surface element only.");
+    return;
+  }
+
+  if (ptGrid_->GetDim() == 2)
+  {
+    // TODO: think how to do in 2D
+    // projection onto a segment
+    Vector<Double> p1, p2, norm(2);
+    Double lambda;
+    Local2Global(p1, shape.nodeCoords[0]);
+    Local2Global(p2, shape.nodeCoords[1]);
+    p2 -= p1;
+
+    norm[0] = p2[1];
+    norm[1] = -p2[0];
+    norm.Normalize();
+    p2 = point - p1;
+    lambda = norm.Inner(p2)/norm.Inner(direction);
+    point -= direction*lambda;
+  }
+  else
+  {
+    // projection onto a polygon
+    Vector<Double> p0, p1, p2, norm;
+    Double lambda;
+    Local2Global(p0, shape.nodeCoords[0]);
+    Local2Global(p1, shape.nodeCoords[1]);
+    Local2Global(p2, shape.nodeCoords[2]);
+
+    p1 -= p0;
+    p2 -= p0;
+    p1.CrossProduct(p2, norm);
+    norm.Normalize();
+    p1 = point - p0;
+    lambda = norm.Inner(p1)/norm.Inner(direction);
+    point -= direction*lambda;
+  }
+}
+
 void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
-  //todo: check if we have 2D element in 3D
 
   const ElemShape & shape = *shape_;
   
   if (ptFe_->FeType() == Elem::ET_TRIA3) {
 
-    Double lamb1 = (coords_[1][1] - coords_[1][2])
-        * (globalPoint[0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (globalPoint[1] - coords_[1][2]);
-    lamb1 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    Double lamb1, lamb2;
 
-    Double lamb2 = (coords_[1][2] - coords_[1][0])
-        * (globalPoint[0] - coords_[0][2])
-        + (coords_[0][0] - coords_[0][2]) * (globalPoint[1] - coords_[1][2]);
-    lamb2 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    if (ptGrid_->GetDim() == 3)
+    {
+      // kirill:
+      // form here "http://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates"
+      // in 3D the global point has to be projected to the element plane
+      Vector<Double> p0, p1, p2, norm;
+      Local2Global(p0, shape.nodeCoords[0]);
+      Local2Global(p1, shape.nodeCoords[1]);
+      Local2Global(p2, shape.nodeCoords[2]);
+
+      p1 -= p0; // vector AB
+      p2 -= p0; // vector AC
+      p0 -= globalPoint; // vector PA
+      p1.CrossProduct(p2, norm);
+      // we calculate the doubled square of the initial triangle ABC
+      Double sqrABC_2 = norm.NormL2();
+      // and the doubled squares of the triangles PBC and PAC, respectively
+      p2.CrossProduct(p0, norm);
+      Double sqrPAC_2 = norm.NormL2();
+      p1.CrossProduct(p0, norm);
+      Double sqrPBC_2 = sqrABC_2 - sqrPAC_2 - norm.NormL2();
+
+      lamb1 = sqrPBC_2/sqrABC_2;
+      lamb2 = sqrPAC_2/sqrABC_2;
+    }
+    else
+    {
+      lamb1 = (coords_[1][1] - coords_[1][2])
+            * (globalPoint[0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (globalPoint[1] - coords_[1][2]);
+      lamb1 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+
+      lamb2 = (coords_[1][2] - coords_[1][0])
+            * (globalPoint[0] - coords_[0][2])
+            + (coords_[0][0] - coords_[0][2]) * (globalPoint[1] - coords_[1][2]);
+      lamb2 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    }
 
     Double lamb3 = 1 - lamb1 - lamb2;
     locPoint.Resize(2);
@@ -1460,10 +1646,10 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     //for the 2D case, we just determine the correct side of the
     //volume element by checking the edge number
     UInt locENum = 0;
-    UInt numEdges = volElem->edges.GetSize();
+    UInt numEdges = volElem->extended->edges.GetSize();
 
     for(locENum = 0; locENum < numEdges; locENum++){
-      if(abs(edgeFaceElem->edges[0]) == abs(volElem->edges[locENum])){
+      if(abs(edgeFaceElem->extended->edges[0]) == abs(volElem->extended->edges[locENum])){
         edgeFaceFound = true;
         break;
       }
@@ -1491,7 +1677,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     UInt locFaceNum = 0;
     //determine on which face the local point is located and the compute the normal for this face
     for(locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
-      if(abs(edgeFaceElem->faces[0]) == abs(volElem->faces[locFaceNum])){
+      if(abs(edgeFaceElem->extended->faces[0]) == abs(volElem->extended->faces[locFaceNum])){
         edgeFaceFound = true;
         break;
       }
@@ -1501,12 +1687,12 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     }
     StdVector<UInt> fVert = shape.faceVertices[locFaceNum];
     //take the first three vertices to span our surface (we will always have at least three vertices
-    Vector<Double> v1,v2,v3;
+    Vector<Double> v1(3),v2(3),v3(3);
     v1 = shape.nodeCoords[fVert[1]-1];
     v2 = shape.nodeCoords[fVert[0]-1];
     v3 = shape.nodeCoords[fVert[2]-1];
-    Vector<Double> c1;
-    Vector<Double> c2;
+    Vector<Double> c1(3);
+    Vector<Double> c2(3);
     c1 = v1 - v2;
     c2 = v1 - v3;
     //compute cross product
@@ -1643,10 +1829,10 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     // -------------
     // look for common edge
     // A 1D surface element only has 1 edge
-    UInt edgeNum = std::abs(ptSurfElem->edges[0]);
-    Integer index = ptElem_->edges.Find(edgeNum);
+    UInt edgeNum = std::abs(ptSurfElem->extended->edges[0]);
+    Integer index = ptElem_->extended->edges.Find(edgeNum);
     if (index < 0) {
-      index = ptElem_->edges.Find(-Integer(edgeNum));
+      index = ptElem_->extended->edges.Find(-Integer(edgeNum));
       if (index < 0) {
         EXCEPTION("edge not found");
       }
@@ -1658,8 +1844,8 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     //  Common Face
     // -------------
     // a 2D surface element only has one face
-    UInt faceNum = std::abs(ptSurfElem->faces[0]);
-    Integer index = ptElem_->faces.Find(faceNum);
+    UInt faceNum = std::abs(ptSurfElem->extended->faces[0]);
+    Integer index = ptElem_->extended->faces.Find(faceNum);
     if (index < 0) {
       EXCEPTION("face not found");
     }
@@ -1724,7 +1910,10 @@ void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
   UInt n_dims  = coords_.GetNumRows();
   UInt n_elems = coords_.GetNumCols();
 
-  assert(n_dims == domain->GetGrid()->GetDim());
+  //somtimes there is no domain pointer
+  if(domain){
+    assert(n_dims == domain->GetGrid()->GetDim());
+  }
 
   // init barycenter for safty reason
   barycenter.SetZero();
@@ -1831,6 +2020,14 @@ void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
   jac *= depth_; // explicitly include depth_ of setup
 }
 
+//! Calculation of Jacobian with given coordinates
+void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac,
+       		                     const LocPoint& lp,
+   				                 Matrix<Double>& cornerCoords) {
+	jac = cornerCoords * ptFe_->GetLocDerivShFnc( lp, ptElem_);
+	jac *= depth_; // explicitly include depth_ of setup
+}
+
 Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {
 
   deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
@@ -1880,8 +2077,8 @@ std::string LagrangeElemShapeMap::ToString() const
   return ss.str();
 }
 
-void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
-
+void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
+{
   ElemShapeMap::SetElem(ptElem, isUpdated);
   //  ptElem_ = ptElem;
   //  isUpdated_ = isUpdated;

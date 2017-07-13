@@ -128,6 +128,8 @@ namespace CoupledField {
     bool facSymbolic = false;
     bool facNumeric = false;
 
+    // for EV problems Arpack calls umfpack or pardiso (for complex problems like Bloch)
+    // so we have to call the timer manually.
     setupTimer_->Start();
 
     // No factorisation available, so perform both steps

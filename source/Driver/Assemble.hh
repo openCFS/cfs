@@ -13,6 +13,11 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "PDE/BasePDE.hh"
 
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField {
 
 
@@ -97,6 +102,9 @@ namespace CoupledField {
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices
     bool IsMatrixUpdated(){ return matrixUpdated_;}
+
+    //! Return if any RHS integrator depends on the solution
+    bool IsRhsSolDependent();
 
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);

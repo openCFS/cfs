@@ -5161,6 +5161,8 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
 bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12 && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE && type_ != GREEDY_MAPPING));
+  // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
+  // make the code save and remove the lock in calling DesingSpace!
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     return false;
 
@@ -5219,7 +5221,7 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
     ZeroTensor(t, subTensor);
     break;
   default: // case default
-    throw Exception("DesignMaterial Type not implemented yet");
+  throw Exception("DesignMaterial Type not implemented yet");
   }
 
   assert(t.GetNumRows() >= 3 && t.GetNumCols() >= 3);

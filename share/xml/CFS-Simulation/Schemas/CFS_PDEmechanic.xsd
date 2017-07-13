@@ -43,7 +43,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="softeningId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="reducedInt" type="DT_CFSBool" use="optional" default="no"/>
@@ -93,6 +93,11 @@
                     <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain!</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -128,9 +133,12 @@
 
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="fix" type="DT_BcHomVector"/>
-                <xsd:element name="displacement" type="DT_BcInhomVector"/>
 
+                <xsd:element name="fix"          type="DT_BcHomVector"   />
+                <xsd:element name="displacement" type="DT_BcInhomVector" />
+                <xsd:element name="velocity" type="DT_BcInhomVector" />
+                <xsd:element name="acceleration" type="DT_BcInhomVector" />
+                
                 <!-- RHS Load Values-->
                 <xsd:element name="stress" type="DT_BcInhomTensor"/>
                 <xsd:element name="strain" type="DT_BcInhomTensor"/>
@@ -139,12 +147,15 @@
                 <xsd:element name="force" type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomVector"/>
+                <!-- for iterative coupling to magnetostrictive material -->
+                <xsd:element name="magFluxDensity"      type="DT_BcInhomVector"    />
 
                 <!-- RHS, due to thermal strains-->
                 <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint" type="DT_MechCS"/>
+                <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
 
@@ -153,6 +164,8 @@
 
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
+                <!-- Bloch periodic Boundary Conditions applied to full displacement vector -->
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull" form="qualified"/>
               </xsd:choice>
 
             </xsd:complexType>
@@ -185,10 +198,15 @@
               <xsd:enumeration value="planeStress"/>
               <xsd:enumeration value="flatShell"/>
               <xsd:enumeration value="3d"/>
+              <xsd:enumeration value="2.5d"/> <!-- 3d vector dependent on two spacial coordinates -->
               <xsd:enumeration value="axi"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        
+        <!-- switch between effective mass and stiffness formulation -->
+        <xsd:attribute name="effectiveMass" type="DT_CFSBool" use="optional" default="no"/>
+        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -450,7 +468,13 @@
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechThermalStrain"/>
       <xsd:enumeration value="mechStress"/>
-      <xsd:enumeration value="mechThermalStress"/>
+      <xsd:enumeration value="mechThermalStress"/>      
+      <xsd:enumeration value="mechPrincipalStressMin"/>
+      <xsd:enumeration value="mechPrincipalStressMax"/>
+      <xsd:enumeration value="mechPrincipalStressMed"/>      
+      <xsd:enumeration value="mechPrincipalStrainMin"/>
+      <xsd:enumeration value="mechPrincipalStrainMax"/>
+      <xsd:enumeration value="mechPrincipalStrainMed"/>
 
       <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>

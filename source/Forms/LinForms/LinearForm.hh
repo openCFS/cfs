@@ -45,6 +45,18 @@ namespace CoupledField{
         isSolDependent_ = false;
       }
 
+      //! Copy constructor
+      LinearForm(const LinearForm& right ){
+        this->coordUpdate_ = right.coordUpdate_;
+        this->isSolDependent_ = right.isSolDependent_;
+        this->name_ = right.name_;
+        this->ptFeSpace_ = right.ptFeSpace_;
+        this->intScheme_ = right.intScheme_;
+      }
+
+      //! Make deep copy of object pointer
+      virtual LinearForm* Clone()=0;
+
       virtual ~LinearForm(){
 
       }

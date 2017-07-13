@@ -536,6 +536,9 @@ private:
   bool interfaceDrivenGradCalc_;
 
   Function* trackingFunc_;
+
+  boost::shared_ptr<Timer> calc_u1ku2_timer_;
+
 };
 
 } // namespace

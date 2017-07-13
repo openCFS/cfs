@@ -20,9 +20,15 @@ public:
   //! Constructor
   FeHi( Elem::FEType feType  );
   
+  //! Copy constructor
+  FeHi(const FeHi& other);
+
   //! Destructor
   virtual ~FeHi();
   
+  //! Deep Copy
+  virtual FeHi* Clone() = 0;
+
   // ----------------------------------------------------------------------
   //  Polynomial Order
   // ----------------------------------------------------------------------

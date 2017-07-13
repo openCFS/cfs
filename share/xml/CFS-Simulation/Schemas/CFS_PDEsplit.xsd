@@ -1,0 +1,235 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an acoustics PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for acoustics PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="split" type="DT_PDESplit" substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_SplitRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for acoustics PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_PDESplit">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="vorticityId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="densityId" type="xsd:token" use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Non-conforming interfaces of the PDE -->
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the non-conforming interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Type of FlowData (optional) -->
+          <!-- List defining the Flow field -->
+          <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
+                <xsd:element name="vorticity" type="DT_BcInhomVector"/>
+                <xsd:element name="density" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="homDir" type="DT_BcHomScalar"/>
+                <xsd:element name="inhomDir" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Sets potential to value (inhomog. Dirichlet b.c.)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <!-- Inhomogen Neumann boundaries-->
+                <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
+                <xsd:element name="tangentialVelocity" type="DT_BcInhomScalar"/>
+                <xsd:element name="tangentialVelocity3D" type="DT_BcInhomVector"/>
+                <!-- RHS Load Values -->
+                <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsDensity" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines rhs density (LinearForm)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+         <xsd:element name="storeResults" type="DT_SplitStoreResults" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+
+        <!-- Type of acoustic formulation (optional) -->
+        <xsd:attribute name="formulation" use="optional" default="splitScalar">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="splitScalar"/>
+              <xsd:enumeration value="splitVector"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
+
+        <!-- Type of function space (Lagrange / Legendre) with
+        optional order -->
+        <xsd:attribute name="type" use="optional" default="lagrange">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="lagrange"/>
+              <xsd:enumeration value="legendre"/>
+              <xsd:enumeration value="spectral"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the splitting unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_SplitUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="splitScalar"/>
+      <xsd:enumeration value="splitVector"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of split PDE -->
+  <xsd:simpleType name="DT_SplitNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="splitScalar"/>
+      <xsd:enumeration value="splitVector"/>
+      <xsd:enumeration value="splitRhsLoad"/>
+      <xsd:enumeration value="fluidMechVorticity"/>
+      <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="fluidMechDensity"/>
+      <xsd:enumeration value="splitScalVel"/>
+      <xsd:enumeration value="splitVectVel"/>
+      <xsd:enumeration value="splitLamb"/>
+      <xsd:enumeration value="splitDivLamb"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  
+  <!-- Definition of element result types of split PDE -->
+  <xsd:simpleType name="DT_SplitElemResult">
+    <xsd:restriction base="xsd:token">
+      
+      
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of region result types of split PDE -->
+  <xsd:simpleType name="DT_SplitRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="splitPotEnergy"/>
+    </xsd:restriction>
+    </xsd:simpleType>
+
+
+  <!-- Global type for specifying desired split output quantities -->
+  <xsd:complexType name="DT_SplitStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_SplitNodeResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_SplitElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_SplitRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+
+  
+ 
+</xsd:schema>

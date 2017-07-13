@@ -4,6 +4,7 @@
 #include <stdio.h>      /* printf */
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <boost/tokenizer.hpp>
 #include <fstream>
@@ -44,7 +45,7 @@ void tricubic_coeff(vector<double> & a, vector<double> f, vector<double> dfdx, v
 
 void tricubic_partialderiv(vector<vector<vector<double> > > & dEda,vector<vector<vector<double> > > & dEdb,vector<vector<vector<double> > > & dEdc,
     vector<vector<vector<double> > > & dEdadb,vector<vector<vector<double> > > & dEdadc,vector<vector<vector<double> > > & dEdbdc,
-    vector<vector<vector<double> > > & dEdadbdc,vector<double>a,vector<double>b,vector<double>c,vector<vector<vector<double> > >E,int E_number){
+    vector<vector<vector<double> > > & dEdadbdc,vector<double>a,vector<double>b,vector<double>c,vector<vector<vector<double> > >E){
   //Approximation of the derivatives with finite differences at the grid points
 
 
@@ -72,15 +73,14 @@ void tricubic_partialderiv(vector<vector<vector<double> > > & dEda,vector<vector
 
 }
 
-void tricubic_offline(vector<vector<double> > & Coeff,vector<double> a, vector<double> b, vector<double> c, vector<vector<vector<double> > > & E, int m, int n, int o,
-    int E_number, double dx,double dy,double dz) {
+void tricubic_offline(vector<vector<double> > & Coeff,vector<double> a, vector<double> b, vector<double> c, vector<vector<vector<double> > > & E, int m, int n, int o, double dx,double dy,double dz) {
 // Calculation of the coefficients of the interpolation polynomial for all possible intervals
   vector<double> res(64);
   vector<vector<vector <double > > > dEda(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdb(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdc(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdadb(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdadc(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdbdc(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdadbdc(m,vector<vector<double> >(n,vector<double>(o,0.)));
-  tricubic_partialderiv(dEda,dEdb,dEdc,dEdadb,dEdadc,dEdbdc,dEdadbdc,a,b,c,E,E_number);
+  tricubic_partialderiv(dEda,dEdb,dEdc,dEdadb,dEdadc,dEdbdc,dEdadbdc,a,b,c,E);
   vector<double> f(8,0);
   vector<double> Eda(8,0);
   vector<double> Edb(8,0);
@@ -223,7 +223,7 @@ double tricubic_eval(vector<double> a, double x, double y, double z) {
 void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, int mode) {
   fstream f;
   f.open(file.c_str(), ios::out);
-  f<<"<homRectC1>"<<endl;
+  f<<"<homRectC1 notation=\"voigt\">"<<endl;
   f<<"<a>"<<endl;
   f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
   f<<"<real>"<<endl;
@@ -302,7 +302,6 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
     f<<endl;
   }
   f<<"</real>\n</matrix>\n</coeff44>\n";
-  if (mode == 3) {
     f<<"<coeff55>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n<real>\n";
     for (int i=0;i<ende;i++) {
       for (int j=0;j<64;j++) {
@@ -319,7 +318,6 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
       f<<endl;
     }
     f<<"</real>\n</matrix>\n</coeff66>\n";
-  }
   f<<"</homRectC1>";
   f.close();
 }
@@ -478,7 +476,7 @@ int main(int argc, char * argv[]) {
     }*/
 
     cout<<"Volume table calculated."<<endl;
-    tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,1,da,db,dc);
+    tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,da,db,dc);
     cout<<"Insert output xml file name:"<<endl;
     string name;
     cin>>name;
@@ -489,7 +487,13 @@ int main(int argc, char * argv[]) {
   } else if (mode == 2 || mode == 3 || mode == 4) {
     cout<<"Enter name of the homogenized data file:"<<endl;
     string input;
+    string input_vol = "none";
     cin>>input;
+    if (mode == 4) {
+      cout<<"Enter name of the homogenized volume data file:"<<endl;
+      cin>>input_vol;
+      cout<<"Read "<<input_vol<<endl;
+    }
     double result;
     double x1 = -1;
     double x2 = -1;
@@ -503,7 +507,14 @@ int main(int argc, char * argv[]) {
     cout<<"Read "<<input<<endl;
     string zeile;
     const char *inp = input.c_str();
+    const char *inp_vol = input_vol.c_str();
     ifstream fin(inp);
+    ifstream fin_vol;
+    if (inp_vol != "none") {
+      fin_vol.open(inp_vol);
+      //Read header of the input file from homogenization volume
+      getline(fin_vol, zeile, '\n');
+    }
     //Read header of the input file from homogenization
     getline(fin, zeile, '\n');
     typedef tokenizer<char_separator<char> > tokenizer;
@@ -515,7 +526,7 @@ int main(int argc, char * argv[]) {
 
     //Read data of the material catalogue into a data structure
     int ncol;
-    if (mode == 2 || mode == 3) {
+    if (mode == 2 || mode == 3 || mode == 4) {
       ncol = 3 + 9;
     } else {
       ncol = 2 + 6 + 1;
@@ -523,18 +534,32 @@ int main(int argc, char * argv[]) {
     vector<vector<double> > data(m*n*o,vector<double>(ncol,0.));
     int count1 = 0;
     int count2 = 0;
-    char_separator<char> sep("\t");
     while(!(fin.eof())) {
       getline(fin, zeile, '\n');
-      tokenizer tok(zeile,sep);
-      count2 = 0;
-      for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
-        data[count1][count2] = atof((*beg).c_str());
+      istringstream ss(zeile);
+      count2=0;
+      for (double d; ss >> d; ) {
+        data[count1][count2] = d;
         count2++;
       }
       count1++;
     }
-    cout<<"File read."<<endl;
+    vector<vector<double> > data_vol(m*n*o,vector<double>(4,0.));
+    if (fin_vol.is_open()) {
+      int count1 = 0;
+      int count2 = 0;
+      while(!(fin_vol.eof())) {
+        getline(fin_vol, zeile, '\n');
+        istringstream ss(zeile);
+        count2=0;
+        for (double d; ss >> d; ) {
+          data_vol[count1][count2] = d;
+          count2++;
+        }
+        count1++;
+      }
+    }
+    cout<<"Files read."<<endl;
     //Create vector with the different sizes
     vector<double> aa(m,0.);
     vector<double> bb(n,0.);
@@ -556,21 +581,28 @@ int main(int argc, char * argv[]) {
     /*aa.assign(taa,taa+m);
     bb.assign(tbb,tbb+n);
     cc.assign(tcc,tcc+o);*/
-    int E_number = 1;
     //Calculate coefficient matrix for the interpolation of the different entries in E
     int nrow;
-    if (mode == 2 || mode == 3) {
+    if (mode == 2 || mode == 3 || mode == 4) {
       nrow = 9;
     } else {
       nrow = 6 + 1;
     }
     vector<vector<vector<double > > > Coeff(nrow, vector<vector<double> >((m-1)*(n-1)*(o-1),vector<double>(64,0.)));
     vector<vector<vector <double > > > E(m,vector<vector<double> >(n,vector<double>(o,0.)));
+    vector<vector<double > > Coeff_vol((m-1)*(n-1)*(o-1),vector<double>(64,0.));
+    if (fin_vol.is_open()) {
+      vector<vector<vector <double > > > E_vol(m,vector<vector<double> >(n,vector<double>(o,0.)));
+      for (int i=0;i<m*n*o;i++) {
+            E_vol[data_vol[i][0]][data_vol[i][1]][data_vol[i][2]] = data_vol[i][3];
+      }
+      tricubic_offline(Coeff_vol, aa, bb, cc, E_vol, m, n, o, da, db, dc);
+    }
     for (int ll = 0;ll<nrow;ll++) {
       for (int i=0;i<m*n*o;i++) {
             E[data[i][0]][data[i][1]][data[i][2]] = data[i][3+ll];
       }
-      tricubic_offline(Coeff[ll], aa, bb, cc, E, m, n, o, E_number, da, db, dc);
+      tricubic_offline(Coeff[ll], aa, bb, cc, E, m, n, o, da, db, dc);
     }
     /*for (int i=0;i<o;i++) {
         cout<<"E("<<i<<") = "<<endl;
@@ -594,6 +626,13 @@ int main(int argc, char * argv[]) {
     string file(name);
     //Write interpolation coefficients in the xml file above
     write_to_xml(file,Coeff,aa,bb,cc, mode);
+    if (fin_vol.is_open()) {
+      cout<<"Insert volume output xml file name:"<<endl;
+      string name_vol;
+      cin>>name_vol;
+      string file_vol(name_vol);
+      write_to_xml_vol(file_vol, Coeff_vol, aa,bb, cc);
+    }
     /*for (int i=0;i<m-1;i++) {
       for (int j=0;j<n-1;j++) {
         for (int k=0;k<o-1;k++) {

@@ -229,6 +229,9 @@ namespace CoupledField {
     // Define the integrators
     DefineIntegrators();
 
+    //std::cout << "BasePairCoupling: pde1_->IsNonLin()? " << pde1_->IsNonLin() << std::endl;
+    //std::cout << "BasePairCoupling: pde2_->IsNonLin()? " << pde2_->IsNonLin() << std::endl;
+
   }
   
   void BasePairCoupling::FinalizeInit() {
@@ -543,7 +546,7 @@ namespace CoupledField {
 
   void BasePairCoupling::DefineFeFunctions(){
     //This is the default creation of spaces
-    //idee: die PDE gibt zum attribute formulation die passenden space zurück
+    //idee: die PDE gibt zum attribute formulation die passenden space zurueck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::PASS);

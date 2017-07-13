@@ -1,0 +1,38 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for defining additional parameters for neearest neighbour search -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DiffScheme">
+    <xsd:attribute name="epsilonScaling" type="xsd:double" use="required">
+      <xsd:annotation>
+        <xsd:documentation>
+          epsilonScaling: Controls the "smoothness" of the basis function. The smoother the Gauss-like surface
+          is, the better the results will be BUT only until a certain number, when the matrix
+          becomes so ill-conditioned, which will either result in an exception or very bad
+          results.
+          Typical values 0.1
+          
+          localityScaling: divides the real epsilon (epsilonScaling / maxDistance) by the
+          given number. This controls, how many points are used for building the differentation-
+          matrix. The higher the number, the more points will be used. The "optimal" number of
+          points will probably be the node-number of one element, but this is not verified yet.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="localityScaling" type="xsd:double" use="required"/>
+   </xsd:complexType>
+  
+</xsd:schema>

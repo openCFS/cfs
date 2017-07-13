@@ -34,8 +34,6 @@
 
 namespace CoupledField {
 
-
-
   // ***************
   //   Constructor
   // ***************
@@ -51,10 +49,11 @@ namespace CoupledField {
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
-    nonLin_ = false;
-    
     // Initialize nonlinearities
     InitNonLin();
+    
+    nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
+    
   }
 
   // **************
@@ -168,6 +167,39 @@ namespace CoupledField {
 
     DefineFieldResult( coefIntens, magIntens );
 
+      // === MAGNETIC ENERGY ===
+      shared_ptr<ResultInfo> energy(new ResultInfo);
+      energy->resultType = MAG_ENERGY;
+      energy->dofNames = "";
+      energy->unit = "Ws";
+      energy->definedOn = ResultInfo::REGION;
+      energy->entryType = ResultInfo::SCALAR;
+      availResults_.insert( energy );
+      
+      shared_ptr<ResultFunctor> energyFunc;
+      
+      // calculate energy by integrate(1/2*H*B)
+      PtrCoefFct coefMagB = pde2_->GetCoefFct( MAG_FLUX_DENSITY );
+      
+      // for comparison with pure magnetic energy take coefMagH time coefMagB
+      PtrCoefFct coefBH = CoefFunction::Generate(mp, part, CoefXprBinOp(mp, coefMagH, coefMagB, CoefXpr::OP_MULT));
+      //PtrCoefFct coefBH = CoefFunction::Generate(mp, part, CoefXprBinOp(mp, coefIntens, coefMagB, CoefXpr::OP_MULT));
+      //std::cerr << "BH is " << coefBH->ToString();
+      //std::cerr << std::endl;
+
+      PtrCoefFct energyDens = CoefFunction::Generate( mp, part, CoefXprBinOp(mp, coefBH, "0.5", CoefXpr::OP_MULT) );
+      
+      //std::cerr << "energyDens is " << energyDens2->ToString();
+	//std::cerr << std::endl;
+      
+      if( isComplex_ ) {
+        energyFunc.reset(new ResultFunctorIntegrate<Complex>(energyDens, magFct, energy ) );
+      } else {
+        energyFunc.reset(new ResultFunctorIntegrate<Double>(energyDens, magFct, energy ) );
+      }
+
+      resultFunctors_[MAG_ENERGY] = energyFunc;
+
     // ==== Mechanic Stress ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
@@ -256,6 +288,9 @@ namespace CoupledField {
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
 
+	// makes no difference at the moment
+    bool coordUpdate_ = true;
+
     SubTensorType tensorType = NO_TENSOR;
     if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
       tensorType = PLANE_STRAIN;
@@ -294,24 +329,24 @@ namespace CoupledField {
         integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
 						new CurlOperatorAxi<Complex>(),
                                     //new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, factor, true );
+                                    curCoef, factor, coordUpdate_ );
       } else if( subType_ == "planeStrain" ) {
 			
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
 						new CurlOperator<FeH1,2, Complex>(),
                                     //new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, factor, true);
+                                    curCoef, factor, coordUpdate_);
       } else if( subType_ == "planeStress" ) {
 
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
 						new CurlOperator<FeH1,2, Complex>(),
                                     //new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, factor, true);
+                                    curCoef, factor, coordUpdate_);
       } else if( subType_ == "3d") {
         integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
 						new CurlOperator<FeH1,3, Complex>(),
                                     //new GradientOperator<FeH1,3,1,Complex>(),
-                                    curCoef, factor, true);
+                                    curCoef, factor, coordUpdate_);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }
@@ -321,23 +356,23 @@ namespace CoupledField {
         integ = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
         				     new CurlOperatorAxi<Double>(),
                                    //new GradientOperator<FeH1,2>(),
-                                   curCoef, factor, true );
+                                   curCoef, factor, coordUpdate_ );
       } else if( subType_ == "planeStrain" ) {
 		
         integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
         				     new CurlOperator<FeH1,2, Double>(),
                                    //new GradientOperator<FeH1,2>(),
-                                   curCoef, factor, true);
+                                   curCoef, factor, coordUpdate_);
       } else if( subType_ == "planeStress" ) {
         integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
         				     new CurlOperator<FeH1,2, Double>(),
                                    //new GradientOperator<FeH1,2>(),
-                                   curCoef, factor, true);
+                                   curCoef, factor, coordUpdate_);
       } else if( subType_ == "3d") {
         integ = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
         				     new CurlOperator<FeH1,3, Double>(),
                                    //new GradientOperator<FeH1,2>(), 
-                                   curCoef, factor, true);
+                                   curCoef, factor, coordUpdate_);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }

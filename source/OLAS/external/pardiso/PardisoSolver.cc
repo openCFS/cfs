@@ -11,6 +11,7 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "Domain/Domain.hh"
 
 #include "def_use_pardiso.hh"
 #include <def_cfs_fortran_interface.hh>
@@ -198,8 +199,11 @@ extern "C" {
                 &zeroDBL_, &errorFlag );
 #endif
 
-      if(errorFlag != PARDISO_NO_ERROR) // no exceptions in C++11 destructors
-        std::cerr << "Error occured during cleanup of pardiso: " << GetErrorString(errorFlag) << std::endl;
+      if(errorFlag != PARDISO_NO_ERROR) {
+        std::cout << "Error occured during cleanup: " << GetErrorString(errorFlag) << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in destructors
+      }
 
     // Read iterative solver statistics
     if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) {
@@ -215,8 +219,9 @@ extern "C" {
       try {
         fs::remove("pardiso-ml.out");
       } catch (std::exception &ex) {
-        // no exceptions in C++11 destructors
-        std::cerr << "Error occured removing remove pardiso-ml.out: " << ex.what() << std::endl;
+        std::cout << "Error while trying to remove pardiso-ml.out: " << ex.what() << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in destructors
       }      
     }
 
@@ -399,7 +404,7 @@ extern "C" {
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
     xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
 
-    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
+    dparm_[6] = 10;    // Maximum number of fill-in in each column in the factor.
     xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
 
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.

@@ -914,8 +914,11 @@
         <xsd:sequence>
           <xsd:element name="precond" type="DT_PreCondLIS" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="solver" type="DT_SolverLIS" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="maxIter" type="xsd:int" default="1000" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="tolerance" type="xsd:double" default="1e-10" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
+          <!-- This is the target residual given to lis. Note, that lis knows three norms -->
+          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
+          <!-- When maxIter is exceeded but the achieved resual is not worse the minimalTolerance no exception is thrown -->
+          <xsd:element name="minimalTolerance" type="xsd:double" default="1e-11" maxOccurs="1" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
           <xsd:element name="zeroInitialValue" type="xsd:boolean" default="false" minOccurs="0"/>
         </xsd:sequence>
@@ -978,8 +981,6 @@
               <xsd:attribute name="irestart" type="xsd:int" default="2"/>
             </xsd:complexType>
           </xsd:element>
-
-
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -993,7 +994,8 @@
           <xsd:element name="jacobi"/>
           <xsd:element name="iluk">
             <xsd:complexType>
-              <xsd:attribute name="fill" type="xsd:double" default="0" use="optional"/>
+              <!-- even when given as float, it will be interpretet as int by lis -->
+              <xsd:attribute name="fill" type="xsd:int" default="0" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="ssor">

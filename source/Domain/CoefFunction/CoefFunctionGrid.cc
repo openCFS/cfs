@@ -16,7 +16,7 @@
 /*
  * Folgende Konzepte sollen verwendet werden:
  *  1. Normale Interpolation:
- *     Es gibt einen zus������tzlichen tag im XML ������ber den der user eine Ordnung einstellen kann.
+ *     Es gibt einen zusaetzlichen tag im XML ueber den der user eine Ordnung einstellen kann.
  *     Die CoefFunction wird immer LagrangeElemente verwenden. Dei Ordnung richtet sich dann dabei
  *     nach der Ansatzordnung des Zielgitters.
  *     Der Vorteil liegt darin, dass man nur noch die DOF des Zielgitters speichert und dennoch schnell an
@@ -27,10 +27,10 @@
  *     Folgender Ablauf:
  *     1. Beschaffe die Koordinaten des Zielgitters
  *        a. Wenn Knoteninterpolation gewuenscht, nimm einfach die Gitterknoten
- *        b. Bei h������heren ordungen versuchen die DOF Koordinaten zu beschaffen. (Es werden nur nodal Spaces erstellt!)
+ *        b. Bei hoeheren ordungen versuchen die DOF Koordinaten zu beschaffen. (Es werden nur nodal Spaces erstellt!)
  *     2. Hole elementliste des Quellgitters
  *        Wir sind hierbei auf Knotenergebnisse fixiert, benutzen also die Referenzelemente und Ansatzfunktionen des H1NodalExpl
- *     3. Vielleicht kann man sogar noch die M������glichkeit schaffen direkt Ableitungsoperatoren an die Coeffunction zu geben
+ *     3. Vielleicht kann man sogar noch die Moeglichkeit schaffen direkt Ableitungsoperatoren an die Coeffunction zu geben
  *     4. Starten der Vorberechnung, welche Knoten des Zeilgitters liegen in welchem Element des Quellgitters
  *     5. Interpolation der Quellergebnisse auf die Knotenfreiheitsgrade des Zielgitters
  *     6. In GetScalar/Vector/Tensor
@@ -42,19 +42,19 @@
  *      - Wie sind die Referenzelemente zu erstellen. Brauch ich nen Space?
  *        -> Eigentlich braucht man keinen space, man kann einfach Knotenelemente nehmen
  *           Nochmal Map aus elemType auf referenzelement
- *      - Wie erhalte ich die Koordinaten der Freiheitsgrade bei H������heren Ordnungen
- *        -> Speizalisierte Funktion f������r die H1LagExpl und H1LagVar Elemente
+ *      - Wie erhalte ich die Koordinaten der Freiheitsgrade bei hoeheren Ordnungen
+ *        -> Speizalisierte Funktion fuer die H1LagExpl und H1LagVar Elemente
  *
  *  2. Conservativ:
  *     Vorberechnungen
  *     1. Hole Knotenkoordinaten des Quellgitters
  *     2. Hole Elementlisten des Zielgitters
- *     3. F������hre Punktsuche aus
- *     4. F������r jedes Element des Zielgitters:
+ *     3. Fuehre Punktsuche aus
+ *     4. Fuer jedes Element des Zielgitters:
  *        a. Hole die Gleichungsnummern
- *        b. F������r jeden Punkt innerhalb des Zielelements
+ *        b. Fuer jeden Punkt innerhalb des Zielelements
  *           I.  Bereche Ansatzfunktion an lokalem Punkt
- *           II. F������ge entsprechende Daten in CoordMatrix ein
+ *           II. Fuege entsprechende Daten in CoordMatrix ein
  *        c. Convert CoordMatrix->CRS
  *
  *     InterpolateConservative:
@@ -66,12 +66,12 @@
  *  3. NoInterpolation:
  *     GetScalar/Vector/Tensor:
  *      1. Hole elementnummer
- *      2. Extrahiere Elementl������sung
+ *      2. Extrahiere Elementloesung
  *      3. Inteproliere mit Operator
  *
  *  4. MapToCoefFunction mit Coordinaten.
  *     Das kann vom Space oder von FeFunction aufgerufen werden
- *     Konzeptionell besser w������re von Space aber mal sehen
+ *     Konzeptionell besser waere von Space aber mal sehen
  *
  */
 
@@ -99,45 +99,40 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
                                        PtrParamNode configNode,
-                                       shared_ptr<EntityList> list){
-
-
+                                       shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
     if(format == Global::COMPLEX){
       ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
+          configNode->Get("defaultGrid"), tmpNode, regions));
     }else{
       ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
+          configNode->Get("defaultGrid"), tmpNode, regions));
     }
   }else if(configNode->Has("externalGrid")){
     if(format == Global::COMPLEX){
       ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
     }else{
       ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
     }
   } else {
     EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
   }
-  ret->AddEntityList( list);
   return ret;
 }
 
-CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
+CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode, shared_ptr<RegionList> regions){
   dimDof_ = 0;
   inputId_ = "";
   gridId_ = "";
   srcGrid_ = NULL;
   domain_ = ptDomain;
   solType_ = NO_SOLUTION_TYPE;
-  curStep_ = 0;
   aSeqStep_ = 0;
   curInterpType_ = NO_INTERPOLATION;
-  curTStep_ = 0;
   myConfigNode_ = configNode;
   verbose_ = false;
   //obtain the sequence step for result
@@ -150,6 +145,7 @@ CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
     this->aSeqStep_ = domain_->GetDriver()->GetActSequenceStep();
     WARN("external data did not specify its sequence step. assuming current step...")
   }
+  SetEntitiesByRegions(regions);
 }
 
 CoefFunctionGrid::~CoefFunctionGrid(){
@@ -252,7 +248,7 @@ void CoefFunctionGrid::GetScalar(Double& CoefMat,
 
 
 std::string CoefFunctionGrid::ToString() const {
-  return "ToSting is not implemented";
+  return "ToString is not implemented";
 }
 
 UInt CoefFunctionGrid::GetVecSize() const {
@@ -271,7 +267,7 @@ void CoefFunctionGrid::DetermineResult(std::string inputID,UInt seqStep){
   //now we search for the appropriate result
   for(UInt i = 0;i<results.GetSize();i++){
 	  if( results[i]->resultType == solType_ ) {
-        resultInfo_ = results[i];
+      resultInfo_ = results[i];
 	    break;
 	  }
   }

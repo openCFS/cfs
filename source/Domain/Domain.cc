@@ -9,6 +9,9 @@
 #include <memory>
 #include <boost/filesystem.hpp>
 
+#include "def_use_openmp.hh"
+#include "def_disable_optimization.hh"
+
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -20,6 +23,10 @@
 #include "Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "Domain/Results/BaseResults.hh"
+
+#ifdef USE_OPENMP
+#include "Utils/mathParser/mathParserOMP.hh"
+#endif
 #include "Utils/mathParser/mathParser.hh"
 
 #include "DataInOut/SimInput.hh"
@@ -39,6 +46,7 @@
 // Single Field PDEs
 #include "PDE/AcousticPDE.hh"
 #include "PDE/AcousticMixedPDE.hh"
+#include "PDE/AcousticSplitPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
@@ -88,8 +96,12 @@ Domain::Domain(
   isParentDomain_ = output;
 
   // Create new MathParser
+#ifdef USE_OPENMP
+  mathParser_ = new MathParserOMP();
+#else
   mathParser_ = new MathParser();
-  
+#endif
+
   // assign pointers
   gridInputs_ = gridInputs;
   simState_ = simState;
@@ -315,6 +327,9 @@ void Domain::PostInit(UInt sequenceStep)
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if(GetParamRoot()->Has("optimization"))
   {
+    #ifdef DISABLE_OPTIMIZATION
+      throw Exception("CFS++ was compiled with disabled optimization.");
+    #endif
     Optimization::CreateInstance(); // has an SetOptimization() included
   }
   else
@@ -407,6 +422,7 @@ Domain::~Domain()
     delete mathParser_;
     mathParser_ = NULL;
   }
+
   // the optimization is optional. Important, before ersatzMaterial!
   if (optimization_ != NULL) {
     delete optimization_;
@@ -619,7 +635,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   // Initialize those PDEs which are not directly coupled
   std::map<SinglePDE*, bool>::iterator it;
 
-  for( UInt iStage = 0; iStage < 3; ++iStage ) {
+  for( UInt iStage = 0; iStage < 1; ++iStage ) {
     for (UInt i = 0; i < numSinglePde_; i++) {
       it = isDirectCoupled_.find(ptSinglePde_[i]);
       if ((*it).second == false) {
@@ -649,9 +665,39 @@ void Domain::InitPDEs(UInt sequenceStep)
     if( isParentDomain_) {
 	std::cout << "++ Initializing direct coupling" << std::endl;
 	}
+	//std::cout << "Domain.cc - preInit: pde->Name()? " << ptDirectCoupledPde_[i]->GetName() << std::endl;
+	//std::cout << "Domain.cc - preInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
+	
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
+    
+    //std::cout << "Domain.cc - postInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
   }
+
+  
+    // Initialize those PDEs which are not directly coupled
+  for( UInt iStage = 1; iStage < 3; ++iStage ) {
+    for (UInt i = 0; i < numSinglePde_; i++) {
+      it = isDirectCoupled_.find(ptSinglePde_[i]);
+      if ((*it).second == false) {
+        switch(iStage) {
+          case 0:
+            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
+            break;
+          case 1:
+            ptSinglePde_[i]->Init_Stage2();
+            break;
+          case 2:
+            ptSinglePde_[i]->Init_Stage3();
+            break;
+          default:
+            EXCEPTION( "Only 3 stages of initialization known");
+            break;
+        }
+      }
+    }
+  }
+
 
   // Initialize algebraic system of each SinglePDE
   // Note: DefineAlgSys() triggers only the initialization
@@ -664,7 +710,6 @@ void Domain::InitPDEs(UInt sequenceStep)
       ptSinglePde_[i]->DefineAlgSys();
     }
   }
-
 }
 
 // **************************
@@ -698,6 +743,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
     else if (actPdeName == "acoustic") {
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+    else if (actPdeName == "split") {
+        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
+                                          simState_, this );
     }
     else if (actPdeName == "acousticMixed")
         ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
@@ -792,7 +841,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
-    //std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
+    // std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   
@@ -887,9 +936,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       pde1 = GetSinglePDE("mechanic");
       pde2 = GetSinglePDE("magnetic");
 
-      // in the case of acou-Mech coupling, the acoustic
-      // entries have to be multiplied by -1
-      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling();
+	//pass mechanic pde to magnetic for the case of nonlinear magnetostriction
+      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling(pde1);
 
       coupling = new MagnetoStrictCoupling(pde1, pde2, pairNodes[i], info_,
                                       simState_, this );

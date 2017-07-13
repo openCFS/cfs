@@ -34,7 +34,7 @@ namespace CoupledField {
     MathParser();
     
     //! Destructor
-    ~MathParser();
+    virtual ~MathParser();
 
     //! Get new parser handle
 
@@ -48,7 +48,7 @@ namespace CoupledField {
     //!                    parser instance, this value will be taken. 
     //! \return New MathParser handle
     
-    HandleType GetNewHandle( bool setDefaults = false);
+    virtual HandleType GetNewHandle( bool setDefaults = false);
 
     //! Free the memory and parameters associated with a certain handle
 
@@ -56,7 +56,7 @@ namespace CoupledField {
     //! associated with this handle.
     //! \param handle Parser handle identifying an internal parser(context)
     //!               to be freed.
-    void ReleaseHandle( HandleType handle );
+    virtual void ReleaseHandle( HandleType handle );
 
     //! Pass the expression to be evaluated to the parser
     
@@ -69,7 +69,7 @@ namespace CoupledField {
     //! retrieved using either EvalVector() or EvalMatrix().
     //! \param handle MathParser handle for identifying specific parser
     //! \param expr Expression to be parsed
-    void SetExpr( HandleType handle, const std::string &expr );
+    virtual void SetExpr( HandleType handle, const std::string &expr );
     
     //! Retrieve the expression of the related parser
 
@@ -124,7 +124,7 @@ namespace CoupledField {
     //! If several, comma separated expressions are set, only the last
     //! one is taken.
     //! \param handle MathParser handle for identifying specific parser
-    Double Eval( HandleType handle );
+    virtual Double Eval( HandleType handle );
     
     //! Evaluate list of mathematical expression, set by SetExpr()
     
@@ -132,7 +132,7 @@ namespace CoupledField {
     //! and stores the values in the vector.
     //! \param handle MathParser handle for identifying specific parser
     //! \param vec Vector to be filled
-    void EvalVector( HandleType handle, Vector<Double>& vec );
+    virtual void EvalVector( HandleType handle, Vector<Double>& vec );
     
     //! Evaluate list of mathematical expression, set by SetExpr()
 
@@ -140,7 +140,7 @@ namespace CoupledField {
     //! and computes the divergence of it
     //! \param handle MathParser handle for identifying specific parser
     //! \param divergence result of computation
-    void EvalDivVector( HandleType handle, Double& divergence );
+    virtual void EvalDivVector( HandleType handle, Double& divergence );
 
     //! Evaluate expressions to matrix, previously set by SetExpr()
     
@@ -159,19 +159,23 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param matrix A matrix where the values get stored into
     //! \param numRows Number of rows, if 
-    void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+    virtual void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
                      UInt numRows = 0, UInt numCols = 0 ); 
     
     /** gives all variables and their values for a handle. This is part of the information given by Dump().
-     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle  */
-    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const;
+     * @param handle most interesting probably for MathParser::GLOB_HANDLER. Nothing done for invalid handle
+     * It would be nice to have a noexept but an icc bug forbids it :( https://software.intel.com/en-us/node/629136 */
+    StdVector<std::pair<std::string, double> > GetRegisteredValues(HandleType handle) const; // icc bug prevents noexcept
+
+    /** creates a comma separated list of registered variables */
+    std::string GetRegisteredVariables(HandleType handle) const; // icc bug prevents noexcept
 
     /** reports the variables and value
      * @param handle nothing done for invalid handle */
     void ToInfo(PtrParamNode pn, HandleType handle) const;
 
     //! Dump all parser instances, their variables and expression
-    void Dump( std::ostream& os );
+    virtual void Dump( std::ostream& os );
 
     // =======================================================================
     //  SET METHODS
@@ -190,7 +194,7 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param varName Name of variable to be set
     //! \param val Value of variable
-    void SetValue( HandleType handle,
+    virtual void SetValue( HandleType handle,
                    const std::string &varName,
                    Double val );
     
@@ -206,7 +210,7 @@ namespace CoupledField {
     //! \param ptVal 
     //! \note It is the responsibility of the user to guarantee, that the 
     //!       pointer to the variable is valid throughout the execution. 
-    void RegisterExternalVar( HandleType handle,
+    virtual void RegisterExternalVar( HandleType handle,
                               const std::string& varName,
                               Double * ptVar );
     
@@ -223,7 +227,7 @@ namespace CoupledField {
     //! \param coosy Local coordinate system, for which the coordinate components
     //!              are to be registered within the given parser
     //! \param globCoord Global coordinates (x,y,z) of the given point
-    void SetCoordinates( HandleType handle,
+    virtual void SetCoordinates( HandleType handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord );
     //@}
@@ -239,7 +243,7 @@ namespace CoupledField {
     
     //! Register callback function for change of value of expression
     boost::signals2::connection 
-    AddExpChangeCallBack( const MathParserSignal::slot_function_type
+    virtual AddExpChangeCallBack( const MathParserSignal::slot_function_type
                           &subscriber,
                           HandleType handle );
     //@}

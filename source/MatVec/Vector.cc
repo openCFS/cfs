@@ -108,7 +108,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += idvec[i];
   }
@@ -124,7 +124,7 @@ namespace CoupledField {
     const Vector<T>& idvec1 = dynamic_cast<const Vector<T>&>(vec1);
     const Vector<T>& idvec2 = dynamic_cast<const Vector<T>&>(vec2);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = a * idvec1[i] + b * idvec2[i];	
   }
@@ -159,7 +159,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += a * idvec[i];
   }
@@ -315,6 +315,7 @@ namespace CoupledField {
     return s;
   }
 
+
   template <typename T>
   inline T Vector<T>::Avg() const
   {
@@ -330,6 +331,53 @@ namespace CoupledField {
   { 
     EXCEPTION( "Vector<TPYE>::NormMax only defined for TYPE=Complex/Double" ); 
     return TYPE(); 
+  } 
+
+  // this functions localized the maximal component (absolute value) and returns it with its original sign
+  // example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1
+  template<class TYPE> 
+  Double Vector<TYPE>::SignedMax() const 
+  { 
+    EXCEPTION( "Vector<TPYE>::SignedMax only defined for TYPE=/Double" ); 
+    return TYPE(); 
+  } 
+
+
+  template<> 
+  double Vector<Double>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i){
+      ret_new = std::max(ret, std::abs(data_[i]));
+      if(ret != ret_new){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	}
+	ret = ret_new;
+	}
+		
+    return data_[idx]; 
+  }
+
+  template<> 
+  double Vector<Complex>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i) {
+      ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
+      if(std::abs(ret) != std::abs(ret_new)){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	ret = ret_new;
+	}
+    }		
+    return data_[idx].real(); 
   } 
 
   template<> 
@@ -958,7 +1006,7 @@ namespace CoupledField {
   //   Cross Product Calculation for vector in 3D
   // **********************************************  
   template <typename T> 
-  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v)
+  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v) const
   {
     if( size_ != 3 || b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
@@ -976,6 +1024,7 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
+  
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  

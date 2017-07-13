@@ -44,6 +44,11 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     // orientation, i.e. numbering of the nodal connectivity
     preComputShFnc_ = false;
   }
+
+  FeH1Hi::FeH1Hi(const FeH1Hi & other)
+         : FeH1(other), FeHi(other){
+    //apparently nothing else to do...
+  }
   
   FeH1Hi::~FeH1Hi() {
   }
@@ -299,7 +304,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
                                const Elem * elem,
                                T_VEC& ret ) {
 
-    Double fac = elem->edges[0] < 0 ? -1.0 : 1.0;
+    Double fac = elem->extended->edges[0] < 0 ? -1.0 : 1.0;
     UInt order = orderEdge_[0];
     ret.Resize(actNumFncs_);
     ret[0] = 0.5 * ( 1.0 - x );
@@ -387,7 +392,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 #ifdef USE_EDGES 
     // 2) Edge shape functions
     for( UInt i = 0; i < 3; ++ i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -416,7 +421,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // obtain nodes of face
       const StdVector<UInt>& unsorted = shape_.faceNodes[0];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[0]);
+      Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[0]);
       // calculate inner shape functions
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
                                       lambda[ind[0]], lambda[ind[1]],
@@ -544,7 +549,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 #ifdef USE_EDGES 
     // 2) Edge shape functions
     for( UInt i = 0; i < 4; ++ i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
       
       // if order of edge is below two, we leave
@@ -575,7 +580,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
       const StdVector<UInt>& unsorted = shape_.faceNodes[0];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[0]);
+      Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[0]);
 
       T_SCAL xi  = sigma[ind[1]] - sigma[ind[0]];
       T_SCAL eta = sigma[ind[3]] - sigma[ind[0]];
@@ -708,7 +713,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // if order of edge is below two, we leave
       if( order == 1 ) continue;
 
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt index1 = shape_.edgeVertices[i][0]-1;
       UInt index2 = shape_.edgeVertices[i][1]-1;
 
@@ -735,7 +740,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
         // get unique sorting of the face
         const StdVector<UInt>& unsorted = shape_.faceNodes[i];
         StdVector<UInt> ind;
-        Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+        Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[i]);
         
 //        const StdVector<UInt> & con = elem->connect;
 
@@ -891,7 +896,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
     // a) horizontal edges (triangular edges)
     for( UInt i = 0; i < 6; ++i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -913,7 +918,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     
     // b) vertical edges (quadrilateral related edges)
     for( UInt i = 6; i < 9; ++i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -944,7 +949,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // obtain nodal permutation, i.e. sort the indices in ascending order
       const StdVector<UInt>& unsorted = shape_.faceNodes[i];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[i]);
+      Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[i]);
       // take inner shape functions of triangle and
       // extend them via mu-lifting function
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
@@ -966,7 +971,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       StdVector<UInt> ind;
       
       // obtain nodal permutation, i.e. sort the indices in ascending order
-      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+      Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[i]);
 
       T_VEC horiz, vert;
       // we have to determine 2 things:
@@ -1102,4 +1107,200 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     updateUnknowns_ = false;
   }
   
+  // ==================================================================
+  //  TETRAHEDRAL ELEMENT
+  //  according to PHD thesis of Sabine Zaglmayr with
+  //  integrated Legendre polynomials. Works well up to order 8, then the
+  //  condition number seems to be too high, maybe with Jacobi polynomials
+  //  or rational polynomials the system is better conditioned?
+  // ==================================================================
+
+  FeH1HiTet::FeH1HiTet() : FeH1Hi(Elem::ET_TET4) {
+  }
+
+  FeH1HiTet::~FeH1HiTet() {
+
+  }
+
+
+  void FeH1HiTet::CalcShFnc( Vector<Double>& shape,
+                             const Vector<Double>& lp,
+                            const Elem * elem, UInt comp ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    _CalcShFnc(lp[0], lp[1], lp[2],  elem, shape);
+  }
+
+  void FeH1HiTet::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                     const Vector<Double>& lp,
+                                     const Elem * elem,  UInt comp ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    AutoDiff<Double,3> x(lp[0],0), y(lp[1],1),z(lp[2],2);
+    StdVector<AutoDiff<Double,3> > dShape;
+    _CalcShFnc(x,y,z,elem,dShape);
+    UInt size = dShape.GetSize();
+    deriv.Resize(size, 3);
+    for( UInt i = 0; i < size; ++i ) {
+      for(UInt j = 0; j < 3; ++j ) {
+        deriv[i][j] = dShape[i].DVal(j);
+      }
+    }
+  }
+
+
+  void FeH1HiTet::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    Polynomial<Double,3> x(1., 0), y(1., 1), z(1., 2);
+    StdVector<Polynomial<Double,3> > order;
+    _CalcShFnc(x,y,z,ptElem,order);
+    UInt numFncs = order.GetSize();
+    polyOrder.Resize( numFncs, 3 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      for(UInt j = 0; j < 3; ++j ) {
+        polyOrder[i][j] = order[i].GetMaxOrder(j);
+      }
+    }
+  }
+
+  template<typename T_SCAL, typename T_VEC>
+  void FeH1HiTet::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z,
+                               const Elem * elem,
+                               T_VEC& ret ) {
+
+    T_SCAL lambda[4] = {(1.0-x-y-z),
+                        (x),
+                        (y),
+                        (z)};
+    UInt pos = 0;
+    ret.Resize(actNumFncs_);
+
+    // 1) Vertex shape functions
+    for( UInt i = 0; i < 4; ++i ) {
+      ret[i] = lambda[i];
+    }
+
+    pos = 4;
+
+    // 2) Edge shape functions
+    for( UInt i = 0; i < 6; ++ i) {
+
+      UInt order = orderEdge_[i];
+      // if order of edge is below two, we leave
+      if( order == 1 ) continue;
+
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
+      UInt index1 = shape_.edgeVertices[i][0]-1;
+      UInt index2 = shape_.edgeVertices[i][1]-1;
+
+      // edge: parameterization of edge [-1;+1]
+      // edgeNormal: parameterization of extension into element [-1;+1]
+
+      T_SCAL edge  = lambda[index2] - lambda[index1];
+      T_SCAL edgeNormal = lambda[index1] + lambda[index2];
+
+      T_VEC vals;
+      ScaledIntLegendreP2<T_SCAL,T_VEC>( vals, order, edgeNormal, fac*edge );
+
+      for( UInt i = 0; i < order-1; ++i ) {
+        ret[pos++] = vals[i];
+      }
+    }
+
+    // 3) Face shape functions
+    for( UInt i = 0; i < 4; ++i ) {
+      UInt order = orderFace_[i][0];
+      if (order >= 3 ) {
+
+        // get unique sorting of the face
+        const StdVector<UInt>& unsorted = shape_.faceNodes[i];
+        StdVector<UInt> ind;
+        Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[i]);
+
+        //here we can actually use triangular face shape functions
+        UInt nFct =  TriaInnerLegendre( ret, pos, order,
+                                        lambda[ind[0]], lambda[ind[1]],
+                                        lambda[ind[2]]);
+
+
+        pos += nFct;
+
+
+      }
+    }
+
+    // 4) Inner shape functions
+    UInt order=orderInner_[0];
+    if( order >= 4 ) {
+      UInt nFct =  TetInnerLegendre( ret, pos, order,
+                                      lambda[0], lambda[1],
+                                      lambda[2], lambda[3]);
+      pos += nFct;
+
+    }
+  }
+
+  void FeH1HiTet::CalcNumUnknowns( ) {
+    LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
+        << Elem::feType.ToString(feType_);
+
+//no anisotropic order for non-tensor-elements (tria, tet)
+
+    actNumFncs_ = 0;
+
+    // Vertices
+    StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+    vertFncs.Resize(4);
+    vertFncs.Init(1); // Vertices have always order 1
+    actNumFncs_ += 4;
+
+    // Edges
+    StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+    edgeFncs.Resize(6);
+    edgeFncs.Init(0);
+    UInt unknowns = 0;
+#ifdef USE_EDGES
+    for( UInt i = 0; i < 6; ++i ) {
+      unknowns = (orderEdge_[i]-1);
+      edgeFncs[i] = unknowns;
+      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
+          << " and " << unknowns << "unknowns";
+      actNumFncs_ += unknowns;
+    }
+#endif
+
+    // Faces
+    StdVector<UInt>& faceFncs = entityFncs_[FACE];
+    faceFncs.Resize(4);
+    faceFncs.Init(0);
+#ifdef USE_FACES
+    if( orderFace_[0][0] > 1 ) {
+      for( UInt i = 0; i < 4; ++i ) {
+        //triangular faces
+        unknowns = (orderFace_[i][0]-2) * (orderFace_[i][0]-1) / 2;
+        faceFncs[i] = unknowns;
+        LOG_DBG(feH1Hi) << "face 0 has " << unknowns << "unknowns";
+        actNumFncs_ += unknowns;
+      }
+    }
+#endif
+    // Interior
+    StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+    innerFncs.Resize(1);
+    innerFncs.Init(0);
+#ifdef USE_INNER
+    if( orderInner_[0] > 3) {
+    UInt unknowns = UInt ((orderInner_[0]-1) * (orderInner_[0]-2) * (orderInner_[0]-3) * 1.0/6.0);
+    innerFncs.Init( unknowns );
+    LOG_DBG(feH1Hi) << "interior has " << unknowns << "unknowns";
+    actNumFncs_ += unknowns;
+    }
+#endif
+
+    LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+    updateUnknowns_ = false;
+  }
+
+
+
+
 } // namespace CoupledField
