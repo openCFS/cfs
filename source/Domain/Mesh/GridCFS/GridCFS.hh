@@ -292,9 +292,7 @@ namespace CoupledField
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
                               const StdVector<RegionIdType> 
-                              & regionIds,
-                              double* timer1 = NULL,
-                              double* timer2 = NULL );
+                              & regionIds);
 
     //! Get number of elements associated with given nodes
 
