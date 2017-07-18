@@ -292,7 +292,23 @@ namespace CoupledField
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
                               const StdVector<RegionIdType> 
-                              & regionIds );
+                              & regionIds,
+                              double* timer1 = NULL,
+                              double* timer2 = NULL );
+
+    //! Get number of elements associated with given nodes
+
+    //! Returns the number of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param num (out) number of elements which have one or more nodes
+    //!                          of nodeList
+    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    void GetNumOfElemsNextToNodes( UInt & num,
+        const StdVector<UInt> & nodeList,
+        const StdVector<RegionIdType>& regionIds);
 
     //! Get volume elements lying next to given surface elements
   

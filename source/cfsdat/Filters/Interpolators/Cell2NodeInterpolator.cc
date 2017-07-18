@@ -163,6 +163,7 @@ void Cell2NodeInterpolator::PrepareCalculation(){
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
     str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
     CF::StdVector<UInt> sEqn;
+
   for(UInt i=0;i<interpolData_.size();++i){
     upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
@@ -173,7 +174,7 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
     const CF::StdVector<UInt>& eConn = curE->connect;
 
-    StdVector<CoupledField::Elem *> neigbourElems;
+    UInt neigbourElems;
     StdVector<UInt> nodeList ;
     nodeList.Resize(1);
     StdVector<RegionIdType>  volRegions;
@@ -181,12 +182,11 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     nodeNeighbours_.Resize(eConn.GetSize()*interpolData_.size());
     for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
 
-      StdVector<CoupledField::Elem *> neigbourElems;
       nodeList.Resize(1);
       nodeList[0]=eConn[aNode];
 
-      trgGrid_->GetElemsNextToNodes(neigbourElems,nodeList,volRegions);
-      nodeNeighbours_[eConn[aNode]] = neigbourElems.GetSize();
+      trgGrid_->GetNumOfElemsNextToNodes(neigbourElems,nodeList,volRegions);
+      nodeNeighbours_[eConn[aNode]] = neigbourElems;
       }
 
   }
