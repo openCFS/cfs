@@ -181,7 +181,25 @@ namespace CoupledField
     virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                       const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
-                                      & regionIds ) = 0;
+                                      & regionIds,
+                                      double* timer1 = NULL,
+                                      double* timer2 = NULL ) = 0;
+
+    //! Get number of elements associated with given nodes
+
+    //! Returns the number of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param num (out) number of elements which have one or more nodes
+    //!                          of nodeList
+    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    virtual void GetNumOfElemsNextToNodes( UInt & num,
+        const StdVector<UInt> & nodeList,
+        const StdVector<RegionIdType>& regionIds) = 0;
+
+
     //! Get the inverse mapping of the connectivity (used in RBF -> fast PATCH search)
 
     virtual void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,

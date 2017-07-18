@@ -2678,11 +2678,17 @@ namespace CoupledField {
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType>
-                                     & regionIds ) {
+                                     & regionIds,
+                                     double* timer1,
+                                     double* timer2) {
     bool belongs2Interface;
 
     StdVector<UInt> map;
     Integer index = 0;
+
+    struct timespec now1, tmstart1;
+    struct timespec now2, tmstart2;
+
 
     // loop over all regionIDs
     for (UInt isd=0; isd<regionIds.GetSize(); isd++)
@@ -2701,8 +2707,15 @@ namespace CoupledField {
       // loop over all elements in subdomain
       for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
       {
+        clock_gettime(CLOCK_REALTIME, &tmstart1);
         Elem *aux = elems[iNS];
+        clock_gettime(CLOCK_REALTIME, &now1);
+        *timer1 += (double)((now1.tv_sec+now1.tv_nsec*1e-9) - (double)(tmstart1.tv_sec+tmstart1.tv_nsec*1e-9));
+
+        clock_gettime(CLOCK_REALTIME, &tmstart2);
         StdVector<UInt>  const & aux_connect = aux->connect;
+        clock_gettime(CLOCK_REALTIME, &now2);
+        *timer2 += (double)((now2.tv_sec+now2.tv_nsec*1e-9) - (double)(tmstart2.tv_sec+tmstart2.tv_nsec*1e-9));
 
         belongs2Interface = false;
 
@@ -2722,8 +2735,43 @@ namespace CoupledField {
           elemList.Push_back(elems[iNS]);
       }
     }
+
+
   }
 
+
+  void GridCFS::GetNumOfElemsNextToNodes( UInt & num,
+                                     const StdVector<UInt> & nodeList,
+                                     const StdVector<RegionIdType>& regionIds) {
+
+    StdVector<UInt> map;
+    Integer index = 0;
+    num = 0;
+
+    // loop over all regionIDs
+    for (UInt isd=0; isd<regionIds.GetSize(); isd++)
+    {
+
+      // get index for id in regionlist
+      index = volRegionIds_.Find(regionIds[isd]);
+      if ( index == -1 ) {
+        EXCEPTION( "GetElemsNextToNodes: A region with id '"
+                   << regionIds[isd] << "' was not found in the list of "
+                   << "of volume regions." );
+      }
+      // Get elements of given region
+      StdVector<Elem*> const &elems = volElems_[index];
+
+      // loop over all elements in subdomain
+      UInt count = 0;
+#pragma omp parallel for reduction(+:count)
+      for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
+      {
+        if( elems[iNS]->connect.Contains(nodeList[0]) ) ++count;
+      }
+      num = count;
+    }
+  }
 
   void GridCFS::GetElemsNextToSurface( StdVector<Elem*> & neighbours,
                                        const StdVector<Elem*> & surfElems,
