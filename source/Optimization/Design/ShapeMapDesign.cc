@@ -1435,7 +1435,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
  {
-   // set xrange[0:1]; a = 0.5; d=0.5; beta=30
+   // set xrange[0:1]; a = 0.5; beta=30; w=0.1
    // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
    //
    // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
@@ -1456,6 +1456,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::d_tanh_dw(double beta, double x, double a, double w) const
  {
+   // set xrange[0:1]; a = 0.5; beta=30; w=0.1
+   // w1(x)=1/((exp(beta*(x-a+w))+1) * (exp(beta*(x-a+w))+1)) * beta*exp(beta*(x-a+w))
+   // w2(x)=1/((exp(beta*(x-a-w))+1) * (exp(beta*(x-a-w))+1)) * beta*exp(beta*(x-a-w))
+
+
    if(x <= a)
      return 1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
   else

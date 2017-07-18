@@ -56,7 +56,6 @@ public:
   /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D XY->Z, YZ->X, XZ->Y */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
 
-
   /** In case DesignSpace::FindDesign() searches for NODE and PROFILE.
    * @return either DesignSpace::FindDesign() or the index within shape_ */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
@@ -94,8 +93,9 @@ public:
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
   static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
 
-  /** This types are repeated in BaseDesignElement::Type */
-  typedef enum { NODE, PROFILE } Type;
+  /** This are principal shape types from where NODE and PROFILE are repeated in BaseDesignElement::Type.
+   * Node has two meanings in 3D: a singular NODE is a surface and two NODEs are part of a TUBE. */
+  typedef enum { NODE = 0, PROFILE = 1} Type;
 
   static Enum<Type> type;
 
@@ -288,8 +288,8 @@ protected:
 
   unsigned int GetEndShapeIdx(const Function* f, bool opt) const;
 
-  /** This are our shape parameters which are blown up to shape_param_. Whend induced, the ortho induces follows the shape, then the diagonal induced
-   * First node then profile, therefore always even size */
+  /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
+   * First node then profile, therefore always even size. */
   StdVector<ShapeParam> shape_;
 
   /** helper for shape_: number of node which is also the first index of the first profile. equals shape_.GetSize() / 2.

@@ -473,13 +473,17 @@ def plot_data(res, shapes, unit):
       fig.gca().add_artist(c)
       
     for i in range(0,n-1):
-      x, y = shape.get_profile(i, i+1, True) # left          
-      l = plt.Line2D(x,y, marker='.', color=shape.color)        
+      x1, y1 = shape.get_profile(i, i+1, True) # left      
+      l = plt.Line2D(x1,y1, marker='.', color=shape.color)        
       sub.add_line(l)
-      x, y = shape.get_profile(i, i+1, False) # right          
-      l = plt.Line2D(x,y, marker='.', color=shape.color)                                    
+      x2, y2 = shape.get_profile(i, i+1, False) # right          
+      l = plt.Line2D(x2,y2, marker='.', color=shape.color)                                    
       sub.add_line(l)
       
+      if x1 == x2:
+        sub.fill_between(x1,y1,y2,color=shape.color, alpha=.1, linewidth=0)
+      else:
+        sub.fill_betweenx(y1,x1,x2,color=shape.color, alpha=.1, linewidth=0)
   return fig, sub
 
 # create vtk polydata tesselation

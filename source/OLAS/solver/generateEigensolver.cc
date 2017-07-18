@@ -63,6 +63,8 @@ namespace CoupledField {
 
     BaseEigenSolver::EigenSolverType solver = BaseEigenSolver::NO_EIGENSOLVER;
     solver = BaseEigenSolver::eigenSolverType.Parse(solverStr);
+
+#define USE_PHIST 1
     
     // Branch depending on desired EigenSolver
     switch(solver)
@@ -72,6 +74,14 @@ namespace CoupledField {
         retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
         EXCEPTION( "compiled without Arpack!" );
+      #endif
+      break;
+
+    case BaseEigenSolver::PHIST:
+      #ifdef USE_PHIST
+        retSolver = new PhistEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
+      #else
+        EXCEPTION( "compiled without Phist!" );
       #endif
       break;
 
