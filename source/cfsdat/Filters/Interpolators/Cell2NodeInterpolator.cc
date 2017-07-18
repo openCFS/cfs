@@ -161,10 +161,16 @@ void Cell2NodeInterpolator::PrepareCalculation(){
   //for an export import step, here would be the right place
 
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
+  std::cout<< "\t\t  [0% ------------ 100%]" << std::endl;
+  std::cout<< "\t\t  ["<< std::flush;
+
     str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
     CF::StdVector<UInt> sEqn;
 
   for(UInt i=0;i<interpolData_.size();++i){
+    if((i)%(int(interpolData_.size()/20)) == 0){
+    std::cout<< "#"<< std::flush;
+    }
     upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
     interpolData_[i].srcEqnSingle = sEqn[0];
@@ -190,7 +196,7 @@ void Cell2NodeInterpolator::PrepareCalculation(){
       }
 
   }
-
+  std::cout<< "]" << std::endl;
   std::cout << "\t\t 6/6 Sort Data according to eqn numbers ..." << std::endl;
   std::sort(interpolData_.begin(),interpolData_.end());
 

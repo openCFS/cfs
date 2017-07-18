@@ -2752,7 +2752,7 @@ namespace CoupledField {
 
       // loop over all elements in subdomain
       UInt count = 0;
-#pragma omp parallel for reduction(+:count)
+#pragma omp parallel for reduction(+:count) num_threads(NUM_CFS_THREADS)
       for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
       {
         if( elems[iNS]->connect.Contains(nodeList[0]) ) ++count;
