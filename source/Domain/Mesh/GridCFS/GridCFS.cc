@@ -2678,17 +2678,11 @@ namespace CoupledField {
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType>
-                                     & regionIds,
-                                     double* timer1,
-                                     double* timer2) {
+                                     & regionIds) {
     bool belongs2Interface;
 
     StdVector<UInt> map;
     Integer index = 0;
-
-    struct timespec now1, tmstart1;
-    struct timespec now2, tmstart2;
-
 
     // loop over all regionIDs
     for (UInt isd=0; isd<regionIds.GetSize(); isd++)
@@ -2707,15 +2701,9 @@ namespace CoupledField {
       // loop over all elements in subdomain
       for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
       {
-        clock_gettime(CLOCK_REALTIME, &tmstart1);
         Elem *aux = elems[iNS];
-        clock_gettime(CLOCK_REALTIME, &now1);
-        *timer1 += (double)((now1.tv_sec+now1.tv_nsec*1e-9) - (double)(tmstart1.tv_sec+tmstart1.tv_nsec*1e-9));
 
-        clock_gettime(CLOCK_REALTIME, &tmstart2);
         StdVector<UInt>  const & aux_connect = aux->connect;
-        clock_gettime(CLOCK_REALTIME, &now2);
-        *timer2 += (double)((now2.tv_sec+now2.tv_nsec*1e-9) - (double)(tmstart2.tv_sec+tmstart2.tv_nsec*1e-9));
 
         belongs2Interface = false;
 
