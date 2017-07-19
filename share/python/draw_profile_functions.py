@@ -1386,15 +1386,8 @@ def adjust_surface_point(profile,v):
   # angle in radians
   phi = angle_to_center((v[minor_1],v[minor_2]))
   
-  rad = calc_radius(profile, v[major_dir], phi)   
-  px,py = polar_to_cartesian(rad,phi)
-  point = np.ones(3)*(-1)
-  point[major_dir] = v[major_dir]
-  point[minor_1] = px
-  point[minor_2] = py
+  return radius_to_3d_coords(profile, v[major_dir], phi)
   
-  return point
-
 def give_average_point(points):
   new = np.zeros(3)
   for p in points:
@@ -1533,10 +1526,25 @@ def point_inside_profile(p,profile):
   assert(phi >= 0 and phi <= 2*np.pi)
   r = calc_radius(profile, p[major], phi)
   val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
-#   print("radii:",r,val)
   assert(val**2 <= 0.5+1e-6)
   if (val - r < 1e-6):
-#      print("point ",p, " inside ",major)
     return True
   
   return False
+
+# @returns 3d cartesian coordinates
+# @param profile of interest
+# @param point of evaluation of profile, e.g. x=0.5 means y=0.5 if we have y-profile
+def radius_to_3d_coords(profile,x,phi):
+  r = calc_radius(profile, x, phi)
+  px,py = polar_to_cartesian(r,phi)
+  point = np.ones(3)*(-1)
+  major_dir = profile.direction
+  minor_1, minor_2 = give_normal_plane_axes(major_dir)
+  point[major_dir] = x
+  point[minor_1] = px
+  point[minor_2] = py
+  
+  return point
+  
+  
