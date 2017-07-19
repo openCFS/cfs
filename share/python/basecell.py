@@ -247,12 +247,12 @@ if __name__ == "__main__":
     if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
       meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
     
-    meshName += "_bend_" + str(args.bend) + "_" + str(args.res)
+    meshName += "_bend_" + str(args.bend) + "_res_" + str(args.res)
     
     meshName += "_skip_x" if args.skip_x else ""
     meshName += "_skip_y" if args.skip_y else ""
     meshName += "_skip_z" if args.skip_z else ""
-    
+    meshName += "_" + args.target
     args.save = meshName  
   else:
     meshName = args.save  

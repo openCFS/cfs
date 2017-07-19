@@ -1122,26 +1122,26 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     
     dict = {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
     # add meshed boundary circles if necessary
-    for idx,flag in enumerate(boundary_flags[i]):
-      if flag:
-        # returns vtk polydata object
-        pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
-        
-#     appends.AddInputData(pd)
-#     appends.Update() # not sure if we have to do this in each loop iteration
-    
-      # tranformation of vtk poly data
-      transform = vtk.vtkTransform() 
-      transform.Translate(bc[2])
-      transform.Scale(dx,dy,dz)
-         
-      # filter to perform transformation
-      transformFilter=vtk.vtkTransformPolyDataFilter()
-      transformFilter.SetTransform(transform)
-      transformFilter.SetInputData(pd)
-      transformFilter.Update()    
-      appends.AddInputConnection(transformFilter.GetOutputPort())
-      appends.Update() # not sure if we have to do this in each loop iteration
+#     for idx,flag in enumerate(boundary_flags[i]):
+#       if flag:
+#         # returns vtk polydata object
+#         pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
+#         
+# #     appends.AddInputData(pd)
+# #     appends.Update() # not sure if we have to do this in each loop iteration
+#     
+#       # tranformation of vtk poly data
+#       transform = vtk.vtkTransform() 
+#       transform.Translate(bc[2])
+#       transform.Scale(dx,dy,dz)
+#          
+#       # filter to perform transformation
+#       transformFilter=vtk.vtkTransformPolyDataFilter()
+#       transformFilter.SetTransform(transform)
+#       transformFilter.SetInputData(pd)
+#       transformFilter.Update()    
+#       appends.AddInputConnection(transformFilter.GetOutputPort())
+#       appends.Update() # not sure if we have to do this in each loop iteration
     
   
   return appends.GetOutput()
