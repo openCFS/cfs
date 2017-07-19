@@ -1100,9 +1100,11 @@ def write_profile_to_array(array,profile,overlap):
         if (valx-r <= 1e-6):
           # detected overlap of profiles
           if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
-            overlap[idx[major],idx[minor_1],idx[minor_2]] = (major,) # set tuple if this is the first overlap
+            coords = radius_to_3d_coords(profile, x, phi)
+            overlap[idx[major],idx[minor_1],idx[minor_2]] = (coords,) # set tuple if this is the first overlap
           else:
-            overlap[idx[major],idx[minor_1],idx[minor_2]] += (major,) # add element to tuple
+            coords = radius_to_3d_coords(profile, x, phi)
+            overlap[idx[major],idx[minor_1],idx[minor_2]] += (coords,) # add element to tuple
 
           array[idx[major],idx[minor_1],idx[minor_2]] = major
             
@@ -1330,26 +1332,14 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       i = i_p
       j = j_p
       k = k_p
+    
       
-    point = None
-    # do wo have a overlap of profiles?
-    overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
-    # calculated candidates for all 3 profiles
-    points = []
-    for d in overlap_dirs:
-      assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
-      points.append(adjust_surface_point(profiles[int(d)],v))
-
-    point = give_average_point(points)  
+    point = give_average_point(overlap[i,j,k])
+#     print("\nv:",v)
+#     print("cands:",overlap[i,j,k])
+#     print("av:",point)  
     
     assert(point is not None) 
-    
-    if len(overlap_dirs) == 2:
-      print("\ndist:",calc_distance(points[0], points[1]),np.sqrt(2)/res)
-      print("v:",v)
-      print(points)
-      print(point)
-      assert(calc_distance(points[0], points[1]) < np.sqrt(2)/res)
     
     # move point on the boundaries of x/y/z axis to match [0,1]
     # as we're shifted by h/2.0
@@ -1370,24 +1360,6 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
   
   return new_verts       
 
-# calculates a correct surface point location using info on profiles
-# based on an approximation
-# @param profiles: array with all 3 profiles
-# @param v: approximation for point of interest; tuple/list with 3 coord components
-# @param major_dir: major profile direction
-def adjust_surface_point(profile,v):
-  major_dir = profile.direction
-  if not (major_dir == 0 or major_dir == 1 or major_dir == 2):
-    print(major_dir)
-  assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
-    
-  # which 2D plane?
-  minor_1, minor_2 = give_normal_plane_axes(major_dir)
-  # angle in radians
-  phi = angle_to_center((v[minor_1],v[minor_2]))
-  
-  return radius_to_3d_coords(profile, v[major_dir], phi)
-  
 def give_average_point(points):
   new = np.zeros(3)
   for p in points:
