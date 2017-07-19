@@ -1331,28 +1331,25 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       j = j_p
       k = k_p
       
-    cand = None
+    point = None
+    # do wo have a overlap of profiles?
     overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
-    # in case we have two candidates which almost overlap,
-    # point_inside_profile's numerical doesn't work then
-    point = adjust_surface_point(profiles[overlap_dirs[0]],v)
+    # calculated candidates for all 3 profiles
+    points = []
     for d in overlap_dirs:
       assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
-      p = adjust_surface_point(profiles[d],v)
-      if len(overlap_dirs) > 1:
-        # avoid self-comparison
-        for other in [v for v in overlap_dirs if v != d]:
-          if point_inside_profile(p, profiles[other]):
-            cand = None
-          else:
-            cand = p
-      else:
-        cand = adjust_surface_point(profiles[d],v)
-              
-      if cand is not None:
-        point = cand    
+      points.append(adjust_surface_point(profiles[int(d)],v))
+
+    point = give_average_point(points)  
     
     assert(point is not None) 
+    
+    if len(overlap_dirs) == 2:
+      print("\ndist:",calc_distance(points[0], points[1]),np.sqrt(2)/res)
+      print("v:",v)
+      print(points)
+      print(point)
+      assert(calc_distance(points[0], points[1]) < np.sqrt(2)/res)
     
     # move point on the boundaries of x/y/z axis to match [0,1]
     # as we're shifted by h/2.0

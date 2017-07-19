@@ -1,13 +1,14 @@
-import vtk
-#from vtk.util.colors import *
-from numpy import *
-from matviz_rot import *
-import scipy.interpolate as ip 
-import pymp
 import basecell
 import draw_profile_functions
+from matviz_rot import *
+from numpy import *
+import pymp
+import scipy.interpolate as ip 
 import time
+import vtk
 
+
+#from vtk.util.colors import *
 try:
   import meshpy.triangle as triangle
   from meshpy.tet import MeshInfo, build
@@ -1077,9 +1078,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       
       # flags for meshing circles on the boundary
       flag = [None] * 6
-      for i,bound in enumerate(bounds):
-        if numpy.isclose(coord[int(i/2)],bound):
-          flag[i] = True
+      for c,bound in enumerate(bounds):
+        if numpy.isclose(coord[int(c/2)],bound):
+          flag[c] = True
       
       with p.lock:
         basecells.append((cell_obj.points,cell_obj.cells,coord))
@@ -1124,10 +1125,23 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     for idx,flag in enumerate(boundary_flags[i]):
       if flag:
         # returns vtk polydata object
-        pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:2], bounds[3:5])
+        pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
+        
+#     appends.AddInputData(pd)
+#     appends.Update() # not sure if we have to do this in each loop iteration
     
-    appends.AddInputConnection(pd.GetOutputPort())
-    appends.Update() # not sure if we have to do this in each loop iteration    
+      # tranformation of vtk poly data
+      transform = vtk.vtkTransform() 
+      transform.Translate(bc[2])
+      transform.Scale(dx,dy,dz)
+         
+      # filter to perform transformation
+      transformFilter=vtk.vtkTransformPolyDataFilter()
+      transformFilter.SetTransform(transform)
+      transformFilter.SetInputData(pd)
+      transformFilter.Update()    
+      appends.AddInputConnection(transformFilter.GetOutputPort())
+      appends.Update() # not sure if we have to do this in each loop iteration
     
   
   return appends.GetOutput()
@@ -1171,7 +1185,7 @@ def mesh_boundary_circle(points,location,mini,maxi):
       if isclose(p[0],mini[0]):
         result.append((p[1],p[2]))
         major_dir = 0
-    if location == "x_1":
+    if location == "x_right":
       if isclose(p[0],maxi[0]):
         result.append((p[1],p[2]))
         major_dir = 0
@@ -1180,7 +1194,7 @@ def mesh_boundary_circle(points,location,mini,maxi):
       if isclose(p[1],mini[1]):
         result.append(p)
         major_dir = 1
-    if location == "y_1":
+    if location == "y_right":
       if isclose(p[1],maxi[1]):
         result.append(p)
         major_dir = 1
@@ -1189,7 +1203,7 @@ def mesh_boundary_circle(points,location,mini,maxi):
       if isclose(p[2],mini[2]):
         result.append(p)
         major_dir = 2
-    if location == "z_1":
+    if location == "z_right":
       if isclose(p[2],maxi[2]):            
         result.append(p)
         major_dir = 2
@@ -1198,25 +1212,36 @@ def mesh_boundary_circle(points,location,mini,maxi):
   result.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
   
   info = triangle.MeshInfo()
-  test = [ [elem[0],elem[1]] for elem in l]
+  test = [ [elem[0],elem[1]] for elem in result]
   info.set_points(test)
-  info.set_facets(draw_profile_functions.round_trip_connect(0,len(l)-1))
+  info.set_facets(draw_profile_functions.round_trip_connect(0,len(result)-1))
   mesh = triangle.build(info,generate_faces=True) 
   
-  mesh_points = np.array(mesh.points)
-  mesh_tris = np.array(mesh.elements)
+  mesh_points = numpy.array(mesh.points)
+  mesh_tris = numpy.array(mesh.elements)
   
   minor_dir_1, minor_dir_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
+  
+  # check whether we're on the left or right side
+  comp = mini[major_dir]
+  if location.endswith("right"):
+    comp = maxi[major_dir]
+    
   
   vtk_points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
+  # map from 2d point to 3d point
   for p in mesh_points:
-    vtk_points.InsertNextPoint(p)
+    new_p = numpy.zeros(3)
+    new_p[major_dir] = comp
+    new_p[minor_dir_1] = p[0]
+    new_p[minor_dir_2] = p[1]
+    vtk_points.InsertNextPoint(new_p)
   for tri in mesh_tris:
     draw_profile_functions.add_triangle(tri[0], tri[1], tri[2], cells) 
     
-  polydata.SetPoints(points)
+  polydata.SetPoints(vtk_points)
   polydata.SetPolys(cells)
              
   return polydata

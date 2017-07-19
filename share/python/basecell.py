@@ -165,6 +165,7 @@ if __name__ == "__main__":
   parser.add_argument('--y2', help="second stiffness for profile of bar in y-direction; 0 < y2 < 1", type=float)
   parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
   parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
+  parser.add_argument('--input', help="thickness bascell parameters for lazy people, e.g. x1,x2,y1,y2,z1,z2", default="")
   parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
   parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
   parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
@@ -200,6 +201,17 @@ if __name__ == "__main__":
     args.y2 = args.stiffness
     args.z1 = args.stiffness
     args.z2 = args.stiffness
+  elif args.input:
+    n = args.input.split(',')
+    if len(n) != 6:
+      print("Error: Need 6 basecell parameters x1,x2,...!")
+      sys.exit(1)
+    args.x1 = float(n[0])
+    args.x2 = float(n[1])
+    args.y1 = float(n[2])
+    args.y2 = float(n[3])
+    args.z1 = float(n[4])
+    args.z2 = float(n[5])
   else:
     if args.x1 == None or args.y1 == None or args.z1 == None:
       print("Error:stiffness or x1, y1, z1 necessary!")
