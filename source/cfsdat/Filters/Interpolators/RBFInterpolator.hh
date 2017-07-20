@@ -55,11 +55,11 @@ protected:
 
   virtual ResultIdList SetUpstreamResults();
 
-  virtual Double DistanceECLID(CF::Vector<Double> p1, CF::Vector<Double> p2);
+  Double DistanceEUCLID(CF::Vector<Double> p1, CF::Vector<Double> p2);
 
-  virtual void PreparePATCH();
+  void PreparePATCH();
 
-  virtual void PrepareCGAL();
+  void PrepareCGAL();
 
   virtual void AdaptFilterResults();
 

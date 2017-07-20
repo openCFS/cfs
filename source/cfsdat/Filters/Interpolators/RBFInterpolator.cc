@@ -186,7 +186,7 @@ CF::StdVector<RBFInterpolator*> RBFInterpolator::interpolators_;
 CF::StdVector<RBFInterpolator::Matrix> RBFInterpolator::matrices_;
 
 
-
+//TODO Merge PrepareCGAL() and PreparePATCH() ... a lot of c&p
 void RBFInterpolator::PrepareCalculation(){
 
   if(params_->Get("scheme/useCGAL4RBF")->As<std::string>()=="true"){
@@ -266,11 +266,11 @@ void RBFInterpolator::PreparePATCH(){
 
   targetInvMat.Resize(maxNumTrgEntities);
 
-  //TODO allocation vll ueber inverse konnectivity
-    targetSource.Resize(50*maxNumTrgEntities);
-    targetSourceFactor.Resize(50*maxNumTrgEntities);
+  //TODO Fix that dirty stuff!!
+    targetSource.Resize(100 * maxNumTrgEntities);
+    targetSourceFactor.Resize(100 * maxNumTrgEntities);
     targetSourceFactor.Init();
-    targetSourceFactor2.Resize(50*maxNumTrgEntities);
+    targetSourceFactor2.Resize(100 * maxNumTrgEntities);
     targetSourceFactor2.Init();
 
 
@@ -283,7 +283,27 @@ void RBFInterpolator::PreparePATCH(){
     boost::unordered_map<UInt, StdVector<UInt>> inverseConnec;
     inGrid_->GetInverseConnect(inverseConnec,volRegions);
 
-  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
+
+    StdVector<Vector<Double> > globCoords(maxNumTrgEntities);
+    StdVector<LocPoint> lps;
+    StdVector<const Elem*> elems;
+    std::string regionName = params_->Get("regions/sourceRegions/region/name")->As<std::string>();
+    shared_ptr<EntityList> actSDList =  inGrid_->GetEntityList(EntityList::ELEM_LIST, regionName);
+    StdVector<shared_ptr<EntityList> > inEntities(1);
+    inEntities[0] = actSDList;
+
+    for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
+      CF::UInt globEntityNumber = globTrgEntity[trgEnt];
+      if (globEntityNumber != UnusedEntityNumber) {
+        trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+      }
+    }
+
+    // get the target elements
+    inGrid_->GetElemsAtGlobalCoords( globCoords, lps, elems, inEntities);
+
+
+  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over all target points
 
     if((trgEnt)%(int(maxNumTrgEntities/20)) == 0){
     std::cout<< "#"<< std::flush;
@@ -294,28 +314,16 @@ void RBFInterpolator::PreparePATCH(){
     StdVector<CF::Double> srcDist;
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
 
-
-
     if (globEntityNumber != UnusedEntityNumber) {
-        CF::Vector<Double> pCoord;
-        trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+        CF::Vector<Double> pCoord = globCoords[trgEnt];
+        //trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
 
         StdVector<UInt> listNt ;
 
-        std::string regionName = params_->Get("regions/sourceRegions/region/name")->As<std::string>();
-        shared_ptr<EntityList> actSDList =  inGrid_->GetEntityList(EntityList::ELEM_LIST, regionName);
-        StdVector<shared_ptr<EntityList> > inEntities;
-        inEntities.Resize(1);
-        inEntities[0] = actSDList;
 
-        LocPoint test;
-
-        const Elem* curE = inGrid_->GetElemAtGlobalCoord(pCoord,test,inEntities);
-//        const Elem* curE = inGrid_->GetElem(1);
+        const Elem* curE = elems[trgEnt];
         StdVector<UInt> nodeList ;
         nodeList.Resize(1);
-
-
 
         StdVector<const Elem*> srcElements;
         StdVector<UInt> listN ;
@@ -334,7 +342,7 @@ void RBFInterpolator::PreparePATCH(){
           }
 
 
-        if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){ // ELEMETN based source
+        if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){ // ELEMENT BASED SOURCE
 
           numNN_ = gotElements.GetSize();
           index += numNN_;
@@ -346,7 +354,7 @@ void RBFInterpolator::PreparePATCH(){
             listNt[bNode] = gotElements[bNode]->elemNum;
           }
 
-        }else{ // NODE BASED
+        }else{ // NODE BASED SOURCE
 
           inGrid_->GetNodesOfElemList(listNt,gotElements,false);
 
@@ -369,7 +377,7 @@ void RBFInterpolator::PreparePATCH(){
 
           for(UInt i =0;i < numNN_; ++i){
             srcIndices[i] = listNt[i]-1;
-            CF::Double distance = DistanceECLID(pCoord,sCoord[srcIndices[i]]);
+            CF::Double distance = DistanceEUCLID(pCoord,sCoord[srcIndices[i]]);
 
             srcDist[i] = distance;
             if (distance > dmax) {
@@ -606,7 +614,7 @@ void RBFInterpolator::PrepareCGAL(){
 
 }
 
-Double RBFInterpolator::DistanceECLID(CF::Vector<Double> p1, CF::Vector<Double> p2){
+Double RBFInterpolator::DistanceEUCLID(CF::Vector<Double> p1, CF::Vector<Double> p2){
  Double dist = 0.0;
  if(p1.GetSize()!=p1.GetSize()){
    EXCEPTION("No distance can be computed in RBF interpolator!")

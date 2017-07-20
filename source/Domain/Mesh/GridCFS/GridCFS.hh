@@ -272,7 +272,7 @@ namespace CoupledField
                             const StdVector<UInt> & connect,
                             bool updated );
 
-
+    //TODO Replace with SetNodesToElemsMap, since it does quite the same
     void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
         const StdVector<RegionIdType>   & regionIds);
   
