@@ -208,7 +208,7 @@ namespace CoupledField
     virtual void SetNodesToElemsMap(bool *newVersion) = 0;
 
     //! Get the inverse mapping of the connectivity (used in RBF -> fast PATCH search)
-
+    //TODO Replace with SetNodesToElemsMap, since it does quite the same
     virtual void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
         const StdVector<RegionIdType>   & regionIds) = 0;
 
@@ -304,7 +304,7 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
-    //! a list of given elements. Ther are no duplicate entries.
+    //! a list of given elements. There are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved

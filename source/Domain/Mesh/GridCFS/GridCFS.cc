@@ -2664,6 +2664,7 @@ namespace CoupledField {
 
   }
 
+  //TODO Replace with SetNodesToElemsMap, since it does quite the same
   void GridCFS::GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
       const StdVector<RegionIdType>   & regionIds){
     // Step 1 loop over connectivity of the elements in region
@@ -2676,7 +2677,7 @@ namespace CoupledField {
 
     index = volRegionIds_.Find(regionIds[isd]);
     if ( index == -1 ) {
-      EXCEPTION( "GetElemsNextToNodes: A region with id '"
+      EXCEPTION( "GetInverseConnect: A region with id '"
                  << regionIds[isd] << "' was not found in the list of "
                  << "of volume regions." );
     }
