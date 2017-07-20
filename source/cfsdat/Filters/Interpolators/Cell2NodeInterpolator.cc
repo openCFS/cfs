@@ -161,16 +161,14 @@ void Cell2NodeInterpolator::PrepareCalculation(){
   //for an export import step, here would be the right place
 
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
-  std::cout<< "\t\t  [0% ------------ 100%]" << std::endl;
-  std::cout<< "\t\t  ["<< std::flush;
 
     str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
     CF::StdVector<UInt> sEqn;
 
+  //trgGrid_->SetNodeNeighbourMap();
+  bool t = true;
+  trgGrid_->SetNodesToElemsMap( &t );
   for(UInt i=0;i<interpolData_.size();++i){
-    if((i)%(int(interpolData_.size()/20)) == 0){
-    std::cout<< "#"<< std::flush;
-    }
     upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type
     interpolData_[i].srcEqnSingle = sEqn[0];
@@ -180,23 +178,19 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
     const CF::StdVector<UInt>& eConn = curE->connect;
 
-    UInt neigbourElems;
-    StdVector<UInt> nodeList ;
-    nodeList.Resize(1);
+    UInt neighbourElems;
+    UInt node;
     StdVector<RegionIdType>  volRegions;
     trgGrid_->GetVolRegionIds(volRegions);
     nodeNeighbours_.Resize(eConn.GetSize()*interpolData_.size());
     for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
-
-      nodeList.Resize(1);
-      nodeList[0]=eConn[aNode];
-
-      trgGrid_->GetNumOfElemsNextToNodes(neigbourElems,nodeList,volRegions);
-      nodeNeighbours_[eConn[aNode]] = neigbourElems;
+      node = eConn[aNode];
+      trgGrid_->GetNumOfElemsNextToNodes(neighbourElems,node,volRegions);
+      nodeNeighbours_[eConn[aNode]] = neighbourElems;
       }
 
   }
-  std::cout<< "]" << std::endl;
+
   std::cout << "\t\t 6/6 Sort Data according to eqn numbers ..." << std::endl;
   std::sort(interpolData_.begin(),interpolData_.end());
 
