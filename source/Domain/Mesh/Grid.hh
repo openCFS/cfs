@@ -170,7 +170,7 @@ namespace CoupledField
 
     //! Get elements associated with given nodes
 
-    //! Returns a list of elements, which have one or more of the given
+    //! Returns a list of elements, which have one or more of the given in
     //! common. The elements are taken out of a given list of regions.
     //! \param elemList (out) elements which have one or more nodes
     //!                          of nodeList
@@ -185,18 +185,27 @@ namespace CoupledField
 
     //! Get number of elements associated with given nodes
 
-    //! Returns the number of elements, which have one or more of the given
+    //! Returns the number of elements, which have one or more of the given in
     //! common. The elements are taken out of a given list of regions.
+    //! IMPORTANT: Before using this method, SetNodeNeighbourMap() has to be
+    //! called first.
     //! \param num (out) number of elements which have one or more nodes
     //!                          of nodeList
-    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //! \param node  (in) node for which neighbouring elements
     //!                      are needed
     //! \param regionIds (in) identifiers for the regions, where the
     //!                       neihgbouring elements are searched in
     virtual void GetNumOfElemsNextToNodes( UInt & num,
-        const StdVector<UInt> & nodeList,
+        const UInt & node,
         const StdVector<RegionIdType>& regionIds) = 0;
 
+    //! Find for every node the number of neighbouring elements
+
+    //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
+    //! entry for every volume-region
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    virtual void SetNodesToElemsMap(bool *newVersion) = 0;
 
     //! Get the inverse mapping of the connectivity (used in RBF -> fast PATCH search)
 
@@ -623,7 +632,9 @@ namespace CoupledField
                                  const std::string & elemsName ) = 0;
 
     //! Get all elem neighbors for given node id
-    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node, bool *useNew = NULL) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

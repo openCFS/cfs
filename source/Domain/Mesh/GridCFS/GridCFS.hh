@@ -251,12 +251,9 @@ namespace CoupledField
 
     //! Returns element neighbors of given node
     //! \param node number of interest
-    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
-    {
-      if (!mappedNodeToElems_)
-        SetNodesToElemsMap();
-      return mapNodeToElems_[node];
-    }
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    const StdVector<Elem*>& GetElemsByNode(UInt node, bool *useNew = NULL);
 
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
@@ -298,15 +295,19 @@ namespace CoupledField
 
     //! Returns the number of elements, which have one or more of the given
     //! common. The elements are taken out of a given list of regions.
+    //! IMPORTANT: Before using this method, SetNodesToElemsMap() has to be
+    //! called first.
     //! \param num (out) number of elements which have one or more nodes
     //!                          of nodeList
-    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //! \param node (in) node for which neighbouring elements
     //!                      are needed
     //! \param regionIds (in) identifiers for the regions, where the
     //!                       neihgbouring elements are searched in
     void GetNumOfElemsNextToNodes( UInt & num,
-        const StdVector<UInt> & nodeList,
+        const UInt & node,
         const StdVector<RegionIdType>& regionIds);
+
+
 
     //! Get volume elements lying next to given surface elements
   
@@ -498,10 +499,14 @@ namespace CoupledField
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
 
-    /**
-     * Stores information on which elements belong to which nodes in a vector
-     */
-    void SetNodesToElemsMap();
+    //! Find for every node the neighbouring elements
+
+    //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
+    //! entry for every volume-region
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    void SetNodesToElemsMap(bool *newVersion = NULL);
+
 
     inline double CalcVolumeOfAllRegions(bool updated=false) {
       // Volume of all regions
@@ -519,6 +524,14 @@ namespace CoupledField
       Double start, stop, inc; // only for free components
       std::string value; // only for fixed components
     };
+
+    //! helper struct for storing the number of neighbour-elements for every node
+    struct NodeNeighbourElems{
+      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+      RegionIdType regID;
+    };
+
+
 
     // =======================================================================
     // Helper Methods
@@ -628,6 +641,7 @@ namespace CoupledField
     //! Flag indicating use of quadratic elements
     bool isQuadratic_;
 
+
     //@}
 
     // =======================================================================
@@ -649,10 +663,14 @@ namespace CoupledField
 
     UInt maxNumElemNodes_;
 
+    //! Maps from a node number to all neighbor elements, consists of
+    //! a NodeNeighbourElems struct for every volume region
+    StdVector<NodeNeighbourElems > mapNodeToElemsNew_;
+
     //! Maps from a node number to all neighbor elements
     StdVector<StdVector<Elem*> > mapNodeToElems_;
 
-    //! Flag to ensure that mapNodeToElems_ is only set up once
+    //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once
     bool mappedNodeToElems_ = false;
     //@}
   
