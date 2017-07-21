@@ -11,6 +11,11 @@ SET(TARGET_LL
   ${PHIST_LIBRARY}
   ghost
   hwloc
+  phist_kernels_ghost
+  phist_core
+  phist_solvers
+  phist_tools
+  phist_precon
   #${LAPACK_LIBRARY}
   #${BLAS_LIBRARY}
   #${CFS_FORTRAN_LIBS}

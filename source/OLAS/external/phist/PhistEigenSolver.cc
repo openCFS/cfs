@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "MatVec/StdMatrix.hh"
+#include "MatVec/CRS_Matrix.hh"
 #include "MatVec/generatematvec.hh"
 #include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
@@ -20,6 +21,24 @@
 #include <ghost.h>
 #include <phist_config.h>
 #include <phist_tools.h>
+#include <phist_kernels.h>
+#include "phist_core.h"
+#include "phist_MemOwner.hpp"
+#include "phist_get_arg.hpp"
+
+#include "phist_jadaOpts.h"
+#include "phist_subspacejada.h"
+#include "phist_harmonicjada.h"
+#include "phist_precon.h"
+// needed for ComputeEigenvectors
+#include "phist_schur_decomp.h"
+
+#include "phist_driver_utils.h"
+
+
+#include "phist_ScalarTraits.hpp"
+#include "phist_MemOwner.hpp"
+#include "phist_std_typedefs.hpp"
 
 
 DECLARE_LOG(pes)
@@ -82,6 +101,35 @@ namespace CoupledField {
       return 0;
   }
   
+  /** implementation of phist_sparseMat_rowFunc which is called for every row to copy the sparse matrix data
+   * @param row global row index (int64 by default)
+   * @param nnz of row (output, int)
+   * @param col - column indices of row (output, int)
+   * @param values values of row (output)
+   * @param service - cfs internal use: pointer to cfs matrix */
+  int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
+  {
+    const CRS_Matrix<double>* mat = (const CRS_Matrix<double>*) service;
+    assert(mat != NULL);
+
+    assert(row >= 0);
+    assert(row < mat->GetNumRows());
+
+    *row_nnz = mat->GetRowSize(row);
+
+    double* data = (double*) values;
+
+    unsigned int base = mat->GetRowPointer()[row];
+    for(int i = 0; i < *row_nnz; i++)
+      row_col[i] = mat->GetColPointer()[base + i];
+
+    for(int i = 0; i < *row_nnz; i++)
+      data[i] = mat->GetDataPointer()[base + i];
+
+    return 0; // all ok
+  }
+
+
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
@@ -94,56 +142,125 @@ namespace CoupledField {
     numFreq_ = numFreq;
     freqShift_ = freqShift;
 
-    // Copy matrix references and determine size of system
-    matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
+    // MPI handle which is by default MPI_COMM_WORLD
+    phist_comm_ptr comm;
+    int err;
+    phist_comm_create(&comm, &err);
+    assert(err == 0);
+    int argc = 0;
+    char* v = NULL;
+    char** argv = &v;
+    phist_kernels_init(&argc,&argv,&err);
+    assert(err == 0);
 
-    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
-    // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
-    matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
+    // phist parameters usually read from opts-standard.txt
+    int nEig = (int) numFreq;
 
-    unsigned int size = matrixA_->GetNumRows();
+    // fill the jadaOpts struct to pass settings to the solver
+    phist_jadaOpts opts;
+    phist_jadaOpts_setDefaults(&opts);
 
 
-    ghost_densemat_traits vtraits = GHOST_DENSEMAT_TRAITS_INITIALIZER;
 
-    ghost_sparsemat_traits mtraits = GHOST_SPARSEMAT_TRAITS_INITIALIZER;
-    mtraits.datatype = (ghost_datatype)(GHOST_DT_REAL|GHOST_DT_DOUBLE);
-    mtraits.flags = GHOST_SPARSEMAT_SAVE_ORIG_COLS; // needed for printing if more than one process
+    opts.symmetry = phist_GENERAL; // phist_HERMITIAN also for real symmetric
+    opts.numEigs = numFreq;
+    opts.which = phist_SR; // smalles real part
+    opts.convTol = 1e-8;
+    opts.blockSize = 4; // usually 1,2 or 4.;
+    opts.maxIters = 150;
+    opts.minBas = 28; //numFreq + 2 * opts.blockSize;
+    opts.maxBas = 60; //opts.minBas + 10 * opts.blockSize;
+    // parameters for the linear system stuff
 
-    //GHOST_CALL_RETURN(ghost_init(argc,argv));
+    opts.innerSolvBlockSize = opts.blockSize;
+    opts.innerSolvType = phist_MINRES;
+    opts.innerSolvMaxBas = 10;
+    opts.innerSolvMaxIters = 10;
+    opts.innerSolvRobust = 1;
 
-    // create matrix source
-    ghost_sparsemat_src_rowfunc matsrc = GHOST_SPARSEMAT_SRC_ROWFUNC_INITIALIZER;
-    matsrc.func = Diag;
-    matsrc.maxrowlen = 1;
-    matsrc.gnrows = 4; // N
 
-    ghost_error err = GHOST_SUCCESS;
-    // create sparse matrix A from row-wise source function
-    err = ghost_sparsemat_create(&A_, NULL, &mtraits, 1);
-    assert(err == GHOST_SUCCESS);
-    err = ghost_sparsemat_create(&A_, NULL, &mtraits, 1);
-    err = ghost_sparsemat_init_rowfunc(A_,&matsrc,MPI_COMM_WORLD,0.);
 
-    // create and initialize input vector x and output vector y
-    err = ghost_densemat_create(&x_, ghost_context_max_map(A_->context), vtraits);
-    err = ghost_densemat_create(&y_, ghost_context_max_map(A_->context), vtraits);
-    err = ghost_densemat_init_rand(x_);      // x = random
-    double zero = 0;
-    err = ghost_densemat_init_val(y_,&zero); // y = 0
 
-    // compute y = A*x
-    err = ghost_spmv(y_,A_,x_,GHOST_SPMV_OPTS_INITIALIZER);
 
-    // print y, A and x
-    char *Astr, *xstr, *ystr;
-    err = ghost_sparsemat_string(&Astr,A_,1);
-    err = ghost_densemat_string(&xstr,x_);
-    err = ghost_densemat_string(&ystr,y_);
-    printf("%s\n=\n%s\n*\n%s\n",ystr,Astr,xstr);
-    free(Astr);
-    free(xstr);
-    free(ystr);
+    // create stiffness and mass matrix for phist - which will be ghost matrices
+    phist_DsparseMat_ptr A, B;
+
+    const CRS_Matrix<double>& stiff =  dynamic_cast<const CRS_Matrix<double>&>(stiffMat);
+    phist_DsparseMat_create_fromRowFunc(&A, comm, stiff.GetNumRows(), stiff.GetNumRows(), stiff.GetNnz(), SparseMatRowFunc, (void*) &stiff, &err);
+    assert(err == 0);
+
+    const CRS_Matrix<double>& mass =  dynamic_cast<const CRS_Matrix<double>&>(massMat);
+    phist_DsparseMat_create_fromRowFunc(&B, comm, mass.GetNumRows(), mass.GetNumRows(), mass.GetNnz(), SparseMatRowFunc, (void*) &mass, &err);
+    assert(err == 0);
+
+    // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
+
+    // create an operator from A
+    phist_DlinearOp_ptr opA = new phist_DlinearOp();
+
+    // we need the domain map of the matrix
+    const_map_ptr map = NULL;
+    phist_DsparseMat_get_domain_map(A,&map,&err);
+    assert(err == 0);
+
+    // create/read B matrix if needed. If B is the identity matrix, do not create an operator.
+    // This would lead to quite some memory overhead since B*Q is stored in the implementation
+    // of subspacejada.
+    phist_DlinearOp_ptr opB = new phist_DlinearOp();
+    phist_DlinearOp_wrap_sparseMat(opB,B,&err);
+    assert(err == 0);
+    phist_DlinearOp_wrap_sparseMat_pair(opA,A,B,&err);
+    assert(err == 0);
+
+    int prob_size = numFreq+opts.blockSize-1;
+
+    // setup necessary vectors and matrices for the schur form
+    mvec_ptr Q = NULL;
+    phist_Dmvec_create(&Q,map,prob_size,&err);
+    assert(err == 0);
+
+    sdMat_ptr R = NULL;
+    phist_DsdMat_create(&R,prob_size,prob_size,comm,&err);
+    assert(err == 0);
+
+    StdVector<double> resNorm(prob_size);
+    StdVector<double> resNormExp(prob_size);
+    StdVector<std::complex<double> > ev(prob_size); // always complex,
+
+    // setup start vector (currently to (1 0 1 0 .. ) )
+    mvec_ptr v0 = NULL;
+    phist_Dmvec_create(&v0,map,1,&err);
+    assert(err == 0);
+
+    phist_Dmvec_put_value(v0,1.0,&err);
+
+    // skip residual calculation from subspacejada, not necessary for us
+    opts.v0=v0;
+
+    // assume phist_NO_PRECON
+    int nIter=opts.maxIters;
+
+    // non harmonic case - the actual calculation
+    // QR-factorization, QR=orthogonal ev basis , R=upper triangular matrix, ev are on the diagonal
+    phist_Dsubspacejada(opA, opB, opts, Q, R, ev.GetPointer(), resNorm.GetPointer(), &nEig, &nIter, &err);
+    assert(err >= 0);
+
+    // skip calculation of real residual, res = AQ - BQR
+
+    // compute eigenvectors X: A*X=X*D and diagonal matrix D with eigenvalues
+    // (for checking the sorting only).
+    mvec_ptr X=NULL;
+    phist_Dmvec_create(&X,map,nEig,&err);
+
+    phist_DComputeEigenvectors(Q,R,X,&err);
+
+    // skip calculation of eigenvector residuals
+
+    // get pointer to row/col major block of vectors
+    double* xval = NULL; // will be set to memory owned by phist
+    phist_lidx lda;
+    phist_Dmvec_extract_view(&X,&xval,&lda,&err);
+    assert(err == 0);
 
     ToInfo();
   }
