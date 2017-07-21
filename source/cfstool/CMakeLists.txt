@@ -110,6 +110,11 @@ IF(USE_ARPACK)
   LIST(APPEND TARGET_LL arpack-olas)
 ENDIF(USE_ARPACK)
 
+IF(USE_PHIST)
+  LIST(APPEND TARGET_LL phist-olas)
+ENDIF(USE_PHIST)
+
+
 IF(USE_LAPACK)
   LIST(APPEND TARGET_LL lapack-olas)
 ENDIF(USE_LAPACK)
@@ -144,6 +149,12 @@ ENDIF(UNIX AND USE_ANSYSRST)
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
+
+# This is dirty stuff and shall be removed! - Fabian
+IF(USE_PHIST)
+  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -pthread -Wl,-rpath -Wl,/usr/lib64/mpi/gcc/openmpi/lib64 -Wl,--enable-new-dtags -L/usr/lib64/mpi/gcc/openmpi/lib64 -lmpi_cxx -lmpi")
+ENDIF()
+
 
 SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 

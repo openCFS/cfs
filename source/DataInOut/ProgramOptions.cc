@@ -14,6 +14,7 @@
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
+#include <def_use_phist.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_cgns.hh>
