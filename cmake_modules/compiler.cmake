@@ -213,8 +213,10 @@ main ()
   ENDIF(COVERAGE)
   
   IF(NOT USE_OPENMP)
-    SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    IF(NOT USE_PHIST)
+      SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    ENDIF(NOT USE_PHIST)  
   ENDIF(NOT USE_OPENMP)
 
   IF(NOT USE_CGAL)

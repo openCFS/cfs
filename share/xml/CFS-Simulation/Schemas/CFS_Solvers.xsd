@@ -1121,16 +1121,8 @@
   <xsd:complexType name="DT_EigenSolverARPACK">
     <xsd:complexContent>
       <xsd:extension base="DT_EigenSolverBasic">
-        
         <xsd:sequence>
-        
-          <!-- Allow separate solver within eigenfrequency calculation -->
-          <!-- <xsd:element name="solver" minOccurs="0" >
-            <xsd:complexType>
-              <xsd:attribute name="id"  type="xsd:token" default="default"/>
-            </xsd:complexType>
-          </xsd:element>-->
-          <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <!-- The arnoldi vectors are at least n+1 and typcally 2*n. Chose a Factor from 1.1 ... 2 or larger -->
           <xsd:element name="arnoldiFactor" type="xsd:float" minOccurs="0"/>
@@ -1158,47 +1150,23 @@
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
-  <!-- ==                    FEAST EIGENVALUE SOLVER                    == -->
+  <!-- ==                    PHIST EIGENVALUE SOLVER                    == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
   
-  <xsd:element name="feast" type="DT_EigenSolverFEAST" substitutionGroup="EigenSolverBasic"/>
+  <xsd:element name="phist" type="DT_EigenSolverPHIST" substitutionGroup="EigenSolverBasic"/>
   
-  <xsd:complexType name="DT_EigenSolverFEAST">
+  <xsd:complexType name="DT_EigenSolverPHIST">
     <xsd:complexContent>
       <xsd:extension base="DT_EigenSolverBasic">
         <xsd:sequence>
-        
-          <!-- Allow separate solver within eigenfrequency calculation -->
-          <!-- <xsd:element name="solver" minOccurs="0" >
-            <xsd:complexType>
-              <xsd:attribute name="id"  type="xsd:token" default="default"/>
-            </xsd:complexType>
-          </xsd:element>-->
-          <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
-          <xsd:element name="which" minOccurs="0">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="LA"/>
-                <xsd:enumeration value="SA"/>
-                <xsd:enumeration value="LM"/>
-                <xsd:enumeration value="SM"/>
-                <xsd:enumeration value="LR"/>
-                <xsd:enumeration value="SR"/>
-                <xsd:enumeration value="LI"/>
-                <xsd:enumeration value="SI"/>
-                <xsd:enumeration value="BE"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
-      
     </xsd:complexContent>
   </xsd:complexType>
-
   
 </xsd:schema>
