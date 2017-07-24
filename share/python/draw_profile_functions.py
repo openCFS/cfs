@@ -19,6 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate, spatial
 from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from itertools import  product
 
 import matplotlib.tri as tri
 try:
@@ -312,7 +313,7 @@ class PrincipleSpline():
       if x <= self.coords_cut[0]:
         val = self.spline.eval_x(x)
       elif x > self.coords_cut[0] and x <= 0.5:
-        val = self.coords_cut[1]
+        val = 0.5
       else: #x >= 1- coord_cut[0]
         val = 0.5
         #raise Exception("Spline not defined for x=" + str(x))
@@ -320,7 +321,7 @@ class PrincipleSpline():
       if x >= self.coords_cut[0]:
         val = self.spline.eval_x(1-x) # mirror left part to get right part
       elif x < self.coords_cut[0] and x >= 0.5:
-        val = self.coords_cut[1]
+        val = 0.5
       else:
         val = 0.5    
     return val
@@ -769,7 +770,7 @@ def create_profiles(args,infoXml=None):
         sub1 = figs[dir].add_subplot(count)
         sub1.set_ylim((0.5,1.0))
         if args.verbose == "all_splines":
-          sub1.set_title(str(degrees(profile.splines_left[i].angle)) + "°")
+          sub1.set_title(str(np.degrees(profile.splines_left[i].angle)) + "°")
           sub1.plot(x_left,profile.splines_left[i].eval(x_left),linewidth=5.0)
           sub1.plot(x_right,profile.splines_right[i].eval(x_right),linewidth=5.0)
         else: # all_bisecs
@@ -1100,11 +1101,16 @@ def write_profile_to_array(array,profile,overlap):
         if (valx-r <= 1e-6):
           # detected overlap of profiles
           if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
-            coords = radius_to_3d_coords(profile, x, phi)
-            overlap[idx[major],idx[minor_1],idx[minor_2]] = (coords,) # set tuple if this is the first overlap
+            if idx[major] == 6 and idx[minor_1] == 24 and idx[minor_2] == 19:
+              px,py = polar_to_cartesian(r, phi)
+              point = np.zeros(3)
+              point[major] = x
+              point[minor_1] = px
+              point[minor_2] = py 
+              print(point)
+            overlap[idx[major],idx[minor_1],idx[minor_2]] = (major,) # set tuple if this is the first overlap
           else:
-            coords = radius_to_3d_coords(profile, x, phi)
-            overlap[idx[major],idx[minor_1],idx[minor_2]] += (coords,) # add element to tuple
+            overlap[idx[major],idx[minor_1],idx[minor_2]] += (major,) # add element to tuple
 
           array[idx[major],idx[minor_1],idx[minor_2]] = major
             
@@ -1316,30 +1322,51 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
   for count,v in enumerate(verts):
     # for corner voxels, v may lie on interface between two (surface and invalid) voxels
     # thus, consider both voxels and check which one to go for
-    i_p = cartesian_to_grid_coords(v[0], res, 1e-6)
-    j_p = cartesian_to_grid_coords(v[1], res, 1e-6)
-    k_p = cartesian_to_grid_coords(v[2], res, 1e-6)
-    
-    i_m = cartesian_to_grid_coords(v[0], res, -1e-6)
-    j_m = cartesian_to_grid_coords(v[1], res, -1e-6)
-    k_m = cartesian_to_grid_coords(v[2], res, -1e-6)
-    
-    if voxels[i_m,j_m,k_m] > -1:
-      i = i_m
-      j = j_m
-      k = k_m
-    else:  
-      i = i_p
-      j = j_p
-      k = k_p
-    
+    for f,g,h in product([1e-6,-1e-6],[1e-6,-1e-6],[1e-6,-1e-6]):
+      i_cand = cartesian_to_grid_coords(v[0], res, f)
+      j_cand = cartesian_to_grid_coords(v[1], res, g)
+      k_cand = cartesian_to_grid_coords(v[2], res, h)
       
-    point = give_average_point(overlap[i,j,k])
-#     print("\nv:",v)
-#     print("cands:",overlap[i,j,k])
-#     print("av:",point)  
+      if voxels[i_cand,j_cand,k_cand] > -1:
+        i = i_cand
+        j = j_cand
+        k = k_cand
+        break
+       
+    assert(voxels[i,j,k] > -1)
+      
+    point = None
+    # do wo have a overlap of profiles?
+    overlap_dirs = overlap[i,j,k] # tuple containing ints for profiles that overlap
+    # calculated candidates for all 3 profiles
+    points = []
+    for d in overlap_dirs:
+      assert(int(d) == 0 or int(d) == 1 or int(d) == 2)
+      cand = adjust_surface_point(profiles[int(d)],v)
+      # avoid artefacts due to radius = 0.5 for inner base cell parts which
+      # are overlapped by all 3 profiles 
+      invalids = [test for test in cand if close(test, 0.5, 1e-6)]
+      if len(invalids) != 2:
+        points.append(cand)
+
+      if len(points) == 0:
+        print (overlap_dirs,i,j,k)
+        print(v)      
+      point = give_average_point(points)
+#     if len(points) > 0:
+#       b = give_average_point(points)
+#       point = v + 0.8 * (b-v)
+#     else:
+#       point = v  
     
-    assert(point is not None) 
+#     assert(point is not None) 
+    
+#     if len(overlap_dirs) == 2:
+#       print("\ndist:",calc_distance(points[0], points[1]),np.sqrt(2)/res)
+#       print("v:",v)
+#       print(points)
+#       print(point)
+#       assert(calc_distance(points[0], points[1]) < np.sqrt(2)/res)
     
     # move point on the boundaries of x/y/z axis to match [0,1]
     # as we're shifted by h/2.0
@@ -1360,7 +1387,33 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
   
   return new_verts       
 
+# calculates a correct surface point location using info on profiles
+# based on an approximation
+# @param profiles: array with all 3 profiles
+# @param v: approximation for point of interest; tuple/list with 3 coord components
+# @param major_dir: major profile direction
+def adjust_surface_point(profile,v):
+  major_dir = profile.direction
+  if not (major_dir == 0 or major_dir == 1 or major_dir == 2):
+    print(major_dir)
+  assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
+    
+  # which 2D plane?
+  minor_1, minor_2 = give_normal_plane_axes(major_dir)
+  # angle in radians
+  phi = angle_to_center((v[minor_1],v[minor_2]))
+  
+  rad = calc_radius(profile, v[major_dir], phi)   
+  px,py = polar_to_cartesian(rad,phi)
+  point = np.ones(3)*(-1)
+  point[major_dir] = v[major_dir]
+  point[minor_1] = px
+  point[minor_2] = py
+  
+  return point
+
 def give_average_point(points):
+#   assert(len(points) > 0)
   new = np.zeros(3)
   for p in points:
     new += p
@@ -1498,25 +1551,10 @@ def point_inside_profile(p,profile):
   assert(phi >= 0 and phi <= 2*np.pi)
   r = calc_radius(profile, p[major], phi)
   val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
+#   print("radii:",r,val)
   assert(val**2 <= 0.5+1e-6)
   if (val - r < 1e-6):
+#      print("point ",p, " inside ",major)
     return True
   
   return False
-
-# @returns 3d cartesian coordinates
-# @param profile of interest
-# @param point of evaluation of profile, e.g. x=0.5 means y=0.5 if we have y-profile
-def radius_to_3d_coords(profile,x,phi):
-  r = calc_radius(profile, x, phi)
-  px,py = polar_to_cartesian(r,phi)
-  point = np.ones(3)*(-1)
-  major_dir = profile.direction
-  minor_1, minor_2 = give_normal_plane_axes(major_dir)
-  point[major_dir] = x
-  point[minor_1] = px
-  point[minor_2] = py
-  
-  return point
-  
-  

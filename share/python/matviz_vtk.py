@@ -1142,7 +1142,6 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 #       transformFilter.Update()    
 #       appends.AddInputConnection(transformFilter.GetOutputPort())
 #       appends.Update() # not sure if we have to do this in each loop iteration
-    
   
   return appends.GetOutput()
     
