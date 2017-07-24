@@ -152,8 +152,8 @@ def create_mesh_with_profiles(args,infoXml,log):
   return mesh
 
 if __name__ == "__main__":
-  import doctest, draw_profile_functions
-  doctest.testmod(draw_profile_functions)
+#   import doctest, draw_profile_functions
+#   doctest.testmod(draw_profile_functions)
   parser = argparse.ArgumentParser()
   parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
   parser.add_argument("--res_surf_lines", help="resolution for surface lines, must be <= 360", type=int)
@@ -242,7 +242,10 @@ if __name__ == "__main__":
         
       
     assert(meshName is not None)
-    meshName += "_stiff_" + str(args.x1)
+    if args.stiffness_as_diameter:
+      meshName += "_diam_" + str(args.x1)
+    else:
+      meshName += "_stiff_" + str(args.x1)
     
     if not (args.x2 == val and args.y1 == val and args.y2 == val and args.z1 == val and args.z2 == val):
       meshName += "_" + str(args.x2) + "_" + str(args.y1) + "_" + str(args.y2) + "_" + str(args.z1) + "_" + str(args.z2)
