@@ -131,7 +131,7 @@ def create_mesh_with_profiles(args,infoXml,log):
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
     mesh_tool.validate_periodicity(mesh)
-  elif args.target.startswith("surface"):
+  elif args.target.startswith("surface") or args.target.startswith("contour"):
     stlName = args.save if args.save else "surface"
     if not stlName.endswith(".stl"):
       stlName += ".stl"
