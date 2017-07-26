@@ -94,7 +94,7 @@ public:
   static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
 
   /** This are principal shape types from where NODE and PROFILE are repeated in BaseDesignElement::Type.
-   * Node has two meanings in 3D: a singular NODE is a surface and two NODEs are part of a TUBE. */
+   * Node has two meanings in 3D: a singular NODE is a surface and two NODEs are part of a ROD. */
   typedef enum { NODE = 0, PROFILE = 1} Type;
 
   static Enum<Type> type;

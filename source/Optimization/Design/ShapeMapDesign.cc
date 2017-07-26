@@ -184,7 +184,7 @@ void ShapeMapDesign::CheckPlausibility()
  void ShapeMapDesign::SetupShapeParam()
  {
    // we assume that we may Resize() shape_param_ when we estimate the capacity wrong!
-   // for 3D with surfaces instead of tubes we estimate to low
+   // for 3D with surfaces instead of rods we estimate to low
    assert(*std::max_element(&n_.First(), &n_.Last()) >= nx_);
    shape_param_.Reserve(shape_.GetSize() * *std::max_element(&n_.First(), &n_.Last()));
 
@@ -233,7 +233,7 @@ void ShapeMapDesign::CheckPlausibility()
    for (unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
      map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
-     // each design node connects to two density elements and for 3D tubes four density elements
+     // each design node connects to two density elements and for 3D rods four density elements
      // this comes from the bilinear interpolation.
      // TODO: check we have no 3D surface stuff here!
      map_[i].nodes.Reserve((dim_ == 2 ? 2 : 4) * num_node_shapes_);

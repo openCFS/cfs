@@ -1153,9 +1153,9 @@
             <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                   <xsd:element name="tube" minOccurs="0" maxOccurs="unbounded">
+                   <xsd:element name="rod" minOccurs="0" maxOccurs="unbounded">
                      <xsd:annotation>
-                       <xsd:documentation>a tube is in 3D defined by two nodes with different dofs</xsd:documentation>
+                       <xsd:documentation>3D only: defines a rod by two nodes with different dofs</xsd:documentation>
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:sequence>
@@ -1164,11 +1164,9 @@
                       </xsd:complexType>
                    </xsd:element>
 
-                   <xsd:element name="node" minOccurs="1" maxOccurs="unbounded" type="DT_ShapeNode">
+                   <xsd:element name="node" minOccurs="0" maxOccurs="unbounded" type="DT_ShapeNode">
                      <xsd:annotation>
-                       <xsd:documentation>move the node in dof direction. the design is multiplied by the other directions.
-                                          e.g. dof=x then there are variables generated for each y (in 2d). For 2D has you need
-                                          two xml declarations for dof=x  plus two for dof=y</xsd:documentation>
+                       <xsd:documentation>In 2D mandatory. With dof=x for every y a x is the variable.</xsd:documentation>
                       </xsd:annotation>
                    </xsd:element>
                    

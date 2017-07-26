@@ -18,6 +18,7 @@
 
 #include "PhistEigenSolver.hh"
 
+#include <mpi.h>
 #include <ghost.h>
 #include <phist_config.h>
 #include <phist_tools.h>
@@ -91,15 +92,6 @@ namespace CoupledField {
     ToInfo();
   }
 
-  /** taken from essex/ghost/test/minimal.c */
-  int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg)
-  {
-      *rowlen = 1;
-      col[0] = row;
-      ((double *)val)[0] = (double)(row+1);
-
-      return 0;
-  }
   
   /** implementation of phist_sparseMat_rowFunc which is called for every row to copy the sparse matrix data
    * @param row global row index (int64 by default)
@@ -129,7 +121,6 @@ namespace CoupledField {
     return 0; // all ok
   }
 
-
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
@@ -143,24 +134,24 @@ namespace CoupledField {
     freqShift_ = freqShift;
 
     // MPI handle which is by default MPI_COMM_WORLD
-    phist_comm_ptr comm;
+    phist_comm_ptr comm = NULL;
     int err;
     phist_comm_create(&comm, &err);
     assert(err == 0);
+    LOG_DBG(pes) << "phist_comm_create -> " << comm;
+    MPI_Init(NULL, NULL);
     int argc = 0;
     char* v = NULL;
     char** argv = &v;
-    phist_kernels_init(&argc,&argv,&err);
+    phist_kernels_init(&argc, &argv, &err);
     assert(err == 0);
+    LOG_DBG(pes) << "phist_kernels_init -> " << err;
 
     // phist parameters usually read from opts-standard.txt
-    int nEig = (int) numFreq;
 
     // fill the jadaOpts struct to pass settings to the solver
     phist_jadaOpts opts;
     phist_jadaOpts_setDefaults(&opts);
-
-
 
     opts.symmetry = phist_GENERAL; // phist_HERMITIAN also for real symmetric
     opts.numEigs = numFreq;
@@ -179,19 +170,18 @@ namespace CoupledField {
     opts.innerSolvRobust = 1;
 
 
-
-
-
     // create stiffness and mass matrix for phist - which will be ghost matrices
     phist_DsparseMat_ptr A, B;
 
     const CRS_Matrix<double>& stiff =  dynamic_cast<const CRS_Matrix<double>&>(stiffMat);
     phist_DsparseMat_create_fromRowFunc(&A, comm, stiff.GetNumRows(), stiff.GetNumRows(), stiff.GetNnz(), SparseMatRowFunc, (void*) &stiff, &err);
     assert(err == 0);
+    LOG_DBG(pes) << "create A -> " << err;
 
     const CRS_Matrix<double>& mass =  dynamic_cast<const CRS_Matrix<double>&>(massMat);
     phist_DsparseMat_create_fromRowFunc(&B, comm, mass.GetNumRows(), mass.GetNumRows(), mass.GetNnz(), SparseMatRowFunc, (void*) &mass, &err);
     assert(err == 0);
+    LOG_DBG(pes) << "create B -> " << err;
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
 
@@ -201,48 +191,58 @@ namespace CoupledField {
     // we need the domain map of the matrix
     const_map_ptr map = NULL;
     phist_DsparseMat_get_domain_map(A,&map,&err);
+    LOG_DBG(pes) << "phist_DsparseMat_get_domain_map -> " << err;
     assert(err == 0);
 
-    // create/read B matrix if needed. If B is the identity matrix, do not create an operator.
-    // This would lead to quite some memory overhead since B*Q is stored in the implementation
-    // of subspacejada.
     phist_DlinearOp_ptr opB = new phist_DlinearOp();
     phist_DlinearOp_wrap_sparseMat(opB,B,&err);
+    LOG_DBG(pes) << "phist_DlinearOp_wrap_sparseMat -> " << err;
     assert(err == 0);
+
     phist_DlinearOp_wrap_sparseMat_pair(opA,A,B,&err);
+    LOG_DBG(pes) << "phist_DlinearOp_wrap_sparseMat_pair -> " << err;
     assert(err == 0);
 
     int prob_size = numFreq+opts.blockSize-1;
+    LOG_DBG(pes) << "prob_size -> " << prob_size;
 
     // setup necessary vectors and matrices for the schur form
     mvec_ptr Q = NULL;
     phist_Dmvec_create(&Q,map,prob_size,&err);
+    LOG_DBG(pes) << "phist_Dmvec_create -> " << err;
     assert(err == 0);
 
     sdMat_ptr R = NULL;
     phist_DsdMat_create(&R,prob_size,prob_size,comm,&err);
+    LOG_DBG(pes) << "phist_DsdMat_create -> " << err;
     assert(err == 0);
 
     StdVector<double> resNorm(prob_size);
-    StdVector<double> resNormExp(prob_size);
     StdVector<std::complex<double> > ev(prob_size); // always complex,
 
     // setup start vector (currently to (1 0 1 0 .. ) )
     mvec_ptr v0 = NULL;
     phist_Dmvec_create(&v0,map,1,&err);
+    LOG_DBG(pes) << "phist_Dmvec_create -> " << err;
     assert(err == 0);
 
     phist_Dmvec_put_value(v0,1.0,&err);
+    assert(err == 0);
 
     // skip residual calculation from subspacejada, not necessary for us
     opts.v0=v0;
 
     // assume phist_NO_PRECON
-    int nIter=opts.maxIters;
 
-    // non harmonic case - the actual calculation
+    int nIter=opts.maxIters;
+    int nEig = (int) numFreq;
+
+    // The actual calculation !!! - non harmonic case
     // QR-factorization, QR=orthogonal ev basis , R=upper triangular matrix, ev are on the diagonal
+    assert(opts.how != phist_HARMONIC);
+
     phist_Dsubspacejada(opA, opB, opts, Q, R, ev.GetPointer(), resNorm.GetPointer(), &nEig, &nIter, &err);
+    LOG_DBG(pes) << "phist_Dsubspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev.ToString() << " -> " << err;
     assert(err >= 0);
 
     // skip calculation of real residual, res = AQ - BQR
@@ -251,8 +251,10 @@ namespace CoupledField {
     // (for checking the sorting only).
     mvec_ptr X=NULL;
     phist_Dmvec_create(&X,map,nEig,&err);
+    assert(err >= 0);
 
     phist_DComputeEigenvectors(Q,R,X,&err);
+    assert(err >= 0);
 
     // skip calculation of eigenvector residuals
 
@@ -265,6 +267,7 @@ namespace CoupledField {
     ToInfo();
   }
 
+
   void PhistEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
                                 UInt numFreq, double freqShift, bool sort)
   {
@@ -274,7 +277,6 @@ namespace CoupledField {
     isQuadratic_ = true;
     isBloch_ = false;
     sort_ = false;
-
   }
 
   void PhistEigenSolver::ToInfo()
