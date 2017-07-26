@@ -4,6 +4,7 @@
 
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <boost/sort/sort.hpp>
 
 namespace CoupledField
 {

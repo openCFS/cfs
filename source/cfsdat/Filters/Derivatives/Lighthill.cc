@@ -315,6 +315,7 @@ void Lighthill::PrepareCalculation(){
   scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
   trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+//TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   if(numEquPerEnt_ != inGrid_->GetDim()) EXCEPTION("Grid and Values don't have the same dimension!!");
   if(numEquPerEnt_ == 1) EXCEPTION("Input (velocity) is a scalar, it should be a vector!!");
@@ -346,7 +347,7 @@ void Lighthill::PrepareCalculation(){
 
   const CF::UInt maxNumTrgEntities = trgMap_->GetNumEntities();
   StdVector<CF::UInt> globTrgEntity;
-  GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, inGrid_);
+  GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, trgGrid_);
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Differentiator is dealing with " << numSrcNodeEntities <<
@@ -387,7 +388,7 @@ void Lighthill::PrepareCalculation(){
 
   std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
   for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
-    RegionIdType r = inGrid_->GetRegion().Parse(*destRegIt);
+    RegionIdType r = trgGrid_->GetRegion().Parse(*destRegIt);
     rId.Push_back(r);
   }
 
