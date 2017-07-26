@@ -804,14 +804,17 @@ namespace CoupledField {
       regionData[regionElemIt->first].type = VOLUME_REGION;
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(regionElemIt->first);
-      
       // make number of region nodes unique
       StdVector<UInt> & regionNodes = regionNodeIt->second;
-      std::sort( regionNodes.Begin(), regionNodes.End() );
+
+      // spreadsort is about 20 times faster than std::sort (tested for 1e7 nodes)
+      boost::sort::spreadsort::spreadsort( regionNodes.Begin(), regionNodes.End() );
+      //std::sort( regionNodes.Begin(), regionNodes.End() );
+
       StdVector<UInt>::iterator uIt;
       uIt = std::unique( regionNodes.Begin(), regionNodes.End() );
       UInt numRegionNodes = std::distance(regionNodes.Begin(), uIt);
-      numVolElemNodes_.Push_back(numRegionNodes); 
+      numVolElemNodes_.Push_back(numRegionNodes);
     }
     volRegionNodes.clear();
   

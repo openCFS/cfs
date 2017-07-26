@@ -194,7 +194,7 @@ void RBFInterpolator::PrepareCalculation(){
   }else{
     PreparePATCH();
   }
-  std::cout << "\t\t Interpolation prepared!" << std::endl;
+  std::cout << "\n\t\t Interpolation prepared!" << std::endl;
 }
 
 void RBFInterpolator::PreparePATCH(){
