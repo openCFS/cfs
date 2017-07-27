@@ -2667,50 +2667,6 @@ namespace CoupledField {
 
   }
 
-  //TODO Replace with SetNodesToElemsMap, since it does quite the same
-  void GridCFS::GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
-      const StdVector<RegionIdType>   & regionIds){
-    // Step 1 loop over connectivity of the elements in region
-    // Extract connectivity
-    // Write number of element in all where it belongs to
-    // Do this for all elements and we have the connectivity
-    Integer index = 0;
-    for (UInt isd=0; isd<regionIds.GetSize(); isd++)
-    {
-
-    index = volRegionIds_.Find(regionIds[isd]);
-    if ( index == -1 ) {
-      EXCEPTION( "GetInverseConnect: A region with id '"
-                 << regionIds[isd] << "' was not found in the list of "
-                 << "of volume regions." );
-    }
-    // Get element of given region
-    StdVector<Elem*> const & elems = volElems_[index];
-
-    // loop over all elements in subdomain
-    for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
-    {
-
-
-      Elem *aux = elems[iNS];
-      StdVector<UInt>  const & aux_connect = aux->connect;
-      for (UInt inode=0; inode<aux_connect.GetSize(); inode++) {
-
-        if(inverseConnec.find(aux_connect[inode]) == inverseConnec.end()){
-          StdVector<UInt> tmp;
-          tmp.Push_back(aux->elemNum);
-          inverseConnec[aux_connect[inode]] = tmp;
-        }else{
-          StdVector<UInt>& tmp = inverseConnec[aux_connect[inode]];
-          if(!tmp.Contains(aux->elemNum)) tmp.Push_back(aux->elemNum);
-        }
-
-      }
-    }
-    }
-  }
-
-
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType>
