@@ -267,40 +267,41 @@ void RBFInterpolator::PreparePATCH(){
   targetInvMat.Resize(maxNumTrgEntities);
 
   //TODO Fix that dirty stuff!!
-    targetSource.Resize(100 * maxNumTrgEntities);
-    targetSourceFactor.Resize(100 * maxNumTrgEntities);
-    targetSourceFactor.Init();
-    targetSourceFactor2.Resize(100 * maxNumTrgEntities);
-    targetSourceFactor2.Init();
+  targetSource.Resize(100 * maxNumTrgEntities);
+  targetSourceFactor.Resize(100 * maxNumTrgEntities);
+  targetSourceFactor.Init();
+  targetSourceFactor2.Resize(100 * maxNumTrgEntities);
+  targetSourceFactor2.Init();
 
 
-    std::cout<< "\t\t  [0% ------------ 100%]" << std::endl;
-    std::cout<< "\t\t  ["<< std::flush;
+  std::cout<< "\t\t  [0% ------------ 100%]" << std::endl;
+  std::cout<< "\t\t  ["<< std::flush;
 
-    StdVector<RegionIdType>  volRegions;
-    inGrid_->GetVolRegionIds(volRegions);
-
-    boost::unordered_map<UInt, StdVector<UInt>> inverseConnec;
-    inGrid_->GetInverseConnect(inverseConnec,volRegions);
+  StdVector<RegionIdType>  volRegions;
+  inGrid_->GetVolRegionIds(volRegions);
 
 
-    StdVector<Vector<Double> > globCoords(maxNumTrgEntities);
-    StdVector<LocPoint> lps;
-    StdVector<const Elem*> elems;
-    std::string regionName = params_->Get("regions/sourceRegions/region/name")->As<std::string>();
-    shared_ptr<EntityList> actSDList =  inGrid_->GetEntityList(EntityList::ELEM_LIST, regionName);
-    StdVector<shared_ptr<EntityList> > inEntities(1);
-    inEntities[0] = actSDList;
+  bool t = true;
+  inGrid_->SetNodesToElemsMap( &t );
 
-    for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
-      CF::UInt globEntityNumber = globTrgEntity[trgEnt];
-      if (globEntityNumber != UnusedEntityNumber) {
-        trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
-      }
+  StdVector<Vector<Double> > globCoords(maxNumTrgEntities);
+  StdVector<LocPoint> lps;
+  StdVector<const Elem*> elems;
+//TODO this only works for one region !!
+  std::string regionName = params_->Get("regions/sourceRegions/region/name")->As<std::string>();
+  shared_ptr<EntityList> actSDList =  inGrid_->GetEntityList(EntityList::ELEM_LIST, regionName);
+  StdVector<shared_ptr<EntityList> > inEntities(1);
+  inEntities[0] = actSDList;
+
+  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
+    CF::UInt globEntityNumber = globTrgEntity[trgEnt];
+    if (globEntityNumber != UnusedEntityNumber) {
+      trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
     }
+  }
 
-    // get the target elements
-    inGrid_->GetElemsAtGlobalCoords( globCoords, lps, elems, inEntities);
+  // get the target elements
+  inGrid_->GetElemsAtGlobalCoords( globCoords, lps, elems, inEntities);
 
 
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over all target points
@@ -316,34 +317,23 @@ void RBFInterpolator::PreparePATCH(){
 
     if (globEntityNumber != UnusedEntityNumber) {
         CF::Vector<Double> pCoord = globCoords[trgEnt];
-        //trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
-
         StdVector<UInt> listNt ;
-
-
         const Elem* curE = elems[trgEnt];
         StdVector<UInt> nodeList ;
         nodeList.Resize(1);
-
         StdVector<const Elem*> srcElements;
         StdVector<UInt> listN ;
         srcElements.Insert(0,curE);
         inGrid_->GetNodesOfElemList(listN,srcElements,false);
-
-
-          StdVector<const Elem*> gotElements;
-          for(UInt bNode =0;bNode < listN.GetSize(); ++bNode){
-            StdVector<UInt>& tmp = inverseConnec[listN[bNode]];
-            for(UInt bElemN =0;bElemN < tmp.GetSize(); ++bElemN){
-              if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN])))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]));
-
-            }
-
+        StdVector<const Elem*> gotElements;
+        for(UInt bNode =0;bNode < listN.GetSize(); ++bNode){
+          StdVector<Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode], &t);
+          for(UInt bElemN =0;bElemN < tmp.GetSize(); ++bElemN){
+            if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN]->elemNum)))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]->elemNum));
           }
-
+        }
 
         if(inInfo->definedOn == ExtendedResultInfo::ELEMENT){ // ELEMENT BASED SOURCE
-
           numNN_ = gotElements.GetSize();
           index += numNN_;
           listNt.Resize(numNN_);

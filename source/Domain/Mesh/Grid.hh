@@ -207,10 +207,6 @@ namespace CoupledField
     //!                by default, the old version is used
     virtual void SetNodesToElemsMap(bool *newVersion) = 0;
 
-    //! Get the inverse mapping of the connectivity (used in RBF -> fast PATCH search)
-    //TODO Replace with SetNodesToElemsMap, since it does quite the same
-    virtual void GetInverseConnect(boost::unordered_map<UInt, StdVector<UInt>>& inverseConnec,
-        const StdVector<RegionIdType>   & regionIds) = 0;
 
     //! Get coordinates of element nodes
 
