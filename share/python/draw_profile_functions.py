@@ -313,7 +313,7 @@ class PrincipleSpline():
       if x <= self.coords_cut[0]:
         val = self.spline.eval_x(x)
       elif x > self.coords_cut[0] and x <= 0.5:
-        val = 0.5
+        val = self.coords_cut[1]
       else: #x >= 1- coord_cut[0]
         val = 0.5
         #raise Exception("Spline not defined for x=" + str(x))
@@ -321,7 +321,7 @@ class PrincipleSpline():
       if x >= self.coords_cut[0]:
         val = self.spline.eval_x(1-x) # mirror left part to get right part
       elif x < self.coords_cut[0] and x >= 0.5:
-        val = 0.5
+        val = self.coords_cut[1]
       else:
         val = 0.5    
     return val
@@ -856,7 +856,6 @@ def generate_basecell(args,info,log,offset=0):
   assert(len(profiles) == 3)
   
   id = 0 # assign an id to each surface point
-  voxel_centers = []
   
   for i in range(0,3):
     if profiles[i] == None:
@@ -888,7 +887,7 @@ def generate_basecell(args,info,log,offset=0):
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
       # overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0
-      write_profile_to_array(array, profiles[i], overlap, voxel_centers)
+      write_profile_to_array(array, profiles[i], overlap)
       
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
@@ -902,13 +901,7 @@ def generate_basecell(args,info,log,offset=0):
         matviz_vtk.show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
-  
-#   vtk_points = vtk.vtkPoints()
-#   for p in voxel_centers:
-#     vtk_points.InsertNextPoint(p)
-#   polydata = vtk.vtkPolyData()
-#   polydata.SetPoints(vtk_points)
-#   matviz_vtk.show_write_vtk(polydata,1000,"voxel_centers.vtp")
+
   if args.target == "surface_mesh" or args.target == "contour":
     ############################ new surface mesh approach ####################
     # binary helper array
@@ -963,14 +956,22 @@ def generate_basecell(args,info,log,offset=0):
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
     
+    outputData = polydata
+    
+    if args.tets:
+      fillHoles = vtk.vtkFillHolesFilter()
+      fillHoles.SetInputData(polydata)
+      fillHoles.SetHoleSize(1e6)
+      fillHoles.Update()
+      outputData = fillHoles.GetOutput() 
+    
     if args.save:
       stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
-      matviz_vtk.write_stl(polydata,stlName)
+      matviz_vtk.write_stl(outputData,stlName)
     
-    if args.save_vtp:  
-      matviz_vtk.show_write_vtk(polydata,1000,args.save+".vtp")
+    if args.save_vtp:
+      matviz_vtk.show_write_vtk(outputData,1000,args.save+".vtp")
     
-
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
@@ -1088,7 +1089,7 @@ def calc_radius(profile,x,rad):
 # @param array: stores voxelized info on profile
 # @param profile: profile of interest
 # @param overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0 
-def write_profile_to_array(array,profile,overlap,voxel_centers):
+def write_profile_to_array(array,profile,overlap):
   res = array.shape[0]
   
   bound = res if not symmetric else int(res/2)
@@ -1108,13 +1109,20 @@ def write_profile_to_array(array,profile,overlap,voxel_centers):
         major = profile.direction
         minor_1, minor_2 = give_normal_plane_axes(major)
         idx = [i,j,k]
-        if (valx-r <= 1e-6):
-          tmp = np.zeros(3)
-          tmp[major] = x
-          tmp[minor_1] = y
-          tmp[minor_2] = z
-          
-          voxel_centers.append(tmp)
+        
+        # comparing radii only gives voxels inside the profile, but not
+        # voxel that are crossed by a profile surface line;
+        # thus, check also if the projection of the voxel center  lies 
+        # within the voxel bounds --> better: check for many point samples
+        # inside the voxel, but this is too costly
+        center = np.zeros(3)
+        center[major] = x
+        center[minor_1] = y
+        center[minor_2] = z
+        
+        projection = calc_projection(profile, center)
+        if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
+#         if (valx-r <= 1e-6):
           # detected overlap of profiles
           if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
             point = radius_to_3d_coords(profile,x,phi)
@@ -1331,17 +1339,6 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
   
   new_verts = []
   for count,v in enumerate(verts):
-#     projections = []
-#     for d in range(0,3):
-#       # project vertex onto all three profiles
-#       major = profiles[d].direction
-#       minor_1, minor_2 = give_normal_plane_axes(major)
-#       phi = angle_to_center((v[minor_1],v[minor_2]))
-#       projections.append(radius_to_3d_coords(profiles[d], v[major], phi))
-#     
-#     print("v:",v)
-#     print("projections:",projections)  
-#     
     # for corner voxels, v may lie on interface between two (surface and invalid) voxels
     # thus, consider both voxels and check which one to go for
     for f,g,h in product([1e-6,-1e-6],[1e-6,-1e-6],[1e-6,-1e-6]):
@@ -1365,7 +1362,7 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
       points.append(o)
     
     b = give_average_point(points)
-    point = v + 0.5 * (b-v)   
+    point = v + 0.4 * (b-v)   
       
     assert(point is not None) 
     
@@ -1387,31 +1384,6 @@ def adjust_surface_points(profiles,verts,normals,voxels,overlap):
     new_verts.append(point)
   
   return new_verts       
-
-# calculates a correct surface point location using info on profiles
-# based on an approximation
-# @param profiles: array with all 3 profiles
-# @param v: approximation for point of interest; tuple/list with 3 coord components
-# @param major_dir: major profile direction
-def adjust_surface_point(profile,v):
-  major_dir = profile.direction
-  if not (major_dir == 0 or major_dir == 1 or major_dir == 2):
-    print(major_dir)
-  assert(major_dir == 0 or major_dir == 1 or major_dir == 2)
-    
-  # which 2D plane?
-  minor_1, minor_2 = give_normal_plane_axes(major_dir)
-  # angle in radians
-  phi = angle_to_center((v[minor_1],v[minor_2]))
-  
-  rad = calc_radius(profile, v[major_dir], phi)   
-  px,py = polar_to_cartesian(rad,phi)
-  point = np.ones(3)*(-1)
-  point[major_dir] = v[major_dir]
-  point[minor_1] = px
-  point[minor_2] = py
-  
-  return point
 
 def give_average_point(points):
   assert(len(points) > 0)
@@ -1600,3 +1572,32 @@ def radius_to_3d_coords(profile,x,phi):
   point[minor_2] = py
  
   return point
+
+# returns orthorgonal projection of given point p onto given profile
+def calc_projection(profile,p):
+  # get directional info for mapping from 3d to polar coords and vice versa
+  major = profile.direction
+  assert(major == 0 or major == 1 or major == 2)
+  minor_1, minor_2 = give_normal_plane_axes(major)
+  # calculate angle
+  phi = angle_to_center((p[minor_1],p[minor_2]))
+  
+  return radius_to_3d_coords(profile, p[major], phi)
+
+# check if given point p lies in voxel with barycenter center
+def point_inside_voxel(center,p):
+  # find eight vertices of voxel using info on barycenter
+  # coordinate system is defined as in Paraview, see mesh_tool create_3d_mesh() for sketch
+  step = 1/res/2 # half of cubes side length
+  x_min = center[0]-step
+  x_max = center[0]+step
+  y_min = center[1]-step
+  y_max = center[1]+step
+  z_min = center[2]-step
+  z_max = center[2]+step
+  eps = 1e-6
+ 
+  if p[0] >= x_min-eps and p[0] <= x_max+eps and p[1] >= y_min-eps and p[1] <= y_max+eps and p[2] >= z_min-eps and p[2] <= z_max+eps:
+    return True
+  else:
+    return False
