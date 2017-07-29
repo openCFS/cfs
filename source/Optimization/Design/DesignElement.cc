@@ -750,6 +750,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
+  ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
 

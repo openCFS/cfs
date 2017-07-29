@@ -560,12 +560,10 @@ DesignSpace* Domain::GetDesign(bool throw_exception)
 Grid* Domain::GetGrid(const std::string& id)
 {
   if (gridMap_.find(id) == gridMap_.end())
-  {
-    EXCEPTION( "Grid with id '" << id
-        << "' is not defined" );
-  }
+    EXCEPTION( "Grid with id '" << id << "' is not defined" );
   return gridMap_[id];
 }
+
 
 CoordSystem* Domain::GetCoordSystem(const std::string & name)
 {
