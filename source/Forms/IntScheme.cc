@@ -966,7 +966,7 @@ void IntScheme::DefineQuadPoints( IntegMethod method, const IntegOrder& order,
 void IntScheme::DefineTetPoints( IntegMethod method, const IntegOrder& order,
                                  StdVector<LocPoint>& points, 
                                  StdVector<Double>& weights ) {
-  if (method == GAUSS || GAUSS_ECO ) {
+  if (method == GAUSS || method == GAUSS_ECO ) {
     // -------------------------
     //  GAUSS - Legendre Points
     // -------------------------
