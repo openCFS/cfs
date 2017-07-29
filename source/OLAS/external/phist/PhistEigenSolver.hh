@@ -4,9 +4,6 @@
 #include "OLAS/solver/BaseEigenSolver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
-class ghost_sparsemat;
-class ghost_densemat;
-
 namespace CoupledField {
   
   class StdMatrix;
@@ -98,18 +95,6 @@ namespace CoupledField {
     const StdMatrix* matrixA_;
     //! mass matrix B
     const StdMatrix* matrixB_;
-
-    //! ghost stiffness matrix A
-    ghost_sparsemat* A_;
-
-    //! ghost mass matrix B
-    ghost_sparsemat* B_;
-
-    //! input vector x
-    ghost_densemat* x_;
-
-    //! output vector y
-    ghost_densemat* y_;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;

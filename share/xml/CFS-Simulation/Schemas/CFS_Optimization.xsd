@@ -1153,21 +1153,54 @@
             <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                   <xsd:element name="rod" minOccurs="0" maxOccurs="unbounded">
+                   <xsd:element name="center" minOccurs="0" maxOccurs="unbounded">
                      <xsd:annotation>
-                       <xsd:documentation>3D only: defines a rod by two nodes with different dofs</xsd:documentation>
+                       <xsd:documentation>3D only: defines a rod/tube center by two nodes with different dofs</xsd:documentation>
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:sequence>
-                          <xsd:element name="node" minOccurs="2" maxOccurs="2" type="DT_ShapeNode"/>
+                          <xsd:element name="node" minOccurs="2" maxOccurs="2">
+                            <xsd:complexType>
+                              <xsd:attribute name="dof" use="required" type="DT_Axis" />
+                              <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+<!--                               <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                              <xsd:attribute name="initial" type="xsd:token" use="required" />
+                              <xsd:attribute name="lower" type="xsd:token" use="required" />
+                              <xsd:attribute name="upper" type="xsd:token" use="required" />
+                           </xsd:complexType>
+                          </xsd:element>
                         </xsd:sequence>
+                        <!-- the center attributes -->
+                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
+                        <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- induces shape with other dof -->
+                        <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
                       </xsd:complexType>
                    </xsd:element>
 
-                   <xsd:element name="node" minOccurs="0" maxOccurs="unbounded" type="DT_ShapeNode">
+                   <xsd:element name="node" minOccurs="0" maxOccurs="unbounded">
                      <xsd:annotation>
                        <xsd:documentation>In 2D mandatory. With dof=x for every y a x is the variable.</xsd:documentation>
                       </xsd:annotation>
+                      <xsd:complexType>
+                        <xsd:attribute name="dof" use="required" type="DT_Axis" />
+                         <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+                         <xsd:attribute name="initial" type="xsd:token" use="required" />
+                        <xsd:attribute name="lower" type="xsd:token" use="required" />
+                        <xsd:attribute name="upper" type="xsd:token" use="required" />
+                        <!-- alternative to lower, uppde and initial when it is implemented to not have a design variable -->
+                        <!-- <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                        <!-- optional symmetries -->
+                        <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- induces shape with other dof -->
+                        <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- Gives a relative bound for the start and end value of the first 
+                          and last node (respects symmetry). Overwrites shapeMap relative_*_bound if 
+                          given. Negative disables. -->
+                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
+                      </xsd:complexType>
                    </xsd:element>
                    
                    <xsd:element name="profile" minOccurs="1" maxOccurs="1">
@@ -2459,25 +2492,6 @@
     <xsd:attribute name="optimizeDamping" type="xsd:boolean"
       use="optional" default="false" />
     <xsd:attribute name="trace" type="xsd:float" default="3.0" />
-  </xsd:complexType>
-
-  <xsd:complexType name="DT_ShapeNode">
-    <xsd:attribute name="dof" use="required" type="DT_Axis" />
-    <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
-    <xsd:attribute name="initial" type="xsd:token" use="required" />
-    <xsd:attribute name="lower" type="xsd:token" use="required" />
-    <xsd:attribute name="upper" type="xsd:token" use="required" />
-    <!-- alternative to lower, uppde and initial when it is implemented to not have a design variable -->
-    <!-- <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
-    <!-- optional symmetries -->
-    <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
-    <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-    <!-- induces shape with other dof -->
-    <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
-    <!-- Gives a relative bound for the start and end value of the first 
-      and last node (respects symmetry). Overwrites shapeMap relative_*_bound if 
-      given. Negative disables. -->
-    <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
   </xsd:complexType>
 
 </xsd:schema>

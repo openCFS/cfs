@@ -55,6 +55,8 @@ public:
 
   /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D XY->Z, YZ->X, XZ->Y */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
+  /** Flip dof for center pairs: X,Y -> Z */
+  static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof first, ShapeParamElement::Dof second);
 
   /** In case DesignSpace::FindDesign() searches for NODE and PROFILE.
    * @return either DesignSpace::FindDesign() or the index within shape_ */
@@ -94,8 +96,8 @@ public:
   static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
 
   /** This are principal shape types from where NODE and PROFILE are repeated in BaseDesignElement::Type.
-   * Node has two meanings in 3D: a singular NODE is a surface and two NODEs are part of a ROD. */
-  typedef enum { NODE = 0, PROFILE = 1} Type;
+   * a "center" structure contains two nodes is only 3D and contains  */
+  typedef enum { CENTER = -1, NODE = 0, PROFILE = 1} Type;
 
   static Enum<Type> type;
 
@@ -107,14 +109,19 @@ public:
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
-  /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
+
+  /** A ShapeParam corresponds with the xml entries node and profile and stores the upper and lower bounds.
+   *  It corresponds with many design elements of type ShapeParamElement.
+   *  The 3D center case is composed by two NODE elements - this connection is encoded in center_idx. */
   struct ShapeParam
   {
     /** Note that we need a default constructor for StdVector. The symmetry pointers for profile are not set yet!
+     * We assume idx to be set to >=0 for nodes or -1 for center
      * @param pn node for the shape
-     * @param node reference for profile only to copy sym and orientation, ...
+     * @param base reference for profile or center nodes only to copy sym and orientation, ...
      * @param flip_orientation reinterpret direction for diagonal mirroring. Only for node, not again for profile */
-    void Init(PtrParamNode pn, unsigned int idx, ShapeParam* node, bool flip_orientation = false);
+    void ParseAndInit(PtrParamNode pn, ShapeParam* base, bool flip_orientation = false);
+
     void ToInfo(PtrParamNode pn);
 
     /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape.
@@ -131,7 +138,16 @@ public:
     std::string ToString() const;
 
     Type type = NODE; // NODE or PROFILE will also be set in Init
-    int idx = -1;
+    int idx = -2; // number of shape param. -1 for CENTER
+
+    /** a 3D center has two nodes. The point via other_center to each other. NULL means that we are not part of a center.
+     * The shape_param with with the lower idx is defined as first, the other as second.
+     * The links are chained, hence if other_center != NULL then this shall hold: this->other_center->other_center == this */
+    ShapeParam* other_center = NULL;
+
+    /** the partner of a node is a profile and vice versa. node idx < profile idx */
+    ShapeParam* partner = NULL;
+
     ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
     std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
     std::string upper; //
@@ -157,7 +173,7 @@ public:
     /** this is the end of the optimization, reflects symmetry and is -1 if no design */
     int end_opt = -1;
 
-    /** the orientation of the shape is in 2D the complementary */
+    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
     ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
 
     /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
@@ -177,6 +193,11 @@ public:
     ShapeParam* sym_ortho = NULL; // same direction
     ShapeParam* sym_diag  = NULL; // changed direction to base shape
     ShapeParam* sym_diag_ortho = NULL; // first diag, then ortho -> changed direction to base shape
+
+  private:
+    /** little helper which reads only bounds and values */
+    static void ParseBounds(ShapeParam* target, const PtrParamNode& pn);
+    void InheritProperties(ShapeParam* base);
   };
 
 protected:
@@ -212,6 +233,9 @@ protected:
 
   /** Search in shape_ */
   StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, ShapeParamElement::Dof dof);
+
+  /** centers have in xml two nodes as children. They are not stored as center in shape_ but need to be searched. */
+  StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
 
   /** search for the corresponding shape */
   ShapeParam* FindShape(const ShapeParamElement* spe);
@@ -469,7 +493,7 @@ protected:
    * Smaller 5 has poor numerics, larger 10 might become expensive */
   unsigned int order_;
 
-  /** order_ * order */
+  /** order_ * order_ in 2D and order_^3 for 3D */
   unsigned int order_order_;
 
   /** shortcut to the dimension (2,3) */
@@ -486,6 +510,9 @@ protected:
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
+
+private:
+  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 };
 
 } // end of name space

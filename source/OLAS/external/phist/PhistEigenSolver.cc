@@ -19,27 +19,13 @@
 #include "PhistEigenSolver.hh"
 
 #include <mpi.h>
-#include <ghost.h>
-#include <phist_config.h>
-#include <phist_tools.h>
+
+
 #include <phist_kernels.h>
-#include "phist_core.h"
-#include "phist_MemOwner.hpp"
-#include "phist_get_arg.hpp"
-
-#include "phist_jadaOpts.h"
 #include "phist_subspacejada.h"
-#include "phist_harmonicjada.h"
-#include "phist_precon.h"
-// needed for ComputeEigenvectors
 #include "phist_schur_decomp.h"
-
+#include <phist_gen_d.h>
 #include "phist_driver_utils.h"
-
-
-#include "phist_ScalarTraits.hpp"
-#include "phist_MemOwner.hpp"
-#include "phist_std_typedefs.hpp"
 
 
 DECLARE_LOG(pes)
@@ -56,18 +42,14 @@ namespace CoupledField {
   {
     matrixA_      = NULL;
     matrixB_      = NULL;
-    A_ = NULL;
-    B_ = NULL;
-    x_ = NULL;
-    y_ = NULL;
     xml_          = xml;
   }
 
   PhistEigenSolver::~PhistEigenSolver()
   {
-    ghost_sparsemat_destroy(A_);
-    ghost_densemat_destroy(x_);
-    ghost_densemat_destroy(y_);
+//    ghost_sparsemat_destroy(A_);
+    //ghost_densemat_destroy(x_);
+    //ghost_densemat_destroy(y_);
 
     matrixA_ = NULL;
     matrixB_ = NULL;
@@ -96,7 +78,7 @@ namespace CoupledField {
   /** implementation of phist_sparseMat_rowFunc which is called for every row to copy the sparse matrix data
    * @param row global row index (int64 by default)
    * @param nnz of row (output, int)
-   * @param col - column indices of row (output, int)
+   * @param col - column indices of row (output)
    * @param values values of row (output)
    * @param service - cfs internal use: pointer to cfs matrix */
   int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
@@ -111,12 +93,17 @@ namespace CoupledField {
 
     double* data = (double*) values;
 
+    StdVector<int> cols(*row_nnz); // KILLME only for debug output
     unsigned int base = mat->GetRowPointer()[row];
-    for(int i = 0; i < *row_nnz; i++)
+    for(int i = 0; i < *row_nnz; i++) {
       row_col[i] = mat->GetColPointer()[base + i];
+      cols[i] = row_col[i];
+    }
 
     for(int i = 0; i < *row_nnz; i++)
       data[i] = mat->GetDataPointer()[base + i];
+
+    LOG_DBG2(pes) << "SMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
 
     return 0; // all ok
   }
@@ -169,17 +156,25 @@ namespace CoupledField {
     opts.innerSolvMaxIters = 10;
     opts.innerSolvRobust = 1;
 
-
     // create stiffness and mass matrix for phist - which will be ghost matrices
     phist_DsparseMat_ptr A, B;
 
-    const CRS_Matrix<double>& stiff =  dynamic_cast<const CRS_Matrix<double>&>(stiffMat);
-    phist_DsparseMat_create_fromRowFunc(&A, comm, stiff.GetNumRows(), stiff.GetNumRows(), stiff.GetNnz(), SparseMatRowFunc, (void*) &stiff, &err);
+    const CRS_Matrix<double>* stiff =  dynamic_cast<const CRS_Matrix<double>*>(&stiffMat);
+    assert(stiff != NULL);
+    phist_lidx max_nne = stiff->GetMaxRowSize();
+    LOG_DBG(pes) << " max row nnz=" << max_nne;
+    LOG_DBG2(pes) << " row=" << ToString<unsigned int>(stiff->GetRowPointer(), stiff->GetNumRows()+1);
+    LOG_DBG2(pes) << " col=" << ToString<unsigned int>(stiff->GetColPointer(), stiff->GetNnz());
+    LOG_DBG2(pes) << " val=" << ToString<double>(stiff->GetDataPointer(), stiff->GetNnz());
+    assert(stiff->GetNumRows() == stiff->GetNumCols());
+    phist_DsparseMat_create_fromRowFunc(&A, comm, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SparseMatRowFunc, (void*) stiff, &err);
     assert(err == 0);
     LOG_DBG(pes) << "create A -> " << err;
 
-    const CRS_Matrix<double>& mass =  dynamic_cast<const CRS_Matrix<double>&>(massMat);
-    phist_DsparseMat_create_fromRowFunc(&B, comm, mass.GetNumRows(), mass.GetNumRows(), mass.GetNnz(), SparseMatRowFunc, (void*) &mass, &err);
+
+    const CRS_Matrix<double>* mass =  dynamic_cast<const CRS_Matrix<double>*>(&massMat);
+    assert(mass != NULL);
+    phist_DsparseMat_create_fromRowFunc(&B, comm, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SparseMatRowFunc, (void*) mass, &err);
     assert(err == 0);
     LOG_DBG(pes) << "create B -> " << err;
 
@@ -189,7 +184,7 @@ namespace CoupledField {
     phist_DlinearOp_ptr opA = new phist_DlinearOp();
 
     // we need the domain map of the matrix
-    const_map_ptr map = NULL;
+    phist_const_map_ptr map = NULL;
     phist_DsparseMat_get_domain_map(A,&map,&err);
     LOG_DBG(pes) << "phist_DsparseMat_get_domain_map -> " << err;
     assert(err == 0);
