@@ -53,7 +53,7 @@ public:
 
   virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
 
-  /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D XY->Z, YZ->X, XZ->Y */
+  /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D this fails! */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
   /** Flip dof for center pairs: X,Y -> Z */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof first, ShapeParamElement::Dof second);

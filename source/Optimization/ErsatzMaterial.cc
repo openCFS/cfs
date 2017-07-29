@@ -2819,7 +2819,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     LOG_DBG3(em) << "CSTAN node=" << node << " u=" << stateSol[0];
     assert(stateSol[0] > -1e15);
-    assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal));
+    assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal) > 0);
     assert(factor > 0);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;

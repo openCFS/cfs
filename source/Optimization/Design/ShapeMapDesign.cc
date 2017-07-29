@@ -375,35 +375,6 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
        assert(false);
        break;
 
-     case ShapeParamElement::XY: // other = Z
-         for(unsigned int x = 0; x < nx_; x++)
-           for (unsigned int y = 0; y < ny_; y++)  {
-             if(other_idx < other_max)
-               map_[DensityIdx(x, y, other_idx  )].nodes.Push_back(&spe);
-             if(other_idx -1 >= 0)
-               map_[DensityIdx(x, y, other_idx-1)].nodes.Push_back(&spe);
-           }
-         break;
-
-     case ShapeParamElement::YZ: // other = X
-       for(unsigned int y = 0; y < ny_; y++)
-         for (unsigned int z = 0; z < nz_; z++)  {
-           if(other_idx < other_max)
-             map_[DensityIdx(other_idx  , y, z)].nodes.Push_back(&spe);
-           if(other_idx -1 >= 0)
-             map_[DensityIdx(other_idx-1, y, z)].nodes.Push_back(&spe);
-         }
-       break;
-
-     case ShapeParamElement::XZ: // other = Y
-       for(unsigned int x = 0; x < nx_; x++)
-         for (unsigned int z = 0; z < nz_; z++)  {
-           if(other_idx < other_max)
-             map_[DensityIdx(x, other_idx  , z)].nodes.Push_back(&spe);
-           if(other_idx -1 >= 0)
-             map_[DensityIdx(x, other_idx-1, z)].nodes.Push_back(&spe);
-         }
-       break;
 
      case ShapeParamElement::NOT_SET:
        assert(false);
@@ -1556,29 +1527,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  }
 
 
-ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
+inline ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
 {
-  switch(dof) {
-  case ShapeParamElement::X:
-    return dim_ == 2 ? ShapeParamElement::Y : ShapeParamElement::YZ;
-  case ShapeParamElement::Y:
-    return dim_ == 2 ? ShapeParamElement::X : ShapeParamElement::XZ;
-  case ShapeParamElement::Z:
-    assert(dim_ == 3);
-    return ShapeParamElement::XY;
-  case ShapeParamElement::XY:
-    assert(dim_ == 3);
-    return ShapeParamElement::Z;
-  case ShapeParamElement::YZ:
-    assert(dim_ == 3);
-    return ShapeParamElement::X;
-  case ShapeParamElement::XZ:
-    assert(dim_ == 3);
-    return ShapeParamElement::Y;
-  case ShapeParamElement::NOT_SET:
-    assert(false);
-  }
-  return ShapeParamElement::NOT_SET;
+  assert(dof != ShapeParamElement::NOT_SET);
+  assert(dim_ == 2);
+  assert(dof == ShapeParamElement::X || dof == ShapeParamElement::Y);
+  return dof == ShapeParamElement::X ? ShapeParamElement::Y : ShapeParamElement::X;
 }
 
 
