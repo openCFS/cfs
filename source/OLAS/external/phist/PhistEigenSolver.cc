@@ -232,8 +232,9 @@ namespace CoupledField {
     int nIter=opts.maxIters;
     int nEig = (int) numFreq;
 
-    // The actual calculation !!! - non harmonic case
-    // QR-factorization, QR=orthogonal ev basis , R=upper triangular matrix, ev are on the diagonal
+    // The actual calculation !!! - standard Ritz values for exterior eigenvalues.
+    // QR-factorization, Q=orthogonal ev basis , R=upper triangular matrix, ev are on the diagonal,
+    // A*Q = B*Q*R holds
     assert(opts.how != phist_HARMONIC);
 
     phist_Dsubspacejada(opA, opB, opts, Q, R, ev.GetPointer(), resNorm.GetPointer(), &nEig, &nIter, &err);
@@ -252,13 +253,33 @@ namespace CoupledField {
     assert(err >= 0);
 
     // skip calculation of eigenvector residuals
+    
+    // download X from GPU if applicable
+    phist_Dmvec_from_device(X,&err);
+    assert(err == 0);
 
     // get pointer to row/col major block of vectors
     double* xval = NULL; // will be set to memory owned by phist
-    phist_lidx lda;
-    phist_Dmvec_extract_view(&X,&xval,&lda,&err);
+    phist_lidx lda, nloc;
+    phist_Dmvec_my_length(X,&nloc,&err);
     assert(err == 0);
-
+    phist_Dmvec_extract_view(X,&xval,&lda,&err);
+    assert(err == 0);
+    
+    // this is how one can extract the eigenvectors.
+    // TODO: move all of this to CalcEigenFrequencies and other functions below
+/*
+    for (int j=0; j<nEig; j++)
+    {
+      for (int i=0; i<nloc; i++)
+      {
+#ifdef PHIST_MVECS_ROW_MAJOR
+         mode_j[i]=xval[i*lda+j];
+#else
+         mode_j[i]=xval[j*lda+i];
+#endif
+    }
+*/
     ToInfo();
   }
 
