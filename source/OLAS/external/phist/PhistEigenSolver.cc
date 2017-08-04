@@ -19,8 +19,6 @@
 #include "PhistEigenSolver.hh"
 
 #include <mpi.h>
-
-
 #include <phist_kernels.h>
 #include "phist_subspacejada.h"
 #include "phist_schur_decomp.h"
@@ -40,19 +38,19 @@ namespace CoupledField {
                                         PtrParamNode eigenInfo)
     : BaseEigenSolver( strat, xml, solverList, precondList, eigenInfo )
   {
-    matrixA_      = NULL;
-    matrixB_      = NULL;
-    xml_          = xml;
+    A_   = NULL;
+    B_   = NULL;
+    xml_ = xml;
   }
 
   PhistEigenSolver::~PhistEigenSolver()
   {
-//    ghost_sparsemat_destroy(A_);
+    // TODO destroy A_ and B_!!
+    // ghost_sparsemat_destroy(A_);
+    A_ = NULL;
+    B_ = NULL;
     //ghost_densemat_destroy(x_);
     //ghost_densemat_destroy(y_);
-
-    matrixA_ = NULL;
-    matrixB_ = NULL;
 
 
     ghost_finalize();
@@ -156,9 +154,11 @@ namespace CoupledField {
     opts.innerSolvMaxIters = 10;
     opts.innerSolvRobust = 1;
 
-    // create stiffness and mass matrix for phist - which will be ghost matrices
-    phist_DsparseMat_ptr A, B;
+    // for include stuff issues, A_ and B_ attributes are not of full type
+    phist_DsparseMat* A = (phist_DsparseMat*) A_;
+    phist_DsparseMat* B = (phist_DsparseMat*) B_;
 
+    // create stiffness and mass matrix for phist - which will be ghost matrices
     const CRS_Matrix<double>* stiff =  dynamic_cast<const CRS_Matrix<double>*>(&stiffMat);
     assert(stiff != NULL);
     phist_lidx max_nne = stiff->GetMaxRowSize();
@@ -171,7 +171,6 @@ namespace CoupledField {
     assert(err == 0);
     LOG_DBG(pes) << "create A -> " << err;
 
-
     const CRS_Matrix<double>* mass =  dynamic_cast<const CRS_Matrix<double>*>(&massMat);
     assert(mass != NULL);
     phist_DsparseMat_create_fromRowFunc(&B, comm, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SparseMatRowFunc, (void*) mass, &err);
@@ -179,7 +178,6 @@ namespace CoupledField {
     LOG_DBG(pes) << "create B -> " << err;
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
-
     // create an operator from A
     phist_DlinearOp_ptr opA = new phist_DlinearOp();
 

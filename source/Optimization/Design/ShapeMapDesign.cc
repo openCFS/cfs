@@ -149,9 +149,14 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      throw Exception("provide at least a 'center' or 'node' entry for 'shapeMap'");
 
    // first we add the shapes, as we might induce additional shapes during ParseAndInit we add the profiles later. We must not resize during push_back, therefore check the initial guess
-   unsigned int estimate = dim_ == 2 ? (2 * nodes.GetSize() * 4) : (2 * 2 * (nodes.GetSize() + centers.GetSize()) * 4); // first two 2 for profile and 4 for symmetry
+   unsigned int estimate = -1;
+   if(dim_ == 2)
+     estimate = 2 * nodes.GetSize() * 4; // 2 for profile and 4 for symmetry
+   else
+     estimate = (2 * nodes.GetSize() + 3 * centers.GetSize()) * 4; // 2 for profile, 3 for two nodes and one profile and 4 for symmetry
    shape_.Reserve(estimate);
 
+   // 3d only: centers exist only in xml and have two node childs
    for(unsigned int i = 0; i < centers.GetSize(); i++)
    {
      // note that base is never stored itself but only its sub nodes to be found by FindCenters()
@@ -190,6 +195,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      }
    }
 
+   // nodes are mandatory in 2D and in 3D surfaces beside the center rods
    for(unsigned int i = 0; i < nodes.GetSize(); i++)
    {
      shape_.Push_back(ShapeParam());
@@ -204,34 +210,48 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    assert(shape_.GetSize() <= estimate);
    num_node_shapes_ = shape_.GetSize();
 
-   // now add the profiles
+   // set node indices
+   for(unsigned int i = 0; i < num_node_shapes_; i++)
+     shape_[i].idx = i;
+
+   // now add the profiles where 3D center nodes share on profile!
    for(unsigned int i = 0; i < (unsigned int) num_node_shapes_; i++)
    {
      ShapeParam* nodal = &shape_[i];
-     shape_.Push_back(ShapeParam());
-     ShapeParam* prof = &shape_.Last(); // don't shadow the profile ParamNode
-     nodal->partner = prof;
-     prof->partner = nodal;
-     prof->ParseAndInit(profile, nodal); // one profile for each node shape, give reverence to node to copy sym and orientation
-     assert(!(nodal->sym_induced && !prof->sym_induced));
-     assert(prof->sym_ortho == NULL && prof->sym_diag == NULL && prof->sym_diag_ortho == NULL); // needs to be set later
+     if(nodal->IsSecondCenterNode())
+     {
+       // we are second center node and the first center node added the profile before!
+       assert(nodal->GetFirstCenterNode() != NULL);
+       assert(nodal->GetFirstCenterNode() != nodal);
+       assert(nodal->GetFirstCenterNode()->partner != NULL && nodal->GetFirstCenterNode()->partner->type == PROFILE);
+       assert(nodal == nodal->GetSecondCenterNode());
+       // link the profile added before by the first center node to the second center node as partner
+       nodal->partner = nodal->GetFirstCenterNode()->partner;
+     }
+     else
+     {
+       // first center node case or any other 2D or 3D case with a 1:1 node to profile link
+       shape_.Push_back(ShapeParam());
+       ShapeParam* prof = &shape_.Last(); // don't shadow the profile ParamNode
+       prof->idx = shape_.GetSize() - 1;
+       nodal->partner = prof;
+       prof->partner = nodal;
+       prof->ParseAndInit(profile, nodal); // one profile for each node shape, give reverence to node to copy sym and orientation
+       assert(prof->other_center == NULL); // we don't have this in profile
+       assert(!(nodal->sym_induced && !prof->sym_induced));
+       assert(prof->sym_ortho == NULL && prof->sym_diag == NULL && prof->sym_diag_ortho == NULL); // needs to be set later
+     }
    }
    assert(shape_.GetSize() <= estimate);
-   assert((int) shape_.GetSize() == 2 * num_node_shapes_);
+   assert((int) shape_.GetSize() <= 2 * num_node_shapes_);
 
-   // set all indices
-   for(unsigned int i = 0; i < shape_.GetSize(); i++)
-     shape_[i].idx = i;
 
-   // now set the symmetry other_center links for profiles
+   // now set the symmetry links for profiles
    for(unsigned int i = 0; i <  (unsigned int) num_node_shapes_; i++)
    {
      ShapeParam& node    = shape_[i];
      ShapeParam* profile = node.partner;
-     assert(profile->idx == num_node_shapes_ + (int) i);
-
-     if(node.other_center != NULL)
-       profile->other_center = node.other_center->partner;
+     assert(dim_ == 3 || profile->idx == num_node_shapes_ + (int) i); // 3D center nodes are not 1:1 with profile
 
      assert((node.sym_induced && profile->sym_induced) || (!node.sym_induced && !profile->sym_induced));
      assert(profile->sym_ortho == NULL && profile->sym_diag == NULL && profile->sym_diag_ortho == NULL); // not set yet
@@ -255,9 +275,8 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
 
  void ShapeMapDesign::SetupShapeParam()
  {
-   // we assume that we may Resize() shape_param_ when we estimate the capacity wrong!
+   // we must not Resize() shape_param_!
    // for 3D with surfaces instead of rods we estimate to low
-
    unsigned int max_size = *(std::max_element(&n_.First(), &n_.Last()));
    LOG_DBG(SMD) << "SSP: max_size=" << max_size << " from " << n_.ToString();
    assert(max_size >= nx_ && max_size >= ny_ && max_size >= nz_);
@@ -292,7 +311,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    {
      ShapeParam& node = shape_[n];
      ShapeParam& prof = *(node.partner);
-     assert(prof.idx == num_node_shapes_ + n);
+     assert(dim_ == 3 || prof.idx == num_node_shapes_ + n);
      assert(node.type == NODE && prof.type == PROFILE);
      prof.start_param = shape_param_.GetSize();
      for(int e = 0; e < node.end_param - node.start_param; e++)
@@ -301,10 +320,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
-   assert((int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
-
-   // save a little of probably superfluous space
-   shape_param_.Trim();
+   assert(dim_ == 3 || (int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // doubles variables for 2D. In 3D different for center nodes
 
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
@@ -316,71 +332,168 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
      map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
-     // each design node connects to two density elements and for 3D rods four density elements but a rod is has two node shapes
+     // each design node connects to two density elements, also for 3D center node rods
      // this comes from the bilinear interpolation.
-     // TODO: check we have no 3D surface stuff here!
      map_[i].nodes.Reserve(2 * num_node_shapes_);
      if(overlap_ == MAX)
-     {
-       map_[i].ip_param_idx.Resize(order_order_);
-       map_[i].ip_param_idx.Init(-1);
-     }
+       map_[i].ip_param_idx.Resize(order_order_, -1);
    }
+
+
+   LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map_.GetSize() << " n_=" << n_.ToString();
 
    // now set the nodes idx in map_::nodes. For every rho we store here the two (2D) or 4 (3D surface) ShapeParamElements which have an bilinear interpolation
    // within the node per shape
-   for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeParamElements an set it to the proper map_::nodes
+
+   if(dim_ == 2)
    {
-     ShapeParamElement& spe = shape_param_[i];
-     ShapeParam* shape = FindShape(&spe);
+     // Assume 2D with dof=x. Then for every y there is a x-variable
+     // The mapping is now such, that
+     // x0 variable effects all rho from the bottom horizontal row.
+     // x1 affects the bottom row (idx=0) and the one above (idx=1).
+     // x2 affects the rows with idx=1 and idx=2,
+     // x3 affects the upper row only.
+     // -----------------
+     // |    x3         |
+     // |     x2        |
+     // |      x1       |
+     // |     x0        |
+     // -----------------
 
-     // in 2D assume spe.dof == X. This spe has a given y in spe.idx[1].
-     // Then for all x in nx_ we add this spe to map_[DensityIdx(x, y)].nodes and map_[DensityIdx(x, y-1)].nodes
-     // Same holds for 3D rods (center pairs of separate nodes)
-
-     // in 3D surface only we assume spe.dof == XY. This spe has a given z in spe.idx[1].
-     // Then for all x in nx_ and y in ny_ we add this spe to map_[DensityIdx(x, y, z)].nodes and map_[DensityIdx(x, y, z-1)].nodes
-
-     int other_idx = spe.idx[(int) Flip(spe.dof_)]; // 2D: for dof==X we read y_idx. 3D: for dof=XY we read z_idx. Must not be unsigned int!!
-     int other_max = n_[(int) Flip(spe.dof_)];
-     assert(other_idx >= 0);
-
-     switch(spe.dof_)
+     for(int i = 0; i < num_node_shape_params_; i++)
      {
-     case ShapeParamElement::X:
-       assert(dim_ == 2);
-       for(unsigned x = 0; x < nx_; x++) {
-         // if we are not the last or "are we the topmost node ontop of the last element?"
-         if(other_idx < other_max)
-           map_[DensityIdx(x, other_idx  )].nodes.Push_back(&spe);
+       ShapeParamElement& spe = shape_param_[i];
 
-         // if we are not the first or "node 2 participates to the lower element (2-1) and the upper element (2)"
-         if(other_idx -1 >= 0)
-           map_[DensityIdx(x, other_idx-1)].nodes.Push_back(&spe);
+       LOG_DBG2(SMD) << "SSP: spe=" << spe.ToString() << " idx=" << spe.idx.ToString();
+
+       switch(spe.dof_)
+       {
+       case ShapeParamElement::X:
+       {
+         int y = spe.idx[1];
+         assert(y >= 0);
+
+         // exclude the case where the y node is at the upper boundary (one node more than elements!)
+         for(unsigned int x = 0; x < nx_; x++){
+           LOG_DBG2(SMD) << "SSP: x=" << x << ", y=" << y << " -> " << DensityIdx(x, y);
+           if(y < (int) ny_) // are we the topmost node ontop of the last element
+             map_[DensityIdx(x, y)].nodes.Push_back(&spe);
+           if(y-1 >= (int) 0) // node 2 participates to the lower element (2-1) and the upper element (2)
+             map_[DensityIdx(x, y-1)].nodes.Push_back(&spe);
+         }
+         break;
        }
-       break;
-
-     case ShapeParamElement::Y:
-       assert(dim_ == 2);
-       for(unsigned y = 0; y < ny_; y++) {
-         if(other_idx < other_max)
-           map_[DensityIdx(other_idx , y)].nodes.Push_back(&spe);
-
-         if(other_idx -1 >= 0)
-           map_[DensityIdx(other_idx-1, y)].nodes.Push_back(&spe);
+       case ShapeParamElement::Y:
+       {
+         int x = spe.idx[0];
+         for(unsigned y = 0; y < ny_; y++)  {
+           LOG_DBG2(SMD) << "SSP: x=" << x << (x < (int) nx_ ? "+" : "!") << ", y=" << y << " -> " << DensityIdx(x, y);
+           if(x < (int) nx_)
+             map_[DensityIdx(x, y)].nodes.Push_back(&spe);
+           if(x-1 >= 0)
+             map_[DensityIdx(x-1, y)].nodes.Push_back(&spe);
+         }
+         break;
        }
-       break;
+       default:
+         assert(false);
+       } // end switch
+     } // end num_node_shape_params_ loop
+   } // end dim == 2 case
 
-     case ShapeParamElement::Z:
-       assert(false);
-       break;
+   if(dim_ == 3)
+   {
+    for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeParamElements an set it to the proper map_::nodes
+    {
+      ShapeParamElement* spe1 = &(shape_param_[i]); // will be first node param
+      ShapeParam* shape = FindShape(spe1);
+      assert(spe1->GetType() == Convert(shape->type));
 
+      // the 3D surface case is not yet implemented
+      assert(shape->IsFirstCenterNode() || shape->IsSecondCenterNode());
 
-     case ShapeParamElement::NOT_SET:
-       assert(false);
-     } // end switch
-   } // end loop
+      LOG_DBG2(SMD) << "SSP: spe1=" << spe1->ToString() << " s=" << shape->ToString() << " idx=" << spe1->idx.ToString();
+
+      // we operate only on the first center node and search for the second
+      if(shape->IsFirstCenterNode())
+      {
+        assert((int) shape->orientation < (int) spe1->idx.GetSize());
+        assert((int) shape->orientation >= 0);
+        assert((int) shape->orientation < (int) dim_);
+        assert(shape->orientation != shape->dof && shape->orientation != shape->GetSecondCenterNode()->dof);
+        assert(shape->GetFirstCenterNode()->orientation == shape->GetSecondCenterNode()->orientation);
+
+        ShapeParamElement* spe2 = GetSecondCenterNodeParam(shape, spe1);
+
+        // in 2D a dof=x node connects to 1 or 2 y lines.
+        // for a 3D rod with we have always dof pairs and they hold for each of the common orientation
+        switch(shape->orientation)
+        {
+        case ShapeParamElement::X:
+        {
+          assert((spe1->dof_ == ShapeParamElement::Y || spe1->dof_ == ShapeParamElement::Z));
+          assert((spe2->dof_ == ShapeParamElement::Y || spe2->dof_ == ShapeParamElement::Z));
+          assert(spe1->dof_ != spe2->dof_);
+
+          int x = spe1->idx[0];
+          assert(spe1->idx[0] == spe2->idx[0]);
+
+          for(unsigned int z = 0; z < nz_; z++)
+          {
+            for(unsigned int y = 0; y < ny_; y++)
+            {
+              LOG_DBG2(SMD) << "SSP: x=" << x << (x < (int) nx_ ? "+" : "!") << ", y=" << y << " z=" << z << " -> " << DensityIdx(x, y);
+              if(x < (int) nx_)  // not yet topmost plane
+                map_[DensityIdx(x, y, z)].nodes.Push_back(spe1, spe2);
+              if(x-1 >= 0)  // also not the lowest plane
+                map_[DensityIdx(x-1, y, z)].nodes.Push_back(spe1, spe2);
+            }
+          }
+          break;
+        }
+
+        case ShapeParamElement::Y:
+        {
+          int y = spe1->idx[1];
+
+          for(unsigned int z = 0; z < nz_; z++)
+          {
+            for(unsigned int x = 0; x < nx_; x++)
+            {
+              if(y < (int) ny_)
+                map_[DensityIdx(x, y, z)].nodes.Push_back(spe1, spe2);
+              if(y-1 >= 0)
+                map_[DensityIdx(x, y-1, z)].nodes.Push_back(spe1, spe2);
+            }
+          }
+          break;
+        }
+
+        case ShapeParamElement::Z:
+        {
+          int z = spe1->idx[2];
+
+          for(unsigned int y = 0; y < ny_; y++)
+          {
+            for(unsigned int x = 0; x < nx_; x++)
+            {
+              if(z < (int) nz_)
+                map_[DensityIdx(x, y, z)].nodes.Push_back(spe1, spe2);
+              if(z-1 >= 0)
+                map_[DensityIdx(x, y, z-1)].nodes.Push_back(spe1, spe2);
+            }
+          }
+          break;
+        } // end of case
+        case ShapeParamElement::NOT_SET:
+          assert(false);
+          break;
+       } // end of switch
+      } // first center node case
+    } // end node loop
+   } // end dim == 3 case
  }
+
 
 void ShapeMapDesign::SetupOptShapeParam()
 {
@@ -601,7 +714,7 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
   {
     unsigned int s = shapes[si]->idx;
     const ShapeParam& node = shape_[s];
-    const ShapeParam& prof  = shape_[s + num_node_shapes_];
+    const ShapeParam& prof  = *node.partner;
     // don't deal with the complicated stuff!
     assert(!node.fixed);
     assert(!prof.fixed);
@@ -1355,6 +1468,16 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe)
  {
+   // FUCK copy & paste :(
+   for(unsigned int i = 0; i < shape_.GetSize(); i++)
+     if((int) spe->GetIndex() < shape_[i].end_param)
+       return &shape_[i];
+   return NULL;
+ }
+
+ const ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe) const
+ {
+   // TODO could be sped up in many ways, e.g. by checking for profile and clearly for caching!
    for(unsigned int i = 0; i < shape_.GetSize(); i++)
      if((int) spe->GetIndex() < shape_[i].end_param)
        return &shape_[i];
@@ -1388,8 +1511,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    ShapeParamElement::Dof dof = s1->dof_;
    // element position
-   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0];
-   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3];
+   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0]; // dof == x ? a_x : a_y
+   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3]; // dof == x ? b_x : d_y
    // the parameters
    double a1 = s1->GetPlainDesignValue();
    double a2 = s2->GetPlainDesignValue();
@@ -1398,6 +1521,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
    double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
 
+   // when dof = X the tanh has x as parameter, when we interpolate a1 and a2 these are x values applied at different y positions
    double xy = start + (dof == ShapeParamElement::X ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
    double a  = a1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
    double w  = w1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (w2-w1);
@@ -1413,54 +1537,89 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return val;
  }
 
- inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, unsigned int ip_z, bool grad_a, bool grad_b, bool grad_w) const
+ inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords, double beta, const StdVector<unsigned int>& ip, bool grad_a, bool grad_b, bool grad_w) const
  {
    assert(dim_ == 3);
-   assert(nodes.GetSize() == 4);
-   assert(nodes[0]->dof_ == nodes[1]->dof_ && nodes[2]->dof_ == nodes[3]->dof_ && nodes[0]->dof_ != nodes[2]->dof_);
-   assert(nodes[0]->GetType() == BaseDesignElement::NODE && nodes[2]->GetType() == BaseDesignElement::NODE);
-   assert(!(grad_a == true && grad_w == true) && (grad_b == true && grad_w == true));
+   assert(!((grad_a == true || grad_b == true) && grad_w == true));
+   assert(nodes.GetSize() % 4 == 0); // we expect packs of for
+   assert(base + 4 <= nodes.GetSize());
+   assert(ip.GetSize() == 3);
+   assert(ip[0] < order_ && ip[1] < order_ && ip[2] < order_);
+
    // we assume the elements to be oriented ccw starting lower left
    assert(coords.GetNumRows() == 3); // dim == 3
    assert(coords.GetNumCols() == 8); // 8 nodes
 
-   ShapeParamElement::Dof dof_a = nodes[0]->dof_;
-   ShapeParamElement::Dof dof_b = nodes[1]->dof_;
+   const ShapeParamElement* sa1 = nodes[base];
+   const ShapeParamElement* sb1 = nodes[base+1];
+   const ShapeParamElement* sa2 = nodes[base+2];
+   const ShapeParamElement* sb2 = nodes[base+3];
+
+   LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
+
+   assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
+   assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
+   assert(FindShape(sa1)->IsCenterNode());
+
+   assert(GetProfile(sa1) == GetProfile(sb1)); // two center nodes share a profile
 
    // the parameters
-   double a1 = nodes[0]->GetPlainDesignValue();
-   double a2 = nodes[1]->GetPlainDesignValue();
-   double b1 = nodes[2]->GetPlainDesignValue();
-   double b2 = nodes[3]->GetPlainDesignValue();
-
-/*   // element position
-   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0];
-   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3];
+   double a1 = sa1->GetPlainDesignValue();
+   double a2 = sa2->GetPlainDesignValue();
+   double b1 = sb1->GetPlainDesignValue();
+   double b2 = sb2->GetPlainDesignValue();
+   double w1 = 0.5 * GetProfile(sa1)->GetPlainDesignValue();
+   double w2 = 0.5 * GetProfile(sa2)->GetPlainDesignValue();
 
 
-   // the profiles
-   assert(GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
-   double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
-   double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
+   // coords is 8 columns with 3 rows
+   //
+   //   a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
+   // x 0.0  0.5  0.5  0.0  0.0  0.5  0.5  0.0
+   // y 0.5  0.5  0.5  0.5  0.0  0.0  0.0  0.0
+   // z 0.0  0.0  0.5  0.5  0.0  0.0  0.5  0.5
+   //
+   // x = e -> f,  y = e -> a,  z = e -> h,  zero = e
+   //
+   //    d----------c
+   //   /          /|
+   //  h ------- g  |
+   //  | a--------|-b
+   //  |/         |/
+   //  e ------- f
+   //
+   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
+   assert(close(coords[0][4], coords[0][7])); // x-pos: lower left and upper left: e and h
+   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
+   assert(close(coords[0][5], coords[0][6])); // x-pos: lower right and upper right: f and g
+   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
+   assert(coords[0][4] < coords[0][5]);       // x-pos: lower left is smaller than lower right : e and f
+   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
+   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
+   assert(coords[2][1] < coords[2][2]);       // y-pos: lower right smaller upper right: b and c
 
-   double xy = start + (dof == ShapeParamElement::X ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
-   double a  = a1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
-   double w  = w1 + (dof == ShapeParamElement::X ? ip_y : ip_x)/(order_-1.) * (w2-w1);
-   double val = -1.0;
-   if(grad_a)
-     val = d_tanh_da(beta, xy, a, w);
-   if(grad_w)
-     val = d_tanh_dw(beta, xy, a, w);
-   if(!grad_a && !grad_w)
-     val = tanh(beta, xy, a, w);
-   LOG_DBG3(SMD) << "E: s1=" << s1->GetIndex() << " s2=" << s2->GetIndex() << " dof=" << dof << " start=" << start << " end=" << end  << " a=" << a1 << "..." << a2
-                 << " ip_x=" << ip_x << " ip_y=" << ip_y << " xy=" << xy << " a=" << a << " da:" << grad_a << " dw=" << grad_w << " -> " << val;
+   LOG_DBG2(SMD) << "E coords=" << coords << " ip=" << ip.ToString();
+
+   // sa and sb have different dof and define an ab-plane.
+   // the complementary dof dir is where we interpolate within start and end
+   int dir = (int) Flip(sa1->dof_, sb1->dof_);
+
+   double start = coords[dir][4]; // e
+   double end   = coords[dir][dir == 0 ? 5 : (dir == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+
+   // we are in the ab-plane and call it xy-plane. We test of the point (x,y) on the xy-plane.
+   double x = -1; // TODO
+   double y = -1; // TODO
+   double a = a1 + ip[dir] / (order_ - 1.0) * (a2 - a1);
+   double b = b1 + ip[dir] / (order_ - 1.0) * (b2 - b1);
+   double w = w1 + ip[dir] / (order_ - 1.0) * (w2 - w1);
+
+   assert(!grad_a && !grad_b && !grad_w);
+   double val = tanh(beta, x, y, a , b, w);
    return val;
-   */
-   return -1;
  }
 
- inline bool ShapeMapDesign::CloseEnough(const StdVector<ShapeParamElement*> nodes, unsigned int base, const Matrix<double>& coords) const
+ inline bool ShapeMapDesign::CloseEnough(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords) const
  {
    if(dim_ == 2)
    {
@@ -1471,13 +1630,29 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    }
    else
    {
+     StdVector<unsigned int> ip(3);
      assert(dim_ == 3);
+     for(unsigned int x = 0; x <= 1; x++)
+       for(unsigned int y = 0; y <= 1; y++)
+         for(unsigned int z = 0; z <= 1; z++)
+         {
+           ip[0] = x * (order_ -1);
+           ip[1] = y * (order_ -1);
+           ip[2] = z * (order_ -1);
+           // double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, unsigned int ip_z, bool grad_a, bool grad_b, bool grad_w) const;
+           if(Eval(nodes, base, coords, 2*beta_, ip, false, false, false) > sensitivity_) // false=no derivative
+             return true;
+         }
+
+
      std::cout << coords.ToString(2) << "\n";
      assert(false);
    }
 
    return false;
  }
+
+
 
 
  inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
@@ -1491,6 +1666,20 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
   else
     return 1/(std::exp(beta*(x-a-w))+1);
  }
+
+inline double ShapeMapDesign::tanh(double beta, double x, double y, double a, double b, double w) const
+{
+  // this function operates in the xy plane with the center (a,b) and tests for the point (x,y)
+  // this is formed to 1D problem of tanh where we only have the radius which is ||(a,b) - (x,y)|| as parameter
+
+  double r = Point::Dist(x, y, a, b);
+
+  // set xrange[0:1]; w=0.2; beta=30
+  // plot 1/(exp(2*beta*(x-w))+1)
+
+  return 1/(std::exp(beta*(r-w))+1);
+}
+
 
  inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
  {
@@ -1700,6 +1889,39 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, Shap
   return res;
 }
 
+ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, ShapeParamElement* test)
+{
+  assert(shape->IsCenterNode());
+  unsigned int test_idx = test->GetIndex();
+  assert(shape->IsPart(test) || shape->other_center->IsPart(test));
+
+  // we assume that test is a first center node
+  if(shape->IsFirstCenterNode() && shape->IsPart(test))
+    return &shape_param_[shape->GetSecondCenterNode()->start_param + test_idx - shape->start_param];
+
+  // obviously test is already a second center node
+  assert(shape->GetSecondCenterNode()->IsPart(test));
+  return test;
+}
+
+
+inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node) const
+{
+  const ShapeParam* shape = FindShape(node);
+  assert(node->GetType() == ShapeParamElement::NODE && shape->type == NODE);
+  assert(shape->IsPart(node));
+  assert(node->GetIndex() - shape->start_opt >= 0);
+
+  return &shape_param_[shape->partner->start_opt + node->GetIndex() - shape->start_opt];
+}
+
+inline ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node)
+{
+  const ShapeParam* shape = FindShape(node);
+  return &shape_param_[shape->partner->start_opt + node->GetIndex() - shape->start_opt];
+}
+
+
 
 StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > ShapeMapDesign::FindCenters()
 {
@@ -1865,6 +2087,45 @@ bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
 
   return false;
 }
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
+{
+  assert(!(other_center != NULL && other_center->other_center != this));
+  assert(!(other_center != NULL && type == PROFILE)); // due to unsymetry only nodes have the link
+  assert(!(other_center != NULL && idx == other_center->idx));
+  assert(idx >= 0 && (other_center == NULL || other_center->idx >= 0));
+  assert(!(type == PROFILE && partner != NULL));
+  if(other_center != NULL)
+    return idx < other_center->idx ? this : other_center;
+  if(type == PROFILE && partner->other_center != NULL)
+    return partner->idx < partner->other_center->idx ? partner : partner->other_center;
+  return NULL;
+}
+
+inline bool ShapeMapDesign::ShapeParam::IsFirstCenterNode() const
+{
+  return other_center != NULL && idx < other_center->idx;
+}
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetSecondCenterNode()
+{
+  assert(!(other_center != NULL && other_center->other_center != this));
+  assert(!(other_center != NULL && type == PROFILE)); // due to unsymetry only nodes have the link
+  assert(!(other_center != NULL && idx == other_center->idx));
+  assert(idx >= 0 && (other_center == NULL || other_center->idx >= 0));
+  assert(!(type == PROFILE && partner != NULL));
+  if(other_center != NULL)
+    return idx < other_center->idx ? other_center : this;
+  if(type == PROFILE && partner->other_center != NULL)
+    return partner->idx < partner->other_center->idx ? partner->other_center : partner;
+  return NULL;
+}
+
+inline bool ShapeMapDesign::ShapeParam::IsSecondCenterNode() const
+{
+  return other_center != NULL && idx > other_center->idx;
+}
+
 
 std::string ShapeMapDesign::ShapeParam::ToString() const
 {

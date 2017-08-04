@@ -104,6 +104,11 @@ public:
     return sqrt(preSqrt);
   }
 
+  /** calculate the distance of two 2D points (x,y) and (a,b)*/
+  inline static double Dist(double x, double y, double a, double b) {
+    return sqrt((a-x)*(a-x)+(b-y)*(b-y));
+  }
+
   //! calculate distance to another point
   Double Dist(const Point& other) const {
     return Point::Dist(*this, other);

@@ -2,9 +2,20 @@ SET(PHIST_SRCS
   PhistEigenSolver.cc
 )
 
-FIND_PACKAGE(phist REQUIRED CONFIG)
+include_directories(/usr/lib64/mpi/gcc/openmpi/include
+                    /home/fwein/code/ghost/build/hwloc-inst/include)
 
-INCLUDE_DIRECTORIES(${PHIST_INCLUDE_DIRS})
 ADD_LIBRARY(phist-olas STATIC ${PHIST_SRCS})
-TARGET_LINK_LIBRARIES(phist-olas ${PHIST_LIBRARIES})
 
+SET(TARGET_LL
+  ${PHIST_LIBRARY}
+  ghost
+  hwloc
+  phist_kernels_ghost
+  phist_core
+  phist_solvers
+  phist_tools
+  phist_precon
+)
+
+TARGET_LINK_LIBRARIES(phist-olas ${TARGET_LL})
