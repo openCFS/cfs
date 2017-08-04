@@ -4,9 +4,13 @@
 #include "OLAS/solver/BaseEigenSolver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+
+
 namespace CoupledField {
   
   class StdMatrix;
+  //class phist_DsparseMat;
+  class sparseMat_t;
   class PhistEigenSolver : public BaseEigenSolver
   {
   public:
@@ -91,10 +95,11 @@ namespace CoupledField {
 
     //static int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg);
 
-    //! stiffness matrix A
-    const StdMatrix* matrixA_;
-    //! mass matrix B
-    const StdMatrix* matrixB_;
+    /** phist copy of stiffmess matrix */
+    sparseMat_t* A_;
+
+    /** phist copy of mass matrix */
+    sparseMat_t* B_;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;

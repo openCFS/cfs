@@ -134,6 +134,24 @@ public:
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
     bool ShallMapHalfShape() const;
 
+    /** are we first or second center node? */
+    bool IsCenterNode() const { return other_center != NULL; }
+
+    /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
+     * center node and the common profile node.
+     * @return NULL if none of the three cases above holds */
+    inline ShapeParam* GetFirstCenterNode();
+
+    inline bool IsFirstCenterNode() const;
+
+    inline bool IsSecondCenterNode() const;
+
+    /** @see GetFirstCenterNode() */
+    inline ShapeParam* GetSecondCenterNode();
+
+    /** test if the param is part of the shape */
+    bool IsPart(const ShapeParamElement* test) const { return (int) test->GetIndex() >= start_param && (int) test->GetIndex() < end_param; }
+
     /** for debug purpose */
     std::string ToString() const;
 
@@ -142,10 +160,12 @@ public:
 
     /** a 3D center has two nodes. The point via other_center to each other. NULL means that we are not part of a center.
      * The shape_param with with the lower idx is defined as first, the other as second.
-     * The links are chained, hence if other_center != NULL then this shall hold: this->other_center->other_center == this */
+     * The links are chained, hence if other_center != NULL then this shall hold: this->other_center->other_center == this.
+     * Only a node has other_center. The corresponding profiles need to be NULL two center nodes share a single partner. */
     ShapeParam* other_center = NULL;
 
-    /** the partner of a node is a profile and vice versa. node idx < profile idx */
+    /** the partner of a node is a profile and vice versa. node idx < profile idx. Note that for 3D center nodes two nodes share a
+     * single profile partner. The Profile partner points back to the first center node only. */
     ShapeParam* partner = NULL;
 
     ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
@@ -238,7 +258,13 @@ protected:
   StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
 
   /** search for the corresponding shape */
-  ShapeParam* FindShape(const ShapeParamElement* spe);
+  inline ShapeParam* FindShape(const ShapeParamElement* spe);
+  inline const ShapeParam* FindShape(const ShapeParamElement* spe) const;
+
+  /** for shape which is either first or second center node (3D!) and a test which is part of first or second
+   * center node, return the second center node param. This might be test
+   * @return never NULL */
+  ShapeParamElement* GetSecondCenterNodeParam(ShapeParam* shape, ShapeParamElement* test);
 
   /** helper to fill shape_param_
    * @param free_dof for 2D this is Flip(param.dof) (X or Y) for 3D xy, zy, xz this is the current one (X, Y or Z)
@@ -262,20 +288,21 @@ protected:
   double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
   /** 3D: Evaluate the function at the given integration point. See also the 2D Version of eval
-   * @oaram nodes Item::nodes
+   * @oaram nodes Item::nodes set of 4 nodes blocks
+   * @param base start of the 4 nodes block in nodes
    * @param coords of the density design element
    * @param beta @see tanh()
-   * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
+   * @param ip vector of ip_x, ip_y and ip_z. @see other Eval()
    * @param grad_a false for tanh, true for d_tanh_da
    * @param grad_w false for tanh, true for d_tanh_dw. */
-  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, unsigned int ip_z, bool grad_a, bool grad_b, bool grad_w) const;
+  double Eval(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords, double beta, const StdVector<unsigned int>& ip, bool grad_a, bool grad_b, bool grad_w) const;
 
 
   /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
    * it is worth to consider them.
    * @param nodes the total shape pairs from Item::node
    * @param base 0, 2, 4, ...  */
-  bool CloseEnough(const StdVector<ShapeParamElement*> nodes, unsigned int base, const Matrix<double>& coords) const;
+  bool CloseEnough(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords) const;
 
   /** tanh performs the smoothing from the mapping
    * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
@@ -284,18 +311,18 @@ protected:
    * @param w half of the thickness/profile of the shape */
   double tanh(double beta, double x, double a, double w) const;
 
+  /** The 3D tanh functions operates in the xy plane and tests for a point (x,y) and the center (a,b) with w */
+  double tanh(double beta, double x, double y, double a, double b, double w) const;
+
   /** derivative of tanh w.r.t. a */
   double d_tanh_da(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. w which is the half profile */
   double d_tanh_dw(double beta, double x, double a, double w) const;
 
-  /** small helper */
-  ShapeParam& GetProfile(const ShapeParam& node) { return shape_[node.idx + num_node_shapes_]; }
-
-  const ShapeParamElement* GetProfile(const ShapeParamElement* node) const { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
-  ShapeParamElement* GetProfile(const ShapeParamElement* node) { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
-
+  /** Find the corresponding profile variable - needs to identify the shape first :( */
+  inline const ShapeParamElement* GetProfile(const ShapeParamElement* node) const;
+  inline ShapeParamElement* GetProfile(const ShapeParamElement* node);
 
   /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
@@ -316,7 +343,7 @@ protected:
    * First node then profile, therefore always even size. */
   StdVector<ShapeParam> shape_;
 
-  /** helper for shape_: number of node which is also the first index of the first profile. equals shape_.GetSize() / 2.
+  /** helper for shape_: number of node which is also the first index of the first profile. Is not shape_.GetSize() / 2 when we have 3D center condes .
    * This is NOT the size within shape_param_! */
   int num_node_shapes_ = -1;
 
@@ -324,7 +351,7 @@ protected:
    * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement> shape_param_;
 
-  /** helper for shape_param_: number of nodes within shape_param_ which is  shape_param_.GetSize() / 2 */
+  /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
   int num_node_shape_params_ = -1;
 
   /** same as num_node_shape_params_ but based on opt_shape_param_ */
