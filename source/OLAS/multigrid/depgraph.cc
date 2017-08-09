@@ -6,7 +6,7 @@
 
 #include <string.h>
 
-#include "multigrid/depgraph.hh"
+#include "OLAS/multigrid/depgraph.hh"
 #include "DataInOut/ColoredConsole.hh"
 
 /**********************************************************/
@@ -44,8 +44,8 @@ DependencyGraph<T>::~DependencyGraph()
 /**********************************************************/
 
 template <typename T>
-bool DependencyGraph<T>::Create( const Integer num_nodes,
-                                 const Integer num_edges_per_node )
+bool DependencyGraph<T>::Create( const UInt num_nodes,
+                                 const UInt num_edges_per_node )
 {
 
     // create arrays, in particular also start indices
@@ -68,8 +68,8 @@ bool DependencyGraph<T>::Create( const Integer num_nodes,
 
 template <typename T>
 bool DependencyGraph<T>::
-CreateWithDiagonals( const Integer num_nodes,
-                     const Integer num_edges_per_node )
+CreateWithDiagonals( const UInt num_nodes,
+                     const UInt num_edges_per_node )
 {
 
     // create arrays, in particular also start indices
@@ -79,7 +79,7 @@ CreateWithDiagonals( const Integer num_nodes,
 
     // initialize the start indices and the node sizes
     Integer startindex = 1;
-    for( Integer i = 1; i <= num_nodes; i++ ) {
+    for( Integer i = 0; i < num_nodes; i++ ) {
         StartIndex_[i]     = startindex;
         Edges_[startindex] = i;
         NodeSize_[i]       = 1;
@@ -94,15 +94,15 @@ CreateWithDiagonals( const Integer num_nodes,
 /**********************************************************/
 
 template <typename T>
-bool DependencyGraph<T>::Create( const Integer        num_nodes,
-                                 const Integer *const node_size,
-                                       Integer        num_edges )
+bool DependencyGraph<T>::Create( const UInt        num_nodes,
+                                 const UInt *const node_size,
+                                 Integer        num_edges )
 {
 
     // get total number of edges, if not passed
     if( num_edges < 0 ) {
         num_edges = 0;
-        for( Integer i = 1; i <= num_nodes; i++ ) {
+        for( Integer i = 0; i < num_nodes; i++ ) {
             num_edges += node_size[i];
         }
     }
@@ -138,8 +138,8 @@ bool DependencyGraph<T>::Create( const Integer        num_nodes,
 
 template <typename T>
 bool DependencyGraph<T>::
-Create( const Integer        num_nodes,
-        const Integer *const startarray,
+Create( const UInt        num_nodes,
+        const UInt *const startarray,
         const bool           accroach_startarray,
         const bool           copy_startarray )
 {
@@ -171,7 +171,7 @@ Create( const Integer        num_nodes,
     }
     
     // initialize node sizes (#edges / node[i])
-    for( Integer i = 1; i <= num_nodes; i++ )  NodeSize_[i] = 0;
+    for( Integer i = 0; i < num_nodes; i++ )  NodeSize_[i] = 0;
 
     return true;
 }
@@ -203,10 +203,10 @@ bool DependencyGraph<T>::Create( const CRS_Matrix<T>& matrix,
 
     // initialize number of edges
     if( buildemptygraph ) {
-        for( int i = 1; i <= NumNodes_; i++ )  NodeSize_[i] = 0;
+        for( int i = 0; i < NumNodes_; i++ )  NodeSize_[i] = 0;
     // copy matrix graph
     } else {
-        for( int i = 1; i <= NumNodes_; i++ ) {
+        for( int i = 0; i < NumNodes_; i++ ) {
             NodeSize_[i] = matrix.GetRowSize(i);
         }
         memcpy( Edges_+1, matrix.GetColPointer()+1, NumEdges_*sizeof(Integer) );
@@ -216,11 +216,78 @@ bool DependencyGraph<T>::Create( const CRS_Matrix<T>& matrix,
 }
 
 /**********************************************************/
+/*
+
+template <typename T>
+bool DependencyGraph<T>::Create( const StdVector< StdVector< Integer> >& A)
+{
+    UInt s = A.GetSize();
+    if( s == 0 ) { Reset(); return true; }
+
+    UInt nnz = 0;
+    for(UInt i = 0; i < s; ++i) nnz += A[i].GetSize();
+
+    // create the arrays
+    if( !CreateArrays(s, nnz, false) ) {return false;}
+
+    // insert the array of start indices
+    if( !InsertStartArray(A) ) return false;
+
+    // initialize number of edges
+    for( int i = 0; i < NumNodes_; i++ ) NodeSize_[i] = A[i].GetSize;
+    for( int i = 0; i < NumEdges_; i++ ) Edges_[i] = 0;
+
+    // we already have the edge-information in A (Agglomerates)
+    // so we can add the correct edges right away, instead of
+    // in agglomerate.cc
+    for(Integer i = 0; i < A.GetSize(); ++i){
+      const StdVector<Integer>& a = A[i];
+      for(Integer j = 0; j < a.GetSize(); ++j){
+        this->AddEdge(i, a[j]);
+      }
+    }
+
+    return true;
+}
+
 
 template <typename T>
 bool DependencyGraph<T>::
-InsertStartArray( const Integer *const startarray,
-                  const Integer        size,
+InsertStartArray( const StdVector< StdVector< Integer> >& A)
+{
+
+    // if there is already an array with start indices
+    if( StartIndex_ ) {
+        // if this object owns the start array
+        if( ownStartIndex_ ) {
+            // check, if the sizes match
+            if( A.GetSize() != NumNodes_ ) {
+                // cannot change number of nodes, if connections already exist
+                if( NumEdges_ )  return false;
+                delete [] ( StartIndex_ );  StartIndex_  = NULL;
+                NEWARRAY( StartIndex_, Integer, A.GetSize() + 1 );
+            }
+        }
+    }
+    // insert new array
+    StartIndex_[0] = 0;
+    for(UInt i = 0; i < A.GetSize(); ++i){
+        StartIndex_[i + 1] = A[i].GetSize();
+    }
+
+    NumNodes_      = A.GetSize();
+    ownStartIndex_ = false;
+
+    return true;
+}
+*/
+/**********************************************************/
+
+
+template <typename T>
+bool DependencyGraph<T>::
+InsertStartArray( const UInt *const startarray,
+                  const UInt        size,
                   const bool           accroach,
                   const bool           copy,
                   const bool           force )
@@ -251,50 +318,13 @@ InsertStartArray( const Integer *const startarray,
     return true;    
 }
 
+
 /**********************************************************/
 
 template <typename T>
 inline void DependencyGraph<T>::AddEdge( const Integer i,
                                          const Integer j )
 {
-    
-#ifdef DEBUG_DEPENDENCYGRAPH
-    // check range of the parameters
-    if( i < 1 || i > NumNodes_  ) {
-        std::cerr
-          << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset << "\n"
-           "  >> edge ("<<i<<","<<j<<") is out of range [1,"
-        << NumNodes_ << "] for node index" << std::endl;
-        return;
-    }
-    // check, if this edge is already present
-    for( Integer ij = 0; ij < NodeSize_[i]; ij++ ) {
-        if( Edges_[StartIndex_[i]+ij] == j ) {
-            std::cerr
-            << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset
-            << "  >> edge ("<<i<<","<<j<<") already exists.\n     "
-               "To add edges savely in non-debug mode use "
-               "AddEdgeSavely\n";
-            return;                                                                  
-        }
-    }
-    // check, if the node can take further edges
-    if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-        std::cerr
-        << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset << "\n  >> "
-           "node " << i << " cannot take the additional edge ("
-        << i<<","<<j<<") (max " << NodeSize_[i] << ")";
-        if( GetNumEdges(i) > 0 ) {
-            for( Integer k = 0; k < GetNumEdges(i); k++ ) {
-                std::cerr << GetEdges(i)[k];
-                if( k < GetNumEdges(i)-1 )  std::cerr << ", ";
-            }
-        }
-        std::cerr << std::endl;
-        return;
-    }
-#endif
-
     // add the new edge
     Edges_[StartIndex_[i] + NodeSize_[i]++] = j;
 }
@@ -306,15 +336,6 @@ inline void DependencyGraph<T>::AddEdgeSavely( const Integer i,
                                                const Integer j )
 {
     
-#ifdef DEBUG_DEPENDENCYGRAPH
-    // check range of the parameters
-    if( i < 1 || i > NumNodes_ ) {
-        std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSavely" << fg_reset
-                     "  >> edge ("<<i<<","<<j<<") is out of range "
-                  << NumNodes_ << std::endl;
-        return;
-    }
-#endif
 
     const Integer start = StartIndex_[i];
     const Integer end   = start + NodeSize_[i];
@@ -323,16 +344,6 @@ inline void DependencyGraph<T>::AddEdgeSavely( const Integer i,
         // edge already present?, job done
         if( Edges_[ij] == j )  return;
     }
-
-#ifdef DEBUG_DEPENDENCYGRAPH
-    // check, if the node can take further edges
-    if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-        std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSavely" << fg_reset << "\n  >> "
-                     "node " << i << " cannot take further edges (maximal "
-                  << NodeSize_ << ")\n";
-        return;
-    }
-#endif
 
     // add the new edge
     Edges_[start + NodeSize_[i]++] = j;
@@ -349,15 +360,7 @@ AddEdgeSorted( const Integer i,
 
     // simply append the edge
     if( first_position >= NodeSize_[i] ) {
-#ifdef DEBUG_DEPENDENCYGRAPH
-        // check, if the node can take further edges
-        if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-            std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
-                         "node " << i << " cannot take further edges (maximal "
-                      << NodeSize_ << ")\n";
-            return;
-        }
-#endif
+
         Edges_[StartIndex_[i]] = j;
         NodeSize_[i]++;
         return;
@@ -376,15 +379,7 @@ AddEdgeSorted( const Integer i,
             for( Integer ij = NodeSize_[i]; ij > first; ij-- ) {
                 edges[ij] = edges[ij-1];
             }
-#ifdef DEBUG_DEPENDENCYGRAPH
-            // check, if the node can take further edges
-            if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-                std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
-                             "node " << i << " cannot take further edges (maximal "
-                          << NodeSize_ << ")\n";
-                return;
-            }
-#endif
+
             edges[first] = j;
             NodeSize_[i]++;
             return;
@@ -394,15 +389,7 @@ AddEdgeSorted( const Integer i,
             for( Integer ij = NodeSize_[i]-1; ij > last; ij-- ) {
                 edges[ij+1] = edges[ij];
             }
-#ifdef DEBUG_DEPENDENCYGRAPH
-            // check, if the node can take further edges
-            if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-                std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
-                             "node " << i << " cannot take further edges (maximal "
-                          << NodeSize_ << ")\n";
-                return;
-            }
-#endif
+
             edges[last+1] = j;
             NodeSize_[i]++;
             return;
@@ -442,30 +429,6 @@ inline void DependencyGraph<T>::SetEdgeAtPosition( const Integer i,
                                                    const Integer position )
 {
     
-#ifdef DEBUG_DEPENDENCYGRAPH
-    const char fn[] = "DependencyGraph::AddEdgeAtPosition\n";
-    // check range of the node number
-    if( i < 1 || i > NumNodes_ ) {
-        std::cerr << fg_red << fn << fg_reset << "  >> edge ("<<i<<","<<j<<") is out of range "
-                  << NumNodes_ << std::endl;
-        return;
-    }
-    // check range of position
-    if( StartIndex_[i] + position >= StartIndex_[i+1] ) {
-        std::cerr << fg_red << fn << fg_reset << "  >> position " << position << " ist out of "
-                     "range [0,"<<GetMaxNumEdges(i)<<"] for node "<<i
-                  << std::endl;
-        return;
-    }
-    // check if the edge is already present
-    for( int ij = StartIndex_[i]; ij < StartIndex_[i+1]; i++ ) {
-        if( Edges_[ij] == j && StartIndex_[i] + position != ij ) {
-            std::cerr << fg_red << fn << fg_reset << "  >> edge ("<<i<<","<<j<<") is already"
-                         " present at position "<<(ij - StartIndex_[i])
-                      << " at node "<<i<<". Is this intended?";
-        }
-    }
-#endif
 
     Edges_[StartIndex_[i] + position] = j;
     if( position >= NodeSize_[i] )  NodeSize_[i] = position + 1;
@@ -477,16 +440,7 @@ template <typename T>
 inline void DependencyGraph<T>::RemoveEdge( const Integer i,
                                             const Integer j )
 {
-    
-#ifdef DEBUG_DEPENDENCYGRAPH
-    // check range of the parameters
-    if( i < 1 || i > NumNodes_ ) {
-        std::cerr << fg_red << "DependencyGraph<T>::RemoveEdge" << fg_reset << "\n"
-                     "  >> edge ("<<i<<","<<j<<") is out of range "
-                  << NumNodes_ << std::endl;
-        return;
-    }
-#endif
+
 
     const Integer start = StartIndex_[i];
     const Integer end   = start + NodeSize_[i];
@@ -521,7 +475,7 @@ ShiftEdges( const Integer offset )
 
     Integer max_j = 0;
     
-    for( Integer i = 1; i <= NumNodes_; i++ ) {
+    for( Integer i = 0; i < NumNodes_; i++ ) {
         Integer* const edges = Edges_ + StartIndex_[i];
         for( Integer ij = 0; ij < NodeSize_[i]; ij++ ) {
             if( max_j < (edges[ij] += offset) ) {
@@ -538,7 +492,7 @@ ShiftEdges( const Integer offset )
 template <typename T>
 inline void DependencyGraph<T>::Sort()
 {
-    for( Integer i = 1; i <= NumNodes_; i++ ) {
+    for( Integer i = 0; i < NumNodes_; i++ ) {
         QuickSort( Edges_ + StartIndex_[i], NodeSize_[i] );
     }
 }
@@ -548,7 +502,7 @@ inline void DependencyGraph<T>::Sort()
 template <typename T>
 inline void DependencyGraph<T>::SortDiagFirst()
 {
-    for( Integer i = 1; i <= NumNodes_; i++ ) {
+    for( Integer i = 0; i < NumNodes_; i++ ) {
         Integer* const edges = Edges_ + StartIndex_[i];
         // first place diagonal edge at first position
         for( Integer j = 0; j < NodeSize_[i]; j++ ) {
@@ -574,20 +528,6 @@ AssignTransposed( const DependencyGraph<T>& graph,
 {
 
     if( use_start_array == true ) {
-#ifdef DEBUG_DEPENDENCYGRAPH
-        if( treat_as_square == false ) {
-            WARN( "DependencyGraph::AssignTransposed: parameter "
-                     "\"treat_as_square\" == false does not make sense "
-                     "in combination with \"use_start_array\" == true "
-                     "-> \"treat_as_square\" is set to true." );
-        }
-        if( overlap_per_node > 1 ) {
-            WARN( "DependencyGraph::AssignTransposed: parameter "
-                     "\"overlap_per_node\" > 0 does not make sense in "
-                     "combination with \"use_start_array\" == true -> "
-                     "\"overlap_per_node\" will be ignored." );
-        }
-#endif // DEBUG_DEPENDENCYGRAPH
         treat_as_square = true;
     }    
 
@@ -607,7 +547,7 @@ AssignTransposed( const DependencyGraph<T>& graph,
     // specified that the graph's edges can be represented
     // by a square matrix
     if( treat_as_square == false ) {
-        for( Integer i = 1; i <= graph.GetNumNodes(); i++ ) {
+        for( Integer i = 0; i < graph.GetNumNodes(); i++ ) {
             const Integer* const  edges = graph.GetEdges( i );
             const Integer        nedges = graph.GetNumEdges( i );
             for( Integer ij = 0; ij < nedges; ij++ ) {
@@ -617,35 +557,6 @@ AssignTransposed( const DependencyGraph<T>& graph,
             }
         }
     }
-#ifdef DEBUG_DEPENDENCYGRAPH
-    // in debug mode always check the edge range
-    else {
-        Integer debug_highestEdgeIndex = graph.GetNumNodes(),
-                debug_criticalNode     = 0;
-        for( Integer i = 1; i <= graph.GetNumNodes(); i++ ) {
-            const Integer* const edges = graph.GetEdges(i);
-            for( Integer ij = 0; ij < graph.GetNumEdges(i); ij++ ) {
-                if( edges[ij] > debug_highestEdgeIndex ) {
-                    debug_highestEdgeIndex = edges[ij];
-                    debug_criticalNode     = i;
-                }
-            }
-        }
-        if( debug_highestEdgeIndex > graph.GetNumNodes() ) {
-            const char msgf[] = "DependencyGraph<T>::AssignTransposed: "
-                "edge checking suppressed and predicted graph as square"
-                ", but there are %d nodes in the graph, and the edge "
-                "with highest j is (i,j) = (%d,%d) -> (this check is "
-                "only performed in debug mode)\n";
-            char *msg = NULL;
-            NEWARRAY( msg, char, strlen(msgf)+50 )
-            sprintf( msg+1, msgf, graph.GetNumNodes(),
-                     debug_criticalNode, debug_highestEdgeIndex );
-            WARN( msg+1, __FILE__, __LINE__ );
-            return false;
-        }
-    }
-#endif // DEBUG_DEPENDENCYGRAPH
 
     // create arrays
     // If we share the start array with the original graph, ...
@@ -662,7 +573,7 @@ AssignTransposed( const DependencyGraph<T>& graph,
                              false,    // do not copy the array
                              true) ) { // force the insertion
             // initialize the node size array
-            for( Integer i = 1; i <= GetNumNodes(); i++ ) {
+            for( Integer i = 0; i < GetNumNodes(); i++ ) {
                 NodeSize_[i] = 0;
             }
         } else {
@@ -675,11 +586,11 @@ AssignTransposed( const DependencyGraph<T>& graph,
                          newNumEdges + newNumNodes*overlap_per_node,
                          true) ) {
             // initialize arrays
-            for( Integer i = 1; i <= graph.GetNumNodes(); i++ ) {
+            for( Integer i = 0; i < graph.GetNumNodes(); i++ ) {
                 NodeSize_[i] = 0;
             }
             // get the node sizes of the transposed graph
-            for( Integer i = 1; i <= graph.NumNodes_; i++ ) {
+            for( Integer i = 0; i < graph.NumNodes_; i++ ) {
                 const Integer* const  edges = graph.GetEdges( i );
                 const Integer        nedges = graph.GetNumEdges( i );
                 for( Integer ij = 0; ij < nedges; ij++ ) {
@@ -687,6 +598,7 @@ AssignTransposed( const DependencyGraph<T>& graph,
                 }
             }
             // adapt the start index array
+            EXCEPTION("depgraph.cc: Not changed from 1 to 0 based!!!")
             StartIndex_[1] = 1;
             for( Integer i = 1; i <= NumNodes_; i++ ) {
                 StartIndex_[i+1] =   StartIndex_[i]
@@ -700,7 +612,7 @@ AssignTransposed( const DependencyGraph<T>& graph,
     }
 
     // insert edges as transposed edges
-    for( Integer i = 1; i <= graph.GetNumNodes(); i++ ) {
+    for( Integer i = 0; i < graph.GetNumNodes(); i++ ) {
         const Integer* const  edges = graph.GetEdges( i );
         const Integer        nedges = graph.GetNumEdges( i );
         for( Integer ij = 0; ij < nedges; ij++ ) {
@@ -722,42 +634,25 @@ CheckTransposition( const DependencyGraph<T>& graph ) const
 
     // check number of nodes
     if( GetNumNodes() != graph.GetNumNodes() ) {
-#ifdef DEBUG_DEPENDENCYGRAPH
-        (*debug) << "DependencyGraph::CheckTransposition: "
-                 << "number of nodes did not match " << GetNumNodes()
-                 << " <-> " << graph.GetNumNodes() << std::endl;
-#endif
         return false;
     }
 
     // check edges in passed graph to be represented in this one
-    for( Integer i = 1; i <= graph.GetNumNodes(); i++ ) {
+    for( Integer i = 0; i < graph.GetNumNodes(); i++ ) {
         const Integer        nedges = graph.GetNumEdges( i );
         const Integer *const  edges = graph.GetEdges( i );
         for( Integer ij = 0; ij < nedges; ij++ ) {
             if( false == IsElement(edges[ij], i) ) {
-#ifdef DEBUG_DEPENDENCYGRAPH
-                (*debug) << "DependencyGraph::CheckTransposition: " << std::endl
-                         << "edge ("<<i<<","<<edges[ij]<<") in the passed "
-                            "graph has no corresponding edge in this graph"
-                         << std::endl;
-#endif
                 result = false;
             }
         }
     }
     // and vice versa
-    for( Integer i = 1; i <= GetNumNodes(); i++ ) {
+    for( Integer i = 0; i < GetNumNodes(); i++ ) {
         const Integer        nedges = GetNumEdges( i );
         const Integer *const  edges = GetEdges( i );
         for( Integer ij = 0; ij < nedges; ij++ ) {
             if( false == graph.IsElement(edges[ij], i) ) {
-#ifdef DEBUG_DEPENDENCYGRAPH
-                (*debug) << "DependencyGraph::CheckTransposition: " << std::endl
-                         << "edge ("<<i<<","<<edges[ij]<<") in this graph "
-                            "has no corresponding edge in the passed graph"
-                         << std::endl;
-#endif
                 result = false;
             }
         }
@@ -797,7 +692,7 @@ inline Integer DependencyGraph<T>::GetNumEdges() const
 {
     Integer ne = 0;
     
-    for( Integer i = 1; i <= NumNodes_; i++ )  ne += NodeSize_[i];
+    for( Integer i = 0; i < NumNodes_; i++ )  ne += NodeSize_[i];
 
     return ne;
 }
@@ -808,15 +703,6 @@ template <typename T>
 inline Integer DependencyGraph<T>::
 GetNumEdges( const Integer node ) const
 {
-#ifdef  DEBUG_DEPENDENCYGRAPH
-    if( node < 1 || node > GetNumNodes() ) {
-        WARN( __FILE__, __LINE__, "DependencyGraph::GetNumEdges(%d) : "
-                 "node %d is out of range [1,%d] -> returning 0. In "
-                 "non-debug mode this call might cause a segmentation "
-                 "fault\n", node, node, GetNumNodes() );
-        return 0;
-    }
-#endif
 
     return NodeSize_[node];
 }
@@ -835,15 +721,6 @@ template <typename T>
 inline Integer DependencyGraph<T>::
 GetMaxNumEdges( const Integer node ) const
 {
-#ifdef  DEBUG_DEPENDENCYGRAPH
-    if( node < 1 || node > GetNumNodes() ) {
-        WARN( __FILE__, __LINE__, "DependencyGraph::GetMaxNumEdges(%d) : "
-                 "node %d is out of range [1,%d] -> returning 0. In "
-                 "non-debug mode this call might cause a segmentation "
-                 "fault\n", node, node, GetNumNodes() );
-        return 0;
-    }
-#endif
 
     return StartIndex_[node+1] - StartIndex_[node];
 }
@@ -854,14 +731,6 @@ template <typename T>
 inline const Integer* DependencyGraph<T>::
 GetEdges( const Integer node ) const
 {
-#ifdef  DEBUG_DEPENDENCYGRAPH
-    if( node < 1 || node > GetNumNodes() ) {
-        WARN( __FILE__, __LINE__, "DependencyGraph::GetEdges(%d) : "
-                 "node %d is out of range [1,%d] -> expect a crash\n",
-                 node, node, GetNumNodes() );
-    }
-#endif
-
     return (const Integer*)(Edges_ + StartIndex_[node]);
 }
 
@@ -903,27 +772,27 @@ std::ostream& DependencyGraph<T>::Print( std::ostream& out,
                                          const bool color ) const
 {
 
-    if( NumNodes_ == 0 ) {
-        out << "graph is empty\n";
-    } else {
-        out
-        << fg_green << "DependencyGraph"
-        << fg_reset << std::endl
-        << "  "<<NumNodes_ << "  nodes"<<std::endl
-        << "  "<<GetNumEdges()<<':'<<NumEdges_<<" edges"
-        << std::endl;
-        for( Integer i = 1; i <= NumNodes_; i++ ) {
-            out << fg_cyan <<'['<<i
-                << ']'<< fg_reset <<": ";
-            for( Integer j = 0; j < NodeSize_[i]; j++ ) {
-                out << "[" << Edges_[StartIndex_[i]+j] << "] ";
-            }
-            out
-            <<  fg_cyan <<'<'<< NodeSize_[i]
-            << ':'<<(StartIndex_[i+1] - StartIndex_[i])
-            << '>'<< fg_reset <<std::endl;
-        }
-    }
+  if( NumNodes_ == 0 ) {
+      out << "graph is empty\n";
+  } else {
+      out
+      <<  "DependencyGraph"
+      <<  std::endl
+      << "  "<<NumNodes_ << "  nodes"<<std::endl
+      << "  "<<GetNumEdges()<<':'<<NumEdges_<<" edges"
+      << std::endl;
+      for( Integer i = 0; i < NumNodes_; i++ ) {
+          out << '['<<i
+              << ']' <<": ";
+          for( Integer j = 0; j < NodeSize_[i]; j++ ) {
+              out << "[" << Edges_[StartIndex_[i]+j] << "] ";
+          }
+          out
+          <<  '<'<< NodeSize_[i]
+          << ':'<<(StartIndex_[i+1] - StartIndex_[i])
+          << '>'<< std::endl;
+      }
+  }
 
     return out;
 }
@@ -967,8 +836,7 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
     // create new arrays
     if( NULL == NodeSize_ )  NEWARRAY( NodeSize_, Integer, numnodes );
     if( NULL == Edges_    )  NEWARRAY( Edges_,    Integer, numedges );
-    // NOTE that there is NO INITIALISATION, for example of NodeSize_, here
-//    for( Integer i = 1; i <= numnodes; i++ )  NodeSize_[i] = 0;
+
     
     NumNodes_ = numnodes;
     NumEdges_ = numedges;    
@@ -1013,7 +881,7 @@ void DependencyGraph<T>::QuickSort(       Integer *const array,
 
 namespace std {
 template <typename T> std::ostream& operator <<
-( std::ostream& out, const OLAS::DependencyGraph<T>& S ) {
+( std::ostream& out, const DependencyGraph<T>& S ) {
     return S.Print( out ); }
 }
 

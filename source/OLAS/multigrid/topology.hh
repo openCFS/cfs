@@ -3,8 +3,13 @@
 
 /**********************************************************/
 
-#include  "multigrid/ppflags.hh"
-#include  "multigrid/depgraph.hh"
+#include  "OLAS/multigrid/ppflags.hh"
+#include  "OLAS/multigrid/depgraph.hh"
+
+#include <iostream>
+#include <fstream>
+
+#include "MatVec/opdefs.hh"
 
 namespace CoupledField {
 /**********************************************************/
@@ -41,13 +46,21 @@ template <typename T>
 class Topology
 {
     public:
+
+        //! entry type of the matrices (e.g. tiny matrices)
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
+        //! entry type of the vectors (e.g. tiny vectors)
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
+        //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
+        typedef typename AssocType<T>::T_Stype T_Stype;
+
         //! enumeration constants for the array <code>CoarseIndex_</code>.
         //! <b>Note</b> that <code>CoarseIndex_</code> does not contain the
         //! constant <code>COARSE</code> for coarse nodes, but their index
         //! > 0 in the coarse system. <code>COARSE</code> is more ore less
         //! a dummy constant, or usable in comparison like "<code>< COARSE
         //! </code>".
-        enum { DIRICHLET_FINE = -2, FINE = -1, UNDEFINED = 0, COARSE };
+        enum { UNDEFINED = -3, DIRICHLET_FINE = -2, FINE = -1, COARSE };
 
         //! simple constructor
         Topology();
@@ -66,21 +79,21 @@ class Topology
         ~Topology();
 
         //! returns the dependency graph \f$ S \f$
-        inline const DependencyGraph<T>& GetS() const;
+        inline const DependencyGraph<T>& GetS()  const;
         //! returns the dependency graph \f$ S^T \f$
-        inline const DependencyGraph<T>& GetST() const;
+        inline const DependencyGraph<T>& GetST() const ;
         //! returns the size of the fine system
-        inline Integer GetSizeh() const;
+        inline UInt GetSizeh()  const;
         //! returns the size of the coarse system
-        inline Integer GetSizeH() const;
+        inline UInt GetSizeH()  const;
         //! returns a pointer to <code>CoarseIndex_</code>
-        inline const Integer* GetCoarseFineSplitting() const;
+        inline const Integer* GetCoarseFineSplitting()  const;
         //! returns true, if point [i] is an F-point (splitting must be present!)
         inline bool IsFPoint( const int i ) const;
         //! returns true, if point [i] is a C-point (splitting must be present!)
-        inline bool IsCPoint( const int i ) const;
+        inline bool IsCPoint( const int i )  const;
         //! returns the coarse index of point \c [i]
-        inline Integer GetCoarseIndex( const Integer i ) const;
+        inline Integer GetCoarseIndex( const Integer i ) const ;
         
         
 
@@ -93,7 +106,7 @@ class Topology
          *  Returns the index of the first coarse node.
          *  \param matrix system matrix
          *  \param alpha the coarsening parameter \f$ \alpha \f$ in the
-         *         Ruge-St?ben algorithm for the evaluation of strong
+         *         Ruge-Stueben algorithm for the evaluation of strong
          *         dependencies
          *  \param tolerance additional evaluation criterion for strong
          *         dependencies: \f$ (i,j) \in S \Rightarrow (tolerance
@@ -111,11 +124,7 @@ class Topology
         Integer CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
                                         const Double         alpha,
                                         const Double         tolerance,
-                                        const Double         diag_dominance
-#ifdef AMG_DIRICHLET_MIXED_SMOOTHING
-                                      , bool *const dirichlet_flags = NULL
-#endif
-                                       );
+                                        const Double         diag_dominance);
 
         //! calculates the C-F-splitting and returns the number of coarse points
         Integer CalcCoarseFineSplitting( const Integer max_dependency,
@@ -172,7 +181,7 @@ class Topology
          *  Therefor \c sizes is addressed with \b coarse indices. So it
          *  must have a lenght equal to the number of coarse points.
          */
-        Integer GetNumInterpolatedPoints( Integer* const sizes ) const;
+        Integer GetNumInterpolatedPoints( StdVector<UInt>& sizes ) const;
 
         
         //! writes strongly influencing C-neigbours into the array <code>neighbours</code>
@@ -240,17 +249,11 @@ class Topology
 
     protected:
 
-#ifdef TOPOLOGY_IMPORT_CF_SPLITTING
-        Integer ImportCFSplitting();
-#endif
-#ifdef TOPOLOGY_EXPORT_CF_SPLITTING
-        void ExportCFSplitting();
-#endif
 
         //! pointer to the row starts of the matrix
-        const Integer *NhStartIndex_;
+        const UInt *NhStartIndex_;
         //! pointer to column indices of the matrix
-        const Integer *NhEdges_;
+        const UInt *NhEdges_;
 
         //! graph \f$S_h\f$ of strong influences
         DependencyGraph<T>  S_;
@@ -262,9 +265,9 @@ class Topology
         //! index of the next coarse node
         Integer  startCoarsePoint_;
         //! number of points in the fine system
-        Integer  Size_h_;
+        UInt  Size_h_;
         //! number of points in the coarse system
-        Integer  Size_H_;
+        UInt  Size_H_;
 
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
         //! mrgl

@@ -1,17 +1,14 @@
 #ifndef OLAS_TRANSFER_HH
 #define OLAS_TRANSFER_HH
 
-//#define DEBUG_TO_CERR
-/**********************************************************/
-#ifdef DEBUG_TO_CERR
-#ifndef DEBUG_TRANSFEROPERATOR
-#define DEBUG_TRANSFEROPERATOR
-#endif // DEBUG_TRANSFEROPERATOR
-#endif // DEBUG_TO_CERR
-/**********************************************************/
+
 
 //#include  "multigrid/totypes.hh"
-#include  "multigrid/topology.hh"
+#include  "OLAS/multigrid/topology.hh"
+#include  "OLAS/multigrid/agglomerate.hh"
+#include  "OLAS/multigrid/prematrix.hh"
+
+#include "MatVec/CRS_Matrix.hh"
 
 namespace CoupledField {
 /**********************************************************/
@@ -44,11 +41,16 @@ namespace CoupledField {
 
     //! read only access to prolongation matrix
     const CRS_Matrix<T>* GetProlongation() const {
-      return Prolongation_; }
+      return Prolongation_;
+    }
     //! read only access to restriction matrix
     const CRS_Matrix<T>* GetRestriction() const {
       return Restriction_;
     }
+
+    //! get the edgeIndex-node vector for the next coarser level
+    void GetCoarseEdgeIndNode(StdVector< StdVector< Integer> >& r);
+
 
     //! resets the class to the state after creation
     void Reset();
@@ -71,26 +73,35 @@ namespace CoupledField {
      *         \f$ I_H^h := (I_h^H)^T \f$ is built.
      */
     bool CreateOperators( const CRS_Matrix<T>& matrix,
-			  const Topology<T>&   topology,
-			  const AMGInterpolationType itype,
-			  const bool build_interpolation );
+                      const CRS_Matrix<T>& auxMatrix,
+                      const Topology<T>&   topology,
+                      const Agglomerate<T>& agglomerates,
+                      const AMGInterpolationType itype,
+                      const AMGType amgType,
+                      const bool build_interpolation );
 
-    //! constant interpolation
-    bool CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
-				  const Topology<T>&   topology );
-        
-    //! simple weighted averaging as interpolation
-    bool CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
-					const Topology<T>&   topology );
+    //! constant interpolation for scalar-type AMG
+    bool CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
+                                        const CRS_Matrix<T>& auxMatrix,
+                                        const Topology<T>& topology );
 
-    //! constant interpolation, rows of P scaled
-    bool CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
-					 const Topology<T>&   topology );
+    //! constant interpolation for vector-type AMG
+    bool CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
+                          const CRS_Matrix<T>& auxMatrix,
+                          const Topology<T>&   topology );
 
-    //! developing playground for operator building
-    bool CreateOperatorsDevelop( const CRS_Matrix<T>& matrix,
-				 const Topology<T>&   topology );
-        
+    //! constant interpolation for edge-AMG, for auxiliary matrix
+    bool CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
+                                           const Agglomerate<T>& agglomerates);
+
+    //! constant interpolation for edge-AMG, for system matrix
+    bool CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
+                              const CRS_Matrix<T>& coarseAuxMat,
+                              const StdVector< StdVector< Integer> >& edgeIndNode,
+                              const StdVector< Integer>& nodeNumIndex,
+                             const Agglomerate<T>& agglomerates);
+
+
     //! prolongates the coarse vector v_H to the fine vector v_h
 
     /*! Prolongates the coarse vector v_H to the fine vector v_h.
@@ -112,33 +123,6 @@ namespace CoupledField {
 		   Vector<T>& v_H,
 		   const bool       add = false ) const;
 
-    //! creates the coarse system matrix a_H as Galerkin product
-
-    /*! Creates the coarse system matrix a_H as Galerkin product
-     *  \f$ A_H = I_h^H A_h I_H^h \f$. This version of the routine
-     *  GalerkinProduct does not create temporary matrix data of a_H.
-     *  In return for this it needs the graph of \f$ A_H^T \f$
-     *  (graph_AHT) and the graph of \f$ (A_h I_H^h)^T \f$ (graph_VT).
-     *  These both graphs must be calculated before using the method
-     *  Topology<T>::CalcGalerkinGraphs. For the usage of this
-     *  method <b>only the restricion</b> matrix must have been built
-     *  in this class (see parameter "build_interpolation" of method
-     *  CreateOperators). This method expects \f$ A_h \f$ (a_h) to
-     *  be <b>sorted conforming to the layout conventions</b>, i.e.
-     *  the diagonal entry of each row must be at leading position
-     *  followed by the other entries, sorted by column indices.
-     *  The coarse matrix built by this routine conforms this layout,
-     *  too. See also the second version of this method.
-     *  \param a_H the address of a pointer to the coarse matrix.
-     *         The method itself will create the matrix object.
-     *  \param a_h the matrix of the fine system
-     *  \param graph_AHT the graph of \f$ A_H^T \f$
-     *  \param graph_VT the graph of \f$ (A_h I_H^h)^T \f$
-     */
-    void GalerkinProduct(       CRS_Matrix<T>**           a_H,
-				const CRS_Matrix<T>&            a_h,
-				const DependencyGraph<T>& graph_AHT,
-				const DependencyGraph<T>& graph_VT  ) const;
 
     //! creates the coarse system matrix a_H as Galerkin product
 
@@ -168,25 +152,42 @@ namespace CoupledField {
      *         address of the coarse matrix
      *  \param a_h matrix of the fine system
      */
-    void GalerkinProduct(       CRS_Matrix<T>** a_H,
-				const CRS_Matrix<T>&  a_h ) const;
+    void GalerkinProduct(StdVector<UInt>& A_H_rP,
+        StdVector<UInt>& A_H_cP,
+        StdVector<Double>& A_H_dP,
+        StdVector<UInt>& B_H_rP,
+        StdVector<UInt>& B_H_cP,
+        StdVector<Double>& B_H_dP,
+				const CRS_Matrix<T>&  A_h,
+				const CRS_Matrix<T>&  B_h,
+				const AMGType amgType);
+
+
+    void GalerkinProductEdgeAux( StdVector<UInt>& B_H_rP,
+        StdVector<UInt>& B_H_cP,
+        StdVector<Double>& B_H_dP,
+            const CRS_Matrix<T>&  B_h);
+
+    void GalerkinProductEdgeSys( StdVector<UInt>& A_H_rP,
+                                StdVector<UInt>& A_H_cP,
+                                StdVector<Double>& A_H_dP,
+                                const CRS_Matrix<T>&  A_h);
+
+
 
   protected:
 
-#ifdef TRANSFER_OPERATOR_IMPORT_INTERPOLATION
-    void ImportInterpolation( const Integer size_h,
-			      const Integer size_H );
-#endif
+    StdVector< StdVector< Integer> > cEdgeIndNode_;
 
-#ifdef DEBUG_TRANSFEROPERATOR
-    bool CheckOperators() const;
-#endif
+    CRS_Matrix<T> *Prolongation_; //!< the interpolation matrix \f$ I_H^h \f$
+    CRS_Matrix<T> *Restriction_;  //!< the restriction matrix \f$ I_h^H \f$
+    CRS_Matrix<T> *AuxProlongation_; //!< the interpolation matrix for auxiliary$
+    CRS_Matrix<T> *AuxRestriction_; //!< the restriction matrix for auxiliary$
 
-    CRS_Matrix<T> *Prolongation_, //!< the interpolation matrix \f$ I_H^h \f$
-      *Restriction_;  //!< the restriction matrix \f$ I_h^H \f$
   };
 
 /**********************************************************/
 } // namespace CoupledField
+
 
 #endif // OLAS_TRANSFER_HH

@@ -413,6 +413,14 @@ namespace CoupledField {
   //! - WCYCLE
   typedef enum {NOCYCLE, VCYCLE, WCYCLE} CycleType;
 
+  //! Switch, needed for the specialized AMG-methods
+
+  //! This enumeration data type describes the version of the special AMG-precond/solver
+  //! - SCALAR: one dof per node
+  //! - VECTORIAL: 2d or 3d dof's per node
+  //! - EDGE: dof's defined on edges (HCurl elements)
+  typedef enum { SCALAR = 0, VECTORIAL = 1, EDGE = 2} AMGType;
+
 
   //! Type of stopping criterion used by iterative solvers
 

@@ -272,6 +272,17 @@ namespace CoupledField {
     //! resulting %CRS_Matrix is in LEX sub-format.
     void SetSparsityPattern( BaseGraph &graph );
 
+    //! The sparsity-pattern with data, which was already set outside this class
+
+    //! We provide the three CRS-vectors externally as StdVectors and
+    //! convert them to arrays in this method
+    //! \param rowP  row-pointer
+    //! \param colI  column-index
+    //! \param data  data-pointer
+    void SetSparsityPatternData( const StdVector<UInt>& rowP,
+                                 const StdVector<UInt>& colI,
+                                 const StdVector<T>& data);
+
     //! Setup the sparsity pattern of the matrix
   
     //! This method provides an alternative form to set the sparsity pattern
@@ -418,6 +429,13 @@ namespace CoupledField {
     //!  row i and column j. Depending on the entry type of the matrix,
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
+
+    //! Check if matrix has a certain entry
+
+    //! This function returns a reference to the Matrix entry in
+    //!  row i and column j. Depending on the entry type of the matrix,
+    //!  v might be a Double, Complex or a tiny Matrix of either type
+    bool HasMatrixEntry( UInt i, UInt j, T& v) const;
 
     //! Return the diagonal entry of row i
     inline

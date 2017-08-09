@@ -2,10 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-/* $Id$ */
+/* $Id: AFWsmoother.hh 15666 2017-05-12 14:41:17Z kroppert $ */
 
-#ifndef OLAS_GAUSSSEIDEL_HH
-#define OLAS_GAUSSSEIDEL_HH
+#ifndef OLAS_AFWSMOOTHER_HH
+#define OLAS_AFWSMOOTHER_HH
 
 /**********************************************************/
 
@@ -14,22 +14,15 @@
 namespace CoupledField {
 /**********************************************************/
 
-//! Gauss-Seidel smoother for AMG
+//! Arnold-Falk-Winther AFW-smoother for edge-AMG
 
-/*! Gauss-Seidel smoother for AMG.
- *  This class implements both a pure Gauss-Seidel iterative
- *  solver/smoother and a damped Gauss-Seidel for the LES \f$Ax=b\f$,
- *  i.e. Successive Overrelaxation (SOR), with parameter \f$ \omega \f$.
- *  <br>
- *  \f$ \displaystyle u_{k+1} =
- *      (1-\omega) u^k - \omega D^{-1} \left( b - Lu^{k+1} - Uu^k \right)
- *  \f$
- *  <br>
- *  with a splitting of \f$A\f$ in its upper triangular, diagonal
- *  and lower triangular part: \f$ A = U + D + L \f$.
+/*! AFW-smoother for edge-AMG.
+ *  This class implements a block-wise edge smoother, where
+ *  all edges, connected by one common node are smoothed together
  */
+
 template <typename T>
-class GaussSeidel : public Smoother<T>
+class AFWSmoother : public Smoother<T>
 {
     public:
 
@@ -43,8 +36,8 @@ class GaussSeidel : public Smoother<T>
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
         typedef typename AssocType<T>::T_Stype T_Stype;
 
-        GaussSeidel();
-        ~GaussSeidel();
+        AFWSmoother();
+        ~AFWSmoother();
 
         //@{
         //! get value for the SOR damping parameter Omega
@@ -57,9 +50,20 @@ class GaussSeidel : public Smoother<T>
         }
         //@}
         
-        //! setup of the Gauss-Seidel smoother
 
-        /*! This function prepares the Gauss-Seidel smoother.
+        //! Create the connection of node-edges which are smoothed together
+
+        /*! We store for each node i in the auxiliary matrix a set
+         * of srcMatrix-indices (edges) which are connected to node i.
+         */
+        void CreatePatches(const CRS_Matrix<T>& AuxMatrix,
+                           const StdVector< StdVector< Integer> >& edgeIndNode,
+                           const StdVector<Integer> nodeNumIndex);
+
+
+        //! setup of the AFW smoother
+
+        /*! This function prepares the AFW smoother.
          *  That means that an array is created, containing the
          *  inverses of the diagonal entries of the matrix "matrix".
          *  (reimplementation of the virtual function of the base
@@ -68,7 +72,6 @@ class GaussSeidel : public Smoother<T>
          *  \return true, if the setup was successful
          */
         bool Setup( const CRS_Matrix<T>& matrix );
-
 
         //! one Gauss-Seidel/SOR step
 
@@ -82,7 +85,7 @@ class GaussSeidel : public Smoother<T>
          *         \c Smoother::BACKWARD: vice versa. For a general
          *         description of this parameter see Smoother::Step.
          *  \param force_setup flag for the control of the setup
-         *         (in class GaussSeidel the creation of array containing
+         *         (in class AFWSmoother the creation of array containing
          *         inverse values of the matrix' diagonal entries, for
          *         further information of this parameter see
          *         Smoother::Setup)
@@ -98,15 +101,47 @@ class GaussSeidel : public Smoother<T>
         void Reset();
 
 
+    private:
+        //! Create the extraction-blocks of the system matrix
+
+        /*! Extract blocks from the system matrix and rhs-vector (at least
+         * store the needed indices) and perform a local inversion of this
+         * extracted matrix (corresponds to the node-wise inversion of the diagonal
+         * element in the classical Gauss-Seidel.
+         * Every extracted matrix corresponds to a patch as defined
+         * in Patches_. This means every node is assigned such a small inverted
+         * matrix and a set of indices in the rhs-vector.
+         * This is just the preparation for the Setup-method
+         */
+        void ExtractPatches( const CRS_Matrix<T>& SysMat);
+
     protected:
 
-        T_Mtype    *DiagonalInverse_; //!< array with inverse diagonal entries
-        Integer     Size_;            //!< size of the LES
-        T_Stype     Omega_;           //!< damping factor for a SOR
-        const bool *PenaltyFlags_;
+        UInt Size_; //!< size of the system
+        UInt SizeNodes_;  //!< number of nodes in the auxiliary-matrix
+        T_Stype Omega_; //!< damping factor for a SOR
+
+        StdVector< StdVector< UInt> > Patches_;
+
+        //! contains the inverted extraction matrix for every node,
+        //! as defined in Patches_
+        StdVector< Matrix<Double> > InvExtMat_;
+
+        //! contains the extracted matrix for every node,
+        //! as defined in Patches_
+        StdVector< Matrix<Double> > ExtMat_;
+
+        //! contains the indices which have to be extracted from
+        //! the rhs-vector
+        StdVector< StdVector<UInt> > ExtRhs_;
+
+    private:
+        const UInt *pRow_;
+        const UInt *pCol_;
+        const T_Mtype *pDat_;
 };
 
 /**********************************************************/
 } // namespace CoupledField
 
-#endif // OLAS_GAUSSSEIDEL_HH
+#endif // OLAS_AFWSMOOTHER_HH

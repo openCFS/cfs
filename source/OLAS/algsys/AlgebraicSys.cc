@@ -36,6 +36,9 @@
 #include "Driver/BaseDriver.hh"
 #include "Driver/AnalysisID.hh"
 
+#include "MatVec/CRS_Matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
+
 DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
 
@@ -452,13 +455,23 @@ namespace CoupledField {
           "AlgebraicSys::CreateLinSys() first!" );
     }
     
+    // start setup timer of preconditioner
+    precond_->GetSetupTimer()->Start();
+
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( onlyOneMatrixBlock_ ) {
-      precond_->Setup( (*effMat_)(0,0));
-    } else {
-      precond_->Setup( *(effMat_));
+    if( useAMG_ ){
+        precond_->SetupMG( (*effMat_)(0,0), *auxMatAMG_, amgType_, edgeIndNode_, nodeNumIndex_);
+    }else{
+      if( onlyOneMatrixBlock_ ) {
+        precond_->Setup( (*effMat_)(0,0));
+      } else {
+        precond_->Setup( *(effMat_));
+      }
     }
+    // stop setup timer of preconditioner
+    precond_->GetSetupTimer()->Stop();
+
   }
 
   void AlgebraicSys::SetupSolver() {
@@ -911,6 +924,12 @@ namespace CoupledField {
     lastFreeEqnPerFct_.Resize(numFcts);
     eqnToSBMBlock_.Resize(numFcts);
     
+    // store flag for applying algebraic multigrid precond/solver
+    useAMG_ = false;
+    if(myParam_->Has("precondList")){
+      useAMG_ = myParam_->Get("precondList")->Has("MG");
+    }
+
     // store flag for applying static condensation
     statCond_ = solStrat_->UseStaticCondensation();
     myInfo_->Get("setup")->Get("staticCondensation")->SetValue(statCond_);
@@ -3288,6 +3307,530 @@ namespace CoupledField {
     }
   }
   
+
+  void AlgebraicSys::SetGeomIndexMap(const StdVector< Vector<Double> >& indGeomMap,
+                                     const UInt& dim){
+    dim_ = dim;
+    edge_ = false;
+    //loop over all indices
+    geomInd_.Resize(indGeomMap.GetSize());
+    for( UInt ind = 0; ind < indGeomMap.GetSize(); ++ind ) {
+      geomInd_[ind] = indGeomMap[ind];
+    }
+  }
+
+  void AlgebraicSys::SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
+                                     boost::unordered_map< Integer, StdVector<Integer> >& eNodes){
+    dim_ = 1;
+    edge_ = true;
+
+    //loop over all indices
+    boost::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
+    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
+    while(lIt != lengths.end() ){
+      StdVector<Integer> e = eIt->second;
+      Double l = lIt->second;
+      geomIndEdge_[lIt->first].eNodes = e;
+      geomIndEdge_[lIt->first].length = l;
+      lIt++;
+      eIt++;
+    }
+  }
+
+  void AlgebraicSys::BuildAMGAuxMatrix(){
+    std::cout << "++ Assembling auxiliary matrix for AMG-preconditioner "<<std::endl;
+    if(!edge_){
+      BuildAMGLagrangeAuxMatrix();
+    }else{
+      BuildAMGEdgeAuxMatrix();
+    }
+  }
+
+  void AlgebraicSys::BuildAMGEdgeAuxMatrix(){
+    amgType_ = EDGE;
+
+    /************ Perform some checks on the system matrix ***********/
+    // only singlefield...only one submatrix
+    BaseMatrix& b = (*effMat_)(0,0);
+
+    // Check if we have a StdMatrix
+    if ( b.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGEdgeAuxMatrix(): "
+          << " AMG cannot deal with matrices other than StdMatrix" );
+    }
+
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(b);
+
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGEdgeAuxMatrix(): AMG requires the system matrix"
+          << " to be a CRS_Matrix i.e. sparseNonSym. The system matrix you supplied is a "
+          << " matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " format." );
+    }
+
+    // Down-cast to CRS_Matrix
+    CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
+    if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+      crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+    }
+
+    /**************** Build the auxiliary graph ********************/
+    /* since we don't know the non-zero entries in the auxiliary matrix
+     * a priori, we have to introduce a temporary graph-like structure:
+     * For every node i, we store its neighbour-nodes j (connected via edges).
+     * Every neighbour-entry corresponds also to a length (edge-length between
+     * node i and j).
+     * We can't use geomIndEdge_ because it's edge-based, we need
+     * a node-based graph
+     */
+
+    // fill the indexNodeNum_ map... nodeNum is the key for entry in auxiliary matrix
+    // also fill edgeIndNode_, basically the same as geomIndEdge_ only without the
+    // unnecessary stuff
+    UInt nRows = 0;
+    boost::unordered_map<Integer, StdVector<UInt> > tempNodesOfEdge;
+    boost::unordered_map<Integer, StdVector<Double> > tempLengthOfEdge;
+    edgeIndNode_.Resize(geomIndEdge_.size());
+    for(UInt i = 0; i < geomIndEdge_.size(); ++i ){
+      StdVector<Integer> nodes = geomIndEdge_[i].eNodes;
+      edgeIndNode_[i] = nodes;
+      StdVector<UInt>& t1 = tempNodesOfEdge[nodes[0]];
+      StdVector<UInt>& t2 = tempNodesOfEdge[nodes[1]];
+      StdVector<Double>& et1 = tempLengthOfEdge[nodes[0]];
+      StdVector<Double>& et2 = tempLengthOfEdge[nodes[1]];
+      t1.Push_back( nodes[1] );
+      t2.Push_back( nodes[0] );
+      et1.Push_back( geomIndEdge_[i].length );
+      et2.Push_back( geomIndEdge_[i].length );
+      //tempTest[nodes[0]] = 2 * i;
+      //tempTest[2 * i + 1] = nodes[1];
+      if( !nodeNumIndex_.Contains( nodes[0]) ){
+        nodeNumIndex_.Push_back( nodes[0] );
+        indexNodeNum_[ nodes[0] ] = nRows;
+        nRows++;
+      }
+      if( !nodeNumIndex_.Contains(nodes[1]) ){
+        nodeNumIndex_.Push_back( nodes[1] );
+        indexNodeNum_[ nodes[1] ] = nRows;
+        nRows++;
+      }
+    }
+
+    StdVector< StdVector<UInt> > nodeList;
+    StdVector< StdVector<Double> > edgeList;
+    nodeList.Resize(nRows);
+    edgeList.Resize(nRows);
+    // row pointer of auxiliary matrix
+    StdVector<UInt> rP;
+    rP.Push_back(0);
+    // column index of auxiliary matrix
+    StdVector<UInt> cI;
+    // data pointer of auxiliary matrix
+    StdVector<Double> dataAux;
+    UInt rSize = 0;
+    //boost::unordered_map< Integer, EdgeGeom>::const_iterator eIt = geomIndEdge_.begin(); //old version
+    // loop over every node and collect connected neighbours
+    for(UInt nIt = 0; nIt < nRows; ++nIt){
+      Integer nNum = nodeNumIndex_[nIt]; //real nodeNumber
+      StdVector<UInt>& nL = nodeList[nIt];
+      StdVector<Double>& eL = edgeList[nIt];
+      //eIt = geomIndEdge_.begin(); //old version
+      // insert template for diagonal element in auxiliary matrix
+      cI.Push_back(nIt);
+      dataAux.Push_back(0.0);
+
+      // connected edges of node nNum
+      StdVector<UInt>& e = tempNodesOfEdge[nNum];
+      StdVector<Double>& l = tempLengthOfEdge[nNum];
+      for( UInt eI = 0; eI < e.GetSize(); ++eI){
+        if(!nL.Contains(indexNodeNum_[ e[eI] ])){
+          nL.Push_back(indexNodeNum_[ e[eI] ]);
+          eL.Push_back( l[eI] );
+          cI.Push_back(indexNodeNum_[ e[eI] ]);
+          dataAux.Push_back(0.0);
+        }
+      }
+
+      /*
+      // Old Version
+      // loop over all edges
+      while( eIt != geomIndEdge_.end() ){
+        Double dist = eIt->second.length;
+        //StdVector<Integer>& nodes = eIt->second.eNodes;
+        Integer found = -1; //eIt->second.eNodes.Find(nNum);
+        if( eIt->second.eNodes[0] == nNum ) found = 0;
+        else if( eIt->second.eNodes[1] == nNum ) found = 1;
+
+        if( found != -1){
+          UInt i = (found == 0)? 1 : 0;
+          if(!nL.Contains(indexNodeNum_[eIt->second.eNodes[i]])){
+            nL.Push_back(indexNodeNum_[eIt->second.eNodes[i]]);
+            eL.Push_back(dist);
+            cI.Push_back(indexNodeNum_[eIt->second.eNodes[i]]);
+            dataAux.Push_back(0.0);
+          }
+        }
+        eIt++;
+      }
+*/
+      rSize += nL.GetSize() +1;//+1 for diagonal
+      rP.Push_back(rSize);
+    }
+
+
+    /**************** Build the auxiliary matrix ********************/
+    // row- and column pointer already filled, now we have to assemble dataAux
+    for(UInt i = 0; i < nRows; ++i){
+      const StdVector<Double>& eL = edgeList[i];
+      Double diag = 0.0;
+      UInt d = 0;
+      for(UInt j = rP[i] +1; j < rP[i+1]; ++j){
+        Double invL = 1.0 / eL[d];
+        dataAux[j] -= invL;
+        diag += invL;
+        ++d;
+        }
+      // insert diagonal element LEX_DIAG_FIRST
+      dataAux[rP[i]] = diag;
+      }
+
+    UInt nnz = dataAux.GetSize();
+    auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+                                         BaseMatrix::SPARSE_NONSYM,
+                                         nRows,
+                                         nRows,
+                                         nnz);
+
+    // Generate auxiliary matrix
+    LOG_DBG(algSys) << " Generating auxiliary matrix for edge-AMG solver\n"
+                       " with " << nRows << " rows, " << nRows << " columns and "
+                       << nnz << " non-zero entries";
+
+    CRS_Matrix<Double>& auxMat = dynamic_cast<CRS_Matrix<Double>&>(*auxMatAMG_);
+    auxMat.SetSparsityPatternData(rP, cI, dataAux);
+    if(auxMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST){
+      auxMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+    }
+
+  }
+
+
+
+
+  void AlgebraicSys::BuildAMGLagrangeAuxMatrix(){
+
+    // only singlefield...only one submatrix
+    BaseMatrix& b = (*effMat_)(0,0);
+
+    // Check that we have a StdMatrix
+    if ( b.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGLagrangeAuxMatrix(): "
+          << " AMG cannot deal with matrices other than StdMatrix" );
+    }
+
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(b);
+
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGLagrangeAuxMatrix(): AMG requires the"
+          << " system matrix to be a CRS_Matrix i.e. sparseNonSym. "
+          << " The system matrix you supplied is a "
+          << " matrix in " << BaseMatrix::storageType.ToString( sType ) << " format." );
+    }
+
+    // Down-cast to CRS_Matrix
+    CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
+
+
+    // Get handles and info from system-matrix
+
+    // Query number of matrix rows and columns
+    UInt nRows = crsMat.GetNumRows();
+    // Get hold of column index array
+    const UInt *colP = crsMat.GetColPointer();
+    // Get hold of row pointer index array
+    const UInt *rowInd = crsMat.GetRowPointer();
+    // Get hold of data array
+    const Double *dataA = crsMat.GetDataPointer();
+    UInt nnzSys = crsMat.GetNnz();
+
+    // dimension of the problem (number of entries per node)
+    UInt dim = dim_;
+
+    // Declare some variables
+    StdVector<UInt> rP, cI;
+    StdVector<Double> dataAux;
+
+    UInt sizeB;
+    StdVector<Double> diagData;
+    UInt rowSize = 0;
+    StdVector<UInt> t;
+    UInt diagPos = 0;
+    Double rSum;
+    Vector<Double> dist;
+
+    switch(dim){
+      case 1:
+        amgType_ = SCALAR;
+        /************ case of scalar nodal H1 FE ***************/
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        rP.Resize(nRows + 1, 0);
+        UInt rIt;
+        rIt = 0;
+        for (UInt i = 0; i < nRows; i++ ) {
+          for(UInt nzIt = rowInd[i]; nzIt < rowInd[i + 1]; ++nzIt){
+            cI.Push_back(colP[nzIt]);
+            dataAux.Push_back(dataA[nzIt]);
+            rIt += 1;
+          }
+          rP[i + 1] = rIt;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+                                             BaseMatrix::SPARSE_NONSYM,
+                                             nRows,
+                                             nRows,
+                                             nnzSys);
+        break;
+
+      case 2:
+        amgType_ = VECTORIAL;
+        /************ 2D nodal H1 FE ***************/
+        /************ the "geometric way" **********/
+        // sanity check
+        if( nRows % 2 != 0) EXCEPTION("AlgebraicSys::BuildAMGAuxMatrix(): matrix is not 2D!!")
+        // want to have the matrix in LEX_DIAG_FIRST layout
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        sizeB = nRows / 2;
+
+        diagData.Resize(sizeB, 0.0);
+
+
+        /* nz_entry          *     *     *     *     *     *
+         * col-ind           0     1     2     3     4     5
+         *                  |_______ |  |________|  |________|
+         * auxMatAMG-col i      0           1            2
+         *
+         * conversion between nz-entry and auxMatAMG_ column (node): 2*i<= nz_entry<=2*(i+1)-1
+         *                                               or inverse: (k-1)/2<=i<=k/2
+         */
+        rP.Resize(sizeB + 1, 0);
+        rP[0] = 0;
+
+        t.Resize(sizeB);
+        t.Init(0);
+        for(UInt i = 0; i < nRows; ++i){
+          for(UInt j = rowInd[i]; j < rowInd[i + 1]; ++j){
+            // find out to which node this entry belongs
+            if( colP[j] % dim == 0 ){
+              // node = colP[j] / 2
+              if( t[colP[j]/2] == 0){
+                t[colP[j]/2] = 1;
+                cI.Push_back( colP[j] / 2 );
+                rowSize++;
+              }
+            }else{
+              // node = (colP[j]-1) / 2
+              if(t[(colP[j]-1)/2] == 0){
+                t[(colP[j]-1)/2] = 1;
+                cI.Push_back( (colP[j]-1) / 2 );
+                rowSize++;
+              }
+            }
+
+          }// loop over rowsize
+          if(i==1){
+            rP[1] = rowSize;
+            t.Init(0);
+          }
+          if( ((i-1) % 2 == 0 && i > 1)){
+            rP[i/2 + 1] = rowSize;
+            t.Init(0);
+          }
+          if(i == nRows-1){
+            rP[sizeB] = rowSize;
+            t.Init(0);
+          }
+        }// loop over every row
+
+
+        /* Now we can start to build the actual auxiliary-matrix:
+         * for every off-diagonal entry (i,j) with i != j, we calculate
+         * the geometric distance between nodes i and j via geomInd_ .
+         * The entry auxMatAMG_[i,j] = -1.0 / distance(i,j)^2
+         * The diagonal entry i is -sum(auxMatAMG_(i,:)) ... negative
+         * row-sum of off-diagonals
+         * Defining the auxiliary-matrix in this way, we obtain a
+         * strong diagonally dominant SPD matrix
+         */
+        dataAux.Resize(cI.GetSize());
+        dataAux.Init(0.0);
+        for( UInt i = 0; i < sizeB; ++i ){
+          rSum = 0;
+          Vector<Double> ci = geomInd_[dim * i];
+          for( UInt j = rP[i]; j < rP[i+1]; ++j ){
+            Vector<Double> cj = geomInd_[dim * cI[j] ];
+            dist.Resize(cj.GetSize(), 0.0);
+            dist.Add(1.0, ci, -1.0, cj);
+            // if diagonal, store the position
+            if( i == cI[j]){
+              diagPos = j;
+            }else{
+              dataAux[j] =  -1.0 / dist.NormL2();
+              rSum += -1.0 / dist.NormL2();
+            }
+          }
+          // fill diagonal
+          dataAux[diagPos] = -rSum;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+            BaseMatrix::SPARSE_NONSYM,
+            sizeB,
+            sizeB,
+            cI.GetSize());
+        break;
+
+      case 3:
+        amgType_ = VECTORIAL;
+        /************ 3D nodal H1 FE ***************/
+        /************ the "geometric way" **********/
+        // sanity check
+        if( nRows % 3 != 0) EXCEPTION("AlgebraicSys::BuildAMGAuxMatrix(): matrix is not 3D!!")
+        // want to have the matrix in LEX_DIAG_FIRST layout
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        sizeB = nRows / 3;
+
+        diagData.Resize(sizeB, 0.0);
+
+        //TODO I simply can not access the basegraph, this would make
+        // things way easier...
+        // every nz-entry in auxMatAMG_ corresponds to a
+        // dim x dim entry in the system-matrix
+
+        // ok the plan now is to mark every dim x dim entry
+        // if it is non zero, this means if the dim x dim entry
+        // in the system matrix is nz, also the entry of dim 1
+        // in the auxMatAMG_ is nz
+        // therefore we build our own sparsity-pattern by introducing
+        // a CRS-style col- and row-pointer but no data-pointer
+        // since we only need the information that it's a nz entry
+
+        /* nz_entry          *     *     *     *     *     *     *     *     *     *
+         * col-ind           0     1     2     3     4     5     6     7     8     9
+         *                  |______________|  |______________|  |______________|  |___
+         * auxMatAMG-col i         0                  1                2
+         *
+         * conversion between nz-entry and auxMatAMG_ column (node): 3*i<= nz_entry<=3*(i+1)-1
+         *                                               or inverse: (k-2)/3<=i<=k/3
+         */
+        rP.Resize(sizeB + 1, 0);
+        rP[0] = 0;
+
+        t.Resize(sizeB);
+        t.Init(0);
+        for(UInt i = 0; i < nRows; ++i){
+          for(UInt j = rowInd[i]; j < rowInd[i + 1]; ++j){
+            // find out to which node this entry belongs
+            if( colP[j] % dim == 0 ){
+              // node = colP[j] / dim
+              if( t[colP[j]/3] == 0){
+                t[colP[j ]/3] = 1;
+                cI.Push_back( colP[j] / 3 );
+                rowSize++;
+              }
+            }else{
+              if( (colP[j]-2) % dim == 0 && colP[j] > 1 ){
+                // node = (colP[j]-2) / dim
+                if(t[(colP[j]-2)/3] == 0){
+                  t[(colP[j]-2)/3] = 1;
+                  cI.Push_back( (colP[j]-2) / 3 );
+                  rowSize++;
+                }
+              }else{
+                // node = (colP[j]-1) / dim
+                // same as node = (colP[j]+1) / dim
+                // because it's a middle-entry
+                if(t[(colP[j]-1)/3] == 0){
+                  t[(colP[j]-1)/3] = 1;
+                  cI.Push_back( (colP[j]-1) / 3 );
+                  rowSize++;
+                }
+              }
+            }
+          }// loop over rowsize
+          if(i==2){
+            rP[1] = rowSize;
+            t.Init(0);
+          }
+          if( ((i-2) % 3 == 0 && i > 2)){
+            rP[i/3 + 1] = rowSize;
+            t.Init(0);
+          }
+          if(i == nRows-1){
+            rP[sizeB] = rowSize;
+            t.Init(0);
+          }
+        }// loop over every row
+
+        /* Now we can start to build the actual auxiliary-matrix:
+         * for every off-diagonal entry (i,j) with i != j, we calculate
+         * the geometric distance between nodes i and j via geomInd_ .
+         * The entry auxMatAMG_[i,j] = -1.0 / distance(i,j)^2
+         * The diagonal entry i is -sum(auxMatAMG_(i,:)) ... negative
+         * row-sum of off-diagonals
+         * Defining the auxiliary-matrix in this way, we obtain a
+         * strong diagonally dominant SPD matrix
+         */
+        dataAux.Resize(cI.GetSize());
+        dataAux.Init(0.0);
+        for( UInt i = 0; i < sizeB; ++i ){
+          rSum = 0;
+          Vector<Double> ci = geomInd_[dim * i];
+          for( UInt j = rP[i]; j < rP[i+1]; ++j ){
+            Vector<Double> cj = geomInd_[dim * cI[j] ];
+            dist.Resize(cj.GetSize(), 0.0);
+            dist.Add(1.0, ci, -1.0, cj);
+            // if diagonal, store the position
+            if( i == cI[j]){
+              diagPos = j;
+            }else{
+              dataAux[j] =  -1.0 / dist.NormL2();
+              rSum += -1.0 / dist.NormL2();
+            }
+          }
+          // fill diagonal
+          dataAux[diagPos] = -rSum;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+                                             BaseMatrix::SPARSE_NONSYM,
+                                             sizeB,
+                                             sizeB,
+                                             cI.GetSize());
+        break;
+
+    }// switch dimension
+
+    // Generate auxiliary matrix
+    LOG_DBG(algSys) << " Generating auxiliary matrix for AMG solver\n"
+                       " with " << nRows << " rows, " << nRows << " columns and "
+                       << nnzSys << " non-zero entries";
+
+    CRS_Matrix<Double>& auxMat = dynamic_cast<CRS_Matrix<Double>&>(*auxMatAMG_);
+    auxMat.SetSparsityPatternData(rP, cI, dataAux);
+  }
+
+
   // ========================================================================
   // Explicit template instantiation
   // ========================================================================

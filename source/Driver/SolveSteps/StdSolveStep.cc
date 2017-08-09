@@ -157,7 +157,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
     assemble_->AssembleLinRHS();
-    //Set special RHS Values
+    // Set special RHS Values
     PDE_.SetRhsValues();
 
     PDE_.SetBCs();
@@ -172,7 +172,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
                                          matrix_factor_[NO_FCT_ID] );
     }
 
-    // Incorporate Boundary conitions and
+    // Check if the AMG-framework is used (if so, we have
+    // to gather some geometry information at this point)
+    if(algsys_->UseAMG() ){
+      PDE_.SetGeomInfo();
+      algsys_->BuildAMGAuxMatrix();
+    }
+
+
+    // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
