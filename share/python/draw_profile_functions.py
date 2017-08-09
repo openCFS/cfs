@@ -1448,65 +1448,69 @@ def extract_plane_coordinates(list,dir):
     
   return new
 
-def mesh_boundary_circles(surf_points,vtk_points,cells):
-  # extract points on the boundary circles
-  # each entry contains a list representing one boundary face of the base cell
-  lists = extract_boundary_points(surf_points,vtk_points)
-  assert(len(lists) == 6)
+# def mesh_boundary_circles(surf_points,vtk_points,cells):
+#   # extract points on the boundary circles
+#   # each entry contains a list representing one boundary face of the base cell
+#   lists = extract_boundary_points(surf_points,vtk_points)
+#   assert(len(lists) == 6)
+#   
+#   lists_2d = []
+#   
+#   count = 0
+#   for dir in (0,1,2):
+#     lists_2d.append(extract_plane_coordinates(lists[count], dir))
+#     count += 1
+#     lists_2d.append(extract_plane_coordinates(lists[count], dir))
+#     count += 1
+#     
+#   for count,l in enumerate(lists_2d):  
+#     # component 0 and 1 store plane coordinates
+#     # component 2 store vtk point id
+#     l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
+#     info = triangle.MeshInfo()
+#     test = [ [elem[0],elem[1]] for elem in l]
+#     info.set_points(test)
+#     info.set_facets(round_trip_connect(0,len(l)-1))
+#     mesh = triangle.build(info,generate_faces=True) 
+#   
+#     mesh_points = np.array(mesh.points)
+#     mesh_tris = np.array(mesh.elements)
+#     
+# #     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
+# #     plt.show()
+#     
+#     major_dir = -1
+#     if count == 0 or count == 1:
+#       major_dir = 0
+#     elif count == 2 or count == 3:  
+#       major_dir = 1
+#     else:
+#       major_dir = 2
+#      
+#     minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
+#     # up to len(l), l and mesh_points have the same ordering of points
+#     # map from local mesh_points point ids to global ones from points in vtk_points
+#     lookup = np.ones(len(mesh_points),dtype=int) * (-1)
+#     for i in range(0,len(l)):
+#       lookup[i] = l[i][2]
+#     for i in range (len(l),len(mesh_points)):
+#       point = np.zeros(3)
+#       if count%2 == 0: # left side of profile
+#         point[major_dir] = 0.0
+#       else:
+#         point[major_dir] = 1.0
+#           
+#       point[minor_dir_2] = mesh_points[i][0]
+#       point[minor_dir_1] = mesh_points[i][1] 
+#       lookup[i] = vtk_points.InsertNextPoint(point)
+#       
+#     # use lookup table to set new triangles from meshed boundary circle
+#     for tri in mesh_tris:
+#       add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
+
+def mesh_boundary_circles(points):
   
-  lists_2d = []
-  
-  count = 0
-  for dir in (0,1,2):
-    lists_2d.append(extract_plane_coordinates(lists[count], dir))
-    count += 1
-    lists_2d.append(extract_plane_coordinates(lists[count], dir))
-    count += 1
-    
-  for count,l in enumerate(lists_2d):  
-    # component 0 and 1 store plane coordinates
-    # component 2 store vtk point id
-    l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
-    info = triangle.MeshInfo()
-    test = [ [elem[0],elem[1]] for elem in l]
-    info.set_points(test)
-    info.set_facets(round_trip_connect(0,len(l)-1))
-    mesh = triangle.build(info,generate_faces=True) 
-  
-    mesh_points = np.array(mesh.points)
-    mesh_tris = np.array(mesh.elements)
-    
-#     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
-#     plt.show()
-    
-    major_dir = -1
-    if count == 0 or count == 1:
-      major_dir = 0
-    elif count == 2 or count == 3:  
-      major_dir = 1
-    else:
-      major_dir = 2
-     
-    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
-    # up to len(l), l and mesh_points have the same ordering of points
-    # map from local mesh_points point ids to global ones from points in vtk_points
-    lookup = np.ones(len(mesh_points),dtype=int) * (-1)
-    for i in range(0,len(l)):
-      lookup[i] = l[i][2]
-    for i in range (len(l),len(mesh_points)):
-      point = np.zeros(3)
-      if count%2 == 0: # left side of profile
-        point[major_dir] = 0.0
-      else:
-        point[major_dir] = 1.0
-          
-      point[minor_dir_2] = mesh_points[i][0]
-      point[minor_dir_1] = mesh_points[i][1] 
-      lookup[i] = vtk_points.InsertNextPoint(point)
-      
-    # use lookup table to set new triangles from meshed boundary circle
-    for tri in mesh_tris:
-      add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
+  return new_points,tri
 
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
