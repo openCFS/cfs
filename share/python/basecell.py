@@ -339,6 +339,17 @@ class Basecell():
     assert(type(data) is Basecell_Data)
     self.data = data
     dumm, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
+    
+  def scale(self,scalex,scaley,scalez):
+    for i in range(len(self.points)):
+      self.points[i] = np.asanyarray(self.points[i]) * np.asarray([scalex,scaley,scalez])
+      
+  def translate(self,x,y,z):
+#     print("translate:",x,y,z)
+    for i in range(len(self.points)):
+#       print("old:",self.points[i])
+      self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z]) 
+#       print("new:",self.points[i])
       
 ############## info xml scheme #####################
 # <basecell>
