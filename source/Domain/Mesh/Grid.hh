@@ -157,6 +157,16 @@ namespace CoupledField
                                     const UInt inode,
                                     bool updated = false ) const = 0;
 
+    //! Get coordinates of nodeList (dimension: grid dependent)
+
+    //! Basically the same as GetNodeCoordinate but only with
+    //! multiple nodes in nodeList
+    //! \param nodeCoords (out) coordinates of points
+    //! \param inode (in) node numbers
+    //! \param updated (in) flag indicating if updated geometry should be used
+    virtual void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
+                                       StdVector<UInt> & nodeList,
+                                       bool updated ) const = 0;
     
     //! Get coordinates of node (dimension: 3D)
 

@@ -169,6 +169,12 @@ namespace CoupledField
                             const UInt inode,
                             bool updated ) const;
     
+    //! \see Grid::GetNodeCoordinates
+    void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
+                                           StdVector<UInt> & nodeList,
+                                           bool updated ) const;
+
+
     //! \see Grid::GetNodeCoordinate3D
     void GetNodeCoordinate3D( Vector<Double> & rfPoint,
                               const UInt inode,

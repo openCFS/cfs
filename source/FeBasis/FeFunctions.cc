@@ -947,6 +947,49 @@ DECLARE_LOG(fefunc)
     } // loop: coefs
   }
 
+
+  template<typename T>
+  void FeFunction<T>::ApplyGeomInfo(){
+
+    boost::unordered_map< Integer, EqNodeGeom> eqIndGeomMap;
+    UInt maxEqn, dim;
+    feSpace_->CreateEquIndGeomMap(eqIndGeomMap, maxEqn, dim);
+    //this EqNodeGeom could be used later on, but now we only need
+    //index<->coordinate, so extract the coordinate from the map, eqnNum remains the key
+    StdVector< Vector<Double> > indGeom;
+    bool edge = false;
+    if( feSpace_->GetSpaceType() != feSpace_->HCURL ){
+      indGeom.Resize(eqIndGeomMap.size());
+    }else{
+      edge = true;
+      indGeom.Resize(2 * eqIndGeomMap.size() + 1);
+    }
+
+
+    boost::unordered_map< Integer , EqNodeGeom >::const_iterator eqIt = eqIndGeomMap.begin();
+    if( edge != true){
+      while(eqIt != eqIndGeomMap.end() ){
+        //used for mech and poisson
+        indGeom[eqIt->second.indexNum - 1] = eqIt->second.coord;
+       eqIt++;
+      }
+      this->algsys_->SetGeomIndexMap(indGeom, dim);
+    }else{
+
+      boost::unordered_map< Integer, StdVector<Integer> > eNodes;
+      boost::unordered_map< Integer, Double > lengths;
+      while(eqIt != eqIndGeomMap.end() ){
+        eNodes[eqIt->second.indexNum - 1] = eqIt->second.eNodes;
+        Vector<Double> n1, n2;
+        n1 = eqIt->second.eCoords[0];
+        n2 = eqIt->second.eCoords[1];
+        lengths[eqIt->second.indexNum - 1] = n1.NormL2(n2);
+        eqIt++;
+      }
+      this->algsys_->SetEdgeIndexMap(lengths, eNodes);
+    }
+  }
+
   template<typename T>
   void FeFunction<T>::ApplyExternalData(){
 

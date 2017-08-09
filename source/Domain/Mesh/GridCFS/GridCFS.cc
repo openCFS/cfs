@@ -2151,6 +2151,26 @@ namespace CoupledField {
     }
   }
   
+
+  void GridCFS::GetNodeCoordinates( StdVector< Vector<Double> > & nodeCoords,
+                                   StdVector<UInt> & nodeList,
+                                   bool updated ) const {
+
+    nodeCoords.Resize(nodeList.GetSize());
+    // check if nodes are available
+    for (UInt i = 0; i < nodeList.GetSize(); ++i) {
+      if (nodeList[i] > numNodes_ ) {
+        EXCEPTION( "GridCFS: There are only " << numNodes_
+                   << " nodes in the grid. You requested coordinates for "
+                   << "node number " << nodeList[i] <<". Go check your mesh file!" );
+      }
+      nodeCoords[i] = coords_[nodeList[i]];
+      if (updated && deltCoords_.GetSize() > 0) {
+        nodeCoords[i] += deltCoords_[nodeList[i]];
+      }
+    }
+  }
+
   void GridCFS::GetNodeCoordinate3D( Vector<Double> & rfPoint,
                                    const UInt inode,
                                    bool updated ) const {

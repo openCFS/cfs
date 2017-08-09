@@ -29,7 +29,7 @@
 #include "OLAS/precond/ILU0Precond.hh"
 #include "OLAS/precond/ILUTP_Precond.hh"
 #include "OLAS/precond/ILUK_Precond.hh"
-//#include "precond/mgmakeprecond.cc"
+#include "OLAS/precond/MGPrecond.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 #include "OLAS/precond/IC0Precond.hh"
 #include "OLAS/precond/SBMDiagPrecond.hh"
@@ -313,9 +313,8 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       //   Multigrid Preconditioner
       // ============================
     case BasePrecond::MG:
-
       // multigrid preconditioners can be used with CRS_Matrix only.
-      // PRECOND_OBJ( DOUBLE, SPARSE_NONSYM, 1, MGPrecond<Double> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, MGPrecond<Double> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
@@ -567,7 +566,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         break;
         
       case BasePrecond::MG:
-        ret.insert(BaseMatrix::SPARSE_SYM);
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
         break;
       
       case BasePrecond::JACOBI:

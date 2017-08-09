@@ -519,6 +519,54 @@ namespace CoupledField {
   }
 
 
+
+  // **********************
+  //   SetSparsityPatternData
+  // **********************
+  template<typename T>
+  void CRS_Matrix<T>::SetSparsityPatternData( const StdVector<UInt>& rowP,
+                                               const StdVector<UInt>& colI,
+                                               const StdVector<T>& data){
+
+    // Check that no pattern was allocated
+    if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ) {
+      EXCEPTION( "There seems to already be a sparsity pattern!" );
+    }
+    if(this->nrows_ != (rowP.GetSize() - 1) ) EXCEPTION("CRS_Matrix: rowPointer-1 has other size than number of rows!!")
+
+    // Allocate memory for row pointers and initialise first one
+    NEWARRAY( rowPtr_, UInt, rowP.GetSize() );
+
+    // Allocate memory for column indices
+    NEWARRAY( colInd_, UInt, colI.GetSize() );
+
+    UInt maxCol = 0;
+    for (UInt i = 0; i < rowP.GetSize(); ++i ) {
+      rowPtr_[i] = rowP[i];
+    }
+    for(UInt i = 0; i < colI.GetSize(); ++i ){
+      colInd_[i] = colI[i];
+      data_[i] = data[i];
+      if(colI[i] > maxCol) maxCol = colI[i];
+    }
+
+    // Diagonal pointer only if the matrix has square shape, otherwise what's the diagonal?
+    if( maxCol == rowP.GetSize() - 2){
+      // Allocate memory for diagonal indices
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
+
+      // fill diagonal indices
+      for(UInt i = 0; i < this->nrows_; ++i){
+        for(UInt j = rowPtr_[i]; j < rowPtr_[i + 1]; ++j){
+          if(colInd_[j] == i){
+            diagPtr_[i] = j;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   // *************************
    //   TransferPatternToPool
    // *************************
@@ -1041,6 +1089,56 @@ namespace CoupledField {
       EXCEPTION( "GetMatrixEntry: Index pair = (" << i << " , "
                << j << ") not found\n" );
     }
+  }
+
+
+  // *****************************
+  //   Has specific matrix entry ?
+  // *****************************
+  template<typename T>
+  bool CRS_Matrix<T>::HasMatrixEntry( UInt i, UInt j, T& v) const {
+    bool found = false;
+    // Try to determine index for matrix entry at position (i,j)
+    UInt l = rowPtr_[i];
+    UInt u = rowPtr_[i+1];
+    switch(currentLayout_){
+    case UNSORTED: // we have to search linearly here
+      for ( UInt k = l; k < u; k++ ) {
+        if ( colInd_[k] == j ) {
+          found = true;
+          v = data_[k];
+          break;
+        }
+      }
+      break;
+    case LEX_DIAG_FIRST:
+      if(colInd_[l] == j){ // the diagonal exists
+        if(i == j){ // we want the diagonal
+          v = data_[j];
+          found = true;
+          break;
+        }else{
+          l++; // we do not want the diagonal element, search all others
+        }
+      }
+      // Note: no break
+    case LEX:
+      // logarithmic search (this has complexity O(log(n)), n=u-l)
+      u--; //instead of UInt u = rowPtr_[i+1]-1;
+      while(l <= u){
+        UInt k = (l+u) >> 1;
+        if(colInd_[k] > j){
+          u = k-1;
+        }else if(colInd_[k] < j){
+          l = k+1;
+        }else{
+          v = data_[k];
+          found = true;
+          break;
+        }
+      }
+    }
+    return found;
   }
 
   // *****************************
@@ -1666,10 +1764,15 @@ namespace CoupledField {
 
       // Check if row has a diagonal entry (otherwise this might
       // not be sensible)
+      //TODO had to disable this for AMG (zero-based), we have to check
+      // if this has further consequences; maybe we can check
+      // if data_[diagPtr_[i]] == 0.0 ?
+      /*
       if ( diagPtr_[i] == 0 ) {
         EXCEPTION( "CRS_Matrix<T>::SortLex2LexDiagFirst: There is no "
                  << "diagonal entry in row " << i );
       }
+    */
 
       // Store diagonal entry
       auxVal = data_[ diagPtr_[i] ];

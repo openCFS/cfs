@@ -518,6 +518,9 @@ template<typename T> class ElemStoreSol;
     //! This method sets val to the value of vector entry i
     void GetEntry( UInt i, T &val ) const;
 
+    //! Get entries at specified indices from in
+    const Vector<T> GetEntries( const StdVector<UInt>& in) const;
+
     //! Add val to the value of a vector entry
 
     //! This method adds to the entry of the vector at position i the

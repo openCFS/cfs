@@ -826,6 +826,62 @@ namespace CoupledField {
 
 
     // ***********************************************************************
+    //   Methods for Algebraic Multigrid (AMG)
+    // ***********************************************************************
+
+    //@{
+    //! \name Geometry Inclusion Routines
+
+    //! Struct for one edge, it contains the edge-nodes (correct order)
+    //! and its length
+    struct EdgeGeom{
+      StdVector<Integer> eNodes; // edge nodes
+      Double length;  // length of edge
+    };
+
+    //! Set geometry information - nodal version
+
+    //! Create a mapping between indices in the system matrix and
+    //! coordinates of dof-positions (nodes)
+    //! \note Fills geomInd_ variable
+    //! \param indGeomMap Vector of coordinates of the specific points
+    //! \param dim Dimension of the problem
+    void SetGeomIndexMap(const StdVector< Vector<Double> >& indGeomMap,
+                         const UInt& dim);
+
+    //! Set geometry information - edge version
+
+    //! Create a mapping between indices in the system matrix and
+    //! edge-nodes respectively edge-lengths
+    //! \note Fills geomIndEdge_ variable
+    //! \param lengths Map where system matrix-index is the key and the length of the
+    //!                corresponding edge is the value
+    //! \param eNodes  Map where system matrix-index is the key and the node-numbers
+    //!                of the corresponding edge are the values
+    void SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
+                         boost::unordered_map< Integer, StdVector<Integer> >& eNodes);
+
+    //! Build auxiliary matrix for algebraic multigrid solver/preconditioner
+
+    //! In this method, we only differentiate between nodal- (Lagrangian-)
+    //! and edge- (Nédéléc-) version
+    void BuildAMGAuxMatrix();
+
+    //! Build the auxiliary matrix for the nodal- (Lagrangian-) version of AMG
+    void BuildAMGLagrangeAuxMatrix();
+
+    //! Build the auxiliary matrix for the edge- (Nédéléc-) version of AMG
+    void BuildAMGEdgeAuxMatrix();
+
+    //! Return if AMG is even used
+    bool UseAMG(){
+      return useAMG_;
+    }
+
+    //@}
+
+
+    // ***********************************************************************
     //   Various methods
     // ***********************************************************************
 
@@ -1145,6 +1201,49 @@ namespace CoupledField {
   //! Flag if we have distinct matrix graphs for different matric types
   bool distinctMatGraphs_;
   //@}
+
+  // =======================================================================
+  // AMG SECTION
+  // =======================================================================
+
+  //@{ \name Algebraic Multigrid variables
+
+  //! Flag indicating use of multigrid methods
+  bool useAMG_;
+
+  //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
+  StdMatrix *auxMatAMG_;
+
+  //! Store coordinate of each index geomInd_[i] = coordinate of index i
+  StdVector< Vector<Double> > geomInd_;
+
+  //! Special structure for edge-AMG geomIndEdge_[i] contains
+  //! the coordinates of the two nodes of edge i (already in correct
+  //! orientation)
+  boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
+
+  //! Special structure for edge-AMG geomIndEdge_[i] contains
+  //! the indices in the auxiliary-matrix of the two nodes
+  // of edge i (already in correct orientation)
+  StdVector< StdVector< Integer> > edgeIndNode_;
+
+  //! Map for nodeNum <-> index in auxiliary matrix
+  boost::unordered_map< Integer, UInt> indexNodeNum_;
+
+  //! vector for index <-> nodeNum in auxiliary matrix
+  StdVector<Integer> nodeNumIndex_;
+
+  //! only valid for AMG: dimension of singlefield-problem
+  UInt dim_;
+
+  //! Flag, needed for the specialized AMG-methods
+  AMGType  amgType_;
+
+  //! Switch if edge element discretization is used
+  bool edge_;
+  //@}
+
+
   // =======================================================================
   // CACHE SECTION
   // =======================================================================
