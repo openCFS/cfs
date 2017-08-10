@@ -59,7 +59,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     const T * const dataP = matrix.GetDataPointer();
 
     // fill the array with the inverses of the diagonal entries
-    for( Integer i = 0; i < Size_; i++ ) {
+    for( Integer i = 0; i < (Integer)Size_; i++ ) {
         DiagonalInverse_[i] = 1.0 / dataP[ diagP[i] ];
     }
 
@@ -112,7 +112,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     for (UInt i = 0; i < Size_; ++i) auxVec_[i] = sol[i] + Omega_ * r_h[i] * DiagonalInverse_[i];
 
     // copy new solution on passed vector
-    for( Integer i = 0; i < Size_; i++ ) sol[i] = auxVec_[i];
+    for( Integer i = 0; i < (Integer)Size_; i++ ) sol[i] = auxVec_[i];
 
 }
 

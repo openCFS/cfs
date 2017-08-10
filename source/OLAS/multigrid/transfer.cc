@@ -9,7 +9,6 @@
 #include <def_use_blas.hh>
 #ifdef USE_MKL
 # include <mkl.h>
-  //#include </home/kroppert/Local_Programs/MKL_newest/mkl/include/mkl.h>
 #else
 EXCEPTION("Compile with USE_MKL = ON")
 #endif
@@ -178,7 +177,7 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
     }
 
     // the following algorithm constructs R
-    for( Integer i = 0; i < agglomerates.GetSizeh(); ++i ) {
+    for( Integer i = 0; i < (Integer)agglomerates.GetSizeh(); ++i ) {
       if( agglomerates.IsCPoint(i) ){
         // get the coarse index of node i, cast is safe, it already is a C-point
         // this is now the row index
@@ -187,7 +186,7 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
         StdVector<Integer> agg = agglomerates.GetAgglomerateOfNode(i);
 
         //sanity check
-        if( cI != agglomerates.GetCoarseIndex(agg[0]) ) EXCEPTION("transfer.cc: Coarse-index problem");
+        if( (Integer)cI != agglomerates.GetCoarseIndex(agg[0]) ) EXCEPTION("transfer.cc: Coarse-index problem");
         if( agg.GetSize() != (pRowR[cI + 1] - pRowR[cI])) EXCEPTION("transfer.cc: Coarse-index problem");
         // every index in the agglomerate is now assigned a 1
         UInt it = 0;
@@ -256,14 +255,14 @@ CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
       }
       UInt aggN1 = A.GetAgglomerateNumOfNode(eInd[0]);
       UInt aggN2 = A.GetAgglomerateNumOfNode(eInd[1]);
-      if( (aggN1 == cEind[0]) && (aggN2 == cEind[1]) ){
+      if( ((Integer)aggN1 == cEind[0]) && ((Integer)aggN2 == cEind[1]) ){
         pColR.Push_back(j);
         pDatR.Push_back(1.0);
         cE[0] = cEreal[0];
         cE[1] = cEreal[1];
         count++;
       }
-      if( (aggN1 == cEind[1]) && (aggN2 == cEind[0]) ){
+      if( ((Integer)aggN1 == cEind[1]) && ((Integer)aggN2 == cEind[0]) ){
         pColR.Push_back(j);
         pDatR.Push_back(-1.0);
         cE[0] = cEreal[1];
@@ -321,7 +320,7 @@ CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
    */
 
   nNonZeros = 0;
-  for( Integer i = 0; i < topology.GetSizeh(); i++ ) {
+  for( Integer i = 0; i < (Integer)topology.GetSizeh(); i++ ) {
     // if point [i] is C-point, in column [i] there is only one
     // entry, since C-points are simply injected with weight 1.0
     const Integer iC = CoarseIndex[i];
@@ -399,7 +398,7 @@ CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
    * and define the restriction as the transpose prolongation
    */
   nNonZeros = 0;
-  for( Integer i = 0; i < topology.GetSizeh(); i++ ) {
+  for( Integer i = 0; i < (Integer)topology.GetSizeh(); i++ ) {
     // if point [i] is C-point, in column [i] there is only one
     // entry, since C-points are simply injected with weight 1.0
     const Integer iC = CoarseIndex[i];
@@ -633,8 +632,8 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
 
   A_H_cP.Resize(nnz, 0);
   A_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < rows; ++i){
-    for(UInt j = A_H_rP[i]; j < A_H_rP[i+1]; ++j){
+  for(UInt i = 0; i < (UInt)rows; ++i){
+    for(UInt j = (UInt)A_H_rP[i]; j < (UInt)A_H_rP[i+1]; ++j){
       A_H_cP[j] = (UInt)solCols[j];
       A_H_dP[j] = values[j];
     }
@@ -724,7 +723,7 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
 
   B_H_cP.Resize(nnz, 0);
   B_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < rowsB; ++i){
+  for(UInt i = 0; i < (UInt)rowsB; ++i){
     for(UInt j = B_H_rP[i]; j < B_H_rP[i+1]; ++j){
       B_H_cP[j] = (UInt)solColsB[j];
       B_H_dP[j] = valuesB[j];
