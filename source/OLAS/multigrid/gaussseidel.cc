@@ -42,7 +42,7 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
     // Note: (Size_ == 0) <==> (DiagonalInverse_ == NULL)
     // So it is sufficient to check (Size_ != matrix.GetNumRows()),
     // except of calls with an empty matrix.
-    if( Size_ != matrix.GetNumRows() ) {
+    if( Size_ != (Integer)matrix.GetNumRows() ) {
         delete [] ( DiagonalInverse_ );  DiagonalInverse_  = NULL;
         DiagonalInverse_ = NULL;
     }

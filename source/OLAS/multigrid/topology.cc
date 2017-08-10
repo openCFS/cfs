@@ -155,7 +155,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // allocate the array for the C-F-splitting and the coarse indices
     delete [] ( CoarseIndex_ );  CoarseIndex_  = NULL;
     NEWARRAY( CoarseIndex_, Integer, matrix.GetNumRows() );
-    for( i = 0; i < matrix.GetNumRows(); i++ ) {
+    for( i = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
         CoarseIndex_[i] = (Integer)UNDEFINED;
     }
 
@@ -164,7 +164,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     ///////////////////////////////
 
     // inspect matrix row by row
-    for( i = 0; i < matrix.GetNumRows(); i++ ) {
+    for( i = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
         // get number of non-zero entries in row [i]
         UInt RowLength = matrix.GetRowSize( i );
         if( RowLength == 0 ) {
@@ -176,7 +176,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
                 sumOffdiag = 0, // sum of offdiagonal entries (abs. values)
                 Aij        = 0; // an arbitrary temporary matrix entry
         // get maximal offdiagonal entry and rowsum (without diagonal)
-        for( ij = pRow[i]+1; ij < pRow[i+1]; ij++ ) {
+        for( ij = (Integer)pRow[i]+1; ij < (Integer)pRow[i+1]; ij++ ) {
             if( maxOffdiag < fabs(pDat[ij]) )  maxOffdiag = fabs(pDat[ij]);
             sumOffdiag += fabs(pDat[ij]);
         }
@@ -188,13 +188,13 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
         // otherwise continue the usual building of the graphs
         } else {
             // check all dependencies in row [i]
-            for( ij = pRow[i]/*+1*/; ij < pRow[i+1]; ij++ ) {
+            for( ij = (Integer)pRow[i]/*+1*/; ij < (Integer)pRow[i+1]; ij++ ) {
                 Aij = pDat[ij];
                 // (i,j) in S, if A_ij sufficently large in relation to
                 // diagonal entry A_ii AND i depends strongly on j
                 if(    fabs(Aij) >= tolerance * diag
                     && fabs(Aij) >  alpha * maxOffdiag
-                    && i != pCol[ij]) {
+                    && i != (Integer)pCol[ij]) {
                     // add (i,j) to S (no double insertion possible)
                     S_.AddEdge( i, pCol[ij] );
                     // add (j,i) to ST (no double insertion possible)
@@ -223,7 +223,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // maximal number of strong dependencies for one node
     Integer maxNumStrongDep = 0;
 
-    for( i = 0, startCoarsePoint_ = 0; i < matrix.GetNumRows(); i++ ) {
+    for( i = 0, startCoarsePoint_ = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
         // The first coarse node will be the one that influences the
         // most other nodes strongly, i.e. i with maximal |ST(i)|
         // LAS: LAS additionally (AND) checked, if the number of entries
@@ -281,7 +281,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
     // create array to prevent redundant evaluation of "the
     // coarse importance" of possible C-points
     NEWARRAY( importanceKnown_, Integer, Size_h_ );
-    for( Integer i = 0; i < Size_h_; i++ )  importanceKnown_[i] = -3;
+    for( Integer i = 0; i < (Integer)Size_h_; i++ )  importanceKnown_[i] = -3;
 #endif
     
     // get the first coarse point (should be stored in
@@ -290,7 +290,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
             lowest_undefined = 0;
 
     // while there are undefined points left
-    while( coarsepoint < Size_h_ ) {
+    while( coarsepoint < (Integer)Size_h_ ) {
         // while there are some candidates for coarse points around
         while( coarsepoint == UNDEFINED || coarsepoint > -1 ) {
             // set the coarse point (note that the surrounding points
@@ -304,7 +304,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
         // we are stuck in this chain of coarse points
         // -> search the next UNDEFINED point, starting at point 0
         for( coarsepoint = lowest_undefined;
-             coarsepoint < Size_h_; coarsepoint++ )
+             coarsepoint < (Integer)Size_h_; coarsepoint++ )
         {
             if( CoarseIndex_[coarsepoint] == UNDEFINED ) {
                 lowest_undefined = coarsepoint;
@@ -317,13 +317,13 @@ CalcCoarseFineSplitting( const Integer max_dependency,
 
     // eventual second pass
     if( gamma >= 0 ) {
-        for( Integer i = 0; i < Size_h_; i++ ) {
+        for( Integer i = 0; i < (Integer)Size_h_; i++ ) {
             if( IsFPoint(i)                       &&
                 GetNumInterpolatingPoints(i) == 1 &&
                 S_.GetNumEdges(i)            >  1    ) {
                 Integer nn = 0;
-                for( Integer ij = NhStartIndex_[i]+0; //ROK: was +1
-                             ij < NhStartIndex_[i+1]; ij++ ) {
+                for( Integer ij = (Integer)NhStartIndex_[i]+0; //ROK: was +1
+                             ij < (Integer)NhStartIndex_[i+1]; ij++ ) {
                     const Integer j = NhEdges_[ij];
                     if( IsFPoint(j)                       &&
                         GetNumInterpolatingPoints(j) == 1 &&
@@ -750,7 +750,7 @@ Integer Topology<T>::GetNextCoarsePoint( const Integer p,
             const Integer  nN_i = NhStartIndex_[i+1] - NhStartIndex_[i];
             const UInt* const  N_i = NhEdges_ + NhStartIndex_[i];
             // walk through N(i)
-            for( UInt iNi = 0; iNi < nN_i; iNi++ ) {
+            for( UInt iNi = 0; iNi < (UInt)nN_i; iNi++ ) {
                 const UInt j = N_i[iNi];
                 // if we found an UNDEFINED point, evaluate it
 

@@ -300,7 +300,7 @@ InsertStartArray( const UInt *const startarray,
         // if this object owns the start array
         if( ownStartIndex_ ) {
             // check, if the sizes match
-            if( size != NumNodes_ ) {
+            if( (Integer)size != NumNodes_ ) {
                 // cannot change number of nodes, if connections already exist
                 if( NumEdges_ )  return false;
                 delete [] ( StartIndex_ );  StartIndex_  = NULL;
