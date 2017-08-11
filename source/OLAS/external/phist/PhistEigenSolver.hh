@@ -3,6 +3,7 @@
 
 #include "OLAS/solver/BaseEigenSolver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/Matrix.hh"
 
 
 
@@ -103,6 +104,15 @@ namespace CoupledField {
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
+
+    /** eigenvalues */
+    StdVector<std::complex<double> > ev_; // always complex,
+
+    /** norms associated to ev */
+    StdVector<double> resNorm_;
+
+    Matrix<double> mode_;
+
 
     // we do not use solver and preconditioners from CFS for Phist
   };
