@@ -210,8 +210,8 @@ namespace CoupledField {
     LOG_DBG(pes) << "phist_DsdMat_create -> " << err;
     assert(err == 0);
 
-    StdVector<double> resNorm(prob_size);
-    StdVector<std::complex<double> > ev(prob_size); // always complex,
+    resNorm_.Resize(prob_size);
+    ev_.Resize(prob_size);
 
     // setup start vector (currently to (1 0 1 0 .. ) )
     mvec_ptr v0 = NULL;
@@ -235,8 +235,8 @@ namespace CoupledField {
     // A*Q = B*Q*R holds
     assert(opts.how != phist_HARMONIC);
 
-    phist_Dsubspacejada(opA, opB, opts, Q, R, ev.GetPointer(), resNorm.GetPointer(), &nEig, &nIter, &err);
-    LOG_DBG(pes) << "phist_Dsubspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev.ToString() << " -> " << err;
+    phist_Dsubspacejada(opA, opB, opts, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &err);
+    LOG_DBG(pes) << "phist_Dsubspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << err;
     assert(err >= 0);
 
     // skip calculation of real residual, res = AQ - BQR
@@ -266,18 +266,18 @@ namespace CoupledField {
     
     // this is how one can extract the eigenvectors.
     // TODO: move all of this to CalcEigenFrequencies and other functions below
-/*
+    mode_.Resize(nEig, nloc);
     for (int j=0; j<nEig; j++)
     {
       for (int i=0; i<nloc; i++)
       {
-#ifdef PHIST_MVECS_ROW_MAJOR
-         mode_j[i]=xval[i*lda+j];
-#else
-         mode_j[i]=xval[j*lda+i];
-#endif
+        #ifdef PHIST_MVECS_ROW_MAJOR
+           mode_[j][i]=xval[i*lda+j];
+        #else
+           mode_[j][i]=xval[j*lda+i];
+        #endif
+      }
     }
-*/
     ToInfo();
   }
 
@@ -301,11 +301,19 @@ namespace CoupledField {
   }
 
 
-
-
   void PhistEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
-    assert(false);
+    sol.Resize(numFreq_);
+    err.Resize(numFreq_);
+
+    assert(sol.GetEntryType() == BaseMatrix::DOUBLE);
+    assert(err.GetEntryType() == BaseMatrix::DOUBLE);
+
+    for(unsigned int i =0; i < numFreq_; i++) {
+      // rigid modes are approx zero and can be negative -> abs to avoid NaN
+      sol.SetEntry(i, sqrt(std::abs(ev_[i].real()))/(8.0*atan(1.0))); // this is the stupid lambda = omega^2 -> f transformation from ArpackEigenSolver :(
+      err.SetEntry(i, resNorm_[i]);
+    }
   }
 
   void PhistEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
@@ -313,18 +321,24 @@ namespace CoupledField {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     // NOTE: Hard coded as true!!!
+    assert(false);
 
   }
 
   void PhistEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
   {
+    assert(modeNr < mode_.GetNumRows()); // assume 0-based
 
+    mode.Resize(mode_.GetNumCols());
+    for(unsigned int i = 0; i < mode.GetSize(); i++)
+      mode[i] = mode_[modeNr][i];
   }
 
   void PhistEigenSolver::GetComplexEigenMode(UInt modeNr, Vector<Complex>& mode)
   {
     // in bloch mode case the same as GetEigenMode,
     // in quadratic case the modes have internally double size and we want the upper half
+    assert(false);
   }
 
 }
