@@ -315,6 +315,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
                   viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
+                  if args.save.endswith(".vtp"):
+                    matviz_vtk.write_stl(viz, args.save[:-4]+".stl")
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:

@@ -1120,9 +1120,9 @@ def write_profile_to_array(array,profile,overlap):
         center[minor_1] = y
         center[minor_2] = z
         
-        projection = calc_projection(profile, center)
-        if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
-#         if (valx-r <= 1e-6):
+#         projection = calc_projection(profile, center)
+#         if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
+        if (valx-r <= 1e-6):
           # detected overlap of profiles
           if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
             point = radius_to_3d_coords(profile,x,phi)
