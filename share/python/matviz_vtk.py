@@ -1021,15 +1021,11 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   bounds[4] = maximum[1] + minimum[1]
   bounds[5] = maximum[2] + minimum[2]
   
-  print("dimensions:",bounds)
-  
   # set size dx/dy/dz of one cell
   dx = bounds[3] / samples[0]
   dy = bounds[4] / samples[1]
   dz = bounds[5] / samples[2]
   
-  print("dx,dy,dz:",dx,dy,dz)
-
   min_thresh = 3.0/args.bc_res
   max_thresh = 0.82
     
@@ -1081,22 +1077,16 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       
       # flags for meshing circles on the boundary
       flags = [None] * 6
-      # bounds stores min/max coords of interpretation domain
-      for c,bound in enumerate(bounds):
-        left_front_corner = numpy.asarray(left_front_corner)
-        # all faces of a cube
-        faces = []
-        faces.append(left_front_corner)
-        # right front corner
-        faces.append(left_front_corner+numpy.asarray([dx,0,0]))
-        # top left back corner
-        faces.append(left_front_corner+numpy.asarray([dx,0,dz]))
-        # top right back corner
-        faces.append(left_front_corner+numpy.asarray([dx,dy,dz]))
-        
-        for f in faces:
-          if numpy.isclose(f[c%3],bound):
-            flags[c] = True
+      grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
+      grid_coords = [i,j,k]
+#       flags[0] = True if i == 0 else False
+#       flags[1] = True if j == 0 else False
+#       flags[2] = True if k == 0 else False
+#       flags[3] = True if i == nx-1 else False
+#       flags[4] = True if j == ny-1 else False
+#       flags[5] = True if k == nz-1 else False
+      for c in range(len(flags)):      
+        flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
       
       # at least one boundary circle needs to be triangulated
       if any(flags):
@@ -1123,11 +1113,6 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       appends.Update()
       
   appends.Update() # not sure if we have to do this in each loop iteration
-  
-#   fillHoles = vtk.vtkFillHolesFilter()
-#   fillHoles.SetInputData(appends.GetOutput())
-#   fillHoles.SetHoleSize(0.1*dx)
-#   fillHoles.Update()
   
   return appends.GetOutput()
     
