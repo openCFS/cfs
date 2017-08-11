@@ -314,7 +314,8 @@ class Basecell_Data():
     self.beta = beta
     self.eta = eta  
     self.interpolation = interpolation
-    self.target = target
+#     self.target = target
+    self.target = "contour"
     
     # set debugging stuff 
     self.verbose = "off"

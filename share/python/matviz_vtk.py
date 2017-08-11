@@ -1068,76 +1068,67 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       z2 = min(max(front[2],min_thresh),max_thresh)
       
       # translate cell to correct position
-      cell_center  = numpy.asarray(sample_coords[i,j,k])
+      left_front_corner  = numpy.asarray(sample_coords[i,j,k])
       
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
       bc_input.eta = 0.7
       bc_input.stiffness_as_diameter = True
       cell_obj = basecell.Basecell(bc_input)
       cell_obj.scale(dx, dy, dz)
-      cell_obj.translate(cell_center[0],cell_center[1],cell_center[2])
+      cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
       if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-#       if cell_obj.volume <= args.bc_volume_thresh:
         continue
       
       # flags for meshing circles on the boundary
       flags = [None] * 6
       # bounds stores min/max coords of interpretation domain
       for c,bound in enumerate(bounds):
-        if numpy.isclose(cell_center[int(c/2)],bound):
-#           print("flag[c]:",bound)
-          flags[c] = True
+        left_front_corner = numpy.asarray(left_front_corner)
+        # all faces of a cube
+        faces = []
+        faces.append(left_front_corner)
+        # right front corner
+        faces.append(left_front_corner+numpy.asarray([dx,0,0]))
+        # top left back corner
+        faces.append(left_front_corner+numpy.asarray([dx,0,dz]))
+        # top right back corner
+        faces.append(left_front_corner+numpy.asarray([dx,dy,dz]))
+        
+        for f in faces:
+          if numpy.isclose(f[c%3],bound):
+            flags[c] = True
       
       # at least one boundary circle needs to be triangulated
-#       if any(flags):    
-#         pd_list = mesh_basecell_boundaries(flags,cell_obj,bounds)
-      
+      if any(flags):
+        cell_center = numpy.asarray(left_front_corner) + numpy.asarray([dx/2,dy/2,dz/2])
+        boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
       with p.lock:
-#         basecells.append((cell_obj.points,cell_obj.cells,cell_center,pd_list))
-        basecells.append((cell_obj.points,cell_obj.cells,cell_center))
-        print("appended ",i,j,k,cell_center,x1,x2,y1,y2,z1,z2)
-#       if count == 2:
-#         break
+        basecells.append((cell_obj.points,cell_obj.cells,boundary_list))
+        print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
         
   for i,bc in enumerate(basecells):
-    
     vtk_points = vtk.vtkPoints()
-    for p in bc[0]:
-      vtk_points.InsertNextPoint(p)
+    
+    pd = fill_vtk_polydata(bc[0], bc[1])
+    
+    appends.AddInputData(pd)
+    
+    assert(len(bc[2]) > 0)
+    # list with meshes on the boundaries
+    for l in bc[2]:
+      points = numpy.asarray(l[0])
+      pd = fill_vtk_polydata(l[0], l[1])
+        
+      appends.AddInputData(pd)
+      appends.Update()
       
-    vtk_cells = vtk.vtkCellArray()
-    for ce in bc[1]:
-      tri = vtk.vtkTriangle()
-      tri.GetPointIds().SetId(0,ce[0])
-      tri.GetPointIds().SetId(1,ce[1])
-      tri.GetPointIds().SetId(2,ce[2])
-      vtk_cells.InsertNextCell(tri)
-    
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(vtk_points)
-    polydata.SetPolys(vtk_cells)
-    
-    appends.AddInputData(polydata)
-          
-    # tranformation of vtk poly data
-#     transform = vtk.vtkTransform() 
-#     transform.Translate(bc[2])
-#     transform.Scale(dx,dy,dz)
-#        
-#     # filter to perform transformation
-#     transformFilter=vtk.vtkTransformPolyDataFilter()
-#     transformFilter.SetTransform(transform)
-#     transformFilter.SetInputData(polydata)
-#     transformFilter.Update()
-#     
-#     # append cells in vtk
-#     appends.AddInputConnection(transformFilter.GetOutputPort())
-    
-    # add meshed boundary circles
-#     for pd in bc[3]:
-#       appends.AddInputConnection(pd)
   appends.Update() # not sure if we have to do this in each loop iteration
-    
+  
+#   fillHoles = vtk.vtkFillHolesFilter()
+#   fillHoles.SetInputData(appends.GetOutput())
+#   fillHoles.SetHoleSize(0.1*dx)
+#   fillHoles.Update()
+  
   return appends.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
@@ -1172,138 +1163,103 @@ def get_3d_grid_coords(index,nx,ny,nz):
 # using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
 # @param bc_bounds: minimum/maximum coordinate value of interpretation domain
 # order: min_x,min_y,min_z,max_x,max_y,max_z
-def extract_bc_boundary_coords(coords,bound,bc_bounds):
+# @param cc_3d: basecell center; has also to be projected onto right plane
+def extract_2d_bc_boundary_coords(coords,bound,bc_bounds,cc_3d):
   result = []
-  print("\nbound:",bound)
-
+  # depending on boundary flag, determine which coordinate component to compare
+  # 0 -> 0; 1 -> 1; 2 -> 2; 3 -> 0; 4 -> 2; 5 -> 3
+  major_dir = bound%3
+  minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
+  cc_2d = (cc_3d[minor_1],cc_3d[minor_2])
   for p in coords:
-    # depending on boundary flag, determine which coordinate component to compare
-    # 0,1 -> 0; 2,3 -> 1; 4,5 -> 2
-    major_dir = int(bound/2)
-    minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
+#     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
     if isclose(p[major_dir],bc_bounds[bound]):
       result.append((p[minor_1],p[minor_2]))
   
-  return result      
-# returns a list with all points lying on given boundary
-# @param location, e.g. x_0 for all x=mini[0] and x_1 for all x = maxi[0]
-# @param mini/max: list with 3 min max coordinates of domain
-def mesh_boundary_circle(points,location,mini,maxi):
-  result = []
-  major_dir = -1
-  for p in points:
-    if location == "x_left":
-      if isclose(p[0],mini[0]):
-        result.append((p[1],p[2]))
-        major_dir = 0
-    if location == "x_right":
-      if isclose(p[0],maxi[0]):
-        result.append((p[1],p[2]))
-        major_dir = 0
-        
-    if location == "y_left":
-      if isclose(p[1],mini[1]):
-        result.append(p)
-        major_dir = 1
-    if location == "y_right":
-      if isclose(p[1],maxi[1]):
-        result.append(p)
-        major_dir = 1
-        
-    if location == "z_left":
-      if isclose(p[2],mini[2]):
-        result.append(p)
-        major_dir = 2
-    if location == "z_right":
-      if isclose(p[2],maxi[2]):            
-        result.append(p)
-        major_dir = 2
-        
-  # sort points in circle order
-  result.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
-  
-  info = triangle.MeshInfo()
-  test = [ [elem[0],elem[1]] for elem in result]
-  info.set_points(test)
-  info.set_facets(draw_profile_functions.round_trip_connect(0,len(result)-1))
-  mesh = triangle.build(info,generate_faces=True) 
-  
-  mesh_points = numpy.array(mesh.points)
-  mesh_tris = numpy.array(mesh.elements)
-  
-  minor_dir_1, minor_dir_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
-  
-  # check whether we're on the left or right side
-  comp = mini[major_dir]
-  if location.endswith("right"):
-    comp = maxi[major_dir]
-    
-  
-  vtk_points = vtk.vtkPoints()
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
-  # map from 2d point to 3d point
-  for p in mesh_points:
-    new_p = numpy.zeros(3)
-    new_p[major_dir] = comp
-    new_p[minor_dir_1] = p[0]
-    new_p[minor_dir_2] = p[1]
-    vtk_points.InsertNextPoint(new_p)
-  for tri in mesh_tris:
-    draw_profile_functions.add_triangle(tri[0], tri[1], tri[2], cells) 
-    
-  polydata.SetPoints(vtk_points)
-  polydata.SetPolys(cells)
-             
-  return polydata
+  return result, cc_2d      
 
 # mesh boundary circles of given basecell
 # flages is a list with 6 entries, each indicating whether a basecell face should be meshed or not
 # bounds order: min_x,min_y,min_z,max_x,max_y,max_z
-def mesh_basecell_boundaries(flags,basecell,bounds):
-  polydata_list = []
+# @param: basecell center, need this for sorting points in circle order
+def mesh_basecell_boundaries(flags,basecell,bounds,cell_center):
+  list = []
   # order: {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
   # save which boundaries we are going to mesh
   mesh_bound = numpy.where(flags)[0]
   for b in mesh_bound:
-    bound_coords = extract_bc_boundary_coords(basecell.points,b,bounds)
-    polydata_list.append(mesh_basecell_boundary(bound_coords,b,bounds))
+    bound_coords, cc_2d = extract_2d_bc_boundary_coords(basecell.points,b,bounds,cell_center)
+    points, cells = mesh_basecell_boundary(bound_coords,b,bounds,cc_2d)
+    list.append((points,cells))
     
-  return polydata_list   
+#     print(points)
+    
+  return list
 
-def mesh_basecell_boundary(coords_2d,bound,bc_bounds):
+# here we only deal with 3 dimensions
+def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
+  assert(len(cell_center) == 2)
   # need this for mapping between planar and space coordinate
-  major_dir = int(bound/2)
+  major_dir = bound%3
   minor_dir_1, minor_dir_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
   # sort points in circle order
-  coords_2d.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
+  coords_2d.sort(key=lambda c:math.atan2(c[0]-cell_center[0], c[1]-cell_center[1]))
   
   info = triangle.MeshInfo()
   test = [ [elem[0],elem[1]] for elem in coords_2d]
   info.set_points(test)
   info.set_facets(draw_profile_functions.round_trip_connect(0,len(coords_2d)-1))
-  mesh = triangle.build(info,generate_faces=True) 
+  mesh = triangle.build(info,generate_faces=True)
   
   mesh_points = numpy.array(mesh.points)
   mesh_tris = numpy.array(mesh.elements)
   
   # check whether we're on the left or right side
   comp = bc_bounds[bound]
-  
-  vtk_points = vtk.vtkPoints()
-  cells = vtk.vtkCellArray()
-  polydata = vtk.vtkPolyData()
+  points = []
+  cells = []
   # map from 2d point to 3d point
   for p in mesh_points:
     new_p = numpy.zeros(3)
     new_p[major_dir] = comp
     new_p[minor_dir_1] = p[0]
     new_p[minor_dir_2] = p[1]
-    vtk_points.InsertNextPoint(new_p)
+    points.append(new_p)
   for tri in mesh_tris:
-    draw_profile_functions.add_triangle(tri[0], tri[1], tri[2], cells) 
+    cells.append((tri[0], tri[1], tri[2])) 
+  
+#   import matplotlib
+#   matplotlib.use('tkagg')
+#   from matplotlib import pyplot as plt
+#   plt.gcf()
+#   labels = []
+#   for i in range(len(points)):
+#     labels.append(i)
+#   points = numpy.asanyarray(points)
+#   plt.plot(points[:,minor_dir_1],points[:,minor_dir_2],'o')
+#   for i, label in enumerate(labels):
+#     plt.text(points[i,minor_dir_1],points[i,minor_dir_2],labels[i])
+#   plt.triplot(points[:,minor_dir_1],points[:,minor_dir_2],cells)
+#   plt.show()
     
+  return points,cells
+
+def fill_vtk_polydata(points,cells):
+  vtk_points = vtk.vtkPoints()
+  vtk_cells = vtk.vtkCellArray()
+  polydata = vtk.vtkPolyData()
+  
+  for p in points:
+    vtk_points.InsertNextPoint(p)
+    
+  for ce in cells:
+    tri = vtk.vtkTriangle()
+    tri.GetPointIds().SetId(0,ce[0])
+    tri.GetPointIds().SetId(1,ce[1])
+    tri.GetPointIds().SetId(2,ce[2])
+    vtk_cells.InsertNextCell(tri)  
+  
   polydata.SetPoints(vtk_points)
-  polydata.SetPolys(cells)
+  polydata.SetPolys(vtk_cells)
   
   return polydata
