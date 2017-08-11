@@ -11,7 +11,8 @@ SET(TARGET_LL
   ${PHIST_LIBRARY}
   ghost
   hwloc
-  phist_kernels_ghost
+  #phist_kernels_ghost
+  phist_kernels_builtin
   phist_core
   phist_solvers
   phist_tools

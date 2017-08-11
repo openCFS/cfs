@@ -211,7 +211,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    num_node_shapes_ = shape_.GetSize();
 
    // set node indices
-   for(unsigned int i = 0; i < num_node_shapes_; i++)
+   for(int i = 0; i < num_node_shapes_; i++)
      shape_[i].idx = i;
 
    // now add the profiles where 3D center nodes share on profile!
@@ -310,6 +310,9 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    for(int n = 0; n < num_node_shapes_; n++)
    {
      ShapeParam& node = shape_[n];
+     // two 3D center nodes share one profile. Skip the second
+     if(node.IsSecondCenterNode())
+       continue;
      ShapeParam& prof = *(node.partner);
      assert(dim_ == 3 || prof.idx == num_node_shapes_ + n);
      assert(node.type == NODE && prof.type == PROFILE);
@@ -503,7 +506,7 @@ void ShapeMapDesign::SetupOptShapeParam()
   for(unsigned int s = 0; s < shape_.GetSize(); s++)
   {
     ShapeParam& shape = shape_[s];
-    LOG_DBG(SMD)<< "SMD opt " << shape.ToString() << ": start_param=" << shape.start_param << " end_param=" << shape.end_param
+    LOG_DBG(SMD)<< "SOSP opt " << shape.ToString() << ": start_param=" << shape.start_param << " end_param=" << shape.end_param
         << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " ind=" << shape.sym_induced;
     // fixed and symmetry induced shapes don't belong to opt_shape_param_ by definition
     if(!shape.fixed && !shape.sym_induced)
@@ -527,7 +530,7 @@ void ShapeMapDesign::SetupOptShapeParam()
       bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
       shape.start_opt = opt_shape_param_.GetSize();
       unsigned int end = sym_map ? shape.start_param + (shape.end_param - shape.start_param) / 2 + (odd_elements ? 1 : 0) : shape.end_param;
-      LOG_DBG(SMD)<< "SMD opt cand odd=" << odd_elements << " sym_ortho=" << sym_ortho << " sym_diag=" << sym_diag << " sym_map=" << sym_map << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt;
+      LOG_DBG(SMD)<< "SOSP opt cand odd=" << odd_elements << " sym_ortho=" << sym_ortho << " sym_diag=" << sym_diag << " sym_map=" << sym_map << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt;
       for(unsigned int p = shape.start_param; p < end; p++)
       {
         opt_shape_param_.Push_back(OptVar()); // when we have fixed nodes we shall handle the index!!
@@ -566,14 +569,14 @@ void ShapeMapDesign::SetupOptShapeParam()
 
         // apply the value to the symmetry stuff, especially for the induced shape!
         sym->ApplyDesign();
-        LOG_DBG(SMD)<< "SMD opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt->GetIndex()
+        LOG_DBG(SMD)<< "SOSP opt shape=" << shape.idx << " type=" << shape.type << " el=" << opt->GetIndex()
              << " #oel=" << opt_shape_param_.GetSize() << sym->ToString();
       }
       shape.end_opt = opt_shape_param_.GetSize(); // luckily the complex counting of symmetry references is not necessary
       if(shape.type == NODE)
         num_node_opt_shape_params_ = shape.end_opt; // as long updated as long as we have nodes. Note that profile comes after nodes!
 
-      LOG_DBG(SMD)<< "SMD shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
+      LOG_DBG(SMD)<< "SOSP shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
           << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements << " sym_mirror=" << sym_ortho << " sym_map=" << sym_map;
     }
   }
@@ -582,7 +585,7 @@ void ShapeMapDesign::SetupOptShapeParam()
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
     opt_shape_param_[i].elem->SetOptIndex(i);
 
-  LOG_DBG(SMD)<< "SMD osp=" << opt_shape_param_.GetSize() << " sp=" << shape_param_.GetSize() << " data=" << data.GetSize();
+  LOG_DBG(SMD)<< "SOSP osp=" << opt_shape_param_.GetSize() << " sp=" << shape_param_.GetSize() << " data=" << data.GetSize();
 }
 
 void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
@@ -1108,7 +1111,7 @@ unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
 unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f, bool opt) const
 {
-  assert(2 * num_node_shape_params_ == (int) shape_param_.GetSize()); // end of profile
+  assert(2 * num_node_shape_params_ >= (int) shape_param_.GetSize()); // at most double the node shapes
   if(f->GetDesignType() == BaseDesignElement::NODE)
     return num_node_shape_params_; // assume no fixed node
   assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE);
@@ -1117,7 +1120,7 @@ unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f, bool opt) const
 
 unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f, bool opt) const
 {
-  assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
+  assert(num_node_shapes_ >= (int) shape_.GetSize() / 2);
   if(f->GetDesignType() != BaseDesignElement::PROFILE)
     return 0;
   assert(f->GetDesignType() == BaseDesignElement::PROFILE);
@@ -1130,12 +1133,12 @@ unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
   // NODE, PROFILE or SHAPE_MAP!
   BaseDesignElement::Type dt = f->GetDesignType();
   assert(dt == BaseDesignElement::DEFAULT || dt == BaseDesignElement::DENSITY || BaseDesignElement::IsShapeMapType(dt));
-  assert(2 * num_node_shapes_ == (int) shape_.GetSize()); // end of profile
+  assert(2 * num_node_shapes_ >= (int) shape_.GetSize()); // end of profile
   if(dt == BaseDesignElement::NODE)
     return num_node_shapes_;
-  assert(shape_[shape_.GetSize() / 2].type == PROFILE);
-  assert(!shape_[shape_.GetSize() / 2].fixed);
-  return opt && IsProfileFixed() ? shape_.GetSize() / 2 : shape_.GetSize();
+  assert(shape_[num_node_shapes_].type == PROFILE);
+  assert(!shape_[num_node_shapes_].fixed);
+  return opt && IsProfileFixed() ? num_node_shapes_ : shape_.GetSize();
 }
 
 
@@ -1183,6 +1186,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    Grid* grid = domain->GetGrid();
    // within the element coordinates we perform the integration
    Matrix<double> coords;
+   StdVector<unsigned int> ip(dim_);
    int res_idx_r = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_RELEVANT);
 
    assert(data.GetSize() == map_.GetSize());
@@ -1204,7 +1208,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      unsigned int block = dim_ == 2 ? 2 : 4;
      assert(item.nodes.GetSize() % block == 0); // we expect to have pairs
      for(unsigned int s = 0; s < item.nodes.GetSize(); s+=block)
-       if(CloseEnough(item.nodes, s, coords)) // FIXME
+       if(CloseEnough(item.nodes, s, coords))
          shapes.Push_back(s);
 
      if(res_idx_r >= 0)
@@ -1213,6 +1217,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      double rho = 0.0; // sum up over all ips (if shapes is large enough :))
      double ip_rho = 0.0; // usage depends on overlap_
 
+
      if(!shapes.IsEmpty())
      {
        // it makes sense to traverse first the ip and then the variables
@@ -1220,35 +1225,49 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        {
          for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
          {
-           ip_rho = 0.0; // we need 0.0 for a valid final rho if t is too small everywhere
-           switch(overlap_)
+           for(unsigned int ip_z = 0; ip_z < (dim_ == 2 ? 1 : order_); ip_z++)
            {
-           case MAX:
-             for(unsigned int si = 0; si < shapes.GetSize(); si++){
-               double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
-               if(t >= ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
-                 ip_rho = t;
-                 item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
+             ip_rho = 0.0; // we need 0.0 for a valid final rho if t is too small everywhere
+             switch(overlap_)
+             {
+             case MAX:
+               for(unsigned int si = 0; si < shapes.GetSize(); si++){
+                 double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
+                 if(t >= ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
+                   ip_rho = t;
+                   item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
+                 }
                }
-             }
-             break;
-           case OPEN_SUM:
-             for(unsigned int si = 0; si < shapes.GetSize(); si++)
-               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
-             break;
-           case TANH_SUM:
-             // the original sum but with half beta
-             for(unsigned int si = 0; si < shapes.GetSize(); si++)
-               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
-             // correct ip_rho by assuring <= 1. See TanhSum()
-             LOG_DBG3(SMD) << "MS2D: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y << " sum=" << ip_rho << " -> " << tanh_sum_.map(ip_rho);
-             ip_rho = tanh_sum_.map(ip_rho);
-             break;
-           } // end of switch(overlap_)
-           rho += ip_rho;
+               break;
+             case OPEN_SUM:
+               for(unsigned int si = 0; si < shapes.GetSize(); si++)
+               {
+                 if(dim_ == 2)
+                   ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
+                 else
+                 {
+                   ip[0] = ip_x;
+                   ip[1] = ip_y;
+                   ip[2] = ip_z;
+                   ip_rho += Eval(item.nodes, shapes[si]*block, coords, 2*beta_, ip, false, false, false); // false=no derivative
+                 }
+               }
+               break;
+             case TANH_SUM:
+               // the original sum but with half beta
+               for(unsigned int si = 0; si < shapes.GetSize(); si++)
+                 ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
+               // correct ip_rho by assuring <= 1. See TanhSum()
+               LOG_DBG3(SMD) << "MS2D: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y << " sum=" << ip_rho << " -> " << tanh_sum_.map(ip_rho);
+               ip_rho = tanh_sum_.map(ip_rho);
+               break;
+             } // end of switch(overlap_)
+             rho += ip_rho;
+           } // end ip_z
          } // end ip_y
        } // end ip_x
      }
+
 
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_order_))); // we assume 0 <= v <= 1
      LOG_DBG2(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue()
@@ -1336,7 +1355,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                {
                case MAX:
                case OPEN_SUM:
-                 da = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, true, false); // dtanh_da
+                 if(dim_ == 2)
+                   da = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, true, false); // dtanh_da
+                 else
+                   da = 0.0; // FIXME
                  break;
                case TANH_SUM:
                {
@@ -1378,7 +1400,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  {
                  case MAX:
                  case OPEN_SUM:
-                   dw = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, false, true); // dtanh_dw
+                   if(dim_ == 2)
+                     dw = Eval(s1, s2, coords, 2*beta_, ip_x, ip_y, false, true); // dtanh_dw
+                   else
+                     dw = 0.0; // FIXME
                    break;
                  case TANH_SUM:
                  {
@@ -1488,7 +1513,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
  {
-   assert(dim_ == 2);
+   assert(dim_ == 2); // there is also a 3D version of Eval
    assert(s1->dof_ == s2->dof_);
    assert(s1->GetType() == BaseDesignElement::NODE && s2->GetType() == BaseDesignElement::NODE);
    assert(!(grad_a == true && grad_w == true)); // the other three combinations are allowed
@@ -1555,7 +1580,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    const ShapeParamElement* sa2 = nodes[base+2];
    const ShapeParamElement* sb2 = nodes[base+3];
 
-   LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
+   // LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
 
    assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
    assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
@@ -1568,9 +1593,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double a2 = sa2->GetPlainDesignValue();
    double b1 = sb1->GetPlainDesignValue();
    double b2 = sb2->GetPlainDesignValue();
-   double w1 = 0.5 * GetProfile(sa1)->GetPlainDesignValue();
+   double w1 = 0.5 * GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
    double w2 = 0.5 * GetProfile(sa2)->GetPlainDesignValue();
-
+   assert(GetProfile(sa1)->GetPlainDesignValue() == GetProfile(sb1)->GetPlainDesignValue());
+   assert(GetProfile(sa2)->GetPlainDesignValue() == GetProfile(sb2)->GetPlainDesignValue());
 
    // coords is 8 columns with 3 rows
    //
@@ -1598,24 +1624,31 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
    assert(coords[2][1] < coords[2][2]);       // y-pos: lower right smaller upper right: b and c
 
-   LOG_DBG2(SMD) << "E coords=" << coords << " ip=" << ip.ToString();
+   LOG_DBG2(SMD) << "E coords=" << coords.ToString() << " ip=" << ip.ToString() ;
 
    // sa and sb have different dof and define an ab-plane.
    // the complementary dof dir is where we interpolate within start and end
-   int dir = (int) Flip(sa1->dof_, sb1->dof_);
+   double start_x = coords[sa1->dof_][4]; // e
+   double start_y = coords[sb1->dof_][4]; // e
 
-   double start = coords[dir][4]; // e
-   double end   = coords[dir][dir == 0 ? 5 : (dir == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+   double end_x = coords[sa1->dof_][sa1->dof_ == 0 ? 5 : (sa1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+   double end_y = coords[sb1->dof_][sb1->dof_ == 0 ? 5 : (sb1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
 
    // we are in the ab-plane and call it xy-plane. We test of the point (x,y) on the xy-plane.
-   double x = -1; // TODO
-   double y = -1; // TODO
+   int dir = Flip(sa1->dof_, sb1->dof_); // orthogonal to the xy-plane. E.g. the z-axis
+
+   double x = start_x + ip[sa1->dof_] / (order_ -1.0) * (end_x-start_x);
+   double y = start_y + ip[sb1->dof_] / (order_ -1.0) * (end_y-start_y);
    double a = a1 + ip[dir] / (order_ - 1.0) * (a2 - a1);
    double b = b1 + ip[dir] / (order_ - 1.0) * (b2 - b1);
    double w = w1 + ip[dir] / (order_ - 1.0) * (w2 - w1);
 
    assert(!grad_a && !grad_b && !grad_w);
    double val = tanh(beta, x, y, a , b, w);
+
+   LOG_DBG3(SMD) << "E: sa1=" << sa1->GetIndex() << " sa2=" << sa2->GetIndex() << " sb1=" << sb1->GetIndex() << " sb2=" << sb2->GetIndex() << " ip=" << ip.ToString()
+                 << " x=" << x << " y=" << y << " -> " << val;
+
    return val;
  }
 
@@ -1643,10 +1676,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            if(Eval(nodes, base, coords, 2*beta_, ip, false, false, false) > sensitivity_) // false=no derivative
              return true;
          }
-
-
-     std::cout << coords.ToString(2) << "\n";
-     assert(false);
    }
 
    return false;
@@ -1672,7 +1701,7 @@ inline double ShapeMapDesign::tanh(double beta, double x, double y, double a, do
   // this function operates in the xy plane with the center (a,b) and tests for the point (x,y)
   // this is formed to 1D problem of tanh where we only have the radius which is ||(a,b) - (x,y)|| as parameter
 
-  double r = Point::Dist(x, y, a, b);
+  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
 
   // set xrange[0:1]; w=0.2; beta=30
   // plot 1/(exp(2*beta*(x-w))+1)
@@ -1848,7 +1877,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamEle
   mp->ReleaseHandle(handle);
   // PostInit() sets arrays for objective and constraint gradients
 
-  LOG_DBG3(SMD)<< "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof_ << " free_idx=" << free_idx << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
+  LOG_DBG2(SMD)<< "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof_ << " free_idx=" << free_idx << " d=" << spe.GetPlainDesignValue() << " coord=" << spe.coord.ToString();
 }
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)
@@ -1911,14 +1940,16 @@ inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamEleme
   assert(node->GetType() == ShapeParamElement::NODE && shape->type == NODE);
   assert(shape->IsPart(node));
   assert(node->GetIndex() - shape->start_opt >= 0);
+  assert(shape->partner != NULL);
+  assert(shape->partner->start_param >= shape->start_param);
 
-  return &shape_param_[shape->partner->start_opt + node->GetIndex() - shape->start_opt];
+  return &shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param];
 }
 
 inline ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node)
 {
   const ShapeParam* shape = FindShape(node);
-  return &shape_param_[shape->partner->start_opt + node->GetIndex() - shape->start_opt];
+  return &shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param];
 }
 
 
