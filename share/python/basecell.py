@@ -334,12 +334,15 @@ class Basecell_Data():
       self.res_surf_lines = res
     
 class Basecell():
-  data = cell = vol = None
   # data is an object of type Basecell_Data()
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
     dumm, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
+    # xmin, ymin, zmin, xmax, ymax, zmax
+    self.bounds = np.zeros(6)
+    self.update()
+    self.center = None
     
   def scale(self,scalex,scaley,scalez):
     for i in range(len(self.points)):
@@ -351,7 +354,15 @@ class Basecell():
 #       print("old:",self.points[i])
       self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z]) 
 #       print("new:",self.points[i])
-      
+    
+  # recalculate bounds after rescaling and translating
+  def update(self):
+    self.bounds[0] = np.min(np.asarray(self.points)[:,0])
+    self.bounds[1] = np.min(np.asarray(self.points)[:,1])
+    self.bounds[2] = np.min(np.asarray(self.points)[:,2])
+    self.bounds[3] = np.max(np.asarray(self.points)[:,0])
+    self.bounds[4] = np.max(np.asarray(self.points)[:,1])
+    self.bounds[5] = np.max(np.asarray(self.points)[:,2])
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>
