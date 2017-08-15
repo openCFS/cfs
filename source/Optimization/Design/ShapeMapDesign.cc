@@ -1389,6 +1389,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if((max_order >= 1 && overlap_ != MAX) || max_order >= 2)
      {
        assert(max_order >= 2 || (max_order == 1 && overlap_ == TANH_SUM));
+       assert(order.Max() >= 2);
+       assert(!(overlap_ == MAX && order.Contains(1)));
        assert(item.eval.GetSize() == max_order_dim);
 
        for(int ip_x = 0; ip_x < max_order; ip_x++)
@@ -1402,95 +1404,53 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              assert(ip_eval >= 0);
 
              double da = 0.0;
+             double db = 0.0;
              double dw = 0.0;
-             double dw_norm = 0.0;
 
-             switch(overlap_)
+             // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
+             double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
+
+             // in the MAX case we operate exactly on one shape, for TANH_SUM we loop over all
+             for(int si = (overlap_ == MAX ? (int) ip_eval : 0); si < (overlap_ == MAX ? (int) ip_eval+1 : num_node_shapes_); si++)
              {
-             case MAX:
-             {
-               assert(!order.Contains(1));
-               assert(order.Max() >= 2);
-               LOG_DBG3(SMD) << "MSG: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " ip_eval=" <<  ip_eval;
-               int max_shape_idx = (int) ip_eval;
-               assert(max_shape_idx >= 0);
-               if(dim_ == 2) {
-                 da = Eval(item.nodes[max_shape_idx], coords, ip, 2*beta_, true, false); // dtanh_da
+               da = EvalGrad(item.nodes[si], coords, ip, beta, true, false, false); // dtanh_da
+               if(dim_ == 3) // FIXME assumes center nodes!
+                 db = EvalGrad(item.nodes[si], coords, ip, beta, false, true, false); // dtanh_db
+               if(!IsProfileFixed())
+                 dw = EvalGrad(item.nodes[si], coords, ip, beta, false, false, true); // dtanh_dw
+
+               // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
+               if(overlap_ == TANH_SUM) {
+                 da = tanh_sum_.d_map(ip_eval, da);
+                 if(dim_ == 3)
+                   db = tanh_sum_.d_map(ip_eval, db);
                  if(!IsProfileFixed())
-                   dw = Eval(item.nodes[max_shape_idx], coords, ip, 2*beta_, false, true); // dtanh_dw
+                   dw = tanh_sum_.d_map(ip_eval, dw);
                }
-               else {
-                 da = Eval(item.nodes[max_shape_idx], coords, ip, 2*beta_, true, false, false); // dtanh_da
-                 if(!IsProfileFixed())
-                   dw = Eval(item.nodes[max_shape_idx], coords, ip, 2*beta_, false, false, true); // dtanh_dw
-               }
+
                // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
                double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (max_order_dim);
+               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * db / (max_order_dim);
+               // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
+               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (max_order_dim);
+
                log_da += da_norm;
-               item.nodes[max_shape_idx][0]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-               item.nodes[max_shape_idx][1]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-               if(!IsProfileFixed()) {
-                 // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-                 dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (max_order_dim);
-                 log_dw += dw_norm;
-                 GetProfile(item.nodes[max_shape_idx][0])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-                 GetProfile(item.nodes[max_shape_idx][1])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-               }
+               log_db += db_norm;
+               log_dw += dw_norm;
+
+               item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+               item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
                if(dim_ == 3) {
-                 double db = Eval(item.nodes[max_shape_idx], coords, ip, 2*beta_, false, true, false); // dtanh_db
-                 double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * db / (max_order_dim);
-                 log_db += db_norm;
-                 item.nodes[max_shape_idx][2]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
-                 item.nodes[max_shape_idx][3]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
+                 item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
+                 item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
                }
+               if(!IsProfileFixed()) { // a and b share common w
+                 GetProfile(item.nodes[si][0])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+                 GetProfile(item.nodes[si][1])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+               }
+
                LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip=" << ip.ToString() << " da=" << da << " da_n=" << da_norm << " dw=" << dw << " dw_n=" << dw_norm;
-               break;
-             } // end case MAX
-             case TANH_SUM:
-             {
-               // we need the sum of tanh(a) as argument. To validate the method we recompute it. FIXME, cache the value!!
-               // the original sum but with half beta
-               double ip_rho = ip_eval;
-
-               ip_rho = 0.0;
-               for(int si = 0; si < num_node_shapes_; si++)
-               {
-                 if(order[si] == 1)
-                   ip_rho += 1;
-                 if(order[si] >= 2){
-                   Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-                   ip_rho += Eval(item.nodes[si], coords, ip, beta_); // no derivative
-                 }
-               } // end si loop
-               assert(ip_rho == ip_eval);
-
-               // this is the derivative for the tanh(shape)
-               for(int si = 0; si < num_node_shapes_; si++)
-               {
-                 double tda;
-                 if(dim_ == 2)
-                   tda = Eval(item.nodes[si], coords, ip, beta_, true, false); // dtanh_da
-                 else
-                   tda = Eval(item.nodes[si], coords, ip, beta_, true, false, false); // dtanh_da
-                 da = tanh_sum_.d_map(ip_rho, tda);
-                 // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-                 double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (max_order_dim);
-                 log_da += da_norm;
-                 item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-                 item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-                 if(dim_ == 3) {
-                   double tdb = Eval(item.nodes[si], coords, ip, beta_, false, true, false); // dtanh_db
-                   double db = tanh_sum_.d_map(ip_rho, tdb);
-                   double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * db / (max_order_dim);
-                   log_db += db_norm;
-                   item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
-                   item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
-                 }
-               } // end si loop
-               assert(!IsProfileFixed()); // see MAX
-               break;
-             } // end TANH_SUM case
-             } // end switch
+             } // shape loop
            } // end ip_z
          } // end ip_y
        } // end ip_x
@@ -1717,6 +1677,16 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
       return Eval(nodes, coords, ip, beta, false, false);
     else
       return Eval(nodes, coords, ip, beta, false, false, false);
+ }
+
+ double ShapeMapDesign::EvalGrad(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const
+ {
+   assert(dim_ == coords.GetNumRows());
+   assert(!grad_a || !grad_b || !grad_w);
+   if(dim_ == 2)
+     return Eval(nodes, coords, ip, beta, grad_a, grad_w);
+   else
+     return Eval(nodes, coords, ip, beta, grad_a, grad_b, grad_w);
  }
 
  void ShapeMapDesign::EvalAllCornerValues()
