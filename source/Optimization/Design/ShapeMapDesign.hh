@@ -293,6 +293,10 @@ protected:
   /** common Eval for 2D and 3D but all without gradient! */
   double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta) const;
 
+  /** common Eval for 2D and 3D but where b is ignored in the 3D case */
+  double EvalGrad(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const;
+
+
   /** Set all Item::corner_val in map_ */
   void EvalAllCornerValues();
 
