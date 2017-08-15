@@ -325,6 +325,87 @@ namespace CoupledField {
   }
 
 
+  template <typename T>
+  inline T Vector<T>::Min() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+    //unsigned int max_size = *(std::max_element(&n_.First(), &n_.Last()));
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::min(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Min() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() < m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() < m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Max() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::max(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Max() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() > m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() > m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline void Vector<T>::MinMax(T& min, T& max) const
+  {
+    assert(size_ > 0);
+
+    min = data_[0];
+    max = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      min = std::min(min, data_[i]);
+      max = std::max(max, data_[i]);
+    }
+  }
+
+  template <>
+  void Vector<Complex>::MinMax(Complex& min, Complex& max) const
+  {
+    min = Min();
+    max = Max();
+  }
+
 
   template<class TYPE> 
   Double Vector<TYPE>::NormMax() const 
