@@ -245,11 +245,11 @@ protected:
 
   /** Index of rho in DesignSpace::data() by element coordinate */
   unsigned int DensityIdx(int x, int y) const { return y * nx_ + x; }
-  unsigned int DensityIdx(int x, int y, int z) const { return z * nx_*ny_ + y * nx_ + x; }
+  unsigned int DensityIdx(int x, int y, int z) const { return dim_ == 3 ? z * nx_*ny_ + y * nx_ + x : DensityIdx(x, y); }
 
   /** Index for integration point */
-  unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y) const { return ip_y*order_+ip_x; }
-  unsigned int IntPointIdx(unsigned int ip_x, unsigned int ip_y, unsigned int ip_z) const { return ip_z*order_order_ + ip_y*order_ + ip_x; }
+  unsigned int IntPointIdx(int order, int ip_x, int ip_y) const { return ip_y * order+ip_x; }
+  unsigned int IntPointIdx(int order, int ip_x, int ip_y, int ip_z) const { return dim_ == 3 ? ip_z * order * order + ip_y * order + ip_x : IntPointIdx(order, ip_x, ip_y); }
 
   /** Search in shape_ */
   StdVector<ShapeMapDesign::ShapeParam*> FindShape(Type type, ShapeParamElement::Dof dof);
@@ -278,31 +278,24 @@ protected:
   /** helper for debugging */
   void DumpMap();
 
-  /** 2D: Evaluate the function at the given integration point. The integration mapping is cartesian oriented
-   * @oaram s1 and s2 are both nodes! Eval finds the profiles by itself!
+  /** 3D: Evaluate the function at the given integration point.
+   * @oaram nodes from Item::nodes, 4 shapes
    * @param coords of the density design element
+   * @param ip integration points for x, y and z each 0 ... 1
    * @param beta @see tanh()
-   * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
    * @param grad_a false for tanh, true for d_tanh_da
    * @param grad_w false for tanh, true for d_tanh_dw. */
-  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
+  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const;
 
-  /** 3D: Evaluate the function at the given integration point. See also the 2D Version of eval
-   * @oaram nodes Item::nodes set of 4 nodes blocks
-   * @param base start of the 4 nodes block in nodes
-   * @param coords of the density design element
-   * @param beta @see tanh()
-   * @param ip vector of ip_x, ip_y and ip_z. @see other Eval()
-   * @param grad_a false for tanh, true for d_tanh_da
-   * @param grad_w false for tanh, true for d_tanh_dw. */
-  double Eval(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords, double beta, const StdVector<unsigned int>& ip, bool grad_a, bool grad_b, bool grad_w) const;
+  /** 2D: @see Eval() for 3D */
+  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_w) const;
 
+  /** common Eval for 2D and 3D but all without gradient! */
+  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta) const;
 
-  /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
-   * it is worth to consider them.
-   * @param nodes the total shape pairs from Item::node
-   * @param base 0, 2, 4, ...  */
-  bool CloseEnough(const StdVector<ShapeParamElement*>& nodes, unsigned int base, const Matrix<double>& coords) const;
+  /** Set all Item::corner_val in map_ */
+  void EvalAllCornerValues();
+
 
   /** tanh performs the smoothing from the mapping
    * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
@@ -430,29 +423,30 @@ protected:
     DesignElement* rho;
 
     /** This is static information.
-     * The node variables the mapping is based on.
-     * ShapeParamElement is connected to ShapeParam in shape_ (same order).
-     * nodes are sufficient as the profile is accessible via the node shape */
-    StdVector<ShapeParamElement*> nodes;
+     * The node variables the mapping is based on. Profiles via the nodes
+     * For the number of shapes the pair nodes (2 for 2D and 4 for 3D center nodes). */
+    StdVector<StdVector<ShapeParamElement*> > nodes;
 
     /** This is dynamic information.
-     * This is the current subset of nodes which gives the relevant shapes.
-     * We wouldn't need it for overlap_ == MAX as ip_param_idx has this information more detailed.
-     * Set in MapShapeDesign() when checking for CloseEnough() and used in MapShapeGradient().
-     * Has maximal size of nodes.  */
-    StdVector<int> relevant_nodes;
+     * For every shape we have the tanh of all corner nodes in the order of FE coord sorting -> see Eval()
+     * @see EvalAllCorners() */
+    StdVector<Vector<double> > corner_vals;
 
-    /** For overlap == max only!
-     * for each integration point order_*order_ (x the fastest variable) the index within param for the largest density from tanh.
-     * -1 if this value is too small and the gradient shall be 0.
-     * Used to compute the gradient which takes the shape_param for each ip where the corresponding rho is max
-     * Has size order_ * order_ */
-    StdVector<int> ip_param_idx;
+    /** This stores MapShapeDenisity() information to be reused in MapShapeGradient.
+     * For the MAX case this is for each ip the index of the shape which has the max value at the ip (double as int)
+     * and for TANH_SUM this is the sum of all shapes at ip. The size is always order^dim where order is from GetOrder().
+     * The corner_vals information is repeated. If there is no integration the vector is empty */
+    StdVector<double> eval;
 
-    /** Stores da_norm to prevent recomputing. For 3D make sure you have not too much integration points!
-     * Size and access is relevant_nodes * order_ * order */
-    StdVector<double> da_norm_cache;
-    StdVector<double> dw_norm_cache;
+    /** Determines based on corner_vals the order of integration for each shape. 0=void, 1=solid, >=2 integration.
+     * @param order output
+     * @param sensitivity to identify void and solid and set the proper order. This shall come from numerical studies!
+     * @param max_order the maximal order. This may conflict with sensitivity
+     * @return the maximal number in order. This is <= the parameter max_order */
+    int GetOrder(Vector<int>& order, double sensitivity, int max_order) const;
+
+    /** Small helper to set integration point array with 0...1 */
+    static void SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
   };
 
   /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
@@ -470,12 +464,10 @@ protected:
   /** MAX means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will be considered at that ip.
    * The drawbacks are loss of material at overlaps and doubtful differentiability.
    *
-   * OPEN_SUM means sum tanh(shape) which will be 2.0 at overlaps > rho_max! However there are no issues with differentiability -> use it for reference only!
-   *
    * TANH_SUM limits via tanh_l( sum(tanh(shape) ) where tanh_l maps to 0..1 with own beta and the beta within sum(tanh(shape)) is halfed.
    *
    * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
-  typedef enum { MAX, OPEN_SUM, TANH_SUM } Overlap;
+  typedef enum { MAX, TANH_SUM } Overlap;
 
   /** no need for static */
   Enum<Overlap> overlap;
@@ -516,15 +508,11 @@ protected:
   /** repeats nx_, ny_ and nz_ */
   StdVector<unsigned int> n_;
 
-  /** this is the order of integration with order^dim evaluations.
-   * Smaller 5 has poor numerics, larger 10 might become expensive */
-  unsigned int order_;
-
-  /** order_ * order_ in 2D and order_^3 for 3D */
-  unsigned int order_order_;
-
   /** shortcut to the dimension (2,3) */
   static unsigned int dim_;
+
+  /** for Item::GetOrder(), however it makes only sense in debug to reduce it. */
+  int max_order_;
 
   /** checks lower and upper when loading from ersatz material */
   bool enforce_bounds_;

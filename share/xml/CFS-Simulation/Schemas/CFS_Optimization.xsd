@@ -1230,9 +1230,6 @@
                       <!--  consider only the rho for the "stronger" shape at this ip. 
                       Has the drawback that material gets lost when two shapes overlap and differentiablitiy at overlaps is not that good.  -->
                       <xsd:enumeration value="max"/>
-                      <!-- sums up the shapes at the integration points. This violates the rho bound at overlaps and requires a design constraint!
-                      However this shall have to differentiability issues at all. -->
-                      <xsd:enumeration value="open_sum"/>
                       <!-- limit the sum by applying the sum to a tanh() to map it to [0:1]  -->
                       <xsd:enumeration value="tanh_sum"/>
                     </xsd:restriction>
@@ -1251,8 +1248,9 @@
                 <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
                 <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
 
-                <!-- the order of the interpolation. 2 much too less, 10 shall be good. Effort is dim^order !!! -->
-                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="10"/>
+                <!-- the maximal order of interpolation. Actually it is superfluous as Item::GetOrder() shall work based on sensitivity. 
+                     Howevet it makes sense to reduce the number for debug purpose. Needs to be >= 2-->
+                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="15"/>
 
               </xsd:complexType>
             </xsd:element>
