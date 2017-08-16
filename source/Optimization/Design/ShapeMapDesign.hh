@@ -15,6 +15,8 @@ namespace CoupledField
 {
 
 class Optimization;
+class ShapeParam;
+
 
 /** Holds the data for ShapeMapping. The map from the parameterized shape to the pseudo densities.
  * With respect to external design ordering ShapeMapDesign::shape_param_ takes the role of DesignSpace::data
@@ -257,9 +259,14 @@ protected:
   /** centers have in xml two nodes as children. They are not stored as center in shape_ but need to be searched. */
   StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
 
-  /** search for the corresponding shape */
-  inline ShapeParam* FindShape(const ShapeParamElement* spe);
-  inline const ShapeParam* FindShape(const ShapeParamElement* spe) const;
+  /** Give ShapeParam, very fast! */
+  ShapeParam* GetShape(const ShapeParamElement* spe) { return shape_param_map_[spe->GetIndex()]; }
+  ShapeParam* GetShape(const ShapeParamElement& spe) { return GetShape(&spe); }
+  const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
+  const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
+
+  /** slow version of GetShape() when shape_param_map_ is not yet initialized */
+  ShapeParam* FindShape(const ShapeParamElement* spe);
 
   /** for shape which is either first or second center node (3D!) and a test which is part of first or second
    * center node, return the second center node param. This might be test
@@ -348,6 +355,9 @@ protected:
    * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement> shape_param_;
 
+  /** This is a map from shape_param_ to shape of size shape_param_. */
+  StdVector<ShapeParam*> shape_param_map_;
+
   /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
   int num_node_shape_params_ = -1;
 
@@ -428,12 +438,14 @@ protected:
 
     /** This is static information.
      * The node variables the mapping is based on. Profiles via the nodes
-     * For the number of shapes the pair nodes (2 for 2D and 4 for 3D center nodes). */
+     * For the number of shapes the pair nodes (2 for 2D and 4 for 3D center nodes).
+     * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected. The size is num_node_shapes_ - FindCenterNodes().GetSize() */
     StdVector<StdVector<ShapeParamElement*> > nodes;
 
     /** This is dynamic information.
      * For every shape we have the tanh of all corner nodes in the order of FE coord sorting -> see Eval()
-     * @see EvalAllCorners() */
+     * @see EvalAllCorners().
+     * size as with nodes */
     StdVector<Vector<double> > corner_vals;
 
     /** This stores MapShapeDenisity() information to be reused in MapShapeGradient.
