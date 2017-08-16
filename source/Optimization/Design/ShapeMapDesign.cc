@@ -1698,11 +1698,24 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    StdVector<double> ip(dim_); // integration location 0 ... 1
    Grid* grid = domain->GetGrid();
 
-   #ifndef NDEBUG
+#ifndef NDEBUG
    for(unsigned int m = 0; m < map_.GetSize(); m++)
      for(int s = 0; s < num_node_shapes_; s++)
        map_[m].corner_vals[s].Init(-1);
-   #endif
+#endif
+
+   // temporary array. Could be used permanent instead of replicating it 4 to 8 times in Item::corner_vals
+   StdVector<Vector<double> > glob(num_node_shapes_);
+   for(int s = 0; s < num_node_shapes_; s++)
+     glob[s].Resize((nx_+1) * (ny_+1) * (dim_ == 3 ? nz_+1 : 1), -1.0);
+
+   // we index by z * (nx_+1)*(ny_+1) + y * (nx_+1) + x
+   int zb = (dim_ == 3 ? (nx_+1)*(ny_+1) : 0);
+   int yb = nx_ + 1;
+   // z * zb + y * yb + x for 3D and 2D
+
+   // our local beta
+   double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
 
    for(unsigned int z = 0; z < nz_; z++)
    {
@@ -1716,85 +1729,216 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
          grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
          assert((dim_ == 2 && coords.GetNumCols() == 4) || (dim_ == 3 && coords.GetNumCols() == 8));
 
+         ip.Init(0.0);
+
+         for(int s = 0; s < num_node_shapes_; s++)
+         {
+           // we detect 3D center nodes, 2nd part by this
+           if(dim_ == 3 && item.nodes[s].GetSize() == 0)
+             continue;
+
+           // ip is a (lower left corner)
+           glob[s][z * zb + y * yb + x] = Eval(item.nodes[s], coords, ip, beta);
+
+           if(x == nx_ - 1) { // extreme side, eval lower right corner b
+             ip.Init(0); // for 2D and 3D common
+             ip[0] = 1.0; // eval b
+             glob[s][z * zb + y * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(y == ny_ - 1) { // extreme side, eval lower right corner d
+             ip.Init(0); // for 2D and 3D common
+             ip[1] = 1.0; // eval b
+             glob[s][z * zb + (y+1) * yb + x] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(x == nx_ - 1 && y == ny_ - 1) {
+             ip.Init(0); // for 2D and 3D common
+             ip[0] = 1.0;
+             ip[1] = 1.0;
+             glob[s][z * zb + (y+1) * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(dim_ == 3 && z == nz_ - 1) {
+             ip.Init(0);
+             ip[2] = 1.0; // eval e
+             glob[s][(z+1) * zb + y * yb + x] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(dim_ == 3 && z == nz_ - 1 && x == nx_ - 1) {
+             ip.Init(0); // for 2D and 3D common
+             ip[0] = 1.0; //
+             ip[2] = 1.0;
+             glob[s][(z+1) * zb + y * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(dim_ == 3 && z == nz_ - 1 && y == ny_ - 1) {
+             ip.Init(0);
+             ip[1] = 1.0; //
+             ip[2] = 1.0;
+             glob[s][(z+1) * zb + (y+1) * yb + x] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+           if(dim_ == 3 && z == nz_ - 1 && x == nx_ - 1 && y == ny_ - 1) {
+             ip.Init(1);
+             glob[s][(z+1) * zb + (y+1) * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
+           }
+
+         } // end shape loop
+       } // x
+     } // y
+   } // z
+
+
+   //std::cout << glob[0].ToString() << std::endl;
+   assert(glob[0].Min() >= 0.0);
+
+   for(unsigned int z = 0; z < nz_; z++)
+   {
+     for(unsigned int y = 0; y < ny_; y++)
+     {
+       for(unsigned int x = 0; x < nx_; x++)
+       {
+         Item& item = map_[DensityIdx(x, y, z)]; // ignores z in 2D
+
+         // NOTE: the 3D mapping is different form the coords definition of CFS as used in Eval() !
+         // 2D -------------      : 3D --------- coords is 8 columns with 3 rows
+         //
+         //  a=0, b=1, c=2, d=3   :  a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
+         //
+         //                       :   d----------c
+         //                       :  /|         /|
+         //  d ------- c          : h ------- g  |
+         //  |         |          : | a--------|-b
+         //  |         |          : |/         |/
+         //  a ------- b          : e ------- f
+         //  x=a->b, y=a->d       : x=a->b, y=a->d, z=a->e, zero = a
+
+         for(int s = 0; s < num_node_shapes_; s++)
+         {
+           if(dim_ == 3 && item.nodes[s].GetSize() == 0)
+             continue;
+
+           item.corner_vals[s][0] = glob[s][z * zb + y * yb + x];          // a
+           item.corner_vals[s][1] = glob[s][z * zb + y * yb + (x+1)];      // b
+           item.corner_vals[s][2] = glob[s][z * zb + (y+1) * yb + (x+1)];  // c
+           item.corner_vals[s][3] = glob[s][z * zb + (y+1) * yb + x];     // d
+           if(dim_ == 3) {
+             item.corner_vals[s][4] = glob[s][(z+1) * zb + y * yb + x];          // e
+             item.corner_vals[s][5] = glob[s][(z+1) * zb + y * yb + (x+1)];      // f
+             item.corner_vals[s][6] = glob[s][(z+1) * zb + (y+1) * yb + (x+1)];  // g
+             item.corner_vals[s][7] = glob[s][(z+1) * zb + (y+1) * yb + x];     // h
+           }
+           LOG_DBG3(SMD) << "EACV: x=" << x << " y=" << " z=" << z << " s=" << s << " -> " << item.corner_vals[s].ToString();
+           assert(item.corner_vals[s].Min() >= 0.0);
+         } //s
+       } // x
+     } // y
+   } // z
+
+ // DumpMap();
+
+
+ }
+
+/*
+
          // loop all shapes
          assert((int) item.nodes.GetSize() == num_node_shapes_);
          for(int s = 0; s < num_node_shapes_; s++)
          {
+           // we detect 3D center nodes, 2nd part by this
+           if(dim_ == 3 && item.nodes[s].GetSize() == 0) {
+             item.corner_vals[s].Init(-.5);
+             continue;
+           }
+
            ip.Init(0.0);
-           double val = Eval(item.nodes[s], coords, ip, 2*beta_); // TODO check 2*beta!!
+           // eval a
+           double val = Eval(item.nodes[s], coords, ip, 2*beta_); //  TODO check 2*beta!!
            assert((int) item.corner_vals.GetSize() == num_node_shapes_);
            assert(item.corner_vals[s].GetSize() == coords.GetNumCols());
            // set val everywhere it belongs
-           if(dim_ == 2)
-           {
-             // 2D -------------
-             //
-             //  a=0, b=1, c=2, d=3
-             //
-             //  d ------- c
-             //  |         |
-             //  |         |
-             //  a ------- b
+           // NOTE: the 3D mapping is different form the coords definition of CFS as used in Eval() !
+           // 2D -------------      : 3D --------- coords is 8 columns with 3 rows
+           //
+           //  a=0, b=1, c=2, d=3   :  a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
+           //
+           //                       :   d----------c
+           //                       :  /|         /|
+           //  d ------- c          : h ------- g  |
+           //  |         |          : | a--------|-b
+           //  |         |          : |/         |/
+           //  a ------- b          : e ------- f
+           //  x=a->b, y=a->d       : x=a->b, y=a->d, z=a->e, zero = a
 
-             item.corner_vals[s][0] = val; // this is a from this element
-             if(x > 0) // this is b from the left neighbor
-               map_[DensityIdx(x-1, y)].corner_vals[s][1] = val;
-             if(y > 0) // this is d from the lower neighbor
-               map_[DensityIdx(x, y-1)].corner_vals[s][3] = val;
-             if(x > 0 && y > 0) // this is c from the lower left neighbor
-               map_[DensityIdx(x-1, y-1)].corner_vals[s][2] = val;
-           }
-           if(dim_ == 3)
-           {
-             // 3D --------- coords is 8 columns with 3 rows
-             //
-             //   a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
-             //
-             //    d----------c
-             //   /          /|
-             //  h ------- g  |
-             //  | a--------|-b
-             //  |/         |/
-             //  e ------- f
-           }
+
+           // common for 2D and 3D
+           item.corner_vals[s][a] = val; // this is a from this element
+           if(x > 0) // this is b from the left neighbor
+             map_[DensityIdx(x-1, y, z)].corner_vals[s][b] = val;
+           if(y > 0) // this is d from the lower neighbor
+             map_[DensityIdx(x, y-1, z)].corner_vals[s][d] = val;
+           if(x > 0 && y > 0) // this is c from the lower left neighbor
+             map_[DensityIdx(x-1, y-1, z)].corner_vals[s][c] = val;
+           if(z > 0) // this is e from the back element
+             map_[DensityIdx(x, y, z-1)].corner_vals[s][e] = val;
+           if(z > 0 && x > 0) // this is f from the left back element
+             map_[DensityIdx(x-1, y, z-1)].corner_vals[s][f] = val;
+           if(z > 0 && y > 0) // this is g from the lower back element
+             map_[DensityIdx(x, y-1, z-1)].corner_vals[s][f] = val;
+           if(z > 0 && x > 0 && y > 0) // this is g from the lower left back element
+             map_[DensityIdx(x-1, y-1, z-1)].corner_vals[s][g] = val;
 
            // are we at the right edge?
-           if(x == nx_-1)
-           {
+           if(x == nx_-1)  {
              ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0;
+             ip[0] = 1.0; // eval b
              double val = Eval(item.nodes[s], coords, ip, 2*beta_); // TODO check 2*beta!!
-             if(dim_ == 2)
-             {
-               item.corner_vals[s][1] = val; // this right point is b from this element
-               if(y > 0) // this right point is c from the lower neighbor
-                 map_[DensityIdx(x, y-1)].corner_vals[s][2] = val;
-             }
+             item.corner_vals[s][b] = val; // this is b
+             if(y > 0) // this b is c from the lower neighbor
+               map_[DensityIdx(x, y-1, z)].corner_vals[s][c] = val;
+             if(z > 0) // this b is f from the back element
+               map_[DensityIdx(x, y, z-1)].corner_vals[s][f] = val;
            }
            // are we at the upper edge?
-           if(y == ny_-1)
-           {
+           if(y == ny_-1) {
              ip.Init(0); // for 2D and 3D common
              ip[1] = 1.0;
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // TODO check 2*beta!!
-             if(dim_ == 2)
-             {
-               item.corner_vals[s][3] = val; // this upper point is d from this element
-               if(x > 0) // this upper left point is c from the left neighbor
-                 map_[DensityIdx(x-1, y)].corner_vals[s][2] = val;
-             }
+             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval d
+             item.corner_vals[s][d] = val; // this upper point is d from this element
+             if(x > 0) // this upper left point is c from the left neighbor
+               map_[DensityIdx(x-1, y, z)].corner_vals[s][c] = val;
+             if(z > 0) // this d is h from the back element
+               map_[DensityIdx(x, y, z-1)].corner_vals[s][h] = val;
            }
            // are we at the upper left edge?
-           if(x == nx_-1 && y == ny_-1)
-           {
+           if(x == nx_-1 && y == ny_-1) {
              ip.Init(0); // for 2D and 3D common
              ip[0] = 1.0;
              ip[1] = 1.0;
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // TODO check 2*beta!!
-             if(dim_ == 2)
-             {
-               item.corner_vals[s][2] = val; // this upper right point is c from this element
-             }
+             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval c
+             item.corner_vals[s][c] = val; // this upper right point is c from this element
+             if(z > 0) // this c is g from the back element
+               map_[DensityIdx(x, y, z-1)].corner_vals[s][g] = val;
+           }
+           // are we at the front surface ?
+           if(dim_ == 3 && z == nz_-1) {
+             ip.Init(0);
+             ip[2] = 1;
+             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval e
+             item.corner_vals[s][e] = val; // this front lower left point is e from this element
+             if(x > 0) // this e is f from the left neighbor
+               map_[DensityIdx(x-1, y, z)].corner_vals[s][f] = val;
+             if(y > 0) // this e is h from the lower neighbor
+               map_[DensityIdx(x, y-1, z)].corner_vals[s][h] = val;
+           }
+           // are we at the upper left front corner?
+           if(dim_ == 3 && x == nx_-1 && y == ny_-1 && z == nz_-1)
+           {
+             ip.Init(1); // for 2D and 3D common
+             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval c
+             item.corner_vals[s][c] = val; // this upper right point is c from this element
            }
          }
        }
@@ -1802,15 +1946,15 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    }
 
    #ifndef NDEBUG
-    // DumpMap();
+    DumpMap();
 
     for(unsigned int m = 0; m < map_.GetSize(); m++)
       for(int s = 0; s < num_node_shapes_; s++)
-        assert(map_[m].corner_vals[s].Min() >= 0.0);
+        assert(map_[m].corner_vals[s].Min() > -1.0);
    #endif
  }
 
-
+*/
 
  inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
  {
@@ -1902,25 +2046,28 @@ ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof first, ShapeP
 
  void ShapeMapDesign::DumpMap()
  {
-    for(unsigned int y = 0; y < ny_; y++)
-    {
-      for(unsigned int x = 0; x < nx_; x++)
-      {
-        Item i = map_[DensityIdx(x, y)];
-        std::cout << "y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y) << " rho=" << i.rho->GetPlainDesignValue() << " cv=" << i.corner_vals[0].ToString() << std::endl;
-        assert((int) i.nodes.GetSize() == num_node_shapes_);
-        assert((int) i.corner_vals.GetSize() == num_node_shapes_);
-//        for(unsigned int s = 0; s < num_node_shapes_; s++)
-  //        for(unsigned int n = 0; n < i.corner_vals[s].GetSize(); n++)
+   for(unsigned int z = 0; z < nz_; z++)
+   {
+     for(unsigned int y = 0; y < ny_; y++)
+     {
+       for(unsigned int x = 0; x < nx_; x++)
+       {
+         Item i = map_[DensityIdx(x, y, z)];
+         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue() << " cv=" << i.corner_vals[0].ToString() << std::endl;
+         assert((int) i.nodes.GetSize() == num_node_shapes_);
+         assert((int) i.corner_vals.GetSize() == num_node_shapes_);
+         //        for(unsigned int s = 0; s < num_node_shapes_; s++)
+         //        for(unsigned int n = 0; n < i.corner_vals[s].GetSize(); n++)
 
-      ///      std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
+         ///      std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
 
-//          for(unsigned int n = 0; n < i.nodes[s].GetSize(); n++)
-//           std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
-    //    std::cout << std::endl;
-      }
-      std::cout << std::endl;
-    }
+         //          for(unsigned int n = 0; n < i.nodes[s].GetSize(); n++)
+         //           std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
+         //    std::cout << std::endl;
+       }
+       std::cout << std::endl;
+     }
+   }
  }
 
 void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamElement::Dof free_dof, int free_idx, bool start_end)
