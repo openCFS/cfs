@@ -335,6 +335,7 @@ public:
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node more than elements in one direction.*/
   StdVector<int> idx;
+
 private:
   /** see BaseDesignElement::GetOptIndex() */
   unsigned int opt_index_;

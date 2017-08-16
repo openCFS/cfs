@@ -39,7 +39,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   if(max_order_ < 2)
     throw Exception("'shapeMap/integration_order' needs to be at least 2 and 15 for correct interpolation.");
   if(max_order_ < 10)
-    info_->Get(ParamNode::HEADER)->SetWarning("set 'shapeMap/integration_order' at least to 10 for meaningful integration.");
+    info_->Get(ParamNode::HEADER)->SetWarning("'shapeMap/integration_order=" + lexical_cast<std::string>(max_order_) + "' is small, at least 10 is suggested.");
 
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -331,20 +331,22 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
    assert(designElems.GetSize() <= nx_ * ny_ * nz_);
    assert(map_.GetSize() == designElems.GetSize());
    assert(num_node_shapes_ > 0);
+
+   // num_nodes has no 3D second center nodes and is then smaller num_node_shapes_
+   int num_nodes = num_node_shapes_ - FindCenters().GetSize();
+
    for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
      map_[i].rho = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      // each design node connects to two density elements, also for 3D center node rods
      // this comes from the bilinear interpolation.
-     map_[i].nodes.Resize(num_node_shapes_);
-     map_[i].corner_vals.Resize(num_node_shapes_);
-     for(int s = 0; s < num_node_shapes_; s++) {
+     map_[i].nodes.Resize(num_nodes);
+     map_[i].corner_vals.Resize(num_nodes);
+     for(int s = 0; s < num_nodes; s++) {
        map_[i].nodes[s].Reserve(dim_ == 2 ? 2 : 4);
        map_[i].corner_vals[s].Resize(dim_ == 2 ? 4 : 8);
      }
-
    }
-
 
    LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map_.GetSize() << " n_=" << n_.ToString();
 
@@ -369,7 +371,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      for(int i = 0; i < num_node_shape_params_; i++)
      {
        ShapeParamElement& spe = shape_param_[i];
-       ShapeParam* shape = FindShape(&spe);
+       ShapeParam* shape = FindShape(&spe); // GetShape() is not initialized yet
        assert(shape->IsPart(&spe));
        assert(shape->idx >= 0);
 
@@ -415,7 +417,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
     for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeParamElements an set it to the proper map_::nodes
     {
       ShapeParamElement* spe1 = &(shape_param_[i]); // will be first node param
-      ShapeParam* shape = FindShape(spe1);
+      ShapeParam* shape = FindShape(spe1); // GetShape() not yet ready
       assert(spe1->GetType() == Convert(shape->type));
 
       // the 3D surface case is not yet implemented
@@ -501,6 +503,14 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
       } // first center node case
     } // end node loop
    } // end dim == 3 case
+
+   // might make it a little smaller
+   shape_param_map_.Resize(shape_param_.GetSize());
+   for(unsigned int s = 0; s < shape_.GetSize(); s++)
+     for(int p = shape_[s].start_param; p < shape_[s].end_param; p++)
+       shape_param_map_[p] = &shape_[s];
+
+   assert(!shape_param_map_.Contains(NULL));
  }
 
 
@@ -707,8 +717,7 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
   assert(f->GetDesignType() == DesignElement::SHAPE_MAP);
   ShapeParamElement::Dof dof = f->GetType() == Function::OVERHANG_HOR ? ShapeParamElement::Y : ShapeParamElement::X;
   StdVector<ShapeParam*> shapes = FindShape(NODE, dof);
-  assert(num_node_shapes_ >= (int) shapes.GetSize());
-    assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
+  assert(num_node_shapes_ >= (int) shapes.GetSize() / 2);
 
   if(shapes.IsEmpty())
     throw Exception("There are no shape variables for function '" + f->ToString() + "'");
@@ -1018,7 +1027,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
   {
     const PtrParamNode pn = list[i];
     ShapeParamElement& spe = shape_param_[i];
-    ShapeParam* shape = FindShape(&spe);
+    ShapeParam* shape = GetShape(spe);
     assert(spe.GetIndex() == i);
     assert(pn->Get("nr")->As<unsigned int>() == i);
 
@@ -1101,7 +1110,8 @@ BaseDesignElement::Type ShapeMapDesign::Convert(Type type)
 inline bool ShapeMapDesign::IsProfileFixed() const
 {
   // assume all nodes are concurrently fixed?!
-  return shape_[num_node_shapes_].fixed;
+  assert(shape_.Last().type == PROFILE);
+  return shape_.Last().fixed;
 }
 
 unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
@@ -1234,7 +1244,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    Matrix<double>    coords;   // within the element coordinates we perform the integration
    StdVector<double> ip(dim_); // the current ip within the element
-   Vector<int>       order(num_node_shapes_); // for each shape of the Item this is order obtained form the cornver_val. 0 = void, 1 = solid, >=2 need integration
+   // num_node_shapes_ can be larger Item::nodes as we are not interested in 3D center second shapes.
+   Vector<int>       order(map_[0].nodes.GetSize()); // for each shape of the Item this is order obtained form the cornver_val. 0 = void, 1 = solid, >=2 need integration
 
    int res_idx_r = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_RELEVANT);
 
@@ -1290,7 +1301,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              case MAX:
                ip_eval = -1;
                assert(order.Max() >= 2);
-               for(int si = 0; si < num_node_shapes_; si++)
+               for(unsigned int si = 0; si < item.nodes.GetSize(); si++)
                {
                  assert(order[si] == 0 || order[si] >= 2);
                  if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
@@ -1309,7 +1320,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              case TANH_SUM:
                ip_eval = 0;
                // the original sum but with half beta
-               for(int si = 0; si < num_node_shapes_; si++)
+               for(unsigned int si = 0; si < item.nodes.GetSize(); si++)
                {
                  if(order[si] == 1)
                    ip_rho += 1;
@@ -1330,7 +1341,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        } // end ip_x
 
        // normalize rho by integration pints
-       rho /= max_order *  max_order;
+       rho /= max_order_dim;
      } // end real integration
      assert(rho >= 0 && rho <= 1.02);
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * rho); // we assume 0 <= v <= 1
@@ -1368,7 +1379,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // within the element coordinates we perform the integration
    Matrix<double> coords;
    StdVector<double> ip(dim_); // the current ip within the element
-   Vector<int>    order(num_node_shapes_);
+   Vector<int>    order(map_[0].nodes.GetSize()); // see MapShapeToDensity()
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++) // traverse all rho design elements
    {
      Item& item = map_[r];
@@ -1411,7 +1422,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
 
              // in the MAX case we operate exactly on one shape, for TANH_SUM we loop over all
-             for(int si = (overlap_ == MAX ? (int) ip_eval : 0); si < (overlap_ == MAX ? (int) ip_eval+1 : num_node_shapes_); si++)
+             for(unsigned int si = (overlap_ == MAX ? ip_eval : 0); si < (overlap_ == MAX ? ip_eval+1 : item.nodes.GetSize()); si++)
              {
                da = EvalGrad(item.nodes[si], coords, ip, beta, true, false, false); // dtanh_da
                if(dim_ == 3) // FIXME assumes center nodes!
@@ -1490,7 +1501,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
    {
      ShapeParamElement* spe = opt_shape_param_[e].elem;
-     ShapeParam* shape = FindShape(spe);
+     ShapeParam* shape = GetShape(spe);
      out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
      out << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + opt_shape_param_[e].sym->GetPlainSymGradient(c)) << " \t";
 
@@ -1500,26 +1511,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      out << std::endl;
    }
    out.close();
- }
-
- ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe)
- {
-   // FUCK copy & paste :(
-   for(unsigned int i = 0; i < shape_.GetSize(); i++)
-     if((int) spe->GetIndex() < shape_[i].end_param)
-       return &shape_[i];
-   return NULL;
- }
-
- const ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe) const
- {
-   // TODO could be sped up in many ways, e.g. by checking for profile and clearly for caching!
-   for(unsigned int i = 0; i < shape_.GetSize(); i++)
-     if((int) spe->GetIndex() < shape_[i].end_param)
-       return &shape_[i];
-
-   assert(false);
-   return NULL;
  }
 
  inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_w) const
@@ -1602,7 +1593,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
    assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
-   assert(FindShape(sa1)->IsCenterNode());
+   assert(GetShape(sa1)->IsCenterNode());
 
    assert(GetProfile(sa1) == GetProfile(sb1)); // two center nodes share a profile
 
@@ -1661,7 +1652,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double b = b1 + ip[dir] * (b2 - b1);
    double w = w1 + ip[dir] * (w2 - w1);
 
-   assert(!grad_a && !grad_b && !grad_w);
    double val = tanh(beta, x, y, a , b, w);
 
    LOG_DBG3(SMD) << "E: sa1=" << sa1->GetIndex() << " sa2=" << sa2->GetIndex() << " sb1=" << sb1->GetIndex() << " sb2=" << sb2->GetIndex() << " ip=" << ip.ToString()
@@ -1698,15 +1688,18 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    StdVector<double> ip(dim_); // integration location 0 ... 1
    Grid* grid = domain->GetGrid();
 
+   int num_nodes = map_[0].nodes.GetSize();
+   assert((unsigned int) num_nodes == num_node_shapes_ - FindCenters().GetSize());
+
 #ifndef NDEBUG
    for(unsigned int m = 0; m < map_.GetSize(); m++)
-     for(int s = 0; s < num_node_shapes_; s++)
+     for(int s = 0; s < num_nodes; s++)
        map_[m].corner_vals[s].Init(-1);
 #endif
 
    // temporary array. Could be used permanent instead of replicating it 4 to 8 times in Item::corner_vals
-   StdVector<Vector<double> > glob(num_node_shapes_);
-   for(int s = 0; s < num_node_shapes_; s++)
+   StdVector<Vector<double> > glob(num_nodes);
+   for(int s = 0; s < num_nodes; s++)
      glob[s].Resize((nx_+1) * (ny_+1) * (dim_ == 3 ? nz_+1 : 1), -1.0);
 
    // we index by z * (nx_+1)*(ny_+1) + y * (nx_+1) + x
@@ -1731,11 +1724,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
          ip.Init(0.0);
 
-         for(int s = 0; s < num_node_shapes_; s++)
+         for(int s = 0; s < num_nodes; s++)
          {
-           // we detect 3D center nodes, 2nd part by this
-           if(dim_ == 3 && item.nodes[s].GetSize() == 0)
-             continue;
+           assert(item.nodes[s].GetSize() >= 2);
 
            // ip is a (lower left corner)
            glob[s][z * zb + y * yb + x] = Eval(item.nodes[s], coords, ip, beta);
@@ -1814,10 +1805,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
          //  a ------- b          : e ------- f
          //  x=a->b, y=a->d       : x=a->b, y=a->d, z=a->e, zero = a
 
-         for(int s = 0; s < num_node_shapes_; s++)
+         for(int s = 0; s < num_nodes; s++)
          {
-           if(dim_ == 3 && item.nodes[s].GetSize() == 0)
-             continue;
+           assert(item.nodes[s].GetSize() >= 2);
 
            item.corner_vals[s][0] = glob[s][z * zb + y * yb + x];          // a
            item.corner_vals[s][1] = glob[s][z * zb + y * yb + (x+1)];      // b
@@ -1837,124 +1827,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    } // z
 
  // DumpMap();
-
-
  }
 
-/*
-
-         // loop all shapes
-         assert((int) item.nodes.GetSize() == num_node_shapes_);
-         for(int s = 0; s < num_node_shapes_; s++)
-         {
-           // we detect 3D center nodes, 2nd part by this
-           if(dim_ == 3 && item.nodes[s].GetSize() == 0) {
-             item.corner_vals[s].Init(-.5);
-             continue;
-           }
-
-           ip.Init(0.0);
-           // eval a
-           double val = Eval(item.nodes[s], coords, ip, 2*beta_); //  TODO check 2*beta!!
-           assert((int) item.corner_vals.GetSize() == num_node_shapes_);
-           assert(item.corner_vals[s].GetSize() == coords.GetNumCols());
-           // set val everywhere it belongs
-           // NOTE: the 3D mapping is different form the coords definition of CFS as used in Eval() !
-           // 2D -------------      : 3D --------- coords is 8 columns with 3 rows
-           //
-           //  a=0, b=1, c=2, d=3   :  a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
-           //
-           //                       :   d----------c
-           //                       :  /|         /|
-           //  d ------- c          : h ------- g  |
-           //  |         |          : | a--------|-b
-           //  |         |          : |/         |/
-           //  a ------- b          : e ------- f
-           //  x=a->b, y=a->d       : x=a->b, y=a->d, z=a->e, zero = a
-
-
-           // common for 2D and 3D
-           item.corner_vals[s][a] = val; // this is a from this element
-           if(x > 0) // this is b from the left neighbor
-             map_[DensityIdx(x-1, y, z)].corner_vals[s][b] = val;
-           if(y > 0) // this is d from the lower neighbor
-             map_[DensityIdx(x, y-1, z)].corner_vals[s][d] = val;
-           if(x > 0 && y > 0) // this is c from the lower left neighbor
-             map_[DensityIdx(x-1, y-1, z)].corner_vals[s][c] = val;
-           if(z > 0) // this is e from the back element
-             map_[DensityIdx(x, y, z-1)].corner_vals[s][e] = val;
-           if(z > 0 && x > 0) // this is f from the left back element
-             map_[DensityIdx(x-1, y, z-1)].corner_vals[s][f] = val;
-           if(z > 0 && y > 0) // this is g from the lower back element
-             map_[DensityIdx(x, y-1, z-1)].corner_vals[s][f] = val;
-           if(z > 0 && x > 0 && y > 0) // this is g from the lower left back element
-             map_[DensityIdx(x-1, y-1, z-1)].corner_vals[s][g] = val;
-
-           // are we at the right edge?
-           if(x == nx_-1)  {
-             ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0; // eval b
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // TODO check 2*beta!!
-             item.corner_vals[s][b] = val; // this is b
-             if(y > 0) // this b is c from the lower neighbor
-               map_[DensityIdx(x, y-1, z)].corner_vals[s][c] = val;
-             if(z > 0) // this b is f from the back element
-               map_[DensityIdx(x, y, z-1)].corner_vals[s][f] = val;
-           }
-           // are we at the upper edge?
-           if(y == ny_-1) {
-             ip.Init(0); // for 2D and 3D common
-             ip[1] = 1.0;
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval d
-             item.corner_vals[s][d] = val; // this upper point is d from this element
-             if(x > 0) // this upper left point is c from the left neighbor
-               map_[DensityIdx(x-1, y, z)].corner_vals[s][c] = val;
-             if(z > 0) // this d is h from the back element
-               map_[DensityIdx(x, y, z-1)].corner_vals[s][h] = val;
-           }
-           // are we at the upper left edge?
-           if(x == nx_-1 && y == ny_-1) {
-             ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0;
-             ip[1] = 1.0;
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval c
-             item.corner_vals[s][c] = val; // this upper right point is c from this element
-             if(z > 0) // this c is g from the back element
-               map_[DensityIdx(x, y, z-1)].corner_vals[s][g] = val;
-           }
-           // are we at the front surface ?
-           if(dim_ == 3 && z == nz_-1) {
-             ip.Init(0);
-             ip[2] = 1;
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval e
-             item.corner_vals[s][e] = val; // this front lower left point is e from this element
-             if(x > 0) // this e is f from the left neighbor
-               map_[DensityIdx(x-1, y, z)].corner_vals[s][f] = val;
-             if(y > 0) // this e is h from the lower neighbor
-               map_[DensityIdx(x, y-1, z)].corner_vals[s][h] = val;
-           }
-           // are we at the upper left front corner?
-           if(dim_ == 3 && x == nx_-1 && y == ny_-1 && z == nz_-1)
-           {
-             ip.Init(1); // for 2D and 3D common
-             double val = Eval(item.nodes[s], coords, ip, 2*beta_); // eval c
-             item.corner_vals[s][c] = val; // this upper right point is c from this element
-           }
-         }
-       }
-     }
-   }
-
-   #ifndef NDEBUG
-    DumpMap();
-
-    for(unsigned int m = 0; m < map_.GetSize(); m++)
-      for(int s = 0; s < num_node_shapes_; s++)
-        assert(map_[m].corner_vals[s].Min() > -1.0);
-   #endif
- }
-
-*/
 
  inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
  {
@@ -2218,7 +2092,7 @@ ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, S
 
 inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node) const
 {
-  const ShapeParam* shape = FindShape(node);
+  const ShapeParam* shape = GetShape(node);
   assert(node->GetType() == ShapeParamElement::NODE && shape->type == NODE);
   assert(shape->IsPart(node));
   assert(node->GetIndex() - shape->start_opt >= 0);
@@ -2230,10 +2104,21 @@ inline const ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamEleme
 
 inline ShapeParamElement* ShapeMapDesign::GetProfile(const ShapeParamElement* node)
 {
-  const ShapeParam* shape = FindShape(node);
+  const ShapeParam* shape = GetShape(node);
   return &shape_param_[shape->partner->start_param + node->GetIndex() - shape->start_param];
 }
 
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe)
+{
+  for(unsigned int s = 0; s < shape_.GetSize(); s++) {
+    assert(shape_[s].end_param > 0);
+    if((int) spe->GetIndex() < shape_[s].end_param)
+      return &shape_[s];
+  }
+
+  return NULL;
+}
 
 
 StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > ShapeMapDesign::FindCenters()
