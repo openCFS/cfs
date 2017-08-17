@@ -1439,25 +1439,29 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                    dw = tanh_sum_.d_map(ip_eval, dw);
                }
 
-               // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-               double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (max_order_dim);
-               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * db / (max_order_dim);
+               double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da / (max_order_dim);
+               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db / (max_order_dim);
                // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (max_order_dim);
+               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw / (max_order_dim);
 
                log_da += da_norm;
                log_db += db_norm;
                log_dw += dw_norm;
 
-               item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-               item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+               int dir = dim_ == 2 ? Flip(item.nodes[si][0]->dof_) : Flip(item.nodes[si][0]->dof_, item.nodes[si][2]->dof_);
+               double t = ip[dir];
+               assert(t >= 0 && t <= 1);
+               assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
+
+               item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
+               item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
                if(dim_ == 3) {
-                 item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
-                 item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * db_norm);
+                 item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * db_norm);
+                 item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * t * db_norm);
                }
                if(!IsProfileFixed()) { // a and b share common w
-                 GetProfile(item.nodes[si][0])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-                 GetProfile(item.nodes[si][1])->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+                 GetProfile(item.nodes[si][0])->AddGradient(f, de->GetPlainGradient(f) * (1-t) * dw_norm);
+                 GetProfile(item.nodes[si][1])->AddGradient(f, de->GetPlainGradient(f) * t * dw_norm);
                }
 
                LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip=" << ip.ToString() << " da=" << da << " da_n=" << da_norm << " dw=" << dw << " dw_n=" << dw_norm;
