@@ -10,7 +10,7 @@ import vtk
 #from vtk.util.colors import *
 try:
   import meshpy.triangle as triangle
-  from meshpy.tet import MeshInfo, build
+  import meshpy.tet as tet
 except:
   print("Failed to load meshpy - need it for tetrahedralized basecell mesh")
 
@@ -1025,7 +1025,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   dy = bounds[4] / samples[1]
   dz = bounds[5] / samples[2]
   
-  min_thresh = 3.0/args.bc_res
+  min_thresh = 0.1
   max_thresh = 0.82
     
   delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
@@ -1109,7 +1109,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
     appends.AddInputData(pd)
     # meshed boundary circles
     circles = obj[1]
-    assert(len(circles) > 0)
+#     assert(len(circles) > 0)
     # list with meshes on the boundaries
     for l in circles:
       points = numpy.asarray(l[0])
@@ -1125,23 +1125,14 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   cleanFilter.SetInputConnection(appends.GetOutputPort())
   cleanFilter.Update()
   
-  # quickly search for vtk points
-  locator = vtk.vtkPointLocator()
-  locator.SetDataSet(cleanFilter.GetOutput())
-  locator.SetNumberOfPointsPerBucket(5)
-  locator.AutomaticOn()
-  locator.BuildLocator()
-  
-  points, cells, edges = polydata_to_points_cells_arrays(cleanFilter.GetOutput())
-  
-  detect_boundary_edges(basecells,points,cells,edges,flags,nx,ny,nz,appends)
+#   points, cells, edges = polydata_to_points_cells_arrays(cleanFilter.GetOutput())
   
   # merge duplicated points etc.
   cleanFilter2 = vtk.vtkCleanPolyData()
   cleanFilter2.SetInputConnection(appends.GetOutputPort())
   cleanFilter2.Update()
     
-  return cleanFilter2.GetOutput()
+  return cleanFilter.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -1204,8 +1195,6 @@ def mesh_basecell_boundaries(flags,basecell,bounds,cell_center):
     points, cells = mesh_basecell_boundary(bound_coords,b,bounds,cc_2d)
     list.append((points,cells))
     
-#     print(points)
-    
   return list
 
 # here we only deal with 3 dimensions
@@ -1218,11 +1207,16 @@ def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
   coords_2d.sort(key=lambda c:math.atan2(c[0]-cell_center[0], c[1]-cell_center[1]))
   
   info = triangle.MeshInfo()
+  import matplotlib
+  matplotlib.use('tkagg')
+  from matplotlib import pyplot as plt
+  coords_2d = numpy.asarray(coords_2d)
+  plt.plot(coords_2d[:,0],coords_2d[:,1],'o')
+#   plt.show()
   test = [ [elem[0],elem[1]] for elem in coords_2d]
   info.set_points(test)
   info.set_facets(draw_profile_functions.round_trip_connect(0,len(coords_2d)-1))
   mesh = triangle.build(info,generate_faces=True)
-  
   mesh_points = numpy.array(mesh.points)
   mesh_tris = numpy.array(mesh.elements)
   
@@ -1276,128 +1270,10 @@ def fill_vtk_polydata(points,cells):
   
   return polydata
 
-# @param flags: indicates for each basecell object which of its 6 faces is already meshed
-# @param appendPd: vtk filter for appending polydata
-def detect_boundary_edges(basecells,points,cells,edges,flags,nx,ny,nz,appendPd):
-  for i in range(nx):
-    for j in range(ny):
-      for k in range(nz):
-        idx = array_idx_3d_to_1d(i, j, k, nx, ny, nz)
-        meshed = flags[idx]
-        bc_bounds = basecells[idx][0].bounds
-        print("this idx:",idx)
-        print("this bounds:",bc_bounds)
-        cell_center = basecells[idx][0].center
-        assert(len(meshed) == 6)
-        interfaces = numpy.where(numpy.logical_not(meshed))[0]
-        for f in interfaces:
-          print("this face:",f)
-          this_coords_2d, this_cc_2d = extract_2d_bc_boundary_coords(basecells[idx][0].points,f,bc_bounds,cell_center)
-          # find basecell sharing face f with this basecell
-          other_i = 0
-          other_j = 0
-          other_k = 0
-          if f == 0 or f == 3:
-            other_i = -1
-            if f == 3:
-              other_i = 1
-          elif f == 1 or f == 4:
-            other_j = -1
-            if f == 4:
-              other_j = 1
-          elif f == 2 or f == 5:    
-            other_k = -1
-            if f == 5:
-              other_k = 1
-          
-          next_cell_idx  = array_idx_3d_to_1d(i+other_i, j+other_j, k+other_k, nx, ny, nz)
-          next_bound = -1
-          if f <= 2:
-            next_bound = f + 3
-          else:
-            assert(f<=5)
-            next_bound = f - 3
-          
-          assert(next_bound != -1)
-          # get points on the shared interface from next cell
-          next_coords_2d, next_cc_2d = extract_2d_bc_boundary_coords(basecells[next_cell_idx][0].points, next_bound, basecells[next_cell_idx][0].bounds, basecells[next_cell_idx][0].center)
-          print("next idx:",next_cell_idx)
-          print("next bounds:",basecells[next_cell_idx][0].bounds)
-          print("next_face:",next_bound)
-          flags[next_cell_idx][next_bound] = True
-          import matplotlib
-          matplotlib.use('tkagg')
-          from matplotlib import pyplot as plt
-          this_coords_2d = numpy.asanyarray(this_coords_2d)
-          next_coords_2d = numpy.asanyarray(next_coords_2d)
-          plt.subplot(121)
-          plt.plot(this_coords_2d[:,0],this_coords_2d[:,1],'o',color='green')
-          plt.subplot(122)
-          plt.plot(next_coords_2d[:,0],next_coords_2d[:,1],'o',color='red')
-          plt.show()
-          plt.gcf()
-          plt.plot(this_coords_2d[:,0],this_coords_2d[:,1],'o',color='green')
-          plt.plot(next_coords_2d[:,0],next_coords_2d[:,1],'o',color='red')
 
-          all_points = numpy.append(this_coords_2d,next_coords_2d,axis=0)
-          all_points = remove_duplicated_points(all_points)
-          from scipy.spatial import Delaunay
-          tri = Delaunay(all_points)
-          plt.triplot(all_points[:,0],all_points[:,1],tri.simplices.copy())
-          all_points_3d = []
-          major_dir = f%3
-          minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
-          for p in all_points:
-            point = [None]*3
-            point[major_dir] = 1.0
-            point[minor_1] = p[0]
-            point[minor_2] = p[1]
-            all_points_3d.append(point)
-          
-          pd = fill_vtk_polydata(all_points_3d, tri.simplices.copy())
-          writer = vtk.vtkXMLPolyDataWriter()
-          writer.SetFileName("interface.vtp")
-          writer.SetInputData(pd)
-          writer.Write()
-          appendPd.AddInputData(pd)
-          appendPd.Update()  
-          
-          plt.show()
-                  
-def array_idx_3d_to_1d(x,y,z,nx,ny,nz):                    
-  return z*nx*ny + y*nx + x
-
-def polydata_to_points_cells_arrays(polydata):
-  from vtk.util.numpy_support import vtk_to_numpy
-  points = vtk_to_numpy(polydata.GetPoints().GetData())
+def contains_point(list,point):
+  for p in list:
+    if isclose(point[0],p[0],1e-6) and isclose(point[1],p[1],1e-6):
+      return True
   
-  cells = []
-  edges = []
-  for i in range(polydata.GetNumberOfCells()):
-    cell = polydata.GetCell(i)
-    vertex_ids = cell.GetPointIds()
-    ids = []
-    for i in range(vertex_ids.GetNumberOfIds()):
-      ids.append(vertex_ids.GetId(i))   
-    cells.append(ids)
-    edges.append((ids[0],ids[1]))
-    edges.append((ids[1],ids[2]))
-    edges.append((ids[2],ids[1]))
-    
-  assert(len(cells) > 0)
-  
-  return points, numpy.asanyarray(cells), numpy.asarray(edges)
-
-def remove_duplicated_points(pts):
-  new_pts = []
-  for i,this in enumerate(pts):
-    for j, other in enumerate(pts):
-      if i == j:
-        continue
-      
-      if isclose(this[0],other[0],1e-6) and isclose(this[1],other[1],1e-6):
-        print("removed point:",this)
-        continue
-      else: 
-        new_pts.append(this)
-  return numpy.asarray(new_pts)
+  return False  

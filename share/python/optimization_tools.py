@@ -19,7 +19,6 @@ def print_design_info(filename, attribute, set = None, fill = None):
     #print  sys.exc_info()
 
 
-
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array

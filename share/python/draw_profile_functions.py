@@ -935,7 +935,7 @@ def generate_basecell(args,info,log,offset=0):
       new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
     
     # move points of boundary circle such that basecell goes from [0,1]^3
-#     new_surf_points = move_boundary_points(new_surf_points)  
+    new_surf_points = move_boundary_points(new_surf_points)  
     
     assert(new_surf_points is not None)
     
