@@ -316,13 +316,18 @@ protected:
   double tanh(double beta, double x, double a, double w) const;
 
   /** The 3D tanh functions operates in the xy plane and tests for a point (x,y) and the center (a,b) with w */
-  double tanh(double beta, double x, double y, double a, double b, double w) const;
+  double tanh3d(double beta, double x, double y, double a, double b, double w) const;
 
   /** derivative of tanh w.r.t. a */
   double d_tanh_da(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. w which is the half profile */
   double d_tanh_dw(double beta, double x, double a, double w) const;
+
+  double d_tanh3d_da(double beta, double x, double y, double a, double b, double w) const;
+  double d_tanh3d_db(double beta, double x, double y, double a, double b, double w) const;
+  double d_tanh3d_dw(double beta, double x, double y, double a, double b, double w) const;
+
 
   /** Find the corresponding profile variable - needs to identify the shape first :( */
   inline const ShapeParamElement* GetProfile(const ShapeParamElement* node) const;

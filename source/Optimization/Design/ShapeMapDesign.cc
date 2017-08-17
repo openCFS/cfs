@@ -1617,7 +1617,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // x = e -> f,  y = e -> a,  z = e -> h,  zero = e
    //
    //    d----------c
-   //   /          /|
+   //   /|          /|
    //  h ------- g  |
    //  | a--------|-b
    //  |/         |/
@@ -1652,7 +1652,16 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double b = b1 + ip[dir] * (b2 - b1);
    double w = w1 + ip[dir] * (w2 - w1);
 
-   double val = tanh(beta, x, y, a , b, w);
+   double val = -1;
+
+   if(grad_a)
+     val = d_tanh3d_da(beta, x, y, a, b, w);
+   if(grad_b)
+     val = d_tanh3d_db(beta, x, y, a, b, w);
+   if(grad_w)
+     val = d_tanh3d_da(beta, x, y, a, b, w);
+   if(!grad_a && !grad_b && !grad_w)
+     val = tanh3d(beta, x, y, a , b, w);
 
    LOG_DBG3(SMD) << "E: sa1=" << sa1->GetIndex() << " sa2=" << sa2->GetIndex() << " sb1=" << sb1->GetIndex() << " sb2=" << sb2->GetIndex() << " ip=" << ip.ToString()
                  << " x=" << x << " y=" << y << " -> " << val;
@@ -1842,19 +1851,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
     return 1/(std::exp(beta*(x-a-w))+1);
  }
 
-inline double ShapeMapDesign::tanh(double beta, double x, double y, double a, double b, double w) const
-{
-  // this function operates in the xy plane with the center (a,b) and tests for the point (x,y)
-  // this is formed to 1D problem of tanh where we only have the radius which is ||(a,b) - (x,y)|| as parameter
-
-  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-
-  // set xrange[0:1]; w=0.2; beta=30
-  // plot 1/(exp(2*beta*(x-w))+1)
-
-  return 1/(std::exp(beta*(r-w))+1);
-}
-
 
  inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
  {
@@ -1890,6 +1886,50 @@ inline double ShapeMapDesign::tanh(double beta, double x, double y, double a, do
     return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
  }
 
+ inline double ShapeMapDesign::tanh3d(double beta, double x, double y, double a, double b, double w) const
+ {
+   // r: sqrt((a-x)^2+(b-y)^2);
+   // t:1/(exp(beta*(r-w))+1);
+
+   double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+   double e = std::exp(beta * (r-w));
+
+   return 1/(e +1);
+ }
+
+
+inline double ShapeMapDesign::d_tanh3d_da(double beta, double x, double y, double a, double b, double w) const
+{
+  // r: sqrt((a-x)^2+(b-y)^2);
+  // t:1/(exp(beta*(r-w))+1);
+
+  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+  double e = std::exp(beta * (r-w));
+
+  return -1 * beta*(a-x) * e / (r * (e+1)*(e+1));
+}
+
+inline double ShapeMapDesign::d_tanh3d_db(double beta, double x, double y, double a, double b, double w) const
+{
+  // r: sqrt((a-x)^2+(b-y)^2);
+  // t:1/(exp(beta*(r-w))+1);
+
+  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+  double e = std::exp(beta * (r-w));
+
+  return -1 * beta*(b-x) * e / (r * (e+1)*(e+1));
+}
+
+inline double ShapeMapDesign::d_tanh3d_dw(double beta, double x, double y, double a, double b, double w) const
+{
+  // r: sqrt((a-x)^2+(b-y)^2);
+  // t:1/(exp(beta*(r-w))+1);
+
+  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+  double e = std::exp(beta * (r-w));
+
+  return beta * e / ((e+1)*(e+1));
+}
 
 inline ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
 {
