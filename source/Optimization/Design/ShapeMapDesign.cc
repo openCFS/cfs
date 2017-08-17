@@ -1252,6 +1252,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // prepare all corner values
    EvalAllCornerValues();
 
+   // this helps us evaluation
+   EvalAtIp eval(this);
+
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++)
    {
      Item& item = map_[r];
@@ -1263,8 +1266,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      int max_order = item.GetOrder(order, sensitivity_, max_order_); // sets order. 0, 1 or >= 2
 
      int max_order_dim = max_order * max_order * (dim_ == 2 ? 1 : max_order);
-
-     item.eval.Resize(0); // we need the information only in case of integration
 
      if(res_idx_r >= 0)
        de->specialResult[res_idx_r] = max_order;
@@ -1283,8 +1284,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      // we really need to integrate when we found no special case yet
      if(rho == -1.0)
      {
-       item.eval.Resize(max_order_dim, -1.0); // keeps capacity.
-
        rho = 0.0; // such that we can sum the ip to it
        grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
        // it makes sense to traverse first the ip and then the variables
@@ -1295,11 +1294,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : max_order); ip_z++)
            {
              double ip_rho = 0.0; // the final value for one integration point. shall be not much larger one
-             double& ip_eval = item.eval[IntPointIdx(max_order, ip_x, ip_y, ip_z)]; // idx for MAX or sum for TANH_SUM
+
              switch(overlap_)
              {
              case MAX:
-               ip_eval = -1;
                assert(order.Max() >= 2);
                for(unsigned int si = 0; si < item.nodes.GetSize(); si++)
                {
@@ -1307,18 +1305,15 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
                  {
                    Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-                   double t = Eval(item.nodes[si], coords, ip, 2*beta_); // no derivative
-                   if(t >= ip_rho) { // >= is important! > may result in ip_eval == -1
+                   eval.Setup(item.nodes[si], coords, ip, 2*beta_);
+                   double t = eval.Tanh();
+                   if(t >= ip_rho)  // >= is important! > may result in ip_eval == -1
                      ip_rho = t;
-                     ip_eval = si;
-                   }
-                   LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " si=" << si << " t=" << t << " max=" << ip_rho << " ip_eval=" << ip_eval;
+                   LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " si=" << si << " t=" << t << " max=" << ip_rho;
                  }
                }
-               assert(ip_eval >= 0);
                break;
              case TANH_SUM:
-               ip_eval = 0;
                // the original sum but with half beta
                for(unsigned int si = 0; si < item.nodes.GetSize(); si++)
                {
@@ -1326,10 +1321,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                    ip_rho += 1;
                  if(order[si] >= 2){
                    Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-                   ip_rho += Eval(item.nodes[si], coords, ip, beta_); // no derivative
+                   eval.Setup(item.nodes[si], coords, ip, beta_);
+                   ip_rho += eval.Tanh();
                  }
                }
-               ip_eval = ip_rho;
                // correct ip_rho by mapping <= 1. This is not exact, it might be slightly larger 1. See TanhSum()
                ip_rho = tanh_sum_.map(ip_rho);
                break;
@@ -1376,10 +1371,17 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    int res_idx_dw = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_PROFILE);
 
    Grid* grid = domain->GetGrid();
+   // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
+   double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
+
    // within the element coordinates we perform the integration
-   Matrix<double> coords;
-   StdVector<double> ip(dim_); // the current ip within the element
-   Vector<int>    order(map_[0].nodes.GetSize()); // see MapShapeToDensity()
+   Matrix<double>      coords;
+   StdVector<double>   ip(dim_); // the current ip within the element
+   Vector<int>         order(map_[0].nodes.GetSize()); // see MapShapeToDensity()
+   StdVector<EvalAtIp> eval(map_[0].nodes.GetSize());
+   for(unsigned int i = 0; i < eval.GetSize(); i++)
+     eval[i].Init(this);
+
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++) // traverse all rho design elements
    {
      Item& item = map_[r];
@@ -1396,13 +1398,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
      // max_order = 0=void there is no gradient to add.
      // if max_order=1=solid and we have strict solid and the gradient is also zero.
-     assert(!((max_order < 2 || (max_order == 1 && overlap_ == MAX)) && !item.eval.IsEmpty()));
      if((max_order >= 1 && overlap_ != MAX) || max_order >= 2)
      {
        assert(max_order >= 2 || (max_order == 1 && overlap_ == TANH_SUM));
        assert(order.Max() >= 2);
        assert(!(overlap_ == MAX && order.Contains(1)));
-       assert(item.eval.GetSize() == max_order_dim);
 
        for(int ip_x = 0; ip_x < max_order; ip_x++)
        {
@@ -1411,32 +1411,62 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : max_order); ip_z++)
            {
              Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-             double& ip_eval = item.eval[IntPointIdx(max_order, ip_x, ip_y, ip_z)]; // idx for MAX or sum for TANH_SUM
-             assert(ip_eval >= 0);
+
+             // find for MAX the idx of the shape with the maximal value
+             // find for TANH_SUM the sum of all shape evals
+             // we don't save this from MapShapeToDensity() as the number can be extremely large
+             int max_idx = 0; // such it works also for TANH_SUM
+             double eval_sum = 0;
+             switch(overlap_)
+             {
+             case MAX:
+             {
+               double max = -1;
+               for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
+               {
+                 eval[s].Setup(item.nodes[s], coords, ip, beta);
+                 double t = eval[s].SmartTanh(order[s]);
+                 if(t > max) {
+                   max = t;
+                   max_idx = s;
+                 }
+               }
+               break;
+             }
+             case TANH_SUM:
+               for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
+               {
+                 eval[s].Setup(item.nodes[s], coords, ip, beta);
+                 eval_sum += eval[s].SmartTanh(order[s]);
+               }
+               break;
+             }
 
              double da = 0.0;
              double db = 0.0;
              double dw = 0.0;
 
-             // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
-             double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
-
              // in the MAX case we operate exactly on one shape, for TANH_SUM we loop over all
-             for(unsigned int si = (overlap_ == MAX ? ip_eval : 0); si < (overlap_ == MAX ? ip_eval+1 : item.nodes.GetSize()); si++)
+             assert(!(overlap_ == TANH_SUM && max_idx != 0));
+             for(unsigned int si = max_idx; si < (overlap_ == MAX ? max_idx+1 : item.nodes.GetSize()); si++)
              {
-               da = EvalGrad(item.nodes[si], coords, ip, beta, true, false, false); // dtanh_da
+               double t = eval[si].Setup(item.nodes[si], coords, ip, beta);
+               assert(t >= 0 && t <= 1);
+               assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
+
+               da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
                if(dim_ == 3) // FIXME assumes center nodes!
-                 db = EvalGrad(item.nodes[si], coords, ip, beta, false, true, false); // dtanh_db
+                 db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
                if(!IsProfileFixed())
-                 dw = EvalGrad(item.nodes[si], coords, ip, beta, false, false, true); // dtanh_dw
+                 dw = eval[si].SmartGradTanh(order[si], false, false, true); // dtanh_dw
 
                // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
                if(overlap_ == TANH_SUM) {
-                 da = tanh_sum_.d_map(ip_eval, da);
+                 da = tanh_sum_.d_map(eval_sum, da);
                  if(dim_ == 3)
-                   db = tanh_sum_.d_map(ip_eval, db);
+                   db = tanh_sum_.d_map(eval_sum, db);
                  if(!IsProfileFixed())
-                   dw = tanh_sum_.d_map(ip_eval, dw);
+                   dw = tanh_sum_.d_map(eval_sum, dw);
                }
 
                double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da / (max_order_dim);
@@ -1447,11 +1477,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                log_da += da_norm;
                log_db += db_norm;
                log_dw += dw_norm;
-
-               int dir = dim_ == 2 ? Flip(item.nodes[si][0]->dof_) : Flip(item.nodes[si][0]->dof_, item.nodes[si][2]->dof_);
-               double t = ip[dir];
-               assert(t >= 0 && t <= 1);
-               assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
 
                item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
                item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
@@ -1516,6 +1541,262 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    }
    out.close();
  }
+
+void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
+ {
+   smd_ = smd;
+   dim = domain->GetGrid()->GetDim();
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ {
+   assert(smd_ != NULL);
+
+   if(coords.GetNumRows() == 2)
+     return Setup2d(nodes, coords, ip, beta);
+   else
+     return Setup3d(nodes, coords, ip, beta);
+
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ {
+   assert(dim == 2); // there is also a 3D version of Eval
+   assert(nodes.GetSize() == 2);
+   // this stuff is 3D stuff
+   this->beta = beta;
+   const ShapeParamElement* s1 = nodes[0];
+   const ShapeParamElement* s2 = nodes[1];
+   assert(s1->dof_ == s2->dof_);
+   assert(s1->GetType() == BaseDesignElement::NODE && s2->GetType() == BaseDesignElement::NODE);
+   // we assume the elements to be oriented ccw starting lower left
+   assert(coords.GetNumRows() == 2); // dim == 2
+   assert(coords.GetNumCols() == 4); // dim == 4 nodes
+
+   //
+   //  d ------- c
+   //  |         |
+   //  |         |
+   //  a ------- b
+   //
+   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
+   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
+   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
+   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
+   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
+   assert(coords[1][1] < coords[1][2]);       // y-pos: lower right smaller upper right
+
+   ShapeParamElement::Dof dof = s1->dof_;
+   ShapeParamElement::Dof dir = Flip(dof);
+   assert(dof != dir);
+
+   // element position
+   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0]; // dof == x ? a_x : a_y
+   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3]; // dof == x ? b_x : d_y
+   // the parameters
+   double a1 = s1->GetPlainDesignValue();
+   double a2 = s2->GetPlainDesignValue();
+   // the profiles
+   assert(smd_->GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
+   double w1 = 0.5 * smd_->GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
+   double w2 = 0.5 * smd_->GetProfile(s2)->GetPlainDesignValue();
+
+   // when dof = X the tanh has x as parameter, when we interpolate a1 and a2 these are x values applied at different y positions
+   assert(ip.GetSize() == 2);
+   assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1);
+   x = start + ip[dof] * (end-start); // for dof=0 (x) xy is x and might be far away from a
+
+   // a = (1-t)*a1 + t*a2 = a1 - t*a1 + t*a2 = a1+t*(a2-a1): t=0 -> a1, t=1 -> a2
+   t = ip[dir];
+   a  = a1 + t * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
+   w  = w1 + t * (w2-w1);
+
+   exapw = std::exp(beta*(x-a+w));
+   examw = std::exp(beta*(x-a-w));
+   assert(b == -1);
+   assert(y == -1);
+   assert(r == -1);
+   assert(erw == -1);
+
+   return t;
+ }
+
+
+ inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ {
+   assert(smd_ != NULL);
+   assert(dim == 3);
+   assert(nodes.GetSize() == 4);
+   assert(ip.GetSize() == 3);
+   assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1 && ip[2] >= 0 && ip[2] <= 1);
+
+   // we assume the elements to be oriented ccw starting lower left
+   assert(coords.GetNumRows() == 3); // dim == 3
+   assert(coords.GetNumCols() == 8); // 8 nodes
+
+   const ShapeParamElement* sa1 = nodes[0];
+   const ShapeParamElement* sb1 = nodes[1];
+   const ShapeParamElement* sa2 = nodes[2];
+   const ShapeParamElement* sb2 = nodes[3];
+
+   // LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
+
+   assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
+   assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
+   assert(smd_->GetShape(sa1)->IsCenterNode());
+
+   assert(smd_->GetProfile(sa1) == smd_->GetProfile(sb1)); // two center nodes share a profile
+
+   // the parameters
+   double a1 = sa1->GetPlainDesignValue();
+   double a2 = sa2->GetPlainDesignValue();
+   double b1 = sb1->GetPlainDesignValue();
+   double b2 = sb2->GetPlainDesignValue();
+   double w1 = 0.5 * smd_->GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
+   double w2 = 0.5 * smd_->GetProfile(sa2)->GetPlainDesignValue();
+   assert(smd_->GetProfile(sa1)->GetPlainDesignValue() == smd_->GetProfile(sb1)->GetPlainDesignValue());
+   assert(smd_->GetProfile(sa2)->GetPlainDesignValue() == smd_->GetProfile(sb2)->GetPlainDesignValue());
+
+   // coords is 8 columns with 3 rows
+   //
+   //   a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
+   // x 0.0  0.5  0.5  0.0  0.0  0.5  0.5  0.0
+   // y 0.5  0.5  0.5  0.5  0.0  0.0  0.0  0.0
+   // z 0.0  0.0  0.5  0.5  0.0  0.0  0.5  0.5
+   //
+   // x = e -> f,  y = e -> a,  z = e -> h,  zero = e
+   //
+   //    d----------c
+   //   /|          /|
+   //  h ------- g  |
+   //  | a--------|-b
+   //  |/         |/
+   //  e ------- f
+   //
+   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
+   assert(close(coords[0][4], coords[0][7])); // x-pos: lower left and upper left: e and h
+   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
+   assert(close(coords[0][5], coords[0][6])); // x-pos: lower right and upper right: f and g
+   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
+   assert(coords[0][4] < coords[0][5]);       // x-pos: lower left is smaller than lower right : e and f
+   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
+   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
+   assert(coords[2][1] < coords[2][2]);       // y-pos: lower right smaller upper right: b and c
+
+   LOG_DBG2(SMD) << "E coords=" << coords.ToString() << " ip=" << ip.ToString() ;
+
+   // sa and sb have different dof and define an ab-plane.
+   // the complementary dof dir is where we interpolate within start and end
+   double start_x = coords[sa1->dof_][4]; // e
+   double start_y = coords[sb1->dof_][4]; // e
+
+   double end_x = coords[sa1->dof_][sa1->dof_ == 0 ? 5 : (sa1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+   double end_y = coords[sb1->dof_][sb1->dof_ == 0 ? 5 : (sb1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+
+   // we are in the ab-plane and call it xy-plane. We test of the point (x,y) on the xy-plane.
+   int dir = Flip(sa1->dof_, sb1->dof_); // orthogonal to the xy-plane. E.g. the z-axis
+
+   x = start_x + ip[sa1->dof_] * (end_x-start_x);
+   y = start_y + ip[sb1->dof_] * (end_y-start_y);
+
+   t = ip[dir]; // Setup2d()
+   assert(t >= 0 && t <= 1);
+
+   double a = a1 + t * (a2 - a1);
+   double b = b1 + t * (b2 - b1);
+   double w = w1 + t * (w2 - w1);
+
+   r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+   erw = std::exp(beta * (r-w));
+   assert(examw == -1);
+   assert(exapw == -1);
+
+   return t;
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::SmartTanh(int order) const
+ {
+   assert(order >= 0);
+
+   if(order == 0)
+     return 0.0;
+   if(order == 1)
+     return 1.0;
+   return Tanh();
+ }
+
+
+ inline double ShapeMapDesign::EvalAtIp::EvalTanh2d() const
+ {
+   // set xrange[0:1]; a = 0.5; w=0.1; beta=30
+   // plot 1-1/(exp(beta*(x-a+w)) + 1), 1/(exp(beta*(x-a-w)) + 1)
+   //
+   // ta(x)=1-1/(exp(beta*(x-a+w)) + 1)
+   if(x <= a)
+     return 1.0 - 1/(exapw+1);
+  else
+    return 1/(examw+1);
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const
+ {
+   assert(order >= 0);
+
+   if(order == 0 || order == 1)
+     return 0.0;
+   return GradTanh(grad_a, grad_b, grad_w);
+ }
+
+ double ShapeMapDesign::EvalAtIp::EvalTanhGrad2d(bool grad_a, bool grad_w) const
+ {
+   // this is d_tanh_da
+   // set xrange[0:1]; a = 0.5; beta=30; w=0.1
+   // plot -1* (exp(beta*(x-a+w)) + 1)**-2 beta*exp(beta*(x-a+w)), (exp(beta*(x-a-w))+1)**-2 beta*exp(beta*(x-a-w))
+   //
+   // ta(x)=1-1/(exp(beta*(x-a+w)) + 1)
+   //
+   // plot
+   // matlab:
+   //if x <= a
+   //  f = -1* (exp(beta*(x-a+d)) + 1)^-2 *beta*exp(beta*(x-a+d));
+   //else
+   ///  f = (exp(beta*(x-a-d))+1)^-2 *2*beta*exp(beta*(x-a-d));
+   // end
+
+   // the difference between da and dw is only that da for x <= a has the factor -1. all other cases are without -1
+   if(x <= a)
+     return (grad_a ? -1.0 : 1.0) * 1.0/((exapw+1) * (exapw+1)) * beta*exapw;
+  else
+    return 1/((examw+1) * (examw+1)) * beta*examw;
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::EvalTanh3d() const
+ {
+   // r: sqrt((a-x)^2+(b-y)^2);
+   // t:1/(exp(beta*(r-w))+1);
+   return 1/(erw +1);
+ }
+
+ double ShapeMapDesign::EvalAtIp::EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const
+ {
+   // r: sqrt((a-x)^2+(b-y)^2);
+   // e = exp(beta * (r-w));
+   // t:1/(exp(beta*(r-w))+1);
+
+   // da = -1 * beta*(a-x) * e / (r * (e+1)*(e+1))
+   // db = -1 * beta*(b-x) * e / (r * (e+1)*(e+1))
+   // dw = beta * e / ((e+1)*(e+1))
+
+   if(grad_a)
+     return -1 * beta*(a-x) * erw / (r * (erw+1)*(erw+1));
+   if(grad_b)
+     return  -1 * beta*(b-x) * erw / (r * (erw+1)*(erw+1));
+   if(grad_w)
+     return beta * erw / ((erw+1)*(erw+1));
+   assert(false);
+   return -1;
+ }
+
 
  inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_w) const
  {

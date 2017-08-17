@@ -453,12 +453,6 @@ protected:
      * size as with nodes */
     StdVector<Vector<double> > corner_vals;
 
-    /** This stores MapShapeDenisity() information to be reused in MapShapeGradient.
-     * For the MAX case this is for each ip the index of the shape which has the max value at the ip (double as int)
-     * and for TANH_SUM this is the sum of all shapes at ip. The size is always order^dim where order is from GetOrder().
-     * The corner_vals information is repeated. If there is no integration the vector is empty */
-    StdVector<double> eval;
-
     /** Determines based on corner_vals the order of integration for each shape. 0=void, 1=solid, >=2 integration.
      * @param order output
      * @param sensitivity to identify void and solid and set the proper order. This shall come from numerical studies!
@@ -472,6 +466,66 @@ protected:
 
   /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
   StdVector<Item> map_;
+
+  /** This structure evaluates a single integration point. It stores exp calculations to reused for gradient calculations. It is aware of
+   * Item::nodes */
+  struct EvalAtIp
+  {
+    EvalAtIp(ShapeMapDesign* smd) { Init(smd); };
+
+    /** Empty constructor for vector reason. Call Init()! */
+    EvalAtIp() { };
+
+    /** call Init() first in the object lifetime */
+    void Init(ShapeMapDesign* smd);
+
+    /** call Setup everytime before readying any attribute or Eval*()
+     * @return the t variable 0..1 necessary for adding the gradients as this is the derivative of the a,b,w linear interpolation */
+    double Setup(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
+
+    /** no gradient */
+    double Tanh() const { return dim == 2 ? EvalTanh2d() : EvalTanh3d(); }
+    /** use order information! 0 = void, 1 = solid, 2 = eval */
+    double SmartTanh(int order) const;
+
+    double GradTanh(bool grad_a, bool grad_b, bool grad_w) const {
+      return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
+    }
+
+    /** user order information. See SmartTanh() */
+    double SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const;
+
+  private:
+    double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
+    double Setup3d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
+
+    double EvalTanh2d() const;
+    double EvalTanh3d() const;
+    double EvalTanhGrad2d(bool grad_a, bool grad_w) const;
+    double EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
+
+    double a = -1;
+    double w = -1;
+    /** normalized. x is dof variable in 2D */
+    double x = -1;
+    /** this is the interpolation variable a = (1-t) * a1 + t * a2 with t = 0 ... 1 */
+    double t = -1;
+
+    double beta = -1;
+
+    /** normalized. x is a dof in 3D center nodes and y is b dof */
+    double b = -1; // 3D
+    double y = -1;
+    double r = -1; // 3D: distance (x,y) -> (a,b)
+
+    double exapw = -1;
+    double examw = -1;
+    double erw = -1;
+
+    ShapeMapDesign* smd_ = NULL;
+    int dim = -1;
+  };
+
 
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
