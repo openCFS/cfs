@@ -6,6 +6,8 @@ import pymp
 import scipy.interpolate as ip 
 import time
 import vtk
+# from mpi_class import * 
+from mpi4py import MPI
 
 
 #from vtk.util.colors import *
@@ -14,6 +16,9 @@ try:
   from meshpy.tet import MeshInfo, build
 except:
   print("Failed to load meshpy - need it for tetrahedralized basecell mesh")
+
+#computation for worker nodes MPI
+
 
 # # creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
@@ -893,7 +898,7 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
     v[:, 1] = s2[:, 0]
     v[:, 2] = s3[:, 0]
     if angle is not None:
-	     v[:, 3:6] = angle[:, :]
+       v[:, 3:6] = angle[:, :]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
@@ -993,6 +998,50 @@ def write_stl(polydata,save=None):
 
 # similar to create_3d_cross_ip; # without rotation and shearing
 # returns
+
+def worker_computaion (args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds):
+  basecells = list()
+  boundary_flags = list()
+  i, j, k = get_3d_grid_coords(id,nx,ny,nz)
+  this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+  east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+  top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+  front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+  
+  assert(this is not None and east is not None and top is not None and front is not None)
+
+  # if one of the values is < min_thresh, set it to min_thresh        
+  # if one of the values is > max_thresh, set it to max_thresh
+  x1 = min(max(this[0],min_thresh),max_thresh)
+  x2 = min(max(east[0],min_thresh),max_thresh)
+  y1 = min(max(this[1],min_thresh),max_thresh)
+  y2 = min(max(top[1],min_thresh),max_thresh)
+  z1 = min(max(this[2],min_thresh),max_thresh)
+  z2 = min(max(front[2],min_thresh),max_thresh)
+  
+  bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+  bc_input.eta = 0.7
+  bc_input.stiffness_as_diameter = True
+  cell_obj = basecell.Basecell(bc_input)
+  if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+#       if cell_obj.volume <= args.bc_volume_thresh:
+    return basecells,boundary_flags
+  
+  # translate cell to correct position
+  coord  = numpy.asarray(sample_coords[i,j,k])
+  
+  # flags for meshing circles on the boundary
+  flag = [None] * 6
+  for c,bound in enumerate(bounds):
+    if numpy.isclose(coord[int(c/2)],bound):
+      flag[c] = True
+  
+  #with p.lock:
+  basecells.append((cell_obj.points,cell_obj.cells,coord))
+  boundary_flags.append(flag)
+  print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
+  return basecells, boundary_flags
+
 def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
@@ -1003,147 +1052,127 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   # csize: size of one cell, e.g. [8,8,8]
   
   # point coordinates from h5 file
-  centers, minimum, maximum = coords[0:3]
-  
-  print("min:",minimum," max:",maximum)
-  
-  # appendind cells
-  appends = vtk.vtkAppendPolyData()
-  
-  if scale <= 0:
-    scale = 1.0
-  
-  # assume we always start at (0,0,0)
-  # order: min_x,min_y,min_z,max_x,max_y,max_z
-  bounds = numpy.ones(6) * (-1)
-  bounds[0] = bounds[1] = bounds[2] = 0
-  bounds[3] = maximum[0] + minimum[0]
-  bounds[4] = maximum[1] + minimum[1]
-  bounds[5] = maximum[2] + minimum[2]
-  
-  print("dimensions:",bounds)
-  
-  # set size dx/dy/dz of one cell
-  dx = bounds[3] / samples[0]
-  dy = bounds[4] / samples[1]
-  dz = bounds[5] / samples[2]
+  comm = MPI.COMM_WORLD
+  print (comm.Get_rank())
+  if comm.Get_rank() == 0:
 
-  min_thresh = 3.0/args.bc_res
-  max_thresh = 0.82
+    centers, minimum, maximum = coords[0:3]
     
-  delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
-  # where we want nodes
-  nx = int(delta[0] / dx)
-  ny = int(delta[1] / dy)
-  nz = int(delta[2] / dz)    
-  
-  print("before ip data")
-  start = time.time()
-  data_grid, data_grid_near, sample_coords, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
-  end = time.time()
-  print("got ip data. elapsed time:",end-start," s")
-  
-  basecells = pymp.shared.list()
-  boundary_flags = pymp.shared.list()
-  with pymp.Parallel(args.bc_num_threads) as p:
-    for id in p.range(nx*ny*nz):
-      i, j, k = get_3d_grid_coords(id,nx,ny,nz)
-      
-      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-      
-      assert(this is not None and east is not None and top is not None and front is not None)
+    print("min:",minimum," max:",maximum)
+    
+    # appendind cells
+    appends = vtk.vtkAppendPolyData()
+    
+    if scale <= 0:
+      scale = 1.0
+    
+    # assume we always start at (0,0,0)
+    # order: min_x,min_y,min_z,max_x,max_y,max_z
+    bounds = numpy.ones(6) * (-1)
+    bounds[0] = bounds[1] = bounds[2] = 0
+    bounds[3] = maximum[0] + minimum[0]
+    bounds[4] = maximum[1] + minimum[1]
+    bounds[5] = maximum[2] + minimum[2]
+    
+    print("dimensions:",bounds)
+    
+    # set size dx/dy/dz of one cell
+    dx = bounds[3] / samples[0]
+    dy = bounds[4] / samples[1]
+    dz = bounds[5] / samples[2]
 
-      # if one of the values is < min_thresh, set it to min_thresh        
-      # if one of the values is > max_thresh, set it to max_thresh
-      x1 = min(max(this[0],min_thresh),max_thresh)
-      x2 = min(max(east[0],min_thresh),max_thresh)
-      y1 = min(max(this[1],min_thresh),max_thresh)
-      y2 = min(max(top[1],min_thresh),max_thresh)
-      z1 = min(max(this[2],min_thresh),max_thresh)
-      z2 = min(max(front[2],min_thresh),max_thresh)
+    min_thresh = 3.0/args.bc_res
+    max_thresh = 0.82
       
-      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-      bc_input.eta = 0.7
-      bc_input.stiffness_as_diameter = True
-      cell_obj = basecell.Basecell(bc_input)
-      if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-#       if cell_obj.volume <= args.bc_volume_thresh:
-        continue
+    delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
+    # where we want nodes
+    nx = int(delta[0] / dx)
+    ny = int(delta[1] / dy)
+    nz = int(delta[2] / dz)    
+    
+   
+    print("before ip data")
+    start = time.time()
+    data_grid, data_grid_near, sample_coords, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
+    end = time.time()
+    print("got ip data. elapsed time:",end-start," s")
+
+    basecells = list()
+    boundary_flags = list()
+    args_for_worker =args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds 
+    chief=Master(args_for_worker)
+    # chief.initialize(args_for_worker)
+    basecells,boundary_flags=chief.run()    
+
+    for i,bc in enumerate(basecells):
       
-      # translate cell to correct position
-      coord  = numpy.asarray(sample_coords[i,j,k])
+      vtk_points = vtk.vtkPoints()
+      for p in bc[0]:
+        vtk_points.InsertNextPoint(p)
+        
+      vtk_cells = vtk.vtkCellArray()
+      for ce in bc[1]:
+        tri = vtk.vtkTriangle()
+        tri.GetPointIds().SetId(0,ce[0])
+        tri.GetPointIds().SetId(1,ce[1])
+        tri.GetPointIds().SetId(2,ce[2])
+        vtk_cells.InsertNextCell(tri)
       
-      # flags for meshing circles on the boundary
-      flag = [None] * 6
-      for c,bound in enumerate(bounds):
-        if numpy.isclose(coord[int(c/2)],bound):
-          flag[c] = True
+      polydata = vtk.vtkPolyData()
+      polydata.SetPoints(vtk_points)
+      polydata.SetPolys(vtk_cells)
+            
+      # tranformation of vtk poly data
+      transform = vtk.vtkTransform() 
+      transform.Translate(bc[2])
+      transform.Scale(dx,dy,dz)
+         
+      # filter to perform transformation
+      transformFilter=vtk.vtkTransformPolyDataFilter()
+      transformFilter.SetTransform(transform)
+      transformFilter.SetInputData(polydata)
+      transformFilter.Update()
       
-      with p.lock:
-        basecells.append((cell_obj.points,cell_obj.cells,coord))
-        boundary_flags.append(flag)
-        print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
+      # append cells in vtk
+      appends.AddInputConnection(transformFilter.GetOutputPort())
+      appends.Update() # not sure if we have to do this in each loop iteration
+      
+      dict = {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
+      # add meshed boundary circles if necessary
+  #     for idx,flag in enumerate(boundary_flags[i]):
+  #       if flag:
+  #         # returns vtk polydata object
+  #         pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
+  #         
+  # #     appends.AddInputData(pd)
+  # #     appends.Update() # not sure if we have to do this in each loop iteration
+  #     
+  #       # tranformation of vtk poly data
+  #       transform = vtk.vtkTransform() 
+  #       transform.Translate(bc[2])
+  #       transform.Scale(dx,dy,dz)
+  #          
+  #       # filter to perform transformation
+  #       transformFilter=vtk.vtkTransformPolyDataFilter()
+  #       transformFilter.SetTransform(transform)
+  #       transformFilter.SetInputData(pd)
+  #       transformFilter.Update()    
+  #       appends.AddInputConnection(transformFilter.GetOutputPort())
+  #       appends.Update() # not sure if we have to do this in each loop iteration
+    
+    return appends.GetOutput()
+
   
-  for i,bc in enumerate(basecells):
-    
-    vtk_points = vtk.vtkPoints()
-    for p in bc[0]:
-      vtk_points.InsertNextPoint(p)
-      
-    vtk_cells = vtk.vtkCellArray()
-    for ce in bc[1]:
-      tri = vtk.vtkTriangle()
-      tri.GetPointIds().SetId(0,ce[0])
-      tri.GetPointIds().SetId(1,ce[1])
-      tri.GetPointIds().SetId(2,ce[2])
-      vtk_cells.InsertNextCell(tri)
-    
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(vtk_points)
-    polydata.SetPolys(vtk_cells)
-          
-    # tranformation of vtk poly data
-    transform = vtk.vtkTransform() 
-    transform.Translate(bc[2])
-    transform.Scale(dx,dy,dz)
-       
-    # filter to perform transformation
-    transformFilter=vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInputData(polydata)
-    transformFilter.Update()
-    
-    # append cells in vtk
-    appends.AddInputConnection(transformFilter.GetOutputPort())
-    appends.Update() # not sure if we have to do this in each loop iteration
-    
-    dict = {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
-    # add meshed boundary circles if necessary
-#     for idx,flag in enumerate(boundary_flags[i]):
-#       if flag:
-#         # returns vtk polydata object
-#         pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
-#         
-# #     appends.AddInputData(pd)
-# #     appends.Update() # not sure if we have to do this in each loop iteration
-#     
-#       # tranformation of vtk poly data
-#       transform = vtk.vtkTransform() 
-#       transform.Translate(bc[2])
-#       transform.Scale(dx,dy,dz)
-#          
-#       # filter to perform transformation
-#       transformFilter=vtk.vtkTransformPolyDataFilter()
-#       transformFilter.SetTransform(transform)
-#       transformFilter.SetInputData(pd)
-#       transformFilter.Update()    
-#       appends.AddInputConnection(transformFilter.GetOutputPort())
-#       appends.Update() # not sure if we have to do this in each loop iteration
+  else :
+    w=Worker()
+    w.run()
   
-  return appends.GetOutput()
+       # tmp_basecells, tmp_boundary_flags = worker_computaion(args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,idx,nx,ny,nz,bounds)  
+       # basecells.extend(tmp_basecells)
+       # boundary_flags.extend(tmp_boundary_flags)
+   
+  
+ 
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -1244,3 +1273,194 @@ def mesh_boundary_circle(points,location,mini,maxi):
   polydata.SetPolys(cells)
              
   return polydata
+
+
+
+
+
+
+
+
+
+
+
+
+#MPI IMPLEMENTATION CLASS SHOULD BE MOVED TO SEPRATE FILE BUT UNABLE TO USE FUNCTIONS DEFINED OUTSIDE THE CLASSS :/
+def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    return type('Enum', (), enums)
+
+# these tags will be attached to all messages which are communicated
+# between the master and workers
+tags = enum('READY', 'DONE', 'EXIT', 'START')
+
+# in this example we use the standard communicator
+comm = MPI.COMM_WORLD
+
+# worker class
+class Worker():
+    # this function is called when creating a worker instance
+    def __init__(self):
+        # the worker's unique ID
+        self.id = comm.Get_rank()
+    
+
+    def run(self):
+        # a status object containing source, tag and size of a message
+        status = MPI.Status()
+        # the worker runs forever
+        # (until it receives a poison pill, i. e. an 'EXIT' tag)
+        while True:
+            # the worker tells the master that it is ready to do something.
+            # the message data is the worker's ID, the destination is the
+            # rank of the master (0).
+            comm.send(self.id, dest=0, tag=tags.READY)
+            # the worker waits for a message from the master with any tag.
+            # the information about source, tag and size of the received
+            # message are available from the status object.
+            data_from_master = comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
+            tag = status.Get_tag()
+            # if the tag is 'START' run computation
+            if tag == tags.START:
+                # do some long computation
+                result = self.worker_computation(data_from_master)
+                # send the result back to the master
+                comm.send(result, dest=0, tag=tags.DONE)
+            elif tag == tags.EXIT:
+                # if the worker receives a message with
+                # tag 'EXIT' the loop stops
+                break
+        # just before the worker stops running it tells the master that 
+        # it performed a clean exit and is no longer available
+        comm.send(None, dest=0, tag=tags.EXIT)
+    
+
+    def worker_computation(self,data_from_master):
+
+      arguments,job_index = data_from_master
+      args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds = arguments  
+      basecells = list()
+      boundary_flags = list()
+      # jobs_per_data_transfer =int(ceil(nx*ny*nz/comm.Get_size())-1)
+      # for index in range(jobs_per_data_transfer):
+      #   if job_index+index >= nx*ny*nz :
+      #     continue 
+
+      i, j, k = get_3d_grid_coords(job_index,nx,ny,nz)
+      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+      
+      assert(this is not None and east is not None and top is not None and front is not None)
+
+      # if one of the values is < min_thresh, set it to min_thresh        
+      # if one of the values is > max_thresh, set it to max_thresh
+      x1 = min(max(this[0],min_thresh),max_thresh)
+      x2 = min(max(east[0],min_thresh),max_thresh)
+      y1 = min(max(this[1],min_thresh),max_thresh)
+      y2 = min(max(top[1],min_thresh),max_thresh)
+      z1 = min(max(this[2],min_thresh),max_thresh)
+      z2 = min(max(front[2],min_thresh),max_thresh)
+      
+      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+      bc_input.eta = 0.7
+      bc_input.stiffness_as_diameter = True
+      cell_obj = basecell.Basecell(bc_input)
+      if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+    #       if cell_obj.volume <= args.bc_volume_thresh:
+         return basecells, boundary_flags
+
+      
+      # translate cell to correct position
+      coord  = numpy.asarray(sample_coords[i,j,k])
+      
+      # flags for meshing circles on the boundary
+      flag = [None] * 6
+      for c,bound in enumerate(bounds):
+        if numpy.isclose(coord[int(c/2)],bound):
+          flag[c] = True
+      
+      #with p.lock:
+      basecells.append((cell_obj.points,cell_obj.cells,coord))
+      boundary_flags.append(flag)
+      print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
+
+      return basecells, boundary_flags
+
+# master class
+class Master():
+    def __init__ (self, args_for_worker):
+      self.args_for_worker=args_for_worker
+      args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds = self.args_for_worker
+
+      # the master's ID
+      self.id = comm.Get_rank()
+      # ID should always be 0 due to the initialization in the main function
+      assert(self.id==0)
+      
+      self.number_of_jobs = nx*ny*nz
+      # a list where jobs will be put
+      # self.tasks = [None] * self.number_of_jobs
+      # a list where results will be put
+      self.basecells =list()
+      self.boundary_flags= list()
+     
+        
+    def run(self):
+        # put some jobs in the task list
+        # for ii in range(self.number_of_jobs):
+            # self.tasks[ii] = ii
+        print('The no of jobs is {}.'.format(self.number_of_jobs))
+
+        # a status object containing source, tag and size of a message
+        status = MPI.Status()
+        # the number of workers is the size of the communicator minus the master
+        number_of_workers = comm.Get_size() - 1
+        print('There are {} workers in this communicator.'.format(number_of_workers))
+        # at start we have no closed workers
+        closed_workers = 0
+
+        # index for the current job to process
+        job_index = 0
+        # as long as there are workers available do something
+        while closed_workers < number_of_workers:
+            # wait for a message from any source with any tag
+            data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+            # get the source's ID / rank
+            source = status.Get_source()
+            # get the message tag
+            tag = status.Get_tag()
+            
+            # if the received tag is 'READY' the worker waits for data to process
+            if tag == tags.READY:
+                if job_index < (self.number_of_jobs):
+                    # get a task from the list
+                    # job_data = self.tasks[job_index]
+                    # assemble the message to send to the worker
+                    args_for_worker = self.args_for_worker,job_index
+                    # send a message to the worker and tell it to process the
+                    # contained data ('args')
+                    comm.send(args_for_worker, dest=source, tag=tags.START)
+                    # increase the index such that the following job is picked next
+                    job_index += 1
+
+                # if we have no job left we send a poison pill to the worker
+                else:
+                    comm.send(None, dest=source, tag=tags.EXIT)
+
+            # if the received  tag is 'DONE' the worker finished computation
+            # and sent a result
+            elif tag == tags.DONE:
+                # we store the result
+                tmp_basecells, tmp_boundary_flags = data
+                self.basecells.extend(tmp_basecells)
+                self.boundary_flags.extend(tmp_boundary_flags)
+
+            # if the received  tag is 'EXIT' the worker performed a clean exit
+            elif tag == tags.EXIT:
+                # we print a short message...
+                print('Worker {} exited.'.format(source))
+                # ...and increase the number of unavailable workers
+                closed_workers += 1
+        return self.basecells , self.boundary_flags

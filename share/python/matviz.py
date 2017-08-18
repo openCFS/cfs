@@ -15,6 +15,13 @@ import xml.etree.ElementTree
 import xml.dom.minidom
 from cfs_utils import *
 
+try:
+  from mpi4py import MPI
+  #from sfepy.homogenization.homogen_worker import tags
+  use_mpi = True if MPI.COMM_WORLD.Get_size() > 1 else False
+except:
+  use_mpi = False
+
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
 # considers density read
@@ -163,7 +170,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
 def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,nondes_coords = None):
-  
+
   volume = None  # might ne set
   
   scale = force_scale if force_scale else args.scale
@@ -314,7 +321,16 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
-                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
+                  # if use_mpi:
+                  #   comm = MPI.COMM_WORLD
+                  #   if comm.Get_rank() == 0:
+                  #     viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
+                  #   else:
+                  #     # run worker
+                  #     pass
+                  # else:
+                    viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
+
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
@@ -364,11 +380,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         exit() 
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
-  
-    if viz is None:
-      print('Error: no visualization calculated!')
-    else:
-      volume = show_or_write(viz, args)
+    if (MPI.COMM_WORLD.Get_rank()==0):
+      if viz is None:
+        print('Error: no visualization calculated!')
+      else:
+        volume = show_or_write(viz, args)
   
   # not from file and not 2D -> this is the single tensor with optional planes 
   else:
@@ -563,17 +579,18 @@ else:
     dump_h5_meta(f)
     sys.exit()   
   validate_region(f, args.h5_region)
-  if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
-    print('Reading elements from H5-file done ')
-    dim_2D = nondes_min[2] == nondes_max[2]
-    print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
-  centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
-  if args.mesh:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
-  dim_2D = min[2] == max[2]
-  print('detected dimension ' + ('2D' if dim_2D else '3D'))
-# do we have to do 1D optimization? 
+  if (comm.Get_rank()==0):
+    if len(args.unstructured) != 0:
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
+      print('Reading elements from H5-file done ')
+      dim_2D = nondes_min[2] == nondes_max[2]
+      print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
+    centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+    if args.mesh:
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
+    dim_2D = min[2] == max[2]
+    print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh:
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
