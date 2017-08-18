@@ -14,6 +14,7 @@ import io
 import xml.etree.ElementTree
 import xml.dom.minidom
 from cfs_utils import *
+import matviz_3d_ortho # two scale ortho stuff
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
@@ -314,7 +315,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
-                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
@@ -322,7 +323,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
               else:
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
               if args.show == "hom_ortho_3d":
-                viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
+                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
                 if args.save.endswith(".vtp"):
                   matviz_vtk.write_stl(viz, args.save[:-4]+".stl")  
               else:

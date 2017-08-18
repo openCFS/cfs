@@ -13,7 +13,7 @@ import matviz_vtk
 #   print("WARNING: failed to load vtk!")
 
 import matplotlib
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate, spatial

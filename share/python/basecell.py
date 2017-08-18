@@ -2,7 +2,7 @@
 # import mesh_tool first because of h5py
 
 import matplotlib
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
