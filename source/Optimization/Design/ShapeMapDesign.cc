@@ -276,7 +276,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
  {
    // we must not Resize() shape_param_!
    // for 3D with surfaces instead of rods we estimate to low
-   unsigned int max_size = *(std::max_element(&n_.First(), &n_.Last()));
+   unsigned int max_size = n_.Max();
    LOG_DBG(SMD) << "SSP: max_size=" << max_size << " from " << n_.ToString();
    assert(max_size >= nx_ && max_size >= ny_ && max_size >= nz_);
    assert(max_size == nx_ || max_size == ny_ || max_size == nz_);
@@ -341,12 +341,40 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      // each design node connects to two density elements, also for 3D center node rods
      // this comes from the bilinear interpolation.
      map_[i].nodes.Resize(num_nodes);
-     map_[i].corner_vals.Resize(num_nodes);
-     for(int s = 0; s < num_nodes; s++) {
+     map_[i].min_corner_value.Resize(num_nodes);
+     map_[i].max_corner_value.Resize(num_nodes);
+     for(int s = 0; s < num_nodes; s++)
        map_[i].nodes[s].Reserve(dim_ == 2 ? 2 : 4);
-       map_[i].corner_vals[s].Resize(dim_ == 2 ? 4 : 8);
-     }
    }
+
+   // setup  coord_*_ stuff
+   Matrix<double>    coords;   // within the element coordinates we perform the integration
+   domain->GetGrid()->GetElemNodesCoord(coords, map_.First().rho->elem->connect, false); // no deformed mesh
+   coords.GetColMin(coord_min_);
+   LOG_DBG(SMD) << "SSP data=" << " min coords=" << coords.ToString();
+   LOG_DBG(SMD) << "SSP data=" << " min=" << coord_min_.ToString();
+   domain->GetGrid()->GetElemNodesCoord(coords, map_.Last().rho->elem->connect, false); // no deformed mesh
+   coords.GetColMax(coord_max_);
+   LOG_DBG(SMD) << "SSP data=" << " max coords=" << coords.ToString();
+   LOG_DBG(SMD) << "SSP data=" << " max=" << coord_max_.ToString();
+
+   assert              (coord_min_[0] <= coords[0][0] && coord_min_[0] <= coords[0][1] && coord_min_[0] <= coords[0][2]  && coord_min_[0] <= coords[0][3]);
+   assert              (coord_min_[1] <= coords[1][0] && coord_min_[1] <= coords[1][1] && coord_min_[1] <= coords[1][2]  && coord_min_[1] <= coords[1][3]);
+   assert(dim_ == 2 || (coord_min_[2] <= coords[2][0] && coord_min_[2] <= coords[2][1] && coord_min_[2] <= coords[2][2]  && coord_min_[2] <= coords[2][3]));
+   assert(dim_ == 2 || (coord_min_[0] <= coords[0][4] && coord_min_[0] <= coords[0][5] && coord_min_[0] <= coords[0][6]  && coord_min_[0] <= coords[0][7]));
+   assert(dim_ == 2 || (coord_min_[1] <= coords[1][4] && coord_min_[1] <= coords[1][5] && coord_min_[1] <= coords[1][6]  && coord_min_[1] <= coords[1][7]));
+   assert(dim_ == 2 || (coord_min_[2] <= coords[2][4] && coord_min_[2] <= coords[2][5] && coord_min_[2] <= coords[2][6]  && coord_min_[2] <= coords[2][7]));
+
+   assert(              coord_max_[0] >= coords[0][0] && coord_max_[0] >= coords[0][1] && coord_max_[0] >= coords[0][2]  && coord_max_[0] >= coords[0][3]);
+   assert(              coord_max_[1] >= coords[1][0] && coord_max_[1] >= coords[1][1] && coord_max_[1] >= coords[1][2]  && coord_max_[1] >= coords[1][3]);
+   assert(dim_ == 2 || (coord_max_[2] >= coords[2][0] && coord_max_[2] >= coords[2][1] && coord_max_[2] >= coords[2][2]  && coord_max_[2] >= coords[2][3]));
+   assert(dim_ == 2 || (coord_max_[0] >= coords[0][4] && coord_max_[0] >= coords[0][5] && coord_max_[0] >= coords[0][6]  && coord_max_[0] >= coords[0][7]));
+   assert(dim_ == 2 || (coord_max_[1] >= coords[1][4] && coord_max_[1] >= coords[1][5] && coord_max_[1] >= coords[1][6]  && coord_max_[1] >= coords[1][7]));
+   assert(dim_ == 2 || (coord_max_[2] >= coords[2][4] && coord_max_[2] >= coords[2][5] && coord_max_[2] >= coords[2][6]  && coord_max_[2] >= coords[2][7]));
+
+   coord_step_.Resize(dim_);
+   for(unsigned int i = 0; i < dim_; i++)
+     coord_step_[i] = (coord_max_[i] - coord_min_[i]) / (double) n_[i];
 
    LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map_.GetSize() << " n_=" << n_.ToString();
 
@@ -1090,6 +1118,43 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
   MapShapeToDensity();
 }
 
+inline void ShapeMapDesign::MapIdxToCoords(const Vector<unsigned int>& idx, Vector<double>& out) const
+{
+  out[0] = coord_min_[0] + idx[0] * coord_step_[0];
+  out[1] = coord_min_[1] + idx[1] * coord_step_[1];
+  if(dim_ == 3)
+    out[2] = coord_min_[2] + idx[2] * coord_step_[2];
+
+  assert(out[0] <= coord_max_[0] + 1e-10);
+  assert(out[1] <= coord_max_[1] + 1e-10);
+  assert(dim_ == 2 || out[2] <= coord_max_[2] + 1e-10);
+}
+
+/** This is the inverse to DensityIdx */
+inline void ShapeMapDesign::DensityIdx(unsigned int i, Vector<unsigned int>& idx) const
+{
+  assert(idx.GetSize() >= dim_);
+  if(dim_ == 2) // i = y * nx_ + x;
+  {
+    idx[1] = i / nx_;
+    idx[0] = i - nx_ * idx[1];
+
+    assert(DensityIdx(idx[0], idx[1]) == i);
+
+    if(idx.GetSize() == 3)
+      idx[2] = 0;
+  }
+  else // i = z * nx_*ny_ + y * nx_ + x
+  {
+    idx[2] = i / (nx_*ny_);
+    unsigned int r1 = i - (nx_*ny_) * idx[2];
+    idx[1] = r1 / nx_;
+    idx[0] = r1 - (idx[1] * nx_);
+
+    assert(DensityIdx(idx[0], idx[1], idx[2]) == i);
+  }
+}
+
 
 BaseDesignElement::Type ShapeMapDesign::Convert(Type type)
 {
@@ -1167,6 +1232,11 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
   sm->Get("beta")->SetValue(beta_);
   sm->Get("overlap")->SetValue(overlap.ToString(overlap_));
   sm->Get("sensitivity")->SetValue(sensitivity_);
+  PtrParamNode msh = sm->Get("mesh");
+  msh->Get("n")->SetValue(n_.ToString());
+  msh->Get("min")->SetValue(coord_min_.ToString());
+  msh->Get("max")->SetValue(coord_max_.ToString());
+  msh->Get("step")->SetValue(coord_step_.ToString());
 
   PtrParamNode base = info_->Get("designVariables");
   for(unsigned int i = 0; i < shape_.GetSize(); i++)
@@ -1174,10 +1244,13 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
 }
 
 
-StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
+Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
 {
   // for 2D n_z_=1
-  StdVector<unsigned int> n = grid->GetBoundaries(design_reg);
+  StdVector<unsigned int> t = grid->GetBoundaries(design_reg);
+  Vector<unsigned int> n(3);
+  Copy(t, n);
+
   unsigned int n_elems = n[0] * n[1] * n[2];
 
   // TODO here we assume that the whole mesh is for LBM and the mesh is of lexicographic ordering.
@@ -1213,14 +1286,14 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  int ShapeMapDesign::Item::GetOrder(Vector<int>& order, double eps, int max_order) const
  {
-   assert(order.GetSize() == corner_vals.GetSize());
+   assert(order.GetSize() == min_corner_value.GetSize());
+   assert(order.GetSize() == max_corner_value.GetSize());
    int max = 0;
-   double min_val, max_val;
-   for(unsigned int s = 0; s < corner_vals.GetSize(); s++)
+   for(unsigned int s = 0; s < order.GetSize(); s++)
    {
-     const Vector<double>& vals = corner_vals[s];
-     assert((dim_ == 2 && vals.GetSize() == 4) || (dim_ == 3 && vals.GetSize() == 8));
-     vals.MinMax(min_val, max_val);
+     double min_val = min_corner_value[s];
+     double max_val = max_corner_value[s];
+
      assert(min_val >= 0);
      assert(max_val >= min_val);
      assert(max_val <= 1);
@@ -1240,9 +1313,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    assert(data.GetSize() == map_.GetSize());
 
    LOG_DBG(SMD) << "MSTD: di=" << design_id;
-   Grid* grid = domain->GetGrid();
 
-   Matrix<double>    coords;   // within the element coordinates we perform the integration
+   Vector<unsigned int> idx(dim_);
    StdVector<double> ip(dim_); // the current ip within the element
    // num_node_shapes_ can be larger Item::nodes as we are not interested in 3D center second shapes.
    Vector<int>       order(map_[0].nodes.GetSize()); // for each shape of the Item this is order obtained form the cornver_val. 0 = void, 1 = solid, >=2 need integration
@@ -1259,6 +1331,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    {
      Item& item = map_[r];
      DesignElement* de = item.rho;
+
+     DensityIdx(r, idx);
 
      // check what we need to integrate. The order is the maximal order of all relevant shapes
      // when we integrate we integrate all shapes shapes at the same integration points.
@@ -1285,7 +1359,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if(rho == -1.0)
      {
        rho = 0.0; // such that we can sum the ip to it
-       grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
        // it makes sense to traverse first the ip and then the variables
        for(int ip_x = 0; ip_x < max_order; ip_x++)
        {
@@ -1305,7 +1378,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
                  {
                    Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-                   eval.Setup(item.nodes[si], coords, ip, 2*beta_);
+                   eval.Setup(item.nodes[si], idx, ip, 2*beta_);
                    double t = eval.Tanh();
                    if(t >= ip_rho)  // >= is important! > may result in ip_eval == -1
                      ip_rho = t;
@@ -1321,7 +1394,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                    ip_rho += 1;
                  if(order[si] >= 2){
                    Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
-                   eval.Setup(item.nodes[si], coords, ip, beta_);
+                   eval.Setup(item.nodes[si], idx, ip, beta_);
                    ip_rho += eval.Tanh();
                  }
                }
@@ -1370,12 +1443,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    int res_idx_da = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE);
    int res_idx_dw = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_PROFILE);
 
-   Grid* grid = domain->GetGrid();
    // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
    double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
 
    // within the element coordinates we perform the integration
-   Matrix<double>      coords;
+   Vector<unsigned int> idx(3);
    StdVector<double>   ip(dim_); // the current ip within the element
    Vector<int>         order(map_[0].nodes.GetSize()); // see MapShapeToDensity()
    StdVector<EvalAtIp> eval(map_[0].nodes.GetSize());
@@ -1386,7 +1458,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    {
      Item& item = map_[r];
      DesignElement* de = item.rho;
-     grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
      double log_da = 0.0;
      double log_db = 0.0;
      double log_dw = 0.0;
@@ -1395,6 +1466,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      double max_order_dim = (double) (max_order * max_order * (dim_ == 2 ? 1 : max_order));
 
      LOG_DBG2(SMD) << "MSG: de=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " mo=" << max_order << " o=" << order.ToString();
+
+     DensityIdx(r, idx);
 
      // max_order = 0=void there is no gradient to add.
      // if max_order=1=solid and we have strict solid and the gradient is also zero.
@@ -1424,7 +1497,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                double max = -1;
                for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
                {
-                 eval[s].Setup(item.nodes[s], coords, ip, beta);
+                 eval[s].Setup(item.nodes[s], idx, ip, beta);
                  double t = eval[s].SmartTanh(order[s]);
                  if(t > max) {
                    max = t;
@@ -1436,7 +1509,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              case TANH_SUM:
                for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
                {
-                 eval[s].Setup(item.nodes[s], coords, ip, beta);
+                 eval[s].Setup(item.nodes[s], idx, ip, beta);
                  eval_sum += eval[s].SmartTanh(order[s]);
                }
                break;
@@ -1450,7 +1523,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              assert(!(overlap_ == TANH_SUM && max_idx != 0));
              for(unsigned int si = max_idx; si < (overlap_ == MAX ? max_idx+1 : item.nodes.GetSize()); si++)
              {
-               double t = eval[si].Setup(item.nodes[si], coords, ip, beta);
+               double t = eval[si].Setup(item.nodes[si], idx, ip, beta);
                assert(t >= 0 && t <= 1);
                assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
 
@@ -1546,20 +1619,21 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  {
    smd_ = smd;
    dim = domain->GetGrid()->GetDim();
+   coord_.Resize(dim, -1.0);
  }
 
- inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
  {
    assert(smd_ != NULL);
 
-   if(coords.GetNumRows() == 2)
-     return Setup2d(nodes, coords, ip, beta);
+   if(dim == 2)
+     return Setup2d(nodes, idx, ip, beta);
    else
-     return Setup3d(nodes, coords, ip, beta);
+     return Setup3d(nodes, idx, ip, beta);
 
  }
 
- inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ inline double ShapeMapDesign::EvalAtIp::Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
  {
    assert(dim == 2); // there is also a 3D version of Eval
    assert(nodes.GetSize() == 2);
@@ -1569,30 +1643,14 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    const ShapeParamElement* s2 = nodes[1];
    assert(s1->dof_ == s2->dof_);
    assert(s1->GetType() == BaseDesignElement::NODE && s2->GetType() == BaseDesignElement::NODE);
-   // we assume the elements to be oriented ccw starting lower left
-   assert(coords.GetNumRows() == 2); // dim == 2
-   assert(coords.GetNumCols() == 4); // dim == 4 nodes
-
-   //
-   //  d ------- c
-   //  |         |
-   //  |         |
-   //  a ------- b
-   //
-   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
-   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
-   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
-   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
-   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
-   assert(coords[1][1] < coords[1][2]);       // y-pos: lower right smaller upper right
 
    ShapeParamElement::Dof dof = s1->dof_;
    ShapeParamElement::Dof dir = Flip(dof);
    assert(dof != dir);
 
-   // element position
-   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0]; // dof == x ? a_x : a_y
-   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3]; // dof == x ? b_x : d_y
+   smd_->MapIdxToCoords(idx, coord_);
+   double start = coord_[s1->dof_];
+
    // the parameters
    double a1 = s1->GetPlainDesignValue();
    double a2 = s2->GetPlainDesignValue();
@@ -1604,7 +1662,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    // when dof = X the tanh has x as parameter, when we interpolate a1 and a2 these are x values applied at different y positions
    assert(ip.GetSize() == 2);
    assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1);
-   x = start + ip[dof] * (end-start); // for dof=0 (x) xy is x and might be far away from a
+
+   x = start + ip[dof] * smd_->coord_step_[s1->dof_]; // for dof=0 (x) xy is x and might be far away from a
 
    // a = (1-t)*a1 + t*a2 = a1 - t*a1 + t*a2 = a1+t*(a2-a1): t=0 -> a1, t=1 -> a2
    t = ip[dir];
@@ -1622,7 +1681,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  }
 
 
- inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta)
+ inline double ShapeMapDesign::EvalAtIp::Setup3d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
  {
    assert(smd_ != NULL);
    assert(dim == 3);
@@ -1630,16 +1689,10 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    assert(ip.GetSize() == 3);
    assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1 && ip[2] >= 0 && ip[2] <= 1);
 
-   // we assume the elements to be oriented ccw starting lower left
-   assert(coords.GetNumRows() == 3); // dim == 3
-   assert(coords.GetNumCols() == 8); // 8 nodes
-
    const ShapeParamElement* sa1 = nodes[0];
    const ShapeParamElement* sb1 = nodes[1];
    const ShapeParamElement* sa2 = nodes[2];
    const ShapeParamElement* sb2 = nodes[3];
-
-   // LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
 
    assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
    assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
@@ -1657,47 +1710,17 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    assert(smd_->GetProfile(sa1)->GetPlainDesignValue() == smd_->GetProfile(sb1)->GetPlainDesignValue());
    assert(smd_->GetProfile(sa2)->GetPlainDesignValue() == smd_->GetProfile(sb2)->GetPlainDesignValue());
 
-   // coords is 8 columns with 3 rows
-   //
-   //   a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
-   // x 0.0  0.5  0.5  0.0  0.0  0.5  0.5  0.0
-   // y 0.5  0.5  0.5  0.5  0.0  0.0  0.0  0.0
-   // z 0.0  0.0  0.5  0.5  0.0  0.0  0.5  0.5
-   //
-   // x = e -> f,  y = e -> a,  z = e -> h,  zero = e
-   //
-   //    d----------c
-   //   /|          /|
-   //  h ------- g  |
-   //  | a--------|-b
-   //  |/         |/
-   //  e ------- f
-   //
-   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
-   assert(close(coords[0][4], coords[0][7])); // x-pos: lower left and upper left: e and h
-   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
-   assert(close(coords[0][5], coords[0][6])); // x-pos: lower right and upper right: f and g
-   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
-   assert(coords[0][4] < coords[0][5]);       // x-pos: lower left is smaller than lower right : e and f
-   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
-   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
-   assert(coords[2][1] < coords[2][2]);       // y-pos: lower right smaller upper right: b and c
-
-   LOG_DBG2(SMD) << "E coords=" << coords.ToString() << " ip=" << ip.ToString() ;
-
    // sa and sb have different dof and define an ab-plane.
    // the complementary dof dir is where we interpolate within start and end
-   double start_x = coords[sa1->dof_][4]; // e
-   double start_y = coords[sb1->dof_][4]; // e
-
-   double end_x = coords[sa1->dof_][sa1->dof_ == 0 ? 5 : (sa1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
-   double end_y = coords[sb1->dof_][sb1->dof_ == 0 ? 5 : (sb1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
+   smd_->MapIdxToCoords(idx, coord_);
+   double start_x = coord_[sa1->dof_];
+   double start_y = coord_[sb1->dof_];
 
    // we are in the ab-plane and call it xy-plane. We test of the point (x,y) on the xy-plane.
    int dir = Flip(sa1->dof_, sb1->dof_); // orthogonal to the xy-plane. E.g. the z-axis
 
-   x = start_x + ip[sa1->dof_] * (end_x-start_x);
-   y = start_y + ip[sb1->dof_] * (end_y-start_y);
+   x = start_x + ip[sa1->dof_] * smd_->coord_step_[sa1->dof_];;
+   y = start_y + ip[sb1->dof_] * smd_->coord_step_[sb1->dof_];
 
    t = ip[dir]; // Setup2d()
    assert(t >= 0 && t <= 1);
@@ -1713,6 +1736,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
 
    return t;
  }
+
+
 
  inline double ShapeMapDesign::EvalAtIp::SmartTanh(int order) const
  {
@@ -1798,198 +1823,18 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  }
 
 
- inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_w) const
- {
-   assert(dim_ == 2); // there is also a 3D version of Eval
-   assert(nodes.GetSize() == 2);
-   const ShapeParamElement* s1 = nodes[0];
-   const ShapeParamElement* s2 = nodes[1];
-   assert(s1->dof_ == s2->dof_);
-   assert(s1->GetType() == BaseDesignElement::NODE && s2->GetType() == BaseDesignElement::NODE);
-   assert(!(grad_a == true && grad_w == true)); // the other three combinations are allowed
-   // we assume the elements to be oriented ccw starting lower left
-   assert(coords.GetNumRows() == 2); // dim == 2
-   assert(coords.GetNumCols() == 4); // dim == 4 nodes
-
-   //
-   //  d ------- c
-   //  |         |
-   //  |         |
-   //  a ------- b
-   //
-   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
-   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
-   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
-   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
-   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
-   assert(coords[1][1] < coords[1][2]);       // y-pos: lower right smaller upper right
-
-   ShapeParamElement::Dof dof = s1->dof_;
-   ShapeParamElement::Dof dir = Flip(dof);
-   assert(dof != dir);
-
-   // element position
-   double start = dof == ShapeParamElement::X ? coords[0][0] : coords[1][0]; // dof == x ? a_x : a_y
-   double end   = dof == ShapeParamElement::X ? coords[0][1] : coords[1][3]; // dof == x ? b_x : d_y
-   // the parameters
-   double a1 = s1->GetPlainDesignValue();
-   double a2 = s2->GetPlainDesignValue();
-   // the profiles
-   assert(GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
-   double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
-   double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
-
-   // when dof = X the tanh has x as parameter, when we interpolate a1 and a2 these are x values applied at different y positions
-   assert(ip.GetSize() == 2);
-   assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1);
-   double xy = start + ip[dof] * (end-start); // for dof=0 (x) xy is x and might be far away from a
-   double a  = a1 + ip[dir] * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
-   double w  = w1 + ip[dir] * (w2-w1);
-   double val = -1.0;
-   if(grad_a)
-     val = d_tanh_da(beta, xy, a, w);
-   if(grad_w)
-     val = d_tanh_dw(beta, xy, a, w);
-   if(!grad_a && !grad_w)
-     val = tanh(beta, xy, a, w);
-   LOG_DBG3(SMD) << "E: s1=" << s1->GetIndex() << " s2=" << s2->GetIndex() << " dof=" << dof << " start=" << start << " end=" << end  << " a=" << a1 << "..." << a2
-                 << " ip=" << ip.ToString() << " xy=" << xy << " a=" << a << " da:" << grad_a << " dw=" << grad_w << " -> " << val;
-   return val;
- }
-
- inline double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const
- {
-   assert(dim_ == 3);
-   assert(!((grad_a == true || grad_b == true) && grad_w == true));
-   assert(nodes.GetSize() == 4);
-   assert(ip.GetSize() == 3);
-   assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1 && ip[2] >= 0 && ip[2] <= 1);
-
-   // we assume the elements to be oriented ccw starting lower left
-   assert(coords.GetNumRows() == 3); // dim == 3
-   assert(coords.GetNumCols() == 8); // 8 nodes
-
-   const ShapeParamElement* sa1 = nodes[0];
-   const ShapeParamElement* sb1 = nodes[1];
-   const ShapeParamElement* sa2 = nodes[2];
-   const ShapeParamElement* sb2 = nodes[3];
-
-   // LOG_DBG2(SMD) << "E sa1=" << sa1->ToString() << " sa2=" << sa2->ToString() << " sb1=" << sb1->ToString() << " sb2=" << sb2->ToString();
-
-   assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
-   assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
-   assert(GetShape(sa1)->IsCenterNode());
-
-   assert(GetProfile(sa1) == GetProfile(sb1)); // two center nodes share a profile
-
-   // the parameters
-   double a1 = sa1->GetPlainDesignValue();
-   double a2 = sa2->GetPlainDesignValue();
-   double b1 = sb1->GetPlainDesignValue();
-   double b2 = sb2->GetPlainDesignValue();
-   double w1 = 0.5 * GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
-   double w2 = 0.5 * GetProfile(sa2)->GetPlainDesignValue();
-   assert(GetProfile(sa1)->GetPlainDesignValue() == GetProfile(sb1)->GetPlainDesignValue());
-   assert(GetProfile(sa2)->GetPlainDesignValue() == GetProfile(sb2)->GetPlainDesignValue());
-
-   // coords is 8 columns with 3 rows
-   //
-   //   a=0  b=1  c=2  d=3  e=4  f=5  g=6  h=7
-   // x 0.0  0.5  0.5  0.0  0.0  0.5  0.5  0.0
-   // y 0.5  0.5  0.5  0.5  0.0  0.0  0.0  0.0
-   // z 0.0  0.0  0.5  0.5  0.0  0.0  0.5  0.5
-   //
-   // x = e -> f,  y = e -> a,  z = e -> h,  zero = e
-   //
-   //    d----------c
-   //   /|          /|
-   //  h ------- g  |
-   //  | a--------|-b
-   //  |/         |/
-   //  e ------- f
-   //
-   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left: a and d
-   assert(close(coords[0][4], coords[0][7])); // x-pos: lower left and upper left: e and h
-   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right: b and c
-   assert(close(coords[0][5], coords[0][6])); // x-pos: lower right and upper right: f and g
-   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right : a and b
-   assert(coords[0][4] < coords[0][5]);       // x-pos: lower left is smaller than lower right : e and f
-   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
-   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
-   assert(coords[2][1] < coords[2][2]);       // y-pos: lower right smaller upper right: b and c
-
-   LOG_DBG2(SMD) << "E coords=" << coords.ToString() << " ip=" << ip.ToString() ;
-
-   // sa and sb have different dof and define an ab-plane.
-   // the complementary dof dir is where we interpolate within start and end
-   double start_x = coords[sa1->dof_][4]; // e
-   double start_y = coords[sb1->dof_][4]; // e
-
-   double end_x = coords[sa1->dof_][sa1->dof_ == 0 ? 5 : (sa1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
-   double end_y = coords[sb1->dof_][sb1->dof_ == 0 ? 5 : (sb1->dof_ == 1 ? 0 : 7)]; // x -> f, y -> a, z -> h
-
-   // we are in the ab-plane and call it xy-plane. We test of the point (x,y) on the xy-plane.
-   int dir = Flip(sa1->dof_, sb1->dof_); // orthogonal to the xy-plane. E.g. the z-axis
-
-   double x = start_x + ip[sa1->dof_] * (end_x-start_x);
-   double y = start_y + ip[sb1->dof_] * (end_y-start_y);
-   double a = a1 + ip[dir] * (a2 - a1);
-   double b = b1 + ip[dir] * (b2 - b1);
-   double w = w1 + ip[dir] * (w2 - w1);
-
-   double val = -1;
-
-   if(grad_a)
-     val = d_tanh3d_da(beta, x, y, a, b, w);
-   if(grad_b)
-     val = d_tanh3d_db(beta, x, y, a, b, w);
-   if(grad_w)
-     val = d_tanh3d_da(beta, x, y, a, b, w);
-   if(!grad_a && !grad_b && !grad_w)
-     val = tanh3d(beta, x, y, a , b, w);
-
-   LOG_DBG3(SMD) << "E: sa1=" << sa1->GetIndex() << " sa2=" << sa2->GetIndex() << " sb1=" << sb1->GetIndex() << " sb2=" << sb2->GetIndex() << " ip=" << ip.ToString()
-                 << " x=" << x << " y=" << y << " -> " << val;
-
-   return val;
- }
-
- double ShapeMapDesign::Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta) const
- {
-    assert(dim_ == coords.GetNumRows());
-    if(dim_ == 2)
-      return Eval(nodes, coords, ip, beta, false, false);
-    else
-      return Eval(nodes, coords, ip, beta, false, false, false);
- }
-
- double ShapeMapDesign::EvalGrad(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const
- {
-   assert(dim_ == coords.GetNumRows());
-   assert(!grad_a || !grad_b || !grad_w);
-   if(dim_ == 2)
-     return Eval(nodes, coords, ip, beta, grad_a, grad_w);
-   else
-     return Eval(nodes, coords, ip, beta, grad_a, grad_b, grad_w);
- }
 
  void ShapeMapDesign::EvalAllCornerValues()
  {
    // for a nx_*ny_*nz_ mesh we evaluate (nx_+1)*(ny_+1)*(nz_+1) points for each shape and set each value for all adjacent Item. Hence the value is repeated almost
    // 4 times in 2D and 8 times in 3D
    assert(dim_ == 3 || nz_ == 1);
-   Matrix<double> coords;
+
    StdVector<double> ip(dim_); // integration location 0 ... 1
-   Grid* grid = domain->GetGrid();
+   Vector<unsigned int> idx(3);
 
    int num_nodes = map_[0].nodes.GetSize();
    assert((unsigned int) num_nodes == num_node_shapes_ - FindCenters().GetSize());
-
-#ifndef NDEBUG
-   for(unsigned int m = 0; m < map_.GetSize(); m++)
-     for(int s = 0; s < num_nodes; s++)
-       map_[m].corner_vals[s].Init(-1);
-#endif
 
    // temporary array. Could be used permanent instead of replicating it 4 to 8 times in Item::corner_vals
    StdVector<Vector<double> > glob(num_nodes);
@@ -2001,74 +1846,32 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    int yb = nx_ + 1;
    // z * zb + y * yb + x for 3D and 2D
 
-   // our local beta
-   double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
+   EvalAtIp eval(this);
 
-   for(unsigned int z = 0; z < nz_; z++)
+   for(unsigned int z = 0; z < nz_+1; z++)
    {
-     for(unsigned int y = 0; y < ny_; y++)
+     for(unsigned int y = 0; y < ny_+1; y++)
      {
-       for(unsigned int x = 0; x < nx_; x++)
+       for(unsigned int x = 0; x < nx_+1; x++)
        {
-         Item& item = map_[DensityIdx(x, y, z)]; // ignores z in 2D
-         DesignElement* de = item.rho;
-         // it is not smart to use the element coordinates but robust
-         grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
-         assert((dim_ == 2 && coords.GetNumCols() == 4) || (dim_ == 3 && coords.GetNumCols() == 8));
+         // normaly we evaluate the smalles corder. For the last elements we use the outer corner of the element before
+         idx[0] = x < nx_ ? x : x-1;
+         idx[1] = y < ny_ ? y : y-1;
+         idx[2] = z < nz_ ? z : z-1;
 
-         ip.Init(0.0);
+         ip[0] =  x < nx_ ? 0 : 1.0;
+         ip[1] =  y < ny_ ? 0 : 1.0;
+         if(dim_ == 3)
+           ip[2] =  z < nz_ ? 0 : 1.0;
+
+         Item& item = map_[DensityIdx(idx[0], idx[1], idx[2])]; // ignores z in 2D
 
          for(int s = 0; s < num_nodes; s++)
          {
            assert(item.nodes[s].GetSize() >= 2);
 
-           // ip is a (lower left corner)
-           glob[s][z * zb + y * yb + x] = Eval(item.nodes[s], coords, ip, beta);
-
-           if(x == nx_ - 1) { // extreme side, eval lower right corner b
-             ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0; // eval b
-             glob[s][z * zb + y * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(y == ny_ - 1) { // extreme side, eval lower right corner d
-             ip.Init(0); // for 2D and 3D common
-             ip[1] = 1.0; // eval b
-             glob[s][z * zb + (y+1) * yb + x] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(x == nx_ - 1 && y == ny_ - 1) {
-             ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0;
-             ip[1] = 1.0;
-             glob[s][z * zb + (y+1) * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(dim_ == 3 && z == nz_ - 1) {
-             ip.Init(0);
-             ip[2] = 1.0; // eval e
-             glob[s][(z+1) * zb + y * yb + x] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(dim_ == 3 && z == nz_ - 1 && x == nx_ - 1) {
-             ip.Init(0); // for 2D and 3D common
-             ip[0] = 1.0; //
-             ip[2] = 1.0;
-             glob[s][(z+1) * zb + y * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(dim_ == 3 && z == nz_ - 1 && y == ny_ - 1) {
-             ip.Init(0);
-             ip[1] = 1.0; //
-             ip[2] = 1.0;
-             glob[s][(z+1) * zb + (y+1) * yb + x] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
-           if(dim_ == 3 && z == nz_ - 1 && x == nx_ - 1 && y == ny_ - 1) {
-             ip.Init(1);
-             glob[s][(z+1) * zb + (y+1) * yb + (x+1)] = Eval(item.nodes[s], coords, ip, beta);
-           }
-
+           eval.Setup(item.nodes[s], idx, ip, 2 * beta_);
+           glob[s][z * zb + y * yb + x] = eval.Tanh();
          } // end shape loop
        } // x
      } // y
@@ -2077,6 +1880,9 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
 
    //std::cout << glob[0].ToString() << std::endl;
    assert(glob[0].Min() >= 0.0);
+
+   // we remap from glob to vals
+   Vector<double> vals(dim_ == 2 ? 4 : 8);
 
    for(unsigned int z = 0; z < nz_; z++)
    {
@@ -2103,18 +1909,21 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
          {
            assert(item.nodes[s].GetSize() >= 2);
 
-           item.corner_vals[s][0] = glob[s][z * zb + y * yb + x];          // a
-           item.corner_vals[s][1] = glob[s][z * zb + y * yb + (x+1)];      // b
-           item.corner_vals[s][2] = glob[s][z * zb + (y+1) * yb + (x+1)];  // c
-           item.corner_vals[s][3] = glob[s][z * zb + (y+1) * yb + x];     // d
+           vals[0] = glob[s][z * zb + y * yb + x];          // a
+           vals[1] = glob[s][z * zb + y * yb + (x+1)];      // b
+           vals[2] = glob[s][z * zb + (y+1) * yb + (x+1)];  // c
+           vals[3] = glob[s][z * zb + (y+1) * yb + x];     // d
            if(dim_ == 3) {
-             item.corner_vals[s][4] = glob[s][(z+1) * zb + y * yb + x];          // e
-             item.corner_vals[s][5] = glob[s][(z+1) * zb + y * yb + (x+1)];      // f
-             item.corner_vals[s][6] = glob[s][(z+1) * zb + (y+1) * yb + (x+1)];  // g
-             item.corner_vals[s][7] = glob[s][(z+1) * zb + (y+1) * yb + x];     // h
+             vals[4] = glob[s][(z+1) * zb + y * yb + x];          // e
+             vals[5] = glob[s][(z+1) * zb + y * yb + (x+1)];      // f
+             vals[6] = glob[s][(z+1) * zb + (y+1) * yb + (x+1)];  // g
+             vals[7] = glob[s][(z+1) * zb + (y+1) * yb + x];     // h
            }
-           LOG_DBG3(SMD) << "EACV: x=" << x << " y=" << " z=" << z << " s=" << s << " -> " << item.corner_vals[s].ToString();
-           assert(item.corner_vals[s].Min() >= 0.0);
+           item.min_corner_value[s] = vals.Min();
+           item.max_corner_value[s] = vals.Max();
+           LOG_DBG3(SMD) << "EACV: x=" << x << " y=" << " z=" << z << " s=" << s
+                         << " min=" << item.min_corner_value[s] << " max=" << item.max_corner_value[s] << " -> " << vals.ToString();
+           assert(vals.Min() >= 0.0);
          } //s
        } // x
      } // y
@@ -2124,97 +1933,6 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  }
 
 
- inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
- {
-   // set xrange[0:1]; a = 0.5; w=0.1; beta=30
-   // plot 1-1/(exp(2*beta*(x-a+w)) + 1), 1/(exp(2*beta*(x-a-w)) + 1)
-   //
-   // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
-   if(x <= a)
-     return 1.0 - 1/(std::exp(beta*(x-a+w))+1);
-  else
-    return 1/(std::exp(beta*(x-a-w))+1);
- }
-
-
- inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
- {
-   // set xrange[0:1]; a = 0.5; beta=30; w=0.1
-   // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
-   //
-   // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
-   //
-   // plot
-   // matlab:
-   //if x <= a
-   //  f = -1* (exp(2*beta*(x-a+d)) + 1)^-2 *2*beta*exp(2*beta*(x-a+d));
-   //else
-   ///  f = (exp(2*beta*(x-a-d))+1)^-2 *2*beta*exp(2*beta*(x-a-d));
-   // end
-
-   if(x <= a)
-     return -1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
-  else
-    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
- }
-
- inline double ShapeMapDesign::d_tanh_dw(double beta, double x, double a, double w) const
- {
-   // set xrange[0:1]; a = 0.5; beta=30; w=0.1
-   // w1(x)=1/((exp(beta*(x-a+w))+1) * (exp(beta*(x-a+w))+1)) * beta*exp(beta*(x-a+w))
-   // w2(x)=1/((exp(beta*(x-a-w))+1) * (exp(beta*(x-a-w))+1)) * beta*exp(beta*(x-a-w))
-
-
-   if(x <= a)
-     return 1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
-  else
-    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
- }
-
- inline double ShapeMapDesign::tanh3d(double beta, double x, double y, double a, double b, double w) const
- {
-   // r: sqrt((a-x)^2+(b-y)^2);
-   // t:1/(exp(beta*(r-w))+1);
-
-   double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-   double e = std::exp(beta * (r-w));
-
-   return 1/(e +1);
- }
-
-
-inline double ShapeMapDesign::d_tanh3d_da(double beta, double x, double y, double a, double b, double w) const
-{
-  // r: sqrt((a-x)^2+(b-y)^2);
-  // t:1/(exp(beta*(r-w))+1);
-
-  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-  double e = std::exp(beta * (r-w));
-
-  return -1 * beta*(a-x) * e / (r * (e+1)*(e+1));
-}
-
-inline double ShapeMapDesign::d_tanh3d_db(double beta, double x, double y, double a, double b, double w) const
-{
-  // r: sqrt((a-x)^2+(b-y)^2);
-  // t:1/(exp(beta*(r-w))+1);
-
-  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-  double e = std::exp(beta * (r-w));
-
-  return -1 * beta*(b-x) * e / (r * (e+1)*(e+1));
-}
-
-inline double ShapeMapDesign::d_tanh3d_dw(double beta, double x, double y, double a, double b, double w) const
-{
-  // r: sqrt((a-x)^2+(b-y)^2);
-  // t:1/(exp(beta*(r-w))+1);
-
-  double r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-  double e = std::exp(beta * (r-w));
-
-  return beta * e / ((e+1)*(e+1));
-}
 
 inline ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof dof)
 {
@@ -2252,9 +1970,9 @@ ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof first, ShapeP
        for(unsigned int x = 0; x < nx_; x++)
        {
          Item i = map_[DensityIdx(x, y, z)];
-         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue() << " cv=" << i.corner_vals[0].ToString() << std::endl;
+         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue() << " min=" << i.min_corner_value
+                   << " max=" << i.max_corner_value << std::endl;
          assert((int) i.nodes.GetSize() == num_node_shapes_);
-         assert((int) i.corner_vals.GetSize() == num_node_shapes_);
          //        for(unsigned int s = 0; s < num_node_shapes_; s++)
          //        for(unsigned int n = 0; n < i.corner_vals[s].GetSize(); n++)
 
