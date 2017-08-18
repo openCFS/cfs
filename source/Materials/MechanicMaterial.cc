@@ -698,7 +698,7 @@ void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
       matMatrix.Init();
 
       // This is a bad test for singularity!
-      assert( abs(mat[0][0]) < 1.09E-15 && "Singular material tensor when computing plane stress case" );
+      assert( std::abs(mat[0][0]) > 1.09E-15 && "Singular material tensor when computing plane stress case" );
 
       // calculate plane stress matrix for xy-plane
       matMatrix[0][0] = mat[0][0] - mat[2][0]*mat[0][2]/mat[2][2];
