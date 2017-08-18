@@ -250,6 +250,13 @@ namespace CoupledField
     /** give a specific column */
     void GetCol(Vector<TYPE>& vec_out, UInt col) const;
 
+    /** For each row the minimum over all columns. For Complex see Vector::Min() */
+    void GetColMin(Vector<TYPE>& vec_out) const;
+
+    /** See GetColMin() */
+    void GetColMax(Vector<TYPE>& vec_out) const;
+
+
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 

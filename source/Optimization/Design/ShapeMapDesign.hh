@@ -95,7 +95,10 @@ public:
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
   @param design_reg extend to vector if necessary!
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
-  static StdVector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
+  static Vector<unsigned int> SetupLexicographicMesh(Grid* grid, RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem);
+
+  /** Translates from rho element idx to the smallest corner. The largest corner is out + coord_step_ */
+  void MapIdxToCoords(const Vector<unsigned int>& idx, Vector<double>& out) const;
 
   /** This are principal shape types from where NODE and PROFILE are repeated in BaseDesignElement::Type.
    * a "center" structure contains two nodes is only 3D and contains  */
@@ -249,6 +252,9 @@ protected:
   unsigned int DensityIdx(int x, int y) const { return y * nx_ + x; }
   unsigned int DensityIdx(int x, int y, int z) const { return dim_ == 3 ? z * nx_*ny_ + y * nx_ + x : DensityIdx(x, y); }
 
+  /** This is the inverse to DensityIdx */
+  void DensityIdx(unsigned int i, Vector<unsigned int>& idx) const;
+
   /** Index for integration point */
   unsigned int IntPointIdx(int order, int ip_x, int ip_y) const { return ip_y * order+ip_x; }
   unsigned int IntPointIdx(int order, int ip_x, int ip_y, int ip_z) const { return dim_ == 3 ? ip_z * order * order + ip_y * order + ip_x : IntPointIdx(order, ip_x, ip_y); }
@@ -285,49 +291,8 @@ protected:
   /** helper for debugging */
   void DumpMap();
 
-  /** 3D: Evaluate the function at the given integration point.
-   * @oaram nodes from Item::nodes, 4 shapes
-   * @param coords of the density design element
-   * @param ip integration points for x, y and z each 0 ... 1
-   * @param beta @see tanh()
-   * @param grad_a false for tanh, true for d_tanh_da
-   * @param grad_w false for tanh, true for d_tanh_dw. */
-  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const;
-
-  /** 2D: @see Eval() for 3D */
-  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_w) const;
-
-  /** common Eval for 2D and 3D but all without gradient! */
-  double Eval(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta) const;
-
-  /** common Eval for 2D and 3D but where b is ignored in the 3D case */
-  double EvalGrad(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta, bool grad_a, bool grad_b, bool grad_w) const;
-
-
   /** Set all Item::corner_val in map_ */
   void EvalAllCornerValues();
-
-
-  /** tanh performs the smoothing from the mapping
-   * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
-   * @param x is the coordinate (x or y)
-   * @param a the shape variable (center of object)
-   * @param w half of the thickness/profile of the shape */
-  double tanh(double beta, double x, double a, double w) const;
-
-  /** The 3D tanh functions operates in the xy plane and tests for a point (x,y) and the center (a,b) with w */
-  double tanh3d(double beta, double x, double y, double a, double b, double w) const;
-
-  /** derivative of tanh w.r.t. a */
-  double d_tanh_da(double beta, double x, double a, double w) const;
-
-  /** derivative of tanh w.r.t. w which is the half profile */
-  double d_tanh_dw(double beta, double x, double a, double w) const;
-
-  double d_tanh3d_da(double beta, double x, double y, double a, double b, double w) const;
-  double d_tanh3d_db(double beta, double x, double y, double a, double b, double w) const;
-  double d_tanh3d_dw(double beta, double x, double y, double a, double b, double w) const;
-
 
   /** Find the corresponding profile variable - needs to identify the shape first :( */
   inline const ShapeParamElement* GetProfile(const ShapeParamElement* node) const;
@@ -447,11 +412,9 @@ protected:
      * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected. The size is num_node_shapes_ - FindCenterNodes().GetSize() */
     StdVector<StdVector<ShapeParamElement*> > nodes;
 
-    /** This is dynamic information.
-     * For every shape we have the tanh of all corner nodes in the order of FE coord sorting -> see Eval()
-     * @see EvalAllCorners().
-     * size as with nodes */
-    StdVector<Vector<double> > corner_vals;
+    /** This is for each "real" node the minimal corner value of all 4 (8 corners). Set by EvalAllCorners() */
+    Vector<double> min_corner_value;
+    Vector<double> max_corner_value;
 
     /** Determines based on corner_vals the order of integration for each shape. 0=void, 1=solid, >=2 integration.
      * @param order output
@@ -479,9 +442,10 @@ protected:
     /** call Init() first in the object lifetime */
     void Init(ShapeMapDesign* smd);
 
-    /** call Setup everytime before readying any attribute or Eval*()
-     * @return the t variable 0..1 necessary for adding the gradients as this is the derivative of the a,b,w linear interpolation */
-    double Setup(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
+    /** gives the coordinates for evaluation directly.
+     * @param idx element identification with map_ but the element is not read.
+     * @param ip only used to set a, b, w, r, t but to for x, y */
+    double Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 
     /** no gradient */
     double Tanh() const { return dim == 2 ? EvalTanh2d() : EvalTanh3d(); }
@@ -491,13 +455,12 @@ protected:
     double GradTanh(bool grad_a, bool grad_b, bool grad_w) const {
       return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
     }
-
     /** user order information. See SmartTanh() */
     double SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const;
 
   private:
-    double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
-    double Setup3d(const StdVector<ShapeParamElement*>& nodes, const Matrix<double>& coords, const StdVector<double>& ip, double beta);
+    double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
+    double Setup3d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 
     double EvalTanh2d() const;
     double EvalTanh3d() const;
@@ -522,8 +485,10 @@ protected:
     double examw = -1;
     double erw = -1;
 
-    ShapeMapDesign* smd_ = NULL;
     int dim = -1;
+    ShapeMapDesign* smd_ = NULL;
+    /** helper for Setup */
+    Vector<double> coord_;
   };
 
 
@@ -581,7 +546,13 @@ protected:
   unsigned int nz_ = 0; // 1 for 2D
 
   /** repeats nx_, ny_ and nz_ */
-  StdVector<unsigned int> n_;
+  Vector<unsigned int> n_;
+
+  /** this is the minimal and maximal coordinate */
+  Vector<double> coord_min_;
+  Vector<double> coord_max_;
+  /** this is the edge size */
+  Vector<double> coord_step_;
 
   /** shortcut to the dimension (2,3) */
   static unsigned int dim_;

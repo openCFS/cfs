@@ -203,6 +203,13 @@ namespace CoupledField {
   void Assign(Vector<Complex>& target, const Vector<Complex>& other, const Double factor);
   void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor);
 
+  template<class T>
+  void Copy(const StdVector<T>& source, Vector<T>& target) {
+    target.Resize(source.GetSize());
+    if(!source.IsEmpty())
+      std::memcpy(target.GetPointer(), source.GetPointer(), source.GetSize() * sizeof(T));
+  }
+
   template<class TYPE, class TYPE2>
   void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
