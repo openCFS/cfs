@@ -284,16 +284,18 @@ def detect_boundary_edges(polydata):
     ids = vtk.vtkIdList()
     c = lines.GetNextCell(ids)
     boundaryEdges.append((ids.GetId(0),ids.GetId(1)))
-    
+
+  print("bounds:",boundaryEdges)
+  from itertools import cycle # circular list iterator    
   edgeLoops = []
   loop = []  
   end = -1
   numEdges = len(boundaryEdges)
   handled = [False] * numEdges
-  while np.where(np.logical_not(handled)):
-    loop = []  
-    end = -1
-    for i,this in enumerate(boundaryEdges):
+  while not all(handled):
+#     loop = []  
+#     end = -1
+    for i,this in cycle(enumerate(boundaryEdges)):
       
       if handled[i]:
         continue
@@ -307,8 +309,9 @@ def detect_boundary_edges(polydata):
         next = None
         tail = loop[-1][1]
         # we have at least one edge in loop list, find next neighbor edge
-        for j, other in enumerate(boundaryEdges):
+        for j,other in cycle(enumerate(boundaryEdges)):
           if handled[j]:
+            print("already handled:",boundaryEdges[j])
             continue
           if other[0] == tail:
             next = other
@@ -316,20 +319,17 @@ def detect_boundary_edges(polydata):
             print("next of ",loop[-1], " is ", next)
             break
             
-        if next is None: # maybe we have to insert at the beginning of existing loops
-          for el in edgeLoops:
-            if this[1] == el[0][0]:
-              el.insert(0,this)
-              print("inserted ", this, " in front of ", el[0]) 
-              break
-          continue
-        else:  
-          loop.append(next)    
+        assert(next is not None)
+        loop.append(next)    
       
-      print(loop)
-      if len(loop) > 0 and loop[-1][1] == end:
-        break
+        print(loop)
+        if len(loop) > 0 and loop[-1][1] == end:
+          edgeLoops.append(loop)
+          print("end: ",loop[-1][1],"=",end)
+          print("handled:",handled)
+          loop = []
+          end = -1
+          break
       
   print(edgeLoops)
-  print("bounds:",boundaryEdges)
 
