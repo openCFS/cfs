@@ -146,8 +146,11 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   cleanFilter.SetInputConnection(appends.GetOutputPort())
   cleanFilter.Update()
   
-  detect_boundary_edges(cleanFilter.GetOutput())
+  boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
   
+  appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
+  
+  cleanFilter.Update()
   
   return cleanFilter.GetOutput()
     
@@ -233,10 +236,10 @@ def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
   test = [ [elem[0],elem[1]] for elem in coords_2d]
   info.set_points(test)
   info.set_facets(draw_profile_functions.round_trip_connect(0,len(coords_2d)-1))
+  
   mesh = triangle.build(info,generate_faces=True)
   mesh_points = np.array(mesh.points)
   mesh_tris = np.array(mesh.elements)
-  
   # check whether we're on the left or right side
   comp = bc_bounds[bound]
   points = []
@@ -286,6 +289,7 @@ def detect_boundary_edges(polydata):
     boundaryEdges.append((ids.GetId(0),ids.GetId(1)))
 
   print("bounds:",boundaryEdges)
+  print("num boundary edges:",len(boundaryEdges))
   from itertools import cycle # circular list iterator    
   edgeLoops = []
   loop = []  
@@ -293,17 +297,14 @@ def detect_boundary_edges(polydata):
   numEdges = len(boundaryEdges)
   handled = [False] * numEdges
   while not all(handled):
-#     loop = []  
-#     end = -1
     for i,this in cycle(enumerate(boundaryEdges)):
-      
       if handled[i]:
-        continue
+        continue 
       
       if len(loop) == 0:
         loop.append(this)
         end = this[0]
-        print("\nstarting with:",this)
+#         print("\nstarting with:",this)
         handled[i] = True
       else:
         next = None
@@ -311,25 +312,84 @@ def detect_boundary_edges(polydata):
         # we have at least one edge in loop list, find next neighbor edge
         for j,other in cycle(enumerate(boundaryEdges)):
           if handled[j]:
-            print("already handled:",boundaryEdges[j])
             continue
+#             print("already handled:",boundaryEdges[j])
+
           if other[0] == tail:
             next = other
             handled[j] = True
-            print("next of ",loop[-1], " is ", next)
+#             print("next of ",loop[-1], " is ", next)
             break
             
         assert(next is not None)
         loop.append(next)    
       
-        print(loop)
+#         print(loop)
         if len(loop) > 0 and loop[-1][1] == end:
           edgeLoops.append(loop)
-          print("end: ",loop[-1][1],"=",end)
-          print("handled:",handled)
+#           print("end: ",loop[-1][1],"=",end)
+#           print("handled:",handled)
           loop = []
           end = -1
           break
       
-  print(edgeLoops)
+#   print(edgeLoops)
+#   for l in edgeLoops:
+#     print("\nhole:")
+#     for t in l:
+#       print(boundaryPts[t[0]])
+#     print("len:",len(l))
+  return boundaryPts,edgeLoops 
 
+def fill_boundary_loops(points,loops):
+  appendPd = vtk.vtkAppendPolyData()
+  # each loop consists of a chain of polygons, e.g. (0,1),(1,3),(3,0)
+  for i,l in enumerate(loops):
+    major = -1 # coordinate component that we can omit
+    this = points[l[0][0]]
+    next = points[l[0][1]]
+    nnext = points[l[1][1]]
+    comp = None
+    # find out which component we can remove for 2d triangulation
+    # assume check first three points is sufficient
+    if np.isclose(this[0],next[0]) and np.isclose(this[0],nnext[0]):
+      major = 0
+      comp = this[0]
+    elif np.isclose(this[1],next[1]) and np.isclose(this[1],nnext[1]):
+      major = 1
+      comp = this[1]
+    elif np.isclose(this[2],next[2]) and np.isclose(this[2],nnext[2]):
+      major = 2
+      comp = this[2]
+        
+    assert(major > -1)
+    minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major)
+    
+#     print("major:",major)
+    coords_2d = []
+    coords_3d = []
+    for t in l:
+      p = points[t[0]]
+      assert(len(p) == 3)
+      coords_2d.append([p[minor_1],p[minor_2]])
+      coords_3d.append(p)
+    
+    assert(len(coords_2d) == len(l))  
+    info = triangle.MeshInfo()
+    
+    test = [ [elem[0],elem[1]] for elem in coords_2d]
+    info.set_points(test)
+    info.set_facets((draw_profile_functions.round_trip_connect(0,len(test)-1)))
+    mesh = triangle.build(info,generate_faces=True)
+    mesh_tris = np.array(mesh.elements)
+    
+    if len(mesh_tris) == 0:
+      print("\ncould not mesh hole:")
+      print(test)
+      print(coords_3d)
+      
+    appendPd.AddInputData(matviz_vtk.fill_vtk_polydata(coords_3d, mesh_tris))
+    appendPd.Update()
+  
+  print("closed ",len(loops), " holes")  
+  return  appendPd.GetOutput()
