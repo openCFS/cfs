@@ -349,16 +349,31 @@ def fill_boundary_loops(points,loops):
     this = points[l[0][0]]
     next = points[l[0][1]]
     nnext = points[l[1][1]]
+    nnnext = points[l[2][1]]
     comp = None
+    eps = 1e-12
+    flag_x = True
+    flag_y = True
+    flag_z = True
     # find out which component we can remove for 2d triangulation
     # assume check first three points is sufficient
-    if np.isclose(this[0],next[0]) and np.isclose(this[0],nnext[0]):
+    for id in range(len(l)):
+      next = points[l[id][1]]
+      if not np.isclose(this[0],next[0],eps):
+        flag_x = False
+      if not np.isclose(this[1],next[1],eps):
+        flag_y = False 
+      if not np.isclose(this[2],next[2],eps):
+        flag_z = False
+        
+    if flag_x:
       major = 0
       comp = this[0]
-    elif np.isclose(this[1],next[1]) and np.isclose(this[1],nnext[1]):
+    elif flag_y:
       major = 1
       comp = this[1]
-    elif np.isclose(this[2],next[2]) and np.isclose(this[2],nnext[2]):
+    else:
+      assert(flag_z)
       major = 2
       comp = this[2]
         
