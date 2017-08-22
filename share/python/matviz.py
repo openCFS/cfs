@@ -16,7 +16,6 @@ import xml.dom.minidom
 from cfs_utils import *
 
 try:
-  from mpi4py import MPI
   #from sfepy.homogenization.homogen_worker import tags
   use_mpi = True if MPI.COMM_WORLD.Get_size() > 1 else False
 except:
@@ -178,7 +177,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   min, max = find_corners(centers)
   
   coords = (centers, min, max, elem_dim)
-  
   # perform 2D and 3D from file
   if h5_read or dim_2D:
     # either Image or polydata  
@@ -321,14 +319,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
-                  # if use_mpi:
-                  #   comm = MPI.COMM_WORLD
-                  #   if comm.Get_rank() == 0:
-                  #     viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
-                  #   else:
-                  #     # run worker
-                  #     pass
-                  # else:
+                  if use_mpi:
+                    viz = create_3d_interpretation_ortho_mpi(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
+                  else:
                     viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)     
 
             else:
@@ -338,7 +331,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
               else:
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
               if args.show == "hom_ortho_3d":
-                viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)  
+                if use_mpi:  
+                  viz = create_3d_interpretation_ortho_mpi(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)  
+                else:
+                  viz = create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
               else:
                 viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
@@ -579,17 +575,30 @@ else:
     dump_h5_meta(f)
     sys.exit()   
   validate_region(f, args.h5_region)
-  if (comm.Get_rank()==0):
-    if len(args.unstructured) != 0:
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
-      print('Reading elements from H5-file done ')
-      dim_2D = nondes_min[2] == nondes_max[2]
-      print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
-    centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
-    if args.mesh:
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
-    dim_2D = min[2] == max[2]
-    print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  if use_mpi==True:
+    if (comm.Get_rank()==0):
+      if len(args.unstructured) != 0:
+        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
+        print('Reading elements from H5-file done ')
+        dim_2D = nondes_min[2] == nondes_max[2]
+        print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
+      centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+      if args.mesh:
+        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
+      dim_2D = min[2] == max[2]
+      print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  else:
+      if len(args.unstructured) != 0:
+        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
+        print('Reading elements from H5-file done ')
+        dim_2D = nondes_min[2] == nondes_max[2]
+        print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
+      centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+      if args.mesh:
+        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
+      dim_2D = min[2] == max[2]
+      print('detected dimension ' + ('2D' if dim_2D else '3D'))
+
   # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh:
