@@ -7,8 +7,11 @@ import scipy.interpolate as ip
 import time
 import vtk
 # from mpi_class import * 
-from mpi4py import MPI
-
+try:
+  from mpi4py import MPI
+  use_mpi = True if MPI.COMM_WORLD.Get_size() > 1 else False
+except:
+  use_mpi = False
 
 #from vtk.util.colors import *
 try:
@@ -998,51 +1001,165 @@ def write_stl(polydata,save=None):
 
 # similar to create_3d_cross_ip; # without rotation and shearing
 # returns
-
-def worker_computaion (args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds):
-  basecells = list()
-  boundary_flags = list()
-  i, j, k = get_3d_grid_coords(id,nx,ny,nz)
-  this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-  east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-  top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-  front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-  
-  assert(this is not None and east is not None and top is not None and front is not None)
-
-  # if one of the values is < min_thresh, set it to min_thresh        
-  # if one of the values is > max_thresh, set it to max_thresh
-  x1 = min(max(this[0],min_thresh),max_thresh)
-  x2 = min(max(east[0],min_thresh),max_thresh)
-  y1 = min(max(this[1],min_thresh),max_thresh)
-  y2 = min(max(top[1],min_thresh),max_thresh)
-  z1 = min(max(this[2],min_thresh),max_thresh)
-  z2 = min(max(front[2],min_thresh),max_thresh)
-  
-  bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-  bc_input.eta = 0.7
-  bc_input.stiffness_as_diameter = True
-  cell_obj = basecell.Basecell(bc_input)
-  if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-#       if cell_obj.volume <= args.bc_volume_thresh:
-    return basecells,boundary_flags
-  
-  # translate cell to correct position
-  coord  = numpy.asarray(sample_coords[i,j,k])
-  
-  # flags for meshing circles on the boundary
-  flag = [None] * 6
-  for c,bound in enumerate(bounds):
-    if numpy.isclose(coord[int(c/2)],bound):
-      flag[c] = True
-  
-  #with p.lock:
-  basecells.append((cell_obj.points,cell_obj.cells,coord))
-  boundary_flags.append(flag)
-  print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
-  return basecells, boundary_flags
-
 def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thresh):
+  # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
+  # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
+  # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
+  # grad: type of interpolation ('linear', 'nearest')
+  # scale: parameter for scaling the cell size if necessary
+  # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  # csize: size of one cell, e.g. [8,8,8]
+  
+  # point coordinates from h5 file
+  centers, minimum, maximum = coords[0:3]
+  
+  print("min:",minimum," max:",maximum)
+  
+  # appendind cells
+  appends = vtk.vtkAppendPolyData()
+  
+  if scale <= 0:
+    scale = 1.0
+  
+  # assume we always start at (0,0,0)
+  # order: min_x,min_y,min_z,max_x,max_y,max_z
+  bounds = numpy.ones(6) * (-1)
+  bounds[0] = bounds[1] = bounds[2] = 0
+  bounds[3] = maximum[0] + minimum[0]
+  bounds[4] = maximum[1] + minimum[1]
+  bounds[5] = maximum[2] + minimum[2]
+  
+  print("dimensions:",bounds)
+  
+  # set size dx/dy/dz of one cell
+  dx = bounds[3] / samples[0]
+  dy = bounds[4] / samples[1]
+  dz = bounds[5] / samples[2]
+
+  min_thresh = 3.0/args.bc_res
+  max_thresh = 0.82
+    
+  delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)    
+  
+  print("before ip data")
+  start = time.time()
+  data_grid, data_grid_near, sample_coords, ndim, scale_ = get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
+  end = time.time()
+  print("got ip data. elapsed time:",end-start," s")
+  
+  basecells = pymp.shared.list()
+  boundary_flags = pymp.shared.list()
+  with pymp.Parallel(args.bc_num_threads) as p:
+    for id in p.range(nx*ny*nz):
+      i, j, k = get_3d_grid_coords(id,nx,ny,nz)
+      
+      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+      
+      assert(this is not None and east is not None and top is not None and front is not None)
+
+      # if one of the values is < min_thresh, set it to min_thresh        
+      # if one of the values is > max_thresh, set it to max_thresh
+      x1 = min(max(this[0],min_thresh),max_thresh)
+      x2 = min(max(east[0],min_thresh),max_thresh)
+      y1 = min(max(this[1],min_thresh),max_thresh)
+      y2 = min(max(top[1],min_thresh),max_thresh)
+      z1 = min(max(this[2],min_thresh),max_thresh)
+      z2 = min(max(front[2],min_thresh),max_thresh)
+      
+      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+      bc_input.eta = 0.7
+      bc_input.stiffness_as_diameter = True
+      cell_obj = basecell.Basecell(bc_input)
+      if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+       #if cell_obj.volume <= args.bc_volume_thresh:
+        continue
+      
+      # translate cell to correct position
+      coord  = numpy.asarray(sample_coords[i,j,k])
+      
+      # flags for meshing circles on the boundary
+      flag = [None] * 6
+      for c,bound in enumerate(bounds):
+        if numpy.isclose(coord[int(c/2)],bound):
+          flag[c] = True
+      
+      with p.lock:
+        basecells.append((cell_obj.points,cell_obj.cells,coord))
+        boundary_flags.append(flag)
+        print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
+  
+  for i,bc in enumerate(basecells):
+    
+    vtk_points = vtk.vtkPoints()
+    for p in bc[0]:
+      vtk_points.InsertNextPoint(p)
+      
+    vtk_cells = vtk.vtkCellArray()
+    for ce in bc[1]:
+      tri = vtk.vtkTriangle()
+      tri.GetPointIds().SetId(0,ce[0])
+      tri.GetPointIds().SetId(1,ce[1])
+      tri.GetPointIds().SetId(2,ce[2])
+      vtk_cells.InsertNextCell(tri)
+    
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(vtk_points)
+    polydata.SetPolys(vtk_cells)
+          
+    # tranformation of vtk poly data
+    transform = vtk.vtkTransform() 
+    transform.Translate(bc[2])
+    transform.Scale(dx,dy,dz)
+       
+    # filter to perform transformation
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInputData(polydata)
+    transformFilter.Update()
+    
+    # append cells in vtk
+    appends.AddInputConnection(transformFilter.GetOutputPort())
+    appends.Update() # not sure if we have to do this in each loop iteration
+    
+    dict = {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
+    # add meshed boundary circles if necessary
+#     for idx,flag in enumerate(boundary_flags[i]):
+#       if flag:
+#         # returns vtk polydata object
+#         pd = mesh_boundary_circle(bc[0], dict[idx], bounds[0:3], bounds[3:6])
+#         
+# #     appends.AddInputData(pd)
+# #     appends.Update() # not sure if we have to do this in each loop iteration
+#     
+#       # tranformation of vtk poly data
+#       transform = vtk.vtkTransform() 
+#       transform.Translate(bc[2])
+#       transform.Scale(dx,dy,dz)
+#          
+#       # filter to perform transformation
+#       transformFilter=vtk.vtkTransformPolyDataFilter()
+#       transformFilter.SetTransform(transform)
+#       transformFilter.SetInputData(pd)
+#       transformFilter.Update()    
+#       appends.AddInputConnection(transformFilter.GetOutputPort())
+#       appends.Update() # not sure if we have to do this in each loop iteration
+  
+  return appends.GetOutput()
+    
+# @param idx: tuple of three ints storing array indices(i,j,k)
+# @param array: return element of array at position idx if exist
+# if out of range, return None 
+# @param fallback for array, if array elem at idx has value -1    
+
+
+def create_3d_interpretation_ortho_mpi(args,coords,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
@@ -1341,50 +1458,51 @@ class Worker():
       args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds = arguments  
       basecells = list()
       boundary_flags = list()
-      # jobs_per_data_transfer =int(ceil(nx*ny*nz/comm.Get_size())-1)
-      # for index in range(jobs_per_data_transfer):
-      #   if job_index+index >= nx*ny*nz :
-      #     continue 
+      jobs_per_data_transfer =int(ceil(nx*ny*nz/(comm.Get_size()-1)))
+      #print (jobs_per_data_transfer)
+      for index in range(jobs_per_data_transfer):
+        index_in_worker = job_index+((comm.Get_size()-1)*index)
+        if index_in_worker>= nx*ny*nz :
+          continue 
 
-      i, j, k = get_3d_grid_coords(job_index,nx,ny,nz)
-      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-      
-      assert(this is not None and east is not None and top is not None and front is not None)
+        i, j, k = get_3d_grid_coords(index_in_worker,nx,ny,nz)
+        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+        
+        assert(this is not None and east is not None and top is not None and front is not None)
 
-      # if one of the values is < min_thresh, set it to min_thresh        
-      # if one of the values is > max_thresh, set it to max_thresh
-      x1 = min(max(this[0],min_thresh),max_thresh)
-      x2 = min(max(east[0],min_thresh),max_thresh)
-      y1 = min(max(this[1],min_thresh),max_thresh)
-      y2 = min(max(top[1],min_thresh),max_thresh)
-      z1 = min(max(this[2],min_thresh),max_thresh)
-      z2 = min(max(front[2],min_thresh),max_thresh)
-      
-      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-      bc_input.eta = 0.7
-      bc_input.stiffness_as_diameter = True
-      cell_obj = basecell.Basecell(bc_input)
-      if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-    #       if cell_obj.volume <= args.bc_volume_thresh:
-         return basecells, boundary_flags
-
-      
-      # translate cell to correct position
-      coord  = numpy.asarray(sample_coords[i,j,k])
-      
-      # flags for meshing circles on the boundary
-      flag = [None] * 6
-      for c,bound in enumerate(bounds):
-        if numpy.isclose(coord[int(c/2)],bound):
-          flag[c] = True
-      
-      #with p.lock:
-      basecells.append((cell_obj.points,cell_obj.cells,coord))
-      boundary_flags.append(flag)
-      print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
+        # if one of the values is < min_thresh, set it to min_thresh        
+        # if one of the values is > max_thresh, set it to max_thresh
+        x1 = min(max(this[0],min_thresh),max_thresh)
+        x2 = min(max(east[0],min_thresh),max_thresh)
+        y1 = min(max(this[1],min_thresh),max_thresh)
+        y2 = min(max(top[1],min_thresh),max_thresh)
+        z1 = min(max(this[2],min_thresh),max_thresh)
+        z2 = min(max(front[2],min_thresh),max_thresh)
+        
+        bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+        bc_input.eta = 0.7
+        bc_input.stiffness_as_diameter = True
+        cell_obj = basecell.Basecell(bc_input)
+        if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+      #       if cell_obj.volume <= args.bc_volume_thresh:
+           continue
+        
+        # translate cell to correct position
+        coord  = numpy.asarray(sample_coords[i,j,k])
+        
+        # flags for meshing circles on the boundary
+        flag = [None] * 6
+        for c,bound in enumerate(bounds):
+          if numpy.isclose(coord[int(c/2)],bound):
+            flag[c] = True
+        
+        #with p.lock:
+        basecells.append((cell_obj.points,cell_obj.cells,coord))
+        boundary_flags.append(flag)
+        print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
 
       return basecells, boundary_flags
 
@@ -1434,7 +1552,7 @@ class Master():
             
             # if the received tag is 'READY' the worker waits for data to process
             if tag == tags.READY:
-                if job_index < (self.number_of_jobs):
+                if job_index < (number_of_workers):
                     # get a task from the list
                     # job_data = self.tasks[job_index]
                     # assemble the message to send to the worker
