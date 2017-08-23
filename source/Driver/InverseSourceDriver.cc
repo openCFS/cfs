@@ -54,6 +54,8 @@ namespace CoupledField
     // replace our info node by a more detailed level
     info_ = info_->Get("inverseSource");
     info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
+
+    fileNameMeasdata_ = param_->Get("measDataFilename")->As<std::string>();
     freq_ = param_->Get( "freq")->MathParse<Double>();
 
     //regularization parameters
@@ -249,8 +251,8 @@ namespace CoupledField
     }
 
     //set the regularization parameters
-    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_);
-    rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_);
+    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
+    rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
 
     analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
     analysis_id_->Get("analysis_id")->SetValue(actFreqStep);

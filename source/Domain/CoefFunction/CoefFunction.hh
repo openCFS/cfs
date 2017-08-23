@@ -417,7 +417,7 @@ public:
 
   //! computes the L2 norm of error
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
-		                        Double& freq ) {
+		                        Double& freq, std::string fileNameMeasdata ) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 

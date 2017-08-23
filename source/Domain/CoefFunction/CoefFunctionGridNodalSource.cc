@@ -14,6 +14,8 @@
 
 #include <def_expl_templ_inst.hh>
 #include <complex>
+#include <iostream>
+#include <fstream>
 
 #include "CoefFunctionGridNodalSource.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -96,9 +98,9 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 	  configNode->GetValue("measureNodes",inverseString);
 	  std::cout << "Name: " << inverseString << std::endl;
 
-	  this->srcGrid_->GetNodesByName( measNodes_, inverseString );
-	  for ( UInt i=0; i<measNodes_.GetSize(); i++)
-		  std::cout << "Node: " << measNodes_[i] << std::endl;
+//	  this->srcGrid_->GetNodesByName( measNodes_, inverseString );
+//	  for ( UInt i=0; i<measNodes_.GetSize(); i++)
+//		  std::cout << "Node: " << measNodes_[i] << std::endl;
   }
 
   //GridcoefFunctions are always general!
@@ -111,12 +113,60 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Double& beta,
-		Double& qExp, Double& freq ) {
+		Double& qExp, Double& freq, std::string fileName) {
 
 	alpha_ = alpha;
 	beta_  = beta;
 	qExp_  = qExp;
 	freq_ = freq;
+
+	//==================NEW=============================================
+	if ( this->inverseType_ == CoefFunction::INVMEASURE ) {
+		std::cout << "Read from FILE" << std::endl;
+		std::string line;
+		std::ifstream myfile ( fileName.c_str() );
+
+		Integer nodeNr;
+		Double realPart, imagPart;
+
+		//get number of measurement positions
+		UInt numMeas=0;
+		if ( myfile.is_open() ) {
+			while ( getline (myfile,line) ) {
+				numMeas++;
+			}
+			myfile.close();
+		}
+		else
+			EXCEPTION("Could not open file including measurement data");
+
+
+		//resize
+		measNodes_.Resize(numMeas);
+		readMeasVec_.Resize(numMeas);
+
+		//reopen and read measurement data
+		std::ifstream myfile1 ( fileName.c_str() );
+		UInt idx=0;
+		if ( myfile1.is_open() ) {
+			while ( getline (myfile1,line) ) {
+				//std::cout << line << '\n';
+				std::sscanf(line.c_str(), "%d%lf%lf", &nodeNr, &realPart, &imagPart);
+				measNodes_[idx] = nodeNr;
+				readMeasVec_[idx] = Complex(realPart,imagPart);
+				idx++;
+			}
+			myfile1.close();
+		}
+		else
+			EXCEPTION("Could not open file including measurement data");
+
+		for ( UInt i=0; i<measNodes_.GetSize(); i++)
+			std::cout << "Node: " << measNodes_[i] << "  Value: " <<  readMeasVec_[i] << std::endl;
+
+	}
+	//==================NEW=============================================
+
 
 	scalingHesse_ = 1.0;
 
@@ -428,10 +478,26 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  //First, fetch the solutions at the measurement position
 		  //and store them in measVec_
 		  if ( !isDataReadFromFile_ ) {
+
 			  this->UpdateSolution();
 			  measVec_ = this->solVec_;
 			  //std::cout << "Meas vec set!!" << std::endl;
 			  isDataReadFromFile_ = true;
+
+			  //==================NEW=============================================
+			  //set measured data read from file to measVec_!
+			  UInt idx = 0;
+			  for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
+				  const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
+				  if ( curP.second > 0 ) {
+					  if ( isMeasuredNode_[i] ) {
+						  //std::cout << "Pos: " << i << "  Value: " << measVec_[i] << std::endl;
+						  measVec_[i] = readMeasVec_[idx];
+						  idx++;
+					  }
+				  }
+			  }
+			  //==================NEW=============================================
 		  }
 
 		  //reset RHS to zero:
@@ -469,7 +535,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		      if ( curP.second > 0 ) {
 		    	  if ( isMeasuredNode_[i] ) {
 		    		  Complex val = actPDEsol[idx] - measVec_[i];
-		    	  	  this->solVec_[i] = -1.0*std::conj( val );
+		    	  	  this->solVec_[i] = 1.0*std::conj( val );
 		    	  	  //std::cout << "RHS-ADJ: " <<  this->solVec_[i] << std::endl;
 		    	  	  idx++;
 		    	  }
@@ -695,7 +761,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 
 		Complex jphi(0,sourcePhi_[i]); //j*phi
 		Complex valC = actPDEsol[i] * std::exp(jphi);
-		deltaAmp -= valC.real() * scalingHesse_;
+		deltaAmp += valC.real() * scalingHesse_;
 
 		//store derivative
 		sourceAmpDelta_[i] = deltaAmp;
@@ -705,7 +771,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 
 		//phase
 		Double deltaPsi;
-		deltaPsi = 2*beta_*psi + sourceAmp_[i]*valC.imag()
+		deltaPsi = 2*beta_*psi - sourceAmp_[i]*valC.imag()
 						+ 2*psi / ( (PI/2 + psi) * (PI/2-psi) );
 
 //		if ( this->approxSourceType_ == CoefFunction::DELTA )

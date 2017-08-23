@@ -87,6 +87,10 @@ namespace CoupledField{
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     
+
+    //! acoustic source density
+    shared_ptr<CoefFunctionMulti> acousticSourceDensityCoef_;
+
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 

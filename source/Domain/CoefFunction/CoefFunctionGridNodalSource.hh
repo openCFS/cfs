@@ -107,7 +107,8 @@ public:
   virtual void ComputeMeasL2squared( Double& vaL2 );
 
   //! computes the L2 norm of error
-  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp, Double& freq);
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
+		                        Double& freq, std::string fileNameMeasdata);
 
 
 protected:
@@ -168,6 +169,9 @@ private:
 
   //! defines, if measured data is read at micro-positions!
   bool isDataReadFromFile_;
+
+  //! measurement data read from file
+  Vector<DATA_TYPE> readMeasVec_;
 
   //! stores the measured data
   Vector<DATA_TYPE> measVec_;

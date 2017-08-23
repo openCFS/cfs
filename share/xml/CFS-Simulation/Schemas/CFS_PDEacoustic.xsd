@@ -626,6 +626,7 @@
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
+      <xsd:enumeration value="acouRhsLoadDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -639,6 +640,7 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
+      <xsd:enumeration value="acouRhsLoadDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
