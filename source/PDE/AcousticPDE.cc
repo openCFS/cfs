@@ -1138,6 +1138,9 @@ namespace CoupledField{
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
+
+      RegionIdType regionId = ent[i]->GetRegion();
+      acousticSourceDensityCoef_->AddRegion(  regionId, coef[i] );
     } // for
 
     // =====================================
@@ -1171,7 +1174,11 @@ namespace CoupledField{
           ctx->SetEntities( ent[i] );
           ctx->SetFeFunction(myFct);
           assemble_->AddLinearForm(ctx);
+
+          RegionIdType regionId = ent[i]->GetRegion();
+          acousticSourceDensityCoef_->AddRegion(  regionId, coef[i] );
       }
+
       //if ( coef[i]->GetInverseType() == CoefFunction::INVSOURCE )
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
@@ -1654,6 +1661,17 @@ namespace CoupledField{
     resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
     stiffFormFunctors_.insert(keFuncPot);
 
+    //== ACOUSTIC LOAD DDENSITY  ====
+    shared_ptr<ResultInfo> loadDensity( new ResultInfo);
+    loadDensity->resultType = ACOU_RHS_LOAD_DENSITY;
+    loadDensity->dofNames = "";
+    loadDensity->unit = "";
+
+    loadDensity->definedOn = ResultInfo::NODE;
+    loadDensity->entryType = ResultInfo::SCALAR;
+
+    acousticSourceDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( acousticSourceDensityCoef_,loadDensity );
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){

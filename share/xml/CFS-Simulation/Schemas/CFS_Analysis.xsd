@@ -205,7 +205,8 @@
   <xsd:complexType name="DT_AnalysisInverseSource">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>          
+        <xsd:sequence>   
+          <xsd:element name="measDataFilename" type="xsd:string" minOccurs="1" maxOccurs="1"/>          
           <xsd:element name="freq" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="alphaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="adjustAlpha" type="DT_CFSBool" minOccurs="1" maxOccurs="1"/>

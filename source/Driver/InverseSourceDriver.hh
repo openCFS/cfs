@@ -130,6 +130,9 @@ protected:
   //! pointer to loadRHS: measure
   PtrCoefFct rhsMeas_;
 
+  //!file name containing the measured data
+  std::string fileNameMeasdata_;
+
   //! regularization parameter 1
   Double alpha_;
 
