@@ -910,7 +910,8 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
   if ny == 0 or nz == 0 or nx == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
-
+  
+  print(nx,ny,nz)  
   out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
   idx = 0
   

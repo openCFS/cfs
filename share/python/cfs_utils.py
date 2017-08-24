@@ -179,7 +179,7 @@ def generate_qsub_script(template, cmd, filename, silent = False):
   out.close()
   return "qsub " + filename
 
-# execute cmd and rais error when not 0 and not silen
+# execute cmd and raise error when not 0 and not silent
 # return error code, 0 for no problem
 def execute(cmd, output = False, silent = False):
  if output:

@@ -1752,32 +1752,60 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   mesh = mesh_tool.Mesh()
   mesh.nodes = nodes
   
-  if regionnumbers == None:
-    regionnumbers = 'mech'
-  for j in range(len(regionnumbers)):
-    for i in range(len(regions[j])):
+#   if regionnumbers == None:
+#     regionnumbers = 'mech'
+  # seems not to work if no region was specified
+  if regionnumbers != None:
+    print("regionnumbers:",regionnumbers)
+    for j in range(len(regionnumbers)):
+      for i in range(len(regions[j])):
+        e = mesh_tool.Element()
+        e.nodes = (regions[j][i][1:])
+        for k in range (len(e.nodes)):
+          e.nodes[k] -= 1
+        e.density = 1.
+        e.region = str(regionnumbers[j])
+        if len(e.nodes) == 4:
+          e.type = TET4
+        elif len(e.nodes) == 6:
+          e.type = WEDGE6
+        elif len(e.nodes) == 8:
+          e.type = HEXA8
+        mesh.elements.append(e)
+  else: # workaround
+    for i in range(len(regions)):
       e = mesh_tool.Element()
-      e.nodes = (regions[j][i][1:])
+      e.nodes = (regions[i][1:])
       for k in range (len(e.nodes)):
         e.nodes[k] -= 1
       e.density = 1.
-      e.region = str(regionnumbers[j])
+      e.region = "mech"
       if len(e.nodes) == 4:
         e.type = TET4
       elif len(e.nodes) == 6:
         e.type = WEDGE6
       elif len(e.nodes) == 8:
         e.type = HEXA8
-      mesh.elements.append(e)
-      
+      mesh.elements.append(e)    
   for bcnum in range(len(surfaceBCnumbers)):
     mesh.bc.append((str(surfaceBCnumbers[bcnum]), list(set(bcs[bcnum]))))
   
 ## Manually add simple boundary conditions 
-#  load = []
-#  support = []
+#   load = []
+#   support = []
 #  symmetric = []
-#  for i in range(len(nodes)):
+#   for i in range(len(nodes)):
+#     # all nodes on top face are loads
+#     if numpy.isclose(nodes[i][2],1.0,1e-12):
+#       load.append(i)
+#     # all nodes on left face are supports
+#     if numpy.isclose(nodes[i][0],0.0,1e-12):
+#       support.append(i)
+#     if numpy.isclose(nodes[i][2],0.0,1e-12):   
+#       if numpy.isclose(nodes[i][0],0.0,1e-12) or numpy.isclose(nodes[i][0],2.0,1e-12):# left/right edge
+#         support.append(i)
+#       elif numpy.isclose(nodes[i][1],0.0,1e-12) or numpy.isclose(nodes[i][1],1.0,1e-12): # front/back edge
+#         support.append(i)
 #    if nodes[i][1] < -2.9999999:
 #      support.append(i)
 #    elif nodes[i][1] > 31.9999999:
@@ -1785,9 +1813,10 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #    if nodes[i][2] < 0.0000001:
 #      symmetric.append(i)
 #  print(len(load))
-#  print(len(support))
-#  mesh.bc.append(("load", load))
-#  mesh.bc.append(("support", support))
+#   print(len(support))
+# 
+#   mesh.bc.append(("load", load))
+#   mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
   write_gid_mesh(mesh, meshfile+".mesh") 
@@ -2676,7 +2705,28 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
-def create_validation_mesh_for_box_varel(args, coords, s1, s2, s3, scale, samples, thresh):
+
+# @param viz: vtk polydata object
+# @param stlname: name of stl file
+def create_validation_mesh_for_box_varel(stlName):
+  baseName = stlName[:-4]
+  # write .geo file for gmsh
+  geoName = baseName + ".geo"
+  out = open(geoName,"w")
+  out.write("Merge '" + stlName + "';\n")
+  out.write("// add a geometrical volume \n")
+  out.write("Surface Loop(1) = {1};\n")
+  out.write("Volume(1) = {1};\n")
+  out.flush()
+  out.close()
+  
+  # -3: tetrahedralize (3D)
+  # -optimize: use netgen's mesh optimization tool
+  command = "gmsh -3 -optimize " + geoName
+  cfs_utils.execute(command)
+  create_mesh_from_gmsh(baseName)  
+
+def create_validation_mesh_for_pp_box(args, coords, s1, s2, s3, scale, samples, thresh):
   polydata = matviz_vtk.create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, thresh)
   num_points = polydata.GetPoint
   return "Not implemented yet"
