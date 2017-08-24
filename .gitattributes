@@ -1111,6 +1111,7 @@ share/matlab/material_catalogue/+Homogenization/computeInterpolationValues.m -te
 share/matlab/material_catalogue/+Homogenization/generateCross.m -text
 share/matlab/material_catalogue/+Homogenization/generateCross3DExact.m -text
 share/matlab/material_catalogue/+Homogenization/generateCross3DExact_2.m -text
+share/matlab/material_catalogue/+Homogenization/generateCrossSparse.m -text
 share/matlab/material_catalogue/+Homogenization/generateCrossWithVertBar.m -text
 share/matlab/material_catalogue/+Homogenization/generateFrame.m -text
 share/matlab/material_catalogue/+Homogenization/generateFramedCross.m -text
@@ -1231,11 +1232,13 @@ share/python/geometry_mesher.py -text
 share/python/gid_screenshots.py -text
 share/python/hdf5_tools.py -text
 share/python/material_catalogue/calculate-crosses.py -text
+share/python/material_catalogue/calculateTensor.py -text
 share/python/material_catalogue/cellproblem_fine.xml -text
 share/python/material_catalogue/compliance_plain.xml -text
 share/python/material_catalogue/create_hom_catalogue.py -text
 share/python/material_catalogue/create_msfem_catalogue.py -text
 share/python/material_catalogue/evaluate.py -text
+share/python/material_catalogue/generateCatalog.py -text
 share/python/material_catalogue/interpolation2D/bicubic_coeff.m -text
 share/python/material_catalogue/interpolation2D/bicubic_deriv.m -text
 share/python/material_catalogue/interpolation2D/bicubic_int.m -text
@@ -1283,7 +1286,9 @@ share/python/material_catalogue/inv_tensor.xml -text
 share/python/material_catalogue/inv_tensor_3D.xml -text
 share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/mat.xml -text
+share/python/material_catalogue/micromodels.py -text
 share/python/material_catalogue/process_sparse.py -text
+share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
 share/python/matviz_2d.py -text
 share/python/matviz_rot.py -text
