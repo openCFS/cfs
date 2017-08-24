@@ -178,13 +178,20 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect"):
         microparams = read_stiff_angle(f, dim_2D, args)
         if args.show == "hom_sheared_rot_cross":
-          try:
-            s1 = microparams['s1']
-            s2 = microparams['s2']
-            s3 = microparams['s3']
-            sh1 = microparams['sh1']
-          except:
-            s1, s2, sh1 = microparams['microparams']
+          if dim_2D:
+            try:
+              s1 = microparams['s1']
+              s2 = microparams['s2']
+              sh1 = microparams['sh1']
+            except:
+              s1, s2, sh1 = microparams['microparams']
+          else:
+            try:
+              s1 = microparams['s1']
+              s2 = microparams['s2']
+              s3 = microparams['s3']
+            except:
+              s1, s2, s3 = microparams['microparams']
         elif args.show == "hom_framed_cross":
           try:
             s1 = microparams['s1']

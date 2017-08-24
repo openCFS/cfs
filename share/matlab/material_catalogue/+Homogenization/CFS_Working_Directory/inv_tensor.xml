@@ -31,10 +31,10 @@
           <region name="mech" />
         </regionList>
         <bcsAndLoads>
-          <periodic master="nodes3" slave="nodes4" quantity="mechDisplacement" dof="x" />
-          <periodic master="nodes3" slave="nodes4" quantity="mechDisplacement" dof="y" />
-          <periodic master="nodes5" slave="nodes6" quantity="mechDisplacement" dof="x" />
-          <periodic master="nodes5" slave="nodes6" quantity="mechDisplacement" dof="y" />
+          <periodic master="left" slave="right" quantity="mechDisplacement" dof="x" />
+          <periodic master="left" slave="right" quantity="mechDisplacement" dof="y" />
+          <periodic master="bottom" slave="up" quantity="mechDisplacement" dof="x" />
+          <periodic master="bottom" slave="up" quantity="mechDisplacement" dof="y" />
         </bcsAndLoads>
         <storeResults>
           <nodeResult type="mechDisplacement">
