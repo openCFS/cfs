@@ -893,32 +893,23 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
-def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
+# @param (xmin,ymin,zmin,xmax,ymax,zmax)
+def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
   # we make our own regular element grid
   centers, mi, ma = coords[0:3]  # skip elem
  
-  delta = (abs(ma[0] + mi[0]), abs(ma[1] + mi[1]), abs(ma[2] + mi[2]))
-  # where we want nodes
-  nx = int(delta[0] / dx)
-  ny = int(delta[1] / dy)
-  nz = int(delta[2] / dz)
-  
-  scale_x = delta[0]/(nx*dx)
-  scale_y = delta[1]/(ny*dy)
-  scale_z = delta[2]/(nz*dz)
-  
+  print("dx,dy,dz:",dx,dy,dz)  
   if ny == 0 or nz == 0 or nx == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
   
-  print(nx,ny,nz)  
+  print("nx,ny,nz:",nx,ny,nz)  
   out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
-  idx = 0
   
   for x in range(nx + 1):
     for y in range(ny + 1):
       for z in range(nz + 1):
-        out[x,y,z] = [x*dx,y*dy,z*dz]
+        out[x,y,z] = [bounds[0]+x*dx,bounds[1]+y*dy,bounds[2]+z*dz]
 
   assert(s1 is not None and s2 is not None and s3 is not None)      
   v = numpy.zeros((len(s1),3))
@@ -936,7 +927,7 @@ def get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz, angle=None
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
   
-  return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
+  return ip_data, ip_near, out  
 
 # # litte helper
 # @param save filename or none
