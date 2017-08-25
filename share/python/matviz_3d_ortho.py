@@ -17,21 +17,18 @@ except:
 # similar to create_3d_cross_ip; # without rotation and shearing
 # returns
 
-def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thresh):
+def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
   # grad: type of interpolation ('linear', 'nearest')
   # scale: parameter for scaling the cell size if necessary
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
-  # csize: size of one cell, e.g. [8,8,8]
   
   # point coordinates from h5 file
-  centers, minimum, maximum = coords[0:3]
+  centers, _, _ = coords[0:3]
   
-  print("min:",minimum," max:",maximum)
-  
-  # appendind cells
+  # appending cells
   appends = vtk.vtkAppendPolyData()
   
   if scale <= 0:
@@ -40,32 +37,39 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   # assume we always start at (0,0,0)
   # order: min_x,min_y,min_z,max_x,max_y,max_z
   bounds = np.ones(6) * (-1)
-  bounds[0] = bounds[1] = bounds[2] = 0
-  bounds[3] = maximum[0] + minimum[0]
-  bounds[4] = maximum[1] + minimum[1]
-  bounds[5] = maximum[2] + minimum[2]
+  bounds[0:3] = min_bb[0:3]
+  bounds[3:6] = max_bb[0:3]
+  
+  # 0:xmin,1:ymin,2:zmin,3:xmax,4:ymax,5:zmax  
+  delta = (abs(bounds[3] - bounds[0]), abs(bounds[4] - bounds[2]), abs(bounds[5] - bounds[3]))
   
   # set size dx/dy/dz of one cell
-  dx = bounds[3] / samples[0]
-  dy = bounds[4] / samples[1]
-  dz = bounds[5] / samples[2]
+  dx = delta[0] / samples[0]
+  dy = delta[1] / samples[1]
+  dz = delta[2] / samples[2]
   
   min_thresh = 0.1
   max_thresh = 0.82
     
-  delta = (abs(maximum[0] + minimum[0]), abs(maximum[1] + minimum[1]), abs(maximum[2] + minimum[2]))
+  print("delta:",delta)
+  print("bounds:",bounds)
   # where we want nodes
   nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
-  nz = int(delta[2] / dz)    
+  nz = int(delta[2] / dz)
   
-  data_grid, data_grid_near, sample_coords, ndim, scale_ = matviz_vtk.get_interpolation_row_major(coords, grad, s1, s2, s3, dx, dy, dz)
+  print("dx,dy,dz:",dx,dy,dz)
+  print("nx,ny,nz:",nx,ny,nz) 
+  print("min/max bb:",min_bb,max_bb)   
+  
+  data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
   count = 0
   basecells = pymp.shared.list()
   with pymp.Parallel(args.bc_num_threads) as p:
     for id in p.range(nx*ny*nz):
       count = count + 1
       i, j, k = get_3d_grid_coords(id,nx,ny,nz)
+      print("i,j,k:",i,j,k)
       
       this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
       east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
@@ -85,6 +89,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
       
       # translate cell to correct position
       left_front_corner  = np.asarray(sample_coords[i,j,k])
+      print("left_front_corner:",left_front_corner)
       
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
       bc_input.eta = 0.7
@@ -111,6 +116,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 
       cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
       cell_obj.center = cell_center
+      print("cell_center:",cell_center)
       boundary_list = []
       # at least one boundary circle needs to be triangulated
       if any(flags):
@@ -147,9 +153,9 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   cleanFilter.Update()
   
   boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
-  
+   
   appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
-  
+#   
   cleanFilter.Update()
   
   return cleanFilter.GetOutput()

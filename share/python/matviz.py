@@ -162,8 +162,9 @@ def plot_angle_data(file, angle, data):
 
 # we extract the main processing such that we can run it within a loop to find the optimal scaling
 # @param force_scale overwrites args.scale
+# @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,nondes_coords = None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
   
   volume = None  # might ne set
   
@@ -312,7 +313,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
-                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.thres)
+                  print("Ohoh, I shouldn't be here...")
+                  sys.exit()
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
@@ -323,7 +325,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
+                print(args.hom_grad)
+                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
@@ -585,6 +588,7 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
   centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  
   if args.mesh:
     if args.h5_nondes != "None":
       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
@@ -594,9 +598,9 @@ else:
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb = min,max_bb=max)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb = min,max_bb=max)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")
