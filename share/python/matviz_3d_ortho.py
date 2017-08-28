@@ -41,26 +41,27 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   bounds[3:6] = max_bb[0:3]
   
   # 0:xmin,1:ymin,2:zmin,3:xmax,4:ymax,5:zmax  
-  delta = (abs(bounds[3] - bounds[0]), abs(bounds[4] - bounds[2]), abs(bounds[5] - bounds[3]))
+  delta = (abs(bounds[3] - bounds[0]), abs(bounds[4] - bounds[1]), abs(bounds[5] - bounds[2]))
   
   # set size dx/dy/dz of one cell
   dx = delta[0] / samples[0]
   dy = delta[1] / samples[1]
   dz = delta[2] / samples[2]
   
+  
   min_thresh = 0.1
   max_thresh = 0.82
     
-  print("delta:",delta)
-  print("bounds:",bounds)
   # where we want nodes
   nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
   nz = int(delta[2] / dz)
-  
-  print("dx,dy,dz:",dx,dy,dz)
-  print("nx,ny,nz:",nx,ny,nz) 
-  print("min/max bb:",min_bb,max_bb)   
+
+#   print("samples:",samples)  
+#   print("delta:",delta)
+#   print("bounds:",bounds)  
+#   print("dx,dy,dz:",dx,dy,dz)
+#   print("nx,ny,nz:",nx,ny,nz) 
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
   count = 0
@@ -69,7 +70,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     for id in p.range(nx*ny*nz):
       count = count + 1
       i, j, k = get_3d_grid_coords(id,nx,ny,nz)
-      print("i,j,k:",i,j,k)
       
       this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
       east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
@@ -89,7 +89,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       
       # translate cell to correct position
       left_front_corner  = np.asarray(sample_coords[i,j,k])
-      print("left_front_corner:",left_front_corner)
       
       bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
       bc_input.eta = 0.7
@@ -100,7 +99,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       cell_obj.update()
       if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
         continue
-      
       # flags for meshing circles on the boundary
       flags = [None] * 6
       grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
@@ -113,10 +111,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #       flags[5] = True if k == nz-1 else False
       for c in range(len(flags)):      
         flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
-
       cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
       cell_obj.center = cell_center
-      print("cell_center:",cell_center)
       boundary_list = []
       # at least one boundary circle needs to be triangulated
       if any(flags):
@@ -153,9 +149,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   cleanFilter.Update()
   
   boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
-   
   appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
-#   
+   
   cleanFilter.Update()
   
   return cleanFilter.GetOutput()
@@ -231,12 +226,11 @@ def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
   minor_dir_1, minor_dir_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
   # sort points in circle order
   coords_2d.sort(key=lambda c:math.atan2(c[0]-cell_center[0], c[1]-cell_center[1]))
-  
+
   info = triangle.MeshInfo()
-#   import matplotlib
-#   matplotlib.use('tkagg')
-#   from matplotlib import pyplot as plt
-#   coords_2d = np.asarray(coords_2d)
+  import matplotlib
+  from matplotlib import pyplot as plt
+  coords_2d = np.asarray(coords_2d)
 #   plt.plot(coords_2d[:,0],coords_2d[:,1],'o')
 #   plt.show()
   test = [ [elem[0],elem[1]] for elem in coords_2d]
@@ -294,7 +288,7 @@ def detect_boundary_edges(polydata):
     c = lines.GetNextCell(ids)
     boundaryEdges.append((ids.GetId(0),ids.GetId(1)))
 
-  print("bounds:",boundaryEdges)
+  print("boundaryEdges:",boundaryEdges)
   print("num boundary edges:",len(boundaryEdges))
   from itertools import cycle # circular list iterator    
   edgeLoops = []
