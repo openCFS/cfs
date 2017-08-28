@@ -347,13 +347,10 @@ class Basecell():
   def scale(self,scalex,scaley,scalez):
     for i in range(len(self.points)):
       self.points[i] = np.asanyarray(self.points[i]) * np.asarray([scalex,scaley,scalez])
-      
+
   def translate(self,x,y,z):
-#     print("translate:",x,y,z)
     for i in range(len(self.points)):
-#       print("old:",self.points[i])
       self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z]) 
-#       print("new:",self.points[i])
     
   # recalculate bounds after rescaling and translating
   def update(self):
