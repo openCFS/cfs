@@ -21,7 +21,7 @@ Topology<T>::Topology()
 /**********************************************************/
 
 template <typename T>
-Topology<T>::Topology( const CRS_Matrix<T>& matrix,
+Topology<T>::Topology( const CRS_Matrix<T>& auxMat,
                        const Double         alpha,
                        const Double         tolerance,
                        const Double         diag_dominance )
@@ -36,7 +36,7 @@ Topology<T>::Topology( const CRS_Matrix<T>& matrix,
 #endif
 {
 
-    CreateDependencyGraphs( matrix, alpha, tolerance, diag_dominance );
+    CreateDependencyGraphs( auxMat, alpha, tolerance, diag_dominance );
 }
 
 /**********************************************************/
@@ -117,29 +117,29 @@ inline Integer Topology<T>::GetCoarseIndex( const Integer i ) const
 
 template <typename T>
 Integer Topology<T>::
-CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
+CreateDependencyGraphs( const CRS_Matrix<T>& auxMat,
                         const Double         alpha,
                         const Double         tolerance,
                         const Double         diag_dominance)
 {
     
     // loop indices, consistent for the whole function
-    Integer i,  // i = row index in matrix, in [1,n]
+    Integer i,  // i = row index in auxMat, in [1,n]
             ij; // ij = absolute index in pCol and pDat for an entry in row i
 
     // pointers for direct matrix access
-    const UInt *const pRow = matrix.GetRowPointer();
-    const UInt *const pCol = matrix.GetColPointer();
-    const T *const pDat = matrix.GetDataPointer();
+    const UInt *const pRow = auxMat.GetRowPointer();
+    const UInt *const pCol = auxMat.GetColPointer();
+    const T *const pDat = auxMat.GetDataPointer();
 
     /////////////////////////////////
     // prepare some data structures
     /////////////////////////////////
 
-    Size_h_ = matrix.GetNumRows();
+    Size_h_ = auxMat.GetNumRows();
     
     // prepare dependency graph S
-    S_.Create( matrix,  // build it from matrix "matrix"
+    S_.Create( auxMat,  // build it from matrix "auxMat"
                true,    // initialize it as empty graph
                false ); // use the matrix' start index array (do not copy)
 
@@ -147,15 +147,15 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // Eploiting the knowledge about the symmetric non-zero structure
     // of the matrix we generate also ST from the problem matrix. ST
     // will use the start-array of matrix, too.
-    ST_.Create( matrix,  // build it from matrix "matrix"
+    ST_.Create( auxMat,  // build it from matrix "auxMat"
                 true,    // initialize it as empty graph
                 false ); // use the matrix' start index array (do not copy)
 
 
     // allocate the array for the C-F-splitting and the coarse indices
     delete [] ( CoarseIndex_ );  CoarseIndex_  = NULL;
-    NEWARRAY( CoarseIndex_, Integer, matrix.GetNumRows() );
-    for( i = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
+    NEWARRAY( CoarseIndex_, Integer, auxMat.GetNumRows() );
+    for( i = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         CoarseIndex_[i] = (Integer)UNDEFINED;
     }
 
@@ -163,12 +163,12 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // create the graphs S and ST
     ///////////////////////////////
 
-    // inspect matrix row by row
-    for( i = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
+    // inspect auxMat row by row
+    for( i = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         // get number of non-zero entries in row [i]
-        UInt RowLength = matrix.GetRowSize( i );
+        UInt RowLength = auxMat.GetRowSize( i );
         if( RowLength == 0 ) {
-            EXCEPTION( "topology.cc: matrix is singular");
+            EXCEPTION( "topology.cc: auxMat is singular");
         }
         // get diagonal entry
         T		diag       = pDat[pRow[i]],
@@ -223,13 +223,13 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // maximal number of strong dependencies for one node
     Integer maxNumStrongDep = 0;
 
-    for( i = 0, startCoarsePoint_ = 0; i < (Integer)matrix.GetNumRows(); i++ ) {
+    for( i = 0, startCoarsePoint_ = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         // The first coarse node will be the one that influences the
         // most other nodes strongly, i.e. i with maximal |ST(i)|
         // LAS: LAS additionally (AND) checked, if the number of entries
         //      in row [i] of the matrix is != 0. I do not understand this
         //      condition yet, but I port it anyway.
-        if( maxNumStrongDep < ST_.GetNumEdges(i) && matrix.GetRowSize(i) ) {
+        if( maxNumStrongDep < ST_.GetNumEdges(i) && auxMat.GetRowSize(i) ) {
             maxNumStrongDep = ST_.GetNumEdges(i);
             startCoarsePoint_ = i;
         }
@@ -238,7 +238,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
         if( CoarseIndex_[i] == DIRICHLET_FINE ||
         /// Nodes without any dependency from other nodes are treated as
         /// Dirichlet nodes and put in F
-            matrix.GetRowSize(i) == 1 ) {
+            auxMat.GetRowSize(i) == 1 ) {
             // LAS: LAS called BaseTopology::SetDirichlet(i) at this
             //      position. To rebuild this call in detail, we would
             //      have to call S_.RemoveAllEdges(i), too. This can be
@@ -249,7 +249,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
             //      single edge has been added to graph S, since we did
             //      not even enter the loop, in which edges S(i,..) are
             //      set.
-            // (ii) In case (matrix.GetRowSize(i) == 1) we know from exactly
+            // (ii) In case (auxMat.GetRowSize(i) == 1) we know from exactly
             //      this condition that row [i] has not got any offdiagonal
             //      entries, and therefore no edges S(i,..) either.  
             // only remove them in ST_

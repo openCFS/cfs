@@ -95,9 +95,9 @@ class Jacobi : public Smoother<T>
     protected:
 
         T    *DiagonalInverse_; //!< array with inverse diagonal entries
-        StdVector<T>   auxVec_;          //!< auxiliary vector for the iteration step
-        UInt     Size_;            //!< size of the LES
-        Double     Omega_;           //!< damping factor
+        StdVector<T> auxVec_;   //!< auxiliary vector for the iteration step
+        UInt Size_;  	        //!< size of the LES
+        Double Omega_;          //!< damping factor
 };
 
 /**********************************************************/

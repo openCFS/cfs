@@ -21,7 +21,6 @@ AFWSmoother<T>::AFWSmoother()
 template <typename T>
 AFWSmoother<T>::~AFWSmoother()
 {
-    
     Reset();
 }
 
@@ -41,7 +40,7 @@ bool AFWSmoother<T>::Setup( const CRS_Matrix<T>& SrcMat )
 /**********************************************************/
 template <typename T>
 void AFWSmoother<T>::
-CreatePatches(const CRS_Matrix<T>& AuxMatrix,
+CreatePatches(const CRS_Matrix<Double>& AuxMatrix,
                const StdVector< StdVector< Integer> >& edgeIndNode,
                const StdVector<Integer> nodeNumIndex){
 
@@ -74,14 +73,6 @@ CreatePatches(const CRS_Matrix<T>& AuxMatrix,
       Patches_[n].Push_back(*eIt);
       ++eIt;
     }
-    /*for(UInt e = 0; e < eIndNodeSize; ++e){
-      const StdVector<Integer>& eNodes = edgeIndNode[e];
-      if(eNodes.Contains(nNum) ){
-        Patches_[n].Push_back(e);
-        //std::cout<<"nNum"<<nNum<<std::endl;
-        //std::cout<<"Patches_["<<n<<"] \n"<<Patches_[n]<<std::endl;
-      }
-    }*/
   }
 }
 
@@ -103,7 +94,7 @@ ExtractPatches( const CRS_Matrix<T>& SysMat){
   pDat_ = SysMat.GetDataPointer();
 
 
-  Double entry;
+  T entry;
   // theoretically we construct an extraction matrix R and
   // perform R*K*R^T, but we do it the following way
   for(UInt n = 0; n < SizeNodes_; ++n){
@@ -175,7 +166,7 @@ Step( const CRS_Matrix<T>&                  matrix,
       //changed, according to Patches_[n]
       tmp1.Resize(p.GetSize(), 0.0);
       for(UInt i = 0; i < p.GetSize(); ++i){
-    	  Double row = 0.0;
+    	  T row = 0.0;
     	  UInt t = p[i];
     	  for(UInt r = pRow_[t]; r < pRow_[t + 1]; ++r){
     	    b = pCol_[r];
@@ -183,8 +174,6 @@ Step( const CRS_Matrix<T>&                  matrix,
     	  }
     	  tmp1[ i ] = exRhs[i] - row;
       }
-      //tmp2.Resize(p.GetSize(), 0.0);
-      //tmp2.Add(1.0, exRhs, -1.0, tmp1);
 
       tmp3.Resize(p.GetSize(), 0.0);
       InvExtMat_[n].Mult(tmp1, tmp3);

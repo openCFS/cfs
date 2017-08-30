@@ -161,11 +161,11 @@ InsertSysMatrix( const CRS_Matrix<T>* const sysmat )
 
 template <typename T>
 void HierarchyLevel<T>::
-InsertAuxMatrix( const CRS_Matrix<T>* const auxmat )
+InsertAuxMatrix( const CRS_Matrix<Double>* const auxmat )
 {
 
   delete AuxMatrix_;
-  AuxMatrix_ = (CRS_Matrix<T>*)auxmat;
+  AuxMatrix_ = (CRS_Matrix<Double>*)auxmat;
 }
 
 /**********************************************************/
@@ -179,10 +179,10 @@ const CRS_Matrix<T>* HierarchyLevel<T>::GetSysMatrixPtr() const
 
 
 template <typename T>
-const CRS_Matrix<T>* HierarchyLevel<T>::GetAuxMatrixPtr() const
+const CRS_Matrix<Double>* HierarchyLevel<T>::GetAuxMatrixPtr() const
 {
 
-  return (const CRS_Matrix<T>*) AuxMatrix_;
+  return (const CRS_Matrix<Double>*) AuxMatrix_;
 }
 
 /**********************************************************/
@@ -198,10 +198,10 @@ CRS_Matrix<T>* HierarchyLevel<T>::UnhookSysMatrix()
 
 
 template <typename T>
-CRS_Matrix<T>* HierarchyLevel<T>::UnhookAuxMatrix()
+CRS_Matrix<Double>* HierarchyLevel<T>::UnhookAuxMatrix()
 {
 
-  CRS_Matrix<T> *temp = AuxMatrix_;
+  CRS_Matrix<Double> *temp = AuxMatrix_;
   AuxMatrix_ = NULL;
   return temp;
 }
@@ -316,7 +316,8 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
   /**************** Step 7) ********************************/
   StdVector<UInt> A_H_rP, A_H_cP, B_H_rP, B_H_cP;
-  StdVector<Double> A_H_dP, B_H_dP;
+  StdVector<T> A_H_dP;
+  StdVector<Double> B_H_dP;
   // calc the Galerkin product
   Transfer_->GalerkinProduct( A_H_rP, A_H_cP, A_H_dP, B_H_rP, B_H_cP, B_H_dP,
                               *SysMatrix_,
@@ -330,7 +331,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
   // create coarse matrices
   CRS_Matrix<T>* coarseSysMatrix = new CRS_Matrix<T>( rowsA, rowsA, nnzA);
-  CRS_Matrix<T>* coarseAuxMatrix = new CRS_Matrix<T>( rowsB, rowsB, nnzB);
+  CRS_Matrix<Double>* coarseAuxMatrix = new CRS_Matrix<Double>( rowsB, rowsB, nnzB);
 
   // setup the sparsity graph
   coarseSysMatrix->SetSparsityPatternData(A_H_rP, A_H_cP, A_H_dP);
@@ -338,7 +339,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
   // sort the rows lexicographically
   coarseSysMatrix->ChangeLayout(CRS_Matrix<T>::LEX);
-  coarseAuxMatrix->ChangeLayout(CRS_Matrix<T>::LEX);
+  coarseAuxMatrix->ChangeLayout(CRS_Matrix<Double>::LEX);
 
 
   ////////////////////////////////////////////////////
@@ -422,13 +423,13 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   UInt rowsB = (UInt)B_H_rP.GetSize() - 1;
   UInt nnzB = (UInt)B_H_rP.Last();
   // create coarse matrices
-  CRS_Matrix<T>* coarseAuxMatrix = new CRS_Matrix<T>( rowsB, rowsB, nnzB);
+  CRS_Matrix<Double>* coarseAuxMatrix = new CRS_Matrix<Double>( rowsB, rowsB, nnzB);
 
   // setup the sparsity graph
   coarseAuxMatrix->SetSparsityPatternData(B_H_rP, B_H_cP, B_H_dP);
 
   // sort the rows lexicographically
-  coarseAuxMatrix->ChangeLayout(CRS_Matrix<T>::LEX_DIAG_FIRST);
+  coarseAuxMatrix->ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
 
 
 
@@ -471,7 +472,7 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
 
   /**************** Step 8) ********************************/
   StdVector<UInt> A_H_rP, A_H_cP;
-  StdVector<Double> A_H_dP;
+  StdVector<T> A_H_dP;
 
   Transfer_->GalerkinProductEdgeSys(A_H_rP, A_H_cP, A_H_dP, *SysMatrix_);
 
@@ -660,7 +661,7 @@ bool HierarchyLevel<T>::SetupTopology( const Double alpha,
   if( Topology_ ) { delete Topology_;  Topology_ = NULL; }
 
   // create new topology object
-  if( NULL == (Topology_ = new Topology<T>) ) {
+  if( NULL == (Topology_ = new Topology<Double>) ) {
     EXCEPTION(" AMG: creation of topology object failed\n");
     return false;
   }
@@ -689,7 +690,7 @@ UInt HierarchyLevel<T>::SetupAgglomerates(){
   if( Agglomerate_ ) { delete Agglomerate_;  Agglomerate_ = NULL; }
 
   // create new agglomerate object
-  if( NULL == (Agglomerate_ = new Agglomerate<T>) ) {
+  if( NULL == (Agglomerate_ = new Agglomerate<Double>) ) {
     EXCEPTION(" AMG: creation of agglomerate object failed\n");
     return false;
   }

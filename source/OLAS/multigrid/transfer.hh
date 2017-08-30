@@ -10,6 +10,13 @@
 
 #include "MatVec/CRS_Matrix.hh"
 
+#include <def_use_blas.hh>
+#ifdef USE_MKL
+# include <mkl.h>
+#else
+EXCEPTION("Compile with USE_MKL = ON")
+#endif
+
 namespace CoupledField {
 /**********************************************************/
 
@@ -40,11 +47,11 @@ namespace CoupledField {
     ~TransferOperator();
 
     //! read only access to prolongation matrix
-    const CRS_Matrix<T>* GetProlongation() const {
+    const CRS_Matrix<Double>* GetProlongation() const {
       return Prolongation_;
     }
     //! read only access to restriction matrix
-    const CRS_Matrix<T>* GetRestriction() const {
+    const CRS_Matrix<Double>* GetRestriction() const {
       return Restriction_;
     }
 
@@ -73,33 +80,33 @@ namespace CoupledField {
      *         \f$ I_H^h := (I_h^H)^T \f$ is built.
      */
     bool CreateOperators( const CRS_Matrix<T>& matrix,
-                      const CRS_Matrix<T>& auxMatrix,
-                      const Topology<T>&   topology,
-                      const Agglomerate<T>& agglomerates,
+                      const CRS_Matrix<Double>& auxMatrix,
+                      const Topology<Double>&   topology,
+                      const Agglomerate<Double>& agglomerates,
                       const AMGInterpolationType itype,
                       const AMGType amgType,
                       const bool build_interpolation );
 
     //! constant interpolation for scalar-type AMG
     bool CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
-                                        const CRS_Matrix<T>& auxMatrix,
-                                        const Topology<T>& topology );
+                                        const CRS_Matrix<Double>& auxMatrix,
+                                        const Topology<Double>& topology );
 
     //! constant interpolation for vector-type AMG
     bool CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
-                          const CRS_Matrix<T>& auxMatrix,
-                          const Topology<T>&   topology );
+                          const CRS_Matrix<Double>& auxMatrix,
+                          const Topology<Double>&   topology );
 
     //! constant interpolation for edge-AMG, for auxiliary matrix
-    bool CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
-                                           const Agglomerate<T>& agglomerates);
+    bool CreateProlongationOperatorEdgeAux(const CRS_Matrix<Double>& auxMatrix,
+                                           const Agglomerate<Double>& agglomerates);
 
     //! constant interpolation for edge-AMG, for system matrix
-    bool CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
-                              const CRS_Matrix<T>& coarseAuxMat,
+    bool CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
+                              const CRS_Matrix<Double>& coarseAuxMat,
                               const StdVector< StdVector< Integer> >& edgeIndNode,
                               const StdVector< Integer>& nodeNumIndex,
-                             const Agglomerate<T>& agglomerates);
+                             const Agglomerate<Double>& agglomerates);
 
 
     //! prolongates the coarse vector v_H to the fine vector v_h
@@ -115,18 +122,60 @@ namespace CoupledField {
      *         to the vector v_h: \f$ v_h \leftarrow I_H^h v_H \f$
      */
     void Prolongate( const Vector<T>& v_H,
-		     Vector<T>& v_h,
-		     const bool       add = false ) const;
+					 Vector<T>& v_h,
+					 const bool add = false ) const;
 
     //! restricts a fine vector v_h to a coarse vector v_H
     void Restrict( const Vector<T>& v_h,
-		   Vector<T>& v_H,
-		   const bool       add = false ) const;
+				   Vector<T>& v_H,
+				   const bool add = false ) const;
 
 
-    //! creates the coarse system matrix a_H as Galerkin product
+    //! Includes a MKL function to convert from MKL-types to CRS
 
-    /*! Creates the coarse system matrix a_H as Galerkin product
+    /* double version */
+    void ExportCSRMatrix(const sparse_matrix_t AH,
+					  int &rows,
+					  int &cols,
+					  int *&pointerB_1,
+					  int *&pointerE_1,
+					  int *&solCols,
+    				  double *&values);
+
+    //! Includes a MKL function to convert from MKL-types to CRS
+
+    /* complex version */
+    void ExportCSRMatrix(const sparse_matrix_t AH,
+					  int &rows,
+					  int &cols,
+					  int *&pointerB_1,
+					  int *&pointerE_1,
+					  int *&solCols,
+					  std::complex<double> *&values);
+
+    //! Includes a MKL function to create a MKL-CRS matrix
+
+    /* double version */
+    void CreateCSRMatrix(sparse_matrix_t &Ah,
+  		  const sparse_index_base_t& t,
+  		  const int &rowsAh,
+  		  const int &colsAh,
+  		  int *rPAh,
+  		  int *cPAh,
+  		  double *dPAh);
+
+    /* complex version */
+     void CreateCSRMatrix(sparse_matrix_t &Ah,
+   		  const sparse_index_base_t& t,
+   		  const int &rowsAh,
+   		  const int &colsAh,
+   		  int *rPAh,
+   		  int *cPAh,
+   		  std::complex<double> *dPAh);
+
+    //! creates the coarse system matrix A_H as Galerkin product
+
+    /*! Creates the coarse system matrix A_H as Galerkin product
      *  \f$ A_H = I_h^H A_h I_H^h \f$. This version of the routine
      *  needs both the interpolation and the restriction matrix to
      *  be created (see parameter "build_interpolation" of method
@@ -153,24 +202,24 @@ namespace CoupledField {
      *  \param a_h matrix of the fine system
      */
     void GalerkinProduct(StdVector<UInt>& A_H_rP,
-        StdVector<UInt>& A_H_cP,
-        StdVector<Double>& A_H_dP,
-        StdVector<UInt>& B_H_rP,
-        StdVector<UInt>& B_H_cP,
-        StdVector<Double>& B_H_dP,
-				const CRS_Matrix<T>&  A_h,
-				const CRS_Matrix<T>&  B_h,
-				const AMGType amgType);
+						StdVector<UInt>& A_H_cP,
+						StdVector<T>& A_H_dP,
+						StdVector<UInt>& B_H_rP,
+						StdVector<UInt>& B_H_cP,
+						StdVector<Double>& B_H_dP,
+						const CRS_Matrix<T>&  A_h,
+						const CRS_Matrix<Double>&  B_h,
+						const AMGType amgType);
 
 
     void GalerkinProductEdgeAux( StdVector<UInt>& B_H_rP,
-        StdVector<UInt>& B_H_cP,
-        StdVector<Double>& B_H_dP,
-            const CRS_Matrix<T>&  B_h);
+								StdVector<UInt>& B_H_cP,
+								StdVector<Double>& B_H_dP,
+								const CRS_Matrix<Double>&  B_h);
 
     void GalerkinProductEdgeSys( StdVector<UInt>& A_H_rP,
                                 StdVector<UInt>& A_H_cP,
-                                StdVector<Double>& A_H_dP,
+                                StdVector<T>& A_H_dP,
                                 const CRS_Matrix<T>&  A_h);
 
 
@@ -179,10 +228,10 @@ namespace CoupledField {
 
     StdVector< StdVector< Integer> > cEdgeIndNode_;
 
-    CRS_Matrix<T> *Prolongation_; //!< the interpolation matrix \f$ I_H^h \f$
-    CRS_Matrix<T> *Restriction_;  //!< the restriction matrix \f$ I_h^H \f$
-    CRS_Matrix<T> *AuxProlongation_; //!< the interpolation matrix for auxiliary$
-    CRS_Matrix<T> *AuxRestriction_; //!< the restriction matrix for auxiliary$
+    CRS_Matrix<Double> *Prolongation_; //!< the interpolation matrix \f$ I_H^h \f$
+    CRS_Matrix<Double> *Restriction_;  //!< the restriction matrix \f$ I_h^H \f$
+    CRS_Matrix<Double> *AuxProlongation_; //!< the interpolation matrix for auxiliary$
+    CRS_Matrix<Double> *AuxRestriction_; //!< the restriction matrix for auxiliary$
 
   };
 

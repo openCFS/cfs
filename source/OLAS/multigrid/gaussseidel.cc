@@ -16,8 +16,7 @@ template <typename T>
 GaussSeidel<T>::GaussSeidel()
     : DiagonalInverse_( NULL ),
       Size_( 0 ),
-      Omega_( 1.0 ),
-      PenaltyFlags_( NULL )
+      Omega_( 1.0 )
 {
 }
 
@@ -85,7 +84,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     T accumulator;
     const UInt *const RowPtr   = matrix.GetRowPointer();
     const UInt *const ColPtr   = matrix.GetColPointer();
-    const T       *const DataPtr  = matrix.GetDataPointer();
+    const T    *const DataPtr  = matrix.GetDataPointer();
 
 
     //////////////////////////////////////////////
@@ -105,8 +104,7 @@ Step( const CRS_Matrix<T>&                  matrix,
         if( Omega_ == 1.0 ) {
             sol[i] = DiagonalInverse_[i] * accumulator;
         } else {
-            sol[i] += Omega_ *
-                      ((DiagonalInverse_[i] * accumulator) - sol[i]);
+            sol[i] += Omega_ * ((DiagonalInverse_[i] * accumulator) - sol[i]);
         }
     }
 
@@ -123,9 +121,6 @@ void GaussSeidel<T>::Reset()
     DiagonalInverse_ = NULL;
     Size_            =    0;         // reset the size of the LES
     Omega_           =  1.0;         // reset damping factor
-
-    delete [] ( PenaltyFlags_ );
-    PenaltyFlags_ = NULL;
 
     // call Reset() of base class
     Smoother<T>::Reset();

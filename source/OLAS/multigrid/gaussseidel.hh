@@ -93,7 +93,6 @@ class GaussSeidel : public Smoother<T>
         T    *DiagonalInverse_; //!< array with inverse diagonal entries
         Integer     Size_;            //!< size of the LES
         Double     Omega_;           //!< damping factor for a SOR
-        const bool *PenaltyFlags_;
 };
 
 /**********************************************************/

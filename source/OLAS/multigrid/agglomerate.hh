@@ -39,22 +39,22 @@ class Agglomerate
 
         //! simple constructor followed by a call of CreateAgglomerates
 
-        /*! This constructor calls CreateAgglomertes. For more*/
-        Agglomerate( const CRS_Matrix<T>& matrix);
+        /*! This constructor calls CreateAgglomertes.*/
+        Agglomerate( const CRS_Matrix<Double>& auxMat);
 
         //! destructor
         ~Agglomerate();
 
         //! creates the graphs for the agglomerates
 
-        Integer CreateAgglomerateGraphs( const CRS_Matrix<T>& matrix);
+        Integer CreateAgglomerateGraphs( const CRS_Matrix<Double>& auxMat);
 
         inline void InsertEdgeList(const StdVector< StdVector< Integer> >& edgeIndeNode);
 
         inline void InsertNodeIndex(const StdVector< Integer>& nodeNumIndex);
 
         //! Define the coarse edges, based on the previously defined agglomerates
-        UInt CreateCoarseEdges(const CRS_Matrix<T>& coarseAuxMat);
+        UInt CreateCoarseEdges(const CRS_Matrix<Double>& coarseAuxMat);
 
         //! returns the whole agglomerate-construct
         inline const StdVector< StdVector< Integer> > GetAgglomerates()  const;
@@ -145,7 +145,6 @@ class Agglomerate
         StdVector< StdVector< Integer> > cEdgesInd_;
 
         StdVector< StdVector< Integer> > coincidences_;
-
 
 
 };
