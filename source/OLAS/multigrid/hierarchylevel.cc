@@ -766,26 +766,8 @@ bool HierarchyLevel<T>::SetupSmoother( const Settings *const settings)
   return true;
 }
 
+
 /**********************************************************/
-// macro for the switch cases in method SetupDirectSolver
-// We need all these cases explicitly, because
-//  -> GenerateStdMatrixObject returns a BaseMatrix pointer
-//  -> BaseMatrix has not got a method Convert
-//  -> the template parameter for the cast to LapackGBMatrix
-//     cannot be specified dynamically
-#define CASE_CONVERT_CRS_TO_LAPACKGB( FTypeID, entryF ) \
-    case FTypeID: { \
-      LapackGBMatrix< entryF, T_Mtype >* lapackA = \
-      dynamic_cast<LapackGBMatrix< entryF, T_Mtype >*>(DirSysMatrix_); \
-      if( lapackA == NULL ) { \
-        EXCEPTION( "HierarchyLevel<T>::SetupDirectSolver: dynamic cast " \
-            "failed", __FILE__, __LINE__ ); \
-      } else { \
-        lapackA->Convert( *SysMatrix_ ); \
-      } \
-      break; \
-    }
-/****************************/
 
 template <typename T>
 bool HierarchyLevel<T>::
@@ -864,10 +846,6 @@ SetupDirectSolver( const Settings* const settings )
   return true;
 }
 
-
-/**********************************************************/
-#undef CASE_CONVERT_CRS_TO_LAPACKGB
-/**********************************************************/
 
 template <typename T>
 bool HierarchyLevel<T>::SetupAuxData( const Integer sizeh,

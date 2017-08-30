@@ -49,14 +49,14 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
     // create a new array for the diagonal inverses
     if( DiagonalInverse_ == NULL ) {
         Size_ = matrix.GetNumRows();
-        NEWARRAY( DiagonalInverse_, T_Mtype, Size_ );
+        NEWARRAY( DiagonalInverse_, T, Size_ );
     }
 
     const UInt *const pRow = matrix.GetRowPointer();
-    const T_Mtype *const pDat = matrix.GetDataPointer();
+    const T *const pDat = matrix.GetDataPointer();
     // fill the array with the inverses of the diagonal entries
     for( Integer i = 0; i < Size_; i++ ) {
-        DiagonalInverse_[i] = OpType<T_Mtype>::invert(pDat[pRow[i]]);
+        DiagonalInverse_[i] = OpType<T>::invert(pDat[pRow[i]]);
     }
 
     // set flag for the prepared state
@@ -82,7 +82,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     }
 
     // apply one Gauss-Seidel step
-    T_Vtype accumulator;
+    T accumulator;
     const UInt *const RowPtr   = matrix.GetRowPointer();
     const UInt *const ColPtr   = matrix.GetColPointer();
     const T       *const DataPtr  = matrix.GetDataPointer();

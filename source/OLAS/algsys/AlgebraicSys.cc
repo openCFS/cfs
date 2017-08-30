@@ -3370,11 +3370,22 @@ namespace CoupledField {
           << " format." );
     }
 
-    // Down-cast to CRS_Matrix
-    CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
-    if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
-      crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
-    }
+
+     // Down-cast to CRS_Matrix
+      if( b.GetEntryType() == BaseMatrix::EntryType::DOUBLE){
+             CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
+             if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+               crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+             }
+         }else{
+             CRS_Matrix<Complex>& crsMat = dynamic_cast<CRS_Matrix<Complex>&>(b);
+             if( crsMat.GetCurrentLayout() != CRS_Matrix<Complex>::LEX_DIAG_FIRST ){
+               crsMat.ChangeLayout(CRS_Matrix<Complex>::LEX_DIAG_FIRST);
+             }
+         }
+     
+     
+     
 
     /**************** Build the auxiliary graph ********************/
     /* since we don't know the non-zero entries in the auxiliary matrix
@@ -3497,7 +3508,7 @@ namespace CoupledField {
       }
 
     UInt nnz = dataAux.GetSize();
-    auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+    auxMatAMG_ = GenerateStdMatrixObject(BaseMatrix::EntryType::DOUBLE,
                                          BaseMatrix::SPARSE_NONSYM,
                                          nRows,
                                          nRows,

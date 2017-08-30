@@ -52,7 +52,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     // create a new array for the diaFindDiagonalEntriesgonal inverses
     if( DiagonalInverse_ == NULL ) {
         Size_ = matrix.GetNumRows();
-        NEWARRAY( DiagonalInverse_, T_Mtype, Size_ );
+        NEWARRAY( DiagonalInverse_, T, Size_ );
     }
 
     const UInt * const diagP = matrix.GetDiagPointer();
