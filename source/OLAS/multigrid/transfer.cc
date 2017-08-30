@@ -6,14 +6,6 @@
 #include <assert.h>
 #include <limits>
 
-#include <def_use_blas.hh>
-#ifdef USE_MKL
-# include <mkl.h>
-#else
-EXCEPTION("Compile with USE_MKL = ON")
-#endif
-
-
 
 namespace CoupledField {
 
@@ -33,7 +25,6 @@ TransferOperator<T>::TransferOperator()
 template <typename T>
 TransferOperator<T>::~TransferOperator()
 {
-    
     Reset();
 }
 
@@ -53,9 +44,9 @@ void TransferOperator<T>::Reset()
 template <typename T>
 bool TransferOperator<T>::
 CreateOperators( const CRS_Matrix<T>& sysMatrix,
-                 const CRS_Matrix<T>& auxMatrix,
-                 const Topology<T>&   topology,
-                 const Agglomerate<T>& agglomerates,
+                 const CRS_Matrix<Double>& auxMatrix,
+                 const Topology<Double>&   topology,
+                 const Agglomerate<Double>& agglomerates,
                  const AMGInterpolationType itype,
                  const AMGType amgType,
                  const bool build_interpolation )
@@ -122,8 +113,8 @@ void TransferOperator<T>::GetCoarseEdgeIndNode(StdVector< StdVector< Integer> >&
 
 template <typename T>
 bool TransferOperator<T>::
-CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
-                       const Agglomerate<T>& agglomerates)
+CreateProlongationOperatorEdgeAux(const CRS_Matrix<Double>& auxMatrix,
+                       const Agglomerate<Double>& agglomerates)
 {
     Reset();
 
@@ -141,7 +132,7 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
 
 
     // create the restriction and prolongation matrix object for the AUXILIARY-matrix
-    AuxRestriction_ = new CRS_Matrix<T>( agglomerates.GetSizeH(), agglomerates.GetSizeh(), nNonZeros );
+    AuxRestriction_ = new CRS_Matrix<Double>( agglomerates.GetSizeH(), agglomerates.GetSizeh(), nNonZeros );
     // we can not set the sys-prolongation matrix because
     // we don't know the nnz entries yet ...
 
@@ -213,48 +204,53 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<T>& auxMatrix,
 
 template <typename T>
 bool TransferOperator<T>::
-CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
-                        const CRS_Matrix<T>& coarseAuxMat,
+CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
+                        const CRS_Matrix<Double>& coarseAuxMat,
                         const StdVector< StdVector< Integer> >& edgeIndNode,
                         const StdVector< Integer>& nodeNumIndex,
-                        const Agglomerate<T>& A)
+                        const Agglomerate<Double>& A)
 {
-
   // sizeH is is size of the system matrix...numRows of prolongation matrix
   UInt sizeH = A.GetNumCoarseEdges();
   UInt sizeh = edgeIndNode.GetSize();
-
   cEdgeIndNode_.Resize(sizeH);
-
   // row pointers for R and P
   StdVector<UInt> pRowR;
   pRowR.Resize( sizeH + 1, 0 );
   // column pointers for R and P
   StdVector<UInt> pColR;
-
   // data pointer for R and P
   StdVector<Double> pDatR;
 
+  // just a performance improvement...outsorced from the O(~N^2) loop
+  StdVector<Integer> eIN (edgeIndNode.GetSize() * 2);
+  for(UInt i = 0; i < edgeIndNode.GetSize(); ++i){
+	  const StdVector<Integer>& e = edgeIndNode[i];
+	  eIN[2 * i] = e[0];
+	  eIN[2 * i + 1] = e[1];
+  }
+
   UInt count = 0;
+  StdVector<Integer> eInd (2);
+  UInt aggN1, aggN2;
   //TODO the following O(~N^2) is way too expensive
   for(UInt i = 0; i < sizeH; ++i){
     // get edge i, nodes of these edges are coarse-nodes
-    //const StdVector<Integer>& cEreal = A.GetCoarseEdgeReal(i);
     const StdVector<Integer>& cEind = A.GetCoarseEdgeInd(i);
     const StdVector<Integer>& cEreal = A.GetCoarseEdgeReal(i);
     StdVector<Integer>& cE = cEdgeIndNode_[i];
     cE.Resize(2,0);
-
     for(UInt j = 0; j < sizeh; ++j){
-      const StdVector<Integer>& e = edgeIndNode[j];
-      StdVector<Integer> eInd (2);
-      eInd[1] = A.GetIndexOfRealNode(e[1]);
-      eInd[0] = A.GetIndexOfRealNode(e[0]);
+      //const StdVector<Integer>& e = edgeIndNode[j];
+      //eInd[1] = A.GetIndexOfRealNode(e[1]);
+      //eInd[0] = A.GetIndexOfRealNode(e[0]);
+      eInd[1] = A.GetIndexOfRealNode(eIN[2 * j]);
+      eInd[0] = A.GetIndexOfRealNode(eIN[2 * j + 1]);
       if( (eInd[0] == -1) || (eInd[1] == -1) ){
         EXCEPTION("coarse index problem");
       }
-      UInt aggN1 = A.GetAgglomerateNumOfNode(eInd[0]);
-      UInt aggN2 = A.GetAgglomerateNumOfNode(eInd[1]);
+      aggN1 = A.GetAgglomerateNumOfNode(eInd[0]);
+      aggN2 = A.GetAgglomerateNumOfNode(eInd[1]);
       if( ((Integer)aggN1 == cEind[0]) && ((Integer)aggN2 == cEind[1]) ){
         pColR.Push_back(j);
         pDatR.Push_back(1.0);
@@ -273,7 +269,7 @@ CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
     pRowR[i + 1] = count;
   }
 
-  Restriction_ = new CRS_Matrix<T>( sizeH, sizeh, count );
+  Restriction_ = new CRS_Matrix<Double>( sizeH, sizeh, count );
 
   Restriction_->SetSparsityPatternData( pRowR, pColR, pDatR );
 
@@ -287,8 +283,8 @@ CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& auxMatrix,
 template <typename T>
 bool TransferOperator<T>::
 CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
-                               const CRS_Matrix<T>& auxMatrix,
-                               const Topology<T>&   topology )
+                               const CRS_Matrix<Double>& auxMatrix,
+                               const Topology<Double>&   topology )
 {
 
   Integer  nNonZeros  = 0;
@@ -296,8 +292,8 @@ CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
   // get number of interpolated points for each C-point
   nNonZeros = topology.GetNumInterpolatedPoints( RowLengths );
   // create the restriction and prolongation matrix object
-  Prolongation_ = new CRS_Matrix<T>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
-  AuxProlongation_ = new CRS_Matrix<T>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
+  Prolongation_ = new CRS_Matrix<Double>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
+  AuxProlongation_ = new CRS_Matrix<Double>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
 
 
   // row pointers for R and P
@@ -324,9 +320,9 @@ CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
     // if point [i] is C-point, in column [i] there is only one
     // entry, since C-points are simply injected with weight 1.0
     const Integer iC = CoarseIndex[i];
-    if( iC >= Topology<T>::COARSE ) {
+    if( iC >= Topology<Double>::COARSE ) {
       pColP[nNonZeros  ] = iC;
-      pDatP[nNonZeros] = (T)1.0;
+      pDatP[nNonZeros] = 1.0;
       nNonZeros++;
     } else {
       Integer   denominator = 0;
@@ -336,14 +332,14 @@ CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
       for( Integer ij = 0; ij < nEdges; ij++ ) {
         const Integer  j = Edges[ij],
             jC = CoarseIndex[j];
-        if( jC >= Topology<T>::COARSE ) {
+        if( jC >= Topology<Double>::COARSE ) {
           pColP[nNonZeros] = jC;
           nNonZeros++;
           denominator++;
         }
       }
       if( denominator ) {
-        const T weight = OpType<T>::invert(static_cast<T>(denominator));
+        const Double weight = OpType<Double>::invert(static_cast<Double>(denominator));
 
         for( Integer ij = pRowP[i]; ij < nNonZeros; ij++ ) {
           // set the interpolation weight ...
@@ -367,15 +363,15 @@ CreateOperatorsConstantScalar( const CRS_Matrix<T>& sysMatrix,
 template <typename T>
 bool TransferOperator<T>::
 CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
-                                  const CRS_Matrix<T>& auxMatrix,
-                                  const Topology<T>&   topology )
+                                  const CRS_Matrix<Double>& auxMatrix,
+                                  const Topology<Double>&   topology )
 {
   Integer  nNonZeros  = 0;
   StdVector<UInt> RowLengths;
   // get number of interpolated points for each C-point
   nNonZeros = topology.GetNumInterpolatedPoints( RowLengths );
   // create the restriction and prolongation matrix object for the AUXILIARY-matrix
-  AuxProlongation_ = new CRS_Matrix<T>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
+  AuxProlongation_ = new CRS_Matrix<Double>( topology.GetSizeh(), topology.GetSizeH(), nNonZeros );
   // we can not set the sys-prolongation matrix because
   // we don't know the nnz entries yet ...
 
@@ -402,9 +398,9 @@ CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
     // if point [i] is C-point, in column [i] there is only one
     // entry, since C-points are simply injected with weight 1.0
     const Integer iC = CoarseIndex[i];
-    if( iC >= Topology<T>::COARSE ) {
+    if( iC >= Topology<Double>::COARSE ) {
       pColP[nNonZeros  ] = iC;
-      pDatP[nNonZeros] = (T)1.0;
+      pDatP[nNonZeros] = 1.0;
       nNonZeros++;
     } else {
       Integer   denominator = 0;
@@ -414,14 +410,14 @@ CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
       for( Integer ij = 0; ij < nEdges; ij++ ) {
         const Integer  j = Edges[ij],
             jC = CoarseIndex[j];
-        if( jC >= Topology<T>::COARSE ) {
+        if( jC >= Topology<Double>::COARSE ) {
           pColP[nNonZeros] = jC;
           nNonZeros++;
           denominator++;
         }
       }
       if( denominator ) {
-        const T weight = OpType<T>::invert(static_cast<T>(denominator));
+        const Double weight = OpType<Double>::invert(static_cast<Double>(denominator));
 
         for( Integer ij = pRowP[i]; ij < nNonZeros; ij++ ) {
           // set the interpolation weight ...
@@ -495,7 +491,7 @@ CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
     }
   }
 
-  Prolongation_ = new CRS_Matrix<T>( dim * topology.GetSizeh(),
+  Prolongation_ = new CRS_Matrix<Double>( dim * topology.GetSizeh(),
                                         dim * topology.GetSizeH(),
                                         dim * nNonZeros );
 
@@ -543,29 +539,97 @@ void TransferOperator<T>::Restrict( const Vector<T>& v_h,
 }
 
 
+/* To avoid constantly repeating the part of code that checks inbound SparseBLAS functions' status,
+     use macro CALL_AND_CHECK_STATUS */
+#define CALL_AND_CHECK_STATUS(function, error_message) do { \
+		if(function != SPARSE_STATUS_SUCCESS)             \
+		{                                                 \
+			printf(error_message); fflush(0);                 \
+		}                                                 \
+} while(0)
+
+
+template <typename T>
+void TransferOperator<T>::
+ExportCSRMatrix(sparse_matrix_t AH,
+				  int &rows,
+				  int &cols,
+				  int *&pointerB_1,
+				  int *&pointerE_1,
+				  int *&solCols,
+				  double *&values){
+
+	sparse_index_base_t solbase;
+	CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbase, &rows, &cols,
+			&pointerB_1, &pointerE_1, &solCols, &values),
+			"Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
+}
+
+template <typename T>
+void TransferOperator<T>::
+ExportCSRMatrix(sparse_matrix_t AH,
+				  int &rows,
+				  int &cols,
+				  int *&pointerB_1,
+				  int *&pointerE_1,
+				  int *&solCols,
+				  std::complex<double> *&values){
+
+	EXCEPTION("transfer.cc: Complex Galerkin product not yet handled");
+
+	//sparse_index_base_t solbase;
+	//CALL_AND_CHECK_STATUS(mkl_sparse_c_export_csr( AH, &solbase, &rows, &cols,
+	//		&pointerB_1, &pointerE_1, &solCols, &values),
+	//		"Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
+}
+
+
+template <typename T>
+void TransferOperator<T>::CreateCSRMatrix(sparse_matrix_t& Ah,
+		  const sparse_index_base_t& t,
+		  const int &rowsAh,
+		  const int &colsAh,
+		  int *rPAh,
+		  int *cPAh,
+		  double *dPAh){
+
+
+	  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Ah, t, rowsAh, colsAh,
+	      rPAh, rPAh+1, cPAh, dPAh ),
+	      "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
+}
+
+
+
+template <typename T>
+void TransferOperator<T>::CreateCSRMatrix(sparse_matrix_t &Ah,
+		  const sparse_index_base_t& t,
+		  const int &rowsAh,
+		  const int &colsAh,
+		  int *rPAh,
+		  int *cPAh,
+		  std::complex<double> *dPAh){
+
+	EXCEPTION("transfer.cc: Complex Galerkin product not yet handled");
+
+
+	  //CALL_AND_CHECK_STATUS(mkl_sparse_c_create_csr( &Ah, t, rowsAh, colsAh,
+	  //    rPAh, rPAh+1, cPAh, dPAh ),
+	  //    "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
+}
 
 template <typename T>
 void TransferOperator<T>::
 GalerkinProduct(StdVector<UInt>& A_H_rP,
                 StdVector<UInt>& A_H_cP,
-                StdVector<Double>& A_H_dP,
+                StdVector<T>& A_H_dP,
                 StdVector<UInt>& B_H_rP,
                 StdVector<UInt>& B_H_cP,
                 StdVector<Double>& B_H_dP,
                 const CRS_Matrix<T>&  A_h,
-                const CRS_Matrix<T>& B_h,
+                const CRS_Matrix<Double>& B_h,
                 const AMGType amgType)
 {
-
-  /* To avoid constantly repeating the part of code that checks inbound SparseBLAS functions' status,
-     use macro CALL_AND_CHECK_STATUS */
-#define CALL_AND_CHECK_STATUS(function, error_message) do { \
-    if(function != SPARSE_STATUS_SUCCESS)             \
-    {                                                 \
-      printf(error_message); fflush(0);                 \
-    }                                                 \
-} while(0)
-
 
   /***************************************************************
    ******************** 1) Coarse System matrix ******************
@@ -583,7 +647,7 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
   MKL_INT colsAh = A_h.GetNumCols();
   MKL_INT *rPAh = (Integer*) A_h.GetRowPointer();
   MKL_INT *cPAh = (Integer*) A_h.GetColPointer();
-  double *dPAh = (double*) A_h.GetDataPointer();
+  T *dPAh = (T*) A_h.GetDataPointer();
 
 
   /******** Convert our CRS_Matrices into MKL-sparse csr-matrix *********/
@@ -591,10 +655,8 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
       rPProlo, rPProlo+1, cPProlo, dPProlo ),
       "Error after MKL_SPARSE_D_CREATE_CSR, Prolongation-matrix \n");
 
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Ah, t, rowsAh, colsAh,
-      rPAh, rPAh+1, cPAh, dPAh ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
-
+  // specialization between complex and double handled in own function
+  CreateCSRMatrix(Ah, t, rowsAh, colsAh, rPAh, cPAh, dPAh );
 
 
   /*************** Perform AH = P * Ah * P^T ***********************/
@@ -610,14 +672,17 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
 
 
   /*************** Export AH in MKL-csr format ***********************/
-  sparse_index_base_t solbase;
-  MKL_INT rows, cols;
+
+  MKL_INT rows = -1,
+		  cols = -1;
   MKL_INT *solCols = NULL;
-  double *values = NULL;
+  T *values = NULL;
+
+
   MKL_INT *pointerB_1 = NULL, *pointerE_1 = NULL;
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbase, &rows, &cols,
-      &pointerB_1, &pointerE_1, &solCols, &values),
-      "Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
+
+  // specialization between complex and double handled in own function
+  ExportCSRMatrix(AH, rows, cols, pointerB_1, pointerE_1, solCols, values);
 
 
   A_H_rP.Resize(rows + 1, 0);
@@ -700,7 +765,7 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
       "Error after MKL_SPARSE_SPMM, BH = P^T * tempBH \n");
 
 
-  /**************** Export AH in MKL-csr format ************************/
+  /**************** Export BH in MKL-csr format ************************/
   sparse_index_base_t solbaseB;
   MKL_INT rowsB, colsB;
   MKL_INT *solColsB;
@@ -756,19 +821,8 @@ void TransferOperator<T>::
 GalerkinProductEdgeAux(StdVector<UInt>& B_H_rP,
                       StdVector<UInt>& B_H_cP,
                       StdVector<Double>& B_H_dP,
-                      const CRS_Matrix<T>& B_h)
+                      const CRS_Matrix<Double>& B_h)
 {
-
-  /* To avoid constantly repeating the part of code that checks inbound SparseBLAS functions' status,
-     use macro CALL_AND_CHECK_STATUS */
-#define CALL_AND_CHECK_STATUS(function, error_message) do { \
-    if(function != SPARSE_STATUS_SUCCESS)             \
-    {                                                 \
-      printf(error_message); fflush(0);                 \
-    }                                                 \
-} while(0)
-
-
   //if(amgType != SCALAR){
   /*****************************************************************/
   /*********************  Coarse Auxiliary matrix ******************/
@@ -817,7 +871,7 @@ GalerkinProductEdgeAux(StdVector<UInt>& B_H_rP,
       "Error after MKL_SPARSE_SPMM, BH = tempBH * R^T \n");
 
 
-  /**************** Export AH in MKL-csr format ************************/
+  /**************** Export BH in MKL-csr format ************************/
   sparse_index_base_t solbaseB;
   MKL_INT rowsB, colsB;
   MKL_INT *solColsB;
@@ -874,20 +928,9 @@ template <typename T>
 void TransferOperator<T>::
 GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
                         StdVector<UInt>& A_H_cP,
-                        StdVector<Double>& A_H_dP,
+                        StdVector<T>& A_H_dP,
                         const CRS_Matrix<T>& A_h)
 {
-
-  /* To avoid constantly repeating the part of code that checks inbound SparseBLAS functions' status,
-     use macro CALL_AND_CHECK_STATUS */
-#define CALL_AND_CHECK_STATUS(function, error_message) do { \
-    if(function != SPARSE_STATUS_SUCCESS)             \
-    {                                                 \
-      printf(error_message); fflush(0);                 \
-    }                                                 \
-} while(0)
-
-
   //if(amgType != SCALAR){
   /*****************************************************************/
   /*********************  Coarse System matrix *********************/
@@ -938,14 +981,17 @@ GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
 
 
   /**************** Export AH in MKL-csr format ************************/
-  sparse_index_base_t solbaseB;
+  //sparse_index_base_t solbaseB;
   MKL_INT rowsB, colsB;
   MKL_INT *solColsB;
   double *valuesB = NULL;
   MKL_INT *pointerB_1B, *pointerE_1B;
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbaseB, &rowsB, &colsB,
-      &pointerB_1B, &pointerE_1B, &solColsB, &valuesB),
-      "Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
+
+  ExportCSRMatrix(AH, rowsB, colsB, pointerB_1B, pointerE_1B, solColsB, valuesB);
+
+  //CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbaseB, &rowsB, &colsB,
+  //    &pointerB_1B, &pointerE_1B, &solColsB, &valuesB),
+  //    "Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
 
 
   A_H_rP.Resize(rowsB + 1, 0);
@@ -984,5 +1030,6 @@ GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
       "try to increase the size of the coarse system");}
 
 }
+#undef CALL_AND_CHECK_STATUS
 
 } // namespace CoupledField

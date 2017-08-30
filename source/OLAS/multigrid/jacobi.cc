@@ -5,14 +5,7 @@
 /* $Id$ */
 
 #include "OLAS/multigrid/jacobi.hh"
-/**********************************************************/
-#ifdef DEBUG_TO_CERR
-#ifndef DEBUG_JACOBI
-#define DEBUG_JACOBI
-#endif // DEBUG_JACOBI
-#define  debug  &std::cerr
-#endif // DEBUG_TO_CERR
-/**********************************************************/
+
 
 namespace CoupledField {
 /**********************************************************/
@@ -30,7 +23,6 @@ Jacobi<T>::Jacobi()
 template <typename T>
 Jacobi<T>::~Jacobi()
 {
-    
     Reset();
 }
 
@@ -134,9 +126,3 @@ void Jacobi<T>::Reset()
 
 /**********************************************************/
 } // namespace CoupledField
-
-/**********************************************************/
-#ifdef DEBUG_TO_CERR
-#undef debug
-#endif // DEBUG_TO_CERR
-/**********************************************************/

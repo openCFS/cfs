@@ -17,7 +17,7 @@ Agglomerate<T>::Agglomerate()
 /**********************************************************/
 
 template <typename T>
-Agglomerate<T>::Agglomerate( const CRS_Matrix<T>& matrix)
+Agglomerate<T>::Agglomerate( const CRS_Matrix<Double>& auxMat)
     : NhStartIndex_(NULL),
       NhEdges_(NULL),
       Size_h_(0),
@@ -26,7 +26,7 @@ Agglomerate<T>::Agglomerate( const CRS_Matrix<T>& matrix)
       minNumA_(5)
 {
 
-    CreateAgglomerateGraphs( matrix);
+    CreateAgglomerateGraphs( auxMat);
 }
 
 /**********************************************************/
@@ -198,10 +198,9 @@ inline Integer Agglomerate<T>::GetIndexOfRealNode( UInt i ) const
 {
 
   Integer t = -1;
-  t = indexNodeNum_.at(i) ;
+  t = indexNodeNum_.at(i);
   return t;
 }
-
 
 /**********************************************************/
 
@@ -223,23 +222,21 @@ GetNumInterpolatedPoints() const
 /**********************************************************/
 
 template <typename T>
-Integer Agglomerate<T>::
-CreateAgglomerateGraphs( const CRS_Matrix<T>& matrix)
+Integer Agglomerate<T>::CreateAgglomerateGraphs( const CRS_Matrix<Double>& auxMat)
 {
-    
     // loop indices, consistent for the whole function
-    UInt i,  // i = row index in matrix, in [1,n]
-            ij; // ij = absolute index in pCol and pDat for an entry in row i
+    UInt i,  // i = row index in auxMat, in [1,n]
+         ij; // ij = absolute index in pCol and pDat for an entry in row i
 
     // pointers for direct matrix access
-    const UInt *const pRow = matrix.GetRowPointer();
-    const UInt *const pCol = matrix.GetColPointer();
+    const UInt *const pRow = auxMat.GetRowPointer();
+    const UInt *const pCol = auxMat.GetColPointer();
 
-    if(matrix.GetCurrentLayout() != matrix.LEX_DIAG_FIRST){
-      EXCEPTION("AMG: Agglomerate needs Auxiliary matrix to be LEX_DIAG_FIRST");
+    if(auxMat.GetCurrentLayout() != auxMat.LEX_DIAG_FIRST){
+      EXCEPTION("AMG: Agglomerate needs Auxiliary auxMat to be LEX_DIAG_FIRST");
     }
 
-    Size_h_ = matrix.GetNumRows();
+    Size_h_ = auxMat.GetNumRows();
     
     /*********************************************************************/
     /********* Step 1) Define neighbourhoods for every node **************/
@@ -435,7 +432,7 @@ CreateAgglomerateGraphs( const CRS_Matrix<T>& matrix)
 
 
 template <typename T>
-UInt Agglomerate<T>::CreateCoarseEdges(const CRS_Matrix<T>& coarseAuxMat){
+UInt Agglomerate<T>::CreateCoarseEdges(const CRS_Matrix<Double>& coarseAuxMat){
   /*
    * Idea: every edge in the auxiliary-matrix represents an edge between
    * two nodes. But these two nodes can lie in the same aggregate, therefore
@@ -603,6 +600,7 @@ void Agglomerate<T>::FillIndexNodeNum(){
   for(UInt i = 0; i < nodeNumIndex_.GetSize(); ++i){
     indexNodeNum_[ nodeNumIndex_[i] ] = i;
   }
+
 
 }
 

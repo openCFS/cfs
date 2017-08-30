@@ -172,7 +172,7 @@ public:
    *  \param aux_matrix pointer to the auxiliary matrix
    */
   bool Setup( const CRS_Matrix<T>* const sys_matrix,
-              const CRS_Matrix<T>* const aux_matrix,
+              const CRS_Matrix<Double>* const aux_matrix,
               AMGType amgType,
               const StdVector< StdVector< Integer> >& edgeIndNode,
               const StdVector<Integer>& nodeNumIndex){

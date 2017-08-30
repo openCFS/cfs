@@ -114,7 +114,7 @@ class HierarchyLevel
          *  Reset(). To regain the ownership of the matrix call
          *  UnhookSysMatrix().
          */
-        void InsertAuxMatrix( const CRS_Matrix<T>* const auxmat );
+        void InsertAuxMatrix( const CRS_Matrix<Double>* const auxmat );
 
 
         //! returns a pointer to the system matrix
@@ -141,7 +141,7 @@ class HierarchyLevel
          *  might not conform the second property, but it is granted
          *  that the diagonal element is the first one in each row.
          */
-        inline const CRS_Matrix<T> *GetAuxMatrixPtr() const;
+        inline const CRS_Matrix<Double> *GetAuxMatrixPtr() const;
 
         //! unhooks the system matrix
 
@@ -163,7 +163,7 @@ class HierarchyLevel
          *  function returns a pointer to the matrix and deprives
          *  the hierarchy object the control over the matrix.
          */
-        CRS_Matrix<T> *UnhookAuxMatrix();
+        CRS_Matrix<Double> *UnhookAuxMatrix();
 
         //! setup for this level
 
@@ -256,18 +256,18 @@ class HierarchyLevel
         const Integer LevelID_;
         //! system matrix
         CRS_Matrix<T> *SysMatrix_;
-        //! auxiliary matrix
-        CRS_Matrix<T> *AuxMatrix_;
+        //! auxiliary matrix, it's a real-valued matrix
+        CRS_Matrix<Double> *AuxMatrix_;
         //! system matrix in different format (e.g. for the direct solver)
         BaseMatrix *DirSysMatrix_;
         //! pattern pool (used, if \c DirSysMatrix_ is a CRS_Matrix)
         PatternPool *dirSysMatPPool_;
         //! topology
-        Topology<T> *Topology_;
+        Topology<Double> *Topology_;
         //! transfer operator
         TransferOperator<T> *Transfer_;
         //! agglomerates (for HCurl)
-        Agglomerate<T> *Agglomerate_;
+        Agglomerate<Double> *Agglomerate_;
         //! smoother
         Smoother<T> *Smoother_;
         //! direct solver for the coarses level

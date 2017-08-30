@@ -5,20 +5,7 @@
 #include "DataInOut/ProgramOptions.hh"
 
 namespace CoupledField {
-/**********************************************************/
-/*
-template <typename T>
-MGPrecond<T>::MGPrecond( PtrParamNode params )
-    : params_( params ),
-      report_( NULL ),
-      AMG_( NULL )
-{
-  // The MG preconditioner is currently not working
-  WARN("The MG-Preconditioner is not yet ported from 1 to 0 based"
-      "numbering, i.e. it will NOT work correctly!" );
-}    
-*/
-/**********************************************************/
+
 
 template <typename T>
 MGPrecond<T>::MGPrecond( const StdMatrix   &matrix,
@@ -68,7 +55,7 @@ void MGPrecond<T>::SetupMG(StdMatrix& sysmatrix,
     // cast the standard matrix objects (AMG works with
     // CRS matrices only)
     CRS_Matrix<T>& pSysMatrix = dynamic_cast<CRS_Matrix<T>&>(sysmatrix);
-    CRS_Matrix<T>& pAuxMatrix = dynamic_cast<CRS_Matrix<T>&>(auxmatrix);
+    CRS_Matrix<Double>& pAuxMatrix = dynamic_cast<CRS_Matrix<Double>&>(auxmatrix);
 
     AMG_ = new AMGSolver<T>(params_, report_);
 
@@ -119,7 +106,7 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template class MGPrecond<Double>;
-//template class MGPrecond<Complex>;
+template class MGPrecond<Complex>;
 #endif
 
 } // namespace CoupledField

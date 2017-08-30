@@ -38,7 +38,7 @@ namespace CoupledField {
  *  \f$ \displaystyle d(i,j) := \frac{|a_{ij}|}{max\{|a_{ik}| : k \ne
  *  i\}} \f$
  *  <br>
- *  and matrix entries \f$ a_{ij} \f$.
+ *  and auxMat entries \f$ a_{ij} \f$.
  *  <br>
  *  \f$ (i,j) \in S^T \Leftrightarrow  d(j,i) \in S \f$ <br>
  */
@@ -64,7 +64,7 @@ class Topology
          *  details about the parameters see the description of method
          *  Topology::CreateDependencyGraphs.
          */
-        Topology( const CRS_Matrix<T>& matrix,
+        Topology( const CRS_Matrix<T>& auxMat,
                   const Double         alpha,
                   const Double         tolerance,
                   const Double         diag_dominance );
@@ -97,7 +97,7 @@ class Topology
          *  for the coarse system is evaluated and explicit Dirichlet
          *  nodes are processed. 
          *  Returns the index of the first coarse node.
-         *  \param matrix system matrix
+         *  \param auxMat auxiliary matrix
          *  \param alpha the coarsening parameter \f$ \alpha \f$ in the
          *         Ruge-Stueben algorithm for the evaluation of strong
          *         dependencies
@@ -114,7 +114,7 @@ class Topology
          *          with maximal number of other points, that strongly
          *          depend on this point.
          */
-        Integer CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
+        Integer CreateDependencyGraphs( const CRS_Matrix<T>& auxMat,
                                         const Double         alpha,
                                         const Double         tolerance,
                                         const Double         diag_dominance);

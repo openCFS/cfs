@@ -46,7 +46,7 @@ class AFWSmoother : public Smoother<T>
         /*! We store for each node i in the auxiliary matrix a set
          * of srcMatrix-indices (edges) which are connected to node i.
          */
-        void CreatePatches(const CRS_Matrix<T>& AuxMatrix,
+        void CreatePatches(const CRS_Matrix<Double>& AuxMatrix,
                            const StdVector< StdVector< Integer> >& edgeIndNode,
                            const StdVector<Integer> nodeNumIndex);
 
@@ -115,11 +115,11 @@ class AFWSmoother : public Smoother<T>
 
         //! contains the inverted extraction matrix for every node,
         //! as defined in Patches_
-        StdVector< Matrix<Double> > InvExtMat_;
+        StdVector< Matrix<T> > InvExtMat_;
 
         //! contains the extracted matrix for every node,
         //! as defined in Patches_
-        StdVector< Matrix<Double> > ExtMat_;
+        StdVector< Matrix<T> > ExtMat_;
 
         //! contains the indices which have to be extracted from
         //! the rhs-vector
