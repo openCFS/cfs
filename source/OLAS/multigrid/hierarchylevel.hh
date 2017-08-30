@@ -45,13 +45,6 @@ class HierarchyLevel
 {
     public:
 
-        //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename AssocType<T>::T_Mtype T_Mtype;
-        //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename AssocType<T>::T_Vtype T_Vtype;
-        //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename AssocType<T>::T_Stype T_Stype;
-
         //! class for passing settings through all levels
 
         /*! The class PtrParamNode offers a comfortable way to store settings
