@@ -60,7 +60,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   print("samples:",samples)  
 #   print("delta:",delta)
 #   print("bounds:",bounds)  
-#   print("dx,dy,dz:",dx,dy,dz)
+  print("dx,dy,dz:",dx,dy,dz)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
@@ -115,8 +115,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       cell_obj.center = cell_center
       boundary_list = []
       # at least one boundary circle needs to be triangulated
-      if any(flags):
-        boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
+#       if any(flags):
+#         boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
       with p.lock:
         basecells.append((cell_obj,boundary_list,flags))
         print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
@@ -140,7 +140,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         
       appends.AddInputData(pd)
       appends.Update()
-      
+
   appends.Update() # not sure if we have to do this in each loop iteration
   
   # merge duplicated points etc.
@@ -233,7 +233,7 @@ def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
   coords_2d = np.asarray(coords_2d)
 #   plt.plot(coords_2d[:,0],coords_2d[:,1],'o')
 #   plt.show()
-  test = [ [elem[0],elem[1]] for elem in coords_2d]
+  test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in coords_2d]
   info.set_points(test)
   info.set_facets(draw_profile_functions.round_trip_connect(0,len(coords_2d)-1))
   
@@ -392,7 +392,7 @@ def fill_boundary_loops(points,loops):
     assert(len(coords_2d) == len(l))  
     info = triangle.MeshInfo()
     
-    test = [ [numpy.float64(elem[0]),numpy.float64(elem[1])] for elem in coords_2d]
+    test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in coords_2d]
     info.set_points(test)
     info.set_facets((draw_profile_functions.round_trip_connect(0,len(test)-1)))
     mesh = triangle.build(info,generate_faces=True)
