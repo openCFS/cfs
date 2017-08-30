@@ -288,7 +288,7 @@ def detect_boundary_edges(polydata):
     c = lines.GetNextCell(ids)
     boundaryEdges.append((ids.GetId(0),ids.GetId(1)))
 
-  print("boundaryEdges:",boundaryEdges)
+#   print("boundaryEdges:",boundaryEdges)
   print("num boundary edges:",len(boundaryEdges))
   from itertools import cycle # circular list iterator    
   edgeLoops = []
@@ -392,7 +392,7 @@ def fill_boundary_loops(points,loops):
     assert(len(coords_2d) == len(l))  
     info = triangle.MeshInfo()
     
-    test = [ [elem[0],elem[1]] for elem in coords_2d]
+    test = [ [numpy.float64(elem[0]),numpy.float64(elem[1])] for elem in coords_2d]
     info.set_points(test)
     info.set_facets((draw_profile_functions.round_trip_connect(0,len(test)-1)))
     mesh = triangle.build(info,generate_faces=True)

@@ -331,8 +331,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                     name = args.save[:-4]+".stl"
                   
                   matviz_vtk.write_stl(viz, name)
-                if args.type == "box_varel" and args.mesh:    
-                  assert(args.type == "box_varel")
+                if (args.type == "box_varel" or args.type == "ppbox") and args.mesh :    
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
                     viz = None # avoid showing or writing vtp file
@@ -497,7 +496,7 @@ if args.show == "hom_ortho_3d":
   elif not args.bc_beta or not args.bc_eta:
     print("beta and eta values required for heaviside interpolation")  
     sys.exit(1)
-if args.type == "box_varel":
+if args.type == "box_varel" or args.type == "ppbox":
   # in this case everything belongs to design domain
   args.h5_nondes = "None"
     
