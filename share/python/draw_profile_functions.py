@@ -813,14 +813,47 @@ def get_surface_point_candidate(profile,alpha,x):
  
   return point
 
-def add_triangle(id1,id2,id3,cells):
+def add_triangle(points,id1,id2,id3,cells,skip_test=False):
   assert(id1 != id2 and id2 != id3)
+    
+  i1 = id1
+  i2 = id2
+  i3 = id3
+  if not triangle_counterclockwise(points,id1,id2,id3)[0]:
+#     print("flipping triangle ",points[i1],points[i2],points[i3]," to ", points[i3],points[i2],points[i1])
+#     print("sign:",triangle_counterclockwise(points,id1,id2,id3)[1])
+#     print("new sign:",triangle_counterclockwise(points,id3,id2,id1)[1])
+    # flip
+    i1 = id3
+    i3 = id1  
+
   tri = vtk.vtkTriangle()
-  tri.GetPointIds().SetId(0, id1)
-  tri.GetPointIds().SetId(1, id2)
-  tri.GetPointIds().SetId(2, id3)
+  tri.GetPointIds().SetId(0, i1)
+  tri.GetPointIds().SetId(1, i2)
+  tri.GetPointIds().SetId(2, i3)
   cells.InsertNextCell(tri)
   
+def triangle_counterclockwise(points,id1,id2,id3):
+  p1 = np.asarray(points[id1])
+  p2 = np.asarray(points[id2])
+  p3 = np.asarray(points[id3])
+  
+  assert(p1.size == 3)
+  assert(p1.size == p2.size)
+  assert(p1.size == p3.size)
+
+  u = p2 - p1
+  v = p3 - p1
+  
+  center = np.asarray([0.5,0.5,0.5])
+  toCenter = p1 - center
+  
+#   if np.dot(np.cross(u,v),np.asarray([0.5,0.5,0.5])) > 0:
+#     print("\n triangle",points[id1],points[id2],points[id3]," has wrong orientation")
+#     print("sign:",np.inner(np.cross(u,v),np.cross(u,v)))
+#     print("flipping to ",points[id3],points[id2],points[id1])
+  return np.inner(np.cross(u,v),toCenter) > 0, np.inner(np.cross(u,v),toCenter)
+
 # calc distance between two points
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
@@ -951,7 +984,7 @@ def generate_basecell(args,info,log,offset=0):
     
     # adding triangles connectivity from Marching Cube
     for f in faces:
-      add_triangle(f[0], f[1], f[2], cells)
+      add_triangle(new_surf_points,f[0], f[1], f[2], cells)
       
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
@@ -1455,6 +1488,7 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
   assert(len(lists) == 6)
    
   lists_2d = []
+  surf_points = list(surf_points)
    
   count = 0
   for dir in (0,1,2):
@@ -1486,13 +1520,15 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
       major_dir = 1
     else:
       major_dir = 2
-      
+    
+    new_points = []  
     minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
     # up to len(l), l and mesh_points have the same ordering of points
     # map from local mesh_points point ids to global ones from points in vtk_points
     lookup = np.ones(len(mesh_points),dtype=int) * (-1)
     for i in range(0,len(l)):
       lookup[i] = l[i][2]
+      new_points.append(surf_points[l[i][2]])
     for i in range (len(l),len(mesh_points)):
       point = np.zeros(3)
       if count%2 == 0: # left side of profile
@@ -1503,11 +1539,12 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
       point[minor_dir_2] = mesh_points[i][0]
       point[minor_dir_1] = mesh_points[i][1] 
       lookup[i] = vtk_points.InsertNextPoint(point)
-       
+      new_points.append(point)
+      surf_points.append(point)
+    
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
-
+      add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells,skip_test=True)
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)
