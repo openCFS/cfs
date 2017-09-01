@@ -974,7 +974,7 @@ def write_stl(polydata,save=None):
   
   print("saved polydata to file " + fName)  
 
-def fill_vtk_polydata(points,cells):
+def fill_vtk_polydata(points,cells,center=None):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
@@ -983,13 +983,54 @@ def fill_vtk_polydata(points,cells):
     vtk_points.InsertNextPoint(p)
     
   for ce in cells:
-    tri = vtk.vtkTriangle()
-    tri.GetPointIds().SetId(0,ce[0])
-    tri.GetPointIds().SetId(1,ce[1])
-    tri.GetPointIds().SetId(2,ce[2])
-    vtk_cells.InsertNextCell(tri)  
+    add_triangle(points,ce[0],ce[1],ce[2],vtk_cells,center)
   
   polydata.SetPoints(vtk_points)
   polydata.SetPolys(vtk_cells)
   
   return polydata
+
+def add_triangle(points,id1,id2,id3,cells,center=None):
+  assert(id1 != id2 and id2 != id3)
+    
+  i1 = id1
+  i2 = id2
+  i3 = id3
+  if not check_triangle_orientation(points,id1,id2,id3,center)  :
+#     print("flipping triangle ",points[i1],points[i2],points[i3]," to ", points[i3],points[i2],points[i1])
+#     print("sign:",triangle_counterclockwise(points,id1,id2,id3)[1])
+#     print("new sign:",triangle_counterclockwise(points,id3,id2,id1)[1])
+    # flip
+    i1 = id3
+    i3 = id1  
+
+  tri = vtk.vtkTriangle()
+  tri.GetPointIds().SetId(0, i1)
+  tri.GetPointIds().SetId(1, i2)
+  tri.GetPointIds().SetId(2, i3)
+  cells.InsertNextCell(tri)
+  
+def check_triangle_orientation(points,id1,id2,id3,center):
+  p1 = numpy.asarray(points[id1])
+  p2 = numpy.asarray(points[id2])
+  p3 = numpy.asarray(points[id3])
+  
+  assert(p1.size == 3)
+  assert(p1.size == p2.size)
+  assert(p1.size == p3.size)
+
+  u = p2 - p1
+  v = p3 - p1
+
+  if center is not None:
+    center = numpy.asarray(center)
+  else:  
+    center = numpy.asarray([0.5,0.5,0.5])
+  
+  toCenter = p1 - center
+  
+#   if np.dot(np.cross(u,v),np.asarray([0.5,0.5,0.5])) > 0:
+#     print("\n triangle",points[id1],points[id2],points[id3]," has wrong orientation")
+#     print("sign:",np.inner(np.cross(u,v),np.cross(u,v)))
+#     print("flipping to ",points[id3],points[id2],points[id1])
+  return numpy.inner(numpy.cross(u,v),toCenter) > 0  

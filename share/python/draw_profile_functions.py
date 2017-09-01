@@ -5,12 +5,12 @@ import sympy.solvers
 from sympy import Symbol, symbols
 import sys
 import math
-#try:
-import vtk
-from vtk.util.numpy_support import vtk_to_numpy
-import matviz_vtk
-# except:
-#   print("WARNING: failed to load vtk!")
+try:
+  import vtk
+  from vtk.util.numpy_support import vtk_to_numpy
+  import matviz_vtk
+except:
+  print("WARNING: failed to load vtk!")
 
 import matplotlib
 #matplotlib.use('tkagg')
@@ -813,27 +813,7 @@ def get_surface_point_candidate(profile,alpha,x):
  
   return point
 
-def add_triangle(points,id1,id2,id3,cells,skip_test=False):
-  assert(id1 != id2 and id2 != id3)
-    
-  i1 = id1
-  i2 = id2
-  i3 = id3
-  if not triangle_counterclockwise(points,id1,id2,id3)[0]:
-#     print("flipping triangle ",points[i1],points[i2],points[i3]," to ", points[i3],points[i2],points[i1])
-#     print("sign:",triangle_counterclockwise(points,id1,id2,id3)[1])
-#     print("new sign:",triangle_counterclockwise(points,id3,id2,id1)[1])
-    # flip
-    i1 = id3
-    i3 = id1  
-
-  tri = vtk.vtkTriangle()
-  tri.GetPointIds().SetId(0, i1)
-  tri.GetPointIds().SetId(1, i2)
-  tri.GetPointIds().SetId(2, i3)
-  cells.InsertNextCell(tri)
-  
-def triangle_counterclockwise(points,id1,id2,id3):
+def check_triangle_orientation(points,id1,id2,id3,center):
   p1 = np.asarray(points[id1])
   p2 = np.asarray(points[id2])
   p3 = np.asarray(points[id3])
@@ -844,8 +824,12 @@ def triangle_counterclockwise(points,id1,id2,id3):
 
   u = p2 - p1
   v = p3 - p1
+
+  if center is not None:
+    center = np.asarray(center)
+  else:  
+    center = np.asarray([0.5,0.5,0.5])
   
-  center = np.asarray([0.5,0.5,0.5])
   toCenter = p1 - center
   
 #   if np.dot(np.cross(u,v),np.asarray([0.5,0.5,0.5])) > 0:
@@ -984,7 +968,7 @@ def generate_basecell(args,info,log,offset=0):
     
     # adding triangles connectivity from Marching Cube
     for f in faces:
-      add_triangle(new_surf_points,f[0], f[1], f[2], cells)
+      matviz_vtk.add_triangle(new_surf_points,f[0], f[1], f[2], cells)
       
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
@@ -1544,7 +1528,7 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
     
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells,skip_test=True)
+      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells,skip_test=True)
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)
