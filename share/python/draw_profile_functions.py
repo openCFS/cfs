@@ -813,31 +813,6 @@ def get_surface_point_candidate(profile,alpha,x):
  
   return point
 
-def check_triangle_orientation(points,id1,id2,id3,center):
-  p1 = np.asarray(points[id1])
-  p2 = np.asarray(points[id2])
-  p3 = np.asarray(points[id3])
-  
-  assert(p1.size == 3)
-  assert(p1.size == p2.size)
-  assert(p1.size == p3.size)
-
-  u = p2 - p1
-  v = p3 - p1
-
-  if center is not None:
-    center = np.asarray(center)
-  else:  
-    center = np.asarray([0.5,0.5,0.5])
-  
-  toCenter = p1 - center
-  
-#   if np.dot(np.cross(u,v),np.asarray([0.5,0.5,0.5])) > 0:
-#     print("\n triangle",points[id1],points[id2],points[id3]," has wrong orientation")
-#     print("sign:",np.inner(np.cross(u,v),np.cross(u,v)))
-#     print("flipping to ",points[id3],points[id2],points[id1])
-  return np.inner(np.cross(u,v),toCenter) > 0, np.inner(np.cross(u,v),toCenter)
-
 # calc distance between two points
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
@@ -973,21 +948,18 @@ def generate_basecell(args,info,log,offset=0):
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
     
-    outputData = polydata
-    
-    if args.tets:
-      fillHoles = vtk.vtkFillHolesFilter()
-      fillHoles.SetInputData(polydata)
-      fillHoles.SetHoleSize(1e6)
-      fillHoles.Update()
-      outputData = fillHoles.GetOutput() 
-    
+    normals = vtk.vtkPolyDataNormals()
+    normals.SetInputData(polydata)
+    normals.SetConsistency(1)
+    normals.SetAutoOrientNormals(1)
+    normals.Update()
+        
     if args.save:
       stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
-      matviz_vtk.write_stl(outputData,stlName)
+      matviz_vtk.write_stl(normals.GetOutput(),stlName)
     
     if args.save_vtp:
-      matviz_vtk.show_write_vtk(outputData,1000,args.save+".vtp")
+      matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
