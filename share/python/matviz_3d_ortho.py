@@ -7,6 +7,7 @@ import matviz_vtk
 import pymp
 import vtk
 import math
+import sys
 
 try:
   import meshpy.triangle as triangle
@@ -47,7 +48,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   dx = delta[0] / samples[0]
   dy = delta[1] / samples[1]
   dz = delta[2] / samples[2]
-  
   
   min_thresh = 0.1
   max_thresh = 0.82
@@ -139,7 +139,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       pd = matviz_vtk.fill_vtk_polydata(l[0], l[1])
         
       appends.AddInputData(pd)
-      appends.Update()
 
   appends.Update() # not sure if we have to do this in each loop iteration
   
@@ -152,8 +151,16 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
    
   cleanFilter.Update()
+  pd = cleanFilter.GetOutput()
   
-  return cleanFilter.GetOutput()
+  normals = vtk.vtkPolyDataNormals()
+  normals.SetInputData(pd)
+  normals.SetConsistency(1)
+  normals.SetAutoOrientNormals(1)
+  normals.Update()
+  
+  return normals.GetOutput()
+#   return cleanFilter.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -402,6 +409,7 @@ def fill_boundary_loops(points,loops):
       print("\ncould not mesh hole:")
       print(test)
       print(coords_3d)
+      sys.exit()
       
     appendPd.AddInputData(matviz_vtk.fill_vtk_polydata(coords_3d, mesh_tris))
     appendPd.Update()
