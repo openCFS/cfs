@@ -115,8 +115,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       cell_obj.center = cell_center
       boundary_list = []
       # at least one boundary circle needs to be triangulated
-#       if any(flags):
-#         boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
+      if any(flags):
+        boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
       with p.lock:
         basecells.append((cell_obj,boundary_list,flags))
         print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
@@ -127,7 +127,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     cell = obj[0]
     flags.append(obj[2])
     vtk_points = vtk.vtkPoints()
-    pd = matviz_vtk.fill_vtk_polydata(cell.points, cell.cells)
+    pd = matviz_vtk.fill_vtk_polydata(cell.points, cell.cells,cell.center)
     
     appends.AddInputData(pd)
     # meshed boundary circles
