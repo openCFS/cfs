@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <limits>
 
-
 namespace CoupledField {
 
 /**********************************************************/
@@ -191,9 +190,7 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<Double>& auxMatrix,
 
     AuxRestriction_->SetSparsityPatternData( pRowR, pColR, pDatR );
 
-
     return true;
-
 }
 
 
@@ -205,7 +202,6 @@ CreateProlongationOperatorEdgeAux(const CRS_Matrix<Double>& auxMatrix,
 template <typename T>
 bool TransferOperator<T>::
 CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
-                        const CRS_Matrix<Double>& coarseAuxMat,
                         const StdVector< StdVector< Integer> >& edgeIndNode,
                         const StdVector< Integer>& nodeNumIndex,
                         const Agglomerate<Double>& A)
@@ -504,9 +500,9 @@ CreateOperatorsConstantVectorial( const CRS_Matrix<T>& sysMatrix,
 
 
 
-template <typename T>
-void TransferOperator<T>::Prolongate( const Vector<T>& v_H,
-                                            Vector<T>& v_h,
+template <>
+inline void TransferOperator<Double>::Prolongate( const Vector<Double>& v_H,
+                                            Vector<Double>& v_h,
                                       const bool       add  ) const
 {
 
@@ -520,23 +516,53 @@ void TransferOperator<T>::Prolongate( const Vector<T>& v_H,
 
 }
 
-/**********************************************************/
-
-template <typename T>
-void TransferOperator<T>::Restrict( const Vector<T>& v_h,
-                                          Vector<T>& v_H,
-                                    const bool       add  ) const
+template <>
+inline void TransferOperator<Complex>::Prolongate( const Vector<Complex>& v_H,
+                                            Vector<Complex>& v_h,
+                                      const bool       add  ) const
 {
 
-    if( Restriction_ != NULL ) {
-        if( add )  Restriction_->MultAdd( v_h, v_H );
-        else       Restriction_->Mult( v_h, v_H );
+    if( Prolongation_ != NULL ) {
+        if( add )  Prolongation_->MultAdd_type( v_H, v_h );
+        else       Prolongation_->Mult_type( v_H, v_h );
     } else {
-        if( add )  Prolongation_->MultTAdd( v_h, v_H );
-        else       Prolongation_->MultT( v_h, v_H );
+        if( add )  Restriction_->MultTAdd_type( v_H, v_h );
+        else       Restriction_->MultT_type( v_H, v_h );
     }
 
 }
+/**********************************************************/
+template <>
+inline void TransferOperator<Double>::Restrict( const Vector<Double>& v_h,
+                                          Vector<Double>& v_H,
+                                    const bool       add  ) const
+{
+  if( Restriction_ != NULL ) {
+      if( add )  Restriction_->MultAdd( v_h, v_H );
+      else       Restriction_->Mult( v_h, v_H );
+  } else {
+      if( add )  Prolongation_->MultTAdd( v_h, v_H );
+      else       Prolongation_->MultT( v_h, v_H );
+  }
+}
+
+template <>
+inline void TransferOperator<Complex>::Restrict( const Vector<Complex>& v_h,
+                                          Vector<Complex>& v_H,
+                                    const bool       add  ) const
+{
+  if( Restriction_ != NULL ) {
+      if( add )  Restriction_->MultAdd_type( v_h, v_H );
+      else       Restriction_->Mult_type( v_h, v_H );
+  } else {
+      if( add )  Prolongation_->MultTAdd_type( v_h, v_H );
+      else       Prolongation_->MultT_type( v_h, v_H );
+  }
+}
+
+
+
+
 
 
 /* To avoid constantly repeating the part of code that checks inbound SparseBLAS functions' status,
@@ -551,75 +577,6 @@ void TransferOperator<T>::Restrict( const Vector<T>& v_h,
 
 template <typename T>
 void TransferOperator<T>::
-ExportCSRMatrix(sparse_matrix_t AH,
-				  int &rows,
-				  int &cols,
-				  int *&pointerB_1,
-				  int *&pointerE_1,
-				  int *&solCols,
-				  double *&values){
-
-	sparse_index_base_t solbase;
-	CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbase, &rows, &cols,
-			&pointerB_1, &pointerE_1, &solCols, &values),
-			"Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
-}
-
-template <typename T>
-void TransferOperator<T>::
-ExportCSRMatrix(sparse_matrix_t AH,
-				  int &rows,
-				  int &cols,
-				  int *&pointerB_1,
-				  int *&pointerE_1,
-				  int *&solCols,
-				  std::complex<double> *&values){
-
-	EXCEPTION("transfer.cc: Complex Galerkin product not yet handled");
-
-	//sparse_index_base_t solbase;
-	//CALL_AND_CHECK_STATUS(mkl_sparse_c_export_csr( AH, &solbase, &rows, &cols,
-	//		&pointerB_1, &pointerE_1, &solCols, &values),
-	//		"Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
-}
-
-
-template <typename T>
-void TransferOperator<T>::CreateCSRMatrix(sparse_matrix_t& Ah,
-		  const sparse_index_base_t& t,
-		  const int &rowsAh,
-		  const int &colsAh,
-		  int *rPAh,
-		  int *cPAh,
-		  double *dPAh){
-
-
-	  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Ah, t, rowsAh, colsAh,
-	      rPAh, rPAh+1, cPAh, dPAh ),
-	      "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
-}
-
-
-
-template <typename T>
-void TransferOperator<T>::CreateCSRMatrix(sparse_matrix_t &Ah,
-		  const sparse_index_base_t& t,
-		  const int &rowsAh,
-		  const int &colsAh,
-		  int *rPAh,
-		  int *cPAh,
-		  std::complex<double> *dPAh){
-
-	EXCEPTION("transfer.cc: Complex Galerkin product not yet handled");
-
-
-	  //CALL_AND_CHECK_STATUS(mkl_sparse_c_create_csr( &Ah, t, rowsAh, colsAh,
-	  //    rPAh, rPAh+1, cPAh, dPAh ),
-	  //    "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
-}
-
-template <typename T>
-void TransferOperator<T>::
 GalerkinProduct(StdVector<UInt>& A_H_rP,
                 StdVector<UInt>& A_H_cP,
                 StdVector<T>& A_H_dP,
@@ -631,186 +588,14 @@ GalerkinProduct(StdVector<UInt>& A_H_rP,
                 const AMGType amgType)
 {
 
-  /***************************************************************
-   ******************** 1) Coarse System matrix ******************
-   ***************************************************************/
-  sparse_matrix_t P = NULL;
-  sparse_index_base_t t = SPARSE_INDEX_BASE_ZERO;
-  MKL_INT rowsProlo = Prolongation_->GetNumRows();
-  MKL_INT colsProlo = Prolongation_->GetNumCols();
-  MKL_INT *rPProlo = (Integer*)Prolongation_->GetRowPointer();
-  MKL_INT *cPProlo = (Integer*)Prolongation_->GetColPointer();
-  double *dPProlo = Prolongation_->GetDataPointer();
+  CRS_Matrix<T>* TMP1 = new CRS_Matrix<T>();
+  TMP1->MultTriple_MKL(A_h, *Prolongation_,  A_H_rP, A_H_cP, A_H_dP, 1, false);
 
-  sparse_matrix_t Ah = NULL;
-  MKL_INT rowsAh = A_h.GetNumRows();
-  MKL_INT colsAh = A_h.GetNumCols();
-  MKL_INT *rPAh = (Integer*) A_h.GetRowPointer();
-  MKL_INT *cPAh = (Integer*) A_h.GetColPointer();
-  T *dPAh = (T*) A_h.GetDataPointer();
+  CRS_Matrix<Double>* TMP2 = new CRS_Matrix<Double>();
+  TMP2->MultTriple_MKL(B_h, *AuxProlongation_, B_H_rP, B_H_cP, B_H_dP, 1, false);
 
-
-  /******** Convert our CRS_Matrices into MKL-sparse csr-matrix *********/
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &P, t, rowsProlo, colsProlo,
-      rPProlo, rPProlo+1, cPProlo, dPProlo ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Prolongation-matrix \n");
-
-  // specialization between complex and double handled in own function
-  CreateCSRMatrix(Ah, t, rowsAh, colsAh, rPAh, cPAh, dPAh );
-
-
-  /*************** Perform AH = P * Ah * P^T ***********************/
-  sparse_matrix_t tempAH = NULL;
-  sparse_operation_t transA = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transA, Ah, P, &tempAH),
-      "Error after MKL_SPARSE_SPMM, tempAH = Ah * P \n");
-
-  sparse_matrix_t AH = NULL;
-  sparse_operation_t transAH = SPARSE_OPERATION_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transAH, tempAH, P, &AH),
-      "Error after MKL_SPARSE_SPMM, AH = P^T * tempAH \n");
-
-
-  /*************** Export AH in MKL-csr format ***********************/
-
-  MKL_INT rows = -1,
-		  cols = -1;
-  MKL_INT *solCols = NULL;
-  T *values = NULL;
-
-
-  MKL_INT *pointerB_1 = NULL, *pointerE_1 = NULL;
-
-  // specialization between complex and double handled in own function
-  ExportCSRMatrix(AH, rows, cols, pointerB_1, pointerE_1, solCols, values);
-
-
-  A_H_rP.Resize(rows + 1, 0);
-  // I'm sure there's a method in MKL to find nnz, but I couldn't find it
-  UInt nnz;
-  nnz = 0;
-  for(Integer i = 0; i < rows; i++ ){
-    nnz += pointerE_1[i] - pointerB_1[i];
-    A_H_rP[i + 1] = nnz;
-  }
-
-
-  A_H_cP.Resize(nnz, 0);
-  A_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < (UInt)rows; ++i){
-    for(UInt j = (UInt)A_H_rP[i]; j < (UInt)A_H_rP[i+1]; ++j){
-      A_H_cP[j] = (UInt)solCols[j];
-      A_H_dP[j] = values[j];
-    }
-  }
-
-
-  /*********** Release handles and deallocate memory ************/
-  if( mkl_sparse_destroy( P ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, P \n");fflush(0); }
-
-  if( mkl_sparse_destroy( Ah ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, Ah \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempAH ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempAH \n");fflush(0); }
-
-  if( mkl_sparse_destroy( AH ) != SPARSE_STATUS_SUCCESS)
-  { EXCEPTION("Error in the MKL sparse matrix-matrix multiplication\n"
-      "try to increase the size of the coarse system");}
-
-
-
-
-  //if(amgType != SCALAR){
-  /*****************************************************************/
-  /********************* 2) Coarse Auxiliary matrix ****************/
-  /*****************************************************************/
-  sparse_matrix_t PB = NULL;
-  sparse_index_base_t tB = SPARSE_INDEX_BASE_ZERO;
-  MKL_INT rowsProloB = AuxProlongation_->GetNumRows();
-  MKL_INT colsProloB = AuxProlongation_->GetNumCols();
-  MKL_INT *rPProloB = (Integer*)AuxProlongation_->GetRowPointer();
-  MKL_INT *cPProloB = (Integer*)AuxProlongation_->GetColPointer();
-  double *dPProloB = AuxProlongation_->GetDataPointer();
-
-  sparse_matrix_t Bh = NULL;
-  MKL_INT rowsBh = B_h.GetNumRows();
-  MKL_INT colsBh = B_h.GetNumCols();
-  MKL_INT *rPBh = (Integer*) B_h.GetRowPointer();
-  MKL_INT *cPBh = (Integer*) B_h.GetColPointer();
-  double *dPBh = (double*) B_h.GetDataPointer();
-
-
-  /********* Convert our CRS_Matrices into MKL-sparse csr-matrix **********/
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &PB, tB, rowsProloB, colsProloB,
-      rPProloB, rPProloB+1, cPProloB, dPProloB ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Aux-Prolongation-matrix \n");
-
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Bh, tB, rowsBh, colsBh,
-      rPBh, rPBh+1, cPBh, dPBh ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Bh-matrix \n");
-
-
-
-  /**************** Perform BH = P * Bh * P^T ************************/
-  sparse_matrix_t tempBH = NULL;
-  sparse_operation_t transB = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transB, Bh, PB, &tempBH),
-      "Error after MKL_SPARSE_SPMM, tempBH = Bh * P \n");
-
-  sparse_matrix_t BH = NULL;
-  sparse_operation_t transBH = SPARSE_OPERATION_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transBH, tempBH, PB, &BH),
-      "Error after MKL_SPARSE_SPMM, BH = P^T * tempBH \n");
-
-
-  /**************** Export BH in MKL-csr format ************************/
-  sparse_index_base_t solbaseB;
-  MKL_INT rowsB, colsB;
-  MKL_INT *solColsB;
-  double *valuesB = NULL;
-  MKL_INT *pointerB_1B, *pointerE_1B;
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( BH, &solbaseB, &rowsB, &colsB,
-      &pointerB_1B, &pointerE_1B, &solColsB, &valuesB),
-      "Error after MKL_SPARSE_D_EXPORT_CSR, Export of BH \n");
-
-
-
-  B_H_rP.Resize(rowsB + 1, 0);
-  // I'm sure there's a method in MKL to find nnz, but I couldn't find it
-  nnz = 0;
-  for(Integer i = 0; i < rowsB; i++ ){
-    nnz += pointerE_1B[i] - pointerB_1B[i];
-    B_H_rP[i + 1] = nnz;
-  }
-
-
-  B_H_cP.Resize(nnz, 0);
-  B_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < (UInt)rowsB; ++i){
-    for(UInt j = B_H_rP[i]; j < B_H_rP[i+1]; ++j){
-      B_H_cP[j] = (UInt)solColsB[j];
-      B_H_dP[j] = valuesB[j];
-    }
-  }
-
-  /************ Release handles and deallocate memory *************/
-  if( mkl_sparse_destroy( PB ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, P \n");fflush(0); }
-
-  if( mkl_sparse_destroy( Bh ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, Bh \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempBH ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempBH \n");fflush(0); }
-
-  if( mkl_sparse_destroy( BH ) != SPARSE_STATUS_SUCCESS)
-  { EXCEPTION("Error in the MKL sparse matrix-matrix multiplication\n"
-      "try to increase the size of the coarse system");
-    /*printf(" Error after MKL_SPARSE_DESTROY, BH \n");fflush(0); */}
-
-  //}
+  delete TMP1; TMP1 = NULL;
+  delete TMP2; TMP2 = NULL;
 
 }
 
@@ -823,213 +608,74 @@ GalerkinProductEdgeAux(StdVector<UInt>& B_H_rP,
                       StdVector<Double>& B_H_dP,
                       const CRS_Matrix<Double>& B_h)
 {
-  //if(amgType != SCALAR){
-  /*****************************************************************/
-  /*********************  Coarse Auxiliary matrix ******************/
-  /*****************************************************************/
-  sparse_matrix_t PB = NULL;
-  sparse_index_base_t tB = SPARSE_INDEX_BASE_ZERO;
-  MKL_INT rowsProloB = AuxRestriction_->GetNumRows();
-  MKL_INT colsProloB = AuxRestriction_->GetNumCols();
-  MKL_INT *rPProloB = (Integer*)AuxRestriction_->GetRowPointer();
-  MKL_INT *cPProloB = (Integer*)AuxRestriction_->GetColPointer();
-  double *dPProloB = AuxRestriction_->GetDataPointer();
 
-  sparse_matrix_t Bh = NULL;
-  MKL_INT rowsBh = B_h.GetNumRows();
-  MKL_INT colsBh = B_h.GetNumCols();
-  MKL_INT *rPBh = (Integer*) B_h.GetRowPointer();
-  MKL_INT *cPBh = (Integer*) B_h.GetColPointer();
-  double *dPBh = (double*) B_h.GetDataPointer();
+  CRS_Matrix<Double>* TMP = new CRS_Matrix<Double>();
+  TMP->MultTriple_MKL(B_h, *AuxRestriction_, B_H_rP, B_H_cP, B_H_dP, 2, false);
 
-  /********* Convert our CRS_Matrices into MKL-sparse csr-matrix **********/
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &PB, tB, rowsProloB, colsProloB,
-      rPProloB, rPProloB+1, cPProloB, dPProloB ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Aux-Prolongation-matrix \n");
-
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Bh, tB, rowsBh, colsBh,
-      rPBh, rPBh+1, cPBh, dPBh ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Bh-matrix \n");
-
-
-
-  /**************** Perform BH = P * Bh * P^T ************************/
-  sparse_matrix_t tempBH = NULL;
-  sparse_operation_t transB = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transB, PB, Bh, &tempBH),
-      "Error after MKL_SPARSE_SPMM, tempBH = R * Bh \n");
-
-  sparse_matrix_t tempBHT = NULL;
-  sparse_operation_t t = SPARSE_OPERATION_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_convert_csr(tempBH, t, &tempBHT),
-        "Error after MKL_SPARSE_CONVERT_CSR, tempBHT = tempBH^T \n");
-
-
-  sparse_matrix_t BH = NULL;
-  sparse_operation_t transBH = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transBH, PB, tempBHT, &BH),
-      "Error after MKL_SPARSE_SPMM, BH = tempBH * R^T \n");
-
-
-  /**************** Export BH in MKL-csr format ************************/
-  sparse_index_base_t solbaseB;
-  MKL_INT rowsB, colsB;
-  MKL_INT *solColsB;
-  double *valuesB = NULL;
-  MKL_INT *pointerB_1B, *pointerE_1B;
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( BH, &solbaseB, &rowsB, &colsB,
-      &pointerB_1B, &pointerE_1B, &solColsB, &valuesB),
-      "Error after MKL_SPARSE_D_EXPORT_CSR, Export of BH \n");
-
-
-  B_H_rP.Resize(rowsB + 1, 0);
-  // I'm sure there's a method in MKL to find nnz, but I couldn't find it
-  UInt nnz = 0;
-  for(Integer i = 0; i < rowsB; i++ ){
-    nnz += pointerE_1B[i] - pointerB_1B[i];
-    B_H_rP[i + 1] = nnz;
-  }
-
-  B_H_cP.Resize(nnz, 0);
-  B_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < (UInt)rowsB; ++i){
-    for(UInt j = B_H_rP[i]; j < B_H_rP[i+1]; ++j){
-      B_H_cP[j] = (UInt)solColsB[j];
-      B_H_dP[j] = valuesB[j];
-    }
-  }
-
-
-  /************ Release handles and deallocate memory *************/
-  if( mkl_sparse_destroy( PB ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, P \n");fflush(0); }
-
-  if( mkl_sparse_destroy( Bh ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, Bh \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempBH ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempBH \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempBHT ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempBHT \n");fflush(0); }
-
-  if( mkl_sparse_destroy( BH ) != SPARSE_STATUS_SUCCESS)
-  { EXCEPTION("Error in the MKL sparse matrix-matrix multiplication\n"
-      "try to increase the size of the coarse system");
-    /*printf(" Error after MKL_SPARSE_DESTROY, BH \n");fflush(0); */}
-
-  //}
+  delete TMP; TMP = NULL;
 
 }
 
 
-/***************************************************************/
+/************** Specialization for real valued system matrix *******/
+template <typename T>
+void TransferOperator<T>::
+GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
+                      StdVector<UInt>& A_H_cP,
+                      StdVector<Double>& A_H_dP,
+                      const CRS_Matrix<Double>& A_h)
+{
+
+  CRS_Matrix<Double>* TMP = new CRS_Matrix<Double>();
+  TMP->MultTriple_MKL(A_h, *Restriction_, A_H_rP, A_H_cP, A_H_dP, 2, false);
+
+  delete TMP; TMP = NULL;
+}
+
+/************** Specialization for complex valued system matrix *******/
 template <typename T>
 void TransferOperator<T>::
 GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
                         StdVector<UInt>& A_H_cP,
-                        StdVector<T>& A_H_dP,
-                        const CRS_Matrix<T>& A_h)
+                        StdVector<Complex>& A_H_dP,
+                        const CRS_Matrix<Complex>& A_h)
 {
-  //if(amgType != SCALAR){
-  /*****************************************************************/
-  /*********************  Coarse System matrix *********************/
-  /*****************************************************************/
-  sparse_matrix_t PB = NULL;
-  sparse_index_base_t tB = SPARSE_INDEX_BASE_ZERO;
-  MKL_INT rowsProloB = Restriction_->GetNumRows();
-  MKL_INT colsProloB = Restriction_->GetNumCols();
-  MKL_INT *rPProloB = (Integer*)Restriction_->GetRowPointer();
-  MKL_INT *cPProloB = (Integer*)Restriction_->GetColPointer();
-  double *dPProloB = Restriction_->GetDataPointer();
 
-  sparse_matrix_t Ah = NULL;
-  MKL_INT rowsBh = A_h.GetNumRows();
-  MKL_INT colsBh = A_h.GetNumCols();
-  MKL_INT *rPBh = (Integer*) A_h.GetRowPointer();
-  MKL_INT *cPBh = (Integer*) A_h.GetColPointer();
-  double *dPBh = (double*) A_h.GetDataPointer();
+  UInt nnz = A_h.GetNnz();
+  const Complex *pC = A_h.GetDataPointer();
+  const UInt *cPC = A_h.GetColPointer();
+  const UInt *rPC = A_h.GetRowPointer();
 
-
-  /********* Convert our CRS_Matrices into MKL-sparse csr-matrix **********/
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &PB, tB, rowsProloB, colsProloB,
-      rPProloB, rPProloB+1, cPProloB, dPProloB ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Aux-Prolongation-matrix \n");
-
-  CALL_AND_CHECK_STATUS(mkl_sparse_d_create_csr( &Ah, tB, rowsBh, colsBh,
-      rPBh, rPBh+1, cPBh, dPBh ),
-      "Error after MKL_SPARSE_D_CREATE_CSR, Ah-matrix \n");
-
-
-
-  /**************** Perform AH = P * Ah * P^T ************************/
-  sparse_matrix_t tempBH = NULL;
-  sparse_operation_t transB = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transB, PB, Ah, &tempBH),
-      "Error after MKL_SPARSE_SPMM, tempBH = R * Bh \n");
-
-  sparse_matrix_t tempBHT = NULL;
-  sparse_operation_t t = SPARSE_OPERATION_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_convert_csr(tempBH, t, &tempBHT),
-        "Error after MKL_SPARSE_CONVERT_CSR, tempBHT = tempBH^T \n");
-
-
-  sparse_matrix_t AH = NULL;
-  sparse_operation_t transBH = SPARSE_OPERATION_NON_TRANSPOSE;
-  CALL_AND_CHECK_STATUS(mkl_sparse_spmm(transBH, PB, tempBHT, &AH),
-      "Error after MKL_SPARSE_SPMM, BH = tempBH * R^T \n");
-
-
-  /**************** Export AH in MKL-csr format ************************/
-  //sparse_index_base_t solbaseB;
-  MKL_INT rowsB, colsB;
-  MKL_INT *solColsB;
-  double *valuesB = NULL;
-  MKL_INT *pointerB_1B, *pointerE_1B;
-
-  ExportCSRMatrix(AH, rowsB, colsB, pointerB_1B, pointerE_1B, solColsB, valuesB);
-
-  //CALL_AND_CHECK_STATUS(mkl_sparse_d_export_csr( AH, &solbaseB, &rowsB, &colsB,
-  //    &pointerB_1B, &pointerE_1B, &solColsB, &valuesB),
-  //    "Error after MKL_SPARSE_D_EXPORT_CSR, Export of AH \n");
-
-
-  A_H_rP.Resize(rowsB + 1, 0);
-  // I'm sure there's a method in MKL to find nnz, but I couldn't find it
-  UInt nnz = 0;
-  for(Integer i = 0; i < rowsB; i++ ){
-    nnz += pointerE_1B[i] - pointerB_1B[i];
-    A_H_rP[i + 1] = nnz;
+  double *re = new double[nnz];
+  double *im = new double[nnz];
+  for(UInt i = 0; i < nnz; ++i){
+    re[i] = pC[i].real();
+    im[i] = pC[i].imag();
   }
 
-  A_H_cP.Resize(nnz, 0);
-  A_H_dP.Resize(nnz, 0.0);
-  for(UInt i = 0; i < (UInt)rowsB; ++i){
-    for(UInt j = A_H_rP[i]; j < A_H_rP[i+1]; ++j){
-      A_H_cP[j] = (UInt)solColsB[j];
-      A_H_dP[j] = valuesB[j];
-    }
+  CRS_Matrix<Double>* R = new CRS_Matrix<Double>(A_h.GetNumRows(), A_h.GetNumCols(), A_h.GetNnz(), rPC, cPC, re);
+  CRS_Matrix<Double>* I = new CRS_Matrix<Double>(A_h.GetNumRows(), A_h.GetNumCols(), A_h.GetNnz(), rPC, cPC, im);
+
+  CRS_Matrix<Double>* TMP_R = new CRS_Matrix<Double>();
+  StdVector<Double>A_H_dP_Re;
+  StdVector<Double>A_H_dP_Im;
+  TMP_R->MultTriple_MKL(*R, *Restriction_, A_H_rP, A_H_cP, A_H_dP_Re, 2, false);
+  TMP_R->MultTriple_MKL(*I, *Restriction_, A_H_rP, A_H_cP, A_H_dP_Im, 2, false);
+
+  A_H_dP.Resize(A_H_dP_Re.GetSize());
+  for (UInt i = 0; i < A_H_dP_Re.GetSize(); ++i) {
+      A_H_dP[i].real(A_H_dP_Re[i]);
+      A_H_dP[i].imag(A_H_dP_Im[i]);
   }
 
-
-  /************ Release handles and deallocate memory *************/
-  if( mkl_sparse_destroy( PB ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, P \n");fflush(0); }
-
-  if( mkl_sparse_destroy( Ah ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, Bh \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempBH ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempBH \n");fflush(0); }
-
-  if( mkl_sparse_destroy( tempBHT ) != SPARSE_STATUS_SUCCESS)
-  { printf(" Error after MKL_SPARSE_DESTROY, tempBHT \n");fflush(0); }
-
-  if( mkl_sparse_destroy( AH ) != SPARSE_STATUS_SUCCESS)
-  { EXCEPTION("Error in the MKL sparse matrix-matrix multiplication\n"
-      "try to increase the size of the coarse system");}
+  delete [] re;
+  delete [] im;
+  delete R; R = NULL;
+  delete I; I = NULL;
+  delete TMP_R; TMP_R = NULL;
 
 }
+
 #undef CALL_AND_CHECK_STATUS
 
 } // namespace CoupledField

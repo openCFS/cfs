@@ -149,6 +149,11 @@ namespace CoupledField
       couplingIter_ = count;
     }
     
+    //! if AMG is used, the auxiliary matrix only needs to be assembled once
+    void SetAuxMat(bool set) {
+    	auxSet_ = set;
+    }
+
   protected:
 
     //! Constructor
@@ -173,6 +178,9 @@ namespace CoupledField
     
     //! Counter for iterative coupling
     UInt couplingIter_;
+
+    //! if AMG is used, is auxiliary built?
+    bool auxSet_;
   };
 
 

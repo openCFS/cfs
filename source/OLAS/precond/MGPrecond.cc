@@ -64,7 +64,7 @@ void MGPrecond<T>::SetupMG(StdMatrix& sysmatrix,
       EXCEPTION( "could not set up the AMG preconditioner");
     }
 
-AMG_->Print(std::cout);
+    AMG_->Print(std::cout);
     this->readyToUse_ = true;
 }
 
