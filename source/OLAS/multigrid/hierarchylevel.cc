@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 /* $Id$ */
-
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 
@@ -48,7 +47,8 @@ HierarchyLevel<T>::HierarchyLevel()
   vH2_( NULL ),
   nextLevel_( NULL ),
   logging_( true ),
-  deleteDirSysMatrix_( true )
+  deleteDirSysMatrix_( true ),
+  amgType_(AMGType::SCALAR)
   {
   }
 
@@ -352,8 +352,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
   nextLevel_->InsertAuxMatrix( coarseAuxMatrix );
   const bool setupResult = nextLevel_->Setup( settings,
                               numBadCoarsenings );
-
-
   return setupResult;
     }
 
@@ -367,6 +365,9 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   if( SysMatrix_ == NULL )  return false;
   if( AuxMatrix_ == NULL )  return false;
   SetLogging( settings->logging );
+  if( SysMatrix_->GetCurrentLayout() != CRS_Matrix<T>::LEX_DIAG_FIRST){
+	  SysMatrix_->SetCurrentLayout(CRS_Matrix<T>::LEX_DIAG_FIRST);
+  }
   /*********************************************************/
   /**************** SETUP of THIS level ********************/
   /*********************************************************/
@@ -394,7 +395,6 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   /**************** Step 1) ********************************/
   // setup the agglomerates
   SetupAgglomerates();
-
 
   /**************** Step 2) ********************************/
   // define the patches for the AFW-Smoother
@@ -432,7 +432,6 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   coarseAuxMatrix->ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
 
 
-
   /**************** Step 5) ********************************/
   // Now we can define the coarse edges, because BH is needed
   UInt SizeH = Agglomerate_->CreateCoarseEdges(*coarseAuxMatrix);
@@ -463,7 +462,6 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
 
   /**************** Step 7) ********************************/
   if( ! Transfer_->CreateProlongationOperatorEdgeSys(*SysMatrix_,
-                                                     *coarseAuxMatrix,
                                                      edgeIndNode_,
                                                      nodeNumIndex_,
                                                      *Agglomerate_) ) {
@@ -481,6 +479,7 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
 
   // create coarse matrices
   CRS_Matrix<T>* coarseSysMatrix = new CRS_Matrix<T>( rowsA, rowsA, nnzA);
+
 
   // setup the sparsity graph
   coarseSysMatrix->SetSparsityPatternData(A_H_rP, A_H_cP, A_H_dP);
@@ -510,7 +509,7 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   StdVector< StdVector< Integer> > cEdgeIndNode;
   Transfer_->GetCoarseEdgeIndNode(cEdgeIndNode);
 
-
+  SysMatrix_->ChangeLayout(CRS_Matrix<T>::LEX);
   ////////////////////////////////////////////////////
   // continue setup process recursively on next level
   // create level object for the next level
@@ -524,7 +523,6 @@ bool HierarchyLevel<T>::SetupEdge( Settings* const settings,
   // also insert the new edge-index-orientation maps
   const bool setupResult = nextLevel_->SetupEdge( settings,
                               numBadCoarsenings );
-
   return setupResult;
   }
 
@@ -831,9 +829,9 @@ SetupDirectSolver( const Settings* const settings )
     directSolver_ = GenerateDirSolverObjectAMG( *DirSysMatrix_, *directSolverParams_);
     directSolver_->Setup( *DirSysMatrix_);
 #else // USE_PARDISO
-    Error( "To use PARDISO as direct solver on the coarsest "
+    std::cout<<"To use PARDISO as direct solver on the coarsest "
         "AMG level the code must be compiled with the "
-        "preprocessor flags USE_PARDISO");
+        "preprocessor flags USE_PARDISO"<<std::endl;
 #endif // USE_PARDISO
     break;
   }

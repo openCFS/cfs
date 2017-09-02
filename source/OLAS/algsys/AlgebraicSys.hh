@@ -873,6 +873,8 @@ namespace CoupledField {
     //! Build the auxiliary matrix for the edge- (Nédéléc-) version of AMG
     void BuildAMGEdgeAuxMatrix();
 
+    AMGType GetAMGType(){ return amgType_;}
+
     //! Return if AMG is even used
     bool UseAMG(){
       return useAMG_;

@@ -3371,22 +3371,6 @@ namespace CoupledField {
     }
 
 
-     // Down-cast to CRS_Matrix
-      if( b.GetEntryType() == BaseMatrix::EntryType::DOUBLE){
-             CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
-             if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
-               crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
-             }
-         }else{
-             CRS_Matrix<Complex>& crsMat = dynamic_cast<CRS_Matrix<Complex>&>(b);
-             if( crsMat.GetCurrentLayout() != CRS_Matrix<Complex>::LEX_DIAG_FIRST ){
-               crsMat.ChangeLayout(CRS_Matrix<Complex>::LEX_DIAG_FIRST);
-             }
-         }
-     
-     
-     
-
     /**************** Build the auxiliary graph ********************/
     /* since we don't know the non-zero entries in the auxiliary matrix
      * a priori, we have to introduce a temporary graph-like structure:
@@ -3464,28 +3448,6 @@ namespace CoupledField {
         }
       }
 
-      /*
-      // Old Version
-      // loop over all edges
-      while( eIt != geomIndEdge_.end() ){
-        Double dist = eIt->second.length;
-        //StdVector<Integer>& nodes = eIt->second.eNodes;
-        Integer found = -1; //eIt->second.eNodes.Find(nNum);
-        if( eIt->second.eNodes[0] == nNum ) found = 0;
-        else if( eIt->second.eNodes[1] == nNum ) found = 1;
-
-        if( found != -1){
-          UInt i = (found == 0)? 1 : 0;
-          if(!nL.Contains(indexNodeNum_[eIt->second.eNodes[i]])){
-            nL.Push_back(indexNodeNum_[eIt->second.eNodes[i]]);
-            eL.Push_back(dist);
-            cI.Push_back(indexNodeNum_[eIt->second.eNodes[i]]);
-            dataAux.Push_back(0.0);
-          }
-        }
-        eIt++;
-      }
-*/
       rSize += nL.GetSize() +1;//+1 for diagonal
       rP.Push_back(rSize);
     }
@@ -3554,6 +3516,9 @@ namespace CoupledField {
 
     // Down-cast to CRS_Matrix
     CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
+    if( b.GetEntryType() == BaseMatrix::EntryType::COMPLEX){
+      EXCEPTION("AlgebraicSys::BuildAMGLagrangeAuxMatrix() Complex version not yet implemented!");
+    }
 
 
     // Get handles and info from system-matrix
@@ -3565,7 +3530,8 @@ namespace CoupledField {
     // Get hold of row pointer index array
     const UInt *rowInd = crsMat.GetRowPointer();
     // Get hold of data array
-    const Double *dataA = crsMat.GetDataPointer();
+    const Double* dataA = crsMat.GetDataPointer();
+
     UInt nnzSys = crsMat.GetNnz();
 
     // dimension of the problem (number of entries per node)

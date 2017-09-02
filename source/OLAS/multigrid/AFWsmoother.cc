@@ -128,7 +128,8 @@ ExtractPatches( const CRS_Matrix<T>& SysMat){
     }
     ExtMat_[n] = sM;
     // also store the inverse patch-matrix
-    //Matrix<Double> t;
+    //Matrix<T> t;
+    //sM.Invert(t);
     sM.Invert_Lapack();
     InvExtMat_[n] = sM;
   }

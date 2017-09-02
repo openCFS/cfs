@@ -9,13 +9,14 @@
 #include  "OLAS/multigrid/prematrix.hh"
 
 #include "MatVec/CRS_Matrix.hh"
-
+/*
 #include <def_use_blas.hh>
 #ifdef USE_MKL
 # include <mkl.h>
 #else
 EXCEPTION("Compile with USE_MKL = ON")
 #endif
+*/
 
 namespace CoupledField {
 /**********************************************************/
@@ -103,7 +104,6 @@ namespace CoupledField {
 
     //! constant interpolation for edge-AMG, for system matrix
     bool CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
-                              const CRS_Matrix<Double>& coarseAuxMat,
                               const StdVector< StdVector< Integer> >& edgeIndNode,
                               const StdVector< Integer>& nodeNumIndex,
                              const Agglomerate<Double>& agglomerates);
@@ -125,53 +125,12 @@ namespace CoupledField {
 					 Vector<T>& v_h,
 					 const bool add = false ) const;
 
+
     //! restricts a fine vector v_h to a coarse vector v_H
     void Restrict( const Vector<T>& v_h,
 				   Vector<T>& v_H,
 				   const bool add = false ) const;
 
-
-    //! Includes a MKL function to convert from MKL-types to CRS
-
-    /* double version */
-    void ExportCSRMatrix(const sparse_matrix_t AH,
-					  int &rows,
-					  int &cols,
-					  int *&pointerB_1,
-					  int *&pointerE_1,
-					  int *&solCols,
-    				  double *&values);
-
-    //! Includes a MKL function to convert from MKL-types to CRS
-
-    /* complex version */
-    void ExportCSRMatrix(const sparse_matrix_t AH,
-					  int &rows,
-					  int &cols,
-					  int *&pointerB_1,
-					  int *&pointerE_1,
-					  int *&solCols,
-					  std::complex<double> *&values);
-
-    //! Includes a MKL function to create a MKL-CRS matrix
-
-    /* double version */
-    void CreateCSRMatrix(sparse_matrix_t &Ah,
-  		  const sparse_index_base_t& t,
-  		  const int &rowsAh,
-  		  const int &colsAh,
-  		  int *rPAh,
-  		  int *cPAh,
-  		  double *dPAh);
-
-    /* complex version */
-     void CreateCSRMatrix(sparse_matrix_t &Ah,
-   		  const sparse_index_base_t& t,
-   		  const int &rowsAh,
-   		  const int &colsAh,
-   		  int *rPAh,
-   		  int *cPAh,
-   		  std::complex<double> *dPAh);
 
     //! creates the coarse system matrix A_H as Galerkin product
 
@@ -219,9 +178,13 @@ namespace CoupledField {
 
     void GalerkinProductEdgeSys( StdVector<UInt>& A_H_rP,
                                 StdVector<UInt>& A_H_cP,
-                                StdVector<T>& A_H_dP,
-                                const CRS_Matrix<T>&  A_h);
+                                StdVector<Double>& A_H_dP,
+                                const CRS_Matrix<Double>&  A_h);
 
+    void GalerkinProductEdgeSys( StdVector<UInt>& A_H_rP,
+                                StdVector<UInt>& A_H_cP,
+                                StdVector<Complex>& A_H_dP,
+                                const CRS_Matrix<Complex>&  A_h);
 
 
   protected:

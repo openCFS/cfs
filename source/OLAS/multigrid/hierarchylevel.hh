@@ -296,12 +296,7 @@ class HierarchyLevel
 
 /**********************************************************/
 } // namespace CoupledField
-/*
-namespace std {
-template <typename T> std::ostream& operator <<
-( std::ostream& out, const OLAS::HierarchyLevel<T>& level );
-}
-*/
+
 /**********************************************************/
 
 #endif // OLAS_HIERARCHYLEVEL_HH

@@ -315,7 +315,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     case BasePrecond::MG:
       // multigrid preconditioners can be used with CRS_Matrix only.
       PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, MGPrecond<Double> );
-      //PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_NONSYM, MGPrecond<Complex> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_NONSYM, MGPrecond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
