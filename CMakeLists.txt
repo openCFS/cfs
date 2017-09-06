@@ -2,9 +2,9 @@
 # Set the version number of CMake which is required to build CFS++.
 #-----------------------------------------------------------------------------
 
-SET(REQ_MAJOR_VER 2)
-SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 11)
+SET(REQ_MAJOR_VER 3)
+SET(REQ_MINOR_VER 7)
+SET(REQ_PATCH_VER 2)
 
 #-----------------------------------------------------------------------------
 # Include global definitions for CFS++ development server (host name, etc.)
@@ -99,14 +99,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "17")
-SET(CFS_VERSION_MONTH "4")
+SET(CFS_VERSION_MONTH "8")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Aerosource")
+SET(CFS_NAME "AMGme")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
