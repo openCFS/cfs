@@ -346,6 +346,7 @@ def detect_boundary_edges(polydata):
 #     for t in l:
 #       print(boundaryPts[t[0]])
 #     print("len:",len(l))
+    
   return boundaryPts,edgeLoops 
 
 def fill_boundary_loops(points,loops):
@@ -403,15 +404,32 @@ def fill_boundary_loops(points,loops):
     info.set_points(test)
     info.set_facets((draw_profile_functions.round_trip_connect(0,len(test)-1)))
     mesh = triangle.build(info,generate_faces=True)
+    mesh_points = np.array(mesh.points)
     mesh_tris = np.array(mesh.elements)
+    
+#     import matplotlib
+#     from matplotlib import pyplot as plt
+#     matplotlib.use('tagg')
+#     plt.plot(mesh_points[:,0],mesh_points[:,1],'o')
+#     plt.triplot(mesh_points[:,0],mesh_points[:,1],mesh_tris)
+#     plt.show()
     
     if len(mesh_tris) == 0:
       print("\ncould not mesh hole:")
       print(test)
       print(coords_3d)
       sys.exit()
+    
+    new_points = []
+    # map from 2d point to 3d point
+    for p in mesh_points:
+      new_p = np.zeros(3)
+      new_p[major] = comp
+      new_p[minor_1] = p[0]
+      new_p[minor_2] = p[1]
+      new_points.append(new_p)
       
-    appendPd.AddInputData(matviz_vtk.fill_vtk_polydata(coords_3d, mesh_tris))
+    appendPd.AddInputData(matviz_vtk.fill_vtk_polydata(new_points, mesh_tris))
     appendPd.Update()
   
   print("closed ",len(loops), " holes")  
