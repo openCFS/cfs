@@ -1688,8 +1688,9 @@ def create_mesh_from_gmsh_special(meshfile,type):
 def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
   # read 3D tetrahedron gmsh mesh
-  meshfile = meshfile[:-4]
-  inp = open(meshfile+".msh").readlines()
+  if not meshfile.endswith(".msh"):
+    meshfile = meshfile + ".msh"
+  inp = open(meshfile).readlines()
   nodes = []
   if regionnumbers != None:
     regions = [[] for nums in regionnumbers]
