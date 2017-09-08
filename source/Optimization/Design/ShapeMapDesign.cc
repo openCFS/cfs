@@ -1142,8 +1142,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                }
                break;
                }
-               // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-               da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_order_);
+               // apply .5 fix from current FW branch
+               da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da / (order_order_);
              }
              LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " dc=" << grad_cached << " ci=" << s * order_order_ + IntPointIdx(ip_x, ip_y) << " dan=" << da_norm;
 
@@ -1151,8 +1151,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
              assert(opt_ != NULL);
              assert(opt_->objectives.data.GetSize() == s1->costGradient.GetSize());
-             s1->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-             s2->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+
+             int dof = s1->dof;
+             double t = (dof == 0 ? ip_x : ip_y) /(order_-1.);
+
+             s1->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
+             s2->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
 
              if(!IsProfileFixed())
              {
@@ -1185,13 +1189,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  break;
                  }
 
-                 // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-                 dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_order_);
+                 dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw / (order_order_);
                }
                log_dw += dw_norm;
 
-               w1->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-               w2->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+               w1->AddGradient(f, de->GetPlainGradient(f) * (1-t) * dw_norm);
+               w2->AddGradient(f, de->GetPlainGradient(f) * t * dw_norm);
              }
              //LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
              //    << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
