@@ -390,12 +390,10 @@ def fill_boundary_loops(points,loops):
     
 #     print("major:",major)
     coords_2d = []
-    coords_3d = []
     for t in l:
       p = points[t[0]]
       assert(len(p) == 3)
       coords_2d.append([p[minor_1],p[minor_2]])
-      coords_3d.append(p)
     
     assert(len(coords_2d) == len(l))  
     info = triangle.MeshInfo()
@@ -417,7 +415,6 @@ def fill_boundary_loops(points,loops):
     if len(mesh_tris) == 0:
       print("\ncould not mesh hole:")
       print(test)
-      print(coords_3d)
       sys.exit()
     
     new_points = []

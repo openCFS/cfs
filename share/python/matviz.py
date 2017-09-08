@@ -596,9 +596,9 @@ else:
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb = min,max_bb=max)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min,max_bb=max)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb = min,max_bb=max)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min,max_bb=max)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")

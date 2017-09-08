@@ -1688,6 +1688,7 @@ def create_mesh_from_gmsh_special(meshfile,type):
 def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
   # read 3D tetrahedron gmsh mesh
+  meshfile = meshfile[:-4]
   inp = open(meshfile+".msh").readlines()
   nodes = []
   if regionnumbers != None:
@@ -1789,23 +1790,44 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
       mesh.elements.append(e)    
   for bcnum in range(len(surfaceBCnumbers)):
     mesh.bc.append((str(surfaceBCnumbers[bcnum]), list(set(bcs[bcnum]))))
-  
+    
 ## Manually add simple boundary conditions 
-#   load = []
-#   support = []
+  load = []
+  support = []
+  np_nodes = numpy.asarray(nodes)
+  xmin = 999999
+  xmax = -999999
+  ymin = 999999
+  ymax = -999999
+  for i in range(len(nodes)):
+    # for all nodes on bottom, get xmin,xmax,ymin,ymax
+    if numpy.isclose(nodes[i][2],0.0,1e-12):
+      if nodes[i][0] < xmin:
+        xmin = nodes[i][0]
+      if nodes[i][0] > xmax:
+        xmax = nodes[i][0]       
+      if nodes[i][1] < ymin:
+        ymin = nodes[i][0]
+      if nodes[i][1] > ymax:
+        ymax = nodes[i][0]  
+  print("xmin,xmax,ymin,ymax:",xmin,xmax,ymin,ymax)
 #  symmetric = []
-#   for i in range(len(nodes)):
-#     # all nodes on top face are loads
-#     if numpy.isclose(nodes[i][2],1.0,1e-12):
-#       load.append(i)
-#     # all nodes on left face are supports
+  for i in range(len(nodes)):
+    # all nodes on top face are loads
+    if numpy.isclose(nodes[i][2],1.0,1e-12):
+      load.append(i)
+    # all nodes on left face are supports
 #     if numpy.isclose(nodes[i][0],0.0,1e-12):
 #       support.append(i)
-#     if numpy.isclose(nodes[i][2],0.0,1e-12):   
-#       if numpy.isclose(nodes[i][0],0.0,1e-12) or numpy.isclose(nodes[i][0],2.0,1e-12):# left/right edge
-#         support.append(i)
-#       elif numpy.isclose(nodes[i][1],0.0,1e-12) or numpy.isclose(nodes[i][1],1.0,1e-12): # front/back edge
-#         support.append(i)
+    # all edges of bb with z = 0 are supports
+    if numpy.isclose(nodes[i][2],0.0,1e-12):
+      if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
+        support.append(i)
+      # y is y_min or y_max
+      elif numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
+        support.append(i)
+      # x is x_min or x_max  
+         
 #    if nodes[i][1] < -2.9999999:
 #      support.append(i)
 #    elif nodes[i][1] > 31.9999999:
@@ -1815,8 +1837,8 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #  print(len(load))
 #   print(len(support))
 # 
-#   mesh.bc.append(("load", load))
-#   mesh.bc.append(("support", support))
+  mesh.bc.append(("load", load))
+  mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
   write_gid_mesh(mesh, meshfile+".mesh") 

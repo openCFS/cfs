@@ -24,7 +24,7 @@ def calc_volume(array,infoXml=None):
   if infoXml != None:
     infoXml.write('  <volume value="' + str(vol) + '"/>\n')
   
-#   print("volume:" + str(vol))
+  print("volume:" + str(vol))
   
   return vol
 
