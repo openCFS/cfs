@@ -1452,8 +1452,9 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
     double upper_dens = space->GetDesignElement(dens*common->n_elem+index)->GetUpperBound();
 
     // Calculate Vloc
-    Vloc = upper_mech11 + upper_mech22 + upper_mech33 - lower_mech11 - lower_mech22 - lower_mech33;
-    double scale = Vloc - common->L[index][0][0] - common->L[index][1][1] - common->L[index][2][2];
+    //Vloc = upper_mech11 + upper_mech22 + upper_mech33 - lower_mech11 - lower_mech22 - lower_mech33;
+    Vloc = 1.;
+    double scale = 1. - common->L[index][0][0] - common->L[index][1][1] - common->L[index][2][2];
 
     // projection to bounds
     rho1 = std::min(std::max(lower_mech11, .99 * scale * sqrB1/(sqrB1+sqrB2+sqrB3)),upper_mech11-lower_mech11);

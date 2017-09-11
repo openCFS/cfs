@@ -714,7 +714,6 @@ bool Function::ForDensityFiltering() const {
     case ORTHOTROPIC_TENSOR_TRACE:
     case DESIGN: // design checks access and knows plain and filtered, physical tbd.
     case GLOBAL_DESIGN:
-//    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
     case FILTERING_GAP:
@@ -1062,17 +1061,6 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
     ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
     ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
-
-    // create volume output data for material catalog in info.xml file
-    Vector<double> p(3,0);
-    double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
-    p[0] = 1.;
-    p[1] = 1.;
-    p[2] = 1.;
-    double v1 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
-    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
-    info_matCatalog->Get("vol_0")->SetValue(v0);
-    info_matCatalog->Get("vol_1")->SetValue(v1);
   }
   //total volume in the non-regular case is needed for the volume calculations
   this->total_vol_ = 0.0;
@@ -1101,8 +1089,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
-      // FIXME
       domain->GetInfoRoot()->Get("optimization/header")->SetWarning("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
+    if (!normalize_)
+      domain->GetInfoRoot()->Get("optimization/header")->SetWarning("function '" + fname + "' should be normalized");
+    if (!this->func_->IsObjective()) {
+      double parameter = dynamic_cast<Condition*>(this->func_)->GetParameter();
+      if (parameter > 0)
+        domain->GetInfoRoot()->Get("optimization/header")->SetWarning("'" + fname + "' computes as sum(max(f_i-" + lexical_cast<string>(parameter) + ",0). Are you sure about parameter=" + lexical_cast<string>(parameter) + "?");
+    }
     this->globalized_ = true;
     break;
 
@@ -2003,6 +1997,19 @@ void Function::Local::ToInfo(PtrParamNode in) {
 
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
+
+  // create volume output data for material catalog in info.xml file
+  if (func_->type_ == GLOBAL_TWO_SCALE_VOL) {
+    Vector<double> p(3,0);
+    double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    p[0] = 1.;
+    p[1] = 1.;
+    p[2] = 1.;
+    double v1 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
+    info_matCatalog->Get("vol_0")->SetValue(v0);
+    info_matCatalog->Get("vol_1")->SetValue(v1);
+  }
 }
 
 bool Function::Local::IsReverse(Locality loc)

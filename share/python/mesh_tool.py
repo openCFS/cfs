@@ -695,7 +695,7 @@ def validate_periodicity(mesh):
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -899,8 +899,11 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("support", list(range(nx,nx+1))))
     mesh.bc.append(("support", list(range((nx+1)*ny,(nx+1)*ny+1,nx+1))))
     mesh.bc.append(("support", list(range((nx+1)*(ny+1)-1,(nx+1)*(ny+1)))))
-
- 
+  elif type == 'mbb':
+    mid = int((nx+1.)/2.)
+    mesh.bc.append(("load", list(range((nx+1)*ny + mid, (nx+1)*ny + mid+1))))
+    mesh.bc.append(("left_lower", [0]))
+    mesh.bc.append(("right_lower", [nx]))
   elif type == 'msfem_two_load':
     # lower/upper loads
     mid = int((nx+1.)/2.)

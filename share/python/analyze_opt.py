@@ -50,7 +50,7 @@ def process_file(file, args, out, recursive):
   if process:
     # detect the order we have
     base = file[:-len('.info.xml')]
-    level = ord(base[-1]) - ord('a') if base[-2] == '_' and base[-1] >= 'a' and base[-1] <= 'z' else -1
+    level = ord(base[-1]) - ord('b') if base[-2] == '_' and base[-1] >= 'a' and base[-1] <= 'z' else -1
 
     iter = int(xpath(xml, "//iteration[last()]/@number"))
     if not recursive and iter < args.min_iter:
@@ -79,13 +79,13 @@ def process_file(file, args, out, recursive):
     mesh = full[full.rfind('/')+1:] # remove path stuff
     full = xpath(xml, '//progOpts/@parameterFile')
     prob = full[full.rfind('/')+1:] # remove path stuff
-    new  = base + '_a' if level == -1 else base[:-1] + chr(ord('a') + level+1)
+    new  = base + '_a' if level == -1 else base[:-1] + chr(ord('b') + level+1)
     if os.path.exists(base + '.density.xml'):
       cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml -p ' + prob + ' ' + new
     elif os.path.exists(base + '.density.xml.gz'):
       cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml.gz -p ' + prob + ' ' + new
     else:
-      print("No densityz file found!")
+      print("No density file found!")
       return
     if args.warmstart:
       if args.warmstart == "qsub":
@@ -95,9 +95,9 @@ def process_file(file, args, out, recursive):
     else:
       if not args.no_recursive:
         if level == 0:
-          process_file(base[:-2] + '.info.xml', args, out, recursive=True) # base is ..._a
+          process_file(base[:-2] + '_a.info.xml', args, out, recursive=True) # base is ..._a
         if level > 0:  
-          process_file(base[:-1] + chr(ord('a') + level-1) + '.info.xml', args, out, recursive=True)
+          process_file(base[:-1] + chr(ord('b') + level-1) + '.info.xml', args, out, recursive=True)
       line = ('iter:' if not recursive else '  >>:') + '{:3}'.format(iter) + ' ' + cost + ': {:8.4f}'.format(value) + " issue: '" + msg[msg.find('- ')+2:] 
       if args.show_density:
         line += "' -> show_density.py " + file[:-9] + ".density.xml"
