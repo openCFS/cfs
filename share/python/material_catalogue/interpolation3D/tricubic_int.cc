@@ -220,9 +220,7 @@ double tricubic_eval(vector<double> a, double x, double y, double z) {
   return ret;
 }
 
-void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, int mode) {
-  fstream f;
-  f.open(file.c_str(), ios::out);
+void write_to_xml(fstream & f, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, int mode) {
   f<<"<homRectC1 notation=\"voigt\">"<<endl;
   f<<"<a>"<<endl;
   f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
@@ -318,42 +316,40 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
       f<<endl;
     }
     f<<"</real>\n</matrix>\n</coeff66>\n";
-  f<<"</homRectC1>";
-  f.close();
 }
 
-void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double> aa, vector<double> bb, vector<double> cc) {
-  fstream f;
-  f.open(file.c_str(), ios::out);
-  f<<"<vol3D>"<<endl;
-  f<<"<a>"<<endl;
-  f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
-  f<<"<real>"<<endl;
-  for (int i = 0;i<aa.size();i++) {
-    f<<aa[i]<<" ";
-  }
-  f<<endl;
-  f<<"</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</a>"<<endl;
+void write_to_xml_vol(fstream & f, vector<vector<double>  > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, bool combined = true) {
+  if (!combined) {
+    f<<"<vol3D>"<<endl;
+    f<<"<a>"<<endl;
+    f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
+    f<<"<real>"<<endl;
+    for (int i = 0;i<aa.size();i++) {
+      f<<aa[i]<<" ";
+    }
+    f<<endl;
+    f<<"</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</a>"<<endl;
 
-  f<<"<b>"<<endl;
-  f<<"<matrix dim1=\""<<bb.size()<<"\" dim2=\"1\">"<<endl;
-  f<<"<real>"<<endl;
-  for (int i = 0;i<bb.size();i++) {
-    f<<bb[i]<<" ";
+    f<<"<b>"<<endl;
+    f<<"<matrix dim1=\""<<bb.size()<<"\" dim2=\"1\">"<<endl;
+    f<<"<real>"<<endl;
+    for (int i = 0;i<bb.size();i++) {
+      f<<bb[i]<<" ";
+    }
+    f<<"\n</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</b>"<<endl;
+    f<<"<c> \n<matrix dim1=\""<<cc.size()<<"\" dim2=\"1\">\n<real>\n";
+    for (int i = 0;i<cc.size();i++) {
+      f<<cc[i]<<" ";
+    }
+    f<<endl;
+    f<<"</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</c>"<<endl;
   }
-  f<<"\n</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</b>"<<endl;
-  f<<"<c> \n<matrix dim1=\""<<cc.size()<<"\" dim2=\"1\">\n<real>\n";
-  for (int i = 0;i<cc.size();i++) {
-    f<<cc[i]<<" ";
-  }
-  f<<endl;
-  f<<"</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</c>"<<endl;
   int ende = (aa.size()-1)*(bb.size()-1)*(cc.size()-1);
   f<<"<volcoeff>"<<endl;
   f<<"<matrix dim1=\""<<ende<<"\" dim2=\"64\">"<<endl;
@@ -367,8 +363,9 @@ void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double
   f<<"</real>"<<endl;
   f<<"</matrix>"<<endl;
   f<<"</volcoeff>"<<endl;
-  f<<"</vol3D>"<<endl;
-  f.close();
+  if (!combined)
+    f<<"</vol3D>"<<endl;
+  //f.close();
 }
 
 
@@ -481,8 +478,11 @@ int main(int argc, char * argv[]) {
     string name;
     cin>>name;
     string file(name);
+    fstream f;
+    f.open(file.c_str(), ios::out);
     //Write interpolation coefficients in the xml file above
-    write_to_xml_vol(file,Coeff,aa,bb,cc);
+    write_to_xml_vol(f,Coeff,aa,bb,cc,false);
+    f.close();
 
   } else if (mode == 2 || mode == 3 || mode == 4 || mode == 5) {
     cout<<"Enter name of the homogenized data file:"<<endl;
@@ -623,18 +623,18 @@ int main(int argc, char * argv[]) {
     cout<<"Insert output xml file name:"<<endl;
     string name;
     cin>>name;
+
+    // open output xml
     string file(name);
+    fstream f;
+    f.open(file.c_str(), ios::out);
     //Write interpolation coefficients in the xml file above
-    if (mode != 5)
-      write_to_xml(file,Coeff,aa,bb,cc, mode);
-    if (fin_vol.is_open()) {
-      cout<<"Insert volume output xml file name:"<<endl;
-      string name_vol;
-      cin>>name_vol;
-      string file_vol(name_vol);
-      if (mode != 5)
-        write_to_xml_vol(file_vol, Coeff_vol, aa,bb, cc);
+    if (mode != 5) {
+      write_to_xml(f,Coeff,aa,bb,cc, mode);
+      write_to_xml_vol(f, Coeff_vol, aa,bb, cc);
+      f<<"</homRectC1>";
     }
+    f.close();
     /*for (int i=0;i<m-1;i++) {
       for (int j=0;j<n-1;j++) {
         for (int k=0;k<o-1;k++) {
@@ -685,7 +685,7 @@ int main(int argc, char * argv[]) {
           break;
         }
       }
-      // Map x1,x2,x3 into the chosen intervall
+      // Map x1,x2,x3 into the chosen interval
       double coeff1=(x1-aa[a1])/da;
       double coeff2=(x2-bb[b1])/db;
       double coeff3=(x3-cc[c1])/dc;

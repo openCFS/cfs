@@ -5,6 +5,7 @@ import numpy.linalg
 import math
 import os
 import sys
+import scipy.io
 from lxml import etree
 from PIL import Image
 from cfs_utils import *
@@ -86,6 +87,27 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
         setNDArrayEntry(ret, coords[2], coords[1], coords[0], vals[c]) # 'nr' is one base in general
         
   return ret
+
+def read_stiff_angle_matlab(filename):
+  mat = scipy.io.loadmat(filename,appendmat = True)
+  mat2 = scipy.io.loadmat('centers',appendmat = True)
+  domain_data = scipy.io.loadmat('data',appendmat = True)
+  d = mat['x']
+  centers = mat2['centers']
+  domain_data = domain_data['data']
+  max = domain_data[0][:]
+  min = domain_data[1][:]
+  elem_dim = domain_data[2][:]
+  coords = (centers,min,max,elem_dim)
+  s1 = numpy.zeros((d.shape[0], 1))
+  s2 = numpy.zeros((d.shape[0], 1))
+  angle = numpy.zeros((d.shape[0], 1))
+  for i in range(d.shape[0]):
+    # angle needs to be changed to negative to match matlab result
+    angle[i] = -d[i][0]
+    s1[i] = d[i][1]
+    s2[i] = d[i][2]
+  return angle,s1,s2,coords
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
@@ -289,8 +311,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
            if elemnr is not None:
-             nr = int(getNDArrayEntry(data, i, j , k))
-            
+             nr = int(getNDArrayEntry(elemnr, i, j , k))            
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
              string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
@@ -388,18 +409,24 @@ def apply_elmennr_mapping(org, map):
 def physical_volume(data, penalty):
 
   dim = data.ndim
-  x = data.shape[0]
-  y = data.shape[1]
-  z = 1
-  if dim >= 3:
-    z = data.shape[2]
-  vol = 0.0
-  
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        org = getNDArrayEntry(data, i, j, k)
-        vol = vol + pow(org, penalty)
+  if dim == 1:
+    if penalty == 1.0:
+      return sum(data) / len(data)
+    else:
+      return sum(data**penalty) / len(data)
+  else:  
+    x = data.shape[0]
+    y = data.shape[1]
+    z = 1
+    if dim >= 3:
+      z = data.shape[2]
+    vol = 0.0
+    
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          org = getNDArrayEntry(data, i, j, k)
+          vol = vol + pow(org, penalty)
         
   return vol / data.size              
 
@@ -414,8 +441,8 @@ def threshold_filter(data, threshold, min, max):
   barrier = numpy.max((threshold, min))
   res = None  
   
-  if type(data) == list:
-    res = [0.0] * len(data)
+  if type(data) == list or data.ndim == 1:
+    res = numpy.zeros(len(data))
     for i in range(len(data)):
       res[i] = max if data[i] >= barrier else min
   else:
@@ -1132,6 +1159,52 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
     per /= 1 + 2 * numpy.cos(numpy.pi / 4)
   
   return per
+
+## see perimeter()
+# @param data array
+# @param eps for continuation, 0.0 is ok
+# @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain
+# currently only neighborhood definde only over faces of a cube  
+def perimeter_3d(data, eps = 0.0, normalize = True):
+  assert(data.ndim == 3)
+  nx, ny, nz = data.shape
+  
+  hx = 1.0/nx
+  hy = 1.0/ny
+  hz = 1.0/nz
+  
+  per = 0
+  
+  for i in range(nx):
+    for j in range(ny):
+      for k in range(nz):
+        this = data[i,j,k]
+        if i < nx-1:
+          next = data[i+1,j,k]
+          scale = hy/(ny-1)*hz/(nz-1) if normalize else hy*hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if j < ny-1:
+          next = data[i,j+1,k]
+          scale = hx/(nx-1)*hz/(nz-1) if normalize else hx*hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if k < nz-1:  
+          next = data[i,j,k+1]
+          scale = hx/(nx-1)*hy/(ny-1) if normalize else hx*hy
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if i > 0:  
+          next = data[i-1,j,k]
+          scale = hy/(ny-1)*hz/(nz-1) if normalize else hy*hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if j > 0:
+          next = data[i,j-1,k]
+          scale = hx/(nx-1)*hz/(nz-1) if normalize else hx*hz
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+        if k > 0:
+          next = data[i,j,k-1]
+          scale = hx/(nx-1)*hy/(ny-1) if normalize else hx*hy
+          per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
+          
+  return per
   
 # add a save ghost cell around an array
 # @param reproduce shall the outer boundary be copied 
@@ -1169,6 +1242,27 @@ def read_bloch_properties(xml):
       
   raise RuntimeError("no ev_(i)_max and ev_(i+i)_min pair found")
 
+# calculates non-physical and physical grayness for a given .density.xml file
+def calc_grayness(filename):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
+  mechDens = read_density(filename,"design")
+  physDens = read_density(filename,"physical")
+  
+  # read penalization parameter
+  xml = open_xml(filename)
+  physLower = float(xml.xpath("//cfsErsatzMaterial/header/design/@physical_lower")[0])
+  param = float(xml.xpath("//cfsErsatzMaterial/header/transferFunction/@param")[0])
+  # non-physical lower bound
+  lower = physLower*(1+param)/(1+physLower*param)
+  #substract lower from density field
+  dens_normed = (mechDens-lower) / (1-lower)
+  gray = numpy.average(4*dens_normed*(1-dens_normed))
+  
+  physGray = numpy.average(4*physDens*(1-physDens))
+  
+  return param, gray, physGray
     
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11
