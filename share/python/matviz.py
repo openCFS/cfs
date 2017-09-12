@@ -331,12 +331,15 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                     name = args.save[:-4]+".stl"
                   
                   matviz_vtk.write_stl(viz, name)
-                if (args.type == "box_varel" or args.type == "ppbox") and args.mesh :    
+                if (args.type == "box_varel" or args.type == "ppbox") and args.mesh:    
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
                     viz = None # avoid showing or writing vtp file
-                    
-                  me = mesh_tool.create_validation_mesh_for_box_varel(name)
+                  
+                  if args.type == "box_varel":  
+                    me = mesh_tool.create_validation_mesh_for_box_varel(name)
+                  else:
+                    me = mesh_tool.create_validation_mesh_for_pp_box(name, "nondes_diff.stl", "nondes_union.stl")
               else:
                 viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
