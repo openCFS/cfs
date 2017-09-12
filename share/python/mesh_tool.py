@@ -2732,6 +2732,48 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
 # @param viz: vtk polydata object
 # @param stlname: name of stl file
 def create_validation_mesh_for_box_varel(stlName):
+  create_volume_mesh_with_gmsh(stlName)
+
+def create_validation_mesh_for_pp_box(stlName,diffName,unionName):
+  if not (diffName.endswith(".stl") and unionName.endswith(".stl")):
+    print("need stl files for non-design regions!")
+    sys.exit()
+  
+  baseName = stlName[:-4]
+  
+  import pymesh
+  baseMesh = pymesh.load_mesh(stlName)
+  diffMesh = pymesh.load_mesh(diffName)
+  unionMesh = pymesh.load_mesh(unionName)
+  
+  diff = pymesh.boolean(baseMesh, diffMesh, "difference")
+  union = pymesh.boolean(diff, unionMesh, "union")
+  
+  # some mesh post-processing
+  split, _ = pymesh.meshutils.split_long_edges(union,4)
+  collapse, _ = pymesh.meshutils.collapse_short_edges(split,2.0,preserve_feature=True)
+  mesh = pymesh.resolve_self_intersection(collapse, engine="auto")
+  pymesh.save_mesh(baseName + "_validation.stl", mesh)
+  
+  create_volume_mesh_with_gmsh("validation_ppbox.stl")
+  
+  return "Not implemented yet"
+
+def create_volume_mesh_from_stl(stlName,write_vtk=False):
+  assert(stlName.endswith(".stl"))
+  # -p Tetrahedralizes a piececwise linear complex
+  # -k Outputs mesh to .vtk file for viewing by Paraview
+  # -O3 optimization level 3
+  command = "tetgen -pk -O3" if write_vtk else "tetgen -p"
+  cfs_utils.execute(command + " " + stlName)
+  mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
+  
+  add_nodes_for_periodic_bc(mesh)
+  validate_periodicity(mesh)
+  
+  return mesh
+
+def create_volume_mesh_with_gmsh(stlName):
   baseName = stlName[:-4]
   # write .geo file for gmsh
   geoName = baseName + ".geo"
@@ -2748,24 +2790,4 @@ def create_validation_mesh_for_box_varel(stlName):
   command = "gmsh -3 -optimize " + geoName
   cfs_utils.execute(command)
   create_mesh_from_gmsh(baseName)  
-
-def create_validation_mesh_for_pp_box(args, coords, s1, s2, s3, scale, samples, thresh):
-  polydata = matviz_vtk.create_3d_interpretation_ortho(args, coords, s1, s2, s3, scale, samples, thresh)
-  num_points = polydata.GetPoint
-  return "Not implemented yet"
-
-def create_volume_mesh_from_stl(stlName,write_vtk=False):
-  assert(stlName.endswith(".stl"))
-  # -p Tetrahedralizes a piececwise linear complex
-  # -k Outputs mesh to .vtk file for viewing by Paraview
-  # -O3 optimization level 3
-  command = "tetgen -pk -O3" if write_vtk else "tetgen -p"
-  cfs_utils.execute(command + " " + stlName)
-  mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
-  
-  add_nodes_for_periodic_bc(mesh)
-  validate_periodicity(mesh)
-  
-  return mesh
-  
   
