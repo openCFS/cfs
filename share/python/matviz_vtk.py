@@ -6,6 +6,7 @@ import pymp
 import scipy.interpolate as ip 
 import time
 import vtk
+import gc
 # from mpi_class import * 
 try:
   from mpi4py import MPI
@@ -1053,6 +1054,7 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
   
   basecells = pymp.shared.list()
   boundary_flags = pymp.shared.list()
+  start = time.time()
   with pymp.Parallel(args.bc_num_threads) as p:
     for id in p.range(nx*ny*nz):
       i, j, k = get_3d_grid_coords(id,nx,ny,nz)
@@ -1094,9 +1096,15 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
         basecells.append((cell_obj.points,cell_obj.cells,coord))
         boundary_flags.append(flag)
         print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
-  
+  end = time.time()
+  print("Openmp Exection TIme",end-start," s")
+
+  start = time.time()
   for i,bc in enumerate(basecells):
-    
+    if (i%100==0):
+      end_vtk_iteration=time.time()
+      print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
+
     vtk_points = vtk.vtkPoints()
     for p in bc[0]:
       vtk_points.InsertNextPoint(p)
@@ -1150,7 +1158,8 @@ def create_3d_interpretation_ortho(args,coords,s1,s2,s3,scale,samples,grad,thres
 #       transformFilter.Update()    
 #       appends.AddInputConnection(transformFilter.GetOutputPort())
 #       appends.Update() # not sure if we have to do this in each loop iteration
-  
+  end=time.time()
+  print("Writing to vtk",end-start," s")
   return appends.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
@@ -1219,11 +1228,21 @@ def create_3d_interpretation_ortho_mpi(args,coords,s1,s2,s3,scale,samples,grad,t
     args_for_worker =args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds 
     chief=Master(args_for_worker)
     # chief.initialize(args_for_worker)
-    basecells,boundary_flags=chief.run()    
+    start=time.time()
+    basecells,boundary_flags=chief.run()  
+    end=time.time()
 
-    for i,bc in enumerate(basecells):
+    print("MPI BLOCK EXECUTION TIME",end-start," s")
+
+    start=time.time()
+    
+    for i,bc in enumerate(basecells): 
       
+      if (i%200==0):
+        end_vtk_iteration=time.time()
+        print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
       vtk_points = vtk.vtkPoints()
+
       for p in bc[0]:
         vtk_points.InsertNextPoint(p)
         
@@ -1276,7 +1295,8 @@ def create_3d_interpretation_ortho_mpi(args,coords,s1,s2,s3,scale,samples,grad,t
   #       transformFilter.Update()    
   #       appends.AddInputConnection(transformFilter.GetOutputPort())
   #       appends.Update() # not sure if we have to do this in each loop iteration
-    
+    end=time.time()
+    print("Writing to vtk",end-start," s")
     return appends.GetOutput()
 
   
@@ -1446,11 +1466,13 @@ class Worker():
             elif tag == tags.EXIT:
                 # if the worker receives a message with
                 # tag 'EXIT' the loop stops
+                del result
+                gc.collect()             
                 break
         # just before the worker stops running it tells the master that 
         # it performed a clean exit and is no longer available
         comm.send(None, dest=0, tag=tags.EXIT)
-    
+        sys.exit(0)
 
     def worker_computation(self,data_from_master):
 
@@ -1504,6 +1526,11 @@ class Worker():
         boundary_flags.append(flag)
         print("appended ",i,j,k,coord,x1,x2,y1,y2,z1,z2)
 
+      del coord
+      del bounds
+      del bc_input
+      del cell_obj
+      gc.collect()
       return basecells, boundary_flags
 
 # master class
@@ -1581,4 +1608,5 @@ class Master():
                 print('Worker {} exited.'.format(source))
                 # ...and increase the number of unavailable workers
                 closed_workers += 1
+              
         return self.basecells , self.boundary_flags
