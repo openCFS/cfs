@@ -8,12 +8,19 @@ import pymp
 import vtk
 import math
 import sys
+import mpi4py
 
 try:
   import meshpy.triangle as triangle
 #   import meshpy.tet as tet
 except:
   print("Failed to load meshpy - need it for tetrahedralizing basecell mesh")
+
+try:
+  from mpi4py import MPI
+  use_mpi = True if MPI.COMM_WORLD.Get_size() > 1 else False
+except:
+  use_mpi = False
 
 # similar to create_3d_cross_ip; # without rotation and shearing
 # returns
@@ -25,6 +32,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # grad: type of interpolation ('linear', 'nearest')
   # scale: parameter for scaling the cell size if necessary
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  
+  comm = MPI.COMM_WORLD
   
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
@@ -64,6 +73,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   print("nx,ny,nz:",nx,ny,nz) 
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
+  
+  
+  
   count = 0
   basecells = pymp.shared.list()
   with pymp.Parallel(args.bc_num_threads) as p:
