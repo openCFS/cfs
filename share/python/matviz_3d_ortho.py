@@ -8,7 +8,6 @@ import pymp
 import vtk
 import math
 import sys
-import mpi4py
 
 try:
   import meshpy.triangle as triangle
@@ -18,9 +17,9 @@ except:
 
 try:
   from mpi4py import MPI
-  use_mpi = True if MPI.COMM_WORLD.Get_size() > 1 else False
 except:
-  use_mpi = False
+  print("WARNING: Could not load mpi4py!")
+
 
 # similar to create_3d_cross_ip; # without rotation and shearing
 # returns
@@ -33,8 +32,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # scale: parameter for scaling the cell size if necessary
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
   
-  comm = MPI.COMM_WORLD
-  
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
   
@@ -43,7 +40,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   if scale <= 0:
     scale = 1.0
-  
+
   # assume we always start at (0,0,0)
   # order: min_x,min_y,min_z,max_x,max_y,max_z
   bounds = np.ones(6) * (-1)
@@ -74,65 +71,99 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
   
+  basecells = list()
+  boundary_flags = list()
   
+  # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
+  # use the standard communicator
+  comm = MPI.COMM_WORLD
+  rank = comm.Get_rank()
+  commSize = comm.Get_size()
   
-  count = 0
-  basecells = pymp.shared.list()
-  with pymp.Parallel(args.bc_num_threads) as p:
-    for id in p.range(nx*ny*nz):
-      count = count + 1
-      i, j, k = get_3d_grid_coords(id,nx,ny,nz)
-      
-      this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-      east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-      top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-      front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-      
-      assert(this is not None and east is not None and top is not None and front is not None)
+  for i in range(nx):
+    for j in range(ny):
+      for k in range(nz):
+        
+        if (i*j*k)%commSize != rank:
+          continue
+        
+        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+        
+        assert(this is not None and east is not None and top is not None and front is not None)
+    
+        # if one of the values is < min_thresh, set it to min_thresh        
+        # if one of the values is > max_thresh, set it to max_thresh
+        x1 = min(max(this[0],min_thresh),max_thresh)
+        x2 = min(max(east[0],min_thresh),max_thresh)
+        y1 = min(max(this[1],min_thresh),max_thresh)
+        y2 = min(max(top[1],min_thresh),max_thresh)
+        z1 = min(max(this[2],min_thresh),max_thresh)
+        z2 = min(max(front[2],min_thresh),max_thresh)
+        
+        # translate cell to correct position
+        left_front_corner  = np.asarray(sample_coords[i,j,k])
+        
+        bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
+        bc_input.eta = 0.7
+        bc_input.stiffness_as_diameter = True
+        cell_obj = basecell.Basecell(bc_input)
+        cell_obj.scale(dx, dy, dz)
+        cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
+        cell_obj.update()
+        if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+          continue
+        # flags for meshing circles on the boundary
+        flags = [None] * 6
+        grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
+        grid_coords = [i,j,k]
+    #     flags[0] = True if i == 0 else False
+    #     flags[1] = True if j == 0 else False
+    #     flags[2] = True if k == 0 else False
+    #     flags[3] = True if i == nx-1 else False
+    #     flags[4] = True if j == ny-1 else False
+    #     flags[5] = True if k == nz-1 else False
+        for c in range(len(flags)):      
+          flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
+        cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
+        cell_obj.center = cell_center
+        boundary_list = []
+        # at least one boundary circle needs to be triangulated
+        if any(flags):
+          boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
 
-      # if one of the values is < min_thresh, set it to min_thresh        
-      # if one of the values is > max_thresh, set it to max_thresh
-      x1 = min(max(this[0],min_thresh),max_thresh)
-      x2 = min(max(east[0],min_thresh),max_thresh)
-      y1 = min(max(this[1],min_thresh),max_thresh)
-      y2 = min(max(top[1],min_thresh),max_thresh)
-      z1 = min(max(this[2],min_thresh),max_thresh)
-      z2 = min(max(front[2],min_thresh),max_thresh)
-      
-      # translate cell to correct position
-      left_front_corner  = np.asarray(sample_coords[i,j,k])
-      
-      bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta)
-      bc_input.eta = 0.7
-      bc_input.stiffness_as_diameter = True
-      cell_obj = basecell.Basecell(bc_input)
-      cell_obj.scale(dx, dy, dz)
-      cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
-      cell_obj.update()
-      if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-        continue
-      # flags for meshing circles on the boundary
-      flags = [None] * 6
-      grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
-      grid_coords = [i,j,k]
-#       flags[0] = True if i == 0 else False
-#       flags[1] = True if j == 0 else False
-#       flags[2] = True if k == 0 else False
-#       flags[3] = True if i == nx-1 else False
-#       flags[4] = True if j == ny-1 else False
-#       flags[5] = True if k == nz-1 else False
-      for c in range(len(flags)):      
-        flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
-      cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
-      cell_obj.center = cell_center
-      boundary_list = []
-      # at least one boundary circle needs to be triangulated
-      if any(flags):
-        boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
-      with p.lock:
         basecells.append((cell_obj,boundary_list,flags))
         print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
   
+  # broadcast all data to master and exit script
+  if rank != 0:
+    result = (basecells,boundary_flags)
+    comm.send(result,dest=0,tag=DONE)
+    sys.exit(0)
+  else:
+    finished_workers = 0
+    # a status object containing source, tag and size of a message
+    status = MPI.Status()
+
+    while finished_workers != commSize:
+      # wait for a message from any source with any tag
+      data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+      # get the source's ID / rank
+      source = status.Get_source()
+      # get the message tag
+      tag = status.Get_tag()
+      assert(tag == DONE)
+      
+      # we store the result
+      tmp_bc, tmp_bf = data
+      basecells.extend(tmp_bc)
+      boundary_flags.extend(tmp_bf)
+      
+      finished_workers += 1 
+ 
+  assert(rank == 0)     
   flags = []
   # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
   for i,obj in enumerate(basecells):
@@ -443,3 +474,87 @@ def fill_boundary_loops(points,loops):
   
   print("closed ",len(loops), " holes")  
   return  appendPd.GetOutput()
+
+# master class
+class Master():
+    def __init__ (self, args_for_worker):
+      self.args_for_worker=args_for_worker
+      args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds = self.args_for_worker
+
+      # the master's ID
+      self.id = comm.Get_rank()
+      # ID should always be 0 due to the initialization in the main function
+      assert(self.id==0)
+     
+      self.number_of_jobs = nx*ny*nz
+      # a list where jobs will be put
+      # self.tasks = [None] * self.number_of_jobs
+      # a list where results will be put
+      self.basecells =list()
+      self.boundary_flags= list()
+     
+       
+    def run(self):
+        # put some jobs in the task list
+        # for ii in range(self.number_of_jobs):
+            # self.tasks[ii] = ii
+        print('The no of jobs is {}.'.format(self.number_of_jobs))
+
+        # a status object containing source, tag and size of a message
+        status = MPI.Status()
+        # the number of workers is the size of the communicator minus the master
+        number_of_workers = comm.Get_size() - 1
+        print('There are {} workers in this communicator.'.format(number_of_workers))
+        # at start we have no closed workers
+        closed_workers = 0
+
+        # index for the current job to process
+        job_index = 0
+        # as long as there are workers available do something
+        while closed_workers < number_of_workers:
+            # wait for a message from any source with any tag
+            data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+            # get the source's ID / rank
+            source = status.Get_source()
+            # get the message tag
+            tag = status.Get_tag()
+           
+            # if the received tag is 'READY' the worker waits for data to process
+            if tag == tags.READY:
+                if job_index < (number_of_workers):
+                    # get a task from the list
+                    # job_data = self.tasks[job_index]
+                    # assemble the message to send to the worker
+                    args_for_worker = self.args_for_worker,job_index
+                    # send a message to the worker and tell it to process the
+                    # contained data ('args')
+                    comm.send(args_for_worker, dest=source, tag=tags.START)
+                    # increase the index such that the following job is picked next
+                    job_index += 1
+
+                # if we have no job left we send a poison pill to the worker
+                else:
+                    comm.send(None, dest=source, tag=tags.EXIT)
+
+            # if the received  tag is 'DONE' the worker finished computation
+            # and sent a result
+            elif tag == tags.DONE:
+                # we store the result
+                tmp_basecells, tmp_boundary_flags = data
+                self.basecells.extend(tmp_basecells)
+                self.boundary_flags.extend(tmp_boundary_flags)
+
+            # if the received  tag is 'EXIT' the worker performed a clean exit
+            elif tag == tags.EXIT:
+                # we print a short message...
+                print('Worker {} exited.'.format(source))
+                # ...and increase the number of unavailable workers
+                closed_workers += 1
+             
+        return self.basecells , self.boundary_flags
+      
+# enum typedef for convenience
+def enum(*sequential, **named):
+  enums = dict(zip(sequential, range(len(sequential))), **named)
+  return type('Enum', (), enums)
+

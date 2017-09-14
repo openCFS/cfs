@@ -18,7 +18,7 @@ import matviz_3d_ortho # two scale 3d ortho stuff
 try:
   from mpi4py import MPI
 except:
-  print("Could not load mpi4py!")
+  print("WARNING:Could not load mpi4py!")
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
@@ -174,9 +174,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   scale = force_scale if force_scale else args.scale
   
-  min, max = find_corners(centers)
+  min_bb, max_bb = find_corners(centers)
   
-  coords = (centers, min, max, elem_dim)
+  coords = (centers, min_bb, max_bb, elem_dim)
   
   # perform 2D and 3D from file
   if h5_read or dim_2D:
@@ -478,7 +478,6 @@ parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)"
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_num_threads", help="number of threads for parallelized basecell generation (default:4)", type=int,default=4)
 parser.add_argument("--bc_volume_thresh", help="lower bound threshold (default 0.0)", type=float,default=0.0)
-parser.add_argument("--use_mpi", help="run parts of interpretation with mpi (only implemented for 3d ortho)", default="false")
 # print sys.argv
 
 args = parser.parse_args()
@@ -507,10 +506,6 @@ if args.type == "box_varel" or args.type == "ppbox":
   # in this case everything belongs to design domain
   args.h5_nondes = "None"
 
-comm = None
-if args.use_mpi:  
-  comm = MPI.COMM_WORLD  
-    
 # in this global variable we can store meta-information to be exported as xml file 
 info = None
 if args.info is not None:
@@ -528,11 +523,10 @@ dim_2D = None
 h5_read = None
 infoXml_read = None
 elem_dim = None
+min_bb = None
+max_bb = None
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml"):
-  if args.use_mpi:
-    print("use_mpi so far only implemented for interpretation with 3d ortho basecells!")
-    sys.exit()
     
   h5_read = False
   dim_2D = None
@@ -601,21 +595,21 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
     
-    centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
-    
-    if args.mesh:
-      if args.h5_nondes != "None":
-        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
-    dim_2D = min[2] == max[2]
-    print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  
+  if args.mesh:
+    if args.h5_nondes != "None":
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+  dim_2D = min_bb[2] == max_bb[2]
+  print('detected dimension ' + ('2D' if dim_2D else '3D'))
 
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min,max_bb=max)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min,max_bb=max)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")
