@@ -385,11 +385,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         exit() 
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
-  
-    if viz is None:
-      print('Error: no visualization calculated!')
-    else:
-      volume = show_or_write(viz, args)
+    if (MPI.COMM_WORLD.Get_rank()==0):  
+	    if viz is None:
+	      print('Error: no visualization calculated!')
+	    else:
+	      volume = show_or_write(viz, args)
   
   # not from file and not 2D -> this is the single tensor with optional planes 
   else:
