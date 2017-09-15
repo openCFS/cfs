@@ -1999,7 +1999,8 @@ void Function::Local::ToInfo(PtrParamNode in) {
     structure_->ToInfo(in->Get("neighborhood"));
 
   // create volume output data for material catalog in info.xml file
-  if (func_->type_ == GLOBAL_TWO_SCALE_VOL) {
+  int dim = domain->GetGrid()->GetDim();
+  if (func_->type_ == GLOBAL_TWO_SCALE_VOL && dim == 3) {
     Vector<double> p(3,0);
     double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
     p[0] = 1.;
