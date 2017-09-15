@@ -89,7 +89,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # of remainder -> difference between work chunks can be 1
   # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2] 
   # number of loop runs per process:
-  nRuns = [int(nProblem/commSize) + (1 if rank < nProblem%commSize else 0) for P in range(0,commSize)]
+  nRuns = [int(nProblem/commSize) + (1 if p < nProblem%commSize else 0) for p in range(0,commSize)]
   start = int(np.sum(nRuns[0:rank]))
   end = int(start + nRuns[rank])
   
@@ -97,7 +97,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("rank ",rank, " working on ids (",start,",",end,")")
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
-    
     
     print("rank ",rank," working on ",i,j,k)
     
