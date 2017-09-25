@@ -508,8 +508,8 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
           derivVec[i][0] = 0.0;
           derivVec[i][1] = 0.0;
         }else{
-          derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-          derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+          derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+          derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
         }
       }else{
         EXCEPTION("2D mesh and 3D-values!")
@@ -523,8 +523,8 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
           derivVec[i][0] = 0.0;
           derivVec[i][1] = 0.0;
         }else{
-          derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-          derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+          derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+          derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
         }
       }else{
         EXCEPTION("2D mesh and 3D-values!")
@@ -538,9 +538,9 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
           derivVec[i][1] = 0.0;
           derivVec[i][2] = 0.0;
         }else{
-          derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-          derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
-          derivVec[i][2] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
+          derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+          derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+          derivVec[i][2] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
         }
       }else{
         EXCEPTION("3D mesh and 2D-values!")
@@ -614,8 +614,8 @@ bool MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
         derivVec[i][0] = 0.0;
         derivVec[i][1] = 0.0;
       }else{
-        derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-        derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+        derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+        derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
 
         //derivVec[i][0] = eps*eps*(globPoint[0] - neighbors[i][0]) / sqrt(1.0 + eps*eps*l2Distances[i]);
         //derivVec[i][1] = eps*eps*(globPoint[1] - neighbors[i][1]) / sqrt(1.0 + eps*eps*l2Distances[i]);
@@ -630,9 +630,9 @@ bool MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
           derivVec[i][1] = 0.0;
           derivVec[i][2] = 0.0;
         }else{
-          derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-          derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
-          derivVec[i][2] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
+          derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+          derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+          derivVec[i][2] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
         }
       }
       break;
@@ -650,6 +650,8 @@ bool MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
 
   // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
   derivCoefVec = ALoc * derivVec;
+
+
 /*
   Double s1 = 0.0;
   Double s2 = 0.0;
@@ -678,7 +680,7 @@ bool MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
                                   const UInt& numEquPerEnt,
                                   Grid* grid,
                                   const Double epsScal){
-
+  // CF::Matrix<Double>& derivCoefVec is "targetSourceFactor"
   //bool ret;
 
   CF::Matrix<Double> ALoc;
@@ -711,8 +713,8 @@ bool MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
         derivVec[i][0] = 0.0;
         derivVec[i][1] = 0.0;
       }else{
-        derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-        derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+        derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+        derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
 
       }
       }else{
@@ -727,9 +729,9 @@ bool MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
         derivVec[i][1] = 0.0;
         derivVec[i][2] = 0.0;
       }else{
-        derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-        derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
-        derivVec[i][2] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
+        derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+        derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+        derivVec[i][2] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[2] - neighbors[i][2]));
       }
       }else{
          WARN("DivergenceDifferentiator.cc : Treat 3D values as 2D values, due to a 2D mesh!")
@@ -738,8 +740,8 @@ bool MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
            derivVec[i][0] = 0.0;
            derivVec[i][1] = 0.0;
          }else{
-           derivVec[i][0] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-           derivVec[i][1] =  exp(-(eps*eps * rNNSquared)) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
+           derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
+           derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
          }
         //EXCEPTION("3D-values and 2D-mesh!");
 
@@ -750,6 +752,7 @@ bool MeshFilter::CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
 
   // now we have to invert Aloc and multiply it with the according value-coloumn
   ALoc.Invert_Lapack();
+
 
   // coefficient matrix (coloumn nr. corresponding to the spatial dimension)
   derivCoefVec = ALoc * derivVec;
@@ -847,7 +850,8 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
     CF::UInt targetIndex = i;
     returnVec[targetIndex] = 0.0;
 
-    StdVector<CF::UInt> sM = sourceM[i];
+    StdVector<CF::UInt> sM = sourceM[targetIndex];
+
     UInt patchSize = sM.GetSize();
     CF::Matrix<Double> vals;
     vals.Resize(numEquPerEnt, patchSize);
@@ -862,8 +866,9 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
       k += 1;
      }
     CF::Matrix<Double> tempMat;
-    tempMat = vals * targetSourceFactor[i];
+    tempMat = vals * targetSourceFactor[targetIndex];
     returnVec[targetIndex] = tempMat.Trace();
+
   }
 
 }
@@ -890,7 +895,7 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
 
     StdVector<CF::UInt> sM = sourceM[i];
     UInt patchSize = sM.GetSize();
-//std::cout<<"sM"<<sM<<std::endl;
+
     CF::Matrix<Double> vals;
     vals.Resize(1, patchSize);
     vals.Init();
@@ -900,11 +905,10 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
       vals[0][k] = inVec[sourceIndex - 1];
       k += 1;
      }
-//std::cout<<"vals \n"<<vals<<std::endl;
-//std::cout<<"targetSourceFactor[i] \n"<<targetSourceFactor[i]<<std::endl;
+
     CF::Matrix<Double> sol;
     sol = vals * targetSourceFactor[i];
-//std::cout<<"sol \n"<<sol<<std::endl;
+
     for(UInt l = 0; l < tDim; ++l){
       returnVec[targetIndex + l] = sol[0][l];
     }
