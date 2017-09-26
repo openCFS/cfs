@@ -38,9 +38,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   rank = comm.Get_rank()
   commSize = comm.Get_size()
   
-  print("commSize:",commSize)
-  print("this rank: ",rank)
-  
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
   
@@ -93,12 +90,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   start = int(np.sum(nRuns[0:rank]))
   end = int(start + nRuns[rank])
   
-  print("nruns: ",nRuns)
-  print("rank ",rank, " working on ids (",start,",",end,")")
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
-    
-    print("rank ",rank," working on ",i,j,k)
     
     this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
     east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
@@ -149,44 +142,23 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
     basecells.append((cell_obj,boundary_list,flags))
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
-#     sys.exit()
 
-#   print("rank ",rank," sending results")
-#   sys.stdout.flush()
-#   sys.exit()
-#   result = (basecells,boundary_flags)
-#   comm.send(result,dest=0,tag=1)
-#   print("rank ",rank," exiting now")
-#   sys.exit()  
-
-#   comm.Barrier()
-
-#   sys.exit()  
   # broadcast all data to master and exit script
   if rank != 0:
-    print("rank ",rank," sending results")
     sys.stdout.flush()
     result = (basecells,boundary_flags)
     comm.send(result,dest=0,tag=1)
     status = MPI.Status()
     tmp = comm.recv(source=0,status=status)
-    print("slave status:",status.Get_tag())
-    sys.stdout.flush()
+    # make sure communication wors
     if status.Get_tag() == 999:
       print("\n             rank ",rank," exiting now")
       sys.stdout.flush()
-#       comm.send(None, dest=0, tag=999)
       sys.exit()
   else:
-    print("master")
-    sys.stdout.flush()
     finished_workers = 0
     # a status object containing source, tag and size of a message
-    print("before status")
-    sys.stdout.flush()
     status = MPI.Status()
-    print("before while")
-    sys.stdout.flush()
     while finished_workers != commSize-1:
       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
       # we store the result
@@ -195,34 +167,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       boundary_flags.extend(tmp_bf)
       #get the message tag
       tag = status.Get_tag()
-      print("recieved some data")
-      sys.stdout.flush()
       source = status.Get_source()
       comm.send(None,dest=source,tag=999)
       finished_workers += 1
-      print("finished_workers ",finished_workers," commsize: ",commSize)
-#       comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-#       if status.Get_tag() == 999:
-#         finished_workers += 1
-      sys.stdout.flush()
-  
-#   while finished_workers != commSize:
-#     print("master receiving data")
-#     # wait for a message from any source with any tag
-#     data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-#     # get the message tag
-#     tag = status.Get_tag()
-#     assert(tag == 1)
-#       
-#     # we store the result
-#     tmp_bc, tmp_bf = data
-#     basecells.extend(tmp_bc)
-#     boundary_flags.extend(tmp_bf)
-#       
-#     finished_workers += 1 
-#       
-#     print(status.Get_source()," finished. total: ",finished_workers)
- 
+    
+    print("finished_workers ",finished_workers," commsize: ",commSize)
+    sys.stdout.flush()
+      
     flags = []
     # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
     for i,obj in enumerate(basecells):

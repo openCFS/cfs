@@ -1023,7 +1023,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     depth = scale*float(nz)/nx
     if inclusion == "top_panel":
       height = 1.0
-      depth = 0.5   
+      depth  = 0.5   
   elif type == "cantilever3d": 
     ny = int(nx * (2./3.))
     nz = int(nx * (2./3.)) 
@@ -1162,10 +1162,25 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         side[1].append((z * nny + ny) * nnx + x)
         
   if type == "bulk3d" and inclusion == "top_panel":
-#     mesh.bc.append(("force", list(range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1)))))
-#     mesh.bc.append(("support",list(range(0,nnx,1))))
-#     mesh.bc.append(("support",list(range(0,nnx*nny,nnx))))
+    # width of support area 
+    sa = 0.05
+    # number of elements on each side
+    nsa_x = nx * sa
+    nsa_z = nz * sa
+    
+    # x == 0, y == 0
+    for i in range(int(nsa_x)):
+      mesh.bc.append(("support",list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))))
+    
+    # y == 0, z == 0
+    for i in range(int(nsa_z)):
+      mesh.bc.append(("support",list(range(i*nnx*nny,i*nnx*nny+nnx,1))))
+      mesh.bc.append(("support",list(range(2*nnx*nny,2*nnx*nny+nnx,1))))  
+    # loads are all nodes in x-z plane for y == nny
+    for i in range(0,nnz):
+      mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
     name_bc_nodes(mesh)
+    
   name_bc_nodes(mesh)    
         
   mesh = name_bc_nodes(mesh)  
