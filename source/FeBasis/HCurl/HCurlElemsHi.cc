@@ -543,12 +543,13 @@ void FeHCurlHiTria::GetShFnc( Matrix<Double>& shape,
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
-  //  if (lpm.isSurface) {
-  //    // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
-  //    shape = locShape *(1.0/ lpm.lpmVol->jacDet);
-  //  } else {
+    if (lpm.isSurface) {
+      // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
+      // shape = locShape *(1.0/ lpm.lpmVol->jacDet); //This simple transformation may not work
+      shape = locShape;
+    } else {
   shape =  Transpose(lpm.jacInv) * locShape;
-  //  }
+    }
 }
 
 void FeHCurlHiTria::GetCurlShFnc( Matrix<Double>& curl,
@@ -639,12 +640,13 @@ void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape,
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
-  //  if (lpm.isSurface) {
-  //    // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
-  //    shape = locShape *(1.0/ lpm.lpmVol->jacDet); 
-  //  } else {
-  shape =  Transpose(lpm.jacInv) * locShape;
-  //  }
+    if (lpm.isSurface) {
+      // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
+      // shape = locShape *(1.0/ lpm.lpmVol->jacDet); //This simple transformation may not work
+      shape = locShape;
+    } else {
+      shape =  Transpose(lpm.jacInv) * locShape;
+    }
 }
 
 void FeHCurlHiQuad::GetCurlShFnc( Matrix<Double>& curl, 
