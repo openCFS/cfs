@@ -157,6 +157,16 @@ namespace CoupledField
                                     const UInt inode,
                                     bool updated = false ) const = 0;
 
+    //! Get coordinates of nodeList (dimension: grid dependent)
+
+    //! Basically the same as GetNodeCoordinate but only with
+    //! multiple nodes in nodeList
+    //! \param nodeCoords (out) coordinates of points
+    //! \param inode (in) node numbers
+    //! \param updated (in) flag indicating if updated geometry should be used
+    virtual void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
+                                       StdVector<UInt> & nodeList,
+                                       bool updated ) const = 0;
     
     //! Get coordinates of node (dimension: 3D)
 
@@ -170,7 +180,7 @@ namespace CoupledField
 
     //! Get elements associated with given nodes
 
-    //! Returns a list of elements, which have one or more of the given
+    //! Returns a list of elements, which have one or more of the given in
     //! common. The elements are taken out of a given list of regions.
     //! \param elemList (out) elements which have one or more nodes
     //!                          of nodeList
@@ -181,7 +191,32 @@ namespace CoupledField
     virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                       const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
-                                      & regionIds ) = 0;
+                                      & regionIds) = 0;
+
+    //! Get number of elements associated with given nodes
+
+    //! Returns the number of elements, which have one or more of the given in
+    //! common. The elements are taken out of a given list of regions.
+    //! IMPORTANT: Before using this method, SetNodeNeighbourMap() has to be
+    //! called first.
+    //! \param num (out) number of elements which have one or more nodes
+    //!                          of nodeList
+    //! \param node  (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    virtual void GetNumOfElemsNextToNodes( UInt & num,
+        const UInt & node,
+        const StdVector<RegionIdType>& regionIds) = 0;
+
+    //! Find for every node the number of neighbouring elements
+
+    //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
+    //! entry for every volume-region
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    virtual void SetNodesToElemsMap(bool *newVersion) = 0;
+
 
     //! Get coordinates of element nodes
 
@@ -275,13 +310,17 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
-    //! a list of given elements. Ther are no duplicate entries.
+    //! a list of given elements. There are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                     const StdVector<Elem*> & elemList,
+                                     StdVector<const Elem*> & elemList,
 				                             bool onlyLinNodes = false ) = 0;
+
+    virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                                     StdVector<Elem*> & elemList,
+             bool onlyLinNodes = false ) = 0;
 
     //! Return element at global position and the locally projected coordinate
     
@@ -599,7 +638,9 @@ namespace CoupledField
                                  const std::string & elemsName ) = 0;
 
     //! Get all elem neighbors for given node id
-    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node, bool *useNew = NULL) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

@@ -39,8 +39,6 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="vorticityId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="densityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -73,8 +71,6 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="flow" type="DT_BcInhomVector"/>
-                <xsd:element name="vorticity" type="DT_BcInhomVector"/>
-                <xsd:element name="density" type="DT_BcInhomScalar"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -97,9 +93,15 @@
                 <xsd:element name="tangentialVelocity3D" type="DT_BcInhomVector"/>
                 <!-- RHS Load Values -->
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+<!--                <xsd:element name="rhsValues3d" type="DT_BcInhomVector" minOccurs="0" maxOccurs="1"/>-->
                 <xsd:element name="rhsDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
-                    <xsd:documentation>Defines rhs density (LinearForm)</xsd:documentation>
+                    <xsd:documentation>Defines rhs density H1(LinearForm)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="rhsDensity3d" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines rhs density for HCurl(LinearForm)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
               </xsd:choice>
@@ -164,8 +166,6 @@
       <xsd:enumeration value="fluidMechDensity"/>
       <xsd:enumeration value="splitScalVel"/>
       <xsd:enumeration value="splitVectVel"/>
-      <xsd:enumeration value="splitLamb"/>
-      <xsd:enumeration value="splitDivLamb"/>
     </xsd:restriction>
   </xsd:simpleType>
   

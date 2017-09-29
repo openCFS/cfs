@@ -130,6 +130,16 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If consoleConvergence is set to true, then the absolute residual for every CG-step
+                will be displayed.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

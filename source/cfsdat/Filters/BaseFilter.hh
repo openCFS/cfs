@@ -186,6 +186,8 @@ protected:
   /// timer for performance usage
   std::map<boost::uuids::uuid , CF::shared_ptr<CF::Timer> > theTimers;
 
+  // Start time to remove offset of data
+  Double startTime_ = 0.0;
 
 private:
 

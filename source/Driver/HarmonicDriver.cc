@@ -271,6 +271,8 @@ namespace CoupledField
     numFreq_ = numFreq_ - restartStep_;
     stopFreqStep_ = numFreq_ + restartStep_;
     
+    //only used if AMG is set
+    ptPDE_->GetSolveStep()->SetAuxMat(false);
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
     {

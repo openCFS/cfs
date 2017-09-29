@@ -4,6 +4,7 @@
 #include "MatVec/BaseVector.hh"
 #include "MatVec/SBM_Vector.hh"
 
+#include "Utils/Timer.hh"
 #include "BasePrecond.hh"
 
 namespace CoupledField {
@@ -57,6 +58,10 @@ namespace CoupledField {
     assert(infoNode_);
     
     PtrParamNode base = infoNode_; 
+    setupTimer_ = boost::shared_ptr<Timer>(new Timer());
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    precondTimer_ = boost::shared_ptr<Timer>(new Timer());
+    base->Get(ParamNode::SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
   }
   
   void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {

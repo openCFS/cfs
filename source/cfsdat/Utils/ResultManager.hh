@@ -408,7 +408,7 @@ private:
 
   inline void checkFinalized(){
     if(!isFinalized_){
-      EXCEPTION("Call not valid if ResultManager is finalized.");
+      EXCEPTION("Call not valid if ResultManager is not finalized.");
     }
   }
 

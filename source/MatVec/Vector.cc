@@ -529,6 +529,21 @@ namespace CoupledField {
     val = data_[i];
   }
   
+
+  // ********************
+  //   Get several entries
+  // ********************
+  template<typename T>
+  const Vector<T> Vector<T>::GetEntries( const StdVector<UInt>& in) const
+  {
+    Vector<T> vals;
+    vals.Resize(in.GetSize());
+    for(UInt i = 0; i < in.GetSize(); ++i){
+      vals[i] = data_[in[i]];
+    }
+    return vals;
+  }
+
   template<typename T>
   void  Vector<T>::Push_back(const T & y)
   {
