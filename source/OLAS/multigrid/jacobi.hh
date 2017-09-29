@@ -9,7 +9,7 @@
 
 /**********************************************************/
 
-#include "multigrid/smoother.hh"
+#include "OLAS/multigrid/smoother.hh"
 
 namespace CoupledField {
 /**********************************************************/
@@ -33,18 +33,16 @@ class Jacobi : public Smoother<T>
 {
     public:
 
-        //! \name type definitions
-        
         Jacobi();
         ~Jacobi();
 
         //@{
         //! get value of damping parameter \f$\omega\f$
-        T& GetOmega() { return Omega_; }
-        const T& GetOmega() const { return Omega_; }
+        Double& GetOmega() { return Omega_; }
+        const Double& GetOmega() const { return Omega_; }
 
         //! set value of the damping parameter \f$\omega\f$
-        void SetOmega( const T& omega ) {
+        void SetOmega( const Double& omega ) {
             Omega_ = omega;
         }
         //@}
@@ -97,10 +95,9 @@ class Jacobi : public Smoother<T>
     protected:
 
         T    *DiagonalInverse_; //!< array with inverse diagonal entries
-        Vector<T>   auxVec_;          //!< auxiliary vector for the iteration step
-        Integer     Size_;            //!< size of the LES
-        T           Omega_;           //!< damping factor
-        const bool *PenaltyFlags_;
+        StdVector<T> auxVec_;   //!< auxiliary vector for the iteration step
+        UInt Size_;  	        //!< size of the LES
+        Double Omega_;          //!< damping factor
 };
 
 /**********************************************************/

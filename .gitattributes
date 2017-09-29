@@ -2084,6 +2084,8 @@ source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/pardiso/PardisoSolverPrimitive.cc -text
+source/OLAS/external/pardiso/PardisoSolverPrimitive.hh -text
 source/OLAS/external/superlu/CMakeLists.txt -text
 source/OLAS/external/superlu/SuperLUSolver.cc -text
 source/OLAS/external/superlu/SuperLUSolver.hh -text
@@ -2105,12 +2107,14 @@ source/OLAS/graph/IDBC_Graph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/IDBC_Graph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/Sloan.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/Sloan.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/multigrid/AFWsmoother.cc -text
+source/OLAS/multigrid/AFWsmoother.hh -text
 source/OLAS/multigrid/CMakeLists.txt svneol=native#text/plain
-source/OLAS/multigrid/amg.cc svneol=native#text/x-c%2B%2Bsrc
+source/OLAS/multigrid/agglomerate.cc -text
+source/OLAS/multigrid/agglomerate.hh -text
 source/OLAS/multigrid/amg.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/multigrid/depgraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/multigrid/depgraph.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/multigrid/exporttools.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/multigrid/gaussseidel.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/multigrid/gaussseidel.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/multigrid/hierarchylevel.cc svneol=native#text/x-c%2B%2Bsrc
@@ -2418,6 +2422,8 @@ source/cfsdat/Filters/Interpolators/FEBasedInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/FEBasedInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.cc -text
 source/cfsdat/Filters/Interpolators/GridIntersectionFilter.hh -text
+source/cfsdat/Filters/Interpolators/L2norm.cc -text
+source/cfsdat/Filters/Interpolators/L2norm.hh -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/NearestNeighbourInterpolator.hh -text
 source/cfsdat/Filters/Interpolators/Node2CellInterpolator.cc -text

@@ -3,6 +3,7 @@
 
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
 
@@ -24,7 +25,7 @@ namespace CoupledField {
     //! The enumeration contains the following values:
     //! - NOPRECOND
     //! - ID
-    //! - MG
+    //! - MG (AMG)
     //! - JACOBI
     //! - SSOR
     //! - ILU0
@@ -73,6 +74,31 @@ namespace CoupledField {
     //! \param sysmat problem matrix
     virtual void Setup( BaseMatrix& sysmat) = 0;
 
+    struct EdgeGeom{
+      StdVector<Integer> eNodes; // edge nodes
+      Double length;
+    };
+
+    //! A call of this method triggers the construction of the preconditioner, using
+    //! algebraic multigrid (AMG).
+
+    //! When this method is called the AMG-preconditioner will be constructed.
+    //! This involves a complex setup (construction of hierarchy levels,
+    //! transfer operators and solving the coarse system).
+    //! Note that only after this method has been called once, the preconditioner
+    //! can be applied.
+    //! \param sysmat problem matrix
+    //! \param auxmat auxiliary matrix
+    //! \param amgType type of AMG-version (scalar, vectorial, edge)
+    //! \param edgeIndNode connection of indices in the matrix and geometrical info
+    //! \param nodeNumIndex connection of indices in the matrix and node-numbers
+    virtual void SetupMG( BaseMatrix& sysmat,
+                          BaseMatrix& auxmat,
+                          const AMGType amgType,
+                          const StdVector< StdVector< Integer> >& edgeIndNode,
+                          const StdVector<Integer>& nodeNumIndex){}
+
+
     //! Applies the preconditioner by "solving" Az=r for z
 
     //! This method applies the preconditioner. Formally this means that for
@@ -99,6 +125,12 @@ namespace CoupledField {
       return NOPRECOND;
     }
     
+    //! Return timer object for setup of preconditioner
+    shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+
+    //! Return timer object for application of preconditioner
+    shared_ptr<Timer> GetPrecondTimer() { return precondTimer_; }
+
   protected:
 
     //! Before the preconditioner can be applied its setup phase must be
@@ -118,6 +150,11 @@ namespace CoupledField {
     //! to store general information about its performance or setup phase.
     PtrParamNode infoNode_;
 
+    //! Pointer to timer object for setup of preconditioner
+    shared_ptr<Timer> setupTimer_;
+
+    //! Pointer to timer object for application of preconditioner
+    shared_ptr<Timer> precondTimer_;
   };
 
 

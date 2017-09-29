@@ -1,36 +1,14 @@
-#include "multigrid/topology.hh"
+#include "OLAS/multigrid/topology.hh"
 
-/**********************************************************/
-#ifdef DEBUG_TO_CERR
-#ifndef DEBUG_TOPOLOGY
-#define DEBUG_TOPOLOGY
-#endif // DEBUG_TOPOLOGY
-#define  debug  &std::cerr
-#endif // DEBUG_TO_CERR
-
-/**********************************************************/
-#ifdef TOPOLOGY_IMPORT_CF_SPLITTING
-#  include "exporttools.hh"
-// If the import prefix for topology is not yet defined, but
-// there is a global import prefix, use the global one.
-#  ifndef TOPOLOGY_SPLITTING_IMPORT_PREFIX
-#    ifdef  AMG_IMPORT_PREFIX
-#      define TOPOLOGY_SPLITTING_IMPORT_PREFIX  AMG_IMPORT_PREFIX
-#    else  // AMG_IMPORT_PREFIX
-#      define TOPOLOGY_SPLITTING_IMPORT_PREFIX ""
-#    endif // AMG_IMPORT_PREFIX
-#  endif // TOPOLOGY_SPLITTING_IMPORT_PREFIX
-#endif // TOPOLOGY_IMPORT_CF_SPLITTING
-/**********************************************************/
 
 namespace CoupledField {
-/**********************************************************/
+
 
 template <typename T>
 Topology<T>::Topology()
     : NhStartIndex_(NULL),
       NhEdges_(NULL),
-      CoarseIndex_(NULL),
+      CoarseIndex_(0),
       startCoarsePoint_(-1),
       Size_h_(0),
       Size_H_(0)
@@ -43,13 +21,13 @@ Topology<T>::Topology()
 /**********************************************************/
 
 template <typename T>
-Topology<T>::Topology( const CRS_Matrix<T>& matrix,
+Topology<T>::Topology( const CRS_Matrix<T>& auxMat,
                        const Double         alpha,
                        const Double         tolerance,
                        const Double         diag_dominance )
     : NhStartIndex_(NULL),
       NhEdges_(NULL),
-      CoarseIndex_(NULL),
+      CoarseIndex_(0),
       startCoarsePoint_(-1),
       Size_h_(0),
       Size_H_(0)
@@ -58,7 +36,7 @@ Topology<T>::Topology( const CRS_Matrix<T>& matrix,
 #endif
 {
 
-    CreateDependencyGraphs( matrix, alpha, tolerance, diag_dominance );
+    CreateDependencyGraphs( auxMat, alpha, tolerance, diag_dominance );
 }
 
 /**********************************************************/
@@ -89,7 +67,7 @@ inline const DependencyGraph<T>& Topology<T>::GetST() const
 /**********************************************************/
 
 template <typename T>
-inline Integer Topology<T>::GetSizeh() const
+inline UInt Topology<T>::GetSizeh() const
 {
     return Size_h_;
 }
@@ -97,7 +75,7 @@ inline Integer Topology<T>::GetSizeh() const
 /**********************************************************/
 
 template <typename T>
-inline Integer Topology<T>::GetSizeH() const
+inline UInt Topology<T>::GetSizeH() const
 {
     return Size_H_;
 }
@@ -115,17 +93,6 @@ inline const Integer* Topology<T>::GetCoarseFineSplitting() const
 template <typename T>
 inline bool Topology<T>::IsFPoint( const int i ) const
 {
-#ifdef DEBUG_TOPOLOGY
-    if( CoarseIndex_ == NULL ) {
-        Error( "Topology::IsFPoint: no C-F-splitting present\n",
-               __FILE__, __LINE__ );
-    }
-    if( CoarseIndex_[i] == UNDEFINED ) {
-        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
-                 __FILE__, __LINE__ );
-    }
-#endif
-
     return CoarseIndex_[i] == FINE;
 }
 
@@ -134,17 +101,6 @@ inline bool Topology<T>::IsFPoint( const int i ) const
 template <typename T>
 inline bool Topology<T>::IsCPoint( const int i ) const
 {
-#ifdef DEBUG_TOPOLOGY
-    if( CoarseIndex_ == NULL ) {
-        Error( "Topology::IsFPoint: no C-F-splitting present\n",
-               __FILE__, __LINE__ );
-    }
-    if( CoarseIndex_[i] == UNDEFINED ) {
-        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
-                 __FILE__, __LINE__ );
-    }
-#endif
-
     return CoarseIndex_[i] >= COARSE;
 }
 
@@ -153,22 +109,6 @@ inline bool Topology<T>::IsCPoint( const int i ) const
 template <typename T>
 inline Integer Topology<T>::GetCoarseIndex( const Integer i ) const
 {
-#ifdef DEBUG_TOPOLOGY
-    if( CoarseIndex_ == NULL ) {
-        Error( "Topology::GetCoarseIndex: no C-F-splitting "
-               "present\n", __FILE__, __LINE__ );
-    }
-    if( i <= 0 || GetSizeh() < i ) {
-        Error( __FILE__, __LINE__,
-               "Topology::GetCoarseIndex: index [%d] is "
-               "out of valid range [1,%d]", i, GetSizeh() );
-    }
-    if( CoarseIndex_[i] == UNDEFINED ) {
-        WARN( "Topology::GetCoarseIndex: evaluated "
-                 "UNDEFINED point\n", __FILE__, __LINE__ );
-    }
-#endif
-
     return CoarseIndex_[i];
 }
 
@@ -177,33 +117,29 @@ inline Integer Topology<T>::GetCoarseIndex( const Integer i ) const
 
 template <typename T>
 Integer Topology<T>::
-CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
+CreateDependencyGraphs( const CRS_Matrix<T>& auxMat,
                         const Double         alpha,
                         const Double         tolerance,
-                        const Double         diag_dominance
-#ifdef AMG_DIRICHLET_MIXED_SMOOTHING
-                      , bool *const          dirichlet_flags
-#endif
-                       )
+                        const Double         diag_dominance)
 {
     
     // loop indices, consistent for the whole function
-    Integer i,  // i = row index in matrix, in [1,n]
+    Integer i,  // i = row index in auxMat, in [1,n]
             ij; // ij = absolute index in pCol and pDat for an entry in row i
 
     // pointers for direct matrix access
-    const Integer *const pRow = matrix.GetRowPointer();
-    const Integer *const pCol = matrix.GetColPointer();
-    const T *const pDat = matrix.GetDataPointer();
+    const UInt *const pRow = auxMat.GetRowPointer();
+    const UInt *const pCol = auxMat.GetColPointer();
+    const T *const pDat = auxMat.GetDataPointer();
 
     /////////////////////////////////
     // prepare some data structures
     /////////////////////////////////
 
-    Size_h_ = matrix.GetNumRows();
+    Size_h_ = auxMat.GetNumRows();
     
     // prepare dependency graph S
-    S_.Create( matrix,  // build it from matrix "matrix"
+    S_.Create( auxMat,  // build it from matrix "auxMat"
                true,    // initialize it as empty graph
                false ); // use the matrix' start index array (do not copy)
 
@@ -211,29 +147,15 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // Eploiting the knowledge about the symmetric non-zero structure
     // of the matrix we generate also ST from the problem matrix. ST
     // will use the start-array of matrix, too.
-    ST_.Create( matrix,  // build it from matrix "matrix"
+    ST_.Create( auxMat,  // build it from matrix "auxMat"
                 true,    // initialize it as empty graph
                 false ); // use the matrix' start index array (do not copy)
 
-//////////////////////////////////////////////////
-// If the non-zero structure of the problem matrix is not known
-// to be symmetric, use this code instead of the call ST_.Create(..)
-//
-//    //  (1) get its maximal size from the column sizes
-//    Integer *ColLengths = NULL;
-//    NEWARRAY( ColLengths, Integer, matrix.GetNumCols() );
-//    for( j = 1; j <= matrix.GetNumCols(); j++ )  ColLengths[j] = 0;
-//    for( ij = 1; ij <= matrix.GetNnz(); ij++ )  ColLengths[pCol[ij]]++;
-//    //  (2) create the empty graph ST
-//    ST_.Create( matrix.GetNumCols(), ColLengths, matrix.GetNnz() );
-//    delete [] ( ColLengths );  ColLengths  = NULL;
-//
-//////////////////////////////////////////////////
 
     // allocate the array for the C-F-splitting and the coarse indices
     delete [] ( CoarseIndex_ );  CoarseIndex_  = NULL;
-    NEWARRAY( CoarseIndex_, Integer, matrix.GetNumRows() );
-    for( i = 1; i <= matrix.GetNumRows(); i++ ) {
+    NEWARRAY( CoarseIndex_, Integer, auxMat.GetNumRows() );
+    for( i = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         CoarseIndex_[i] = (Integer)UNDEFINED;
     }
 
@@ -241,37 +163,38 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // create the graphs S and ST
     ///////////////////////////////
 
-    // inspect matrix row by row
-    for( i = 1; i <= matrix.GetNumRows(); i++ ) {
+    // inspect auxMat row by row
+    for( i = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         // get number of non-zero entries in row [i]
-        Integer RowLength = matrix.GetRowSize( i );
+        UInt RowLength = auxMat.GetRowSize( i );
         if( RowLength == 0 ) {
-            Error( "matrix is singular", __FILE__, __LINE__ );
+            EXCEPTION( "topology.cc: auxMat is singular");
         }
         // get diagonal entry
-        T diag       = pDat[pRow[i]],
+        T		diag       = pDat[pRow[i]],
                 maxOffdiag = 0, // maximal offdiagonal entry (abs. value)
                 sumOffdiag = 0, // sum of offdiagonal entries (abs. values)
                 Aij        = 0; // an arbitrary temporary matrix entry
-        // get maximal offdiagonal entry
-        for( ij = pRow[i]+1; ij < pRow[i+1]; ij++ ) {
+        // get maximal offdiagonal entry and rowsum (without diagonal)
+        for( ij = (Integer)pRow[i]+1; ij < (Integer)pRow[i+1]; ij++ ) {
             if( maxOffdiag < fabs(pDat[ij]) )  maxOffdiag = fabs(pDat[ij]);
             sumOffdiag += fabs(pDat[ij]);
         }
-        // points with an extremly dominant diagonal entry are
-        // imediately forced to get F-points, that are treated
+        // points with an extremely dominant diagonal entry are
+        // immediately forced to get F-points, that are treated
         // like Dirichlet points
         if( sumOffdiag < diag_dominance * diag ) {
             CoarseIndex_[i] = (Integer)DIRICHLET_FINE;
         // otherwise continue the usual building of the graphs
         } else {
             // check all dependencies in row [i]
-            for( ij = pRow[i]+1; ij < pRow[i+1]; ij++ ) {
+            for( ij = (Integer)pRow[i]/*+1*/; ij < (Integer)pRow[i+1]; ij++ ) {
                 Aij = pDat[ij];
                 // (i,j) in S, if A_ij sufficently large in relation to
                 // diagonal entry A_ii AND i depends strongly on j
                 if(    fabs(Aij) >= tolerance * diag
-                    && fabs(Aij) >  alpha * maxOffdiag ) {
+                    && fabs(Aij) >  alpha * maxOffdiag
+                    && i != (Integer)pCol[ij]) {
                     // add (i,j) to S (no double insertion possible)
                     S_.AddEdge( i, pCol[ij] );
                     // add (j,i) to ST (no double insertion possible)
@@ -284,6 +207,14 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
         }
     }
 
+/*
+    S_.Print(std::cout);
+    ST_.Print(std::cout);
+    std::ofstream fileoutS("logS_.txt");
+    S_.Print(fileoutS);
+    std::ofstream fileoutST("logST_.txt");
+    ST_.Print(fileoutST);
+*/
     ////////////////////////////////////////////////////////////
     // process explicit and implicit Dirichlet Values and
     // evaluate the first node that should become a coarse node
@@ -292,13 +223,13 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // maximal number of strong dependencies for one node
     Integer maxNumStrongDep = 0;
 
-    for( i = 1, startCoarsePoint_ = 0; i <= matrix.GetNumRows(); i++ ) {
+    for( i = 0, startCoarsePoint_ = 0; i < (Integer)auxMat.GetNumRows(); i++ ) {
         // The first coarse node will be the one that influences the
         // most other nodes strongly, i.e. i with maximal |ST(i)|
         // LAS: LAS additionally (AND) checked, if the number of entries
         //      in row [i] of the matrix is != 0. I do not understand this
         //      condition yet, but I port it anyway.
-        if( maxNumStrongDep < ST_.GetNumEdges(i) && matrix.GetRowSize(i) ) {
+        if( maxNumStrongDep < ST_.GetNumEdges(i) && auxMat.GetRowSize(i) ) {
             maxNumStrongDep = ST_.GetNumEdges(i);
             startCoarsePoint_ = i;
         }
@@ -307,7 +238,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
         if( CoarseIndex_[i] == DIRICHLET_FINE ||
         /// Nodes without any dependency from other nodes are treated as
         /// Dirichlet nodes and put in F
-            matrix.GetRowSize(i) == 1 ) {
+            auxMat.GetRowSize(i) == 1 ) {
             // LAS: LAS called BaseTopology::SetDirichlet(i) at this
             //      position. To rebuild this call in detail, we would
             //      have to call S_.RemoveAllEdges(i), too. This can be
@@ -318,18 +249,13 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
             //      single edge has been added to graph S, since we did
             //      not even enter the loop, in which edges S(i,..) are
             //      set.
-            // (ii) In case (matrix.GetRowSize(i) == 1) we no from exactly
+            // (ii) In case (auxMat.GetRowSize(i) == 1) we know from exactly
             //      this condition that row [i] has not got any offdiagonal
             //      entries, and therefore no edges S(i,..) either.  
+            // only remove them in ST_
             ST_.RemoveAllEdges( i );
             // In both cases we set the splitting number to FINE.
             CoarseIndex_[i] = (Integer)FINE;
-#ifdef AMG_DIRICHLET_MIXED_SMOOTHING
-            // If a flag array for these points is provided use it.
-            if( dirichlet_flags )  dirichlet_flags[i] = true;
-        } else {
-            if( dirichlet_flags )  dirichlet_flags[i] = false;
-#endif // AMG_DIRICHLET_MIXED_SMOOTHING
         }
     }
 
@@ -351,40 +277,34 @@ CalcCoarseFineSplitting( const Integer max_dependency,
                          const Integer gamma )
 {
 
-#ifdef TOPOLOGY_IMPORT_CF_SPLITTING
-// Standard code section does not import the splitting, but
-// simply calculate it. For developing reasons it might be
-// helpfull sometimes, simply to import an extern splitting.
-    ImportCFSplitting();
-#else
-
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
     // create array to prevent redundant evaluation of "the
     // coarse importance" of possible C-points
     NEWARRAY( importanceKnown_, Integer, Size_h_ );
-    for( Integer i = 1; i <= Size_h_; i++ )  importanceKnown_[i] = -1;
+    for( Integer i = 0; i < (Integer)Size_h_; i++ )  importanceKnown_[i] = -3;
 #endif
     
     // get the first coarse point (should be stored in
     // startCoarsePoint_ at this time)
-    Integer coarsepoint      = GetNextCoarsePoint( 1, max_dependency ),
-            lowest_undefined = 1;
+    Integer coarsepoint      = GetNextCoarsePoint( 0, max_dependency ),
+            lowest_undefined = 0;
 
-    // while there are some undefined points left
-    while( coarsepoint <= Size_h_ ) {
-        // while there are some candidates for coarse points arround
-        while( coarsepoint > 0 ) {
+    // while there are undefined points left
+    while( coarsepoint < (Integer)Size_h_ ) {
+        // while there are some candidates for coarse points around
+        while( coarsepoint == UNDEFINED || coarsepoint > -1 ) {
             // set the coarse point (note that the surrounding points
             // are put into F, as long as the are UNDEFINED, and
             // increments the coarse point counter Size_H_)
             SetCoarsePoint( coarsepoint );
             // get the next possible coarse point
             coarsepoint = GetNextCoarsePoint( coarsepoint, max_dependency );
+
         }
         // we are stuck in this chain of coarse points
-        // -> search the next UNDEFINED point, starting at point 1
+        // -> search the next UNDEFINED point, starting at point 0
         for( coarsepoint = lowest_undefined;
-             coarsepoint <= Size_h_; coarsepoint++ )
+             coarsepoint < (Integer)Size_h_; coarsepoint++ )
         {
             if( CoarseIndex_[coarsepoint] == UNDEFINED ) {
                 lowest_undefined = coarsepoint;
@@ -397,13 +317,13 @@ CalcCoarseFineSplitting( const Integer max_dependency,
 
     // eventual second pass
     if( gamma >= 0 ) {
-        for( Integer i = 1; i <= Size_h_; i++ ) {
+        for( Integer i = 0; i < (Integer)Size_h_; i++ ) {
             if( IsFPoint(i)                       &&
                 GetNumInterpolatingPoints(i) == 1 &&
                 S_.GetNumEdges(i)            >  1    ) {
                 Integer nn = 0;
-                for( Integer ij = NhStartIndex_[i]+1;
-                             ij < NhStartIndex_[i+1]; ij++ ) {
+                for( Integer ij = (Integer)NhStartIndex_[i]+0; //ROK: was +1
+                             ij < (Integer)NhStartIndex_[i+1]; ij++ ) {
                     const Integer j = NhEdges_[ij];
                     if( IsFPoint(j)                       &&
                         GetNumInterpolatingPoints(j) == 1 &&
@@ -411,7 +331,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
                         if( ++nn >= gamma )  break;
                     }
                 }
-                // since ALL points are either FINE ore COARSE
+                // since ALL points are either FINE or COARSE
                 // at this point, we can simply set the coarse
                 // index instead of calling SetCoarsePoint
                 if( nn >= gamma )  CoarseIndex_[i] = ++Size_H_;
@@ -421,13 +341,6 @@ CalcCoarseFineSplitting( const Integer max_dependency,
 
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
     delete [] ( importanceKnown_ );  importanceKnown_  = NULL;
-#endif
-
-#endif // TOPOLOGY_IMPORT_CF_SPLITTING
-
-    // If enabled, export the CF-splitting
-#ifdef TOPOLOGY_EXPORT_CF_SPLITTING
-    ExportCFSplitting();
 #endif
 
     return Size_H_;
@@ -465,17 +378,17 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
     }
     // arrays for buffering some graph edges
     //   CoNS_i == strong Coarse Neighbours of point i (== in S(i) n C)
-    Integer *const CoNS_i = New Integer [maxNodeSize];
-    Integer *const CoNS_k = New Integer [maxNodeSize];
+    Integer *const CoNS_i = new Integer [maxNodeSize];
+    Integer *const CoNS_k = new Integer [maxNodeSize];
     // stretch the maximal number of connections
     maxNodeSize *= stretch_factor;
 
     // create the empty graph for VT and the one for AHT, already
     // initialized with "diagonal edges"
     if( false == graph_AHT.CreateWithDiagonals(Size_H_, maxNodeSize) ) {
-        Error( "could not create graph for A_H", __FILE__, __LINE__ ); }
+        EXCEPTION( "topology.cc: could not create graph for A_H"); }
     if( false == graph_VT.Create(Size_H_, maxNodeSize) ) {
-        Error( "could not create graph for VT", __FILE__, __LINE__ ); }
+      EXCEPTION( "topology.cc: could not create graph for VT"); }
 
     // the variables nomenclature:
     //   i,j,k : fine grid indices
@@ -609,7 +522,7 @@ Integer Topology<T>::GetNumInterpolatingPoints( Integer* const sizes ) const
     Integer totalNumPoints = 0;
     
     // run over all points
-    for( Integer i = 1; i <= S_.GetNumNodes(); i++ ) {
+    for( Integer i = 0; i < S_.GetNumNodes(); i++ ) {
         // coarse points are only interpolated from themselves
         if( CoarseIndex_[i] >= COARSE ) {
             sizes[i] = 1;
@@ -662,7 +575,7 @@ Integer Topology<T>::GetNumInterpolatingPoints() const
     Integer nPoints = 0;
     
     // run over all points
-    for( Integer i = 1; i <= S_.GetNumNodes(); i++ ) {
+    for( Integer i = 0; i < S_.GetNumNodes(); i++ ) {
         // coarse points are only interpolated from themselves
         if( CoarseIndex_[i] >= COARSE ) {
             nPoints++;
@@ -694,17 +607,6 @@ Integer Topology<T>::
 GetCoarseImportance( Integer const i ) const
 {
 
-
-#ifdef DEBUG_TOPOLOGY
-    if( CoarseIndex_[i] >= COARSE ) {
-        WARN( __FILE__, __LINE__,
-                 "Called GetCoarseImportance on a C-point [%d]"
-                 "-> returning 0\n   Expect wrong results in "
-                 "non-debug mode.\n", i );
-        return 0;
-    }
-#endif
-
     const Integer        nedges = ST_.GetNumEdges( i );
     const Integer* const  edges = ST_.GetEdges( i );
     // initialize the result with |ST(i)|
@@ -725,13 +627,15 @@ GetCoarseImportance( Integer const i ) const
 
 template <typename T>
 Integer Topology<T>::
-GetNumInterpolatedPoints( Integer* const sizes ) const
+GetNumInterpolatedPoints( StdVector<UInt>& sizes ) const
 {
+    sizes.Resize( this->GetSizeh() );
+    sizes.Init(0);
 
     Integer totalNumPoints = 0;
 
     // run over all fine grid points
-    for( Integer i = 1; i <= GetSizeh(); i++ ) {
+    for( Integer i = 0; i < GetSizeh(); i++ ) {
         // only coarse points interpolate other points
         if( IsCPoint(i) ) {
             // initialize the counter with 1, because every coarse
@@ -743,7 +647,8 @@ GetNumInterpolatedPoints( Integer* const sizes ) const
             for( Integer ij = 0; ij < nedges; ij++ ) {
                 if( IsFPoint(edges[ij]) )  size++;
             }
-            totalNumPoints += (sizes[CoarseIndex_[i]] = size);
+            totalNumPoints += size;
+            sizes[CoarseIndex_[i]] = size;
         }
     }
 
@@ -819,7 +724,7 @@ Integer Topology<T>::GetNextCoarsePoint( const Integer p,
     // if there is already a next coarse point ready selected (for
     // example after the call of CreateDependencyGraphs), return this
     // point and erase it from the class data
-    if( startCoarsePoint_ > 0 &&
+    if( startCoarsePoint_ > -1 &&
         CoarseIndex_[startCoarsePoint_] == UNDEFINED )
     {
         const Integer point = startCoarsePoint_;
@@ -829,51 +734,37 @@ Integer Topology<T>::GetNextCoarsePoint( const Integer p,
     // some notes about the names of the indices:
     //   N_x   : neighbourhood of point x
     //   nN_x  : |N_x| == number of nodes in N_x
-    //   iNx   : loop index for the i-ht node in N_x
+    //   iNx   : loop index for the i-th node in N_x
     //   ST_x  : { i | (x,i) in ST }
     //   nST_x : |ST_x|
     } else {
-        // Note: The LAS implementation used to loop not over ST(p),
-        // but over N(p), which would be implemented by defining nST_p
-        // and ST_p like this:
-        //     nST_p = NhStartIndex_[p+1] - NhStartIndex_[p];
-        //      ST_p = NhEdges_ + NhStartIndex_[p];
-        // But this approach is more costly and does not improve
-        // the convergence of the AMG (it even deteriorates slightly).
+
         const Integer        nST_p = ST_.GetNumEdges(p);
         const Integer* const  ST_p = ST_.GetEdges(p);
         Integer max_depend = 0,
-                nextcoarse = 0;
+                nextcoarse = -1;
         // walk through ST(p)
         for( Integer iSTp = 0; iSTp < nST_p; iSTp++ ) {
             // i = real index of node number nN_p in N(p)
-            const Integer           i = ST_p[iSTp];
-            const Integer        nN_i = NhStartIndex_[i+1] -
-                                          NhStartIndex_[i];
-            const Integer* const  N_i = NhEdges_ + NhStartIndex_[i];
+            const Integer  i = ST_p[iSTp];
+            const Integer  nN_i = NhStartIndex_[i+1] - NhStartIndex_[i];
+            const UInt* const  N_i = NhEdges_ + NhStartIndex_[i];
             // walk through N(i)
-            // LAS: In LAS this loop was only entered after a test of
-            //      the array "active", as a possible treatment in a
-            //      parallel coarsening. But this array was never changed,
-            //      but initialized with values, that garanted the
-            //      condition being always true. Therefore we omit this
-            //      condition here, but mark the location.
-            for( Integer iNi = 1; iNi < nN_i; iNi++ ) {
-                const Integer j = N_i[iNi];
+            for( UInt iNi = 0; iNi < (UInt)nN_i; iNi++ ) {
+                const UInt j = N_i[iNi];
                 // if we found an UNDEFINED point, evaluate it
-                // LAS: In LAS there existed some more conditions in this
-                //      if-statement, again concerning the array "active".
-                //      For the same reasons as above these conditions
-                //      always held => omitted
-#ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
-                if( CoarseIndex_[j] == UNDEFINED &&
+
+//#ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
+//std::cout<<    CoarseIndex_[j]<<std::endl;
+//std::cout<<    importanceKnown_[j]<<std::endl;
+//                if( CoarseIndex_[j] == UNDEFINED &&
                     // only check the "coarse importance" of point j, if
                     // we have not calculated it in this function call
-                    importanceKnown_[j] < Size_H_ ) {
-                    importanceKnown_[j] = Size_H_;
-#else
+//                    importanceKnown_[j] < Size_H_ ) {
+//                    importanceKnown_[j] = Size_H_;
+//#else
                 if( CoarseIndex_[j] == UNDEFINED ) {
-#endif
+//#endif
                     // cImportance = |ST(j)| + |ST(j) n F|
                     const Integer cImportance = GetCoarseImportance( j );
                     // the measure for the value of point j as C-point is
@@ -893,6 +784,7 @@ Integer Topology<T>::GetNextCoarsePoint( const Integer p,
         
         return nextcoarse;
     }
+
 }
 
 /**********************************************************/
@@ -902,7 +794,8 @@ inline void Topology<T>::SetCoarsePoint( const Integer i )
 {
     
     // put node [i] into C
-    CoarseIndex_[i] = ++Size_H_;
+    CoarseIndex_[i] = Size_H_;
+    Size_H_++;
     // fix all undefined points, that are strongly influenced by point
     // [i], as new points in F
     const Integer        nStronglyInfluenced = ST_.GetNumEdges( i );
@@ -946,98 +839,7 @@ void Topology<T>::Reset()
     Size_H_ = 0;
 }
 
-/**********************************************************/
-#ifdef TOPOLOGY_IMPORT_CF_SPLITTING
 
-template <typename T>
-Integer Topology<T>::ImportCFSplitting()
-{
-
-    char filename[500];
-    sprintf( filename,
-             TOPOLOGY_SPLITTING_IMPORT_PREFIX "CFsplit_%d",
-             Size_h_ );
-
-    std::cout
-    << "\033[37m importing C-F-splitting from \033[0;1m\""
-    << filename<<"\"\033[0m"<<std::endl;
-    // open file and read splitting
-    FILE* file = fopen( filename, "rt" );
-    if( ! file ) {
-        std::cerr
-        << "\033[32m INFO:\033[0m could not open splitting file\n"
-           "       -> coarsest level of size "<<Size_h_<<std::endl;
-        return Size_H_ = 0;
-    }
-    // read number of indices to import
-    Integer importedSizeh = 0;
-    fscanf( file, "%d", &importedSizeh );
-    if( importedSizeh == Size_h_ ) {
-        Size_H_ = 0;
-        for( Integer i = 1; i <= Size_h_; i++ ) {
-            if( 1 != fscanf(file, "%d", CoarseIndex_ + i) ) {
-                std::cerr
-                << "\033[31m ERROR:\033[0m could not read C-index "
-                   "of point ["<<i<<"]. Expect a mess or crash!"
-                << std::endl;
-                fclose( file );
-                return Size_H_ = 0;
-            }
-            if( CoarseIndex_[i] >= COARSE )  Size_H_++;
-        }
-    } else {
-        std::cerr
-        << "\033[31m ERROR:\033[0m number of coarse indices in "
-           "file \033[0;1m\""<<filename<<"\"\033[0m ("<<importedSizeh
-        << ") does not match the present size h ("<<Size_h_<<")\n"
-           "        -> no import"<<std::endl;
-        return Size_H_;
-    }
-    fclose( file );
-
-    return Size_H_;
-}
-
-#endif // TOPOLOGY_IMPORT_CF_SPLITTING
-/**********************************************************/
-#ifdef TOPOLOGY_EXPORT_CF_SPLITTING
-
-template <typename T>
-void Topology<T>::ExportCFSplitting()
-{
-
-    if( CoarseIndex_ == NULL ) {
-        WARN( "Topology::ExportCFSplitting: array for "
-                 "splitting not yet present. No export.",
-                 __FILE__, __LINE__ );
-        return;
-    }
-
-    char filename[500];
-    sprintf( filename,
-             AMG_EXPORT_PREFIX "CFsplit_%d",
-             Size_h_ );
-    
-    std::cout
-    << "\033[37m exporting C-F-splitting to \033[0;1m\""
-    << filename<<"\"\033[0m"<<std::endl;
-
-    FILE* file = fopen( filename, "wt" );
-    if( file ) {
-        fprintf( file, "%d\n", GetSizeh() );
-        for( int i = 1; i <= GetSizeh(); i++ ) {
-            fprintf( file, "%d\n", CoarseIndex_[i] );
-        }
-        fclose( file );
-    } else {
-        WARN( __FILE__, __LINE__,
-                 "Topology::ExportCFSplitting: could not open "
-                 "\"%s\"", filename );
-    }
-}
-
-#endif // TOPOLOGY_EXPORT_CF_SPLITTING
-/**********************************************************/
 } // namespace CoupledField
 
 /**********************************************************/

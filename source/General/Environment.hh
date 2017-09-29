@@ -104,8 +104,10 @@ namespace CoupledField {
       // --- flux / derived quantities --
 	  MECH_STRESS, MECH_PRINCIPAL_STRESS,
 	  MECH_PRINCIPAL_STRESS_MIN, MECH_PRINCIPAL_STRESS_MAX, MECH_PRINCIPAL_STRESS_MED,
+	  MECH_PRINCIPAL_STRESS_MIN_SCAL, MECH_PRINCIPAL_STRESS_MAX_SCAL, MECH_PRINCIPAL_STRESS_MED_SCAL,
 	  MECH_STRAIN, MECH_PRINCIPAL_STRAIN,
 	  MECH_PRINCIPAL_STRAIN_MIN, MECH_PRINCIPAL_STRAIN_MAX, MECH_PRINCIPAL_STRAIN_MED,
+	  MECH_PRINCIPAL_STRAIN_MIN_SCAL, MECH_PRINCIPAL_STRAIN_MAX_SCAL, MECH_PRINCIPAL_STRAIN_MED_SCAL,
 	  MECH_THERMAL_STRAIN, MECH_STRUCT_INTENSTIY,
       MECH_NORMAL_STRUCT_INTENSITY, VON_MISES_STRESS,
       VON_MISES_STRAIN, MECH_KIN_ENERGY_DENS, MECH_DEFORM_ENERGY_DENS,
@@ -410,6 +412,14 @@ namespace CoupledField {
   //! - VCYCLE
   //! - WCYCLE
   typedef enum {NOCYCLE, VCYCLE, WCYCLE} CycleType;
+
+  //! Switch, needed for the specialized AMG-methods
+
+  //! This enumeration data type describes the version of the special AMG-precond/solver
+  //! - SCALAR: one dof per node
+  //! - VECTORIAL: 2d or 3d dof's per node
+  //! - EDGE: dof's defined on edges (HCurl elements)
+  typedef enum { SCALAR = 0, VECTORIAL = 1, EDGE = 2} AMGType;
 
 
   //! Type of stopping criterion used by iterative solvers
