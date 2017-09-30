@@ -218,43 +218,46 @@ CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
   // data pointer for R and P
   StdVector<Double> pDatR;
 
+  StdVector< StdVector<Integer> > eIndRNode (sizeh);
+  StdVector< StdVector<Integer> > eAggNum (sizeh);
   // just a performance improvement...outsorced from the O(~N^2) loop
   StdVector<Integer> eIN (edgeIndNode.GetSize() * 2);
-  for(UInt i = 0; i < edgeIndNode.GetSize(); ++i){
-	  const StdVector<Integer>& e = edgeIndNode[i];
-	  eIN[2 * i] = e[0];
-	  eIN[2 * i + 1] = e[1];
+  for(UInt j = 0; j < sizeh; ++j){
+	  const StdVector<Integer>& e = edgeIndNode[j];
+
+	  StdVector<Integer> & etmp = eIndRNode[j];
+	  StdVector<Integer> & eA = eAggNum[j];
+	  etmp.Resize(2);
+	  eA.Resize(2);
+	  etmp[0] = A.GetIndexOfRealNode(e[1]);
+	  etmp[1] = A.GetIndexOfRealNode(e[0]);
+	  eA[0] = A.GetAgglomerateNumOfNode(etmp[0]);
+	  eA[1] = A.GetAgglomerateNumOfNode(etmp[1]);
+    if( (eA[0] == -1) || (eA[1] == -1) ){
+      EXCEPTION("coarse index problem");
+    }
   }
 
   UInt count = 0;
-  StdVector<Integer> eInd (2);
-  UInt aggN1, aggN2;
-  //TODO the following O(~N^2) is way too expensive
+  StdVector<Integer> cEindSwap (2);
   for(UInt i = 0; i < sizeH; ++i){
     // get edge i, nodes of these edges are coarse-nodes
     const StdVector<Integer>& cEind = A.GetCoarseEdgeInd(i);
     const StdVector<Integer>& cEreal = A.GetCoarseEdgeReal(i);
     StdVector<Integer>& cE = cEdgeIndNode_[i];
     cE.Resize(2,0);
+    // now swap the nodes and search again
+    cEindSwap = cEind;
+    cEindSwap.Swap(0, 1);
     for(UInt j = 0; j < sizeh; ++j){
-      //const StdVector<Integer>& e = edgeIndNode[j];
-      //eInd[1] = A.GetIndexOfRealNode(e[1]);
-      //eInd[0] = A.GetIndexOfRealNode(e[0]);
-      eInd[1] = A.GetIndexOfRealNode(eIN[2 * j]);
-      eInd[0] = A.GetIndexOfRealNode(eIN[2 * j + 1]);
-      if( (eInd[0] == -1) || (eInd[1] == -1) ){
-        EXCEPTION("coarse index problem");
-      }
-      aggN1 = A.GetAgglomerateNumOfNode(eInd[0]);
-      aggN2 = A.GetAgglomerateNumOfNode(eInd[1]);
-      if( ((Integer)aggN1 == cEind[0]) && ((Integer)aggN2 == cEind[1]) ){
+      if( eAggNum[j] == cEind ){
         pColR.Push_back(j);
         pDatR.Push_back(1.0);
         cE[0] = cEreal[0];
         cE[1] = cEreal[1];
         count++;
       }
-      if( ((Integer)aggN1 == cEind[1]) && ((Integer)aggN2 == cEind[0]) ){
+      if( eAggNum[j] == cEindSwap ){
         pColR.Push_back(j);
         pDatR.Push_back(-1.0);
         cE[0] = cEreal[1];
@@ -264,12 +267,8 @@ CreateProlongationOperatorEdgeSys(const CRS_Matrix<T>& SysMatrix,
     }
     pRowR[i + 1] = count;
   }
-
   Restriction_ = new CRS_Matrix<Double>( sizeH, sizeh, count );
-
   Restriction_->SetSparsityPatternData( pRowR, pColR, pDatR );
-
-
 
   return true;
 }
