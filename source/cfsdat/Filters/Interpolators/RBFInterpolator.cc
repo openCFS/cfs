@@ -281,8 +281,7 @@ void RBFInterpolator::PreparePATCH(){
   inGrid_->GetVolRegionIds(volRegions);
 
 
-  bool t = true;
-  inGrid_->SetNodesToElemsMap( &t );
+  inGrid_->SetNodesToElemsMap();
 
   StdVector<Vector<Double> > globCoords(maxNumTrgEntities);
   StdVector<LocPoint> lps;
@@ -327,9 +326,10 @@ void RBFInterpolator::PreparePATCH(){
         inGrid_->GetNodesOfElemList(listN,srcElements,false);
         StdVector<const Elem*> gotElements;
         for(UInt bNode =0;bNode < listN.GetSize(); ++bNode){
-          StdVector<Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode], &t);
+          StdVector<Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode]);
           for(UInt bElemN =0;bElemN < tmp.GetSize(); ++bElemN){
-            if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN]->elemNum)))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]->elemNum));
+            //if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN]->elemNum)))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]->elemNum));
+            if(!gotElements.Contains(tmp[bElemN]))  gotElements.Push_back(tmp[bElemN]);
           }
         }
 
