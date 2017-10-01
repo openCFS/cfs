@@ -1867,36 +1867,6 @@ namespace CoupledField {
   }
 
 
-  const StdVector<Elem*>& GridCFS::GetElemsByNode(UInt node, bool *useNew) {
-
-
-    // check if the new version shall be used (takes volume regions into account)
-    if( useNew ){
-      bool t = true;
-      if (!mappedNodeToElems_) SetNodesToElemsMap( &t );
-      bool found = false;
-      // loop over all regions
-      for(UInt n = 0; n < mapNodeToElemsNew_.GetSize(); ++n){
-        // check if node is in this region
-        boost::unordered_map<UInt, StdVector<Elem*> >& t = mapNodeToElemsNew_[n].nodeNeighElems;
-
-        if(t.find(node) != t.end()){
-          found = true;
-          return mapNodeToElemsNew_[n].nodeNeighElems[node];
-        }
-       }
-      if(found == false) EXCEPTION("GridCFS::GetElemsByNode node not found");
-      // dummy return to satisfy compiler, line can't be reached
-      return mapNodeToElemsNew_[0].nodeNeighElems[0];
-    }else{
-      //old version
-      if (!mappedNodeToElems_) SetNodesToElemsMap();
-      return mapNodeToElems_[node];
-    }
-
-
-  }
-
   void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
   {
     // Check if entities with given name exist already
@@ -2739,29 +2709,12 @@ namespace CoupledField {
 
   }
 
-
-
-
   void GridCFS::GetNumOfElemsNextToNodes( UInt & num,
                                      const UInt & node,
                                      const StdVector<RegionIdType>& regionIds) {
-
-    StdVector<UInt> map;
     num = 0;
-    bool found = false;
-
-    // loop over all provided volume regions ( small loop )
-    for (UInt regID = 0; regID < regionIds.GetSize(); regID++){
-      // get the correct region in mapNodeToElems_  ( also a small loop )
-      for(UInt n = 0; n < mapNodeToElemsNew_.GetSize(); ++n){
-        if(mapNodeToElemsNew_[n].regID == regionIds[regID]){
-          // and check if node is in this region
-          num += mapNodeToElemsNew_[n].nodeNeighElems[node].GetSize();
-          found = true;
-          break;
-        }
-      }
-      if(found == false) EXCEPTION("region not found in nodeNeighbourMap_");
+    for(auto i = mapNodeToElems_[node].Begin(); i != mapNodeToElems_[node].End(); ++i){
+      if( regionIds.Contains( (*i)->regionId) ) ++num;
     }
   }
 
@@ -2771,9 +2724,6 @@ namespace CoupledField {
                                        &neighRegions ) {
     EXCEPTION( "Not implemented" );
   }
-
-
-
 
   // ======================================================
   // MISCELLANEOUS
@@ -2873,46 +2823,26 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::SetNodesToElemsMap(bool *newVersion)
+  void GridCFS::SetNodesToElemsMap()
   {
     if(mappedNodeToElems_)
       return;
 
-
     #pragma omp critical (CoefFunctionAccumulator)
     {
-      // check which version shall be used
-      if( newVersion ){
-        // version, which takes different volume-regions into account
-        StdVector<RegionIdType>  volRegions;
-        GetVolRegionIds(volRegions);
-        mapNodeToElemsNew_.Resize(volRegions.GetSize());
-        // loop over all volume regions
-        for (UInt regID=0; regID<volRegions.GetSize(); regID++){
-          StdVector<Elem*> const &elems = volElems_[regID];
-          NodeNeighbourElems &E = mapNodeToElemsNew_[regID];
-          E.regID = volRegions[regID];
-          // loop over all elements in this region
-          for(UInt elIter = 0; elIter < elems.GetSize(); ++elIter ){
-            //loop over every node of current element
-            StdVector<UInt> elemNodes = elems[elIter]->connect;
-            for(UInt nIter = 0; nIter < elemNodes.GetSize(); ++nIter){
-              StdVector<Elem*> & nodeVec = E.nodeNeighElems[elemNodes[nIter]];
-              if(!nodeVec.Contains(elems[elIter]) ) nodeVec.Push_back(elems[elIter]);
-            }
-          }
-        }
-      }else{
-        // old version of this method: don't care about regions
-        // traverse all elements
-        for(unsigned int e = 0; e < numElems_; e++)
-        {
-          Elem* elem = orderedElems_[e];
-          // add this elem to every node that it is connected with
-          for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++) {
-            if (!mapNodeToElems_[elem->connect[n]].Contains(elem))
-              mapNodeToElems_[elem->connect[n]].Push_back(elem);
-          }
+      mapNodeToElems_.Resize(GetNumNodes()+1);
+      int maxNeighbors = dim_ == 2 ? 4 : 8;
+      for (int n = 0, nNodes = mapNodeToElems_.GetSize(); n < nNodes; n++) {
+        mapNodeToElems_[n].Reserve(maxNeighbors);
+      }
+      // traverse all elements
+      for(unsigned int e = 0; e < numElems_; e++)
+      {
+        Elem* elem = orderedElems_[e];
+        // add this elem to every node that it is connected with
+        for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++) {
+          if (!mapNodeToElems_[elem->connect[n]].Contains(elem))
+            mapNodeToElems_[elem->connect[n]].Push_back(elem);
         }
       }
 
