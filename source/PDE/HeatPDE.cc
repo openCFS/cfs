@@ -39,11 +39,13 @@
 //new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 
 //new postprocessing concept
@@ -317,9 +319,8 @@ void HeatPDE::DefineIntegrators() {
       PtrCoefFct heatCapacity =
           actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
       PtrCoefFct massFactor =
-          CoefFunction::Generate(mp_, Global::REAL,
-                                 CoefXprBinOp( mp_, density, heatCapacity,
-                                               CoefXpr::OP_MULT ) );
+          CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity,
+                                 CoefXpr::OP_MULT ) );
 
       BiLinearForm *massInt = NULL;
       if(dim_==2)
@@ -335,7 +336,79 @@ void HeatPDE::DefineIntegrators() {
       massContext->SetEntities( actSDList, actSDList );
       massContext->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
       assemble_->AddBiLinearForm( massContext );
+
     }
+
+
+    // ====================================================================
+    // check for convective velocity
+    // ====================================================================
+    //std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+    std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+    if(velocityId != "") {
+      std::cout << "Considering moving material" << std::endl << std::endl;
+
+
+      // Get result info object for flow
+      shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+
+      //Add the region information
+      PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+      // Read velocity coefficient function for this region and add it to velocity functor
+      PtrCoefFct regionMoving;
+      std::set<UInt> definedDofs;
+      bool coefUpdateGeo;
+      //we assume that velocity is real
+      ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType,
+          isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+      convecVelCoef_->AddRegion( actRegion, regionMoving );
+
+      // Factor for convecitve matrix: density * heatCapacity
+      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct heatCapacity =
+          actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      PtrCoefFct velFactor =
+          CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity,
+                                 CoefXpr::OP_MULT ) );
+
+      //now create the integrators
+      BaseBDBInt   *convectiveStiff = NULL;
+      if( dim_ == 2 ) {
+        if( isComplex_ ) {
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                        velFactor, 1.0, coefUpdateGeo);
+        } else {
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1>(),
+                                        velFactor, 1.0, coefUpdateGeo);
+        }
+      } else {
+        if( isComplex_ ) {
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                        velFactor, 1.0, coefUpdateGeo);
+        } else {
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1>(),
+                                        velFactor, 1.0, coefUpdateGeo);
+        }
+      }
+
+      convectiveStiff->SetBCoefFunctionOpB(convecVelCoef_);
+      convectiveStiff->SetName("convectiveStiff");
+
+      convectiveInts_[actRegion] = convectiveStiff;
+
+      BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
+
+      convectiveContextStiff->SetEntities( actSDList, actSDList );
+      convectiveContextStiff->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      assemble_->AddBiLinearForm( convectiveContextStiff );
+
+    } //end convective term
+
   }
 
   // ===============
@@ -816,6 +889,37 @@ void HeatPDE::DefinePrimaryResults() {
   // -----------------------------------
   idbcSolNameMap_[HEAT_TEMPERATURE] = "temperature";
   
+
+  //creates the convective velocity
+  StdVector<std::string> vecDofNames;
+  if( ptGrid_->GetDim() == 3 ) {
+    vecDofNames = "x", "y", "z";
+  } else {
+    if( ptGrid_->IsAxi() ) {
+      vecDofNames = "r", "z";
+    } else {
+      vecDofNames = "x", "y";
+    }
+  }
+
+  //// === VELOCITY ===
+  shared_ptr<ResultInfo> velocity( new ResultInfo);
+  velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+  velocity->dofNames = vecDofNames;
+  velocity->unit = "m/s";
+
+  velocity->definedOn = ResultInfo::NODE;
+  velocity->entryType = ResultInfo::VECTOR;
+
+  convecVelCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+  DefineFieldResult( convecVelCoef_, velocity );
+
+  results_.Push_back( velocity );
+  availResults_.insert( velocity );
+
+
+
+
   // === TEMPERATURE RHS ===
 //  shared_ptr<ResultInfo> rhs ( new ResultInfo );
 //  rhs->resultType = HEAT_RHS_LOAD;

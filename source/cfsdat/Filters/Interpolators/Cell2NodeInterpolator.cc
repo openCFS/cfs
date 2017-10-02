@@ -165,9 +165,8 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upRes)->mapping;
     CF::StdVector<UInt> sEqn;
 
-  //trgGrid_->SetNodeNeighbourMap();
-  bool t = true;
-  trgGrid_->SetNodesToElemsMap( &t );
+
+  trgGrid_->SetNodesToElemsMap();
   for(UInt i=0;i<interpolData_.size();++i){
     upMap->GetEquation(sEqn,interpolData_[i].srcEqnSingle,ExtendedResultInfo::ELEMENT);
     //save, assuming a scalar type

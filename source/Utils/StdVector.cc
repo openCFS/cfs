@@ -314,6 +314,17 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  StdVector<unsigned int> StdVector<TYPE>::FindAll(const TYPE &x) const
+  {
+    StdVector<unsigned int> t (0);
+    for(unsigned int i = 0; i < size_; ++i){
+      if(data_[i] == x) t.Push_back(i);
+    }
+    return t;
+  }
+
+
+  template<class TYPE>
   bool StdVector<TYPE>::IsUnique() const
   {
     // possibly not the fastest algorithm as we check any pair
