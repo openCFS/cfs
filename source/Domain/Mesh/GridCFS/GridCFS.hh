@@ -258,10 +258,12 @@ namespace CoupledField
 
     //! Returns element neighbors of given node
     //! \param node number of interest
-    //! \param *useNew optional parameter if volume regions are taken into account
-    //!                by default, the old version is used
-    const StdVector<Elem*>& GetElemsByNode(UInt node, bool *useNew = NULL);
-
+    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
+    {
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
+      return mapNodeToElems_[node];
+    }
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
     
@@ -507,9 +509,7 @@ namespace CoupledField
 
     //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
     //! entry for every volume-region
-    //! \param *useNew optional parameter if volume regions are taken into account
-    //!                by default, the old version is used
-    void SetNodesToElemsMap(bool *newVersion = NULL);
+    void SetNodesToElemsMap();
 
 
     inline double CalcVolumeOfAllRegions(bool updated=false) {
@@ -667,9 +667,6 @@ namespace CoupledField
 
     UInt maxNumElemNodes_;
 
-    //! Maps from a node number to all neighbor elements, consists of
-    //! a NodeNeighbourElems struct for every volume region
-    StdVector<NodeNeighbourElems > mapNodeToElemsNew_;
 
     //! Maps from a node number to all neighbor elements
     StdVector<StdVector<Elem*> > mapNodeToElems_;

@@ -215,7 +215,7 @@ namespace CoupledField
     //! entry for every volume-region
     //! \param *useNew optional parameter if volume regions are taken into account
     //!                by default, the old version is used
-    virtual void SetNodesToElemsMap(bool *newVersion) = 0;
+    virtual void SetNodesToElemsMap() = 0;
 
 
     //! Get coordinates of element nodes
@@ -638,9 +638,7 @@ namespace CoupledField
                                  const std::string & elemsName ) = 0;
 
     //! Get all elem neighbors for given node id
-    //! \param *useNew optional parameter if volume regions are taken into account
-    //!                by default, the old version is used
-    virtual const StdVector<Elem*>& GetElemsByNode(UInt node, bool *useNew = NULL) = 0;
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */
