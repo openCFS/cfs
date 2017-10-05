@@ -29,6 +29,7 @@ DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParam
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
 
@@ -139,6 +140,9 @@ void DivergenceDifferentiator::PrepareCalculation(){
 
 
   std::cout << "\t\t 3/3 Creating interpolation matrix ... this can take quite a while ...  " << std::endl;
+  std::cout<< "\t\t  [0% ------------ 100%]" << std::endl;
+  std::cout<< "\t\t  ["<< std::flush;
+
   matrix.numTargets = maxNumTrgEntities;
   StdVector< StdVector<CF::UInt> >& sourceM = matrix.targetSourceIndex;
   StdVector< CF::Matrix<CF::Double> >& targetSourceFactor = matrix.targetSourceFactor;
@@ -155,6 +159,9 @@ void DivergenceDifferentiator::PrepareCalculation(){
 
 //#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    if((trgEnt)%(int(maxNumTrgEntities/20)) == 0){
+    std::cout<< "#"<< std::flush;
+    }
     CF::UInt globEntityNumber;
         globEntityNumber = globTrgEntity[trgEnt];
         if (globEntityNumber != UnusedEntityNumber) {
@@ -193,7 +200,7 @@ void DivergenceDifferentiator::PrepareCalculation(){
           UInt numSrcPoints = srcDist.GetSize();
           CF::Matrix<CF::Double> tsF;
           while( !CalcLocDivergence(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
-                               numEquPerEnt_, inGrid_, epsScal_)){
+                               numEquPerEnt_, inGrid_, epsScal_, logEps_)){
             // find furthest point
             Double d = 0.0;
             UInt maxId = 0;

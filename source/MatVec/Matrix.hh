@@ -468,6 +468,13 @@ namespace CoupledField
     //! \note The matrix itself gets overwritten in this method.
     void Invert_Lapack();
     
+    //! Compute the condition number of the matrix with Lapack
+
+    //! This methods estimates the condition number of the matrix
+    //! \param k  estimated condition number
+    //! \param info returns if the LU factorization was succesfull
+    void Invert_Lapack(double & k, int & info);
+
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation

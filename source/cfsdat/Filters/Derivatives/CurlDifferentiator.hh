@@ -69,6 +69,10 @@ private:
   //! Scaling of epsilon-parameter for RBF-basis function
   Double epsScal_;
 
+  //! if true, a console output of [minimal distance, maximal distance, optimized epsilon]
+  //! will be performed
+  bool logEps_;
+
   //! contains pointers to every interpolator which created a matrix
   static CF::StdVector<CurlDifferentiator*> differentiators_;
 

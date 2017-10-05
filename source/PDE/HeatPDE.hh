@@ -43,6 +43,8 @@ namespace CoupledField {
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
+    void ReadDampingInformation();
+
     //! Initialize NonLinearities
     virtual void InitNonLin();
 

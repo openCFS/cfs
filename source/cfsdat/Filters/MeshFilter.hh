@@ -201,7 +201,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   bool CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
@@ -212,7 +213,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   bool CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
@@ -223,7 +225,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   void CalcCurl(Vector<Double>& returnVec,

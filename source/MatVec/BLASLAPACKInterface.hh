@@ -124,6 +124,8 @@ namespace CoupledField
                  int*);
     void dsyev( char*, char*, int*, double*, int*, double*, double*, int*, int* );
 
+    void dgecon( char*, int*, double*, int*, double*, double*, double*, int*, int*);
+
     // ! To be continued ...
 
   }

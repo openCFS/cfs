@@ -27,6 +27,7 @@ CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config,
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
 
@@ -160,7 +161,6 @@ void CurlDifferentiator::PrepareCalculation(){
     rId.Push_back(r);
   }
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     CF::UInt globEntityNumber;
         globEntityNumber = globTrgEntity[trgEnt];
@@ -169,17 +169,9 @@ void CurlDifferentiator::PrepareCalculation(){
           StdVector<UInt> nodeList;
           StdVector<CF::Elem*> elemList;
           StdVector<UInt> nList;
-//#pragma omp critical
-//          {
           inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
-//          }
           inGrid_->GetElemNodes(nodeList, globEntityNumber);
           if(rId.GetSize() == 0) EXCEPTION("REGION - OpenMP - Grid Problem")
-          //inGrid_->GetElemsNextToNodes(elemList, nodeList, rId);
-          //inGrid_->GetNodesOfElemList(nList, elemList, true);
-          //for(UInt i = 0; i < nList.GetSize(); ++i){
-          //  nodeList.Push_back(nList[i]);
-          //}
           StdVector< CF::Vector<CF::Double> > neighbourCoords;
           StdVector<CF::Double> srcDist;
           CF::Vector<CF::Double> tmpCoords;
@@ -200,7 +192,7 @@ void CurlDifferentiator::PrepareCalculation(){
           UInt numSrcPoints = srcDist.GetSize();
           CF::Matrix<CF::Double> tsF;
           while( !CalcLocCurl(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
-                               numEquPerEnt_, inGrid_, epsScal_)){
+                               numEquPerEnt_, inGrid_, epsScal_, logEps_)){
             // find furthest point
             Double d = 0.0;
             UInt maxId = 0;

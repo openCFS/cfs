@@ -18,6 +18,7 @@
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -145,6 +146,61 @@ void HeatPDE::ReadSpecialBCs() {
   }
 
 
+  void HeatPDE::ReadDampingInformation() {
+    std::map<std::string, DampingType> idDampType;
+
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // In this case the "damping" layer is an infinite mapping of the solution,
+    // since it is a coordinate transformation it can be set up using the PML-like
+    // framework.
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // try to get dampingList
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
+    if( dampListNode ) {
+
+      // get specific damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // store damping type string
+        idDampType[actId] = actType;
+
+      }
+    }
+
+    // Run over all region
+    ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
+      if( actDampingId == "" )
+        continue;
+
+      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+
+      // Check actDampingId was already registerd
+      if( idDampType.count( actDampingId ) == 0 ) {
+        EXCEPTION( "Damping with id '" << actDampingId
+                   << "' was not defined in 'dampingList'" );
+      }
+      dampingList_[actRegionId] = idDampType[actDampingId];
+    }
+  }
+
+
 void HeatPDE::DefineIntegrators() {
 
   RegionIdType actRegion;
@@ -187,6 +243,30 @@ void HeatPDE::DefineIntegrators() {
     // pass entitylist of fespace / fefunction
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[HEAT_TEMPERATURE];
     feFunc->AddEntityList( actSDList );
+
+
+    //=======================================================================
+    // Generate coefficient functions ("MATERIAL")
+    //=======================================================================
+    PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    // ====================================================================
+    // Take account for mapping of an infinite domain
+    // ====================================================================
+    shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
+    bool isMapping = false;
+    if( dampingList_[actRegion] == MAPPING ) {
+      std::string dampId;
+      curRegNode->GetValue("dampingId",dampId);
+      if(analysistype_ == HARMONIC){
+        EXCEPTION("Harmonic analysis not allowed!");
+      }else{
+        PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+        coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
+        coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+        isMapping = true;
+      }
+    }
+
 
     // ====================================================================
     // stiffness integrator
@@ -241,11 +321,27 @@ void HeatPDE::DefineIntegrators() {
         curCoef.reset(tmpFnc);
       }
 
+
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BDBInt<>(new GradientOperator<FeH1,2>(), curCoef,1.0, updatedGeo_ );
+        if(isMapping){
+          // use an infinite mapping layer
+          PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, coeffMAPScal, CoefXpr::OP_MULT_TENSOR));
+          stiffInt = new BDBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(), curCoefScl, 1.0, updatedGeo_ );
+          stiffInt->SetBCoefFunctionOpA(coeffMAPVec);
+        }else{
+          stiffInt = new BDBInt<>(new GradientOperator<FeH1,2>(), curCoef,1.0, updatedGeo_ );
+        }
+
       } else {
-        stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0, updatedGeo_ );
+        if(isMapping){
+          // use an infinite mapping layer
+          PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, coeffMAPScal, CoefXpr::OP_MULT_TENSOR));
+          stiffInt = new BDBInt<Double>(new ScaledGradientOperator<FeH1,3,Double>(), curCoefScl, 1.0, updatedGeo_ );
+          stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+        }else{
+          stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0, updatedGeo_ );
+        }
       }
       stiffInt->SetName("HeatConductivity");
       
@@ -364,35 +460,28 @@ void HeatPDE::DefineIntegrators() {
           isComplex_, regionMoving, definedDofs, coefUpdateGeo );
       convecVelCoef_->AddRegion( actRegion, regionMoving );
 
-      // Factor for convecitve matrix: density * heatCapacity
+      // Factor for convective matrix: density * heatCapacity
       PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct heatCapacity =
-          actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
-      PtrCoefFct velFactor =
-          CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity,
-                                 CoefXpr::OP_MULT ) );
+      PtrCoefFct heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT ) );
 
       //now create the integrators
       BaseBDBInt   *convectiveStiff = NULL;
       if( dim_ == 2 ) {
         if( isComplex_ ) {
-          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1,Complex>(),
-                                        velFactor, 1.0, coefUpdateGeo);
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new ConvectiveOperator<FeH1,2,1,Complex>(), velFactor, 1.0, coefUpdateGeo);
         } else {
-          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),
-                                        velFactor, 1.0, coefUpdateGeo);
+          if(isMapping){
+            EXCEPTION("Infinite mapping, applied to a region with defined velocity is not permitted!!")
+          }else{
+            convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new ConvectiveOperator<FeH1,2,1>(),velFactor, 1.0, coefUpdateGeo);
+          }
         }
       } else {
         if( isComplex_ ) {
-          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1,Complex>(),
-                                        velFactor, 1.0, coefUpdateGeo);
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1,Complex>(),velFactor, 1.0, coefUpdateGeo);
         } else {
-          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(),
-                                        velFactor, 1.0, coefUpdateGeo);
+          convectiveStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1>(),velFactor, 1.0, coefUpdateGeo);
         }
       }
 
