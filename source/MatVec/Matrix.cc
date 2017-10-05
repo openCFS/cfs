@@ -2106,6 +2106,8 @@ namespace CoupledField
 #endif
   }
 
+
+
   template<> void Matrix<Double>::Invert_Lapack() {
 #ifdef CHECK_INDEX
     if( size_row_ != size_col_) {
@@ -2143,6 +2145,53 @@ namespace CoupledField
   }
 
   
+  template<> void Matrix<Double>::Invert_Lapack(double & rcond, int & inf) {
+#ifdef CHECK_INDEX
+    if( size_row_ != size_col_) {
+      EXCEPTION("Can only invert square matrices");
+    }
+#endif
+
+#ifndef USE_LAPACK
+    EXCEPTION("Compile with LAPACK support for matrix inversion");
+#else
+
+
+    int *ipiv = new int[size_row_];
+    int n = size_row_;
+    int lwork = size_row_ * size_row_;
+    double *work = new double[lwork];
+    int info1, info2, info3;
+
+    // calculate LU-factorization of block
+    dgetrf(&n,&n,data_[0],&n,ipiv,&info1);
+
+
+    //compute 1-norm of the original matrix
+    double anorm = 0.0;
+    for(UInt i = 0; i < size_row_; ++i){
+      for(UInt j = 0; j < size_col_; ++j){
+        if(anorm < data_[i][j]) anorm = data_[i][j];
+      }
+    }
+
+    char norm = '1'; //use the 1-norm, for infinity norm 'I'
+
+    dgecon(&norm, &n, data_[0], &n, &anorm, &rcond, work, &n, &info2);
+
+    // invert matrix using previous LU factorization
+    dgetri(&n,data_[0],&n,ipiv,work,&lwork,&info3);
+
+    //check if any of the three operations above failed
+    inf = 0;
+    if(info1!=0 || info2!=0 || info3!=0) inf = 1;
+
+    delete[] ipiv;
+    delete[] work;
+#endif
+
+  }
+
 
   template<class TYPE>
   TYPE Matrix<TYPE>::Adjunct (UInt i, UInt j) const

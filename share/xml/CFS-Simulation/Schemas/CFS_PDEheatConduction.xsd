@@ -43,6 +43,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -68,6 +69,19 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
