@@ -29,6 +29,17 @@ namespace CoupledField {
                                     PtrParamNode xml, 
                                     PtrParamNode olasInfo );
 
+  //! Generate a direct-solver object for the use in AMG
+
+  //! This method will generate a BaseSolver solver object that fits
+  //! to the input matrix and return a pointer to that object.
+  //! \param mat      %Matrix that shall be solved
+  //! \param olasInfo Base below "OLAS" in info.xml
+  BaseSolver* GenerateDirSolverObjectAMG( const BaseMatrix &mat,
+                                          PtrParamNode  olasInfo );
+
+
+
   //! Return list of compatible matrix types
 
   //! This method returns a list of all matrix storage types the solver can 

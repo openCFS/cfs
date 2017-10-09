@@ -4,7 +4,8 @@
 
 /* $Id$ */
 
-#include "multigrid/smoother.hh"
+#include "OLAS/multigrid/smoother.hh"
+
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

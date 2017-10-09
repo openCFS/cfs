@@ -361,6 +361,17 @@ namespace CoupledField {
 
   }
 
+  // **********
+  // Geometry Information
+  // **********
+  void StdPDE::SetGeomInfo() {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator FncIt= this->feFunctions_.begin();
+
+    while(FncIt != this->feFunctions_.end()){
+      FncIt->second->ApplyGeomInfo();
+      FncIt++;
+    }
+  }
 
   // **********
   // SetRhsLoads

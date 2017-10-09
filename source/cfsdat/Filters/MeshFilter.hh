@@ -168,7 +168,6 @@ protected:
                         const UInt& numEquPerEnt,
                         const StdVector<CF::UInt>& targetSource,
                         const StdVector<CF::UInt>& targetSourceIndex,
-                        const UInt& numNN,
                         const StdVector< CF::Matrix<Double> >& targetRBFInv,
                         const StdVector<CF::Double>& targetSourceFactor,
                         const StdVector<CF::Double>& targetSourceFactor2,

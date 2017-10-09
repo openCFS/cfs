@@ -9,7 +9,7 @@
 
 /**********************************************************/
 
-#include "multigrid/smoother.hh"
+#include "OLAS/multigrid/smoother.hh"
 
 namespace CoupledField {
 /**********************************************************/
@@ -32,16 +32,17 @@ template <typename T>
 class GaussSeidel : public Smoother<T>
 {
     public:
+
         GaussSeidel();
         ~GaussSeidel();
 
         //@{
         //! get value for the SOR damping parameter Omega
-        T& GetOmega() { return Omega_; }
-        const T& GetOmega() const { return Omega_; }
+        Double& GetOmega() { return Omega_; }
+        const Double& GetOmega() const { return Omega_; }
 
         //! set value for the SOR damping parameter Omega
-        void SetOmega( const T& omega ) {
+        void SetOmega( const Double& omega ) {
             Omega_ = omega;
         }
         //@}
@@ -58,12 +59,6 @@ class GaussSeidel : public Smoother<T>
          */
         bool Setup( const CRS_Matrix<T>& matrix );
 
-        //! setup (version II) of the Gauss-Seidel smoother
-
-        /*!
-         */
-        bool Setup( const CRS_Matrix<T>& matrix,
-                    const bool *const    penalty_flags );
 
         //! one Gauss-Seidel/SOR step
 
@@ -97,8 +92,7 @@ class GaussSeidel : public Smoother<T>
 
         T    *DiagonalInverse_; //!< array with inverse diagonal entries
         Integer     Size_;            //!< size of the LES
-        T           Omega_;           //!< damping factor for a SOR
-        const bool *PenaltyFlags_;
+        Double     Omega_;           //!< damping factor for a SOR
 };
 
 /**********************************************************/

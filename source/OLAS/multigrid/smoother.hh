@@ -3,8 +3,8 @@
 
 /**********************************************************/
 
-#include "matvec/matvec.hh"
-#include "multigrid/topology.hh"
+#include "MatVec/CRS_Matrix.hh"
+#include "OLAS/multigrid/topology.hh"
 
 namespace CoupledField {
 /**********************************************************/
@@ -18,6 +18,8 @@ template <typename T>
 class Smoother
 {
     public:
+
+
         //! enumeration type for the smoothing direction
         enum Direction { FORWARD = 0, BACKWARD };
 

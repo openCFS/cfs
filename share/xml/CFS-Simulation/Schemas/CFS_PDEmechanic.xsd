@@ -467,14 +467,20 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechThermalStrain"/>
-      <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="mechStress"/>      
       <xsd:enumeration value="mechThermalStress"/>      
       <xsd:enumeration value="mechPrincipalStressMin"/>
+      <xsd:enumeration value="mechPrincipalStressMinScalar"/>
       <xsd:enumeration value="mechPrincipalStressMax"/>
-      <xsd:enumeration value="mechPrincipalStressMed"/>      
+      <xsd:enumeration value="mechPrincipalStressMaxScalar"/>
+      <xsd:enumeration value="mechPrincipalStressMed"/>
+      <xsd:enumeration value="mechPrincipalStressMedScalar"/>
       <xsd:enumeration value="mechPrincipalStrainMin"/>
+      <xsd:enumeration value="mechPrincipalStrainMinScalar"/>
       <xsd:enumeration value="mechPrincipalStrainMax"/>
+      <xsd:enumeration value="mechPrincipalStrainMaxScalar"/>
       <xsd:enumeration value="mechPrincipalStrainMed"/>
+      <xsd:enumeration value="mechPrincipalStrainMedScalar"/>
 
       <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>
