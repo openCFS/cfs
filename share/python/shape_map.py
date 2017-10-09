@@ -228,7 +228,8 @@ def read_file(filename, profile):
     shape_elems = nx+1 # default case
     if nshapes > len(sett)/nx: 
       # apparently we have the lbm case
-      assert(len(sett)/nshapes == int(len(sett)/nshapes))
+      print(nshapes, len(sett), nx, len(sett)/nx, len(sett)/nshapes, int(len(sett)/nshapes))
+      # assert(len(sett)/nshapes == int(len(sett)/nshapes))
       shape_elems = int(len(sett)/nshapes)
       print('assume not the full domain is design: ' + str(nshapes) + ' shapes with ' + str(shape_elems) + ' (' + str(nx+1) + ') elements')   
   

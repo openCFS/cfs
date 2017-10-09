@@ -111,9 +111,16 @@ public:
 
   static Enum<Symmetry> symmetry;
 
+  /** The integration strategy applied forItem::GetOrder() */
+  typedef enum { CONSTANT_FULL, FULL_OR_NOTHING, TAILORED } IntStrategy;
+
+  static Enum<IntStrategy> intStrategy;
+
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
+  /** @see GetNewtonCotes() */
+  static StdVector<Vector<double> > newtonCotes;
 
   /** A ShapeParam corresponds with the xml entries node and profile and stores the upper and lower bounds.
    *  It corresponds with many design elements of type ShapeParamElement.
@@ -225,7 +232,56 @@ public:
     void InheritProperties(ShapeParam* base);
   };
 
-protected:
+
+  /** combines our settings for numerical integration */
+  struct NumInt
+  {
+    /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
+    void Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info);
+
+    /** standard output, does not print warning here */
+    void ToInfo(PtrParamNode info) const;
+
+    /** searches tailored_bounds and returns the appropriate tailored_order content */
+    int GetTailoredOrder(double max_min) const;
+
+    /** for Item::GetOrder(), however it makes only sense in debug to reduce it. */
+    int max_order;
+
+    IntStrategy strategy;
+
+    /** this is the decision value for CloseEnough() */
+    double sensitivity;
+
+    /** for tailored order we set the necessary order for max-min bounds. */
+    Vector<double> tailored_bounds; // 1e-10, 1e-9, ..., 0.1, 1
+    Vector<int>    tailored_order;
+
+  private:
+    /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
+     * based on the tanh(beta) max - min bounds per element
+     * @param info will add warnings there when max_order is too small or the max newtwon-cotes order is not sufficient */
+    void SetTailored(const Vector<unsigned int>& n, PtrParamNode info);
+
+    /** tanh function */
+    double Func(double x, double pos) const;
+
+    /** dtanh function */
+    double GradFunc(double x, double pos) const;
+
+    /** returns the error for numerical vs analytical integration of dtanh(!)
+     * @param order this is the number of integration points. Newton Cotes order 1 has 2 points (1/2,1/2), hence order=2 is minimum
+     * @return abs(analytical - numerical)*/
+    double IntGradError(double x1, double x2, double pos, int order) const;
+
+    /** find the necessary order, where order=2 means two integration points which is newton cotes order 1
+     * @return newtonCotes.GetSize() when the order was not sufficient   */
+    int FindOrder(double x1, double x2, double pos, double accuracy) const;
+
+    double beta = -1.0;
+  };
+
+private:
 
   /** Setup shape variables from a shape map description. These are abstract structures
    * @param pn a shapeMap element from problem.xml */
@@ -421,10 +477,16 @@ protected:
      * @param sensitivity to identify void and solid and set the proper order. This shall come from numerical studies!
      * @param max_order the maximal order. This may conflict with sensitivity
      * @return the maximal number in order. This is <= the parameter max_order */
-    int GetOrder(Vector<int>& order, double sensitivity, int max_order) const;
+    int GetOrder(Vector<int>& order, const NumInt& numInt) const;
 
-    /** Small helper to set integration point array with 0...1 */
-    static void SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
+    /** Set generalized integration points and weights
+     * @param ip result: vector [0...1]^dim
+     * @param ip_x, ip_y, ip_y index of integration < max_order
+     * @return weight which is the product of the individual weights */
+    static double SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
+
+    /** maximal diff max_corner_value and min_corner_value for all shapes */
+    double MaxDiffCornerValue() const;
   };
 
   /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
@@ -491,15 +553,11 @@ protected:
     Vector<double> coord_;
   };
 
-
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
 
   /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
   double beta_;
-
-  /** this is the decision value for CloseEnough() */
-  double sensitivity_;
 
   /** MAX means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will be considered at that ip.
    * The drawbacks are loss of material at overlaps and doubtful differentiability.
@@ -535,8 +593,6 @@ protected:
     double scale = -1.0;  // works with offset
   } tanh_sum_;
 
-
-
   /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
   Overlap overlap_;
 
@@ -557,9 +613,6 @@ protected:
   /** shortcut to the dimension (2,3) */
   static unsigned int dim_;
 
-  /** for Item::GetOrder(), however it makes only sense in debug to reduce it. */
-  int max_order_;
-
   /** checks lower and upper when loading from ersatz material */
   bool enforce_bounds_;
 
@@ -572,7 +625,8 @@ protected:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-private:
+  NumInt numInt_;
+
   void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 };
 
