@@ -47,8 +47,13 @@ Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
+
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
 Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
+
+
+
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -314,7 +319,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 {
   index_ = index;
   opt_index_ = std::numeric_limits<unsigned int>::max();
-  dof = -1;
+  dof_ = NOT_SET;
   coord.Resize(domain->GetGrid()->GetDim(), -1.0);
   idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
@@ -322,7 +327,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 std::string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
-  ss << " idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_);
+  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << ")";
   return ss.str();
 }
 
@@ -508,7 +513,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PROJECTION
       || rd.value == TRANSFO_MATRIX
       || rd.value == SHAPE_MAP_GRAD
-      || rd.value == SHAPE_MAP_RELEVANT)
+      || rd.value == SHAPE_MAP_ORDER
+      || rd.value == SHAPE_MAP_CORNER)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -745,6 +751,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
+  ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
 
@@ -752,6 +759,12 @@ void DesignElement::SetEnums()
   ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
   ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
 
+
+  ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
+  ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
+  ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
+  ShapeParamElement::dof.Add(ShapeParamElement::Y, "y");
+  ShapeParamElement::dof.Add(ShapeParamElement::Z, "z");
 
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");
@@ -856,7 +869,8 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
   valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
   valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
-  valueSpecifier.Add(SHAPE_MAP_RELEVANT, "shapeMapRelevant");
+  valueSpecifier.Add(SHAPE_MAP_ORDER, "shapeMapIntOrder");
+  valueSpecifier.Add(SHAPE_MAP_CORNER, "shapeMapMinMaxCorner");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
@@ -1422,6 +1436,8 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
+  detail = DesignElement::NONE;
+  solutionType = NO_SOLUTION_TYPE;
   excitation = -1;
 }
 
@@ -1429,9 +1445,7 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 {
   solutionType = SolutionTypeEnum.Parse(pn->Get("id")->As<std::string>());
 
-  design = DesignElement::DEFAULT;
-  if(pn->Has("design"))
-    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+  design = pn->Has("design") ? DesignElement::type.Parse(pn->Get("design")->As<std::string>()) : DesignElement::DEFAULT;
 
   access = DesignElement::access.Parse(pn->Get("access")->As<std::string>());
 

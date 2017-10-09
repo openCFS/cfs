@@ -151,7 +151,8 @@ public:
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     TRANSFO_MATRIX,
     SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
-    SHAPE_MAP_RELEVANT /* the number of shapes with relevant contribution to this rho */
+    SHAPE_MAP_ORDER, /* the number of integration points for this element */
+    SHAPE_MAP_CORNER /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
@@ -318,12 +319,16 @@ public:
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
 
-
   /** overwrite to add opt_idx */
   virtual std::string ToString() const;
 
+  /** The dof for shape elements. This is the design variable, the other coordinates are implicitly given be the mesh.*/
+  typedef enum { NOT_SET = -1, X=0, Y=1, Z=2 } Dof; // X=0 to Z=2 must not be changed, it is index to ShapeMapDesign::n_
+
+  static Enum<Dof> dof;
+
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
-  int dof;
+  Dof dof_;
 
   /** The dof variable is set to -1.0.  */
   StdVector<double> coord;
@@ -331,6 +336,7 @@ public:
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node more than elements in one direction.*/
   StdVector<int> idx;
+
 private:
   /** see BaseDesignElement::GetOptIndex() */
   unsigned int opt_index_;
@@ -631,7 +637,7 @@ public:
 
   SolutionType solutionType;
 
-  /** Finds the proper design element by element number */
+  /** Finds the proper design element by element number. DEFAULT if not given */
   DesignElement::Type design;
 
   /** optionally filtered or plain */

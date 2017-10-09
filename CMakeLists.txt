@@ -239,6 +239,8 @@ OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SC
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
+OPTION(USE_PHIST "Use the PHIST eigensolver library."
+  ${USE_PHIST_DEFAULT})
 OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
   ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
@@ -248,7 +250,7 @@ OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
   ${USE_SUPERLU_DEFAULT})
 
-IF(USE_PARDISO OR USE_ARPACK OR USE_ILUPACK OR USE_SUITESPARSE)
+IF(USE_PARDISO OR USE_ARPACK OR USE_PHIST OR USE_ILUPACK OR USE_SUITESPARSE)
   SET(USE_BLAS ON CACHE BOOL "Use the Basic Linear Algebra Subroutines library." FORCE)
   SET(USE_LAPACK ON CACHE BOOL "Use the LAPACK linear algebra library." FORCE)
 ELSE()
@@ -676,6 +678,10 @@ ADD_SUBDIRECTORY(source/OLAS/utils)
 IF(USE_ARPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/arpack)
 ENDIF(USE_ARPACK)
+
+IF(USE_PHIST)
+  ADD_SUBDIRECTORY(source/OLAS/external/phist)
+ENDIF(USE_PHIST)
 
 IF(USE_ILUPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)

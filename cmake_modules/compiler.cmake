@@ -171,6 +171,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # for debug with -Werror this fails and as a result Fortran name mangling does not work (BUILD/include/def_cfs_fortran_interface.hh is empty)
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-misleading-indentation -Wno-placement-new") 
   ENDIF()
+
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
+    # on macOS with gcc-7.1 
+    # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined") 
+  ENDIF()
   
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -213,8 +219,10 @@ main ()
   ENDIF(COVERAGE)
   
   IF(NOT USE_OPENMP)
-    SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    IF(NOT USE_PHIST)
+      SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    ENDIF(NOT USE_PHIST)  
   ENDIF(NOT USE_OPENMP)
 
   IF(NOT USE_CGAL)

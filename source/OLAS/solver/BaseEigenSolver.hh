@@ -29,12 +29,7 @@ namespace CoupledField {
   public:
     //! Type of EigenSolver
 
-    //! This enumeration data type describes the type of eigensolver which is
-    //! applied to solve a generalized eigenvalue problem. The enumeration
-    //! contains the following:
-    //! - NOEIGENSOLVER
-    //! - ARPACK
-    typedef enum {NO_EIGENSOLVER, ARPACK} EigenSolverType;
+    typedef enum {NO_EIGENSOLVER, ARPACK, PHIST} EigenSolverType;
     static Enum<EigenSolverType> eigenSolverType;    
     
   public:

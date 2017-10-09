@@ -933,7 +933,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   if(BaseDesignElement::IsShapeMapType(design_))
   {
     if(space->GetNumberOfShapeMappingVariables() == 0)
-      EXCEPTION("Function " << ToString() << " has shape mapping design type " << BaseDesignElement::type.ToString(design_) << " but 'ersatzMaterial@method' is not 'shapeMap'");
+      EXCEPTION("Function " << ToString() << " has shape mapping design type '" << BaseDesignElement::type.ToString(design_) << "' but 'ersatzMaterial@method' is not 'shapeMap'");
     if(!IsLocal(type_))
       EXCEPTION("Shape mapping design type " << BaseDesignElement::type.ToString(design_) << " for non-local function " << ToString());
   }
