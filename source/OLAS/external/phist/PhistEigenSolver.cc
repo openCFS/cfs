@@ -327,6 +327,12 @@ namespace CoupledField {
 
   void PhistEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
   {
+    if(modeNr >= mode_.GetNumRows())
+    {
+      std::cout << "PhistEigenSolver::GetEigenMode(" << modeNr << ") not in 0 ... " << mode_.GetNumRows() << std::endl;
+      mode.Init(0);
+      return;
+    }
     assert(modeNr < mode_.GetNumRows()); // assume 0-based
 
     mode.Resize(mode_.GetNumCols());

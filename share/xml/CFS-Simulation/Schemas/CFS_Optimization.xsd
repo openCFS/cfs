@@ -1246,11 +1246,25 @@
                 <xsd:attribute name="relative_profile_bound" use="optional" type="xsd:float" default="-1.0"/>
 
                 <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
-                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
+                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-9" />
 
                 <!-- the maximal order of interpolation. Actually it is superfluous as Item::GetOrder() shall work based on sensitivity. 
-                     Howevet it makes sense to reduce the number for debug purpose. Needs to be >= 2-->
-                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="15"/>
+                     However it makes sense to reduce the number for debug purpose. Needs to be >= 2-->
+                <xsd:attribute name="integration_order" use="optional" type="xsd:positiveInteger" default="11"/>
+
+                <!-- For developing only. Allow to play with actual determination of actual order of integration -->
+                <xsd:attribute name="integration_strategy" use="optional" default="tailored">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!-- smart strategy: determine local integration order based on resolution and beta -->
+                      <xsd:enumeration value="tailored"/>
+                      <!-- stupid full integration --> 
+                      <xsd:enumeration value="constant_full"/>
+                      <!-- all or nothing. If difference within element is above sensitivity use full order. Is legacy behaviour --> 
+                      <xsd:enumeration value="full_or_nothing"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
 
               </xsd:complexType>
             </xsd:element>
@@ -1365,8 +1379,10 @@
                       <xsd:enumeration value="transfoMatrix"/>
                       <!--  for shape mapping the max of dtanh_da for a rho element -->
                       <xsd:enumeration value="shapeMapGrad"/>
-                      <!--  for shape mapping the number of shapes with relevant contribution to this element (ShapeMapDesign::Item::relevant_nodes.GetSize())--> 
-                      <xsd:enumeration value="shapeMapRelevant"/>
+                      <!--  for shape mapping the order for numerical integration--> 
+                      <xsd:enumeration value="shapeMapIntOrder"/>
+                      <!--  for shape mapping the difference of maximal to minimal corner value -->  
+                      <xsd:enumeration value="shapeMapMinMaxCorner"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1375,6 +1391,7 @@
                       <xsd:enumeration value="levelSetValue"/>
                       <xsd:enumeration value="levelSetState"/>
                       <xsd:enumeration value="topGradValue"/>
+                      <!-- shape grad shall be from Bastian -->
                       <xsd:enumeration value="shapeGradValue"/>
                       <xsd:enumeration value="shapeGradNodeValue"/>
                       <xsd:enumeration value="levelSetGradXP"/>
@@ -1390,7 +1407,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <!-- The design element is optional if we have only one design in the optimization -->
+                <!-- The design element is optional if we have only one design in the optimization. Technically it is DEFAULT -->
                 <xsd:attribute name="design" use="optional" type="DT_Design"/>
                 <!-- Access is either plan or smart which is plain or filtered depending on regularization -->
                 <xsd:attribute name="access" use="optional" default="plain">

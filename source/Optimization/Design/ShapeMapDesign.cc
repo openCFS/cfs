@@ -13,6 +13,9 @@
 #include "Utils/tools.hh"
 
 using std::string;
+using std::to_string;
+using std::exp;
+using std::log;
 
 namespace CoupledField {
 
@@ -20,11 +23,18 @@ DECLARE_LOG(SMD)
 DEFINE_LOG(SMD, "shapeMapDesign")
 
 
-unsigned int ShapeMapDesign::dim_;
+StdVector<Vector<double> > ShapeMapDesign::newtonCotes = GetNewtonCotes();
+Enum<ShapeMapDesign::IntStrategy> ShapeMapDesign::intStrategy;
+unsigned int ShapeMapDesign::dim_ = 99;
 
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : AuxDesign(regionIds, pn, method)
 {
+  intStrategy.SetName("ShapeMapDesign::IntStrategy");
+  intStrategy.Add(CONSTANT_FULL, "constant_full");
+  intStrategy.Add(FULL_OR_NOTHING, "full_or_nothing");
+  intStrategy.Add(TAILORED, "tailored");
+
   this->overlap.SetName("ShapeMapDesign::Overlap");
   this->overlap.Add(MAX, "max");
   this->overlap.Add(TANH_SUM, "tanh_sum");
@@ -34,12 +44,6 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
-  this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
-  this->max_order_ = pn->Get("shapeMap/integration_order")->As<int>();
-  if(max_order_ < 2)
-    throw Exception("'shapeMap/integration_order' needs to be at least 2 and 15 for correct interpolation.");
-  if(max_order_ < 10)
-    info_->Get(ParamNode::HEADER)->SetWarning("'shapeMap/integration_order=" + lexical_cast<std::string>(max_order_) + "' is small, at least 10 is suggested.");
 
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -47,6 +51,9 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 
   // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupShapeDesign(pn->Get("shapeMap"));
+
+  // numInt has to wait for n_
+  this->numInt_.Init(pn->Get("shapeMap"), n_, beta_, info_->Get("shapeMap/numInt"));
 
   if(IsProfileFixed() && relative_profile_bound_ >= 0.0) {
     info_->Get(ParamNode::HEADER)->SetWarning("reset 'relative_profile_bound' as the profile is fixed");
@@ -1229,15 +1236,13 @@ void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
   AuxDesign::ToInfo(em);
 
   PtrParamNode sm = info_->Get("shapeMap");
-  sm->Get("beta")->SetValue(beta_);
   sm->Get("overlap")->SetValue(overlap.ToString(overlap_));
-  sm->Get("sensitivity")->SetValue(sensitivity_);
   PtrParamNode msh = sm->Get("mesh");
   msh->Get("n")->SetValue(n_.ToString());
   msh->Get("min")->SetValue(coord_min_.ToString());
   msh->Get("max")->SetValue(coord_max_.ToString());
   msh->Get("step")->SetValue(coord_step_.ToString());
-
+  numInt_.ToInfo(sm->Get("numInt"));
   PtrParamNode base = info_->Get("designVariables");
   for(unsigned int i = 0; i < shape_.GetSize(); i++)
     shape_[i].ToInfo(base->Get("shapeParam", ParamNode::APPEND));
@@ -1269,44 +1274,227 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
 }
 
 
- void ShapeMapDesign::Item::SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order)
+ double ShapeMapDesign::Item::SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order)
  {
    assert(ip.GetSize() == dim_);
+   assert(max_order >= 2); // otherwise we may not divide by (max_order-1)
    assert(ip_x >= 0 && ip_x < max_order);
    assert(ip_y >= 0 && ip_y < max_order);
    assert((dim_ == 2 && ip_z == 0) || (dim_ == 3 && ip_z >= 0 && ip_z < max_order));
    ip[0] = (double) ip_x / (double) (max_order-1);
+   double weight = 1.0 / max_order;
    ip[1] = (double) ip_y / (double) (max_order-1);
-   if(dim_ == 3)
+   weight *= 1.0 / max_order;
+   if(dim_ == 3) {
      ip[2] = (double) ip_z / (double) (max_order-1);
+     weight *= 1.0 / max_order;
+   }
    assert(ip[0] >= 0 && ip[0] <= 1);
    assert(ip[1] >= 0 && ip[1] <= 1);
    assert(dim_ == 2 || (ip[2] >= 0 && ip[2] <= 1));
+   return weight;
  }
 
- int ShapeMapDesign::Item::GetOrder(Vector<int>& order, double eps, int max_order) const
+ void ShapeMapDesign::NumInt::Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info)
  {
-   assert(order.GetSize() == min_corner_value.GetSize());
-   assert(order.GetSize() == max_corner_value.GetSize());
-   int max = 0;
-   for(unsigned int s = 0; s < order.GetSize(); s++)
-   {
-     double min_val = min_corner_value[s];
-     double max_val = max_corner_value[s];
+   this->beta = beta;
+   this->sensitivity = pn->Get("sensitivity")->As<double>();
+   assert(sensitivity > 0);
+   this->max_order = pn->Get("integration_order")->As<int>();
 
-     assert(min_val >= 0);
-     assert(max_val >= min_val);
-     assert(max_val <= 1);
-     if(max_val < eps)
-       order[s] = 0;
-     else if(min_val > 1-eps)
-       order[s] = 1;
-     else
-       order[s] = std::max(2, (int) (max_order * (max_val - min_val) + 0.5)); // TODO make a formula from numerical experiments. Here max order for full range
-     max = std::max(max, order[s]);
-   }
-   return max;
+   if(max_order < 2)
+     info->SetWarning("minimal value for 'max_order' is '2'");
+   if(max_order > (int) ShapeMapDesign::newtonCotes.Last().GetSize())
+     info->SetWarning("maximal value for 'max_order' is " + to_string(ShapeMapDesign::newtonCotes.Last().GetSize()));
+
+   this->strategy = intStrategy.Parse(pn->Get("integration_strategy")->As<string>());
+
+
+
+   if(strategy == TAILORED)
+     SetTailored(n, info);
  }
+
+ /** searches tailored_bounds and returns the appropriate tailored_order content */
+ inline int ShapeMapDesign::NumInt::GetTailoredOrder(double max_min) const
+ {
+   for(int oi = tailored_bounds.GetSize()-1; oi > 0; oi--) // 10,9, ...,1 which corresponds to 1,0.1, 0.01, 0.001, ...
+     if(max_min > tailored_bounds[oi])
+       return tailored_order[oi];
+
+   return tailored_order[0];
+ }
+
+
+ void ShapeMapDesign::NumInt::SetTailored(const Vector<unsigned int>& n, PtrParamNode info)
+ {
+   unsigned int res = std::min(n[0], domain->GetGrid()->GetDim() == 2 ? n[1] : std::min(n[1], n[2]));
+   double h = 1.0/res;
+   assert(res >= 2);
+   // see svn+ssh://eamc080/home/svn_repo/repository/publications/geometry_projection/plots/tanh.py
+
+   tailored_bounds = LogspaceBase(-10, 0, 11);
+   tailored_order.Resize(11, 2);
+
+   // the bounds for pos from 0.5 to the next element by 10 steps
+   for(double pos = 0.5; pos <= 0.5 + h; pos += h/10)
+   {
+     // sample the elements
+     for(double x1 = 0; x1 < 1; x1+=h)
+     {
+       double x2 = x1+h;
+       double max_min = Func(x1, pos) - Func(x2,pos);
+       assert(max_min >= 0);
+       assert(max_min <= 1);
+
+       int order = FindOrder(x1, x2, pos, sensitivity);
+       // search where we are in the logscale range
+       for(int oi = tailored_bounds.GetSize()-1; oi >= 0; oi--) // 10,9, ...,1,0 which corresponds to 1,0.1, 0.01, 0.001, ...
+       {
+         if(max_min > tailored_bounds[oi])
+         {
+           // e.g. oi = 9, max_min = .34 which is > 0.1
+           tailored_order[oi] = std::max(tailored_order[oi], order);
+           break;
+         }
+       }
+       LOG_DBG2(SMD) << "NI:ST p=" << pos << " x1=" << x1 << " x2=" << x2 << " mm=" << max_min << " o=" << order << " -> " << tailored_order.ToString();
+     } // x1 loop
+   } // pos loop
+
+   // check for too high ordering and assure monotone ordering!
+   int max_possible_order = ShapeMapDesign::newtonCotes.Last().GetSize();
+   LOG_DBG(SMD) << "NI:ST mpo=" << max_possible_order << " mo" << max_order << " max=" << tailored_order.Max() << " tb=" << tailored_bounds.ToString() << " org to=" << tailored_order.ToString();
+
+   if(tailored_order.Max() > max_possible_order)
+     info->SetWarning("resolution and beta combination allows no sufficient numerical integration for sensitvity " + lexical_cast<string>(sensitivity), true);
+
+   if(tailored_order.Max() > max_order && max_order < max_possible_order)
+     info->SetWarning("configuration 'integration_order=" + to_string(max_order) + "' where " + to_string(std::min(max_possible_order, tailored_order.Max())) + " is required", true);
+   assert(tailored_order[0] >= 2);
+   for(unsigned int i = 1; i < tailored_order.GetSize(); i++) {
+     tailored_order[i-1] = std::min(tailored_order[i-1], std::min(max_order, max_possible_order));
+     tailored_order[i] = std::max(tailored_order[i], tailored_order[i-1]);
+   }
+
+   LOG_DBG(SMD) << "NI:ST clean to=" << tailored_order.ToString();
+ }
+
+ void ShapeMapDesign::NumInt::ToInfo(PtrParamNode info) const
+ {
+   info->Get("max_order")->SetValue(max_order);
+   info->Get("sensitivity")->SetValue(sensitivity);
+   info->Get("integration")->SetValue(ShapeMapDesign::intStrategy.ToString(strategy));
+
+   if(strategy == TAILORED)
+   {
+     // we print only downwards up to the first order 2
+     std::stringstream ss;
+     bool done = false;
+     for(int oi = tailored_order.GetSize()-1; oi >= 0 && !done; oi--) {
+       ss << tailored_bounds[oi] << "->" << tailored_order[oi] << " ";
+       if(tailored_order[oi] <= 2)
+         done = true;
+     }
+     info->Get("tailored_order")->SetValue(ss.str());
+   }
+ }
+
+ double ShapeMapDesign::NumInt::Func(double x, double pos) const
+ {
+   return 1/(exp(beta*(x-pos)) + 1);
+ }
+
+ double ShapeMapDesign::NumInt::GradFunc(double x, double pos) const
+ {
+   double e = exp(beta*(x-pos));
+   return -(beta * e)/((e+1)*(e+1));
+ }
+
+ double ShapeMapDesign::NumInt::IntGradError(double x1, double x2, double pos, int order) const
+ {
+   assert(x2 > x1);
+   // the integral of GradFunc is clearly Func itself :)
+   double corr = (Func(x2, pos) - Func(x1, pos)) / (x2 - x1);
+
+   LOG_DBG3(SMD) << "NI:IGE x1=" << x1 << " x2=" << x2 << " p=" << pos << " b=" << beta <<  " F2=" << Func(x2, pos) << " F1=" << Func(x1, pos);
+
+   assert(order >= 2  && order <= (int) ShapeMapDesign::newtonCotes.GetSize());
+   const Vector<double>& w = ShapeMapDesign::newtonCotes[order-1];
+   assert((int) w.GetSize() == order);
+   double sum = 0;
+   for(int i = 0; i < order; i++)
+     sum += w[i] * GradFunc(x1 + i * (x2-x1)/(order-1), pos);
+
+   LOG_DBG3(SMD) << "NI:IGE x1=" << x1 << " x2=" << x2 << " p=" << pos << " o=" << order <<  " corr=" << corr << " sum=" << sum << "->" << std::abs(corr-sum);
+
+   return std::abs(corr-sum);
+ }
+
+
+int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double accuracy) const
+{
+  // our order is the number of int points whic is one more than the official newton cotes order
+  assert(ShapeMapDesign::newtonCotes[0].GetSize() == 0);
+  assert(ShapeMapDesign::newtonCotes[1].GetSize() == 2);
+  int limit = ShapeMapDesign::newtonCotes.Last().GetSize();
+  for(int o = 2; o <= limit; o++) // note the the limit itself is a valid number!
+    if(IntGradError(x1,x2,pos,o) < accuracy)
+      return o;
+  // not found. Error needs to be handled!
+  LOG_DBG(SMD) << "NI:FO order exceeded, return " << limit+1;
+  return limit+1;
+}
+
+double ShapeMapDesign::Item::MaxDiffCornerValue() const
+{
+  assert(min_corner_value.GetSize() == max_corner_value.GetSize());
+  assert(min_corner_value.GetSize() > 0);
+
+  double diff = 0;
+
+  for(unsigned int i = 0; i < min_corner_value.GetSize(); i++)
+    diff = std::max(max_corner_value[i] - min_corner_value[i], diff);
+
+  return diff;
+}
+
+int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::NumInt& ni) const
+{
+  assert(order.GetSize() == min_corner_value.GetSize());
+  assert(order.GetSize() == max_corner_value.GetSize());
+  int max = 0;
+  for(unsigned int s = 0; s < order.GetSize(); s++)
+  {
+    double min_val = min_corner_value[s];
+    double max_val = max_corner_value[s];
+
+    assert(min_val >= 0);
+    assert(max_val >= min_val);
+    assert(max_val <= 1);
+
+    switch(ni.strategy)
+    {
+    case ShapeMapDesign::CONSTANT_FULL:
+      order[s] = ni.max_order;
+      break;
+    case ShapeMapDesign::FULL_OR_NOTHING:
+      order[s] = max_val < ni.sensitivity ? 0 : ni.max_order;
+      break;
+    case ShapeMapDesign::TAILORED:
+      if(max_val < ni.sensitivity)
+        order[s] = 0;
+      else if(min_val > 1-ni.sensitivity)
+        order[s] = 1;
+      else
+        order[s] = ni.GetTailoredOrder(max_val - min_val);
+      break;
+    }
+
+    max = std::max(max, order[s]);
+  }
+  return max;
+}
 
  void ShapeMapDesign::MapShapeToDensity()
  {
@@ -1319,7 +1507,8 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
    // num_node_shapes_ can be larger Item::nodes as we are not interested in 3D center second shapes.
    Vector<int>       order(map_[0].nodes.GetSize()); // for each shape of the Item this is order obtained form the cornver_val. 0 = void, 1 = solid, >=2 need integration
 
-   int res_idx_r = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_RELEVANT);
+   int res_idx_r = GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::SHAPE_MAP_ORDER);
+   int res_idx_c = GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::SHAPE_MAP_CORNER);
 
    // prepare all corner values
    EvalAllCornerValues();
@@ -1337,12 +1526,13 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
      // check what we need to integrate. The order is the maximal order of all relevant shapes
      // when we integrate we integrate all shapes shapes at the same integration points.
      // If this could be relaxed we might be able to save quite some time!!
-     int max_order = item.GetOrder(order, sensitivity_, max_order_); // sets order. 0, 1 or >= 2
-
-     int max_order_dim = max_order * max_order * (dim_ == 2 ? 1 : max_order);
+     int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2
 
      if(res_idx_r >= 0)
        de->specialResult[res_idx_r] = max_order;
+
+     if(res_idx_c >= 0)
+       de->specialResult[res_idx_c] = item.MaxDiffCornerValue();
 
      double rho = -1.0; // indicator value!
      if(max_order == 0)
@@ -1355,19 +1545,23 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
 
      LOG_DBG2(SMD) << "MSTD: de=" << de->elem->elemNum << " mo=" << max_order << " o=" << order.ToString() << " rho=" << rho;
 
+     // the number of integration points per dimension is actually max_order
+     // but we need to exclude the coded max_order=1 when overlapping != MAX
+     int num_ip = std::max(2, max_order);
+
      // we really need to integrate when we found no special case yet
      if(rho == -1.0)
      {
        rho = 0.0; // such that we can sum the ip to it
        // it makes sense to traverse first the ip and then the variables
-       for(int ip_x = 0; ip_x < max_order; ip_x++)
+       for(int ip_x = 0; ip_x < num_ip; ip_x++)
        {
-         for(int ip_y = 0; ip_y < max_order; ip_y++)
+         for(int ip_y = 0; ip_y < num_ip; ip_y++)
          {
-           for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : max_order); ip_z++)
+           for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : num_ip); ip_z++)
            {
              double ip_rho = 0.0; // the final value for one integration point. shall be not much larger one
-
+             double weight = Item::SetIP(ip, ip_x, ip_y, ip_z, num_ip);
              switch(overlap_)
              {
              case MAX:
@@ -1377,7 +1571,6 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
                  assert(order[si] == 0 || order[si] >= 2);
                  if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
                  {
-                   Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
                    eval.Setup(item.nodes[si], idx, ip, 2*beta_);
                    double t = eval.Tanh();
                    if(t >= ip_rho)  // >= is important! > may result in ip_eval == -1
@@ -1391,9 +1584,8 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
                for(unsigned int si = 0; si < item.nodes.GetSize(); si++)
                {
                  if(order[si] == 1)
-                   ip_rho += 1;
+                   ip_rho += 1.0;
                  if(order[si] >= 2){
-                   Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
                    eval.Setup(item.nodes[si], idx, ip, beta_);
                    ip_rho += eval.Tanh();
                  }
@@ -1403,13 +1595,11 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
                break;
              } // end of switch(overlap_)
              assert(ip_rho >= 0 && ip_rho <= 1.02); // allow small overlap for TANH_SUM
-             rho += ip_rho;
+             rho += weight * ip_rho; // apply weight only here at the and such that tanh_sum_.map() can be applied
+             LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " mo=" << max_order << " ni=" << num_ip << " w=" << weight << " ip_rho=" << ip_rho << " -> " << rho;
            } // end ip_z
          } // end ip_y
        } // end ip_x
-
-       // normalize rho by integration pints
-       rho /= max_order_dim;
      } // end real integration
      assert(rho >= 0 && rho <= 1.02);
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * rho); // we assume 0 <= v <= 1
@@ -1462,8 +1652,7 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
      double log_db = 0.0;
      double log_dw = 0.0;
 
-     int max_order = item.GetOrder(order, sensitivity_, max_order_); // sets order. 0, 1 or >= 2
-     double max_order_dim = (double) (max_order * max_order * (dim_ == 2 ? 1 : max_order));
+     int max_order = item.GetOrder(order, numInt_); // sets order. 0, 1 or >= 2
 
      LOG_DBG2(SMD) << "MSG: de=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " mo=" << max_order << " o=" << order.ToString();
 
@@ -1474,16 +1663,18 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
      if((max_order >= 1 && overlap_ != MAX) || max_order >= 2)
      {
        assert(max_order >= 2 || (max_order == 1 && overlap_ == TANH_SUM));
-       assert(order.Max() >= 2);
        assert(!(overlap_ == MAX && order.Contains(1)));
 
-       for(int ip_x = 0; ip_x < max_order; ip_x++)
+       // @see MapShapeToDensity()
+       int num_ip = std::max(max_order, 2);
+
+       for(int ip_x = 0; ip_x < num_ip; ip_x++)
        {
-         for(int ip_y = 0; ip_y < max_order; ip_y++)
+         for(int ip_y = 0; ip_y < num_ip; ip_y++)
          {
-           for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : max_order); ip_z++)
+           for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : num_ip); ip_z++)
            {
-             Item::SetIP(ip, ip_x, ip_y, ip_z, max_order);
+             double weight = Item::SetIP(ip, ip_x, ip_y, ip_z, num_ip);
 
              // find for MAX the idx of the shape with the maximal value
              // find for TANH_SUM the sum of all shape evals
@@ -1542,10 +1733,10 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
                    dw = tanh_sum_.d_map(eval_sum, dw);
                }
 
-               double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da / (max_order_dim);
-               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db / (max_order_dim);
+               double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
+               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
                // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw / (max_order_dim);
+               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw * weight;
 
                log_da += da_norm;
                log_db += db_norm;
@@ -1596,7 +1787,7 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
    int cnt = 6; // will be preincremented
    for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
      if(opt_->constraints.all[g]->HasDenseJacobian())
-       out << "("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + " \t";
+       out << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + "\t";
    out << std::endl;
 
    Function* c = opt_->objectives.data[0];
@@ -1670,8 +1861,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    a  = a1 + t * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
    w  = w1 + t * (w2-w1);
 
-   exapw = std::exp(beta*(x-a+w));
-   examw = std::exp(beta*(x-a-w));
+   exapw = exp(beta*(x-a+w));
+   examw = exp(beta*(x-a-w));
    assert(b == -1);
    assert(y == -1);
    assert(r == -1);
@@ -1730,7 +1921,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    double w = w1 + t * (w2 - w1);
 
    r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
-   erw = std::exp(beta * (r-w));
+   erw = exp(beta * (r-w));
    assert(examw == -1);
    assert(exapw == -1);
 
@@ -1797,6 +1988,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
 
  inline double ShapeMapDesign::EvalAtIp::EvalTanh3d() const
  {
+   // a:(1-t)*a1+t*a2;
+   // b:(1-t)*b1+t*b2;
    // r: sqrt((a-x)^2+(b-y)^2);
    // t:1/(exp(beta*(r-w))+1);
    return 1/(erw +1);
@@ -2437,7 +2630,7 @@ ShapeMapDesign::TanhSum::TanhSum()
 
 inline double ShapeMapDesign::TanhSum::tanh(double x)
 {
-  return 1.0 - 1/(std::exp(beta*(x-0.5))+1);
+  return 1.0 - 1/(exp(beta*(x-0.5))+1);
 }
 
 inline double ShapeMapDesign::TanhSum::map(double x)
@@ -2463,7 +2656,7 @@ inline double ShapeMapDesign::TanhSum::d_map(double x, double dx)
   // maxima:
   // f(x) := 1-1/(exp(11*(g(x)-0.5))+1);
   // diff(f(x),x);
-  return scale * std::pow(std::exp(beta*(x-0.5))+1, -2) * std::exp(beta*(x-0.5)) * beta * dx;
+  return scale * std::pow(exp(beta*(x-0.5))+1, -2) * exp(beta*(x-0.5)) * beta * dx;
 }
 
 void ShapeMapDesign::OptVar::Init(ShapeParamElement* elem)

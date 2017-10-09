@@ -330,6 +330,22 @@ namespace CoupledField {
   /** uses the global domain->GetMathParser() to evaluate an expression */
   double MathParse(const std::string& expr);
 
+  /** returns the weights for numerical quadrature, close Newton-Cotes formula.
+   * For equal spacing: 0.0,1.0; 0.0,0.5,1.0; 0,0.3333,0.6666,1.0; ...
+   * @return [], [.5,0.5], [1/6,2/6,1/6], ...] for order 0(invalid), 1, 2, ... with -,2,3, ... weights
+   * the result has 11 entries there the last, res[10], has 11 entries
+   * @see https://de.wikipedia.org/wiki/Newton-Cotes-Formeln */
+  StdVector<Vector<double> > GetNewtonCotes();
+
+  /** Return a linspace similar to numpy.python where the ends are always included
+   * s=1, e=4, n=5 -> 1, 1.75, 2.5, 3.25, 4. Order can be reversed! */
+  Vector<double> Linspace(double start, double end, int n);
+
+  /** Return a logspace by giving the bases, similar to numpy.logspace
+   * e.g. s=1,e=4,n=4: -> 1e1, 1e2, 1e3, 1e4 or s=2, e=-2, n=5 -> 1e2, 1e1, 1e0, 1e-1, 1e-2
+   * is actually std::pow(10, Linspace(s,e,n)) */
+  Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
+
 } // end of CoupledField
 
 #endif

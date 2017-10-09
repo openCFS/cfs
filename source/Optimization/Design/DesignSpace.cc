@@ -436,12 +436,11 @@ void DesignSpace::PostInit(int objectives, int constraints)
     {
       Context& ctxt = Optimization::manager.context[i];
       // FIXME there might be an multi sequence issue
-      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0)
+      {
         TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
-        if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
-          PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-          in->SetValue("no transfer function 'mass' given for harmonic model");
-        }
+        if(tf == NULL && ctxt.pde->GetName() != "electrostatic")
+          info_->Get(ParamNode::HEADER)->Get("transferFunctions")->SetWarning("no transfer function 'mass' given for harmonic model");
       }
     }
   }
@@ -685,13 +684,21 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                        DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
+  assert(design != DesignElement::NO_TYPE); // this cannot be set in xml. DEFAULT can also only be set by omitting the attribute
+
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
-    // two step check
-    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
-    // second check
-    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation) continue;
+    // if either rd.desgin from xml or the given design is DEFAULT, we do NOT compare both
+    if(rd.design != DesignElement::DEFAULT && design != DesignElement::DEFAULT && rd.design != design)
+      continue;
+
+    if(rd.value != value || rd.detail != detail || rd.access != access)
+      continue;
+
+    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation)
+      continue;
+
     // we are right.
     switch(rd.solutionType)
     {
