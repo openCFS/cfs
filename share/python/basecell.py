@@ -130,6 +130,16 @@ def create_mesh_with_profiles(args,infoXml,log):
     else:
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
+      if args.save_mesh_data:
+        data_txt = open(meshName + "_data.txt","w")
+        data_txt.write("#number of nodes: " + str(len(mesh.nodes)) + "\n")
+        for n in mesh.nodes:
+          data_txt.write(str(n[0]) + " \t" + str(n[1]) + " \t" + str(n[2]) + "\n")
+        data_txt.write("#number of elements: " + str(len(mesh.elements)) + "\n")  
+        for e in mesh.elements:
+          data_txt.write(str(e.nodes[0]) + " \t" + str(e.nodes[1]) + " \t" + str(e.nodes[2]) + " \t" + str(e.nodes[3]) + " \t" + str(e.nodes[4]) + " \t" + str(e.nodes[5]) + " \t" + str(e.nodes[6]) + " \t" + str(e.nodes[7]) + "\n")
+        data_txt.close()
+        
     mesh_tool.validate_periodicity(mesh)
   elif args.target.startswith("surface") or args.target.startswith("contour"):
     stlName = args.save if args.save else "surface"
@@ -186,6 +196,7 @@ if __name__ == "__main__":
   parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
+  parser.add_argument('--save_mesh_data', help="writes nodes and element data of volume mesh to file mesh_data.txt", action='store_true',default=False)
   
   args = parser.parse_args()
   
@@ -381,3 +392,4 @@ class Basecell():
 #  </bisectionSpline>
 # </profile>
 # /<basecell>
+        
