@@ -21,7 +21,7 @@ file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 # the crosscompiler is set via cmake
 
 SET(BUILDTYPE "RELEASE")
-SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} MINGW_X64_64 GCC 6.3.0 ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} MINGW_X64_64 GCC 7.2.0 ${BUILDTYPE}")
 set(CTEST_SITE "${HOSTNAME}") 
 
 # will generate CTestConfig.cmake using our sites variant

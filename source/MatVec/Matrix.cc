@@ -2064,6 +2064,48 @@ namespace CoupledField
     EXCEPTION("General case not implemented");
   }
   
+  template<> void Matrix<Complex>::Invert_Lapack() {
+#ifdef CHECK_INDEX
+    if( size_row_ != size_col_) {
+      EXCEPTION("Can only invert square matrices");
+    }
+#endif
+
+#ifndef USE_LAPACK
+    EXCEPTION("Compile with LAPACK support for matrix inversion");
+#else
+//TODO make sure this inversion is correct
+    //std::cout<<"---------------------------------------------------\n"
+    //		 <<"PLEASE TAKE CARE, THE INVERSION OF A COMPLEX MATRIX\n"
+    //		 <<"USING LAPACK IS NOT THOROUGHLY TESTED!!!!!!!!!!!!!!\n"
+    //		 <<"---------------------------------------------------"
+	//		 <<std::endl;
+
+
+    int *ipiv = new int[size_row_];
+    int n = size_row_;
+    int lwork = size_row_ * size_row_;
+    std::complex<double> *work = new  std::complex<double>[lwork];
+    int info;
+
+    // calculate LU-factorization of block
+    zgetrf(&n,&n,data_[0],&n,ipiv,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during LU-factorization of matrix. "
+                << "Error value is " << info );
+    }
+    // invert matrix using previous LU factorization
+    zgetri(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during inversion of matrix. "
+                << "Error value is " << info );
+    }
+
+    delete[] ipiv;
+    delete[] work;
+#endif
+  }
+
   template<> void Matrix<Double>::Invert_Lapack() {
 #ifdef CHECK_INDEX
     if( size_row_ != size_col_) {

@@ -62,6 +62,15 @@ Run `crontab -e` and enter
 
 This runs nightly tests at 02:00 every night and deletes the build directory (including cache) once a week (on Sunday).
 
+### Set matplotlib default backend
+To make the `matviz` tests run for a headless (no gui) machine one needs to use the `Agg` bachend of `matplotlib` [1](http://stackoverflow.com/questions/33902941/import-matplotlib-without-a-display).
+Change the default backend by `/home/testuser/.config/matplotlib/matplotlibcr ` with
+```
+backend: Agg
+```
+or exporting the environment varaible `MPLBACKEND=Agg`.
+
+
 ### ssh keys for deploy
 To deploy the tests to draco we use ssh and key-based login.
 To setup:

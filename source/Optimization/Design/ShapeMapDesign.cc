@@ -1723,7 +1723,6 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
                if(!IsProfileFixed())
                  dw = eval[si].SmartGradTanh(order[si], false, false, true); // dtanh_dw
-
                // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
                if(overlap_ == TANH_SUM) {
                  da = tanh_sum_.d_map(eval_sum, da);
@@ -1735,7 +1734,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
                double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
                double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
-               // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
+               // the 0.5 is because we apply 0.5*profile to tanh
                double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw * weight;
 
                log_da += da_norm;
