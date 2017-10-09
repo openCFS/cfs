@@ -8,6 +8,7 @@
 #include <def_use_lapack.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
+#include <def_use_phist.hh>
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"

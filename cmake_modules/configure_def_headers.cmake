@@ -14,6 +14,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 

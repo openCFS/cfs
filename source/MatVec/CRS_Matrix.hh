@@ -135,7 +135,7 @@ namespace CoupledField {
       this->nnz_        = 0;
       this->ncols_      = 0;
       this->nrows_      = 0;
-      
+      this->currentLayout_ = UNSORTED;
       // We do not know a pool or pattern id yet
       patternPool_ = NULL;
       patternID_ = NO_PATTERN_ID;
@@ -483,6 +483,16 @@ namespace CoupledField {
     UInt GetRowSize(UInt i) const {
       return rowPtr_[i+1] - rowPtr_[i];
     }
+
+    /** Return the maximal row size.
+     * @see GetRowSize() */
+    unsigned int GetMaxRowSize() const {
+      unsigned int max = 0;
+      for(unsigned int i = 0; i < this->nrows_; i++)
+        max = std::max(GetRowSize(i), max);
+      return max;
+    }
+
 
     //! Set the length (i.e. number of non-zero entries) of i-th row
 

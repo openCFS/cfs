@@ -18,8 +18,12 @@ def find_task(input):
   assert(False)
     
 ## conditionally extract an attribute from iteration[last()] and add it to the dictionary    
-def extract_float_attribute(dict, xml, attribute):    
+def extract_float_attribute(dict, xml, attribute):
+  
   query = '//iteration[last()]/@' + attribute
+  if attribute in ["E_1", "E_2", "E_3", "v_21", "v_12"]:
+    query = '//iteration[last()]/homogenizedTensor/orthotropy/@' + attribute
+  
   if has(xml, query):
     dict[attribute] = float(xpath(xml, query))
 
@@ -87,6 +91,7 @@ def process_file(file, args, out, recursive):
     extract_band_gap(dic, xml)
     extract_float_attribute(dic, xml, 'volume')
     extract_float_attribute(dic, xml, 'youngsModulusE1')
+    extract_float_attribute(dic, xml, 'v_21')
     
     if has(xml, '//constraints/constraint[@type="curvature"][@design="profile"]/@bound_value'):
       dic['curv_prof'] = float(xpath(xml, '//constraints/constraint[@type="curvature"][@design="profile"]/@bound_value'))
