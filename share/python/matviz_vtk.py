@@ -1002,3 +1002,24 @@ def add_triangle(points,id1,id2,id3,cells,center=None):
   tri.GetPointIds().SetId(1, i2)
   tri.GetPointIds().SetId(2, i3)
   cells.InsertNextCell(tri)
+  
+def vtk_polydata_to_numpy(polydata):
+  from vtk.util.numpy_support import vtk_to_numpy
+  # get point data
+  point_data = vtk_to_numpy(polydata.GetPoints().GetData())
+  
+  polys = polydata.GetPolys()
+  ne = polys.GetNumberOfCells()
+  print("number of polys:",polydata.GetNumberOfPolys())
+  
+  cells = numpy.zeros((ne,3),dtype=int)
+  polys.InitTraversal()   
+
+  for i in range(ne):
+    ids = vtk.vtkIdList()
+    polys.GetNextCell(ids)
+    ni = ids.GetNumberOfIds()
+    for j in range(ni):
+      cells[i,j] = ids.GetId(j)
+      
+  return point_data, cells      
