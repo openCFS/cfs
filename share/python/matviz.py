@@ -19,6 +19,7 @@ try:
   from mpi4py import MPI
 except:
   print("WARNING:Could not load mpi4py!")
+import pymesh
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
@@ -174,8 +175,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   scale = force_scale if force_scale else args.scale
   
-  min_bb, max_bb = find_corners(centers)
-  
   coords = (centers, min_bb, max_bb, elem_dim)
   
   # perform 2D and 3D from file
@@ -330,6 +329,14 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
+                
+                ## test pymesh stuff
+                vertices, faces = matviz_vtk.vtk_polydata_to_numpy(viz)
+                mesh_interp = pymesh.form_mesh(vertices,faces)
+                mesh_merge = pymesh.load_mesh("top_panel.stl")
+                mesh = pymesh.boolean(mesh_interp, mesh_merge, "union")
+                pymesh.save_mesh("test_pymesh.stl",mesh)
+                
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
@@ -671,3 +678,4 @@ if args.info:
   out = open(args.info, "w")
   out.write(xml.dom.minidom.parseString(xml.etree.ElementTree.tostring(info)).toprettyxml())
   out.close()
+  

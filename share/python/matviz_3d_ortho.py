@@ -71,7 +71,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
 #   print("samples:",samples)  
 #   print("delta:",delta)
-#   print("bounds:",bounds)  
+  print("bounds:",bounds)  
   print("dx,dy,dz:",dx,dy,dz)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
