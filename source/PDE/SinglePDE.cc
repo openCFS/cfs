@@ -2276,7 +2276,7 @@ namespace CoupledField {
             for( UInt i = 0; i < numComp; ++i ) {
               definedDofs.insert(i);
             }
-            break;1e-2*exp( -5e1*( (x-1.5)^2 + (y-1.0)^2 )  ) -1e-2*exp( -5e1*( (x-4.55)^2 + (y-0.4)^2 )  )
+            break;
           }else{
             UInt index = compNames.Find(sub);
             definedDofs.insert(index);
