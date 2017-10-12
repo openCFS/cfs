@@ -854,6 +854,7 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
 int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
+  assert(!std::isnan(scaling_));
   int old_design = design_id;
 
   // write aux design variables (slack and alpha if any) last
@@ -865,6 +866,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
   {
     double v = space_in[i] * scaling_;
+    assert(!std::isnan(v));
     if(!new_design && v != opt_shape_param_[i].elem->GetPlainDesignValue())
       new_design = true;
 
@@ -951,6 +953,10 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 
       double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
       double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
+
+      LOG_DBG3(SMD) << "WGTE oe=" << opt_shape_param_[s].elem->ToString();
+      assert(!std::isnan(opt));
+      assert(!std::isnan(sym));
 
       out[base + s] = (opt + sym) * scaling;
 
@@ -1274,25 +1280,31 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
 }
 
 
- double ShapeMapDesign::Item::SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order)
+ inline double ShapeMapDesign::Item::SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int order)
  {
    assert(ip.GetSize() == dim_);
-   assert(max_order >= 2); // otherwise we may not divide by (max_order-1)
-   assert(ip_x >= 0 && ip_x < max_order);
-   assert(ip_y >= 0 && ip_y < max_order);
-   assert((dim_ == 2 && ip_z == 0) || (dim_ == 3 && ip_z >= 0 && ip_z < max_order));
-   ip[0] = (double) ip_x / (double) (max_order-1);
-   double weight = 1.0 / max_order;
-   ip[1] = (double) ip_y / (double) (max_order-1);
-   weight *= 1.0 / max_order;
+   assert(ip_x >= 0 && ip_x < order);
+   assert(ip_y >= 0 && ip_y < order);
+   assert((dim_ == 2 && ip_z == 0) || (dim_ == 3 && ip_z >= 0 && ip_z < order));
+
+   assert(order >= 2  && order <= (int) ShapeMapDesign::newtonCotes.GetSize());
+   const Vector<double>& w = ShapeMapDesign::newtonCotes[order-1];
+   assert((int) w.GetSize() == order);
+
+   ip[0] = (double) ip_x / (double) (order-1);
+   ip[1] = (double) ip_y / (double) (order-1);
+
+   double weight = w[ip_x] * w[ip_y];
+
    if(dim_ == 3) {
-     ip[2] = (double) ip_z / (double) (max_order-1);
-     weight *= 1.0 / max_order;
+     ip[2] = (double) ip_z / (double) (order-1);
+     weight *= w[ip_z];
    }
+
    assert(ip[0] >= 0 && ip[0] <= 1);
    assert(ip[1] >= 0 && ip[1] <= 1);
    assert(dim_ == 2 || (ip[2] >= 0 && ip[2] <= 1));
-   return weight;
+   return weight; // might be negative!
  }
 
  void ShapeMapDesign::NumInt::Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info)
@@ -1308,8 +1320,6 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
      info->SetWarning("maximal value for 'max_order' is " + to_string(ShapeMapDesign::newtonCotes.Last().GetSize()));
 
    this->strategy = intStrategy.Parse(pn->Get("integration_strategy")->As<string>());
-
-
 
    if(strategy == TAILORED)
      SetTailored(n, info);
@@ -1719,6 +1729,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
 
                da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
+               assert(!std::isnan(da) && !std::isinf(da));
                if(dim_ == 3) // FIXME assumes center nodes!
                  db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
                if(!IsProfileFixed())
@@ -1732,14 +1743,21 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                    dw = tanh_sum_.d_map(eval_sum, dw);
                }
 
+               assert(dw >= 0); // is never negative
+
                double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
                double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
                // the 0.5 is because we apply 0.5*profile to tanh
                double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw * weight;
 
+
+
                log_da += da_norm;
                log_db += db_norm;
                log_dw += dw_norm;
+
+               assert(!std::isnan(de->GetPlainGradient(f)));
+               assert(!std::isnan(da_norm));
 
                item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
                item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
@@ -1878,11 +1896,13 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    assert(nodes.GetSize() == 4);
    assert(ip.GetSize() == 3);
    assert(ip[0] >= 0 && ip[0] <= 1 && ip[1] >= 0 && ip[1] <= 1 && ip[2] >= 0 && ip[2] <= 1);
-
+   this->beta = beta;
    const ShapeParamElement* sa1 = nodes[0];
    const ShapeParamElement* sb1 = nodes[1];
    const ShapeParamElement* sa2 = nodes[2];
    const ShapeParamElement* sb2 = nodes[3];
+
+   LOG_DBG3(SMD) << "EAI:S3 sa1=" << sa1->ToString();
 
    assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
    assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
@@ -1897,6 +1917,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    double b2 = sb2->GetPlainDesignValue();
    double w1 = 0.5 * smd_->GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
    double w2 = 0.5 * smd_->GetProfile(sa2)->GetPlainDesignValue();
+   assert(!std::isnan(a1));
+   assert(!std::isnan(smd_->GetProfile(sa1)->GetPlainDesignValue()));
    assert(smd_->GetProfile(sa1)->GetPlainDesignValue() == smd_->GetProfile(sb1)->GetPlainDesignValue());
    assert(smd_->GetProfile(sa2)->GetPlainDesignValue() == smd_->GetProfile(sb2)->GetPlainDesignValue());
 
@@ -1919,8 +1941,9 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    double b = b1 + t * (b2 - b1);
    double w = w1 + t * (w2 - w1);
 
-   r = sqrt((a-x)*(a-x)+(b-y)*(b-y));
+   r = sqrt((a-x)*(a-x)+(b-y)*(b-y)); // not that r can be 0!! Important for gradients!!
    erw = exp(beta * (r-w));
+
    assert(examw == -1);
    assert(exapw == -1);
 
@@ -1996,20 +2019,48 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
 
  double ShapeMapDesign::EvalAtIp::EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const
  {
-   // r: sqrt((a-x)^2+(b-y)^2);
+   assert(!std::isnan(erw));
+   assert(!std::isinf(erw));
+   assert(erw != -1);
+   assert(erw > 0);
+   assert(beta != -1);
+   // r: sqrt((a-x)^2+(b-y)^2); might be zero, see below!
    // e = exp(beta * (r-w));
    // t:1/(exp(beta*(r-w))+1);
+
+   // beta=100; w=.2; set xrange[0:1]; set yrange[0:1]
+   // splot 1/(exp(beta*(sqrt((.5-x)**2+(.5-y)**2)-w))+1
 
    // da = -1 * beta*(a-x) * e / (r * (e+1)*(e+1))
    // db = -1 * beta*(b-x) * e / (r * (e+1)*(e+1))
    // dw = beta * e / ((e+1)*(e+1))
 
+   // note! da computes to 1/0 for r = 0 -> x=a and y=b!!
+   // from gnuplut we see, that da(r=0) = 0, this needs to be reflected in implementation!
+
+   // wolframalpha
+   // differentiate 1/(exp(beta*(sqrt((a-x)^2+(b-y)^2)-w))+1) wrt a
+
+   // gnuplot
+   // a = 0.5; b = 0.5; beta=100; w=.2; set xrange[0:1]; set yrange[0:1]; set isosample 40
+   // r(x,y)=sqrt((a-x)**2+(b-y)**2)
+   // e(x,y)=exp(beta * (r(x,y)-w))
+   // f(x,y)=1/(exp(beta*(r(x,y)-w))+1)
+   // da(x,y)=-1 * beta*(a-x) * e(x,y) / (r(x,y) * (e(x,y)+1)**2)
+   // dw(x,y)=beta * e(x,y) / (e(x,y)+1)**2
+   // splot da(x,y)
+
+   if(grad_w)
+     return beta * erw / ((erw+1)*(erw+1));
+
+   // see comment above about 1/0 case!
+   if(r < 1e-13)
+     return 0;
+
    if(grad_a)
      return -1 * beta*(a-x) * erw / (r * (erw+1)*(erw+1));
    if(grad_b)
      return  -1 * beta*(b-x) * erw / (r * (erw+1)*(erw+1));
-   if(grad_w)
-     return beta * erw / ((erw+1)*(erw+1));
    assert(false);
    return -1;
  }
