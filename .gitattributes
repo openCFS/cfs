@@ -1277,6 +1277,7 @@ share/python/common.py -text
 share/python/continuation.py -text
 share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
+share/python/copy_ref_files.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
 share/python/draw_profile_functions.py -text

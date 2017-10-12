@@ -482,7 +482,7 @@ private:
     /** Set generalized integration points and weights
      * @param ip result: vector [0...1]^dim
      * @param ip_x, ip_y, ip_y index of integration < max_order
-     * @return weight which is the product of the individual weights */
+     * @return closed Newton-Cotes weight for the 2D/3D point */
     static double SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
 
     /** maximal diff max_corner_value and min_corner_value for all shapes */
