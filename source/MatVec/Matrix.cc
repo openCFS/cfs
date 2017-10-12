@@ -2161,11 +2161,15 @@ namespace CoupledField
     int n = size_row_;
     int lwork = size_row_ * size_row_;
     double *work = new double[lwork];
+    double *work1 = new double[4*n];
     int info1, info2, info3;
 
     // calculate LU-factorization of block
     dgetrf(&n,&n,data_[0],&n,ipiv,&info1);
-
+    if( info1 != 0 ) {
+      EXCEPTION("Error during LU-factorization of matrix. "
+                << "Error value is " << info1 );
+    }
 
     //compute 1-norm of the original matrix
     double anorm = 0.0;
@@ -2177,10 +2181,19 @@ namespace CoupledField
 
     char norm = '1'; //use the 1-norm, for infinity norm 'I'
 
-    dgecon(&norm, &n, data_[0], &n, &anorm, &rcond, work, &n, &info2);
+    //compute the condition number
+    dgecon(&norm, &n, data_[0], &n, &anorm, &rcond, work1, &n, &info2);
+    if( info2 != 0 ) {
+      EXCEPTION("Error during computation of condition number. "
+                << "Error value is " << info2 );
+    }
 
     // invert matrix using previous LU factorization
     dgetri(&n,data_[0],&n,ipiv,work,&lwork,&info3);
+    if( info3 != 0 ) {
+      EXCEPTION("Error during inversion of matrix. "
+                << "Error value is " << info3 );
+    }
 
     //check if any of the three operations above failed
     inf = 0;
@@ -2188,6 +2201,7 @@ namespace CoupledField
 
     delete[] ipiv;
     delete[] work;
+    delete[] work1;
 #endif
 
   }
