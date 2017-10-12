@@ -1766,7 +1766,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 
   # Create mesh  
   # add nodes    
-  mesh = mesh_tool.Mesh()
+  mesh = Mesh()
   mesh.nodes = nodes
   
 #   if regionnumbers == None:
@@ -1776,7 +1776,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
     print("regionnumbers:",regionnumbers)
     for j in range(len(regionnumbers)):
       for i in range(len(regions[j])):
-        e = mesh_tool.Element()
+        e = Element()
         e.nodes = (regions[j][i][1:])
         for k in range (len(e.nodes)):
           e.nodes[k] -= 1
@@ -1791,7 +1791,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         mesh.elements.append(e)
   else: # workaround
     for i in range(len(regions)):
-      e = mesh_tool.Element()
+      e = Element()
       e.nodes = (regions[i][1:])
       for k in range (len(e.nodes)):
         e.nodes[k] -= 1
