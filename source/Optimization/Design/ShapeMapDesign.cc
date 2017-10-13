@@ -1581,7 +1581,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  assert(order[si] == 0 || order[si] >= 2);
                  if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
                  {
-                   eval.Setup(item.nodes[si], idx, ip, 2*beta_);
+                   eval.Setup(item.nodes[si], idx, ip, beta_);
                    double t = eval.Tanh();
                    if(t >= ip_rho)  // >= is important! > may result in ip_eval == -1
                      ip_rho = t;
@@ -1596,7 +1596,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  if(order[si] == 1)
                    ip_rho += 1.0;
                  if(order[si] >= 2){
-                   eval.Setup(item.nodes[si], idx, ip, beta_);
+                   eval.Setup(item.nodes[si], idx, ip, 0.5 * beta_); // half beta as it is applied to tanh_sum_.map()
                    ip_rho += eval.Tanh();
                  }
                }
@@ -1644,7 +1644,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
    int res_idx_dw = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_PROFILE);
 
    // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
-   double beta = overlap_ == TANH_SUM ? beta_ : 2 * beta_;
+   double beta = overlap_ == TANH_SUM ? 0.5 * beta_ : beta_;
 
    // within the element coordinates we perform the integration
    Vector<unsigned int> idx(3);
