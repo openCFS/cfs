@@ -2609,14 +2609,14 @@ double Function::Local::Identifier::CalcOverhang(Function::Type ft, double eps) 
 
   if(ft == OVERHANG_HOR)
   {
-    double tmp = ((an-.5*wn) - (a-.5*w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
+    double tmp = ((an-wn) - (a-w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
     res = SmoothAbs(tmp, eps);
     LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn
                    << " tmp=" << tmp << " eps=" << eps << " -> " << res;
   }
   else
   {
-    res = s == 1 ? ((an+.5*wn) - (a+.5*w)) : ((a-.5*w) - (an-.5*wn)); // the right part is checked for right overhang only, the left part for a left overhang only
+    res = s == 1 ? ((an+wn) - (a+w)) : ((a-w) - (an-wn)); // the right part is checked for right overhang only, the left part for a left overhang only
     LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
                    << " a=" << element->GetIndex() << "(" << a << ") an=" << neighbor[1]->GetIndex() << "(" << an << ") w=" << w << " wn=" << wn << " -> " << res;
   }
@@ -2635,14 +2635,14 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
   assert(!(ft == OVERHANG_HOR && sign != NO_SIGN)); // hor knows only one sign as it is real smooth abs() as >= cannot be double bounded
 
   //assert(this->sign == 1); // the other stuff is not considered yet. n = i+1
-  // OVERHANG_HOR:  |(an-.5*wn) - (a-.5*w)| >= c^* // real smoothed abs required!! no double signs
-  // OVERHANG_VERT: ((an+.5*wn) - (a+.5*w)) <= c^* and ((a-.5*w) - (an-.5*wn)) <= c^*
+  // OVERHANG_HOR:  |(an-wn) - (a-w)| >= c^* // real smoothed abs required!! no double signs
+  // OVERHANG_VERT: ((an+wn) - (a+w)) <= c^* and ((a-w) - (an-wn)) <= c^*
   assert(sign == 1 || sign == -1 || sign == BOTH || sign == NO_SIGN);
   double s = sign == -1 ? -1.0 : 1.0; // 1 for 1 and BOTH
   // var        a    w   an  wn
-  // hor_s=1   -1   +.5  +1  -.5
-  // vert_s=1  -1   -.5  +1  +.5
-  // vert_s=-1 +1   -.5  -1  +.5
+  // hor_s=1   -1    1   +1   -1
+  // vert_s=1  -1   -1   +1   +1
+  // vert_s=-1 +1   -1   -1   +1
 
   // for the horizontal case, df is the factor for DerivSmoothAbs()
   double df = 0.0;
@@ -2653,13 +2653,13 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
     df = -1 * s;
     break;
   case 0:  // w
-    df = (ft == OVERHANG_HOR) ? .5 : -.5;
+    df = (ft == OVERHANG_HOR) ? 1.0: -1.0;
     break;
   case 1: // an
      df = s;
      break;
   case 2: // wn
-    df = (ft == OVERHANG_HOR) ? -.5 : .5;
+    df = (ft == OVERHANG_HOR) ? -1.0 : 1.0;
     break;
   default:
     break;
