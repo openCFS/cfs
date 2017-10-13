@@ -1280,6 +1280,7 @@ share/python/copy_density.py -text
 share/python/copy_ref_files.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
+share/python/diff_ref.py -text
 share/python/draw_profile_functions.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text

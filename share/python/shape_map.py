@@ -126,18 +126,18 @@ class Shape:
 
     x,y = self.get_center(idx_1)
     if self.dof == 0:
-      x += (-.5 if left else +.5) * self.profile[idx_1]
+      x += (-1.0 if left else +1.0) * self.profile[idx_1]
     else:    
-      y += (-.5 if left else +.5) * self.profile[idx_1]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_1]  
     
     x_val.append(x)
     y_val.append(y)
     
     x,y = self.get_center(idx_2)
     if self.dof == 0:
-      x += (-.5 if left else +.5) * self.profile[idx_2]
+      x += (-1.0 if left else +1.0) * self.profile[idx_2]
     else:    
-      y += (-.5 if left else +.5) * self.profile[idx_2]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_2]  
     
     x_val.append(x)
     y_val.append(y)
