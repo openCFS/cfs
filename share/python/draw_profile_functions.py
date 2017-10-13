@@ -293,7 +293,7 @@ class PrincipleSpline():
     self.left = left_flag
     
     if infoXml is not None:
-      infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+      infoXml.write('    <bspline degree="' + str(np.degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
     
     self.angle = angle
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
@@ -472,7 +472,7 @@ class BisecSpline:
         self.type = "linear"
     
     if infoXml:
-      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle)) + '"/>\n')
+      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(np.degrees(self.angle)) + '"/>\n')
       infoXml.write('    </bisectionFunction>\n\n')  
       
   def get_coords_cut(self):
@@ -993,12 +993,12 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     #plt.plot(theta,map[:,0],linewidth=5.0)
     for i,bisec in enumerate(profile.bisecs_left):
       phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
+      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
     plt.plot(theta,map[:,int(res/2)+1],linewidth=5.0)
     
     for i,bisec in enumerate(profile.bisecs_left):
       phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
+      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
     plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
     plt.rcParams.update({'font.size': 18})
     plt.show()
@@ -1500,7 +1500,7 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
     
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells,skip_test=True)
+      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)

@@ -330,13 +330,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
                 
-                ## test pymesh stuff
-                vertices, faces = matviz_vtk.vtk_polydata_to_numpy(viz)
-                mesh_interp = pymesh.form_mesh(vertices,faces)
-                mesh_merge = pymesh.load_mesh("top_panel.stl")
-                mesh = pymesh.boolean(mesh_interp, mesh_merge, "union")
-                pymesh.save_mesh("test_pymesh.stl",mesh)
-                
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
@@ -348,7 +341,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                     viz = None # avoid showing or writing vtp file
                   
                   if args.type == "box_varel":  
-                    me = mesh_tool.create_validation_mesh_for_box_varel(name)
+                    me = mesh_tool.create_validation_mesh_for_box_varel(viz,name)
                   else:
                     me = mesh_tool.create_validation_mesh_for_pp_box(name, "nondes_diff.stl", "nondes_union.stl")
               else:
