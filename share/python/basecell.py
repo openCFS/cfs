@@ -97,6 +97,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   print("stiffnesses: "  +str(args.x1) + "," + str(args.x2) + "," + str(args.y1) + "," + str(args.y2) + "," + str(args.z1) + "," + str(args.z2))
   
   mesh = None
+  infoStr = None
   
   if not args.stiffness_as_diameter:
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
@@ -112,6 +113,13 @@ def create_mesh_with_profiles(args,infoXml,log):
     infoStr += ' rz1="' + str(args.z1) + '" '
     args.z2 = calc_radius(args.z2)
     infoStr += ' rz2="' + str(args.z2) + '"'
+  else:
+    infoStr = '  <radii rx1="' + str(args.x1/2.0) + '" '
+    infoStr += ' rx2="' + str(args.x2/2.0) + '" '
+    infoStr += ' ry1="' + str(args.y1/2.0) + '" '
+    infoStr += ' ry2="' + str(args.y2/2.0) + '" '
+    infoStr += ' rz1="' + str(args.z1/2.0) + '" '
+    infoStr += ' rz2="' + str(args.z2/2.0) + '"'  
   
   if infoXml is not None:
     assert(infoStr)
@@ -192,7 +200,6 @@ if __name__ == "__main__":
   parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
   parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
   parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
-  parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
   parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
@@ -284,13 +291,10 @@ if __name__ == "__main__":
     infoXml.write('<?xml version="1.0"?>\n\n')
     infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
     infoXml.write('  <cmd value="' + cmd + '"/>\n')
-    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
+    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '" interpolation="' + args.interpolation + '"/>\n')
   
   log = None 
   
-  if args.logging:
-    log = open(meshName+".log","w")
-    
   # sanity checks
   if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
     raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")

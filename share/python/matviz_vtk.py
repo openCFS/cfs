@@ -983,14 +983,14 @@ def fill_vtk_polydata(points,cells,center=None):
     vtk_points.InsertNextPoint(p)
     
   for ce in cells:
-    add_triangle(points,ce[0],ce[1],ce[2],vtk_cells,center)
+    add_triangle(points,ce[0],ce[1],ce[2],vtk_cells)
   
   polydata.SetPoints(vtk_points)
   polydata.SetPolys(vtk_cells)
   
   return polydata
 
-def add_triangle(points,id1,id2,id3,cells,center=None):
+def add_triangle(points,id1,id2,id3,cells):
   assert(id1 != id2 and id2 != id3)
     
   i1 = id1

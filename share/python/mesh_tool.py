@@ -2746,9 +2746,19 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
 
 # @param viz: vtk polydata object
 # @param stlname: name of stl file
-def create_validation_mesh_for_box_varel(stlName):
-  create_volume_mesh_with_gmsh(stlName)
-
+def create_validation_mesh_for_box_varel(viz,stlName):
+  ## test pymesh stuff
+  vertices, faces = matviz_vtk.vtk_polydata_to_numpy(viz)
+  mesh_interp = pymesh.form_mesh(vertices,faces)
+  
+  if not os.path.exists("top_panel.stl"):
+    print("Error:Could not find non-design stl 'top_panel.stl'")
+    sys.exit()
+    
+  mesh_merge = pymesh.load_mesh("top_panel.stl")
+  mesh = pymesh.boolean(mesh_interp, mesh_merge, "union")
+  
+  pymesh.save_mesh("test_pymesh.stl",mesh)
 def create_validation_mesh_for_pp_box(stlName,diffName,unionName):
   if not (diffName.endswith(".stl") and unionName.endswith(".stl")):
     print("need stl files for non-design regions!")
