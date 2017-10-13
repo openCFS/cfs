@@ -224,6 +224,8 @@ double BaseDesignElement::GetPlainGradient(const Function* f) const
   assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
   assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
+  LOG_DBG3(desel) << "GPG idx=" << this->index_ << " v=" << design << " f=" << f->ToString() << " dcost=" << costGradient.ToString() << " dconst=" << constraintGradient.ToString();
+
   return f->IsObjective() ? costGradient[f->GetIndex()] : constraintGradient[f->GetIndex()];
 }
 
@@ -253,6 +255,8 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
 {
+  assert(!std::isnan(value));
+  assert(!std::isinf(value));
   assert(( f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL)
       || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
@@ -327,7 +331,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 std::string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
-  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << ")";
+  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
   return ss.str();
 }
 
