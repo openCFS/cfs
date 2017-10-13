@@ -1205,9 +1205,9 @@
                    
                    <xsd:element name="profile" minOccurs="1" maxOccurs="1">
                      <xsd:annotation>
-                       <xsd:documentation>The profile gives the with (feature size) of the shape elemen. Technically the half profile
-                       will be assigned for both sides of the featue. You might want to extend it for dof or closer assign it to node.
-                       At the moment the profile applies to all nodes. Profile is mandatory.</xsd:documentation>
+                       <xsd:documentation>The profile gives the half with (feature size) of the shape element. The profile variable
+                       is assgined for both sides of the feature. You might want to extend it for dof or closer assign it to node.
+                       At the moment the profile applies to all nodes. Profile is mandatory. Variable w in the publications</xsd:documentation>
                      </xsd:annotation>
                      <xsd:complexType>
                         <!-- lower, upper and initial go together or fixed. all token are subjet to mathparser (for some 1/nx stuff or local xi/nx)-->

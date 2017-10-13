@@ -1115,8 +1115,8 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
       LOG_DBG2(SMD) << "RDX: before i=" << i << " v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
       // if a relative_bound is set in the xml file, upper and lower bound are overwritten
       // assume that the initial value is out of original bound (e.g. too small), this needs to be catched
-      spe.SetUpperBound(std::min(spe.GetUpperBound(), std::max(val + rb/2, spe.GetLowerBound())));
-      spe.SetLowerBound(std::max(spe.GetLowerBound(), std::min(val - rb/2, spe.GetUpperBound())));
+      spe.SetUpperBound(std::min(spe.GetUpperBound(), std::max(val + rb, spe.GetLowerBound())));
+      spe.SetLowerBound(std::max(spe.GetLowerBound(), std::min(val - rb, spe.GetUpperBound())));
     }
     LOG_DBG2(SMD) << "RDX: e=" << i << spe.ToString() << "  v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
     assert(spe.GetLowerBound() <= spe.GetUpperBound());
@@ -1747,8 +1747,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
                double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
                double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
-               // the 0.5 is because we apply 0.5*profile to tanh
-               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * dw * weight;
+               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * dw * weight;
 
 
 
@@ -1864,8 +1863,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    double a2 = s2->GetPlainDesignValue();
    // the profiles
    assert(smd_->GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
-   double w1 = 0.5 * smd_->GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
-   double w2 = 0.5 * smd_->GetProfile(s2)->GetPlainDesignValue();
+   double w1 = smd_->GetProfile(s1)->GetPlainDesignValue();
+   double w2 = smd_->GetProfile(s2)->GetPlainDesignValue();
 
    // when dof = X the tanh has x as parameter, when we interpolate a1 and a2 these are x values applied at different y positions
    assert(ip.GetSize() == 2);
@@ -1915,8 +1914,8 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    double a2 = sa2->GetPlainDesignValue();
    double b1 = sb1->GetPlainDesignValue();
    double b2 = sb2->GetPlainDesignValue();
-   double w1 = 0.5 * smd_->GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
-   double w2 = 0.5 * smd_->GetProfile(sa2)->GetPlainDesignValue();
+   double w1 = smd_->GetProfile(sa1)->GetPlainDesignValue(); // a and b share profile
+   double w2 = smd_->GetProfile(sa2)->GetPlainDesignValue();
    assert(!std::isnan(a1));
    assert(!std::isnan(smd_->GetProfile(sa1)->GetPlainDesignValue()));
    assert(smd_->GetProfile(sa1)->GetPlainDesignValue() == smd_->GetProfile(sb1)->GetPlainDesignValue());
@@ -2302,8 +2301,8 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param,  ShapeParamEle
     double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
     if(rb >= 0 && !DensityFile::NeedLoadErsatzMaterial()) // don't set the bounds relative to initial when we later load an external design
     {
-      spe.SetUpperBound(std::min(upper, std::max(value + rb/2, lower)));
-      spe.SetLowerBound(std::max(lower, std::min(value - rb/2, upper)));
+      spe.SetUpperBound(std::min(upper, std::max(value + rb, lower)));
+      spe.SetLowerBound(std::max(lower, std::min(value - rb, upper)));
     }
     else
     {
