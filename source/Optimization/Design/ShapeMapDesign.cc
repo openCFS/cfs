@@ -52,7 +52,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   // set shape_, shape_param_ and map_, does not apply the mapping yet
   SetupShapeDesign(pn->Get("shapeMap"));
 
-  // numInt has to wait for n_
+  // numInt had to wait for n_
   this->numInt_.Init(pn->Get("shapeMap"), n_, beta_, info_->Get("shapeMap/numInt"));
 
   if(IsProfileFixed() && relative_profile_bound_ >= 0.0) {
@@ -552,7 +552,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
 void ShapeMapDesign::SetupOptShapeParam()
 {
   // copy the non-fixed stuff opt_shape_param_
-  // TODO one could do a better approximation using symmetries
+  // TODO one could do a better assumption using symmetries
   opt_shape_param_.Reserve(IsProfileFixed() ? num_node_shape_params_ : shape_param_.GetSize());
   for(unsigned int s = 0; s < shape_.GetSize(); s++)
   {
@@ -624,8 +624,6 @@ void ShapeMapDesign::SetupOptShapeParam()
              << " #oel=" << opt_shape_param_.GetSize() << sym->ToString();
       }
       shape.end_opt = opt_shape_param_.GetSize(); // luckily the complex counting of symmetry references is not necessary
-      if(shape.type == NODE)
-        num_node_opt_shape_params_ = shape.end_opt; // as long updated as long as we have nodes. Note that profile comes after nodes!
 
       LOG_DBG(SMD)<< "SOSP shape=" << shape.idx << " type=" << shape.type << " start=" << shape.start_param << " end=" << shape.end_param << " this end=" << end
           << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " odd=" << odd_elements << " sym_mirror=" << sym_ortho << " sym_map=" << sym_map;
@@ -666,15 +664,17 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   vem.Reserve(num_node_shape_params_ * (two_signs ? 2 : 1)); // separately for node and profile but both of same size
 
   // traverse shape_ to have proper start and end. check for node or profile
-  for(unsigned int s = GetFirstShapeIdx(f,true), n = GetEndShapeIdx(f,true); s < n; s++)
+  for(unsigned int s = GetFirstShapeIdx(f), n = GetEndShapeIdx(f); s < n; s++)
   {
     const ShapeParam& shape = shape_[s];
 
     if(!shape.fixed && !shape.sym_induced)
     {
+      assert(shape.start_opt >= 0); // - 1 if not applicable
+      assert(shape.end_opt > 0);
+
       bool periodic = shape.ShallMapHalfShape() ? false : f->GetLocal()->periodic; // symmetric stuff has special periodicity handling below
 
-      assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
       LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_param << " ep=" << shape.end_param << " so=" << shape.start_opt << " eo=" << shape.end_opt;
 
       // skip the last element as we want only 'full' elements with next when we are not periodic
@@ -826,17 +826,15 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
   assert(locality == Function::Local::CYCLIC);
 
-  // the index within shape_
-  unsigned int first = GetFirstShapeIdx(f,true);
-  unsigned int end   = GetEndShapeIdx(f,true); // last would be within range but end is the bound
-
-  vem.Reserve(end - first);
+  vem.Reserve(shape_.GetSize());
   assert(vem.Capacity() > 0);
 
-  for(unsigned int s = first; s < end; s++)
+  for(unsigned int s = GetFirstShapeIdx(f), n = GetEndShapeIdx(f); s < n; s++)
   {
     const ShapeParam& shape = shape_[s];
 
+    assert(!(f->GetDesignType() == BaseDesignElement::NODE && shape.type == PROFILE));
+    assert(!(f->GetDesignType() == BaseDesignElement::PROFILE && shape.type == NODE));
     if(!shape.fixed && !shape.sym_induced)
     {
       assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
@@ -946,8 +944,9 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   // Here we assume that out has a window set where to write to for the given function.
   if(f->HasDenseJacobian())
   {
-    assert(GetEndVarIdx(f,true) - GetFirstVarIdx(f,true) + aux_design_.GetSize() == out.window.GetSize());
-    for(unsigned int s = GetFirstVarIdx(f,true), n = GetEndVarIdx(f,true); s < n ; s++) // for node (from 0) and profile (later) or default for both
+    LOG_DBG(SMD) << "WGTE: fvi=" << GetFirstOptVarIdx(f) << " evi=" << GetEndOptVarIdx(f) << " ad=" << aux_design_.GetSize() << " w=" << out.window.GetSize();
+    assert(GetEndOptVarIdx(f) - GetFirstOptVarIdx(f) + aux_design_.GetSize() == out.window.GetSize());
+    for(unsigned int s = GetFirstOptVarIdx(f), n = GetEndOptVarIdx(f); s < n ; s++) // for node (from 0) and profile (later) or default for both
     {
       assert(out.InWindow(base + s));
 
@@ -1192,49 +1191,60 @@ inline bool ShapeMapDesign::IsProfileFixed() const
   return shape_.Last().fixed;
 }
 
-unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
+bool ShapeMapDesign::IsAllNodeFixed() const
 {
-  assert(num_node_shape_params_ > 0);
-  if(f->GetDesignType() != BaseDesignElement::PROFILE) // NODE, DEFAULT, DENSITY, ...
-    return 0;
-  assert(f->GetDesignType() == BaseDesignElement::PROFILE);
-  assert(!IsProfileFixed()); // don't call if fixed
-  return opt ? num_node_opt_shape_params_ : num_node_shape_params_; // assume no fixed node in the non-opt case!
+  for(int i = 0; i < num_node_shapes_; i++)
+    if(!shape_[i].fixed)
+      return false;
+
+  return true;
+}
+
+
+unsigned int ShapeMapDesign::GetFirstOptVarIdx(const Function* f) const
+{
+  const ShapeParam* shape = FindShape(f, true);
+  assert(shape != NULL);
+  return shape->start_opt;
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
-unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f, bool opt) const
+unsigned int ShapeMapDesign::GetEndOptVarIdx(const Function* f) const
 {
-  assert(2 * num_node_shape_params_ >= (int) shape_param_.GetSize()); // at most double the node shapes
-  if(f->GetDesignType() == BaseDesignElement::NODE)
-    return num_node_shape_params_; // assume no fixed node
-  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE);
-  return opt ? opt_shape_param_.GetSize() : shape_param_.GetSize();
+  assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::DENSITY || f->GetDesignType() == BaseDesignElement::PROFILE || f->GetDesignType() == BaseDesignElement::NODE);
+  // either opt_shape_param_.GetSize() if not only NODE or end of NODE
+  if(f->GetDesignType() != BaseDesignElement::NODE || IsProfileFixed())
+    return opt_shape_param_.GetSize();
+
+  // end of node var is the first profile var which is shape_[num_node_shapes_].start_opt
+  assert(f->GetDesignType() != BaseDesignElement::PROFILE);
+  assert(num_node_shapes_ < (int) shape_.GetSize());
+  assert(shape_[num_node_shapes_].type == PROFILE);
+  assert(shape_[num_node_shapes_].start_opt >= 0);
+
+  return shape_[num_node_shapes_].start_opt;
 }
 
-unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f, bool opt) const
+unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f) const
 {
-  assert(num_node_shapes_ >= (int) shape_.GetSize() / 2);
-  if(f->GetDesignType() != BaseDesignElement::PROFILE)
-    return 0;
-  assert(f->GetDesignType() == BaseDesignElement::PROFILE);
-  return num_node_shapes_;
+  const ShapeParam* shape = FindShape(f, true);
+  return shape->idx;
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
-unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
+unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f) const
 {
   // NODE, PROFILE or SHAPE_MAP!
   BaseDesignElement::Type dt = f->GetDesignType();
   assert(dt == BaseDesignElement::DEFAULT || dt == BaseDesignElement::DENSITY || BaseDesignElement::IsShapeMapType(dt));
   assert(2 * num_node_shapes_ >= (int) shape_.GetSize()); // end of profile
-  if(dt == BaseDesignElement::NODE)
+  if(dt == BaseDesignElement::NODE || IsProfileFixed())
     return num_node_shapes_;
+  assert(num_node_shapes_ < (int) shape_.GetSize());
   assert(shape_[num_node_shapes_].type == PROFILE);
   assert(!shape_[num_node_shapes_].fixed);
-  return opt && IsProfileFixed() ? num_node_shapes_ : shape_.GetSize();
+  return shape_.GetSize();
 }
-
 
 
 void ShapeMapDesign::ToInfo(ErsatzMaterial* em)
@@ -1654,6 +1664,10 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
    for(unsigned int i = 0; i < eval.GetSize(); i++)
      eval[i].Init(this);
 
+   bool node_grad = !IsAllNodeFixed();
+   bool profile_grad = !IsProfileFixed();
+   assert(node_grad || profile_grad);
+
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++) // traverse all rho design elements
    {
      Item& item = map_[r];
@@ -1670,7 +1684,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
      // max_order = 0=void there is no gradient to add.
      // if max_order=1=solid and we have strict solid and the gradient is also zero.
-     if((max_order >= 1 && overlap_ != MAX) || max_order >= 2)
+     if((overlap_ != MAX && max_order >= 1) || (overlap_ == MAX && max_order >= 2 && !order.Contains(1)))
      {
        assert(max_order >= 2 || (max_order == 1 && overlap_ == TANH_SUM));
        assert(!(overlap_ == MAX && order.Contains(1)));
@@ -1728,48 +1742,53 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                assert(t >= 0 && t <= 1);
                assert(!(ip_x == 0 && ip_y == 0 && ip_z == 0 && t != 0));
 
-               da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
-               assert(!std::isnan(da) && !std::isinf(da));
-               if(dim_ == 3) // FIXME assumes center nodes!
-                 db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
-               if(!IsProfileFixed())
+               if(node_grad)
+               {
+                 da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
+                 assert(!std::isnan(da) && !std::isinf(da));
+                 if(dim_ == 3) // FIXME assumes center nodes!
+                   db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
+
+                 if(overlap_ == TANH_SUM) { // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
+                   da = tanh_sum_.d_map(eval_sum, da);
+                   if(dim_ == 3)
+                     db = tanh_sum_.d_map(eval_sum, db);
+                 }
+               }
+               if(profile_grad)
+               {
                  dw = eval[si].SmartGradTanh(order[si], false, false, true); // dtanh_dw
-               // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
-               if(overlap_ == TANH_SUM) {
-                 da = tanh_sum_.d_map(eval_sum, da);
-                 if(dim_ == 3)
-                   db = tanh_sum_.d_map(eval_sum, db);
-                 if(!IsProfileFixed())
+                 if(overlap_ == TANH_SUM)
                    dw = tanh_sum_.d_map(eval_sum, dw);
                }
 
-               assert(dw >= 0); // is never negative
-
-               double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
-               double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
-               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * dw * weight;
-
-
-
-               log_da += da_norm;
-               log_db += db_norm;
-               log_dw += dw_norm;
-
                assert(!std::isnan(de->GetPlainGradient(f)));
-               assert(!std::isnan(da_norm));
 
-               item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
-               item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
-               if(dim_ == 3) {
-                 item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * db_norm);
-                 item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * t * db_norm);
+               if(node_grad)
+               {
+                 double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
+                 double db_norm = (de->GetUpperBound() - de->GetLowerBound()) * db * weight;
+                 log_da += da_norm;
+                 log_db += db_norm;
+
+                 item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
+                 item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
+                 if(dim_ == 3) {
+                   item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * db_norm);
+                   item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * t * db_norm);
+                 }
                }
-               if(!IsProfileFixed()) { // a and b share common w
+               if(profile_grad)
+               {
+                 // a and b share common w
+                 double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * dw * weight;
+
+                 log_dw += dw_norm;
                  GetProfile(item.nodes[si][0])->AddGradient(f, de->GetPlainGradient(f) * (1-t) * dw_norm);
                  GetProfile(item.nodes[si][1])->AddGradient(f, de->GetPlainGradient(f) * t * dw_norm);
                }
 
-               LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip=" << ip.ToString() << " da=" << da << " da_n=" << da_norm << " dw=" << dw << " dw_n=" << dw_norm;
+               LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip=" << ip.ToString() << " da=" << da << " dw=" << dw;
              } // shape loop
            } // end ip_z
          } // end ip_y
@@ -2405,6 +2424,29 @@ ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* s
   return NULL;
 }
 
+const ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const Function* f, bool opt) const
+{
+  assert(num_node_shape_params_ > 0);
+  assert(!(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed()));
+
+  for(unsigned int i = 0; i < shape_.GetSize(); i++)
+  {
+    const ShapeParam& shape = shape_[i];
+
+    if(f->GetDesignType() == BaseDesignElement::PROFILE && shape.type != PROFILE)
+      continue;
+
+    if(opt && shape.start_opt == -1)
+      continue;
+
+    return &shape;
+  }
+  assert(false);
+  return NULL;
+}
+
+
+
 
 StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > ShapeMapDesign::FindCenters()
 {
@@ -2452,6 +2494,7 @@ void ShapeMapDesign::ShapeParam::ParseBounds(ShapeParam* target, const PtrParamN
 
 void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
 {
+  assert(base != NULL);
   orientation = base->orientation;
   x_sym = base->x_sym;
   y_sym = base->y_sym;

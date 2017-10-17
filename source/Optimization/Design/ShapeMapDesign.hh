@@ -330,6 +330,11 @@ private:
   /** slow version of GetShape() when shape_param_map_ is not yet initialized */
   ShapeParam* FindShape(const ShapeParamElement* spe);
 
+  /** Searches shape matching to the function by order.
+   * @param function if function design is not PROFILE the first shape is a candidate.
+   * @param opt if set only shapes with opt_idx are considered */
+  const ShapeParam* FindShape(const Function* f, bool opt) const;
+
   /** for shape which is either first or second center node (3D!) and a test which is part of first or second
    * center node, return the second center node param. This might be test
    * @return never NULL */
@@ -357,17 +362,24 @@ private:
   /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
 
-  /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
-   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile AND if we have no symmetries! */
-  unsigned int GetFirstVarIdx(const Function* f, bool opt) const;
+  /** do we have at least a single node shape which is not fixed?.
+   * contains a loop, hence cache! */
+  bool IsAllNodeFixed() const;
+
+
+  /** small helper which gives the start index of the element based on type (default, node or profile) of opt_shape_param_ */
+  unsigned int GetFirstOptVarIdx(const Function* f) const;
 
   /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
-  unsigned int GetEndVarIdx(const Function* f, bool opt) const;
+  unsigned int GetEndOptVarIdx(const Function* f) const;
 
-  /** similar to GetFirstVarIdx() but for shape_ instead of shape_param_ */
-  unsigned int GetFirstShapeIdx(const Function* f, bool opt) const;
+  /** similar to GetFirstVarIdx() but for shape_ instead of opt_shape_param_. Checks only shapes which do optimization.
+   * No fixed and no symmetry
+   * @return 0 or num_node_shape_ */
+  unsigned int GetFirstShapeIdx(const Function* f) const;
 
-  unsigned int GetEndShapeIdx(const Function* f, bool opt) const;
+  /* @return num_node_shape_ or shape_.GetSize() */
+  unsigned int GetEndShapeIdx(const Function* f) const;
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
@@ -386,9 +398,6 @@ private:
 
   /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
   int num_node_shape_params_ = -1;
-
-  /** same as num_node_shape_params_ but based on opt_shape_param_ */
-  int num_node_opt_shape_params_ = -1;
 
   /** symmetry means that fewer data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
    * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
