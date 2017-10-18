@@ -68,12 +68,7 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
                   <xsd:annotation>
-                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-               <xsd:element name="hysteresis_fixpoint" type="DT_ElecNonLinHyst">
-                  <xsd:annotation>
-                    <xsd:documentation>Permeability depends on magnetic flux density; uses simple fixpoint iteration for solution</xsd:documentation>
+                    <xsd:documentation>Permittivity depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
               </xsd:choice>

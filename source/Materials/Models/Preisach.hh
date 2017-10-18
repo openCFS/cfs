@@ -50,6 +50,14 @@ namespace CoupledField {
     //! normalizes the output to Ysaturated_
     Double normalizeOutput(Double xInput);
 
+    std::string runtimeToString(){
+      return "No runtime information available for Scalar Preisach model";
+    };
+
+    void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+      ;
+    };
+
   protected:
 
     //! computes  the everett function (area-integration for x1, x2)

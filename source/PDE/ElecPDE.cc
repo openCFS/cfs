@@ -736,8 +736,8 @@ namespace CoupledField {
      * NEW: we have to put P on the rhs also for deltaMaterial stepping!
      * -> see StdSolveStep::StepTransNonLinHysteresis for details
      */
-    if ( isHysteresis_ ){ //&& isHysteresisFixPoint_) {
-      std::cout << "Putting polarisation to rhs" << std::endl;
+    if ( isHysteresis_ ){ // && (isHysteresisFixPoint_)) {
+     // std::cout << "Putting polarisation to rhs" << std::endl;
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -752,8 +752,10 @@ namespace CoupledField {
         actSDList->SetRegion( curReg );
 
         // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
-        bool fullevaluation = false;
+        bool fullevaluation = !false;
 
+
+        //factor = factor*(-1.0);
         if(isComplex_) {
           if( dim_ == 2 ) {
             lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(),
@@ -771,7 +773,7 @@ namespace CoupledField {
                                              (factor),it->second,  coefUpdateGeo, fullevaluation);
           }
         }
-
+        //factor = factor*(-1.0);
         lin->SetName("rhs_polarization");
         lin->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -855,74 +857,75 @@ namespace CoupledField {
     shared_ptr<CoefFunction > curCoef;
     //get possible nonlinearities defined in this region
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
-    if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+    if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
       /* for both the delta material method as well as the std fixpoint method we have to know
        * which regions are affected by hysteresis
        */
 
-      shared_ptr<CoefFunction > curCoef_tmp;
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( regionId );
       PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+      shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
 
-      curCoef_tmp.reset(new CoefFunctionHyst( actSDMat, actSDList,
-                                elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
+      curCoef.reset(new CoefFunctionHyst( actSDMat, actSDList,
+                                elecFieldCoef,tensorType,ELEC_PERMITTIVITY,mySpace));
 
-      hysteresisCoefs_->AddRegion( regionId, curCoef_tmp);
-      std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-
-      if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-        /*
-         * here we treat the case: D = eps0*E + P
-         * P will be put on the rhs, for stiffness integrator we need just eps0, so we reset curCoef to eps0
-         */
-        //std::string eps0 = "8.854187817e-12";
-        /*
-         * unluckily, this will not converge, as eps0 is much too small
-         * -> the first calculated E will be very large which leads to an
-         * overevaluation of P; once P is "out of bounds" no stable point
-         * cannot be reached again
-         * Test if we can improve convergence if we start with larger value
-         * (approximated by Ysat/Xsat); of course, the solution P = eps_test E + P
-         * will not be correct anymore but maybe we can at least get some converging results out
-         * of it
-         */
-        Double Xsat,Ysat;
-        actSDMat->GetScalar(Xsat, X_SATURATION, Global::REAL);
-        actSDMat->GetScalar(Ysat, Y_SATURATION, Global::REAL);
-        Double epsTest = Ysat/(1*Xsat);
-        std::ostringstream eps_;
-
-        eps_ << epsTest;
-        std::string eps0 = eps_.str();
-        StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
-        realVal.Init("0.0");
-        realVal[0] = eps0;
-        if(dim_ == 2){
-          realVal[3] = eps0;
-        } else if(dim_ == 3){
-          realVal[4] = eps0;
-          realVal[8] = eps0;
-        }
-
-        StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
-        imagVal.Init("0.0");
-
-        curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
-
-        //std::cout << "Using FixPoint Hysteresis" << std::endl;
-        std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
-
-        isHysteresisFixPoint_ = true;
-      } else {
-
-        std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
-
-        curCoef = curCoef_tmp;
-        isHysteresisFixPoint_ = false;
-      }
-
+      hysteresisCoefs_->AddRegion( regionId, curCoef);
+ //     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
+//
+//    hysteresis fixpoint removed; all cases of hysteresis (debug (formerly fixpoint), real fixpoint, deltaMat)
+//    use the same base solve step; via the input parameter evalulationParameter, on can set which
+//    method to useee
+//      if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+//        /*
+//         * here we treat the case: D = eps0*E + P
+//         * P will be put on the rhs, for stiffness integrator we need just eps0, so we reset curCoef to eps0
+//         */
+//
+//        /*
+//         * NOTE: we need to insert eps0 as curCoef such that we can later
+//         * evaluate D = eps0 E + P
+//         * If we change the value of eps0 here, we will change D
+//         */
+//
+//        std::string eps0 = "8.854187817e-12";
+//
+////        Double Xsat,Ysat;
+////        actSDMat->GetScalar(Xsat, X_SATURATION, Global::REAL);
+////        actSDMat->GetScalar(Ysat, Y_SATURATION, Global::REAL);
+////        Double epsTest = Ysat/(1*Xsat);
+////        std::ostringstream eps_;
+////
+////        eps_ << epsTest;
+////        std::string eps0 = eps_.str();
+//        StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+//        realVal.Init("0.0");
+//        realVal[0] = eps0;
+//        if(dim_ == 2){
+//          realVal[3] = eps0;
+//        } else if(dim_ == 3){
+//          realVal[4] = eps0;
+//          realVal[8] = eps0;
+//        }
+//
+//        StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
+//        imagVal.Init("0.0");
+//
+//        curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
+//
+//        //std::cout << "Using FixPoint Hysteresis" << std::endl;
+//        std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
+//
+//        isHysteresisFixPoint_ = true;
+//      } else {
+//
+//      //  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
+//
+//        curCoef = curCoef_tmp;
+//        isHysteresisFixPoint_ = false;
+//      }
+//
     }
     else {
 
@@ -1293,6 +1296,7 @@ namespace CoupledField {
     flux->unit = "C/m^2";
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
+
     shared_ptr<CoefFunctionFormBased> fluxFunc;
     if( isComplex_ ) {
       fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, -1.0));
@@ -1300,12 +1304,13 @@ namespace CoupledField {
       fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
     }
     stiffFormCoefs_.insert(fluxFunc);
+
+    PtrCoefFct combinedFlux;
     if ( isHysteresis_){
       /*
        * in case of hysteresis, fluxFunc will only contain the value eps0*E
        * -> we have to add polarization afterwards
        */
-      PtrCoefFct combinedFlux;
       if( isComplex_ ) {
         combinedFlux = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,fluxFunc,hysteresisCoefs_,CoefXpr::OP_ADD));
       } else {
@@ -1315,6 +1320,48 @@ namespace CoupledField {
     } else {
       DefineFieldResult( fluxFunc, flux );
     }
+
+    //    PtrCoefFct fluxFunc;
+//    if( !isHysteresis_){
+//      if( isComplex_ ) {
+//        fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, -1.0));
+//      } else {
+//        fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
+//      }
+//      stiffFormCoefs_.insert(dynamic_pointer_cast<CoefFunctionFormBased>(fluxFunc));
+//    } else {
+//      /*
+//       * in case of hysteresis, fluxFunc be computed via
+//       * eps0 * E + P
+//       */
+//      PtrCoefFct linearFlux;
+//
+//      std::string eps0 = "8.854187817e-12";
+//      StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+//      realVal.Init("0.0");
+//      realVal[0] = eps0;
+//      if(dim_ == 2){
+//        realVal[3] = eps0;
+//      } else if(dim_ == 3){
+//        realVal[4] = eps0;
+//        realVal[8] = eps0;
+//      }
+//
+//      StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
+//      imagVal.Init("0.0");
+//
+//      linearFlux = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,eFunc,
+//                                         CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal),
+//                                         CoefXpr::OP_MULT));
+//
+//      if( isComplex_ ) {
+//        fluxFunc = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,linearFlux,hysteresisCoefs_,CoefXpr::OP_ADD));
+//      } else {
+//        fluxFunc = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,linearFlux,hysteresisCoefs_,CoefXpr::OP_ADD));
+//      }
+//    }
+//
+//    DefineFieldResult( fluxFunc, flux );
 
     // === ELECTRIC SURFACE CHARGE DENSITY ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
@@ -1329,7 +1376,11 @@ namespace CoupledField {
     //       inward facing one. 
     shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, -1.0, chargeD));
     DefineFieldResult( sChargeDens, chargeD);
-    surfCoefFcts_[sChargeDens] = fluxFunc;
+    if(!isHysteresis_){
+      surfCoefFcts_[sChargeDens] = fluxFunc;
+    } else {
+      surfCoefFcts_[sChargeDens] = combinedFlux;
+    }
     
     // === TOTAL ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);

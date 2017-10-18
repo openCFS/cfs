@@ -843,8 +843,6 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
-    } else if( in == "hysteresis_fixpoint") {
-      out = HYSTERESIS_FIXPOINT;
     } else if( in == "piezoMicroHF") {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
@@ -902,9 +900,6 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
-        break;
-      case HYSTERESIS_FIXPOINT:
-        out = "hysteresis_fixpoint";
         break;
       case NLELEC_CONDUCTIVITY:
         out = "elecConductivity";
@@ -1626,6 +1621,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add( IS_TESTING, "isTesting" );
     MaterialTypeEnum.Add( EVAL_VERSION, "evalVersion" );
     MaterialTypeEnum.Add( ANG_DISTANCE, "angularDistance" );
+    MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
+    MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
+    MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
+    MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
+    MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
