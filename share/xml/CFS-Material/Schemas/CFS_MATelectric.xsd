@@ -114,18 +114,29 @@
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
-      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0"/>
-      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
-      <xsd:element name="weights">
+      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0" default="2"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+      <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
+      <xsd:element name="weights" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:maxLength value="100000000"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
-      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="initialState" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+			<xsd:minLength value="3"/> 
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
       <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>

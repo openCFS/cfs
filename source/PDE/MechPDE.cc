@@ -462,7 +462,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
-        std::cout << "Add Lin BDB" << std::endl;
+        //std::cout << "Add Lin BDB" << std::endl;
         
       }
       
@@ -486,7 +486,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     				  	                                            stiffCoeff, 1.0, false);
     	  }
     	  else if (subType_ == "planeStrain" || subType_ == "planeStress") {
-    		  std::cout << "Add NonLinStrainOperator2D" << std::endl;
+    		 // std::cout << "Add NonLinStrainOperator2D" << std::endl;
     		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator2D<FeH1, Double>(myFct),
     				  	  	  	  	  	  	                       stiffCoeff, 1.0, false);
     	  }

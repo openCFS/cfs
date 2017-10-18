@@ -40,6 +40,13 @@ namespace CoupledField
     isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
     isAllowed_.insert( ANG_DISTANCE );
+    isAllowed_.insert( ANG_CLIPPING );
+    isAllowed_.insert( ANG_RESOLUTION );
+    isAllowed_.insert( AMP_RESOLUTION );
+    isAllowed_.insert( INITIAL_STATE );
+    isAllowed_.insert( INITIAL_STATE_X );
+    isAllowed_.insert( INITIAL_STATE_Y );
+    isAllowed_.insert( INITIAL_STATE_Z );
     isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );

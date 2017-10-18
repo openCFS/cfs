@@ -577,7 +577,7 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetOldDirichletValues() {
-    idbcHandler_->ToString();
+   // idbcHandler_->ToString();
     idbcHandler_->SetOldDirichletValues();
   }
 
