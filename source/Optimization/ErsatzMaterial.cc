@@ -147,7 +147,7 @@ ErsatzMaterial::ErsatzMaterial() :
   LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
                      << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
-  // optionally write the densities to an xml file
+  // optionally write the densities to a density.xml file
   if(pn->Has("export"))
   {
     ParamNodeList design_list = pn->GetList("design");

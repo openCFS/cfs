@@ -1163,10 +1163,10 @@
                             <xsd:complexType>
                               <xsd:attribute name="dof" use="required" type="DT_Axis" />
                               <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
-<!--                               <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
-                              <xsd:attribute name="initial" type="xsd:token" use="required" />
-                              <xsd:attribute name="lower" type="xsd:token" use="required" />
-                              <xsd:attribute name="upper" type="xsd:token" use="required" />
+                              <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                              <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                              <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                              <xsd:attribute name="fixed" type="xsd:token" use="optional" />
                            </xsd:complexType>
                           </xsd:element>
                         </xsd:sequence>
@@ -1445,7 +1445,10 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <!-- writes a .gz file. Much faster than the better compressing bz2 -->
                 <xsd:attribute name="compress" default="false" type="xsd:boolean"/>
+                <!-- allows to skip writing densities. Then only slack and shape mapping variables are written -->
+                <xsd:attribute name="density" default="true" type="xsd:boolean"/>
               </xsd:complexType>
             </xsd:element>                       
            

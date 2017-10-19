@@ -50,6 +50,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
+  write_density_  = export_pn->Get("density")->As<bool>();
   // append .gz if compress=true and not already file ends with it
   // note that gz is much faster than the better compressing bz2. ParamNode::ToFile() automatically compresses on .gz name
   if(compress_ && !boost::algorithm::ends_with(name_, ".gz"))
@@ -331,45 +332,52 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   assert((dynamic_cast<ShapeMapDesign*>(space_) != NULL && space_->GetNumberOfShapeMappingVariables() > 0) ||
          (dynamic_cast<ShapeMapDesign*>(space_) == NULL && space_->GetNumberOfShapeMappingVariables() == 0));
 
-  int slack_size = 0;
+  unsigned int size = (write_density_ ? space_->data.GetSize() : 0) + space_->GetNumberOfShapeMappingVariables();
   if(space_->HasSlackVariable())
-    slack_size++;
+    size++;
   if(space_->HasAlphaVariable())
-    slack_size++;
-
-  unsigned int size = space_->data.GetSize() + slack_size + space_->GetNumberOfShapeMappingVariables(); // the latter is 0 when no shape map
+    size++;
 
   block.Resize(size);
+  unsigned int base = 0;
 
-  for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
+  // exporting densities can be switched off in "export"
+  if(write_density_)
   {
-    DesignElement* de = &space_->data[i];
-    std::stringstream ss;
-    ss << "<element nr=\"" << de->elem->elemNum;
-    ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
-    if(de->GetType() == DesignElement::MULTIMATERIAL)
-      ss << "\" index=\"" << de->multimaterial->index;
-    ss << "\" design=\"";
-    ss.precision(11);
-    ss << de->GetDesign(DesignElement::PLAIN) << "\"";
-    if(de->HasPhysicalDesign())
-      ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
-    ss << "/>";
-    block[i] = ss.str();
+    for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
+    {
+      DesignElement* de = &space_->data[i];
+      std::stringstream ss;
+      ss << "<element nr=\"" << de->elem->elemNum;
+      ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
+      if(de->GetType() == DesignElement::MULTIMATERIAL)
+        ss << "\" index=\"" << de->multimaterial->index;
+      ss << "\" design=\"";
+      ss.precision(11);
+      ss << de->GetDesign(DesignElement::PLAIN) << "\"";
+      if(de->HasPhysicalDesign())
+        ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
+      ss << "/>";
+      block[i] = ss.str();
+    }
+    base += space_->data.GetSize();
   }
 
   if(space_->HasSlackVariable())
   {
     std::stringstream ss;
     ss << "<slack nr=\"0\" type=\"slack\" design=\"" << space_->GetSlackVariable() << "\"/>";
-    block[space_->data.GetSize() + 0] = ss.str();
+    block[base] = ss.str();
+    base += 1;
   }
 
   if(space_->HasAlphaVariable())
   {
+    assert(space_->HasSlackVariable());
     std::stringstream ss;
     ss << "<slack nr=\"1\" type=\"alpha\" design=\"" << space_->GetAlphaVariable() << "\"/>";
-    block[space_->data.GetSize() + 1] = ss.str();
+    block[base] = ss.str();
+    base += 1;
   }
 
   // add shape map design if we have it. Can be visualized by shape_map.py.
@@ -382,13 +390,23 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     {
       ShapeParamElement* spe = smd->GetShapeMapDesignElement(i);
       assert(spe != NULL);
+
+      ShapeMapDesign::ShapeParam* shape = smd->GetShape(spe);
+
+      // first assume we are a shape
+      int ref = shape->IsCenterNode() ? shape->GetFirstCenterNode()->idx : shape->idx;
+      if(shape->type == ShapeMapDesign::PROFILE)
+        ref = shape->partner->idx;
+
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
       ss << "\" dof=\"" << (spe->dof_ == 0 ? "x" : "y");
+      ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
+      ss << "\" ref=\"" << ref; // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
-      block[space_->data.GetSize() + slack_size + i] = ss.str();
+      block[base + i] = ss.str();
     }
   }
 
