@@ -778,7 +778,7 @@ if __name__ == '__main__':
       poly = create_2d_vtk(shapes,  1.0 if not args.half_profile else .5)
       show_write_vtk(poly,800,args.save)
     if not args.noshow:
-      show_vtk(poly,800,show_edges=False if d3 else True) # show edges
+      show_vtk(poly,800,show_edges=True if d3 else True) # show edges
   else:
     fig, sub = plot_data(800, shapes, 1.0 if not args.half_profile else .5, not args.unbounded)
     if args.save:

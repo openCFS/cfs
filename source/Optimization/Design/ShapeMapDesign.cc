@@ -1061,7 +1061,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     EXCEPTION("incompatible shape variables in density.xml (" << list.GetSize() << ") with " << shape_param_.GetSize() << " variables expected");
 
   // needs to be checked while reading
-  bool read_profile = list.GetSize() != shape_param_.GetSize() / 2;
+  bool read_profile = list.GetSize() != shape_param_.GetSize() / 2; // FIXME! No issue known but dangerous
   info_->Get("ersatzMaterialFile")->Get("load")->SetValue(read_profile ? "node_and_profile" : "only_node");
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
@@ -1071,7 +1071,11 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     assert(spe.GetIndex() == i);
     assert(pn->Get("nr")->As<unsigned int>() == i);
 
+    double val = pn->Get("design")->As<double>();
     BaseDesignElement::Type dt = BaseDesignElement::type.Parse(pn->Get("type")->As<string>());
+    LOG_DBG2(SMD) << "RDX i=" << i << " dt=" << dt << " dof=" << pn->Get("dof")->As<string>() << " val=" << val << " spe=" << spe.ToString();
+
+    // a profile has no dof
     if(dt != spe.GetType())
       EXCEPTION("shapeParamElement nr=" << i << " has type " << pn->Get("type")->As<string>()
                 << " but we expect type " << BaseDesignElement::type.ToString(spe.GetType()));
@@ -1079,12 +1083,8 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     if(!read_profile && dt == BaseDesignElement::PROFILE)
       EXCEPTION("no shapeParamElement of type profile expected in density.xml");
 
-    // a profile has no dof
     if(dt == BaseDesignElement::NODE && pn->Get("dof")->As<string>() != ShapeParamElement::dof.ToString(spe.dof_))
       EXCEPTION("shapeParamElement nr " << i << " has not the expected dof " << ShapeParamElement::dof.ToString(spe.dof_));
-
-    double val = pn->Get("design")->As<double>();
-    LOG_DBG2(SMD) << "RDX: design val=" << val;
 
     if(!shape->fixed && !shape->sym_induced) // with fixed we don't read bounds
     {
@@ -1764,6 +1764,11 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
                assert(!std::isnan(de->GetPlainGradient(f)));
 
+               ShapeParamElement* a0 = item.nodes[si][0];
+               ShapeParamElement* a1 = item.nodes[si][dim_ == 3 ? 2 : 1];
+               ShapeParamElement* b0 = dim_ == 3 ? item.nodes[si][1] : NULL;
+               ShapeParamElement* b1 = dim_ == 3 ? item.nodes[si][3] : NULL;
+
                if(node_grad)
                {
                  double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * da * weight;
@@ -1771,11 +1776,11 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  log_da += da_norm;
                  log_db += db_norm;
 
-                 item.nodes[si][0]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
-                 item.nodes[si][1]->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
+                 a0->AddGradient(f, de->GetPlainGradient(f) * (1-t) * da_norm);
+                 a1->AddGradient(f, de->GetPlainGradient(f) * t * da_norm);
                  if(dim_ == 3) {
-                   item.nodes[si][2]->AddGradient(f, de->GetPlainGradient(f) * (1-t) * db_norm);
-                   item.nodes[si][3]->AddGradient(f, de->GetPlainGradient(f) * t * db_norm);
+                   b0->AddGradient(f, de->GetPlainGradient(f) * (1-t) * db_norm);
+                   b1->AddGradient(f, de->GetPlainGradient(f) * t * db_norm);
                  }
                }
                if(profile_grad)
@@ -1784,8 +1789,13 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * dw * weight;
 
                  log_dw += dw_norm;
-                 GetProfile(item.nodes[si][0])->AddGradient(f, de->GetPlainGradient(f) * (1-t) * dw_norm);
-                 GetProfile(item.nodes[si][1])->AddGradient(f, de->GetPlainGradient(f) * t * dw_norm);
+                 GetProfile(a0)->AddGradient(f, de->GetPlainGradient(f) * (1-t) * dw_norm);
+                 GetProfile(a1)->AddGradient(f, de->GetPlainGradient(f) * t * dw_norm);
+                 LOG_DBG3(SMD) << "MSG: prof de=" << de->elem->elemNum
+                               << " p0=" << GetProfile(item.nodes[si][0])->GetIndex()
+                               << " p1=" << GetProfile(item.nodes[si][1])->GetIndex()
+                               << " s0=" << item.nodes[si][0]->GetIndex() << " s1=" << item.nodes[si][1]->GetIndex()
+                               << " ip=" << ip.ToString() << " t=" << t << " dwn=" << dw_norm;
                }
 
                LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip=" << ip.ToString() << " da=" << da << " dw=" << dw;
@@ -2190,7 +2200,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
      } // y
    } // z
 
- // DumpMap();
+   // DumpMap();
  }
 
 
@@ -2231,17 +2241,12 @@ ShapeParamElement::Dof ShapeMapDesign::Flip(ShapeParamElement::Dof first, ShapeP
        for(unsigned int x = 0; x < nx_; x++)
        {
          Item i = map_[DensityIdx(x, y, z)];
-         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue() << " min=" << i.min_corner_value
-                   << " max=" << i.max_corner_value << std::endl;
-         assert((int) i.nodes.GetSize() == num_node_shapes_);
-         //        for(unsigned int s = 0; s < num_node_shapes_; s++)
-         //        for(unsigned int n = 0; n < i.corner_vals[s].GetSize(); n++)
-
-         ///      std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
-
-         //          for(unsigned int n = 0; n < i.nodes[s].GetSize(); n++)
-         //           std::cout << " [nr=" << i.nodes[s][n]->GetIndex() << " dof=" << i.nodes[s][n]->dof_ << " free=" << i.nodes[s][n]->idx[1-i.nodes[s][n]->dof_] << "]"; // works only for 2D
-         //    std::cout << std::endl;
+         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.rho->GetPlainDesignValue()<< std::endl;
+         // " min=" << i.min_corner_value << " max=" << i.max_corner_value << std::endl;
+         for(unsigned int n = 0; n < i.nodes.GetSize(); n++)
+            for(unsigned int q = 0; q < i.nodes[n].GetSize(); q++)
+                std::cout << "-> n=" << n << " q=" << q << " si=" << i.nodes[n][q]->GetIndex() << " dof=" << i.nodes[n][q]->dof_ << " p=" << GetProfile(i.nodes[n][q])->GetIndex() << std::endl;
+         std::cout << std::endl;
        }
        std::cout << std::endl;
      }
