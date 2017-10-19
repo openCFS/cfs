@@ -474,7 +474,10 @@ private:
     /** This is static information.
      * The node variables the mapping is based on. Profiles via the nodes
      * For the number of shapes the pair nodes (2 for 2D and 4 for 3D center nodes).
-     * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected. The size is num_node_shapes_ - FindCenterNodes().GetSize() */
+     * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected. The size is num_node_shapes_ - FindCenterNodes().GetSize()
+     * 2D: The ordering of the SPE is for the two nodes which we interpolate between (1-t)*a0 + t*a1
+     * 3D: The ordering is a0,b0,a1,b1
+     * Fillend in SetupShapeParam() */
     StdVector<StdVector<ShapeParamElement*> > nodes;
 
     /** This is for each "real" node the minimal corner value of all 4 (8 corners). Set by EvalAllCorners() */
