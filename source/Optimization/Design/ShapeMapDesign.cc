@@ -2614,19 +2614,6 @@ bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
   return false;
 }
 
-ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
-{
-  assert(!(other_center != NULL && other_center->other_center != this));
-  assert(!(other_center != NULL && type == PROFILE)); // due to unsymetry only nodes have the link
-  assert(!(other_center != NULL && idx == other_center->idx));
-  assert(idx >= 0 && (other_center == NULL || other_center->idx >= 0));
-  assert(!(type == PROFILE && partner != NULL));
-  if(other_center != NULL)
-    return idx < other_center->idx ? this : other_center;
-  if(type == PROFILE && partner->other_center != NULL)
-    return partner->idx < partner->other_center->idx ? partner : partner->other_center;
-  return NULL;
-}
 
 inline bool ShapeMapDesign::ShapeParam::IsFirstCenterNode() const
 {

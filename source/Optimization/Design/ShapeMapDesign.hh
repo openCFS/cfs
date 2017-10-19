@@ -150,7 +150,7 @@ public:
     bool IsCenterNode() const { return other_center != NULL; }
 
     /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
-     * center node and the common profile node.
+     * center node and the common profile node. Note that the implementation is at the end of this file.
      * @return NULL if none of the three cases above holds */
     inline ShapeParam* GetFirstCenterNode();
 
@@ -232,6 +232,11 @@ public:
     void InheritProperties(ShapeParam* base);
   };
 
+  /** Give ShapeParam, very fast! */
+  ShapeParam* GetShape(const ShapeParamElement* spe) { return shape_param_map_[spe->GetIndex()]; }
+  ShapeParam* GetShape(const ShapeParamElement& spe) { return GetShape(&spe); }
+  const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
+  const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
 
   /** combines our settings for numerical integration */
   struct NumInt
@@ -321,11 +326,6 @@ private:
   /** centers have in xml two nodes as children. They are not stored as center in shape_ but need to be searched. */
   StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
 
-  /** Give ShapeParam, very fast! */
-  ShapeParam* GetShape(const ShapeParamElement* spe) { return shape_param_map_[spe->GetIndex()]; }
-  ShapeParam* GetShape(const ShapeParamElement& spe) { return GetShape(&spe); }
-  const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
-  const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
 
   /** slow version of GetShape() when shape_param_map_ is not yet initialized */
   ShapeParam* FindShape(const ShapeParamElement* spe);
@@ -638,6 +638,23 @@ private:
 
   void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 };
+
+
+
+/** as the inline function is used in DensityFile it needs to be given in the header */
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
+{
+  assert(!(other_center != NULL && other_center->other_center != this));
+  assert(!(other_center != NULL && type == PROFILE)); // due to unsymmetry only nodes have the link
+  assert(!(other_center != NULL && idx == other_center->idx));
+  assert(idx >= 0 && (other_center == NULL || other_center->idx >= 0));
+  assert(!(type == PROFILE && partner != NULL));
+  if(other_center != NULL)
+    return idx < other_center->idx ? this : other_center;
+  if(type == PROFILE && partner->other_center != NULL)
+    return partner->idx < partner->other_center->idx ? partner : partner->other_center;
+  return NULL;
+}
 
 } // end of name space
 
