@@ -103,10 +103,13 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
+  std::cout << "In Generate" << std::endl;
   if(configNode->Has("defaultGrid")) {
+	  std::cout << "Is defaultGrid" << std::endl;
 	  std::string dependString;
 	  PtrParamNode tmpNodeType  =  configNode->Get("defaultGrid");
 	  tmpNodeType->GetValue("dependtype",dependString);
+	  std::cout << "STEP 1 " << std::endl;
 	  if ( dependString == "INVSOURCE" || dependString == "INVMEASURE") {
 		  if(format == Global::COMPLEX){
 			  ret.reset(new CoefFunctionGridNodalSource<Complex>(ptDomain,
@@ -117,35 +120,30 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
 		  }
 	  }
 	  else {
-		  if(format == Global::COMPLEX){
+		  if (format == Global::COMPLEX) {
 			  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-					  configNode->Get("defaultGrid"), tmpNode, regions));
-		  }
-		  else {
-			  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-					  configNode->Get("defaultGrid"), tmpNode, regions));
-		  }
+					    configNode->Get("defaultGrid"), tmpNode, regions));
+		      }
+		  	  else {
+		  		  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+		                    configNode->Get("defaultGrid"), tmpNode, regions));
+		  	  }
 	  }
+
   }
   else if(configNode->Has("externalGrid")){
-    if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode, regions));
-    }else{
-      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode, regions));
-    }
-  }else if(configNode->Has("externalGrid")){
-    if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
-    }else{
-      ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
-    }
+	  if(format == Global::COMPLEX){
+		  ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
+                    configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+	  }
+	  else {
+		  ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
+                    configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+	  }
   } else {
-    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
+   EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
   }
+
   return ret;
 }
 

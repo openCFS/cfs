@@ -101,6 +101,7 @@ public:
   
   //! Dependency of coefficient function
   typedef enum{
+	NOINVERS,
     INVSOURCE,         /*!< Invserse scheme: source data */
     INVMEASURE         /*!< Inverse scheme: measured data */
   } CoefInverseType;
