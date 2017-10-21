@@ -150,11 +150,6 @@ namespace CoupledField
         if( signal( SIGINT, InverseSourceDriver::SignalHandler) == SIG_ERR ) {
           EXCEPTION( "Could not register Signal Handler");
         }
-
-        // store pointer to global instance variable, if not yet set
-//        if( !instance ) {
-//          instance = this;
-//        }
       }
       
       // Determine next frequency value

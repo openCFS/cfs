@@ -1,3 +1,12 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+/*!
+ *       \file     CoefFunctionGridNodalDefault.hh
+ *       \brief    CoefFunction specialized for the case that the source Grid is the default grid
+ *
+ *       \date     May 2015
+ *       \author   Manfred Kaltenbbacher
+ */
+//================================================================================================
 #ifndef FILE_INVERSESOURCEDRIVER_2014
 #define FILE_INVERSESOURCEDRIVER_2014
 

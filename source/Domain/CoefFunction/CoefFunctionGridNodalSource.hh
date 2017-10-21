@@ -47,24 +47,6 @@ public:
   virtual ~CoefFunctionGridNodalSource(){
   };
 
-  // ========================
-  //  ACCESS METHODS
-  // ========================
-  //@{ \name Access Methods
-
-  ///Getting a Tensor Value at the requested lpm, INvalid call for Conservative interpolation
-  virtual void GetTensor(Matrix<DATA_TYPE>& CoefMat,
-                         const LocPointMapped& lpm );
-
-  ///Getting a vector Value at the requested lpm, Invalid call for Conservative interpolation
-  virtual void GetVector(Vector<DATA_TYPE>& CoefMat,
-                         const LocPointMapped& lpm );
-
-  ///Getting a scalar value at the requested lpm, INvalid call for Conservative interpolation
-  virtual void GetScalar(DATA_TYPE& CoefMat,
-                         const LocPointMapped& lpm );
-  //@}
-
   //! Dump coefficient function to string
   virtual std::string ToString() const{
     return "";
@@ -72,20 +54,44 @@ public:
 
   //! adds entities to the coeffunction
   virtual void AddEntityList(shared_ptr<EntityList> ent);
-  
 
-  // COLLECTION ACCESS
+
+  // COLLECTION ACCESS (not needed)
+  ///Getting a Tensor Value at the requested lpm, INvalid call for Conservative interpolation
+  virtual void GetTensor(Matrix<DATA_TYPE>& CoefMat,
+                         const LocPointMapped& lpm ) {
+	  EXCEPTION("TENSORIAL RESULTS NOT SUPPORTED FOR INTERPOLATION FROM EXTERNAL GRIDS");
+  }
+
+  ///Getting a vector Value at the requested lpm, Invalid call for Conservative interpolation
+  virtual void GetVector(Vector<DATA_TYPE>& CoefMat, const LocPointMapped& lpm ) {
+	  EXCEPTION("VECTORIAL RESULTS NOT SUPPORTED FOR INTERPOLATION FROM EXTERNAL GRIDS");
+  }
+
+  ///Getting a scalar value at the requested lpm, INvalid call for Conservative interpolation
+  virtual void GetScalar(DATA_TYPE& CoefMat, const LocPointMapped& lpm ) {
+	  EXCEPTION("SCALAR RESULTS NOT SUPPORTED FOR INTERPOLATION FROM EXTERNAL GRIDS");
+  }
+  
   virtual void GetScalarValuesAtPoints( const StdVector<Vector<Double> >  & points,
-                                             StdVector<DATA_TYPE >  & vals);
+                                             StdVector<DATA_TYPE >  & vals) {
+	  EXCEPTION("GetScalarValuesAtPoints is not implemented");
+  }
 
   virtual void GetVectorValuesAtPoints( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Vector<DATA_TYPE> >  & vals);
+                                             StdVector<Vector<DATA_TYPE> >  & vals) {
+	  EXCEPTION("GetVectorValuesAtPoints is not implemented");
+  }
 
   virtual void GetTensorValuesAtPoints( const StdVector<Vector<Double> >  & points,
-                                            StdVector<Matrix<DATA_TYPE> >  & vals);
+                                            StdVector<Matrix<DATA_TYPE> >  & vals) {
+	  EXCEPTION("GetTensorValuesAtPoints is not implemented");
+  }
 
+  //!create vector of pairs and associate each eqnNumber of feFncVec a index
+  //!of own solvec
   virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
-                                    Vector<DATA_TYPE>& feFncVec);
+                                Vector<DATA_TYPE>& feFncVec);
 
   //! Determine if coefFunction has conservative mapping
   virtual bool IsConservative(){
@@ -118,7 +124,11 @@ protected:
 
 private:
   ///method searching for elements for given global points
-  void GetElemsForPoints(const StdVector<Vector<Double> >  & points, StdVector< const Elem* > & elements, StdVector<LocPoint> & locals);
+  void GetElemsForPoints(const StdVector<Vector<Double> >  & points,
+		                 StdVector< const Elem* > & elements,
+						 StdVector<LocPoint> & locals) {
+	  EXCEPTION("GetElemsForPoints is not implemented");
+  }
 
   //! build associative array for conservative
   void BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace);
