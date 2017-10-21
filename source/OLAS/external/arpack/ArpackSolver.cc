@@ -13,23 +13,37 @@ DEFINE_LOG(as, "arpackSolver")
 
 namespace CoupledField {
 
-  ArpackSolver::ArpackSolver() :
+  ArpackSolver::ArpackSolver(PtrParamNode xml) :
     eigenValues_(NULL),
     eigenVectors_(NULL)
   {
+    shiftAndInvert_ = true;
+    freqShift_ = 0.0;
+    tolerance_ = xml->Has("tolerance") ? xml->Get("tolerance")->As<double>() : 1.e-8;
+    maxIterations_ = xml->Has("maxIt") ? xml->Get("maxIt")->As<unsigned int>() : 5000;
+    arnoldiFactor_ = xml->Has("arnoldiFactor") ? xml->Get("arnoldiFactor")->As<double>() : 2.0;
+    numArnoldiVec_ = 0; // set later, based on arnoldiFactor_
+    // cast to char* or receive compiler warning
+    xml_which_ = xml->Has("which") ? xml->Get("which")->As<std::string>() : "";
 
-      shiftAndInvert_ = true;
-      freqShift_ = 0.0;
-      tolerance_ = 1.e-8;
-      maxIterations_ = 5000;
-      numArnoldiVec_ = 0;
-      interface_ = NULL;
-			// cast to char* or receive compiler warning
-      which_ = (char*) "LM";
-      type_ = (char*) "G";
-      size_ = 0;
-      numFreq_ = 0;
+    // overwritten via ArpackEigenSolver ?? why the hell largest magnitude??
+    which_ = xml_which_.empty() ? (char*) "LM" : const_cast<char*>(xml_which_.c_str());
 
+    type_ = (char*) "G";
+    size_ = 0;
+    numFreq_ = 0;
+    interface_ = NULL;
+
+    logging_ = xml->Has("logging") ? xml->Get("logging")->As<bool>() : false;
+    if(logging_)
+      DebugOn();
+    else
+      DebugOff();
+
+    counter_calll_aupd = 0;
+    counter_solve_OP_x = 0;
+    counter_solve_OP_B_x = 0;
+    counter_B_x = 0;
   }
   
   ArpackSolver::~ArpackSolver() {
@@ -57,18 +71,14 @@ namespace CoupledField {
       type_ = type;
 
       // set default value for Arnoldi vectors
-      numArnoldiVec_ = numFreq_*2;
+      numArnoldiVec_ = std::max(numFreq_ + 1, int(numFreq_ * arnoldiFactor_));
       
-      // check, if number of arnoldi vectors is larger than
+      // check, if number of Arnoldi vectors is larger than
       // size of system
-      if( numArnoldiVec_ > size_ ) {
-        UInt newNumFreq = static_cast<UInt>( size / 2.0 );
-        numFreq_ = newNumFreq;
+      if( numArnoldiVec_ > size_) {
+        numFreq_ = size / 2;
         numArnoldiVec_ = numFreq_*2;
-        std::stringstream out;
-        WARN( "Number of eigenfrequencies will be re-set to "
-              << newNumFreq << " as the number of eigenfrequencies may only be"
-              << " 1/2 the number of unknowns of the system");
+        WARN( "Number of Arnoldi vectors will be re-set to " << numFreq_ << " as the number of eigenfrequencies may only be 1/2 the number of unknowns of the system");
       }
       
       // Setup() is called for each wave_vector
@@ -138,43 +148,18 @@ namespace CoupledField {
 
   }
 
-  void ArpackSolver::SetTolerance(Double tol) {
-      //! set ARPACK convergence tolerance in case of user specified value
-      tolerance_ = tol;
-  }
 
-  void ArpackSolver::SetIterations(Integer maxIt) {
-      //! set ARPACK maximum number of iterations in case of user specified value
-      maxIterations_ = maxIt;
-  }
-
-  void ArpackSolver::SetNumVectors(Integer numVec) {
-      //! set ARPACK number of Arnoldi vectors in case of user specified value
-      numArnoldiVec_ = numVec;
-  }
-
-  UInt ArpackSolver::GetNev( ) {
-      return numFreq_;
-  }
-
-  char* ArpackSolver::GetWhich( ) {
-      return which_;
-  }
-
-  Double ArpackSolver::GetShift( ) {
-      return freqShift_;
-  }
-
-  Double ArpackSolver::GetTol( ) {
-      return tolerance_;
-  }
-
-  UInt ArpackSolver::GetMaxit( ) {
-      return maxIterations_;
-  }
-
-  UInt ArpackSolver::GetNcv( ) {
-      return numArnoldiVec_;
+  void ArpackSolver::ToInfo(PtrParamNode info)
+  {
+    info->Get("frequencies")->SetValue(numFreq_);
+    info->Get("type")->SetValue(which_);
+    info->Get("shift")->SetValue(freqShift_);
+    info->Get("shiftAndInvert")->SetValue(shiftAndInvert_);
+    info->Get("tol")->SetValue(tolerance_);
+    info->Get("maxIter")->SetValue(maxIterations_);
+    info->Get("arnoldiVectors")->SetValue(numArnoldiVec_);
+    info->Get("scaling")->SetValue(interface_->GetDiagScaling());
+    info->Get("logging")->SetValue(logging_);
   }
 
   template <class TYPE>
@@ -185,7 +170,8 @@ namespace CoupledField {
     bool bloch = boost::is_complex<TYPE>::value;
 
     bool converged = false;
-    Integer  ido = 0, info = 0;
+    int ido = 0; // necessary initial value for first aupd() call
+    int info = 0;
 
     // temp vector to store B*x
     StdVector<TYPE> tempV(size_); // TYPE* tempV = new Double[size_];
@@ -195,28 +181,39 @@ namespace CoupledField {
     // temp working space required in *aupd
     StdVector<TYPE> workD(3*size_);
     StdVector<TYPE> residual(size_);
-    int lenWorkL = (bloch ? numArnoldiVec_ * (3 * numArnoldiVec_ + 5): numArnoldiVec_ * (numArnoldiVec_ + 8));
+    // int lenWorkL = (bloch ? numArnoldiVec_ * (3 * numArnoldiVec_ + 5): numArnoldiVec_ * (numArnoldiVec_ + 8));
+    int lenWorkL = (bloch ? numArnoldiVec_ * (10 * numArnoldiVec_ + 20): numArnoldiVec_ * (numArnoldiVec_ + 8));
     StdVector<TYPE> workL(lenWorkL);
-    StdVector<TYPE> matrixV(size_*numArnoldiVec_); // TYPE* matrixV = new Double[size_*numArnoldiVec_];
+    StdVector<TYPE> matrixV(size_*numArnoldiVec_);
 
     // this double array is only for the complex part
     StdVector<double> rwork(size_);
 
 
-    StdVector<int> iparams(21); // int iparams[21], ipntr[21];
+    StdVector<int> iparams(21); // initialized with 0's
     StdVector<int> ipntr(21);
 
-    iparams[0] = 1;
-    iparams[2] = maxIterations_;
-    iparams[6] = 3;
+    iparams[0] = 1; // ISHIFT = 1:
+    iparams[2] = maxIterations_; // NXITER
+    iparams[3] = 1; // NB blocksize to be used in the recurrence
+    iparams[6] = 3; // MODE
+
+    // http://www.caam.rice.edu/software/ARPACK/UG/node136.html
+
+    counter_calll_aupd = 0;
+    counter_solve_OP_x = 0;
+    counter_solve_OP_B_x = 0;
+    counter_B_x = 0;
+
 
     UInt itNum;
-    for (itNum=0; itNum<maxIterations_; itNum++)
-    {
+    for (itNum=0; itNum<maxIterations_; itNum++) {
       // additionally rwork is ignored for the real case
       CallAUPD(&ido, type_, &size_, which_, &numFreq_, &tolerance_, residual.GetPointer(),
             &numArnoldiVec_, matrixV.GetPointer(), &size_, iparams.GetPointer(), ipntr.GetPointer(),
             workD.GetPointer(), workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
+
+      counter_calll_aupd++;
 
       switch (ido)
       {
@@ -231,6 +228,7 @@ namespace CoupledField {
 
         interface_->MultBV(vecX, tempV.GetPointer());
         interface_->MultShiftOpV(tempV.GetPointer(), vecY);
+        counter_solve_OP_x++;
         break;
 
       case 1:
@@ -240,6 +238,7 @@ namespace CoupledField {
         vecX = workD.GetPointer() + (ipntr[2]-1);
         vecY = workD.GetPointer() + (ipntr[1]-1);
         interface_->MultShiftOpV(vecX,vecY);
+        counter_solve_OP_B_x++;
         break;
 
       case 2:
@@ -249,6 +248,7 @@ namespace CoupledField {
         vecX = workD.GetPointer() + (ipntr[0]-1);
         vecY = workD.GetPointer() + (ipntr[1]-1);
         interface_->MultBV(vecX,vecY);
+        counter_B_x++;
         break;
 
       case 3:
@@ -278,7 +278,7 @@ namespace CoupledField {
 
     // check whether everything went well
     if (info<0)
-      EXCEPTION("Error reported in Ritz value calculation:\n" << ArpackError(info) );
+      EXCEPTION("Error reported in Ritz value calculation: info=" << info << " iparm=" << iparams.ToString() << "\n"  << ArpackError(info) );
 
 
     if ( itNum>maxIterations_ && info != 99 ) {
@@ -299,7 +299,7 @@ namespace CoupledField {
     bool rvec = true;
     StdVector<double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
     StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
-    TYPE omgShift = pow(freqShift_*8.0*atan(1.0), bloch ? 1 : 2);
+    TYPE omgShift = pow(freqShift_*2*M_PI, bloch ? 1 : 2);
 
     Vector<TYPE>& eval = dynamic_cast<Vector<TYPE>&>(*eigenValues_);
     Vector<TYPE>& evec = dynamic_cast<Vector<TYPE>&>(*eigenVectors_);
@@ -706,10 +706,6 @@ namespace CoupledField {
         }
 
       }
-      for (pos=0; pos<found; pos++) {
-          (*cla) << " EV no. " << pos << ", EV  = " << eval[pos] << "\n";
-          (*cla) << " EV no. " << pos << ", tol = " << eigenTolerances_[pos] << "\n";
-      }
     
       return found;
   }
@@ -755,15 +751,15 @@ namespace CoupledField {
       return eigenTolerances_[i];
   }
 
-  Double *ArpackSolver::GetEigenvector( UInt modeNr ) {
+  Double* ArpackSolver::GetEigenvector(UInt modeNr) {
       return dynamic_cast<Vector<Double>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
-  Complex *ArpackSolver::GetComplexEigenvector( UInt modeNr ) {
+  Complex* ArpackSolver::GetComplexEigenvector(UInt modeNr) {
     return dynamic_cast<Vector<Complex>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
-  std::string ArpackSolver::ArpackError( Integer errNo ) {
+  std::string ArpackSolver::ArpackError(Integer errNo) {
     std::string msg;
 
     switch (errNo ) {

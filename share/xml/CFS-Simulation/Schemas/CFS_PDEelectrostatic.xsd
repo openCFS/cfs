@@ -1,8 +1,6 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -15,8 +13,10 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for electrostatic PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="electrostatic" type="DT_PDEElectrostatic"
-    substitutionGroup="PDEBasic">
+  <xsd:element name="electrostatic" type="DT_PDEElectrostatic" substitutionGroup="PDEBasic">
+    <xsd:annotation>
+      <xsd:documentation>Solves the electrostatic PDE (laplace of electric potential); primary dof is electric potential </xsd:documentation>
+    </xsd:annotation>
     <xsd:unique name="CS_ElectrostaticRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
@@ -27,83 +27,139 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for electrostatic PDEs -->
   <!-- ******************************************************************* -->
-  
+
   <xsd:complexType name="DT_PDEElectrostatic">
+    <xsd:annotation>
+      <xsd:documentation>Defines volume charge density (LinearForm)</xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
-          
+
           <!-- Regions the PDE lives on -->
-          <xsd:element name="regionList" minOccurs="1"
-            maxOccurs="1">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="region" minOccurs="1"
-                  maxOccurs="unbounded">
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="name"
-                      type="xsd:token" use="required" />
-                    <xsd:attribute name="polyId"
-                      type="xsd:string" use="optional" default="default">
-                    </xsd:attribute>
-                    <xsd:attribute name="integId"
-                      type="xsd:string" use="optional" default="default">
-                    </xsd:attribute>
-                    <xsd:attribute name="nonLinId"
-                      type="xsd:token" use="optional" default="" />
-                    <xsd:attribute name="complexMaterial" 
-                      type="DT_CFSBool" use="optional" default="no"/>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
+                      > </xsd:attribute>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
-                       minOccurs="0" maxOccurs="1"/>
-          
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the non-conforming interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <!-- List defining nonlinear types -->
-          <xsd:element name="nonLinList" minOccurs="0"
-            maxOccurs="1">
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst" />
-                <xsd:element name="material"  type="DT_ElecNonLinMat" />
+                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+               <xsd:element name="hysteresis_fixpoint" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density; uses simple fixpoint iteration for solution</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain! The only application of PML in electrostatics 
+                    that seems to be reasonable is within piezo coupling</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
           
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0"
-            maxOccurs="unbounded">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded" minOccurs="0">
-                <!-- Dirichlet Boundary Conditions -->  
-                <xsd:element name="ground"    type="DT_BcHomScalar"/>
-                <xsd:element name="potential" type="DT_BcInhomScalar"/>              
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="ground" type="DT_BcHomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Sets electric potential to zero</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="potential" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Sets electric potential to value (inhomog. Dirichlet b.c.)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <!-- RHS Load Values-->
-                <xsd:element name="charge"        type="DT_BcInhomScalar"/>
-                <xsd:element name="chargeDensity" type="DT_BcInhomScalar"/>
-                <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
-                
-                <xsd:element name="constraint" type="DT_ElecCS" />
+                <xsd:element name="charge" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines total charge  for nodes, surface of volume</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="chargeDensity" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines charge density (LinearForm)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="fluxDensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines normal component of dielectric displacement (similar to a surface charge density)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
+                <xsd:element name="constraint" type="DT_ElecCS">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines for selected elements just one degree of freedom, e.g., do model an electrode with unknown potential (models an equipotental surface)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->
+
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for electric potential</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Desired solution values (optional) -->
-          <xsd:element name="storeResults"
-            type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1" />
-          
+          <xsd:element name="storeResults" type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1"/>
+
         </xsd:sequence>
-        <xsd:attribute name="subType" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="subType" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="2.5d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of hysteresis nonlienarity -->
@@ -112,7 +168,7 @@
   <!-- Definition of hysteresis nonlinearity type -->
   <xsd:complexType name="DT_ElecNonLinHyst">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
+      <xsd:extension base="DT_NonLinBasic"> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -124,8 +180,7 @@
   <!-- Definition of material nonlinearity type -->
   <xsd:complexType name="DT_ElecNonLinMat">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -149,10 +204,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="xsd:token" use="optional"
-          default=""/>
-        <xsd:attribute name="quantity" default="elecPotential"
-          type="DT_ElecUnknownType"/>
+        <xsd:attribute name="dof" type="xsd:token" use="optional" default=""/>
+        <xsd:attribute name="quantity" default="elecPotential" type="DT_ElecUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -163,8 +216,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_ElecHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -183,16 +235,13 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="elecPotential"
-          type="DT_ElecUnknownType"/>
-        <xsd:attribute name="masterDof" type="xsd:token" use="optional"
-          default=""/>
-        <xsd:attribute name="slaveDof" type="xsd:token" use="optional"
-          default=""/>
+        <xsd:attribute name="quantity" default="elecPotential" type="DT_ElecUnknownType"/>
+        <xsd:attribute name="masterDof" type="xsd:token" use="optional" default=""/>
+        <xsd:attribute name="slaveDof" type="xsd:token" use="optional" default=""/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
- 
+
   <!-- Element type for specifying a simple impedance, connected in -->
   <!-- series with a pair of given nodes -->
   <xsd:complexType name="DT_ElecImpedance">
@@ -200,12 +249,9 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="node1" type="xsd:token" use="required"/>
         <xsd:attribute name="node2" type="xsd:token" use="required"/>
-        <xsd:attribute name="resistance" type="xsd:double"
-          use="optional" default="0.0"/>
-        <xsd:attribute name="inductance" type="xsd:double"
-        use="optional" default="0.0"/>
-        <xsd:attribute name="capacitance" type="xsd:double" use="optional"
-          default="0.0"/>
+        <xsd:attribute name="resistance" type="xsd:double" use="optional" default="0.0"/>
+        <xsd:attribute name="inductance" type="xsd:double" use="optional" default="0.0"/>
+        <xsd:attribute name="capacitance" type="xsd:double" use="optional" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -224,38 +270,39 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of element result types of electrostatic PDE -->  
+  <!-- Definition of element result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecFluxDensity"/>
       <xsd:enumeration value="elecEnergyDensity"/>
+      <xsd:enumeration value="elecPolarization"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of region result types of electrostatic PDE -->  
+  <!-- Definition of region result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of surface element result types of electrostatic PDE -->  
+  <!-- Definition of surface element result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecChargeDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
-  <!-- Definition of surface region result types of electrostatic PDE -->  
+
+  <!-- Definition of surface region result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <!-- Definition of field variables -->
-  <xsd:simpleType name="DT_ElecFieldResult">
+  <xsd:simpleType name="DT_ElecSensorArrayResult">
     <xsd:union memberTypes="DT_ElecNodeResult DT_ElecElemResult"/>
   </xsd:simpleType>
 
@@ -265,8 +312,7 @@
       <xsd:choice maxOccurs="unbounded">
 
         <!-- Nodal result definition -->
-        <xsd:element name="nodeResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
@@ -275,10 +321,9 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Element result definition -->
-        <xsd:element name="elemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
@@ -289,8 +334,7 @@
         </xsd:element>
 
         <!-- Region result definition -->
-        <xsd:element name="regionResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
@@ -301,21 +345,18 @@
         </xsd:element>
 
         <!-- Surface element result definition -->
-        <xsd:element name="surfElemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type"
-                type="DT_ElecSurfElemResult" use="required"/>
+                <xsd:attribute name="type" type="DT_ElecSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
-           <!-- Surfac	e region result definition -->
-        <xsd:element name="surfRegionResult" minOccurs="0"
-          maxOccurs="unbounded">
+
+        <!-- Surfac	e region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
@@ -324,15 +365,15 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
-        <!-- FieldResults -->
-        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_FieldResult">
-                <xsd:attribute name="type" type="DT_ElecFieldResult"/>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_ElecSensorArrayResult"/>
               </xsd:extension>
-            </xsd:complexContent>           
+            </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
       </xsd:choice>

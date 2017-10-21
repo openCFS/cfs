@@ -125,6 +125,7 @@ MINGW=0
 if [ ! -e $CFSTOOL_EXE ]; then
   
   for arch in "X86_64" "I386"; do
+    if [[ -e $CFS_ROOT_DIR/bin/MINGW_$ARCH/cfstoolbin.exe ]]; then
       CFSTOOL_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfstoolbin.exe"
       if [ -e $CFSTOOL_EXE ]; then
 	  ARCH=$arch
@@ -132,6 +133,7 @@ if [ ! -e $CFSTOOL_EXE ]; then
 	  MINGW=1;
 	  break;
       fi
+    fi
   done
 fi
 

@@ -7,6 +7,9 @@
 #include "MatVec/Matrix.hh"
 #include "Elem.hh"
 #include "SurfElem.hh"
+
+#include "Utils/ThreadLocalStorage.hh"
+
 #include <climits>
 
 
@@ -21,6 +24,7 @@ namespace CoupledField {
   class BaseFE;
   class CoefFunction;
   class IntScheme;
+
   
   // ==========================================================================
   //  C L A S S   LocPoint
@@ -126,6 +130,20 @@ namespace CoupledField {
     //!               within an integration loop)
     void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
     
+    //! Initialize shape map with with given local point and shape map
+
+    //! This constructor initializes the struct for a local point in a
+    //! general (volume) element.
+    //! \param lp Local point to bet set
+    //! \param esm ElemShapeMap, representing the mapping from reference to
+    //!            physical domain
+    //! \param weight Integration weight (should be set to 0.0 if not used
+    //!               within an integration loop)
+    //! \param cornerCoord explicit definition of corner coordiantes of element
+    void Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                 Double weight, Matrix<Double>& cornerCoord);
+
+
     //! Set method for a local point of a surface element
     
     //! This constructor initializes the struct for a local point in a
@@ -152,8 +170,8 @@ namespace CoupledField {
     
     //! This method allows to set information specific to a surface
     //! element, in case it was initialized with only the volume information;
-    void SetSurfInfo( const std::set<RegionIdType>& volRegions );
-
+    void SetSurfInfo( const std::set<RegionIdType>& volRegions,
+    		          const RegionIdType volRegid = NO_REGION_ID );
 
     //! Specialized version for NMG points
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
@@ -235,14 +253,12 @@ namespace CoupledField {
   //! all, as the grid could store this information ....
   //! 
   
-  class ElemShapeMap {
-  
+  class ElemShapeMap : public boost::enable_shared_from_this<ElemShapeMap>{
   public:
 
     //! Define enumeration data type
     typedef 
-    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, 
-      ANALYTICAL } ShapeMapType;  
+    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, ANALYTICAL } ShapeMapType;
 
     //! Enum for shape map type
     static Enum<ShapeMapType> shapeMapType;
@@ -260,7 +276,9 @@ namespace CoupledField {
       return ptGrid_;
     }
 
-    //! Set current element
+    //! Set current element.
+    //! Be very careful with it,
+    //! @see Grid::GetElemShapeMap()
     //! \param ptElem output Current element
     virtual void SetElem( const Elem* ptElem,
                           bool isUpdated = false );
@@ -334,6 +352,12 @@ namespace CoupledField {
                                            const Elem* volElem,
                                            const SurfElem* edgeFaceElem)=0;
 
+    //! This method calculates a parallel projection of the given point onto the surface element
+    //! with respect to the given direction
+    //! \param direction vector detrmining the direction of the projection
+    //! \param point point to be projected
+    virtual void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point) = 0;
+
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -383,7 +407,7 @@ namespace CoupledField {
     //! Calculates the barycenter of the element. For 3D and 2D (z=0 then)
     //! This is the average of every coordinate.
     //! \param barycenter the output. In 2D z=0. If you want 2D then overload */
-    virtual void CalcBarycenter( Vector<Double>& baryCenter )  = 0;
+    virtual void CalcBarycenter(Point& baryCenter )  = 0;
 
     //! Compute length of edge with maximal/minimal size
     virtual void GetMaxMinEdgeLength( Double& max, Double& min)  = 0;
@@ -419,6 +443,11 @@ namespace CoupledField {
     virtual void CalcJ( Matrix<Double>& jac, 
                         const LocPoint& ip ) = 0;
 
+    //! Calculation of Jacobian with given coordinates
+    virtual void CalcJ( Matrix<Double>& jac,
+       		            const LocPoint& ip,
+   				        Matrix<Double>& cornerCoords) = 0;
+
     //! Calculation of Jacobian determinant
     /*!
          \param LCoord (input) Local Coordinates of evaluation point
@@ -428,9 +457,12 @@ namespace CoupledField {
      */
     virtual Double CalcJDet( Matrix<Double>& jac, 
                              const LocPoint& ip ) = 0;
-    
+
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
+
+    /** for debugging purpos */
+    virtual std::string ToString() const;
 
   protected:
 
@@ -476,8 +508,12 @@ namespace CoupledField {
     //! Destructor
     ~LagrangeElemShapeMap();
 
-    //! @copydoc ElemShapeMap::SetElem
+    /** @copydoc ElemShapeMap::SetElem
+     * this sets coords_ */
     virtual void SetElem( const Elem* ptElem, bool isUpdated = false );
+
+    /** take some info from the element but use the given coordinates, not the one from elem */
+    void SetElem(const Elem* elem, const Matrix<double>& coords);
 
     // ---------------------------------------------------
     //   Coordinate Mapping
@@ -507,6 +543,9 @@ namespace CoupledField {
                                const Elem* volElem,
                                const SurfElem* edgeFaceElem);
 
+    //! @copydoc ElemShapeMap::TranslatePointOntoSurface
+    void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point);
+
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
                                     const LocPoint & surfIntPoint,
@@ -525,7 +564,7 @@ namespace CoupledField {
     void CalcDiameter( Vector<Double>& diameter );
 
     //! @copydoc ElemShapeMap::CalcBarycenter
-    void CalcBarycenter( Vector<Double>& baryCenter );
+    void CalcBarycenter(Point& baryCenter );
 
     //! @copydoc ElemShapeMap::GetMaxMinEdgeLength
     void GetMaxMinEdgeLength( Double& max, Double& min);
@@ -544,12 +583,19 @@ namespace CoupledField {
     void CalcJ( Matrix<Double>& jac, 
                 const LocPoint& ip );
     
+    //! @copydoc ElemShapeMap::CalcJ with given coordinates
+    void CalcJ( Matrix<Double>& jac,
+    		    const LocPoint& ip,
+				Matrix<Double>& cornerCoords);
+
     //! @copydoc ElemShapeMap::CalcJ
     Double CalcJDet( Matrix<Double>& jac, 
                      const LocPoint& ip );
     
     //! @copydoc ElemShapeMap::GetBaseFE
     virtual BaseFE* GetBaseFE();
+
+    virtual std::string ToString() const;
 
   protected:
 
@@ -608,15 +654,14 @@ namespace CoupledField {
     { 
     private: 
       LagrangeMapSingleton();   
-      LagrangeMapSingleton(const LagrangeMapSingleton&) {}            
-      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&) {
-        return *this;}
+      LagrangeMapSingleton(const LagrangeMapSingleton&);            
+      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&);
       ~LagrangeMapSingleton();
     public: 
       static LagrangeMapSingleton& getInstance();
 
       //! Map containing the reference elements
-      std::map<Elem::FEType, FeH1LagrangeExpl* > feMap_;
+      TLMap<Elem::FEType, FeH1LagrangeExpl* > feMap_;
     }; 
 
     //! Nodal coordinates
@@ -630,6 +675,12 @@ namespace CoupledField {
     
     //! Pointer to class containing the reference elements
     LagrangeMapSingleton & elems_;
+
+    //! Cached entry for local derivative (used for Jacobian)
+    Matrix<Double> deriv_;
+
+    //! Cached entry for shape functions (used for local -> global)
+    Vector<Double> shFnc_;
   };
 
 }

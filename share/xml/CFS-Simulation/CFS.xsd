@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 	targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
 	xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
@@ -19,6 +20,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEsplit.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
@@ -28,6 +30,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEelectricConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEwaterWave.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEtest.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDELatticeBoltzmann.xsd"/>
 
 	<!-- ******************************************************************* -->
 	<!--   Include definition of coupling types and elements -->
@@ -45,11 +48,13 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
-    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
-
+  <xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Optimization.xsd"/>
+  
 	<!-- ******************************************************************* -->
 	<!--   Definition of enclosing main element -->
 	<!-- ******************************************************************* -->
@@ -178,18 +183,12 @@
 					</xsd:complexType>
 				</xsd:element>
 
-				<!-- Enforce parameter settings by disabling Expert() (optional) -->
-				<xsd:element name="expert" minOccurs="0"
-					maxOccurs="1">
-					<xsd:complexType>
-						<xsd:attribute name="override" type="DT_CFSBool"
-							use="optional" default="no" />
-					</xsd:complexType>
-				</xsd:element>
+        <!-- Optional paramteter for ersatz Material. Can be used with or without optimization  -->
+        <xsd:element name="loadErsatzMaterial" type="DT_ErsatzMaterial" minOccurs="0"/>
 
-				<!-- Optional developer's element -->
-				<xsd:element name="devel" type="xsd:anyType"
-					minOccurs="0" maxOccurs="unbounded" />
+        <!-- Parameters for specifying an optimization (optional) -->
+        <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
+
 			</xsd:sequence>
 			<!-- The simulation can be given an id/token/label/name that is written to info.xml if present. -->
 			<xsd:attribute name="id" type="xsd:token" default=""
@@ -205,7 +204,7 @@
 		<xsd:keyref name="CS_RegionExists"
 			refer="CS_DomainNamesRegion">
 			<xsd:selector
-				xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region" />
+				xpath="cfs:pdeList/cfs:LatticeBoltzmann/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region" />
 			<!-- Simple selection of all PDEs does not work due to problems -->
 			<!--- with auxilliary MPCCI PDE. What is a region in that case? -->
 			<!--xsd:selector xpath="cfs:pdeList/*/cfs:region"/-->

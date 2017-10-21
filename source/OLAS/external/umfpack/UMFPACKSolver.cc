@@ -14,6 +14,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 
+#include "Utils/Timer.hh"
+
 #include "UMFPACKSolver.hh"
 
 namespace CoupledField {
@@ -116,14 +118,8 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void UMFPACKSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
-
-    // Flag for check Pardiso's return status
-    //    int errorFlag = 0;
-
-    // Determine, whether we are expected to be verbose
-    LOG_TRACE(umfpackSolver) << " -----------------------------------------"
-                             << "-------------------------------------";
+  void UMFPACKSolver<T>::Setup( BaseMatrix &sysMat)
+  {
 
     // ============================================================
     //  Determine which of the two steps: symbolical and numerical
@@ -131,6 +127,10 @@ namespace CoupledField {
     // ============================================================
     bool facSymbolic = false;
     bool facNumeric = false;
+
+    // for EV problems Arpack calls umfpack or pardiso (for complex problems like Bloch)
+    // so we have to call the timer manually.
+    setupTimer_->Start();
 
     // No factorisation available, so perform both steps
     if ( firstCall_ == true ) {
@@ -496,6 +496,7 @@ namespace CoupledField {
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
 
+    setupTimer_->Stop();
   }
 
 
@@ -504,19 +505,14 @@ namespace CoupledField {
   //   Solve linear system
   // *************************
   template<typename T>
-  void UMFPACKSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BaseVector &rhs, BaseVector &sol,
-                                PtrParamNode analysis_step ) {
-
-    LOG_TRACE(umfpackSolver) << " -----------------------------------------"
-                             << "-------------------------------------";
-    LOG_TRACE(umfpackSolver) << " Solving linear system ...";
+  void UMFPACKSolver<T>::Solve( const BaseMatrix &sysmat,  const BaseVector &rhs, BaseVector &sol)
+  {
+    LOG_DBG(umfpackSolver) << "S: Solving linear system ...";
     
-    if ( firstCall_ == true ) {
-      EXCEPTION( "The matrix has not yet been factorised by UMFPACK! "
-                 << "Call Setup() first" );
-    }
+    if(firstCall_ == true)
+      EXCEPTION( "The matrix has not yet been factorised by UMFPACK! " << "Call Setup() first" );
 
+    solveTimer_->Start();
 
     // Check that we have the correct vector types and
     // obtain data pointers
@@ -566,16 +562,8 @@ namespace CoupledField {
       }
 
     }
-      
-    // Finish log report
-    LOG_TRACE(umfpackSolver) << " -------------------------------------------------------"
-                             << "-----------------------";
-    
-    // Create Report (no sensible things to write for direct solvers yet)
-    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
-    out->Get("numIter")->SetValue(-1);
-    out->Get("finalNorm")->SetValue(-1.0);
+
+    solveTimer_->Stop();
   }
 
 // Explicit template instantiation

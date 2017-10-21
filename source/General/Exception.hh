@@ -11,7 +11,7 @@ namespace CoupledField {
  #define EXCEPTION(STR){                                          \
     std::ostringstream ostr;                                      \
     ostr << STR;                                                  \
-    Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str()); \
+    CoupledField::Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str()); \
     throw ex__;                                                   \
   }
     
@@ -46,7 +46,6 @@ namespace CoupledField {
   public:
     enum SeverityType{EXCEPTION, WARNING};
     
-  public:
     /** Creates an exception which can be thrown and then
      * catched by the main program. If the corresponding
      * flag is set this constructor will generate a segfault.
@@ -65,6 +64,9 @@ namespace CoupledField {
               const char* const fileName = "NO_FILENAME", 
               const unsigned int lineNum = 0,
               SeverityType severity = EXCEPTION) throw ();  
+
+    /** Rethrow type */
+    Exception(const std::string& message, const Exception& reason) throw ();
 
     //! Copy constructor
     Exception( const Exception& exc ) throw ();

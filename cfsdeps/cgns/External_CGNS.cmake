@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------
 # CFD General Notation System (CGNS)
-# Needed for ADF routines by STARCCM+ reader. Also provides cgnsview, which
-# can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF).
+# Needed for ADF routines by STARCCM+ reader. 
+# To build cgnsview which can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF)
+# install it manually or reenable BUILD_CGNSTOOL.
 #
 # Project Homepage
 # http://www.cgns.org
@@ -26,8 +27,8 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DENABLE_HDF5:BOOL=ON
-  -DENABLE_LEGACY:BOOL=ON
+  -DCGNS_ENABLE_HDF5:BOOL=ON
+  -DCGNS_ENABLE_LEGACY:BOOL=ON
   -DENABLE_64BIT:BOOL=OFF
   -DENABLE_TESTS:BOOL=OFF
   -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
@@ -36,44 +37,19 @@ SET(CMAKE_ARGS
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
   -DCGNS_BUILD_SHARED:BOOL=ON
   -DCGNS_USE_SHARED:BOOL=OFF
-  -DBUILD_CGNSTOOLS:BOOL=ON
+  -DBUILD_CGNSTOOLS:BOOL=OFF
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=${CFLAGS}
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
-Find_Package(TCL)
-Find_Package(X11)
-Find_Package(OpenGL)
-
-IF(TCLTK_FOUND AND
-   TCL_INCLUDE_PATH AND
-   TK_INCLUDE_PATH AND
-   X11_Xmu_FOUND AND
-   X11_Xmu_INCLUDE_PATH AND
-   OPENGL_FOUND AND
-   OPENGLU_FOUND AND
-   OPENGL_INCLUDE_PATH)
-  SET(BUILD_CGNSTOOLS ON)
-ELSE()
-  #-------------------------------------------------------------------------------
-  # Let's only build the CGNS tools on platforms, which provide a TCL 
-  # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
-  # have not installed them on our nightly test systems.
-  #-------------------------------------------------------------------------------
-  SET(BUILD_CGNSTOOLS ON)
-  IF(MINGW)
-    SET(BUILD_CGNSTOOLS OFF)
-  ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
-    IF(CMAKE_CROSSCOMPILING)
-      SET(BUILD_CGNSTOOLS OFF)
-    ENDIF()
-  ENDIF()
+#intel compiler has problems with emty rpath commands
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_SKIP_RPATH:BOOL=TRUE
+   )
 ENDIF()
-
-LIST(APPEND CMAKE_ARGS
-  -DBUILD_CGNSTOOLS:BOOL=${BUILD_CGNSTOOLS}
-)
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   # Explicitly set build architectures and  system SDK root dir to match
@@ -83,7 +59,6 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
     ${CMAKE_ARGS}
     -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
     -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    "-DCMAKE_EXE_LINKER_FLAGS:STRING=-L/usr/X11/lib -lX11 -lXmu"
   )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
@@ -105,8 +80,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
-  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
+  "https://github.com/CGNS/CGNS/archive/${CGNS_GZ}"
   "${CGNS_URL}/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
@@ -117,42 +91,19 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The CGNS external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(cgns
-  DEPENDS hdf5-shared zlib
-  PREFIX ${cgns_prefix}
-  SOURCE_DIR ${cgns_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${CGNS_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  LIST_SEPARATOR ,
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    )
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(cgns cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${cgns_prefix}
 )
 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${cgns_prefix}")
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  cgns
-)
+SET(ZIPFROMCACHE "${cgns_prefix}/cgns-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${cgns_prefix}/cgns-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Determine paths of CGNS libraries.
@@ -183,3 +134,68 @@ SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include director
 MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
 MARK_AS_ADVANCED(CGNS_LIBRARY)
 MARK_AS_ADVANCED(CGNS_SHARED_LIBRARY)
+
+#-------------------------------------------------------------------------------
+# The CGNS external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(cgns
+    PREFIX "${cgns_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(cgns
+    DEPENDS hdf5-shared zlib
+    PREFIX ${cgns_prefix}
+    SOURCE_DIR ${cgns_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${CGNS_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    LIST_SEPARATOR ,
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${CGNS_LIBRARY} ${CGNS_SHARED_LIBRARY}
+  )
+
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(cgns cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+     DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${cgns_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(cgns cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  cgns
+)

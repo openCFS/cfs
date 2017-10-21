@@ -3,7 +3,6 @@
 #include "MatVec/generatematvec.hh"
 
 #include "OLAS/solver/MINRESSolver.hh"
-#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -64,7 +63,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step) {
+  void MINRESSolver<T>::Setup( BaseMatrix &sysMat) {
     PrivateSetup( sysMat );
   }
 
@@ -160,7 +159,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                               const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                               const BaseVector &rhs, BaseVector &sol ) {
 
 
     // ----------------------------------------
@@ -190,29 +189,17 @@ namespace CoupledField {
     // ---------------------------------
 
     // Determine norm of preconditioned right hand side
-    ptPrecond_->GetPrecondTimer()->Start();
     ptPrecond_->Apply( sysMat, rhs, *pV_ );
-    ptPrecond_->GetPrecondTimer()->Stop();
     Double rhsNorm = pV_->NormL2();
 
     // Compute residual of initial guess
     sysMat.CompRes( *pV_, sol, rhs );
 
     // Apply preconditioner
-    ptPrecond_->GetPrecondTimer()->Start();
     ptPrecond_->Apply( sysMat, *pV_, *q0_ );
-    ptPrecond_->GetPrecondTimer()->Stop();
 
     // Compute norm of residual of preconditioned system
     rho = q0_->NormL2();
-
-    // Be verbose
-    (*cla) << "\n MINRESSolver:\n"
-           << "\n Norm of rhs              = " << rhs.NormL2()
-	   << "\n Norm of precond rhs      = " << rhsNorm
-	   << "\n Norm of residual         = " << pV_->NormL2()
-	   << "\n Norm of precond residual = " << rho
-	   << std::endl;
 
     // Determine first base and update vector
     q0_->ScalarDiv( rho );
@@ -237,16 +224,6 @@ namespace CoupledField {
     xml_->GetValue("tol", threshold, ParamNode::INSERT);
     
     threshold *= rhsNorm;
-
-
-    // ----------------------
-    //   Initialise logging
-    // ----------------------
-    bool logging = false;
-    if ( logging == true ) {
-      LogConvergence( rho, 0, true );
-    }
-
 
     // ------------------------------
     //   Main loop of the algorithm
@@ -291,7 +268,7 @@ namespace CoupledField {
       // Replay Givens rotation from step (k-1)
       // This yields the final l1 and alters l0
       l1 = cNew * beta0 +      sNew  * alpha;
-      l0 = cNew * alpha - Conj(sNew) * beta0;
+      l0 = cNew * alpha - conj(sNew) * beta0;
 
       // Shift Givens coefficients
       cOld = cNew;
@@ -305,7 +282,7 @@ namespace CoupledField {
       // right-hand side vector of the least-squares problem
       bV_->GetEntry( k, aux );
 
-      tmp = -Conj(sNew) * aux;
+      tmp = -conj(sNew) * aux;
       bV_->SetEntry( k+1, tmp );
 
       tmp =       cNew  * aux;
@@ -349,9 +326,7 @@ namespace CoupledField {
 
         // Test for false convergence
         sysMat.CompRes( *pV_, sol, rhs );
-        ptPrecond_->GetPrecondTimer()->Start();
         ptPrecond_->Apply( sysMat, *pV_, *q0_ );
-        ptPrecond_->GetPrecondTimer()->Stop();
         rho = q0_->NormL2();
         if ( rho > threshold ) {
           WARN(" MINRESSolver::Solve\n"
@@ -359,31 +334,21 @@ namespace CoupledField {
       		     << " Predicted res.norm = " << Abs(aux) << '\n'
 		           << " Actual res.norm = " << rho);
         }
-	else {
-	  loop = false;
-	}
+        else {
+          loop = false;
+        }
       }
-
-      // Log convergence
-      if ( logging == true ) {
-	LogConvergence( Abs(aux), k );
-      }
-
-
       // Increase loop counter
       k++;
-
     }
 
     // Compute real residual of preconditioned system
     sysMat.CompRes( *pV_, sol, rhs );
-    ptPrecond_->GetPrecondTimer()->Start();
     ptPrecond_->Apply( sysMat, *pV_, *q0_ );
-    ptPrecond_->GetPrecondTimer()->Stop();
     rho = q0_->NormL2();
 
     // Compose report
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("finalNorm")->SetValue(rho);
     out->Get("numIter")->SetValue((Integer)(k-1));
 

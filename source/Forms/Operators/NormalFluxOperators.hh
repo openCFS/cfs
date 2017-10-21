@@ -49,6 +49,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    NormalFluxOperator(const NormalFluxOperator & other)
+       : IdentityOperator<FE,D,D_DOF,TYPE>(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual NormalFluxOperator * Clone(){
+      return new NormalFluxOperator(*this);
+    }
+
     virtual ~NormalFluxOperator(){
       return;
     }
@@ -144,6 +154,16 @@ namespace CoupledField{
 
     NormalFluxOperatorPiola(){
       return;
+    }
+
+    //! Copy constructor
+    NormalFluxOperatorPiola(const NormalFluxOperatorPiola & other)
+       : IdentityOperatorPiola<FE,D,D_DOF,TYPE>(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual NormalFluxOperatorPiola * Clone(){
+      return new NormalFluxOperatorPiola(*this);
     }
 
     virtual ~NormalFluxOperatorPiola(){

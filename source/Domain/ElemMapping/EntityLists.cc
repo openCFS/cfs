@@ -7,6 +7,7 @@
 namespace CoupledField {
 
   Enum<EntityList::ListType>   EntityList::listType;
+  Enum<EntityList::DefineType> EntityList::defineType;
 
   EntityList::EntityList( Grid* grid ) {
     grid_ = grid;
@@ -31,6 +32,14 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
     EntityList::listType.Add(EntityList::COIL_LIST, "coilList");
+
+    EntityList::defineType.SetName("EntityList::DefineType");
+    EntityList::defineType.Add(EntityList::NO_TYPE, "no_type");
+    EntityList::defineType.Add(EntityList::REGION, "region");
+    EntityList::defineType.Add(EntityList::NAMED_NODES, "named_nodes");
+    EntityList::defineType.Add(EntityList::NAMED_ELEMS, "named_elems");
+
+
   }
   
   void EntityList::Intersect(const StdVector<shared_ptr<EntityList> >& set1,
@@ -80,6 +89,18 @@ namespace CoupledField {
     }
     unionSet.Trim();
   }
+
+  std::string EntityList::ToString() const
+  {
+    std::stringstream ss;
+    ss << "type=" << listType.ToString(GetType());
+    ss << " dt=" << defineType.ToString(GetDefineType());
+    ss << " name=" << GetName();
+    ss << " reg=" << GetRegion();
+    ss << " size=" << GetSize();
+    return ss.str();
+  }
+
 
 
   // --- Elem List ---
@@ -177,7 +198,7 @@ namespace CoupledField {
  
   //! Add an element to the list
   void ElemList::AddElement( const Elem* elem ) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_ELEMLIST)
 {
     list_.Push_back(elem->elemNum);
     ++size_;
@@ -191,6 +212,7 @@ namespace CoupledField {
     }
     size_ = list_.GetSize();
   }
+
 
 
   // --- SurfElem List ---
@@ -257,7 +279,7 @@ namespace CoupledField {
   }
   
   void SurfElemList::AddElement(const SurfElem* elem) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_SURFELEMLIST)
 {
     surfElemList_.Push_back(elem);
     ++size_;
@@ -442,6 +464,7 @@ namespace CoupledField {
      it.coilList_ = this;
      it.pos_ = 0;
      it.size_ = list_.GetSize();
+     it.ptGrid_ = grid_;
      return it;
    }
 
@@ -577,7 +600,7 @@ namespace CoupledField {
 
   //! Adds an element using a shared pointer which is better suited here
   void NcSurfElemList::AddElement( const shared_ptr<NcSurfElem> elem ) {
-#pragma omp critical
+#pragma omp critical (ENTLISTS_NCELEMLIST)
 {
     ncElems_.Push_back(elem);
     ++size_;
@@ -625,6 +648,12 @@ namespace CoupledField {
   
   EntityIterator& EntityIterator::operator++(int) {
     pos_++;
+    return *this;
+  }
+
+  EntityIterator& EntityIterator::operator+=(int val){
+    assert((pos_+val) < size_);
+    pos_ += val;
     return *this;
   }
   

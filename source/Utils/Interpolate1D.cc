@@ -195,7 +195,7 @@ namespace CoupledField {
     // ypn for the first derivative of the interpolating function at 
     // points 0 and n, respectively, this routine returns an array y2[0..n] 
     // that contains the second derivatives of the interpolating function 
-    // at the tabulated points xi. If yp0 and/or ypn are equal to 1 � 10^30 
+    // at the tabulated points xi. If yp0 and/or ypn are equal to 1 . 10^30 
     // or larger, the routine is signaled to set the corresponding boundary
     // condition for a natural spline, with zero second derivative on that
     // boundary.

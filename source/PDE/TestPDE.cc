@@ -21,6 +21,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
 
@@ -140,8 +141,7 @@ namespace CoupledField {
       }
       stiffInt->SetName("StiffnessIntegrator");
 
-      BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
       stiffIntDescr->SetEntities( actSDList, actSDList );
       stiffIntDescr->SetFeFunctions(feFunc,feFunc);

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -164,6 +165,7 @@
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                       <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
+                      <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     </xsd:complexType>
                   </xsd:element>            
                 </xsd:sequence>
@@ -176,6 +178,7 @@
                 <xsd:choice maxOccurs="unbounded">
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
                   <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+                  <xsd:element name="hysteresis_fixpoint" type="DT_PiezoDirectNonLinHyst"/>
                   <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
                   <xsd:element name="piezoMicroHF" type="DT_PiezoDirectNonLinHyst"/> 
                 </xsd:choice>
@@ -194,7 +197,7 @@
   <!-- ======================================= -->
   <!--  Magnetostrictive (Mag-Meech) coupling  -->
   <!-- ======================================= -->
-  <xsd:element name="magnetoStrictionDirect" substitutionGroup="PDEBasicDirectCoupling">
+  <xsd:element name="magnetoStrictDirect" substitutionGroup="PDEBasicDirectCoupling">
     <xsd:complexType>
       <xsd:complexContent>
         <xsd:extension base="DT_BasicDirectCoupling">
@@ -492,8 +495,7 @@
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-
+  
   <!-- Piezo - Case -->
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_PiezoDirectStoreResults">
@@ -533,6 +535,17 @@
                 <xsd:attribute name="type" type="DT_PiezoSurfRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_PiezoElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
           </xsd:complexType>
         </xsd:element>
         
@@ -599,10 +612,16 @@
   <xsd:simpleType name="DT_MagStrictElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStress"/>
-      <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   
+  <xsd:simpleType name="DT_MagStrictRegionResult">
+    <xsd:restriction base="xsd:token">
+	<xsd:enumeration value="magEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+    
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_MagStrictStoreResults">
     <xsd:sequence>
@@ -617,6 +636,18 @@
           </xsd:complexContent>
         </xsd:complexType>
       </xsd:element>
+      <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MagStrictRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+      
+      
     </xsd:sequence>
   </xsd:complexType>
   

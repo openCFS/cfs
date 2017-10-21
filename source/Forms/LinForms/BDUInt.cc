@@ -76,7 +76,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
      UInt nrFncs = 0;
-     VEC_DATA_TYPE fac;
+     VEC_DATA_TYPE fac(0.0);
 
      // Obtain FE element from feSpace and integration scheme
      IntegOrder order;
@@ -86,7 +86,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
      nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm = 
+     shared_ptr<ElemShapeMap> esm =
          ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
@@ -110,6 +110,9 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // obtain d matrix
        this->dCoef_->GetTensor( dMat, lp );
        
+       //std::cout << "dMat" << std::endl;
+       //std::cout << dMat << std::endl;
+       
        //calc factor
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
        fac *= factor_;
@@ -117,12 +120,34 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
        
-       bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
+       //std::cout << "bMat" << std::endl;
+       //std::cout << bMat << std::endl;
+       
+       //bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
+       bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumCols());
+       
        // Calculate BdMat
-       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0);
+       
+       //std::cout << "bdMat" << std::endl;
+      // std::cout << bdMat << std::endl;
+       
+#define USE_BLAS_VERSION
+
+#ifdef USE_BLAS_VERSION
+       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0); // bdMat = 1.0 * bMat * dMat + 0.0 * bdMat
+#else
+       bdMat = (bMat * dMat) * fac;
+#endif
+
+
+
 
        rhsCoefs_->GetVector(cVec,lp);  
        //elemVec += bMat * cVec * fac;
+       
+       //std::cout << "cVec" << std::endl;
+       //std::cout << cVec << std::endl;       
+       
        elemVec += bdMat * cVec;
      }
 

@@ -4,6 +4,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionAccumulator.cc
   CoefFunctionApprox.cc
   CoefFunctionFormBased.cc
+  CoefFunctionCache.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
@@ -12,13 +13,17 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionGridNodalSource.cc
   CoefFunctionGridNodalDefault.cc
   CoefFunctionGridNodalInterp.cc
+  CoefFunctionMeanFlowConvection.cc
+  CoefFunctionImpedanceModel.cc
   CoefFunctionMulti.cc
+  CoefFunctionOpt.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
+  CoefFunctionMapping.cc
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
-  CoefFunctionMeanFlowConvection.cc
+  CoefFunctionHyst.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
@@ -33,7 +38,13 @@ ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 
 SET(TARGET_LL
   scattereddatainout
+  ${MUPARSER_LIBRARY}
   )
+
+IF(USE_FLANN)
+  # flann must be linked to because it uses LZ4 (directly included in the FLANN lib)
+  LIST(APPEND TARGET_LL ${FLANN_LIBRARY})
+ENDIF(USE_FLANN)
 
 TARGET_LINK_LIBRARIES(coeffunction
   ${TARGET_LL}

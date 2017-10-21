@@ -1,0 +1,7 @@
+INCLUDE("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+# this variables are needed by ZIP_TO_CACHE() in the case of no given manifest
+SET(CFS_ARCH_STR @CFS_ARCH_STR@)
+SET(CMAKE_CURRENT_BINARY_DIR @CMAKE_CURRENT_BINARY_DIR@)
+
+ZIP_TO_CACHE(@PRECOMPILED_PCKG_FILE@ @TMP_DIR@)

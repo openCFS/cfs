@@ -2,6 +2,8 @@
 #define ELECTROMAGNETICMATERIAL_DATA
 
 #include "BaseMaterial.hh"
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
+#include "Utils/LinInterpolate.hh"
 
 namespace CoupledField {
 
@@ -47,6 +49,10 @@ namespace CoupledField {
     void GetScalar( Complex& param, MaterialType matType, 
 		    Global::ComplexPart dataType ) const;
 
+    //! get a scalar integer material parameter (needed for hysteresis only)
+    void GetScalar( Integer& param,
+                    MaterialType matType ) const;
+
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
@@ -66,17 +72,24 @@ namespace CoupledField {
                                                SubTensorType type,
                                                Global::ComplexPart matDataType,
                                                PtrCoefFct dependency );
-    
+
     //! Return scalar-valued coefficient function for nonlinear function 
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct fluxCoef );
+ 
+    //! only valid for magnetostrictive coupling; nu = nu(S)
+    virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct mechStrain );                                       
+
     //@}
     //============================ HYSTERESIS ===================================
 
     //Initialize hysteresis
-    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
-                           bool isInverse = false, bool computeInverse = false );
+    //Already defined in base class; never called?
+    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+    //                       bool isInverse = false, bool computeInverse = false );
 
     //set values for differential material approach
     virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
@@ -118,7 +131,9 @@ namespace CoupledField {
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
 
-    
+   void ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix, MaterialType matType, 
+                          SubTensorType subTensor) const;
+
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
     
@@ -132,6 +147,11 @@ namespace CoupledField {
     Vector<Double> matDiffprevious_;
 
     Double Xsat_, Ysat_;
+
+    //! CoefFunction for anisotropic material which is passed to its derivative
+    //! used to calculate an approximation of the derivative with respect to the angle
+    shared_ptr<CoefFunctionApproxAniso> baseCoefAniso_;
+
   };
 
 } // end of namespace

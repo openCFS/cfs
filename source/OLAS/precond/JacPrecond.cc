@@ -73,7 +73,7 @@ namespace CoupledField {
   //   Setup of preconditioner
   // ***************************
   template<class T_storage,typename T>
-  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat, PtrParamNode analysis_id ) {
+  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {
@@ -124,20 +124,20 @@ namespace CoupledField {
   //   B L O C K   J A C O B I   P R E C O N D I T I O N E R  
   //   I M P L E M E N T A T I O N    P A R T
   // ========================================================================
-  template<class T_Stype>
-  BlockJacPrecondImpl<T_Stype>::BlockJacPrecondImpl( const StdMatrix &mat ) {
+  template<class T>
+  BlockJacPrecondImpl<T>::BlockJacPrecondImpl( const StdMatrix &mat ) {
     // nothing to be done here
   }
   
-  template<class T_Stype>
-   BlockJacPrecondImpl<T_Stype>::~BlockJacPrecondImpl( ) {
+  template<class T>
+   BlockJacPrecondImpl<T>::~BlockJacPrecondImpl( ) {
     numRows_ = 0;
     factors_.Clear();
   }
   
   
-  template<class T_Stype>
-  void BlockJacPrecondImpl<T_Stype>::Setup( StdMatrix &mat ) {
+  template<class T>
+  void BlockJacPrecondImpl<T>::Setup( StdMatrix &mat ) {
     EXCEPTION("Not imeplemented for the general case");
   }
   template<>
@@ -210,9 +210,8 @@ namespace CoupledField {
       
   
   
-  template<class T_Stype>
-  void BlockJacPrecondImpl<T_Stype>::Apply( const Vector<T_Stype> &r,
-                                            Vector<T_Stype> &z ) {
+  template<class T>
+  void BlockJacPrecondImpl<T>::Apply( const Vector<T> &r, Vector<T> &z ) {
     EXCEPTION("Not implemented for the general case");
   }
   
@@ -242,9 +241,8 @@ namespace CoupledField {
     }
   }
   
-  template<class T_Stype>
-    void BlockJacPrecondImpl<T_Stype>::
-       GetPrecondSysMat( BaseMatrix& sysMat ) {
+  template<class T>
+    void BlockJacPrecondImpl<T>::GetPrecondSysMat( BaseMatrix& sysMat ) {
     EXCEPTION( "Not implemeneted for the general case" )
   }
   
@@ -314,8 +312,7 @@ namespace CoupledField {
    //   Setup of preconditioner
    // ***************************
    template<class T_storage,typename T>
-   void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat,
-                                             PtrParamNode analysis_id ) {
+   void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat) {
      this->pimpl_->Setup( sysmat );
    }
 

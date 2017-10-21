@@ -8,7 +8,6 @@
 
 namespace CoupledField
 { 
-
   Hysteresis::Hysteresis(Integer numElem)
   {
 
@@ -18,6 +17,4 @@ namespace CoupledField
   Hysteresis::~Hysteresis()
   {
   }
-
-
 }

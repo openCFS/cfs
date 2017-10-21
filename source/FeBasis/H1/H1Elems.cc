@@ -14,10 +14,28 @@ namespace CoupledField {
     completeType_ = SERENDIPITY_TYPE;
   }
   
+  FeH1::FeH1(const FeH1 & other)
+       : BaseFE(other)
+  {
+    this->completeType_ = other.completeType_;
+    this->hasICModes_ = other.hasICModes_;
+    if(other.preComputShFnc_){
+      this->shapeFncsAtIp_ = boost::unordered_map<Integer, Vector<Double> >(other.shapeFncsAtIp_);
+      this->shapeFncDerivsAtIp_ = boost::unordered_map<Integer, Matrix<Double> >(other.shapeFncDerivsAtIp_);
+      if(this->hasICModes_){
+        this->icModesAtIp_ = boost::unordered_map<Integer, Vector<Double> >(other.icModesAtIp_);
+        this->icModesDerivsAtIp_ = boost::unordered_map<Integer, Matrix<Double> >(other.icModesDerivsAtIp_);
+      }
+    }
+    this->locDeriv_ = other.locDeriv_;
+    this->locDeriv_.Init();
+  }
+
+
   FeH1::~FeH1() {
     // clear map with pre-computed shape function
     shapeFncsAtIp_.clear();
-    shapeFncsAtIp_.clear();
+    shapeFncDerivsAtIp_.clear();
     icModesAtIp_.clear();
     icModesDerivsAtIp_.clear();
   }
@@ -41,34 +59,33 @@ namespace CoupledField {
   
   void FeH1::GetGlobDerivShFnc( Matrix<Double>& deriv, const LocPointMapped& lpm,
                                 const Elem* elem, UInt comp ){
-    // Get local derivative
-    Matrix<Double> locDeriv;
-    
     //check if the shfunction is already computed
     if(shapeFncDerivsAtIp_.find(lpm.lp.number) == 
         shapeFncDerivsAtIp_.end() || comp !=1 ){
-      CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
+      CalcLocDerivShFnc( locDeriv_, lpm.lp.coord, elem, comp);
       
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lpm.lp.number != LocPoint::NOT_SET ) {
-        shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
+        shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv_;
       }
     }else{
-      locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
+      locDeriv_ = shapeFncDerivsAtIp_[lpm.lp.number];
     }
-    deriv = locDeriv * lpm.jacInv;
+    deriv = locDeriv_ * lpm.jacInv;
   }
   
-  void FeH1::GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
-                               const Elem* elem, UInt comp  ) {
+  Matrix<Double>& FeH1::GetLocDerivShFnc( const LocPoint& lp,
+                                          const Elem* elem, UInt comp  ) {
+
     if(shapeFncDerivsAtIp_.find(lp.number) == shapeFncDerivsAtIp_.end()){
-      CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
+      CalcLocDerivShFnc( locDeriv_, lp.coord, elem, comp);
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lp.number != LocPoint::NOT_SET) {
-        shapeFncDerivsAtIp_[lp.number] = deriv;
+        shapeFncDerivsAtIp_[lp.number] = locDeriv_;
       }
+      return locDeriv_;
     }else{
-      deriv = shapeFncDerivsAtIp_[lp.number];
+      return  shapeFncDerivsAtIp_[lp.number];
     }
   }
   
@@ -94,22 +111,20 @@ namespace CoupledField {
 
   void FeH1::GetGlobDerivShFncICModes( Matrix<Double>& deriv, const LocPointMapped& lpm,
                                        const Elem* elem, UInt comp ){
-    // Get local derivative
-    Matrix<Double> locDeriv;
 
     //check if the shfunction is already computed
     if(icModesDerivsAtIp_.find(lpm.lp.number) == 
         icModesDerivsAtIp_.end() || comp !=1 ){
-      CalcLocDerivShFncICModes( locDeriv, lpm.lp.coord, elem, comp);
+      CalcLocDerivShFncICModes( locDeriv_, lpm.lp.coord, elem, comp);
 
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lpm.lp.number != LocPoint::NOT_SET ) {
-        icModesDerivsAtIp_[lpm.lp.number] = locDeriv;
+        icModesDerivsAtIp_[lpm.lp.number] = locDeriv_;
       }
+      deriv = locDeriv_ * lpm.jacInv;
     }else{
-      locDeriv = icModesDerivsAtIp_[lpm.lp.number];
+      deriv = icModesDerivsAtIp_[lpm.lp.number] * lpm.jacInv;
     }
-    deriv = locDeriv * lpm.jacInv;
   }
 
   void FeH1::GetLocDerivShFncICModes( Matrix<Double>& deriv, const LocPoint& lp,

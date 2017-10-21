@@ -24,7 +24,7 @@ namespace CoupledField {
   //! The notion ILU(0) indicates that no fill-in
   //! is allowed in the factorisation. Thus the matrices \f$A\f$ and \f$L+U\f$
   //! will have the same sparsity pattern.
-  //! Application of the ILU preconditioner means computation of
+  //! App::Type of the ILU preconditioner means computation of
   //! \f$M^{-1}r=z\f$. This is achieved by solving \f$Mz=r\f$ for \f$z\f$.
   //! The latter can simply be performed by a pair of backward/forward
   //! substitutions using the approximate factors \f$L\f$ and \f$U\f$.
@@ -38,13 +38,6 @@ namespace CoupledField {
     using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Apply;
     using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Setup;
 
-    //!
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-    //!
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-    //!
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     //! Constructor (for use in GenerateStdPrecondObject)
     ILU0Precond( const StdMatrix &mat, PtrParamNode precondNode,
 		 PtrParamNode olasInfo );
@@ -54,7 +47,7 @@ namespace CoupledField {
 
     //! Apply ILU preconditioner
     
-    //! Application of the ILU preconditioner means computation of
+    //! App::Type of the ILU preconditioner means computation of
     //! \f$M^{-1}r=z\f$. This is achieved by solving \f$Mz=r\f$ for \f$z\f$.
     //! The latter can simply be done by performing a pair of backward/forward
     //! substitution using the approximate factors \f$L\f$ and \f$U\f$.
@@ -68,7 +61,7 @@ namespace CoupledField {
     //! the factors sparse, the factorisation is only incomplete, i.e.
     //! A = LU + R with a remainder matrix R. LU preserves the sparsity pattern
     //! of A, so this is an ILU(0) factorisation.
-    void Setup( CRS_Matrix<T> & sysmat, PtrParamNode analysis_id );
+    void Setup( CRS_Matrix<T> & sysmat );
 
     //! Query type of preconditioner object
 
@@ -98,7 +91,7 @@ namespace CoupledField {
     UInt dim_;
     
     //! nonzero entries
-    T_Mtype *ilu_data_;
+    T *ilu_data_;
     
     //! row pointer
     UInt *ilu_rptr_;

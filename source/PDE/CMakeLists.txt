@@ -13,16 +13,20 @@ SET(PDE_SRCS
   SinglePDE.cc
   StdPDE.cc
   AcousticPDE.cc
+  AcousticSplitPDE.cc
   AcousticMixedPDE.cc
   ElecCurrentPDE.cc
   WaterWavePDE.cc
   FlowPDE.cc
   TestPDE.cc
-  )
+  LatticeBoltzmannPDE.cc
+)
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
+INCLUDE_DIRECTORIES(${LBMSOLVER_DIR})
 
 SET(TARGET_LL
+  lbm_solver
   datainout
   domain
   algsys-olas
@@ -38,6 +42,7 @@ SET(TARGET_LL
   coeffunction
   linforms
   bilinforms
+  
 )
 
 IF(USE_HDF5)

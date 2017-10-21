@@ -30,7 +30,14 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "Utils/Timer.hh"
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
+#include "Driver/AnalysisID.hh"
+
+#include "MatVec/CRS_Matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
 
 DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
@@ -45,13 +52,13 @@ namespace CoupledField {
   // ***********************
   AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
   {
+    size_ = 0;
     myParam_ = param;
     myInfo_ = info;
     graphManager_       = NULL;
     solver_             = NULL;
     eigenSolver_        = NULL;
     precond_            = NULL;
-    
     
     numFcts_            = 0;
     numBlocks_          = 0;
@@ -79,6 +86,7 @@ namespace CoupledField {
     eigenValError_         = NULL;
 
     idbcHandler_           = NULL;
+
     assembleDirichletToSysMat_ = false;
     
     // Default is to always use a system matrix
@@ -100,9 +108,6 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
-    
-    // create timer object
-    graphTimer_ = boost::shared_ptr<Timer>(new Timer());
   }
 
 
@@ -298,11 +303,9 @@ namespace CoupledField {
         BaseMatrix::DOUBLE;
 
     // Generate empty SBM vectors
-    rhs_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+    rhs_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
-      sol_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+      sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
       
       if ( rhs_ == NULL || sol_ == NULL ) {
         EXCEPTION( WRONG_CAST_MSG );
@@ -443,7 +446,7 @@ namespace CoupledField {
     }
   }
 
-  void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
+  void AlgebraicSys::SetupPrecond()  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
     // check, if system was already created
@@ -454,21 +457,24 @@ namespace CoupledField {
     
     // start setup timer of preconditioner
     precond_->GetSetupTimer()->Start();
-    
+
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( onlyOneMatrixBlock_ ) {
-      precond_->Setup( (*effMat_)(0,0), analysis_id);
-    } else {
-      precond_->Setup( *(effMat_), analysis_id);
+    if( useAMG_ ){
+        precond_->SetupMG( (*effMat_)(0,0), *auxMatAMG_, amgType_, edgeIndNode_, nodeNumIndex_);
+    }else{
+      if( onlyOneMatrixBlock_ ) {
+        precond_->Setup( (*effMat_)(0,0));
+      } else {
+        precond_->Setup( *(effMat_));
+      }
     }
-    
     // stop setup timer of preconditioner
     precond_->GetSetupTimer()->Stop();
 
   }
 
-  void AlgebraicSys::SetupSolver(PtrParamNode analysis_id) {
+  void AlgebraicSys::SetupSolver() {
     
     LOG_TRACE(algSys) << "Setup of solver";
     // check, if system was already created
@@ -483,9 +489,9 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
-      solver_->Setup( (*effMat_)(0,0), analysis_id );
+      solver_->Setup( (*effMat_)(0,0));
     } else {
-      solver_->Setup( *effMat_, analysis_id);
+      solver_->Setup( *effMat_);
     }
     
    // in any case, pass preconditioner object to solver, if created
@@ -499,8 +505,7 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch ) {
+  void AlgebraicSys::SetupEigenSolver(UInt numFreq, Double shift, bool isQuadratic, bool sort, bool bloch) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -532,9 +537,7 @@ namespace CoupledField {
       }
 
       // Setup the quadratic eigenvalue solver
-      eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                           (*sysMat_[MASS])(0,0),
-                           (*sysMat_[DAMPING])(0,0), numFreq, shift );
+      eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), (*sysMat_[DAMPING])(0,0), numFreq, shift, sort);
     } else {
       if( dampPresent == true ) {
         WARN("Although a damping matrix is present, only a generalized "
@@ -544,13 +547,10 @@ namespace CoupledField {
       
       if( massPresent == true ) {
         // Setup the eigenvalue solver for generalized EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             (*sysMat_[MASS])(0,0),
-                             numFreq, shift, bloch);
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), numFreq, shift, sort, bloch);
       } else {
         // Setup the eigenvalue solver for standard EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             numFreq, shift );
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), numFreq, shift, sort);
       }
     }
 
@@ -576,15 +576,18 @@ namespace CoupledField {
 
   }
 
-
-  void AlgebraicSys::AddIDBCToRHS() {
-    LOG_TRACE(algSys) << "Add IDBC to RHS ";
-
-    idbcHandler_->AddIDBCToRHS( rhs_ );
+  void AlgebraicSys::SetOldDirichletValues() {
+    idbcHandler_->ToString();
+    idbcHandler_->SetOldDirichletValues();
   }
 
+  void AlgebraicSys::AddIDBCToRHS(bool deltaIDBC) {
+    LOG_TRACE(algSys) << "Add IDBC to RHS ";
 
-  void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
+    idbcHandler_->AddIDBCToRHS( rhs_, deltaIDBC );
+  }
+
+  void AlgebraicSys::Solve(bool setIDBC, bool deltaIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
 
@@ -601,13 +604,10 @@ namespace CoupledField {
       PtrParamNode sNode = myParam_->Get("solverList");
       PtrParamNode pNode = myParam_->Get("precondList");
 
-      BaseEigenSolver * evs = 
-          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_, 
-                                     esNode, sNode, pNode,
-                                     myInfo_->Get("solve_eigen") );
-      PtrParamNode in = myInfo_->
-          Get(ParamNode::PN_PROCESS)->Get("conditionNumber", ParamNode::APPEND);
-      in->Get("analysis_id")->SetValue(analysis_id);
+      BaseEigenSolver * evs = GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_,
+                                     esNode, sNode, pNode, myInfo_->Get("solve_eigen") );
+      PtrParamNode in = myInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+
       try {
         evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
                                   ev, err );
@@ -633,7 +633,11 @@ namespace CoupledField {
     }
     // ======================================================================
 
-    myInfo_->GetRoot()->ToFile(); // write current info state
+    if(domain->GetBasePDE()->GetName() == "LatticeBoltzmann") // we have to adjust size of solution vector for LBM optimization
+    {
+    	LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
+    	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
+    }
 
     // start timer of solver
     solver_->GetSolveTimer()->Start();
@@ -649,90 +653,20 @@ namespace CoupledField {
     // we should insert the Dirichlet values into it
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
         usingPenalty_ ) {
-      idbcHandler_->SetDofsToIDBC( effSol_ );
-      (*cla) << " Inserted Dirichlet values into initial guess"
-          << std::endl;
+      idbcHandler_->SetDofsToIDBC( effSol_, deltaIDBC );
     }
 
     // Assume that everything will go well
-    PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
+    PtrParamNode out = myInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modify the right-hand side vector.
     // Note: It is mandatory to incorporate the IDBC values to the
     // complete RHS.
     if ( setIDBC ) 
-      idbcHandler_->AddIDBCToRHS( rhs_ );
+      idbcHandler_->AddIDBCToRHS( rhs_, deltaIDBC );
 
-    /* BLOCH TODO
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
-    // the solve part is commentet out, I see no reason to export linsys also here, it would
-    // require a generalization anyway. Fabian 16.11.07
-    // check if we do export stuff
-    PtrParamNode els = solStrat_->GetExportLinSysNode();
-    std::string file;
-    std::string base;
 
-    if(els) {
-      std::ostringstream os;
-      std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
-      os << name;
-      std::string id = analysis_id->Get("analysis_id")->As<std::string>();
-      boost::replace_all(id, ":", "_");
-      os << "_" << id;
-      base = os.str();
-    }
-
-    BaseMatrix::OutputFormat format = BaseMatrix::MATRIX_MARKET;
-    if( els->Has("format") ) {
-      std::string fmt = els->Get("format")->As<std::string>();
-      
-      format = BaseMatrix::outputFormat.Parse(fmt);
-    }
-    
-    // check if we do not only want the solution
-    if( els->Has("solution") &&  
-        els->Get("solution")->As<std::string>() != "exclusive") {
-
-      sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
-
-      switch (precond_->GetPrecondType()) {
-      case BasePrecond::NOPRECOND:
-      case BasePrecond::ID:
-        // don't export anything
-        break;
-      default:
-        // HARD-CODED: Export also preconditioner
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( onlyOneMatrixBlock_ ) {
-          precond_->GetPrecondSysMat((*copy)(0,0));
-        } else {
-          precond_->GetPrecondSysMat(*copy);
-        }
-        copy->Export((base+"_precond").c_str(), format, NULL);
-
-        delete copy;
-      }
-
-      if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
-        sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);
-      
-      if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
-        sysMat_[DAMPING]->Export((base+"_damping").c_str(), format, NULL);
-
-      if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
-        sysMat_[STIFFNESS]->Export((base+"_stiffness").c_str(), format, NULL);
-      
-      if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
-        sysMat_[AUXILIARY]->Export((base+"_aux").c_str(), format, NULL);
-
-      // rhs is only in harwell-boing included
-      rhs_->Export( (base+"_rhs").c_str(), format );
-    }
-    if(els && els->HasByVal("initialGuess", true))
-      sol_->Export((base+"_intial_guess").c_str(), format);
-
-    */
 
     // -------------------------------------------
     //  Adjust RHS for due to static condensation
@@ -763,15 +697,11 @@ namespace CoupledField {
     ExportLinSys(false, true, false); // pre_solve
 
     // Trigger solution
-    if( onlyOneMatrixBlock_ ) { 
-      solver_->Solve( (*effMat_)(0,0), 
-                      (*effRhs_)(0), (*effSol_)(0),
-                      analysis_id);
-    } else {
-      solver_->Solve( *effMat_, *effRhs_, 
-                      *effSol_, analysis_id );
-    }
-    
+    if( onlyOneMatrixBlock_ )
+      solver_->Solve( (*effMat_)(0,0), (*effRhs_)(0), (*effSol_)(0));
+    else
+      solver_->Solve( *effMat_, *effRhs_, *effSol_);
+
     // -------------------------------------------
     //  Adjust Sol for due to static condensation
     // -------------------------------------------
@@ -808,14 +738,9 @@ namespace CoupledField {
       delete tmp;
     }
 
-    // BLOCH TODO
-    // Export solution if desired
-    // if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-    //  sol_->Export((base+"_sol").c_str(), format);
-
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
-      idbcHandler_->RemoveIDBCFromRHS( rhs_ );
+      idbcHandler_->RemoveIDBCFromRHS( rhs_, deltaIDBC );
 
     // Check that solution went fine, if not issue a warning
     if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
@@ -823,6 +748,9 @@ namespace CoupledField {
           << "further diagnostics!");
     }
     
+
+    ExportLinSys(false, false, true); // post_solve
+
     // stop timer associated with solver
     solver_->GetSolveTimer()->Stop();
   }
@@ -832,81 +760,103 @@ namespace CoupledField {
   {
     assert((setup && !pre_solve && !post_solve) || (!setup && pre_solve && !post_solve) || (!setup && !pre_solve && post_solve));
 
+    AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+
+    LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " id=" << id.ToString();
+
     if(!solStrat_->GetParamNode()->Has("exportLinSys"))
       return;
 
     PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
 
-    // TODO consider multiple systems here, this was done by the analysis_id
     std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+    if(id.ToString(true) != "") // filename variant
+      base += "_" + id.ToString(true);
 
-    // we export the system always but on only_check_solution and exclusive solution
-    bool exclusive = els->Has("solution") ? els->Get("solution")->As<std::string>() == "exclusive" : false;
+    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
+    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
 
-    BaseMatrix::OutputFormat format = els->Has("format") ? BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>())
-                                                         : BaseMatrix::MATRIX_MARKET;
+    LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
-    if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
-              sysMat_[AUXILIARY]->Export(base + "_aux", format);
-
-    if(setup && !exclusive)
+    if(setup)
     {
-      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
-        EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
+      // if(els->Get("format")->As<std::string>()  == "harwell-boeing") ???
+      //  EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
 
-
-      // Export also preconditioner if we have one
-      if(precond_ != NULL)
+      if(els->Get("precond")->As<bool>())
       {
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        assert(precond_ != NULL); // seems to be Id by default !?
+        LOG_DBG(algSys) << "ELS precond: " << BasePrecond::precondType.ToString(precond_->GetPrecondType());
+
+        SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
         if(onlyOneMatrixBlock_)
           precond_->GetPrecondSysMat((*copy)(0,0));
         else
           precond_->GetPrecondSysMat(*copy);
-        copy->Export(base + "_precond", format);
+        copy->Export(base + "_precond", mat_format);
+        delete copy;
       }
 
-      // BLOCH check split_system doesn't exist any more!
-      if(els->HasByVal("split_system", true))
-      {
-        if(sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
-          sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
+      if(els->Get("system")->As<bool>() && sysMat_.find(SYSTEM) != sysMat_.end() && sysMat_[SYSTEM] != NULL)
+        sysMat_[SYSTEM]->Export(base + "_sys", mat_format);
 
-        if(sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
-          sysMat_[DAMPING]->Export(base + "_damping", format);
+      if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
+        sysMat_[STIFFNESS]->Export(base + "_stiffness", mat_format);
 
-        if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
-          sysMat_[AUXILIARY]->Export(base + "_aux", format);
+      if(els->Get("stiffness_update")->As<bool>() && sysMat_.find(STIFFNESS_UPDATE) != sysMat_.end() && sysMat_[STIFFNESS_UPDATE] != NULL)
+        sysMat_[STIFFNESS_UPDATE]->Export(base + "_stiffness_update", mat_format);
 
-        // check if the export _system is really ok in the else case
-        assert(sysMat_[SYSTEM]->GetMaxDiag() == 0.0);
-      }
-      else
-      {
-        sysMat_[SYSTEM]->Export(base + "_system", format);
-      }
+      if(els->Get("damping")->As<bool>() && sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
+        sysMat_[DAMPING]->Export(base + "_damping", mat_format);
+
+      if(els->Get("damping_update")->As<bool>() && sysMat_.find(DAMPING_UPDATE) != sysMat_.end() && sysMat_[DAMPING_UPDATE] != NULL)
+        sysMat_[DAMPING_UPDATE]->Export(base + "_damping_update", mat_format);
+
+      if(els->Get("mass")->As<bool>() && sysMat_.find(MASS) != sysMat_.end() && sysMat_[MASS] != NULL)
+        sysMat_[MASS]->Export(base + "_mass", mat_format);
+
+      if(els->Get("mass_update")->As<bool>() && sysMat_.find(MASS_UPDATE) != sysMat_.end() && sysMat_[MASS_UPDATE] != NULL)
+        sysMat_[MASS_UPDATE]->Export(base + "_mass_update", mat_format);
+
+      if(els->Get("auxiliary")->As<bool>() && sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
+        sysMat_[AUXILIARY]->Export(base + "_aux", mat_format);
     }
-    if(pre_solve && !exclusive)
+
+    if(pre_solve)
     {
       // rhs is only in harwell-boing included
-      rhs_->Export(base + "_rhs.vec", format);
+      if(els->Get("rhs")->As<bool>())
+        rhs_->Export(base + "_rhs", vec_format);
 
-      if(els->HasByVal("initialGuess", true))
-        sol_->Export(base + "_intial_guess.vec", format);
+      if(els->Get("initialGuess")->As<bool>())
+        sol_->Export(base + "_intial_guess", vec_format);
     }
+
     if(post_solve)
     {
-      // Export solution if desired
-      if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-        sol_->Export(base + "_sol.vec", format);
+      // Export solution if desired. In the eigenvalue case the solutions are the eigenvectors
+      if(els->Get("solution")->As<bool>())
+      {
+        if(!eigenSolver_)
+          sol_->Export(base + "_sol", vec_format);
+        else
+        {
+          // we have not one solution but all the eigenvectors
+          assert(eigenValues_ != NULL);
+          for(unsigned int i = 0; i < eigenValues_->GetSize(); i++)
+          {
+            GetEigenMode(i);
+            sol_->Export(base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+          }
+        }
+      }
     }
   }
 
 
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Double>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating real-valued eigenfrequencies";
 
     // Trigger calculation of eigenvalues
@@ -918,11 +868,12 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true); // the modes are actually not the solution
   }
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Complex>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating complex-valued eigenfrequencies";
 
     // Check, if eigenvalue solver is quadratic, as only in this case
@@ -942,19 +893,21 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true);
   }
 
-  void AlgebraicSys::CalcEigenMode( UInt numMode )  {
+  void AlgebraicSys::GetEigenMode( UInt numMode )  {
     
-    LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
+    LOG_DBG(algSys) << "GEM #" << numMode;
     if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-       eigenSolver_->CalcComplexEigenMode( numMode, solHelp );
+       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+       eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
-      Vector<Complex> & solHelp =
-        dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-      eigenSolver_->CalcEigenMode( numMode, solHelp );
+      Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+      eigenSolver_->GetEigenMode(numMode, solHelp);
     }
+    LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
 
   void AlgebraicSys::GraphSetupInit( UInt numFcts, 
@@ -962,10 +915,6 @@ namespace CoupledField {
     
     LOG_DBG(algSys) << "Setup matrix graph for " << numFcts << " functions.";
     LOG_DBG(algSys) << "Use distinct graphs:" << useDistinctGraphs << std::endl;
-    
-    
-    // start timer for graph setup
-    graphTimer_->Start();
     
     distinctMatGraphs_ = useDistinctGraphs;
     
@@ -975,6 +924,12 @@ namespace CoupledField {
     lastFreeEqnPerFct_.Resize(numFcts);
     eqnToSBMBlock_.Resize(numFcts);
     
+    // store flag for applying algebraic multigrid precond/solver
+    useAMG_ = false;
+    if(myParam_->Has("precondList")){
+      useAMG_ = myParam_->Get("precondList")->Has("MG");
+    }
+
     // store flag for applying static condensation
     statCond_ = solStrat_->UseStaticCondensation();
     myInfo_->Get("setup")->Get("staticCondensation")->SetValue(statCond_);
@@ -1461,6 +1416,16 @@ namespace CoupledField {
     for( UInt i = 0; i < numBlocks_; i++ ) {
       size_ += blockInfo_[i]->size;
     }
+    StdVector< StdVector<UInt> > toBeCopied(numBlocks_);
+    rowIndList1_.Set(toBeCopied);
+    rowList1_.Set(toBeCopied);
+    rowIndList2_.Set(toBeCopied);
+    rowList2_.Set(toBeCopied);
+    colIndList1_.Set(toBeCopied);
+    colList1_.Set(toBeCopied);
+    colIndList2_.Set(toBeCopied);
+    colList2_.Set(toBeCopied);
+
 
     // Determine symmetry type of diagonal SBM-blocks.
     // Up to now, we know only the symmetry of the matrices w.r.t. the
@@ -1547,8 +1512,6 @@ namespace CoupledField {
       } // loop functions
     } // loop blocks
     
-    // stop timer for graph setup
-    graphTimer_->Stop();
   }
 
 
@@ -1604,11 +1567,14 @@ namespace CoupledField {
                 "AlgebraicSys::FinishRegistration() was called" );
     }
 #endif
+    StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
+    StdVector<UInt>& colBlocks    = colBlocks_.Mine();
+    StdVector<UInt>& rowNums      = rowNums_.Mine();
+    StdVector<UInt>& colNums      = colNums_.Mine();
       
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    StdVector<UInt> blockNums1, blockNums2, indices1, indices2;
-    MapFctIdEqnToIndex(fctId1, eqnNrs1, blockNums1, indices1);
-    MapFctIdEqnToIndex(fctId2, eqnNrs2, blockNums2, indices2);
+    MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
+    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
 
     // Quirk: If fctId1 == fctId2, we normally
     // need not set the counterPart. If however, they are now in
@@ -1617,17 +1583,19 @@ namespace CoupledField {
     // blockSystem
     if( fctId1 == fctId2 ) 
       setCounterPart = true;
-    graphManager_->SetElementPos( blockNums1, indices1, 
-                                  blockNums2, indices2,
+
+    graphManager_->SetElementPos( rowBlocks, rowNums,
+                                  colBlocks, colNums,
                                   matrixType,
                                   setCounterPart );
+
   }
 
   void AlgebraicSys::MapFctIdEqnToIndex( const FeFctIdType fctId,
                                          const StdVector<Integer>& eqns,
                                          StdVector<UInt>& blockNums,
                                          StdVector<UInt>& indices ) {
-    LOG_DBG(algSys) << "Mapping fctId,eqnNr to blockNum,indices";
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
     
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
@@ -1873,12 +1841,16 @@ namespace CoupledField {
     
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
-    if( newRHS.GetSize() != numFcts_ ) {
-      EXCEPTION( "New rhs consists of " << newRHS.GetSize()
-                 << " sub-vectors, the RHS of the algebraic system of "
-                 << rhs_->GetSize() << " entries." )
+    if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
+      EXCEPTION( "New rhs consists of " << newRHS.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
     }
     
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
+    	*(rhs_) = newRHS;
+    	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+    	return;
+    }
+
     // loop over all feFctIDs
     for(UInt i = 0; i < numFcts_; ++i ) {
 
@@ -1889,9 +1861,8 @@ namespace CoupledField {
   
       // security check: ensure that sub-vector has the same size
       // as the block indices
-      if( newRHS(i).GetSize() != indices.GetSize() ) {
-        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
-                   "of indices do not match!");
+      if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
       }
       
       if( newRHS.GetEntryType() == BaseMatrix::DOUBLE ) {
@@ -1944,7 +1915,8 @@ namespace CoupledField {
                                        FeFctIdType fctId2,
                                        const StdVector<Integer>& eqnNrs2,
                                        bool setCounterPart,
-                                       bool noStaticCond) {
+                                       bool noStaticCond,
+                                       bool isDiagonal) {
     
     LOG_DBG(algSys) << "Setting element matrix for fctIds ("
                      << fctId1 << ", " << fctId2 << ")";
@@ -1953,27 +1925,56 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
     LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
     LOG_DBG3(algSys) << "noStaticCond is:\n " << noStaticCond;
+    LOG_DBG2(algSys) << "isDiagonal: " << (isDiagonal ? "yes" : "no");
     
     // Security check: check if we have as many equations as numRows/Cols
     // of the matrix
+    if(eqnNrs1.GetSize() != elemMat.GetNumRows()){
+      EXCEPTION("dummy1 " << eqnNrs1.GetSize() << " : eMat " << elemMat.GetNumRows() )
+    }
+    if(eqnNrs2.GetSize() != elemMat.GetNumCols()){
+      EXCEPTION("dummy2 " << eqnNrs2.GetSize() << " : eMat " << elemMat.GetNumCols() )
+    }
     assert( eqnNrs1.GetSize() == elemMat.GetNumRows());
     assert( eqnNrs2.GetSize() == elemMat.GetNumCols());
     
+    //obtain thread local cache lists
+    UInt tNum = 0;
+#ifdef USE_OPENMP
+    tNum = omp_get_thread_num();
+#endif
+    StdVector< StdVector<UInt> >& rowIndList1  = rowIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList1     = rowList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowIndList2  = rowIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList2     = rowList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList1  = colIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList1     = colList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList2  = colIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList2     = colList2_.Mine(tNum);
+    StdVector<UInt>& rowBlocks                 = rowBlocks_.Mine(tNum);
+    StdVector<UInt>& colBlocks                 = colBlocks_.Mine(tNum);
+    StdVector<UInt>& rowNums                   = rowNums_.Mine(tNum);
+    StdVector<UInt>& colNums                   = colNums_.Mine(tNum);
+
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    StdVector<UInt> rowBlocks, colBlocks, rowNums, colNums;
     MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
-    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
-    
-    
-    // Now, dismantle equations
-    StdVector<StdVector<UInt> > rowList1(numBlocks_);
-    StdVector<StdVector<UInt> > rowIndList1(numBlocks_);
-    StdVector<StdVector<UInt> > rowList2(numBlocks_);
-    StdVector<StdVector<UInt> > rowIndList2(numBlocks_);
-    StdVector<StdVector<UInt> > colList1(numBlocks_);
-    StdVector<StdVector<UInt> > colIndList1(numBlocks_);
-    StdVector<StdVector<UInt> > colList2(numBlocks_);
-    StdVector<StdVector<UInt> > colIndList2(numBlocks_);
+    if( isDiagonal ) {
+      colBlocks = rowBlocks;
+      colNums = rowNums;
+    } else {
+      MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
+    }
+    // initialize empty vectors
+    for(UInt i = 0; i < numBlocks_; ++i ) {
+      rowIndList1[i].Clear(true);
+      rowList1[i].Clear(true);
+      rowIndList2[i].Clear(true);
+      rowList2[i].Clear(true);
+      colIndList1[i].Clear(true);
+      colList1[i].Clear(true);
+      colIndList2[i].Clear(true);
+      colList2[i].Clear(true);
+    }
     UInt numRows = rowBlocks.GetSize();
     UInt numCols = colBlocks.GetSize();
     
@@ -2075,7 +2076,7 @@ namespace CoupledField {
       for( UInt iRow = 0; iRow < numBlocks_; iRow++ ) {
         for( UInt iCol = 0; iCol < numBlocks_; iCol++ ) {
           Matrix<T>& mat = matrices[numBlocks_ * iRow + iCol];
-          elemMat.GetSubMatrixByInd( mat, rowIndList1[iRow], 
+          elemMat.GetSubMatrixByInd( mat, rowIndList1[iRow],
                                      colIndList1[iCol]);
           if( IS_LOG_ENABLED(algSys, dbg3) ){
             StdVector<UInt> ind1(rowIndList1[iRow]);
@@ -2187,14 +2188,14 @@ namespace CoupledField {
                           << "," << sbmCol << ")";
         
         StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
-        StdVector<UInt> & rList1 = rowList1[sbmRow];
-        StdVector<UInt> & rList2 = rowList2[sbmRow];
-        StdVector<UInt> & cList1 = colList1[sbmCol];
-        StdVector<UInt> & cList2 = colList2[sbmCol];
-        StdVector<UInt> & rIndList1 = rowIndList1[sbmRow];
-        StdVector<UInt> & rIndList2 = rowIndList2[sbmRow];
-        StdVector<UInt> & cIndList1 = colIndList1[sbmCol];
-        StdVector<UInt> & cIndList2 = colIndList2[sbmCol];
+        const StdVector<UInt> & rList1 = rowList1[sbmRow];
+        const StdVector<UInt> & rList2 = rowList2[sbmRow];
+        const StdVector<UInt> & cList1 = colList1[sbmCol];
+        const StdVector<UInt> & cList2 = colList2[sbmCol];
+        const StdVector<UInt> & rIndList1 = rowIndList1[sbmRow];
+        const StdVector<UInt> & rIndList2 = rowIndList2[sbmRow];
+        const StdVector<UInt> & cIndList1 = colIndList1[sbmCol];
+        const StdVector<UInt> & cIndList2 = colIndList2[sbmCol];
 
         // Attention: This check is not really implemented in a clean way!
         if( stdMat != NULL ) {
@@ -2207,7 +2208,7 @@ namespace CoupledField {
 
           // Note: The following statement is experimental and not
           // thorougly tested!
-#pragma omp parallel for private(colInd, rowInd)
+
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
@@ -2241,7 +2242,7 @@ namespace CoupledField {
           LOG_DBG3(algSys) << "\t3) free-fixed entries:";
           LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
           LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
-#pragma omp parallel for private(colInd, rowInd)
+
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
@@ -2259,7 +2260,7 @@ namespace CoupledField {
             LOG_DBG3(algSys) << "\t4) free-fixed entries (transposed):";
             LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
             LOG_DBG3(algSys) << "\t\tcolIndices: " << rList2.ToString();
-#pragma omp parallel for private(colInd, rowInd)
+
             for ( UInt i = 0; i < rList2.GetSize(); i++ ) {
               rowInd = rIndList2[i];
               for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
@@ -2281,15 +2282,16 @@ namespace CoupledField {
                                     const FeFctIdType fctId,
                                     StdVector<Integer>& eqnNrs ) {
 
-    LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
-    LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
-    LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
+    LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
+    LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
+    LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
     
     // Ensure that there are as many equations as vector entries
-    assert( eqnNrs.GetSize() == elemRHS.GetSize());
+    assert(eqnNrs.GetSize() == elemRHS.GetSize());
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    StdVector<UInt> rowBlocks, rowNums;
+    StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
+    StdVector<UInt>& rowNums      = rowNums_.Mine();
     MapFctIdEqnToIndex(fctId, eqnNrs, rowBlocks, rowNums);
     
     // Now, dismantle equations
@@ -2365,11 +2367,11 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
 
+    //std::cout << "Updating RHS with matrix "
+    //    << feMatrixType.ToString(matrixType) << std::endl;
+
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
-
-//    std::cout << "Updating RHS with matrix "
-//        << feMatrixType.ToString(matrixType) << std::endl;
 
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
@@ -2478,8 +2480,7 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void AlgebraicSys::
-  ConstructEffectiveMatrix( const FeFctIdType fctId, 
+  void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
                             const std::map<FEMatrixType,Double> &matFactors ) {
 
     LOG_TRACE(algSys) << "Constructing effective system matrix for feFunction "
@@ -2566,10 +2567,63 @@ namespace CoupledField {
     }
   }
 
+  void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
+    // resize solVec to match number of functions
+    solVec.Resize( numFcts_);
+
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) {
+
+      // call specialized GetSolutionVal method
+      ClearIDBCFromSolutionVal(solVec(i), i);
+    }
+  }
+
+  void AlgebraicSys::ClearIDBCFromSolutionVal( SingleVector& ptSol,const FeFctIdType fctId){
+    LOG_TRACE(algSys) << "Clearing IDBC nodes from solution values of fct " << fctId;
+
+    // get all (blockId,index)-combinations for the current fctId
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( fctId, blockNums, indices);
+    UInt size = blockNums.GetSize();
+
+    if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+      Double entry = 0.0;
+
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
+        // if index number is larger the lastFree dof, set value in vector to 0
+        // i.e. overwrite IDBC values; otherwise, do nothing (normal nodes shall be preserved!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
+          retVec[i] = entry;
+        }
+      }
+    }
+    else
+    {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
+      Complex entry = 0.0;
+
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
+        // if index number is larger the lastFree dof, set value in vector to 0
+        // i.e. overwrite IDBC values; otherwise, do nothing (normal nodes shall be preserved!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
+          retVec[i] = entry;
+        }
+      }
+    }
+  }
+
   void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
                                      const FeFctIdType fctId,
-                                     bool setIDBC) {
-    
+                                     bool setIDBC, bool deltaIDBC) {
+
     LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
 
     // get all (blockId,index)-combinations for the current fctId
@@ -2579,36 +2633,52 @@ namespace CoupledField {
     ptSol.Resize(size);
     ptSol.Init();
 
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
+    {
+    	//FIXME Dirty code, can be improved!
+    	ptSol.Resize(size);
+    	Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+    	retVec = *(sol_->GetPointer(0));
+
+    	return;
+  	}
+
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
       Double entry = 0.0;
-#pragma omp parallel for private (entry)
-      for( UInt i = 0; i < size; ++i ) {
 
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
-        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
           if ( setIDBC ) 
-            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
           else 
             entry = 0.0;
-        } else {
+        }
+        else
+        {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
       }
 
-    } else {
+    }
+    else
+    {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
       Complex entry = 0.0;
-#pragma omp parallel for private (entry)
+      // #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
         if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
           if ( setIDBC) 
-            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
           else 
             entry = 0.0;
         } else {
@@ -2618,9 +2688,8 @@ namespace CoupledField {
       }
     }
   }
-
   
-  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC ) {
+  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     
     // resize solVec to match number of functions
     solVec.Resize( numFcts_);
@@ -2629,7 +2698,7 @@ namespace CoupledField {
     for(UInt i = 0; i < numFcts_; ++i ) {
     
       // call specialized GetSolutionVal method
-      GetSolutionVal(solVec(i), i, setIDBC);
+      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
     }
   }
   
@@ -2648,7 +2717,7 @@ namespace CoupledField {
     if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptRhs );
       Double entry = 0.0;
-#pragma omp parallel for private (entry)
+
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert 0
@@ -2664,7 +2733,7 @@ namespace CoupledField {
 
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
       Complex entry = 0.0;
-#pragma omp parallel for private (entry)
+
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert 0
@@ -2726,7 +2795,7 @@ namespace CoupledField {
       if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
 
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
-
+        //sbmSymm_ = false;
         // Trigger generation of sub-matrix
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable
@@ -2837,8 +2906,7 @@ namespace CoupledField {
       //  Check Eigenvalue Solver 
       // -------------------------
       std::string eSolverId = solStrat_->GetEigenSolverId();
-      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", 
-                                               ParamNode::INSERT);
+      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", ParamNode::INSERT);
       ParamNodeList esNodes =  eSolverList->GetChildren();
       PtrParamNode eSolverNode;
       for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
@@ -2865,8 +2933,7 @@ namespace CoupledField {
       // .. if not defined -> LDL / ILDL (depending on symmetry)
       // .. if defined -> Check if solver suites symmetry type of matrix
       std::string solverId = solStrat_->GetSolverId();
-      PtrParamNode solverList = myParam_->Get("solverList", 
-                                              ParamNode::INSERT);
+      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
       ParamNodeList sNodes =  solverList->GetChildren();
       PtrParamNode solverNode;
       for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
@@ -2881,16 +2948,9 @@ namespace CoupledField {
         // -------------------------------------
         //  no solver set -> use default direct 
         // -------------------------------------
-
-        if( isDiagBlockSymm_[0] && sbmSymm_ ) {
-          st = BaseSolver::LDL_SOLVER;
-          solverList->Get("directLDL",ParamNode::INSERT)->
-              Get("id",ParamNode::INSERT)->SetValue(solverId);
-        } else {
-          st = BaseSolver::LU_SOLVER;
-          solverList->Get("directLU",ParamNode::INSERT)->
-              Get("id",ParamNode::INSERT)->SetValue(solverId);
-        }
+        st = BaseSolver::PARDISO_SOLVER;
+        solverList->Get("pardiso",ParamNode::INSERT)->
+          Get("id",ParamNode::INSERT)->SetValue(solverId);
       } else {
         // ---------------------------------------------------
         //  solver set -> check for compatibility with matrix
@@ -3085,9 +3145,6 @@ namespace CoupledField {
     
     PtrParamNode setupNode = myInfo_->Get("setup");
     
-    // add timer
-    setupNode->Get("setupTime")->SetValue(graphTimer_);
-    
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");
@@ -3267,17 +3324,518 @@ namespace CoupledField {
     }
   }
   
+
+  void AlgebraicSys::SetGeomIndexMap(const StdVector< Vector<Double> >& indGeomMap,
+                                     const UInt& dim){
+    dim_ = dim;
+    edge_ = false;
+    //loop over all indices
+    geomInd_.Resize(indGeomMap.GetSize());
+    for( UInt ind = 0; ind < indGeomMap.GetSize(); ++ind ) {
+      geomInd_[ind] = indGeomMap[ind];
+    }
+  }
+
+  void AlgebraicSys::SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
+                                     boost::unordered_map< Integer, StdVector<Integer> >& eNodes){
+    dim_ = 1;
+    edge_ = true;
+
+    //loop over all indices
+    boost::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
+    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
+    while(lIt != lengths.end() ){
+      StdVector<Integer> e = eIt->second;
+      Double l = lIt->second;
+      geomIndEdge_[lIt->first].eNodes = e;
+      geomIndEdge_[lIt->first].length = l;
+      lIt++;
+      eIt++;
+    }
+  }
+
+  void AlgebraicSys::BuildAMGAuxMatrix(){
+    std::cout << "++ Assembling auxiliary matrix for AMG-preconditioner "<<std::endl;
+    if(!edge_){
+      BuildAMGLagrangeAuxMatrix();
+    }else{
+      BuildAMGEdgeAuxMatrix();
+    }
+  }
+
+  void AlgebraicSys::BuildAMGEdgeAuxMatrix(){
+    amgType_ = EDGE;
+
+    /************ Perform some checks on the system matrix ***********/
+    // only singlefield...only one submatrix
+    BaseMatrix& b = (*effMat_)(0,0);
+
+    // Check if we have a StdMatrix
+    if ( b.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGEdgeAuxMatrix(): "
+          << " AMG cannot deal with matrices other than StdMatrix" );
+    }
+
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(b);
+
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGEdgeAuxMatrix(): AMG requires the system matrix"
+          << " to be a CRS_Matrix i.e. sparseNonSym. The system matrix you supplied is a "
+          << " matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " format." );
+    }
+
+
+    /**************** Build the auxiliary graph ********************/
+    /* since we don't know the non-zero entries in the auxiliary matrix
+     * a priori, we have to introduce a temporary graph-like structure:
+     * For every node i, we store its neighbour-nodes j (connected via edges).
+     * Every neighbour-entry corresponds also to a length (edge-length between
+     * node i and j).
+     * We can't use geomIndEdge_ because it's edge-based, we need
+     * a node-based graph
+     */
+
+    // fill the indexNodeNum_ map... nodeNum is the key for entry in auxiliary matrix
+    // also fill edgeIndNode_, basically the same as geomIndEdge_ only without the
+    // unnecessary stuff
+    UInt nRows = 0;
+    boost::unordered_map<Integer, StdVector<UInt> > tempNodesOfEdge;
+    boost::unordered_map<Integer, StdVector<Double> > tempLengthOfEdge;
+    edgeIndNode_.Resize(geomIndEdge_.size());
+    for(UInt i = 0; i < geomIndEdge_.size(); ++i ){
+      StdVector<Integer> nodes = geomIndEdge_[i].eNodes;
+      edgeIndNode_[i] = nodes;
+      StdVector<UInt>& t1 = tempNodesOfEdge[nodes[0]];
+      StdVector<UInt>& t2 = tempNodesOfEdge[nodes[1]];
+      StdVector<Double>& et1 = tempLengthOfEdge[nodes[0]];
+      StdVector<Double>& et2 = tempLengthOfEdge[nodes[1]];
+      t1.Push_back( nodes[1] );
+      t2.Push_back( nodes[0] );
+      et1.Push_back( geomIndEdge_[i].length );
+      et2.Push_back( geomIndEdge_[i].length );
+      //tempTest[nodes[0]] = 2 * i;
+      //tempTest[2 * i + 1] = nodes[1];
+      if( !nodeNumIndex_.Contains( nodes[0]) ){
+        nodeNumIndex_.Push_back( nodes[0] );
+        indexNodeNum_[ nodes[0] ] = nRows;
+        nRows++;
+      }
+      if( !nodeNumIndex_.Contains(nodes[1]) ){
+        nodeNumIndex_.Push_back( nodes[1] );
+        indexNodeNum_[ nodes[1] ] = nRows;
+        nRows++;
+      }
+    }
+
+    StdVector< StdVector<UInt> > nodeList;
+    StdVector< StdVector<Double> > edgeList;
+    nodeList.Resize(nRows);
+    edgeList.Resize(nRows);
+    // row pointer of auxiliary matrix
+    StdVector<UInt> rP;
+    rP.Push_back(0);
+    // column index of auxiliary matrix
+    StdVector<UInt> cI;
+    // data pointer of auxiliary matrix
+    StdVector<Double> dataAux;
+    UInt rSize = 0;
+    //boost::unordered_map< Integer, EdgeGeom>::const_iterator eIt = geomIndEdge_.begin(); //old version
+    // loop over every node and collect connected neighbours
+    for(UInt nIt = 0; nIt < nRows; ++nIt){
+      Integer nNum = nodeNumIndex_[nIt]; //real nodeNumber
+      StdVector<UInt>& nL = nodeList[nIt];
+      StdVector<Double>& eL = edgeList[nIt];
+      //eIt = geomIndEdge_.begin(); //old version
+      // insert template for diagonal element in auxiliary matrix
+      cI.Push_back(nIt);
+      dataAux.Push_back(0.0);
+
+      // connected edges of node nNum
+      StdVector<UInt>& e = tempNodesOfEdge[nNum];
+      StdVector<Double>& l = tempLengthOfEdge[nNum];
+      for( UInt eI = 0; eI < e.GetSize(); ++eI){
+        if(!nL.Contains(indexNodeNum_[ e[eI] ])){
+          nL.Push_back(indexNodeNum_[ e[eI] ]);
+          eL.Push_back( l[eI] );
+          cI.Push_back(indexNodeNum_[ e[eI] ]);
+          dataAux.Push_back(0.0);
+        }
+      }
+
+      rSize += nL.GetSize() +1;//+1 for diagonal
+      rP.Push_back(rSize);
+    }
+
+
+    /**************** Build the auxiliary matrix ********************/
+    // row- and column pointer already filled, now we have to assemble dataAux
+    for(UInt i = 0; i < nRows; ++i){
+      const StdVector<Double>& eL = edgeList[i];
+      Double diag = 0.0;
+      UInt d = 0;
+      for(UInt j = rP[i] +1; j < rP[i+1]; ++j){
+        Double invL = 1.0 / eL[d];
+        dataAux[j] -= invL;
+        diag += invL;
+        ++d;
+        }
+      // insert diagonal element LEX_DIAG_FIRST
+      dataAux[rP[i]] = diag;
+      }
+
+    UInt nnz = dataAux.GetSize();
+    auxMatAMG_ = GenerateStdMatrixObject(BaseMatrix::EntryType::DOUBLE,
+                                         BaseMatrix::SPARSE_NONSYM,
+                                         nRows,
+                                         nRows,
+                                         nnz);
+
+    // Generate auxiliary matrix
+    LOG_DBG(algSys) << " Generating auxiliary matrix for edge-AMG solver\n"
+                       " with " << nRows << " rows, " << nRows << " columns and "
+                       << nnz << " non-zero entries";
+
+    CRS_Matrix<Double>& auxMat = dynamic_cast<CRS_Matrix<Double>&>(*auxMatAMG_);
+    auxMat.SetSparsityPatternData(rP, cI, dataAux);
+    if(auxMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST){
+      auxMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+    }
+
+  }
+
+
+
+
+  void AlgebraicSys::BuildAMGLagrangeAuxMatrix(){
+
+    // only singlefield...only one submatrix
+    BaseMatrix& b = (*effMat_)(0,0);
+
+    // Check that we have a StdMatrix
+    if ( b.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGLagrangeAuxMatrix(): "
+          << " AMG cannot deal with matrices other than StdMatrix" );
+    }
+
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(b);
+
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "AlgebraicSys::BuildAMGLagrangeAuxMatrix(): AMG requires the"
+          << " system matrix to be a CRS_Matrix i.e. sparseNonSym. "
+          << " The system matrix you supplied is a "
+          << " matrix in " << BaseMatrix::storageType.ToString( sType ) << " format." );
+    }
+
+    // Down-cast to CRS_Matrix
+    CRS_Matrix<Double>& crsMat = dynamic_cast<CRS_Matrix<Double>&>(b);
+    if( b.GetEntryType() == BaseMatrix::EntryType::COMPLEX){
+      EXCEPTION("AlgebraicSys::BuildAMGLagrangeAuxMatrix() Complex version not yet implemented!");
+    }
+
+
+    // Get handles and info from system-matrix
+
+    // Query number of matrix rows and columns
+    UInt nRows = crsMat.GetNumRows();
+    // Get hold of column index array
+    const UInt *colP = crsMat.GetColPointer();
+    // Get hold of row pointer index array
+    const UInt *rowInd = crsMat.GetRowPointer();
+    // Get hold of data array
+    const Double* dataA = crsMat.GetDataPointer();
+
+    UInt nnzSys = crsMat.GetNnz();
+
+    // dimension of the problem (number of entries per node)
+    UInt dim = dim_;
+
+    // Declare some variables
+    StdVector<UInt> rP, cI;
+    StdVector<Double> dataAux;
+
+    UInt sizeB;
+    StdVector<Double> diagData;
+    UInt rowSize = 0;
+    StdVector<UInt> t;
+    UInt diagPos = 0;
+    Double rSum;
+    Vector<Double> dist;
+
+    switch(dim){
+      case 1:
+        amgType_ = SCALAR;
+        /************ case of scalar nodal H1 FE ***************/
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        rP.Resize(nRows + 1, 0);
+        UInt rIt;
+        rIt = 0;
+        for (UInt i = 0; i < nRows; i++ ) {
+          for(UInt nzIt = rowInd[i]; nzIt < rowInd[i + 1]; ++nzIt){
+            cI.Push_back(colP[nzIt]);
+            dataAux.Push_back(dataA[nzIt]);
+            rIt += 1;
+          }
+          rP[i + 1] = rIt;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+                                             BaseMatrix::SPARSE_NONSYM,
+                                             nRows,
+                                             nRows,
+                                             nnzSys);
+        break;
+
+      case 2:
+        amgType_ = VECTORIAL;
+        /************ 2D nodal H1 FE ***************/
+        /************ the "geometric way" **********/
+        // sanity check
+        if( nRows % 2 != 0) EXCEPTION("AlgebraicSys::BuildAMGAuxMatrix(): matrix is not 2D!!")
+        // want to have the matrix in LEX_DIAG_FIRST layout
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        sizeB = nRows / 2;
+
+        diagData.Resize(sizeB, 0.0);
+
+
+        /* nz_entry          *     *     *     *     *     *
+         * col-ind           0     1     2     3     4     5
+         *                  |_______ |  |________|  |________|
+         * auxMatAMG-col i      0           1            2
+         *
+         * conversion between nz-entry and auxMatAMG_ column (node): 2*i<= nz_entry<=2*(i+1)-1
+         *                                               or inverse: (k-1)/2<=i<=k/2
+         */
+        rP.Resize(sizeB + 1, 0);
+        rP[0] = 0;
+
+        t.Resize(sizeB);
+        t.Init(0);
+        for(UInt i = 0; i < nRows; ++i){
+          for(UInt j = rowInd[i]; j < rowInd[i + 1]; ++j){
+            // find out to which node this entry belongs
+            if( colP[j] % dim == 0 ){
+              // node = colP[j] / 2
+              if( t[colP[j]/2] == 0){
+                t[colP[j]/2] = 1;
+                cI.Push_back( colP[j] / 2 );
+                rowSize++;
+              }
+            }else{
+              // node = (colP[j]-1) / 2
+              if(t[(colP[j]-1)/2] == 0){
+                t[(colP[j]-1)/2] = 1;
+                cI.Push_back( (colP[j]-1) / 2 );
+                rowSize++;
+              }
+            }
+
+          }// loop over rowsize
+          if(i==1){
+            rP[1] = rowSize;
+            t.Init(0);
+          }
+          if( ((i-1) % 2 == 0 && i > 1)){
+            rP[i/2 + 1] = rowSize;
+            t.Init(0);
+          }
+          if(i == nRows-1){
+            rP[sizeB] = rowSize;
+            t.Init(0);
+          }
+        }// loop over every row
+
+
+        /* Now we can start to build the actual auxiliary-matrix:
+         * for every off-diagonal entry (i,j) with i != j, we calculate
+         * the geometric distance between nodes i and j via geomInd_ .
+         * The entry auxMatAMG_[i,j] = -1.0 / distance(i,j)^2
+         * The diagonal entry i is -sum(auxMatAMG_(i,:)) ... negative
+         * row-sum of off-diagonals
+         * Defining the auxiliary-matrix in this way, we obtain a
+         * strong diagonally dominant SPD matrix
+         */
+        dataAux.Resize(cI.GetSize());
+        dataAux.Init(0.0);
+        for( UInt i = 0; i < sizeB; ++i ){
+          rSum = 0;
+          Vector<Double> ci = geomInd_[dim * i];
+          for( UInt j = rP[i]; j < rP[i+1]; ++j ){
+            Vector<Double> cj = geomInd_[dim * cI[j] ];
+            dist.Resize(cj.GetSize(), 0.0);
+            dist.Add(1.0, ci, -1.0, cj);
+            // if diagonal, store the position
+            if( i == cI[j]){
+              diagPos = j;
+            }else{
+              dataAux[j] =  -1.0 / dist.NormL2();
+              rSum += -1.0 / dist.NormL2();
+            }
+          }
+          // fill diagonal
+          dataAux[diagPos] = -rSum;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+            BaseMatrix::SPARSE_NONSYM,
+            sizeB,
+            sizeB,
+            cI.GetSize());
+        break;
+
+      case 3:
+        amgType_ = VECTORIAL;
+        /************ 3D nodal H1 FE ***************/
+        /************ the "geometric way" **********/
+        // sanity check
+        if( nRows % 3 != 0) EXCEPTION("AlgebraicSys::BuildAMGAuxMatrix(): matrix is not 3D!!")
+        // want to have the matrix in LEX_DIAG_FIRST layout
+        if( crsMat.GetCurrentLayout() != CRS_Matrix<Double>::LEX_DIAG_FIRST ){
+          crsMat.ChangeLayout(CRS_Matrix<Double>::LEX_DIAG_FIRST);
+        }
+        sizeB = nRows / 3;
+
+        diagData.Resize(sizeB, 0.0);
+
+        //TODO I simply can not access the basegraph, this would make
+        // things way easier...
+        // every nz-entry in auxMatAMG_ corresponds to a
+        // dim x dim entry in the system-matrix
+
+        // ok the plan now is to mark every dim x dim entry
+        // if it is non zero, this means if the dim x dim entry
+        // in the system matrix is nz, also the entry of dim 1
+        // in the auxMatAMG_ is nz
+        // therefore we build our own sparsity-pattern by introducing
+        // a CRS-style col- and row-pointer but no data-pointer
+        // since we only need the information that it's a nz entry
+
+        /* nz_entry          *     *     *     *     *     *     *     *     *     *
+         * col-ind           0     1     2     3     4     5     6     7     8     9
+         *                  |______________|  |______________|  |______________|  |___
+         * auxMatAMG-col i         0                  1                2
+         *
+         * conversion between nz-entry and auxMatAMG_ column (node): 3*i<= nz_entry<=3*(i+1)-1
+         *                                               or inverse: (k-2)/3<=i<=k/3
+         */
+        rP.Resize(sizeB + 1, 0);
+        rP[0] = 0;
+
+        t.Resize(sizeB);
+        t.Init(0);
+        for(UInt i = 0; i < nRows; ++i){
+          for(UInt j = rowInd[i]; j < rowInd[i + 1]; ++j){
+            // find out to which node this entry belongs
+            if( colP[j] % dim == 0 ){
+              // node = colP[j] / dim
+              if( t[colP[j]/3] == 0){
+                t[colP[j ]/3] = 1;
+                cI.Push_back( colP[j] / 3 );
+                rowSize++;
+              }
+            }else{
+              if( (colP[j]-2) % dim == 0 && colP[j] > 1 ){
+                // node = (colP[j]-2) / dim
+                if(t[(colP[j]-2)/3] == 0){
+                  t[(colP[j]-2)/3] = 1;
+                  cI.Push_back( (colP[j]-2) / 3 );
+                  rowSize++;
+                }
+              }else{
+                // node = (colP[j]-1) / dim
+                // same as node = (colP[j]+1) / dim
+                // because it's a middle-entry
+                if(t[(colP[j]-1)/3] == 0){
+                  t[(colP[j]-1)/3] = 1;
+                  cI.Push_back( (colP[j]-1) / 3 );
+                  rowSize++;
+                }
+              }
+            }
+          }// loop over rowsize
+          if(i==2){
+            rP[1] = rowSize;
+            t.Init(0);
+          }
+          if( ((i-2) % 3 == 0 && i > 2)){
+            rP[i/3 + 1] = rowSize;
+            t.Init(0);
+          }
+          if(i == nRows-1){
+            rP[sizeB] = rowSize;
+            t.Init(0);
+          }
+        }// loop over every row
+
+        /* Now we can start to build the actual auxiliary-matrix:
+         * for every off-diagonal entry (i,j) with i != j, we calculate
+         * the geometric distance between nodes i and j via geomInd_ .
+         * The entry auxMatAMG_[i,j] = -1.0 / distance(i,j)^2
+         * The diagonal entry i is -sum(auxMatAMG_(i,:)) ... negative
+         * row-sum of off-diagonals
+         * Defining the auxiliary-matrix in this way, we obtain a
+         * strong diagonally dominant SPD matrix
+         */
+        dataAux.Resize(cI.GetSize());
+        dataAux.Init(0.0);
+        for( UInt i = 0; i < sizeB; ++i ){
+          rSum = 0;
+          Vector<Double> ci = geomInd_[dim * i];
+          for( UInt j = rP[i]; j < rP[i+1]; ++j ){
+            Vector<Double> cj = geomInd_[dim * cI[j] ];
+            dist.Resize(cj.GetSize(), 0.0);
+            dist.Add(1.0, ci, -1.0, cj);
+            // if diagonal, store the position
+            if( i == cI[j]){
+              diagPos = j;
+            }else{
+              dataAux[j] =  -1.0 / dist.NormL2();
+              rSum += -1.0 / dist.NormL2();
+            }
+          }
+          // fill diagonal
+          dataAux[diagPos] = -rSum;
+        }
+
+        auxMatAMG_ = GenerateStdMatrixObject(crsMat.GetEntryType(),
+                                             BaseMatrix::SPARSE_NONSYM,
+                                             sizeB,
+                                             sizeB,
+                                             cI.GetSize());
+        break;
+
+    }// switch dimension
+
+    // Generate auxiliary matrix
+    LOG_DBG(algSys) << " Generating auxiliary matrix for AMG solver\n"
+                       " with " << nRows << " rows, " << nRows << " columns and "
+                       << nnzSys << " non-zero entries";
+
+    CRS_Matrix<Double>& auxMat = dynamic_cast<CRS_Matrix<Double>&>(*auxMatAMG_);
+    auxMat.SetSparsityPatternData(rP, cI, dataAux);
+  }
+
+
   // ========================================================================
   // Explicit template instantiation
   // ========================================================================
   template void AlgebraicSys::
   SetElementMatrix( FEMatrixType, Matrix<Double>&, 
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& , bool, bool);
+                    FeFctIdType, const StdVector<Integer>& , bool, bool, bool);
   template void AlgebraicSys::
   SetElementMatrix( FEMatrixType, Matrix<Complex>&, 
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& , bool, bool);
+                    FeFctIdType, const StdVector<Integer>& , bool, bool, bool);
   
   template void AlgebraicSys::
   SetElementRHS( const Vector<Double>&, const FeFctIdType, 

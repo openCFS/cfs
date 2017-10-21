@@ -85,7 +85,7 @@ namespace CoupledField {
   //!       <td>This parameter is used to control the verbosity of the solver.
   //!           If it is set to 'true', then the object will log some
   //!           information on the solution process to the standard %OLAS
-  //!           report stream (*cla).
+  //!           report stream (*cla) ---removed logging---.
   //!       </td>
   //!     </tr>
   //!   </table>
@@ -117,7 +117,7 @@ namespace CoupledField {
 
     //! The setup method takes care of the LDL factorisation of the problem
     //! matrix.
-    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
+    void Setup( BaseMatrix &sysMat );
 
     //! Direct solution of the linear system
 
@@ -128,7 +128,7 @@ namespace CoupledField {
     //! Note that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
     void Solve( const BaseMatrix &sysMat,
-                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
+                const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 

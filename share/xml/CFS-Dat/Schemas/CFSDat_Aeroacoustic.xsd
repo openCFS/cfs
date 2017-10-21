@@ -1,0 +1,110 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
+  <xsd:include schemaLocation="../CFS_Dat.xsd"/>
+  <xsd:include schemaLocation="CFSDat_AeroacousticType.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for field-differentiation -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_Aeroacoustic">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+	  <xsd:element name="RBF_Settings" type="DT_DiffScheme" minOccurs="0"/>
+          <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"/>
+          <xsd:element name="targetMesh">
+            <xsd:complexType>
+              <xsd:choice>
+                <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="1"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="ResultList">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="velocity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="vorticity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="regions" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="sourceRegions">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="name"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="targetRegions">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="name"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="type" use="required" type="DT_AeroacousticType">
+          <xsd:annotation>
+            <xsd:documentation>
+              LambVector L = density(Vorticity x U) <br/>
+              LighthillVector  T = L + GRAD(0.5 U.U) <br/>
+              LighthillSourceTerm S = DIV(T)        <br/>
+              Gradient  GRAD(U) = {U,x ; U,y ; U,z} <br/>
+              Divergence  DIV(U) = ux,x + uy,y + uz,z <br/>
+              Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y} <br/>
+              Set the density as option in the scheme tag.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

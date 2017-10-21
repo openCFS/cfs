@@ -163,6 +163,16 @@ namespace CoupledField
       return negateEntries_;
     }
 
+    //! Check if this is a diagonal bilinear form
+
+    //! This method returns, if the bilinear form gets assembled on a
+    //! diagonal block, i.e. it has the same primary and secondary
+    //! fundtion Id, as well as entity lists.
+    virtual bool isDiagonal() {
+      return ((result1_ == result2_) && (ent1_ == ent2_));
+    }
+
+
     //! create human readable debug output */
     std::string ToString();
 
@@ -348,7 +358,14 @@ namespace CoupledField
       return isMoving_;
     }
 
-  private:
+    //! Does the Context needs a fully populated matrix
+    virtual bool NeedsFullMatrix(){
+      return isMoving_;
+    }
+
+
+
+  protected:
 
     //flag indicating if we are moving
     bool isMoving_;
@@ -375,6 +392,24 @@ namespace CoupledField
                               StdVector<Integer>& eqnVec2,
                               FeFctIdType& id1, FeFctIdType& id2 ) const;
 
+
+     //! Check if this is a diagonal bilinear form
+
+     //! This method returns, if the bilinear form gets assembled on a
+     //! diagonal block, i.e. it has the same primary and secondary
+     //! fundtion Id, as well as entity lists.
+     virtual bool isDiagonal() {
+       return ((result1_ == result2_) && (ent1_ == ent2_) &&
+               (currentDirection_== BiLinearForm::MASTER_MASTER ||
+                currentDirection_== BiLinearForm::SLAVE_SLAVE ) );
+     }
+
+     //! Does the Context needs a fully populated matrix
+     virtual bool NeedsFullMatrix(){
+       bool direction = (currentDirection_ == BiLinearForm::MASTER_SLAVE ||
+                         currentDirection_ == BiLinearForm::SLAVE_MASTER);
+       return (direction && isMoving_) ;
+     }
    protected:
      BiLinearForm::CouplingDirection currentDirection_;
    };

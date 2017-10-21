@@ -31,6 +31,7 @@
 #include "MatVec/Vector.hh"
 #include "Forms/IntScheme.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField
 
@@ -112,7 +113,10 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() const = 0;
 
-        
+    /** exports the grid to a param node. For command line option --export-grid or for streaming with mesh. */
+    virtual void ExportGrid(PtrParamNode out)
+    { EXCEPTION( "Not implemented" ); }
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -153,6 +157,16 @@ namespace CoupledField
                                     const UInt inode,
                                     bool updated = false ) const = 0;
 
+    //! Get coordinates of nodeList (dimension: grid dependent)
+
+    //! Basically the same as GetNodeCoordinate but only with
+    //! multiple nodes in nodeList
+    //! \param nodeCoords (out) coordinates of points
+    //! \param inode (in) node numbers
+    //! \param updated (in) flag indicating if updated geometry should be used
+    virtual void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
+                                       StdVector<UInt> & nodeList,
+                                       bool updated ) const = 0;
     
     //! Get coordinates of node (dimension: 3D)
 
@@ -166,7 +180,7 @@ namespace CoupledField
 
     //! Get elements associated with given nodes
 
-    //! Returns a list of elements, which have one or more of the given
+    //! Returns a list of elements, which have one or more of the given in
     //! common. The elements are taken out of a given list of regions.
     //! \param elemList (out) elements which have one or more nodes
     //!                          of nodeList
@@ -177,7 +191,32 @@ namespace CoupledField
     virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                       const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
-                                      & regionIds ) = 0;
+                                      & regionIds) = 0;
+
+    //! Get number of elements associated with given nodes
+
+    //! Returns the number of elements, which have one or more of the given in
+    //! common. The elements are taken out of a given list of regions.
+    //! IMPORTANT: Before using this method, SetNodeNeighbourMap() has to be
+    //! called first.
+    //! \param num (out) number of elements which have one or more nodes
+    //!                          of nodeList
+    //! \param node  (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    virtual void GetNumOfElemsNextToNodes( UInt & num,
+        const UInt & node,
+        const StdVector<RegionIdType>& regionIds) = 0;
+
+    //! Find for every node the number of neighbouring elements
+
+    //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
+    //! entry for every volume-region
+    //! \param *useNew optional parameter if volume regions are taken into account
+    //!                by default, the old version is used
+    virtual void SetNodesToElemsMap() = 0;
+
 
     //! Get coordinates of element nodes
 
@@ -201,8 +240,26 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    //! Return the shape representation for a given element. Note that it is
+    //! dangerous to call ElemShapeMap::SetElem()!
+
+    //! This method returns the element shape map for a given geometrical
+    //! element. In the case of Lagrangian-mapped elements, we keep internally
+    //! fixed-instances of element shape maps and just updated their state.
+    //!
+    //! \param ptElem Pointer to the geometrical element
+    //! \param updated Flag for updated Lagrangian geometry
+    //! \param secondary Flag, if secondary-cached instance should be used
+    //!                  (Currently only needed for surface-mapped elements)
+    //!
+    //! \note Currently we assume that only one instance of the ElemShapeMap is
+    //! used in the program, as only one instance is generated. However, in
+    //! the case of surface-mapped elements, we need a "secondary" instance
+    //! for the neighboring volume element, in which case two instances
+    //! are used.
     virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
-                                                      bool updated = false );
+                                                      bool updated = false,
+                                                      bool secondary = false);
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -248,19 +305,22 @@ namespace CoupledField
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
-    virtual void GetElemNodes( StdVector<UInt> & connect,
-                               const UInt iElem ) = 0;
+    virtual void GetElemNodes(StdVector<UInt> & connect, const UInt iElem) = 0;
 
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
-    //! a list of given elements. Ther are no duplicate entries.
+    //! a list of given elements. There are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                     const StdVector<Elem*> & elemList,
-				     bool onlyLinNodes = false ) = 0;
+                                     StdVector<const Elem*> & elemList,
+				                             bool onlyLinNodes = false ) = 0;
+
+    virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                                     StdVector<Elem*> & elemList,
+             bool onlyLinNodes = false ) = 0;
 
     //! Return element at global position and the locally projected coordinate
     
@@ -307,6 +367,10 @@ namespace CoupledField
                                const std::set<RegionIdType>& srcRegions
                                = std::set<RegionIdType>() );
 
+
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated) = 0;
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -350,12 +414,20 @@ namespace CoupledField
     /** are all regions regular? */
     bool IsRegionRegular(StdVector<RegionIdType>& regions) const;
 
-    //! Get vector containing all region names
+    /** does the grid consist of regular regions? */
+    bool IsGridRegular() const;
 
+    //! Get name of region using a region id
+    std::string GetRegionName( RegionIdType& id );
+    
+    //! Get vector containing all region names
     //! Get a vector which contains all region nodes. The order is in that way,
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
     void GetRegionNames(StdVector<std::string>& out);
+
+    //! Get the region id for the region with name
+    RegionIdType GetRegionId(const std::string name);
 
     //! Get vector with all volume region identifiers
 
@@ -405,7 +477,18 @@ namespace CoupledField
      * Checks the RegionData::barycenters and does nothing if already set.
      * @param updated handle updated coordinates?
      * @return the number of actually set barycenters. */
-    UInt SetElementBarycenters(RegionIdType region, bool updated);
+    unsigned int SetElementBarycenters(RegionIdType region, bool updated);
+
+    /** set the element barycenters for all regions */
+    unsigned int SetElementBarycenters(bool updated)
+    {
+      unsigned int total = 0;
+
+      for(unsigned int i = 0; i < regionData.GetSize(); i++)
+        total += SetElementBarycenters(regionData[i].id, updated);
+
+      return total;
+    };
 
     /** Determines the neighborhood of elements and store in within the elements.
      * It checks if already called and does nothing if called multiple times. */
@@ -467,6 +550,9 @@ namespace CoupledField
     //! \param volRegIds (out) list
     virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
+    /** total volume of a sparse or dense grid */
+    virtual Double CalcHullVolume( bool updated = false ) = 0;
+
     //! Returns the volume of a given region
 
     //! This method returns the volume of a given region by iterating over
@@ -474,11 +560,8 @@ namespace CoupledField
     //! 'Volume' here means, that for 2D elements the third dimension is
     //! assumed to be 1m.
     //! \param regionId (in) region identifier
-    //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
-    virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
-                                       bool isaxi = false,
-                                       bool updated = false ) = 0;
+    virtual Double CalcVolumeOfRegion( const RegionIdType regionId,bool updated = false ) = 0;
     
     /** calculates the bounding box of the entire grid. Is slow,
      * CalcVolumeSpannedByNamedNodes() in legacy cfs is faster!
@@ -497,6 +580,11 @@ namespace CoupledField
                                           Matrix<Double> & minMax,
                                           CoordSystem* cSys) = 0;
 
+
+    /** if the grid is regular gives the element discretization, e.g. 20, 20, 1 for 2D.
+     * Is reasonable fast but the result is not cached by itself.
+     * @return if not regular returns an empty array otherwise always 3 entries of value at least 1*/
+    virtual StdVector<unsigned int> CalcRegulardGridDiscretization() { EXCEPTION("not implemented"); }
 
     //! Returns the volume of a given entitylist (\see Grid::CalcVolumeOfRegion)
     virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
@@ -549,7 +637,8 @@ namespace CoupledField
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
 
-
+    //! Get all elem neighbors for given node id
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */
@@ -689,6 +778,10 @@ namespace CoupledField
         const std::string& region);
     //@}
 
+    /** Computes for regular grid number of elements in each direction for specified region
+        by using maximal and minimal values of barycenters
+        @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
+    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
 
     // =======================================================================
     // NONCONFORMING INTERFACES SECTION
@@ -853,6 +946,36 @@ namespace CoupledField
     //! Node groups have dimension 0 by definition.
     std::map<std::string, UInt> entityDim_;
 
+   // =======================================================================
+   // Cached Data for element shape mapping (THREAD VERSION)
+   // =======================================================================
+   //@{
+
+   //! Pointer to element shape map (original grid)
+   CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
+
+   //! Pointer to element shape map (updated grid)
+   CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
+
+   //! Last accessed elements for updated grid
+   CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
+
+   //! Last accessed secondary element map for original grid
+   CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
+
+   ////! Pointer to seoncary element shape map (original grid)
+   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;
+   //
+   ////! Last accessed secondary element map for original grid
+   //StdVector< UInt > lastShapeElemNumOrig2nd_;
+   //
+   ////! Pointer to secondary element shape map (updated grid)
+   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapUpdated2nd_;
+   //
+   ////! Last accessed secondary element map for updated grid
+   //StdVector< UInt > lastShapeElemNumUpdated2nd_;
+   //@}
+
     // =======================================================================
     // Interation Scheme
     // =======================================================================
@@ -904,6 +1027,9 @@ namespace CoupledField
 
     };
 
+    //! Simple typedef for element element intersection bounding box searches
+    typedef std::pair<UInt,UInt>  ElemElemMatch;
+
     //! Map a list of global points to element local points
     
     //! This method maps each global coordinate (contained in the PointElemMatch
@@ -920,12 +1046,14 @@ namespace CoupledField
     //! Create a bounding box from a given element. Mapping LIBFBI 
     void CreateBBoxFromElement(const Elem* elem,
                                Double globToler,
-                               Double* bbox);
+                               Double* bbox,
+                               double updated=false);
 
   protected:
 
 #ifdef USE_CGAL
 
+  public:
     //! Define 3-dimensional bounding box
     typedef CGAL::Bbox_3 BBox3D;
 
@@ -933,6 +1061,11 @@ namespace CoupledField
     typedef CGAL::Box_intersection_d
         ::Box_with_handle_d<double,3,const UInt*> HandleBox;
 
+    //! Define box handler just with an ID
+    typedef CGAL::Box_intersection_d
+        ::Box_d<double,3> IdBox;
+
+  protected:
     //! Return list of potential elements containing global points
 
     //! This method returns for every global coordinate a list

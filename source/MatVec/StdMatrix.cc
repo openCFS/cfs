@@ -31,6 +31,103 @@ void StdMatrix::Export( const std::string& fname,
        break;
    }
 }
+
+void StdMatrix::ExportCRSColumns(StdVector<int>& out, int base) const
+{
+  assert(base == 0 || base == 1);
+  assert(GetEntryType() == DOUBLE || GetEntryType() == COMPLEX);
+
+  const unsigned int* cols = NULL;
+  unsigned int size = 0;
+
+  switch(GetStorageType())
+  {
+  case SPARSE_SYM:
+    if(GetEntryType() == DOUBLE) {
+      const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(this);
+      cols = tmp->GetColPointer();
+      size = tmp->GetNumEntries();
+    }
+    else {
+      const SCRS_Matrix<Complex>* tmp = dynamic_cast<const SCRS_Matrix<Complex>*>(this);
+      cols = tmp->GetColPointer();
+      size = tmp->GetNumEntries();
+    }
+    break;
+  case SPARSE_NONSYM:
+    if(GetEntryType() == DOUBLE) {
+      const CRS_Matrix<double>* tmp = dynamic_cast<const CRS_Matrix<double>*>(this);
+      cols = tmp->GetColPointer();
+      size = tmp->GetNnz();
+    }
+    else {
+      const CRS_Matrix<Complex>* tmp = dynamic_cast<const CRS_Matrix<Complex>*>(this);
+      cols = tmp->GetColPointer();
+      size = tmp->GetNnz();
+    }
+    break;
+  default:
+    assert(false);
+  }
+
+  out.Resize(size);
+
+  if(base == 0)
+    std::memcpy(out.GetPointer(), (int*) cols, size * sizeof(int));
+  else
+    for(unsigned int i = 0, n = size; i < n; i++)
+      out[i] = *(cols+i) + 1;
+  }
+
+void StdMatrix::ExportCRSRows(StdVector<int>& out, int base, bool tailing_size) const
+{
+  assert(base == 0 || base == 1);
+  assert(GetEntryType() == DOUBLE || GetEntryType() == COMPLEX);
+
+  const unsigned int* rows = NULL;
+  unsigned int size = 0;
+
+  switch(GetStorageType())
+  {
+  case SPARSE_SYM:
+    if(GetEntryType() == DOUBLE) {
+      const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(this);
+      rows = tmp->GetRowPointer();
+      size = tmp->GetNumEntries();
+    }
+    else {
+      const SCRS_Matrix<Complex>* tmp = dynamic_cast<const SCRS_Matrix<Complex>*>(this);
+      rows = tmp->GetRowPointer();
+      size = tmp->GetNumEntries();
+    }
+    break;
+  case SPARSE_NONSYM:
+    if(GetEntryType() == DOUBLE) {
+      const CRS_Matrix<double>* tmp = dynamic_cast<const CRS_Matrix<double>*>(this);
+      rows = tmp->GetRowPointer();
+      size = tmp->GetNnz();
+    }
+    else {
+      const CRS_Matrix<Complex>* tmp = dynamic_cast<const CRS_Matrix<Complex>*>(this);
+      rows = tmp->GetRowPointer();
+      size = tmp->GetNnz();
+    }
+    break;
+  default:
+    assert(false);
+  }
+
+  out.Resize(GetNumRows() + (tailing_size ? 1 : 0));
+
+  if(base == 0)
+    std::memcpy(out.GetPointer(), (int*) rows, GetNumRows() * sizeof(int));
+  else
+    for(unsigned int i = 0, n = GetNumRows(); i < n; i++)
+      out[i] = *(rows+i) + 1;
+  if(tailing_size)
+    out.Last() = size;
+  }
+
   
 template<typename T>
 StdMatrix::HarwellBoeing<T>::HarwellBoeing(const StdMatrix* matrix)

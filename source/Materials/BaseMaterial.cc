@@ -4,7 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <limits.h>
 #include <string>
 
@@ -12,6 +12,9 @@
 #include "MatVec/Matrix.hh"
 
 #include "Materials/Models/Preisach.hh"
+//#include "Materials/Models/VectorPreisach.hh"
+//#include "Materials/Models/VectorPreisachv7.hh"
+#include "Materials/Models/VectorPreisachv10.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -175,7 +178,7 @@ namespace CoupledField
     }
     nonlinAnisoParams_[matType] = data;
   }
-  
+
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
     
     // check, if material type is allowed
@@ -256,6 +259,7 @@ namespace CoupledField
   void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const string& dim ) const {
 
     string help = MaterialTypeEnum.ToString( matType );
+
     EXCEPTION( "Material type (" << dim << ") " << help 
                << " was not read form/defined in material file" );
   }
@@ -276,7 +280,24 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::ToInfo(PtrParamNode in)
+  void BaseMaterial::StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat)
+  {
+    // get the tensor by default as complex
+    if(isComplex)
+    {
+      if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
+        in->SetValue(mat.GetPart(Global::REAL));
+      else
+        in->SetValue(mat);
+    }
+    else
+    {
+      in->SetValue(mat.GetPart(Global::REAL));
+    }
+  }
+
+
+  void BaseMaterial::ToInfo(PtrParamNode in, SubTensorType stt, const Vector<Double>* rot)
   {
     set<MaterialType>::iterator iter;
 
@@ -296,14 +317,27 @@ namespace CoupledField
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
+      if(rot != NULL && rot->NormMax() > 0)
+      {
+        assert(rot->GetSize() == 3);
+        PtrParamNode rot_ = in_->Get("rotation");
+        rot_->Get("alpha")->SetValue((*rot)[0]);
+        rot_->Get("beta")->SetValue((*rot)[1]);
+        rot_->Get("gamma")->SetValue((*rot)[2]);
+      }
+
       if(posTens != tensorParams_.end())
       {
-        // get the tensor by default as complex
-        if(isComplex)
-          in_->Get("tensor")->SetValue(posTens->second);
-        else
+        const Matrix<Complex>& mat = posTens->second;
+        StoreTensor(in_->Get("tensor"), isComplex, mat);
+
+        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
+        // handled by ComputeSubTensor()
+        if(stt != FULL && stt != NO_TENSOR) // electrostatic is NO_TENSOR
         {
-          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
+          Matrix<Complex> sub_mat;
+          ComputeSubTensor(sub_mat, mt, stt);
+          StoreTensor(in_->Get("subtensor"), isComplex, sub_mat);
         }
       }
 
@@ -329,13 +363,13 @@ namespace CoupledField
                                                    MaterialType matType,
                                                    bool persistent) {
     // Calculate rotation matrix( based on Kardan-Angles)
-    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
 
-    Double alpha = rotAngle[0] * PI / 180.0;
-    Double beta  = rotAngle[1] * PI / 180.0;;
-    Double gamma = rotAngle[2] * PI / 180.0;;
+    Double alpha = rotAngle[0] * M_PI / 180.0;
+    Double beta  = rotAngle[1] * M_PI / 180.0;;
+    Double gamma = rotAngle[2] * M_PI / 180.0;;
     Matrix<Double> R(3,3);
     R.Resize(3,3);
 
@@ -358,6 +392,12 @@ namespace CoupledField
     // 1) Constant-Valued tensors
     BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
     for( ; it != tensorParams_.end(); it++ ) {
+      if(it->second.GetNumCols() > 3 || it->second.GetNumRows() > 3){
+        continue;
+        //this is the case for tensors like the preisach weights which shall be allowed to have more than 3 x 3 entries
+        //furthermore, a rotation of these parameter is not necessary
+      }
+
       RotateTensorByRotationAngles( rotAngle, it->first, persistent );
     }
     
@@ -662,8 +702,13 @@ namespace CoupledField
   
 
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
-                               bool isInverse, bool computeHystInverse ) {
+                               bool isInverse, bool computeHystInverse, UInt dim ) {
 
+    /*
+     * is this function ever called?
+     * -> grep shows NO call to InitHyst;
+     *    instead everything is handeled via CoefFunctionHyst
+     */
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
 
@@ -672,6 +717,8 @@ namespace CoupledField
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
+
+
       isHysteresis_ = true;
 
       Double Xsat, Ysat;
@@ -680,7 +727,77 @@ namespace CoupledField
       Matrix<Double> weights;
       GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
       bool isVirgin = true;   
-      hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+
+      if(dim == 1){
+
+        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+
+      } else if(dim > 1 && dim <= 3){
+
+        Double rotationalResistance = 1.0;
+        GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
+
+        int evalVersion;
+        GetScalar(evalVersion, EVAL_VERSION);
+
+        int isTesting;
+        GetScalar(isTesting, IS_TESTING);
+
+        Double angDistance;
+        Matrix<Double> easyAxis_Matrix;
+        Vector<Double> easyAxis = Vector<Double>(dim);
+        GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+
+      /*
+       * should be obsolete as hyst_ is initialized in coefFctHyst
+       */
+
+      bool classical;
+
+      if(evalVersion == 1){
+        classical = true; // original vector preisach model -> sutor2012
+
+        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 2){
+        classical = false; // revised vector preisach model -> sutor2015
+
+        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 10){
+        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
+
+        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else if(evalVersion == 20){
+        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
+
+        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+                                                   weights, rotationalResistance, dim_, isVirgin,
+                                                   classical, angDistance);
+      } else {
+        EXCEPTION("evalVersion has to be one of the following: \n "
+            "1: classical vector model (sutor2012) \n"
+            "2: revised vector model (sutor2015) [DEFAULT] \n"
+            "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+            "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+      }
+
+//        if((evalVersion == 7)||(evalVersion == 8)){
+//          hyst_ = new VectorPreisachv7(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//        } else if((evalVersion == 9)||(evalVersion == 10)){
+//		  Vector<Double> easyAxis = Vector<Double>(dim_);
+//		  Double phaseLag = 0.0;
+//		  hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
+//        } else {
+//          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
+//        }
+
+      }
+
 
       // set map: global to local element number
       EntityIterator it = actSDList->GetIterator();
@@ -688,17 +805,31 @@ namespace CoupledField
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
 
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+      globalElNr = it.GetElem()->elemNum;
+      globalElem2Local_[globalElNr] = iel;
       }
     }
 
     //allocate memory for previous results, needed for the
     //effective material parameter formulation
-    Xprevious_.Resize(numElemSD);
-    Yprevious_.Resize(numElemSD);
-    Xprevious_.Init();
-    Yprevious_.Init();
+    if(dim == 1){
+      Xprevious_.Resize(numElemSD);
+      Yprevious_.Resize(numElemSD);
+      Xprevious_.Init();
+      Yprevious_.Init();
+    }  else if(dim > 1 && dim <= 3){
+      XpreviousVEC_ = new Vector<Double>[numElemSD];
+      YpreviousVEC_ = new Vector<Double>[numElemSD];
+
+      for(UInt i = 0; i < numElemSD; i++){
+        XpreviousVEC_[i].Resize(dim_);
+        XpreviousVEC_[i].Init();
+
+        YpreviousVEC_[i].Resize(dim_);
+        YpreviousVEC_[i].Init();
+       }
+    }
+
   }
 
 
@@ -711,6 +842,7 @@ namespace CoupledField
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
+      dim_ = dim;
       isHysteresis_ = true;
 
       Double Xsat, Ysat;
@@ -734,8 +866,8 @@ namespace CoupledField
       UInt iel = 0;
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+        globalElNr = it.GetElem()->elemNum;
+        globalElem2Local_[globalElNr] = iel;
       }
     }
 
@@ -759,12 +891,18 @@ namespace CoupledField
 
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
 
+    if(dim_ != 1){
+       EXCEPTION("Only implemented for scalar model");
+     }
     UInt idx = globalElem2Local_[nrElem];
     return hyst_->getValue( idx );
   }
 
 
   Double BaseMaterial::GetScalarHystPrevVal( UInt nrElem ) {
+    if(dim_ != 1){
+       EXCEPTION("Only implemented for scalar model");
+     }
     UInt idx = globalElem2Local_[nrElem];
     return Yprevious_[idx];
   }
@@ -827,6 +965,26 @@ namespace CoupledField
       alpha = alphaOrig;
       beta = betaOrig;
     }
+  }
+
+
+  MaterialType BaseMaterial::ConvertMaterialClass(MaterialClass mc)
+  {
+    switch(mc)
+    {
+    case MECHANIC:
+      return MECH_STIFFNESS_TENSOR;
+    case PIEZO:
+      return PIEZO_TENSOR;
+    case ELECTROSTATIC:
+      return MECH_STIFFNESS_TENSOR;
+    default:
+      assert(false); // implement for your needs!
+      break;
+    }
+
+    assert(false);
+    return NO_MATERIAL;
   }
 
 
@@ -896,7 +1054,7 @@ namespace CoupledField
                                               Global::ComplexPart matDataType, 
                                               bool transpose ) {
      PtrCoefFct mFunct;
-     
+          
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
        // --------------------------------------
        //  Coefficient Function already defined
@@ -913,16 +1071,21 @@ namespace CoupledField
        if(matDataType == Global::REAL){
          CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
          Matrix<Double> coefMat;
+
          GetTensor(coefMat,matType,matDataType,type);
+         //std::cout << "PreTranspose: " << coefMat << std::endl;
          // transpose if flag is true
+
          if( transpose ) {
            Matrix<Double> temp;
            coefMat.Transpose(temp);
            coefMat = temp;
          }
+		//std::cout << "PostTranspose: " << coefMat << std::endl;
          tmpFnc->SetTensor(coefMat);
          mFunct.reset(tmpFnc);
        }else if(matDataType == Global::COMPLEX){
+
          CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
          Matrix<Complex> coefMat;
          GetTensor(coefMat,matType,matDataType,type);
@@ -939,6 +1102,7 @@ namespace CoupledField
        }
      }
      mFunct->SetCoordinateSystem(this->coosy_);
+
      return mFunct;
    }
    
@@ -1015,7 +1179,7 @@ namespace CoupledField
    PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                  SubTensorType tensorType,
                                                  bool transposed  ) {
-
+// TODO: include 'complexPart' in input arguments - this is now ignored!
      PtrCoefFct mFunct;
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
        CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
@@ -1035,7 +1199,11 @@ namespace CoupledField
      EXCEPTION("Currently only implemented for ElectroMagnetic material")
    }
    
-   
+   PtrCoefFct BaseMaterial::GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                                           Global::ComplexPart matDataType,
+                                                           PtrCoefFct mechStrain ) {
+	EXCEPTION("Only implemented for ElectroMagnetic material")									     
+   }
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,

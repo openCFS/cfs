@@ -25,6 +25,11 @@
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField{
 
 
@@ -86,9 +91,10 @@ public:
   
   //! Dependency of coefficient function
   typedef enum{ 
-    CONSTANT,         /*!< No dependency on space or time */
+    CONSTANT,      /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
-    GENERAL,       /*!< General dependency (spatial and / or time / freq) */
+    SPACE,         /*!< Only depending on space */
+    GENERAL,       /*!< General dependency on space and time /freq */
     SOLUTION       /*!< Dependency on another FeFunction */
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
@@ -114,6 +120,9 @@ public:
     VECTOR_DIVERGENCE  /*!< Return divergence of vector valued CoefFuncton when called with getScalar*/
   } CoefDerivativeType;
   static Enum<CoefDerivativeType> CoefDerivativeType_;
+  
+  //! Get the maximum CoefFunction dependency type
+  static CoefDependType GetMaxCoefDependType(CoefDependType typeA, CoefDependType typeB);
 
   // ========================
   //  FACTORY METHODS
@@ -214,6 +223,9 @@ public:
 
   //! Constructor
   CoefFunction(){
+    if(!IsSerialRegion()){
+      EXCEPTION("Constructor of CoefFunction is called from parallel region which is not safe.")
+    }
     dimType_ = NO_DIM;
     dependType_ = CONSTANT;
     isAnalytic_ = false;
@@ -257,6 +269,14 @@ public:
         << "CoefFunction object." );
   }
 
+  //! Return real-valued Msfem Element Matrix at integration point
+  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
+      const LocPointMapped& lpm) {
+    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
+  }
+
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, 
                          const LocPointMapped& lpm ) {
@@ -264,6 +284,7 @@ public:
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
+
   //! Return real-valued element averaged value
   virtual void GetAvgElemValue(Double & vec, 
                          const Elem* elem) {
@@ -404,7 +425,11 @@ public:
     EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
     return;
   }
-
+  //! sets the derivative modification to the coefFunction
+  virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
+    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    return;
+  }
   //! computes the optimality condition
   virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
 	  EXCEPTION("CoefFuncion::ComputeOptCondition not implemented");
@@ -573,23 +598,84 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+  //! Functions needed for Hystersis
+  virtual void SetPreviousHystVals(bool setNextToLastTS_too = false) {
+	  EXCEPTION("SetPreviousHystVals not available");
+  }
+
+  //! function for Hysteresis operator to activate or deactivate computation of deltaMatrix
+  virtual void setDeltaComputation(bool deltaComputation_new){
+    EXCEPTION("setDeltaComputation not available");
+  }
+
+  //! function for Hysteresis operator to switch between using the
+  // value of the nextToLastTS or of the previousIteration
+  virtual void setUseNextToLastTS(bool useNextToLastTS_new){
+    EXCEPTION("setUseNextToLastTS not available");
+  }
+
+  //! function for Hysteresis operator to allow or disallow memory setting
+  virtual void setOverwrite(bool overwrite){
+    EXCEPTION("setOverwrite not available");
+  }
+
+  //! function for Hysteresis operator to allow or disallow direction setting
+  virtual void setOverwriteDirection(bool overwrite){
+    EXCEPTION("setOverwrite not available");
+  }
+
+  //! for calculation of div and rot in coefFncHyst, we need information about grid
+  //! and about regions which have hysteresis assigned;
+  //! we can get access to both information if we know the PDE which called this coef function
+  virtual void SetLinkedPDE(StdPDE* linkedPDE){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void SetFlag(std::string flagName,bool newState){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  //! set regionId of neighbor
+  virtual void SetNeighborRegionId(RegionIdType id) {
+	  neighborRegionId_ = id;
+  }
+
+  //! return regionId of neighbor
+  virtual RegionIdType GetNeighborRegionId() {
+	  return neighborRegionId_;
+  }
   //@}
 
   //@}
-protected:
 
   // ========================
   //  HELPER METHODS
   // ========================
   //@{ \name Helper methods
   
+  //! in case of parallel execution we can ask if we are in parallel
+  inline bool IsSerialRegion(){
+#ifdef USE_OPENMP
+    return (omp_get_num_threads()==1);
+#else
+    return true;
+#endif
+  }
+
   //! Returns true, if expression depends on time / freq
   static bool ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr);
   
-  //! Returns true, if expression depends on space
-  static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
-  //@}
+  //! Returns true, if one of the given expressions depends on time / freq
+  static bool ExprDependsOnTimeFreq(MathParser* mp, const StdVector<std::string>& expr);
   
+  //! Returns true, if one of the given expressions depends on space
+  static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
+  
+  //! Returns true, if expression depends on space
+  static bool ExprDependsOnSpace(MathParser* mp, const StdVector<std::string>& expr);
+  //@}
+protected:
+
   //TODO: CHANGE THIS TO SHARED POINTER
   // i.e. change the domain to hold a shared_ptr to the coordinate systems!
   CoordSystem* coordSys_;
@@ -618,15 +704,20 @@ protected:
   //! Flag indicating if the CoefFunction supports derivatives
   bool supportDerivative_;
 
+  //! only needed for hystersis
+  StdPDE* linkedPDE_;
+
+  //! volume region id of the specified neighbor (important for surface coefficients!)
+  RegionIdType neighborRegionId_;
+
   //! Map Storing FeSpaces for each unknown of PDE
   std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
 
   //! sets the rhsFnc active
   bool isActive_;
 
-  //! approximate source terms with delta functions
+  //! approximate source terms with delta fu	nctions
   CoefInverseSourceApprox approxSourceType_;
-
 };
 
 
@@ -700,7 +791,6 @@ public:
     }
     return;
   }
-
 };
 
 }

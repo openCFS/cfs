@@ -210,11 +210,11 @@ void FeSpaceHi::SetRegionOrder( RegionIdType region,
 
     // a) loop over all edges
     // -----------------------
-    UInt numEdges = el.edges.GetSize();
+    UInt numEdges = el.extended->edges.GetSize();
     LOG_DBG3(feSpaceHi) << "Checking " << numEdges << " edges ";
     const StdVector<UInt>& edgeOrders = myFe->GetEdgeOrder();
     for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ){
-      UInt edgeNum = std::abs(el.edges[iEdge]);
+      UInt edgeNum = std::abs(el.extended->edges[iEdge]);
       UInt edgeOrder = edgeOrders[iEdge];
 
       // check if edge got already mapped
@@ -240,12 +240,12 @@ void FeSpaceHi::SetRegionOrder( RegionIdType region,
     // b) loop over all faces (only in 3D case )
     // -----------------------------------------
     if( ptGrid_->GetDim() == 3 ) {
-      UInt numFaces = el.faces.GetSize();
+      UInt numFaces = el.extended->faces.GetSize();
       LOG_DBG3(feSpaceHi) << "Checking " << numFaces << " faces ";
       const StdVector<boost::array<UInt,2> >& faceOrders = 
           myFe->GetFaceOrder();
       for( UInt iFace = 0; iFace < numFaces; ++iFace ){
-        UInt faceNum = el.faces[iFace];
+        UInt faceNum = el.extended->faces[iFace];
         boost::array<UInt,2> faceOrder = faceOrders[iFace];
 
         // check if face got already mapped
@@ -331,9 +331,9 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
   // different order. We will use the maximum rule
   if( applyMaxRule && orderEdges_.size() ) {
     // loop over all edges
-    UInt numEdges = ptEl->edges.GetSize();
+    UInt numEdges = ptEl->extended->edges.GetSize();
     for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-      UInt edgeNum = std::abs( ptEl->edges[iEdge] );
+      UInt edgeNum = std::abs( ptEl->extended->edges[iEdge] );
       // check if edge got adjusted
       if( orderEdges_.find(edgeNum) != orderEdges_.end() ) {
         LOG_DBG3(feSpaceHi) << "Setting edge " << edgeNum
@@ -347,9 +347,9 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
   if( applyMaxRule && orderFaces_.size() 
       && ptGrid_->GetDim() == 3  ) {
     // loop over all faces
-    UInt numFaces = ptEl->faces.GetSize();
+    UInt numFaces = ptEl->extended->faces.GetSize();
     for( UInt iFace = 0; iFace < numFaces; ++iFace ) {
-      UInt faceNum = ptEl->faces[iFace];
+      UInt faceNum = ptEl->extended->faces[iFace];
       // check if face got adjusted
       if( orderFaces_.find(faceNum) != orderFaces_.end() ) {
         LOG_DBG3(feSpaceHi) << "Setting face " << faceNum
@@ -740,8 +740,8 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       ctx->assemble->AssembleMatrices();
 
       // setup the preconditioner and solver
-      ctx->algSys->SetupPrecond(ctx->infoNode);
-      ctx->algSys->SetupSolver(ctx->infoNode);
+      ctx->algSys->SetupPrecond(); // analysis_id ctx->infoNode);
+      ctx->algSys->SetupSolver(); // analysis_id ctx->infoNode);
 
       // initialize solution SBM vector
       ctx->sol = new SBM_Vector();
@@ -763,7 +763,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
 
 
     // solve system and aquire solution
-    ctx->algSys->Solve(ctx->infoNode);
+    ctx->algSys->Solve(); // analysis_id ctx->infoNode);
     ctx->algSys->GetSolutionVal(*(ctx->sol));
 
     Vector <T> & sol = dynamic_cast<Vector<T> &>(*(ctx->sol->GetPointer(0)));

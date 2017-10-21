@@ -16,6 +16,10 @@
 // 
 // =====================================================================================
 #include "BDBInt.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DECLARE_LOG(bdbint)
+DEFINE_LOG(bdbint, "bdbint")
 
 namespace CoupledField{
 
@@ -24,10 +28,11 @@ namespace CoupledField{
   BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
   BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
-  {
+    {
       name_ = "BDBInt";
       isSymmetric_ = true;
-      assert(dData->GetDimType() == CoefFunction::TENSOR);
+
+      //assert(dData->GetDimType() == CoefFunction::TENSOR);
 #ifndef NDEBUG
       if(dData->GetDimType() != CoefFunction::TENSOR){
         Exception("BDB integrator expects the coefficient function to be tensorial");
@@ -36,6 +41,7 @@ namespace CoupledField{
       bOperator_ = bOp;
       dData_ = dData;
       factor_ = factor;
+      isSolDependent_ = dData->GetDependency() == CoefFunction::SOLUTION;
   }
 
   //! Destructor
@@ -48,67 +54,73 @@ namespace CoupledField{
   //! Calculate the element matrix
   template< class COEF_DATA_TYPE,
             class B_DATA_TYPE>
-  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
-  CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2) {
-
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat, EntityIterator& ent1, EntityIterator& ent2)
+  {
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-
-    MAT_DATA_TYPE fac = 0.0;
+    MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
     IntScheme::IntegMethod method;
     BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
 
-    
     const UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = 
-        ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
-                              intPoints, weights );
+    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, intPoints, weights );
 
-    elemMat.Resize( nrFncs * bOperator_->GetDimDof());
+    elemMat.Resize(nrFncs * bOperator_->GetDimDof());
     elemMat.Init();
     
-#define USE_BLAS_VERSION
-
     // Loop over all integration points
     LocPointMapped lp;
+    // if MSFEM get Element Matrix from material catalog
+    if(domain->GetDesign() != NULL && domain->GetDesign()->designMaterial != NULL && domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
+      lp.Set( intPoints[0], esm, weights[0] );
+      dData_->GetMsfemElementMatrix(dynamic_cast <Matrix<Double> &> (elemMat),lp);
+      LOG_DBG3(bdbint) << "BDB elemMatrix=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum<<" elemMat=" << elemMat.ToString();
+      return;
+    }
     const UInt numIntPts = intPoints.GetSize();
-    for( UInt i = 0; i < numIntPts; i++  ) {
-
+    for( UInt i = 0; i < numIntPts; i++  )
+    {
       // Calculate for each integration point the LocPointMapped
       lp.Set( intPoints[i], esm, weights[i] );
 
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
+
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
-      
+      assert(dMat_.IsSymmetric(1e-8) > 0);
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
+
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
+
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << weights[i];
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
-#ifdef USE_BLAS_VERSION
-      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
-      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex
+#ifdef NDEBUG
+      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_
+      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
 #else
-      dbMat = (dMat * bMat) * fac;
-      elemMat += TransposeConjugate(bMat) * dbMat * factor_;
+      dbMat_ = (dMat_ * bMat_) * fac;
+      elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
-      //      std::cout << "dMat: \n " << dMat << std::endl;
 
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
     }
+
+    // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();
 
   }
 
@@ -300,11 +312,8 @@ namespace CoupledField{
   }
   
   //! Calculate the integration kernel
-  template< class COEF_DATA_TYPE,
-            class B_DATA_TYPE>
-  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
-  CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
-              const LocPointMapped& lpm ) {
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcKernel( Matrix<MAT_DATA_TYPE>& kernel,const LocPointMapped& lpm ) {
 
     // Obtain FE element from feSpace and integration scheme
     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
@@ -314,21 +323,25 @@ namespace CoupledField{
     kernel.Resize( nrFncs * bOperator_->GetDimDof());
     kernel.Init();
 
-#define USE_BLAS_VERSION
 
     // Call the CalcBMat()-method
     bOperator_->CalcOpMat( bMat_, lpm, ptFe);
+
+    // LOG_DBG3(bdbint) << "CK e=" << lpm.ptEl->elemNum << " bMat=" << bMat_.ToString();
 
     // Calculate D-Mat
     dData_->GetTensor(dMat_,lpm);
     dbMat_.Resize(dMat_.GetNumRows(),nrFncs* bOperator_->GetDimDof());
 
-#ifdef USE_BLAS_VERSION
+    // this calculates K = B^* C B with B^* is conjugate complex. The effect is only seen form Bloch mode analysis
+    // where we have a complex B matrix.
+
+#ifdef NDEBUG
     dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
     bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0, true); // conjugate complex
 #else
-    dbMat = (dMat * bMat) * fac;
-    kernel += TransposeConjugate(bMat) * dbMat * factor_;
+    dbMat_ = (dMat_ * bMat_);
+    kernel += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
   }

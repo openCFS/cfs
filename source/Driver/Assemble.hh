@@ -13,6 +13,11 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "PDE/BasePDE.hh"
 
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField {
 
 
@@ -20,7 +25,6 @@ namespace CoupledField {
   class TimeFunc;
   class Timer;
   class StdPDE;
-  class AdjointParameters;
   class AlgebraicSys;
 
   //! Class for assembling element/entities matrices and RHS vectors
@@ -99,6 +103,9 @@ namespace CoupledField {
     //! AssembleMatrices
     bool IsMatrixUpdated(){ return matrixUpdated_;}
 
+    //! Return if any RHS integrator depends on the solution
+    bool IsRhsSolDependent();
+
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
@@ -111,21 +118,25 @@ namespace CoupledField {
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
     /** @see GetBiLinForm() */
-    LinearForm* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
-
-    /** Overwrites the linearForms to implement the multi-load optimization */
-    void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
+    LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Returns the algebraic system
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }
 
-//    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-//    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
-    
+    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
+    std::set<BiLinFormContext*>& GetBiLinForms() { return allBiLinForms_; }
 
     /** Returns the linear forms list for external modification */
-    StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
+    StdVector<LinearFormContext*>& GetLinForms(bool take_ownership = false)
+    {
+      if(take_ownership)
+        lin_forms_given_ = true; // we won't delete it
+      return linForms_;
+    }
+
+    /** Do we use the region? */
+    bool UseRegion(RegionIdType reg);
 
   protected:
 
@@ -214,8 +225,13 @@ namespace CoupledField {
     //! Set containing all bilinear integrator contexts
     std::set<BiLinFormContext*> allBiLinForms_;
     
-    //! List of linear integrator contexts
-    StdVector<LinearFormContext*>* linForms_;
+    /** List of linear integrator contexts. They are generated in the PDEs deletet here.
+     * When we do muliload optimization Excitations gains ownership and linForms_ is manipulated.
+     * @see Excitytion::form */
+    StdVector<LinearFormContext*> linForms_;
+
+    /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
+    bool lin_forms_given_;
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;

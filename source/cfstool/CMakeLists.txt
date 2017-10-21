@@ -25,7 +25,6 @@ SET(CFSTOOL_SRCS
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
-#  optimization
   driver
   mesh 
   pde
@@ -33,7 +32,6 @@ SET(TARGET_LL ${TARGET_LL}
   mesh 
   pde
   domain
-#  optimization
   materials
   mathparser
   coupledpde
@@ -42,6 +40,9 @@ SET(TARGET_LL ${TARGET_LL}
   simoutinfo
 )
 
+IF(USE_FFTW)
+  LIST(APPEND TARGET_LL ${FFTW_LIBRARY})
+ENDIF(USE_FFTW)
 
 IF(USE_GMV)
   LIST(APPEND TARGET_LL siminoutgmv)
@@ -70,6 +71,7 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 # Target link libraries for cfstool target.
+# add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
   domain
   mesh
@@ -81,7 +83,7 @@ LIST(APPEND TARGET_LL
   utils
   matvec
   cfsgeneral
-#  paramident
+  optimization
   logging
   simouttext
   ${BOOST_SERIALIZATION_LIB}
@@ -92,6 +94,7 @@ LIST(APPEND TARGET_LL
 IF(NOT MINGW)
   LIST(APPEND TARGET_LL
     -lpthread
+    ${CFS_FORTRAN_DYNRT_LIBS}
     )
 ENDIF()
   

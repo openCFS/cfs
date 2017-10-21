@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-//#include "MatVec/basevector.hh"
+//#include "MatVec/baseVector.hh"
 
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -78,7 +78,7 @@ namespace CoupledField {
     //! sparse matrix. It can take one of the following values
     //! - MATRIX_MARKET
     //! - HARWELL_BOEING
-    typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2} OutputFormat;
+    typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2, PLAIN} OutputFormat;
     static Enum<OutputFormat> outputFormat;
     
     //! Default Constructor
@@ -162,6 +162,11 @@ namespace CoupledField {
                 "class, but is not!");
     };
 
+    virtual void Scale( Complex factor ) {
+      EXCEPTION("BaseMatrix::Scale: Method must be implemented by derived " \
+                "class, but is not!");
+    };
+
     //! Compute the residual for a linear system with this matrix
 
     //! The method computes the residual \f$r=b-Ax\f$ where \f$A\f$ is the
@@ -203,7 +208,7 @@ namespace CoupledField {
   };
 
   // Function for determining matrix/vector entry type (i.e. Integer, Double,
-  // Complex) for enum-type refer to environment.hh
+  // Complex) for enum-type refer to Environment.hh
 
   //! Class for determining the type of a matrix/vector entry on scalar level
 

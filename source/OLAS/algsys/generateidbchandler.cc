@@ -4,10 +4,6 @@
 #include "generateidbchandler.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-// Required for using AssocType
-#include "MatVec/TypeDefs.hh"
-
-
 namespace CoupledField {
 
 // define logging stream

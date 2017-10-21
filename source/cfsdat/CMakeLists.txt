@@ -3,147 +3,61 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR})
 
-IF(USE_IPOPT)
-  INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
-  LINK_DIRECTORIES(${IPOPT_LINK_DIR})
-ENDIF(USE_IPOPT)
+IF(MKL_INCLUDE_DIR)
+  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+ENDIF(MKL_INCLUDE_DIR)
 
 # List of source codes for current target.
 SET(CFSDAT_SRCS
   cfsdat.cc
+  Filters/BaseFilter.cc
+  Filters/BaseMeshFilterType.cc
+  Filters/MeshFilter.cc
+  Filters/Arithmetic/BinOpFilter.cc
+  Filters/Input/InputFilter.cc
+  Filters/Output/OutputFilter.cc
+  Filters/Derivatives/TimeDerivFilter.cc
+  Filters/Derivatives/RotatingSubstDt.cc
+  Filters/Derivatives/GradientDifferentiator.cc
+  Filters/Derivatives/DivergenceDifferentiator.cc
+  Filters/Derivatives/CurlDifferentiator.cc
+  Filters/Derivatives/Lighthill.cc
+  Filters/Derivatives/AeroacousticBase.cc
+  Filters/Derivatives/PostLighthillSource.cc
+  Filters/Interpolators/CentroidInterpolator.cc
+  Filters/Interpolators/NearestNeighbourInterpolator.cc
+  Filters/Interpolators/Cell2NodeInterpolator.cc
+  Filters/Interpolators/FEBasedInterpolator.cc
+  Filters/Interpolators/GridIntersectionFilter.cc
+  Filters/Interpolators/RBFInterpolator.cc
+  Filters/Interpolators/Node2CellInterpolator.cc
+  Filters/Interpolators/L2norm.cc
+  Filters/SignalProcessing/FftFilter.cc
+  Filters/SignalProcessing/TemporalBlendingFilter.cc
+  Filters/SignalProcessing/TimeMeanFilter.cc
+  Utils/EqnNumberingSimple.cc
+  Utils/CFSDatProgramOptions.cc
+  Utils/ResultManager.cc
+#  Utils/KNNSearch.cc
 )
 
-# Main CFS++ Tool executable target.
+# Main CFS++ Dat executable target.
 ADD_EXECUTABLE(cfsdatbin ${CFSDAT_SRCS})
 
-SET(TARGET_LL ${TARGET_LL}
-#  optimization
-  driver
-  mesh 
-  pde
-  domain
-  mesh 
-  pde
-  domain
-#  optimization
-  materials
-  mathparser
-  coupledpde
-  febasis
-  simouttext
-  simoutinfo
+SET(TARGET_LL 
+  datainout
+  matvec
 )
 
-
-IF(USE_GMV)
-  LIST(APPEND TARGET_LL siminoutgmv)
-ENDIF(USE_GMV)
-
-IF(USE_GIDPOST)
-  INCLUDE_DIRECTORIES(${GIDPOST_INCLUDE_DIR})
-  LIST(APPEND TARGET_LL simoutgid)
-ENDIF(USE_GIDPOST)
-
-IF(USE_MESH)
-  LIST(APPEND TARGET_LL siminmesh)
-ENDIF(USE_MESH)
-
-IF(USE_UNV)
-  LIST(APPEND TARGET_LL simoutunv)
-ENDIF(USE_UNV)
-
-IF(USE_HDF5)
-  LIST(APPEND TARGET_LL ${HDF5_LT_LIBRARY})
-  LIST(APPEND TARGET_LL siminouthdf5)
-ENDIF(USE_HDF5)
-
-IF(USE_ANSYSRST)
-  LIST(APPEND TARGET_LL simoutansysrst)
-ENDIF(USE_ANSYSRST)
-
-# Target link libraries for cfsdat target.
-LIST(APPEND TARGET_LL
-  domain
-  mesh
-  febasis
-  datainout
-  materials
-  paramh
-  driver
-  utils
-  matvec
-  cfsgeneral
-#  paramident
-  logging
-  simouttext
-  ${BOOST_SERIALIZATION_LIB}
-  ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  )
-
-IF(NOT MINGW)
-  LIST(APPEND TARGET_LL
-    -lpthread
-    )
-ENDIF()
-  
-LIST(APPEND TARGET_LL
-  algsys-olas
-  graph-olas
-  precond-olas
-  solver-olas
-  utils-olas
-)  
-  
-IF(USE_ARPACK)
-  LIST(APPEND TARGET_LL arpack-olas)
-ENDIF(USE_ARPACK)
-
-IF(USE_LAPACK)
-  LIST(APPEND TARGET_LL lapack-olas)
-ENDIF(USE_LAPACK)
-
-IF(USE_PARDISO)
-  LIST(APPEND TARGET_LL pardiso-olas)
-ENDIF(USE_PARDISO)
-
-LIST(APPEND TARGET_LL
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
+IF(MKL_BLAS_LIB)
+  LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
+ENDIF(MKL_BLAS_LIB)
 
 TARGET_LINK_LIBRARIES(cfsdatbin ${TARGET_LL})
 
-#IF(MINGW)
-#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
-#    SET_TARGET_PROPERTIES(cfsdatbin PROPERTIES
-#      LINK_FLAGS -Wl,--wrap,__chkstk
-#      LINKER_LANGUAGE CXX)
-#  ENDIF()
-#ENDIF()
-
 SET(CFS_LINK_FLAGS "")
-
-#EXEC_PROGRAM(mpicc ARGS --showme:compile
-#             OUTPUT_VARIABLE MPI_COMPILE_FLAGS)
-##SET(GTK_PKG_FLAGS "${GTK_PKG_FLAGS}" CACHE STRING "GTK Flags")
-#EXEC_PROGRAM(mpicc ARGS --showme:compile
-#             OUTPUT_VARIABLE MPI_LINK_FLAGS)
-#
-#  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${MPI_LINK_FLAGS}")
-#  MESSAGE(${MPI_LINK_FLAGS})
-
-# Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(UNIX AND USE_ANSYSRST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
-ENDIF(UNIX AND USE_ANSYSRST)
-
-# Even if we did not compile CFS++ itself with OpenMP enabled, we may have
-# compiled external libraries like LIS with OpenMP support.
-IF(OPENMP_FOUND)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
-ENDIF()
 
 SET_TARGET_PROPERTIES(cfsdatbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
-# Install the cfsdat executable target to ${CMAKE_INSTALL_PREFIX}/bin
+# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
 #INSTALL_TARGETS(/bin cfsdat)

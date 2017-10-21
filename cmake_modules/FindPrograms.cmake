@@ -39,8 +39,21 @@ IF(MINGW)
   ENDIF()
 ENDIF()
 
-FIND_PACKAGE(PythonInterp)
-FIND_PACKAGE(PythonLibs)
+if(USE_ANACONDA3)
+  # manually set correct paths
+  # must be done because anaconda gets installed during make, thus finding stuff does not work at configure
+  set(PYTHON_EXECUTABLE "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/bin/python" CACHE STRING "executable path" FORCE)
+  MARK_AS_ADVANCED(PYTHON_EXECUTABLE)
+  set(PYTHON_LIBRARY "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/lib/libpython3.so" CACHE STRING "library path" FORCE)
+  mark_as_advanced(PYTHON_LIBRARY)
+  set(PYTHON_INCLUDE_DIR "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/include/python3.5m" CACHE STRING "incude path" FORCE)
+  mark_as_advanced(PYTHON_INCLUDE_DIR)
+else(USE_ANACONDA3)
+  # find system python
+  FIND_PACKAGE(PythonInterp)
+  FIND_PACKAGE(PythonLibs)
+endif(USE_ANACONDA3)
+
 
 IF(BUILD_PARAVIEW AND NOT PYTHONINTERP_FOUND)
   SET(MSG "No Python interpreter was found! Please make sure a Python")
@@ -146,3 +159,5 @@ MARK_AS_ADVANCED(PYGMENTIZE_EXECUTABLE)
 #-----------------------------------------------------------------------------
 FIND_PROGRAM(PATCH_EXECUTABLE patch)
 MARK_AS_ADVANCED(PATCH_EXECUTABLE)
+
+

@@ -35,10 +35,15 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatPDE(){};
 
+    //! Is heat source (RHS) definition driven by interface between solid and void?
+    inline bool HasInterfaceDrivenRHS() { return interfaceDrivenHeatSource_; }
+
   protected:
     
     //! Read special boundary conditions
-    void ReadSpecialBCs();
+    void ReadSpecialBCs(){};
+
+    void ReadDampingInformation();
 
     //! Initialize NonLinearities
     virtual void InitNonLin();
@@ -55,7 +60,7 @@ namespace CoupledField {
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( ){};
+    void DefineSurfaceIntegrators(){};
 
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -72,6 +77,11 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
     
+    //! Incorporate heat transfer boundary conditions
+    void HeatTransferBC();
+
+
+    SolutionType GetNativeSolutionType() const { return HEAT_TEMPERATURE; }
 
   private:
 
@@ -93,10 +103,10 @@ namespace CoupledField {
     struct RobinBc : public HomDirichletBc {
 
       //! Heat transfer coefficient
-      std::string HTC;
+      Double HTC;
 
       //! Initial temperature of the surrounding fluid
-      std::string bulkTemp;
+      Double bulkTemp;
     };
 
     typedef  StdVector<shared_ptr<RobinBc> > RobinBcList;
@@ -104,6 +114,18 @@ namespace CoupledField {
     //! special neumann boundary conditions
     RobinBcList robinBcs_;
     
+    bool interfaceDrivenHeatSource_;
+
+    //! Coefficient function for the convective velocity
+
+    //! This coefficient function describes the velocity field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> convecVelCoef_;
+
+    //! store convective bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

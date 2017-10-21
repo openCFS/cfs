@@ -35,6 +35,9 @@ namespace CoupledField
   {
   public:
 
+    friend class Matrix<Double>;
+    friend class Matrix<Complex>;
+
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION, INITIALIZATION, RESIZING
     // =======================================================================
@@ -89,7 +92,8 @@ namespace CoupledField
 
     inline void InitValue( const TYPE val = TYPE() )
     {
-      std::fill(&data_[0][0],&data_[0][size_row_*size_col_], val);
+      if(size_row_*size_col_ > 0)
+        std::fill(&data_[0][0],&data_[0][size_row_*size_col_], val);
     }
     
     //! Change the size of the matrix
@@ -106,7 +110,7 @@ namespace CoupledField
     void Resize(const UInt size);
 
     /** Resize if necessary to the other matrix */
-    inline void Resize(const Matrix<TYPE>& other);
+    void Resize(const Matrix<TYPE>& other);
     
     //@}
     
@@ -124,6 +128,9 @@ namespace CoupledField
       return  EntryType<TYPE>::M_EntryType;
     }
 
+    /** Is the Matrix quadratic */
+    bool IsQuadratic() const { return GetNumRows() == GetNumCols(); }
+
     //! Check if the matrix is symmetric
 
     /** return true, if the matrix is symmetric.
@@ -132,7 +139,18 @@ namespace CoupledField
     bool IsSymmetric() const;
 
     /** symmetry check with eps sensitivity. */
-    inline bool IsSymmetric(double eps) const;
+    inline bool IsSymmetric(double eps) const
+    {
+      if(!IsQuadratic())
+        return false;
+
+      for(UInt i = 1; i < size_row_; ++i)
+        for(UInt j = i+1; j < size_col_; ++j)
+          if(!close(data_[i][j], data_[j][i]))
+            return false;
+
+      return true;
+    }
 
     /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
      * @param eps if true use close() to compare the values by an eps  */
@@ -226,6 +244,12 @@ namespace CoupledField
       data_[row][col] += val;
     }
     
+    /** give a specific row */
+    void GetRow(Vector<TYPE>& vec_out, UInt row) const;
+
+    /** give a specific column */
+    void GetCol(Vector<TYPE>& vec_out, UInt col) const;
+
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 
@@ -261,10 +285,14 @@ namespace CoupledField
     //! \name Named Arithmetic Operations
     //@{
 
-    /** Add the multiple of another matrix this = fac * mat.
+    /** Add the multiple of another matrix this = this + fac * mat.
      * If you have mixed types use the tools version of Add */
     void Add(const TYPE fac, const Matrix<TYPE> & mat);
     
+    /** Add the multiple of the transpose of another matrix this = this + fac * transpose(mat).
+     * If you have mixed types use the tools version of Add */
+    void AddT(const TYPE fac, const Matrix<TYPE> & mat);
+
     /** Set this matrix with a multiple of another matrix.
      * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
@@ -272,6 +300,13 @@ namespace CoupledField
      * @param size_tolerant if set this matrix and other_mat may have different size with 0 entries for the unused. */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant = false);
     
+    /** Set the matrix out of a vector.
+     * This matrix is resized. rows times cols needs to match vec.GetSize()
+     * @param row_major = true assumes a11, a12, a13, a21, a22, ... (C style)
+     *        row_major = false = col_major assumes a11, a21, a31, ... (Fotran style)
+     * @see https://en.wikipedia.org/wiki/Row-major_order */
+    void Assign(const Vector<TYPE>& vec, unsigned int rows, unsigned int cols, bool row_major);
+
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
@@ -327,10 +362,17 @@ namespace CoupledField
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
     void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
+
+    /** This implements the Frobenius inner product of two matrices. This is NOT the Frobenius norm!
+     * @return the sum of the element wise product: sum this_ij * other_ij */
+    TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;
     
     /** This implements the Frobenius norm of two matrices.
      * @return the sum of the element wise product: sum this_ij * other_ij */
     TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
+
+    //! Entry-wise multiplication with another matrix
+    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
@@ -352,7 +394,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with itself
     //!\param vec1 (input) Vector which gets multiplied with itself
-    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //!  m_{21} & m_{22} & \cdots \\
     //!  \cdots & \cdots & \cdots 
     //!  \end{array} \right) 
@@ -371,7 +413,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with a vector vec2
     //! \param vec1 (input) Vector which gets multiplied with itself
-    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //! m_{21} & m_{22} & \cdots \\
     //! \cdots & \cdots & \cdots 
     //! \end{array} \right) 
@@ -391,10 +433,13 @@ namespace CoupledField
     
     //! Calculates the Trace
     //! works for non-square matrices of any size
-    void Trace( TYPE & val ) const;
+    TYPE Trace() const;
 
     /** Sum up the square of all entries */
     TYPE NormL2() const;
+
+    /** Computes the average of all entries. Weaker than L1 norm */
+    TYPE Avg() const;
 
     /** does something like (this - other).NormL2().
      * @see NormL2() */
@@ -423,6 +468,13 @@ namespace CoupledField
     //! \note The matrix itself gets overwritten in this method.
     void Invert_Lapack();
     
+    //! Compute the condition number of the matrix with Lapack
+
+    //! This methods estimates the condition number of the matrix
+    //! \param k  estimated condition number
+    //! \param info returns if the LU factorization was succesfull
+    void Invert_Lapack(double & k, int & info);
+
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
@@ -567,9 +619,9 @@ namespace CoupledField
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
     void solveWithLapack( Matrix<Complex> & b1,
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
-    
-    //! Computes eigenvalues of an hermitian matrix
-    void eigenvaluesWithLapack(Vector<Double> & b1);
+
+    //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
+    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
     //@}
 #endif
   
@@ -602,9 +654,16 @@ namespace CoupledField
     //! This method explicitly set the real/imaginary part of a matrix.
     //! By default, the other part is left unchanged. If zeroOtherPart 
     //! is set to yes, the other part gets initialized to zero.
-    void SetPart( Global::ComplexPart part,
-                  const Matrix<Double> & partMatrix,
-                  bool zeroOtherPart = false );
+    void SetPart(Global::ComplexPart part, const Matrix<Double> & partMatrix, bool zeroOtherPart = false);
+
+    //! S explicitly set the real/imaginary part of a matrix times a factor.
+
+    //! By default, the other part is left unchanged. If zeroOtherPart
+    //! is set to yes, the other part gets initialized to zero.
+    void SetPartMult( Global::ComplexPart part,
+                      const Matrix<Double> & partMatrix,
+                      Double factor,
+                      bool zeroOtherPart = false );
 
     //! Return a sub-part of the own matrix
     
@@ -628,6 +687,24 @@ namespace CoupledField
     //! Converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
+    /** Converts the upper triangular of a quadratic matrix into a vector the way the stress and strain is defined for Voigt-Notation
+     * 2*2 -> 11 22 12
+     * 3*3 -> 11 22 33 23 13 12 */
+    void ConvertToVec_UpperTriangular( SingleVector& vec ) const;
+
+    /** Convert from Voigt to Hill Mandel */
+    void VoigtToHillMandel();
+
+    /** Convert from Hill-Mandel to Voigt Notation */
+    void HillMandelToVoigt();
+
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
+    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+
+    //! Only for testing the switching state of Preisach planes
+    void matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel = NULL);
+    void matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY);
+
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
@@ -659,6 +736,10 @@ namespace CoupledField
     //! content, as defined by the rotation matrix rotMatrix.
     //! \note This method will only work with matrices of size 2,3, and 6.
     void PerformRotation( const Matrix<Double>& rotMatrix,  Matrix<TYPE>& matMatrix ) const;
+
+    //! This method generates a copy of this matrix, which contains the rotated in HILL_MANDEL notation
+        //! content, as defined by the rotation matrix rotMatrix.
+    void PerformHMRotation(Double rotAngle,  Matrix<Double>& matMatrix, std::string notation) const;
 
     //@}
 
@@ -793,7 +874,7 @@ namespace CoupledField
 
     for( UInt i = 0, in = m.GetNumCols(); i < in; i++ )
       for (UInt j = 0, jn = m.GetNumRows(); j < jn; j++ )
-        trans[i][j] = Conj(m[j][i]);
+        trans[i][j] = conj(m[j][i]);
 
     return trans;
   }
@@ -836,24 +917,19 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  inline void Matrix<TYPE>::Trace(TYPE & ret) const {
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0|| size_col_ == 0) 
-      EXCEPTION( "Undefined Matrix!" );
-#endif
+  inline TYPE Matrix<TYPE>::Trace() const {
+    assert(!(size_row_ == 0|| size_col_ == 0));
     UInt smallersize = size_row_ < size_col_ ? size_row_ : size_col_;
-    ret = data_[0][0];
-    for(UInt i = 1; i < smallersize; i++){
+    TYPE ret = data_[0][0];
+    for(UInt i = 1; i < smallersize; i++)
       ret += data_[i][i];
-    }
+    return ret;
   }
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
   template<class TYPE>
-  inline void Matrix<TYPE>::Mult(const DenseMatrix & mMat, 
-                                 DenseMatrix & rMat) const {
-
-
+  inline void Matrix<TYPE>::Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const
+  {
     Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
     Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
   
@@ -1020,6 +1096,8 @@ namespace CoupledField
 #ifdef CHECK_INDEX
     if (size_col_ != x.GetSize()) 
     {
+	    std::cout << "Matrix r x c " << size_row_ << " x " << size_col_ << std::endl;
+	    std::cout << size_col_ << " vs " << x.GetSize() << std::endl;
       EXCEPTION("incompatible dimension");
     }
 #endif
@@ -1030,7 +1108,7 @@ namespace CoupledField
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         z[k] += data_[k][kk] * x[kk];
-  
+
     return z;
   }
 

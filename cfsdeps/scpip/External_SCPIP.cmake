@@ -1,12 +1,17 @@
 #-------------------------------------------------------------------------------
 # SCPIP - - an efficient software tool for the solution of
-# structural optimization problems.
+# structural optimization problems. 
+# Implements the Method of Moving Asymptotes (MMA) from Krister Svanberg
 #
 # Project Homepage
 # http://www.mathematik.uni-wuerzburg.de/~zillober
 # http://www.mathematik.uni-wuerzburg.de/~zillober/pubs/manual30.pdf
 #-------------------------------------------------------------------------------
-
+#
+# SCPIP is not open source! Users need to obtain a permission to use the
+# code for academic purupose!  
+# 
+# The code 
 #-------------------------------------------------------------------------------
 # Set paths to scpip sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
@@ -15,45 +20,11 @@ set(scpip_source  "${scpip_prefix}/src/scpip")
 set(scpip_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 #-------------------------------------------------------------------------------
-# Configure target for downloading SCPIP sources using CMake ExternalData
-# mechanism.
-#-------------------------------------------------------------------------------
-# Add standard remote object stores to user's configuration.
-list(APPEND ExternalData_URL_TEMPLATES
-  "${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/%(algo)/%(hash)"
-  )
-
-# Set standard local object stores.
-SET(ExternalData_OBJECT_STORES
-  "${CFS_DEPS_CACHE_DIR}/sources/scpip"
-)
-
-# Give a hint about downloading the source archive to the developer.
-FILE(READ "cfsdeps/scpip/scpip.tar.bz2.md5" SCPIP_HASH)
-STRING(STRIP ${SCPIP_HASH} SCPIP_HASH)
-
-IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}")
-  SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
-  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}'.")
-
-  colormsg(HIYELLOW "${MSG}")
-ENDIF()
-
-set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
-
-# Expand all arguments as a single string to preserve escaped semicolons.
-ExternalData_expand_arguments(scpip_external_data
-  targetArgs "${SCPIP_EXTERNAL_DATA}")
-
-# Add a build target to populate the real data.
-ExternalData_Add_Target(scpip_external_data)
-
-#-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${scpip_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
   -DCMAKE_Fortran_FLAGS:FILEPATH=-w
@@ -83,19 +54,67 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/scpip/scpip-patch.cmake.in")
 SET(PFN "${scpip_prefix}/scpip-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
+# SCPIP is closed source, the code and binary may only be used after 
+# signing an agreement with Ch. Zillober
+# CFS expects scpip.tar.bz2 in CFS_DEPS_CACHE_DIR/source/scpip
+
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
+SET(MD5_SUM ${SCPIP_MD5})
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "scpip" "${SCPIP_VER}")
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${scpip_prefix}")
+
+SET(ZIPFROMCACHE "${scpip_prefix}/scpip-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${scpip_prefix}/scpip-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
 #-------------------------------------------------------------------------------
 # The scpip external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(scpip
-  DEPENDS scpip_external_data
-  PREFIX "${scpip_prefix}"
-  SOURCE_DIR "${scpip_source}"
-  URL ${SCPIP_PATH}/${SCPIP_BZ2}
-  URL_MD5 ${SCPIP_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(scpip
+    PREFIX "${scpip_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(scpip
+    PREFIX "${scpip_prefix}"
+    SOURCE_DIR "${scpip_source}"
+    URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
+    URL_MD5 ${SCPIP_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+  )
+    
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(scpip cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
@@ -111,9 +130,7 @@ SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 # Determine paths of SCPIP libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SCPIP_LIBRARY
-  "${LD}/libDscpip.a;${LD}/libZscpip.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${LD}/libamd.a"
-  CACHE FILEPATH "SCPIP library.")
+SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
 
 MARK_AS_ADVANCED(SCPIP_LIBRARY)
 MARK_AS_ADVANCED(SCPIP_INCLUDE_DIR)

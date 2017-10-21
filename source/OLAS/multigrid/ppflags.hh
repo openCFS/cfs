@@ -16,6 +16,7 @@
 #define AMG_IMPORT_PREFIX  "import/" // "lasexport/las"
 #define AMG_EXPORT_PREFIX  "export/" // "tools/debug/import/"
 
+
 /**********************************************************
  * some more detailed flags for import, export, split trace
  **********************************************************/
@@ -63,9 +64,6 @@
 #endif                              //
 #ifndef DEBUG_DEPENDENCYGRAPH       //
 #define  DEBUG_DEPENDENCYGRAPH      //
-#endif                              //
-#ifndef DEBUG_TRANSFEROPERATOR      //
-#define  DEBUG_TRANSFEROPERATOR     //
 #endif                              //
 #ifndef DEBUG_PREMATRIX             //
 #define  DEBUG_PREMATRIX            //

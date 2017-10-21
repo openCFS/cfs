@@ -23,51 +23,109 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
   # MESSAGE("Subversion_VERSION_SVN ${Subversion_VERSION_SVN}")
 
   #---------------------------------------------------------------------------
-  # Determine version of working copy from first line in .svn/entries and
-  # the Repo_VERSION_SVN accordingly in order to compare it to the version
-  # of the SVN executable. If the WC version is higher than the version
-  # supported by the Subversion exe, we download SVNKit instead.
+  # Determine the svn format of the working copy and compare it to the svn
+  # format used by the SVN executable. If the working copy svn format is 
+  # higher than the format supported by the SVN executable, we download the
+  # SVNKit instead.
+  # http://stackoverflow.com/questions/1364618/how-do-i-determine-the-svn-working-copy-layout-version
+  # http://stackoverflow.com/questions/19265363/find-out-svn-working-copy-version-1-7-or-1-8
+  # http://svn.apache.org/repos/asf/subversion/trunk/subversion/libsvn_wc/wc.h
   #---------------------------------------------------------------------------
-  FILE(STRINGS "${CFS_SOURCE_DIR}/.svn/entries" SVNREPOVERSION LIMIT_COUNT 1)
-  # MESSAGE("SVNREPOVERSION ${SVNREPOVERSION}")
+  SET(SVN_REPO_FORMAT 0)
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/format")
+    FILE(STRINGS "${CFS_SOURCE_DIR}/.svn/format" SVN_REPO_FORMAT_TMP LIMIT_COUNT 1)
+    IF(SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+      SET(SVN_REPO_FORMAT ${SVN_REPO_FORMAT_TMP})
+    ENDIF(SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+  ENDIF(EXISTS "${CFS_SOURCE_DIR}/.svn/format")
 
-  SET(Repo_VERSION_SVN "1.4")
-  IF(SVNREPOVERSION EQUAL 9)
-    SET(Repo_VERSION_SVN "1.5")
-  ENDIF(SVNREPOVERSION EQUAL 9)
-  IF(SVNREPOVERSION EQUAL 10)
-    SET(Repo_VERSION_SVN "1.6")
-  ENDIF(SVNREPOVERSION EQUAL 10)
-  IF(SVNREPOVERSION EQUAL 11)
-    SET(Repo_VERSION_SVN "1.7")
-  ENDIF(SVNREPOVERSION EQUAL 11)
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    FILE(STRINGS "${CFS_SOURCE_DIR}/.svn/entries" SVN_REPO_FORMAT_TMP LIMIT_COUNT 1)
+    IF(SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+      SET(SVN_REPO_FORMAT ${SVN_REPO_FORMAT_TMP})
+    ENDIF(SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+  ENDIF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
 
-  # MESSAGE("Repo_VERSION_SVN ${Repo_VERSION_SVN}")
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/wc.db")
+    EXECUTE_PROCESS(
+      COMMAND od -An -j63 -N1 -t dC "${CFS_SOURCE_DIR}/.svn/wc.db"
+      OUTPUT_VARIABLE SVN_REPO_FORMAT_TMP
+      RESULT_VARIABLE RETVAL
+    )
+    IF(NOT RETVAL AND SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+      STRING(STRIP ${SVN_REPO_FORMAT_TMP} SVN_REPO_FORMAT_TMP)
+      SET(SVN_REPO_FORMAT ${SVN_REPO_FORMAT_TMP})
+    ENDIF(NOT RETVAL AND SVN_REPO_FORMAT_TMP GREATER SVN_REPO_FORMAT)
+  ENDIF(EXISTS "${CFS_SOURCE_DIR}/.svn/wc.db")
 
+  IF(SVN_REPO_FORMAT EQUAL 0)
+    MESSAGE(FATAL_ERROR "Could not read SVN repository format from ${CFS_SOURCE_DIR}/.svn/format, ${CFS_SOURCE_DIR}/.svn/entries or ${CFS_SOURCE_DIR}/.svn/wc.db")
+  ENDIF(SVN_REPO_FORMAT EQUAL 0)
+
+  SET(SVN_REPO_FORMAT_MATCHES FALSE)
+  IF(Subversion_FOUND)
+    SET(Subversion_USED_FORMAT 1)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.0 OR Subversion_VERSION_SVN VERSION_GREATER 1.0)
+      SET(Subversion_USED_FORMAT 4)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.0 OR Subversion_VERSION_SVN VERSION_GREATER 1.0)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.4 OR Subversion_VERSION_SVN VERSION_GREATER 1.4)
+      SET(Subversion_USED_FORMAT 8)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.4 OR Subversion_VERSION_SVN VERSION_GREATER 1.4)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.5 OR Subversion_VERSION_SVN VERSION_GREATER 1.5)
+      SET(Subversion_USED_FORMAT 9)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.5 OR Subversion_VERSION_SVN VERSION_GREATER 1.5)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.6 OR Subversion_VERSION_SVN VERSION_GREATER 1.6)
+      SET(Subversion_USED_FORMAT 10)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.6 OR Subversion_VERSION_SVN VERSION_GREATER 1.6)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.7 OR Subversion_VERSION_SVN VERSION_GREATER 1.7)
+      SET(Subversion_USED_FORMAT 29)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.7 OR Subversion_VERSION_SVN VERSION_GREATER 1.7)
+    IF(Subversion_VERSION_SVN VERSION_EQUAL 1.8 OR Subversion_VERSION_SVN VERSION_GREATER 1.8)
+      SET(Subversion_USED_FORMAT 31)
+    ENDIF(Subversion_VERSION_SVN VERSION_EQUAL 1.8 OR Subversion_VERSION_SVN VERSION_GREATER 1.8)
+    IF(Subversion_USED_FORMAT EQUAL SVN_REPO_FORMAT OR Subversion_USED_FORMAT GREATER SVN_REPO_FORMAT)
+      SET(SVN_REPO_FORMAT_MATCHES TRUE)
+    ENDIF(Subversion_USED_FORMAT EQUAL SVN_REPO_FORMAT OR Subversion_USED_FORMAT GREATER SVN_REPO_FORMAT)
+  ENDIF(Subversion_FOUND)
+
+  #--------------------------------------------------------------------------
+  # Check if Subversion has been found and if it supports the repository svn
+  # format download and configure SVNKit.
+  # Also use SVNKit for smaller repo versions, needed for nightly builds on
+  # virtual boxes.
   #---------------------------------------------------------------------------
-  # Check if Subversion has been found and if it has a high enough version,
-  # otherwise download and configure SVNKit.
-  #---------------------------------------------------------------------------
-  IF(NOT Subversion_FOUND OR
-     Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN)
+  IF(NOT Subversion_FOUND OR NOT SVN_REPO_FORMAT_MATCHES)
 
-   IF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.7.4")
+   IF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")
      FILE(DOWNLOAD
-       "http://www.svnkit.com/org.tmatesoft.svn_1.7.4.standalone.zip"
-       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip")
-     
-     execute_process(COMMAND unzip
-       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip"
-       WORKING_DIRECTORY "${CFS_BINARY_DIR}")
-   ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.7.4")
+       "http://www.svnkit.com/org.tmatesoft.svn_1.8.10.standalone.zip"
+       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip")
 
-   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.7.4/bin/jsvn"
+     #-----------------------------------------------------------------------------
+     # Workaround for cmake download bug, may appear related to
+     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=716798
+     # http://public.kitware.com/pipermail/cmake-developers/2013-July/007759.html
+     #-----------------------------------------------------------------------------
+     EXECUTE_PROCESS(COMMAND du -k "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip" 
+       OUTPUT_VARIABLE SVN_FILESIZE)
+     STRING(REGEX REPLACE "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip" "" SVN_FILESIZE ${SVN_FILESIZE})
+     STRING(STRIP ${SVN_FILESIZE} SVN_FILESIZE)
+     IF(SVN_FILESIZE EQUAL 0)
+       EXECUTE_PROCESS(COMMAND wget -q "http://www.svnkit.com/org.tmatesoft.svn_1.8.10.standalone.zip" -O "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip")
+     ENDIF(SVN_FILESIZE EQUAL 0)
+  
+     
+     EXECUTE_PROCESS(COMMAND unzip -qq
+       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip"
+       WORKING_DIRECTORY "${CFS_BINARY_DIR}")
+   ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")
+
+   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.8.10/bin/jsvn"
      CACHE FILEPATH
      "subversion command line client" FORCE)
 
    FIND_PACKAGE("SVNKit" 1.4)
-  ENDIF(NOT Subversion_FOUND OR
-    Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN)
+  ENDIF(NOT Subversion_FOUND OR NOT SVN_REPO_FORMAT_MATCHES)
 
   
   #---------------------------------------------------------------------------

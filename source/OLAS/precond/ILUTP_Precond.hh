@@ -115,15 +115,6 @@ namespace CoupledField {
     using BNPrecond<ILUTP_Precond<T>, CRS_Matrix<T>, T >::Apply;
     using BNPrecond<ILUTP_Precond<T>, CRS_Matrix<T>, T >::Setup;
 
-    //! entry type of the matrices (e.g. tiny matrices)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;
-
-    //! entry type of the vectors (e.g. tiny vectors)
-    typedef typename AssocType<T>::T_Vtype T_Vtype;
-
-    //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-    typedef typename AssocType<T>::T_Stype T_Stype;
-
     //! Constructor
     ILUTP_Precond( const StdMatrix &stdMat, PtrParamNode precondNode,
 		   PtrParamNode olasInfo );
@@ -141,7 +132,7 @@ namespace CoupledField {
     };
 
     //! Setup function inherited from class BasePrecond
-    void Setup( CRS_Matrix<T>& sysmatrix, PtrParamNode analysis_id );
+    void Setup( CRS_Matrix<T>& sysmatrix );
 
     //! Applies the preconditioner by solving \f$ LU z = r\f$ for \f$z\f$
 

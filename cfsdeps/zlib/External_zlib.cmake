@@ -67,8 +67,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/zlib-1.2.8.tar.gz"
-  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/zlib-1.2.8.tar.gz"
+  "http://zlib.net/${ZLIB_GZ}"
+  "http://fossies.org/linux/misc/${ZLIB_GZ}"
   "${ZLIB_URL}/${ZLIB_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
@@ -79,37 +79,23 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The zlib external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(zlib
-  PREFIX ${zlib_prefix}
-  SOURCE_DIR ${zlib_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${ZLIB_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
 )
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(zlib cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${zlib_prefix}
-)
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "zlib" "${ZLIB_VER}")  
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${zlib_prefix}")
+
+SET(ZIPFROMCACHE "${zlib_prefix}/zlib-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${zlib_prefix}/zlib-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
+# Determine paths to zlib libraries
 #-------------------------------------------------------------------------------
-LIST(APPEND CFSDEPS zlib)
-
 IF(MINGW)
   SET(ZLIB_LIB zlibstatic)
   SET(ZLIB_SHARED_LIB zlib)
@@ -144,25 +130,59 @@ MARK_AS_ADVANCED(ZLIB_SHARED_LIBRARY)
 MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
 
 #-------------------------------------------------------------------------------
-# The minizip external project
+# The zlib external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(minizip
-  DEPENDS zlib
-  PREFIX ${zlib_prefix}
-  SOURCE_DIR ${zlib_source}/contrib/minizip
-  DOWNLOAD_COMMAND ""
-  PATCH_COMMAND ""
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-    -DZLIB_LIBRARY:PATH=${ZLIB_SHARED_LIBRARY}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(zlib
+    PREFIX "${zlib_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  ExternalProject_Add(zlib
+    PREFIX ${zlib_prefix}
+    SOURCE_DIR ${zlib_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${ZLIB_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${ZLIB_LIBRARY} ${ZLIB_SHARED_LIBRARY}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(zlib cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${zlib_prefix}
+  )
+
+  #-------------------------------------------------------------------------------
+  # No zip to cache here but after minizip is built. See below.
+  #-------------------------------------------------------------------------------
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-LIST(APPEND CFSDEPS minizip)
+LIST(APPEND CFSDEPS zlib)
 
+#-------------------------------------------------------------------------------
+# Determine Paths for minizip library
+#-------------------------------------------------------------------------------
 SET(MINIZIP_SHARED_LIB minizip)
 IF(MINGW OR WIN32)
   SET(MINIZIP_SHARED_LIB minizipdll)
@@ -184,6 +204,57 @@ SET(MINIZIP_INCLUDE_DIR ${CFS_BINARY_DIR}/include/minizip
 MARK_AS_ADVANCED(MINIZIP_LIBRARY)
 MARK_AS_ADVANCED(MINIZIP_SHARED_LIBRARY)
 MARK_AS_ADVANCED(MINIZIP_INCLUDE_DIR)
+
+#-------------------------------------------------------------------------------
+# The minizip external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # Do nothing. The project is included in zlib, so we already unzipped the files!
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(minizip
+    PREFIX "${zlib_prefix}"
+    DOWNLOAD_COMMAND ""
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(minizip
+    DEPENDS zlib
+    PREFIX ${zlib_prefix}
+    SOURCE_DIR ${zlib_source}/contrib/minizip
+    DOWNLOAD_COMMAND ""
+    PATCH_COMMAND ""
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+      -DZLIB_LIBRARY:PATH=${ZLIB_SHARED_LIBRARY}
+    BUILD_BYPRODUCTS ${MINIZIP_LIBRARY} ${MINIZIP_SHARED_LIBRARY}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(minizip cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+LIST(APPEND CFSDEPS minizip)
 
 # Determine version of Minizip by reading its header.
 IF(EXISTS "${MINIZIP_INCLUDE_DIR}/zip.h")

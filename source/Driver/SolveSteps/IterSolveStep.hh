@@ -149,6 +149,8 @@ namespace CoupledField
     //! Add a new region to 
     void AddRegion(RegionIdType region );
     
+    void SetNormFlag( bool justNorm);
+    
     //! \copydoc ConvCriterion::ResetValues
     virtual void ResetValues();
     
@@ -180,6 +182,9 @@ namespace CoupledField
     
     //! Old norm of updated displacement values
     Double oldNorm_;
+    
+    //! if just norm of mechanical displacement is of interest, but no updated geometry is needed
+    bool justNorm_;
   };
   
   // ======================================================================
@@ -191,8 +196,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    IterSolveStep(IterCoupledPDE& apde, PtrParamNode paramNode,
-                  PtrParamNode infoNode );
+    IterSolveStep(IterCoupledPDE& apde, PtrParamNode paramNode, PtrParamNode infoNode);
 
     //! Destructor
     virtual ~IterSolveStep();
@@ -217,7 +221,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id);
+    virtual void SolveStepStatic();
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -233,7 +237,7 @@ namespace CoupledField
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id);
+    virtual void SolveStepTrans();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -245,7 +249,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic();
 
 
     //!  routine for actions after the SolveStep-method
@@ -316,6 +320,10 @@ namespace CoupledField
     
     //! Flag if simulation should be aborted in case of diveregence
     bool stopOnDivergence_;
+    
+    //! Flag indicating if mechanical displacement shall be treated as a simple norm for convergence or
+    //! if an actual change in geometry shall be calculated
+    bool justNorm_;
     
     //! Maximum number of iterations per time step
     UInt maxiter_;      

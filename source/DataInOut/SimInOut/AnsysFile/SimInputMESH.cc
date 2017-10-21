@@ -608,6 +608,7 @@ namespace CoupledField {
         // position are the same
         inFile_.ignore(100,'\n');
         pos = inFile_.tellg();
+
         if (pos != lineEndPos) {
           EXCEPTION("The node list for the boundary "
                     << "conditions has wrong size or format. Please correct it!");
@@ -677,14 +678,12 @@ namespace CoupledField {
       // try to read in the data
       inFile_ >> elemNum >> str;
       
-      // if read in was successfull, enline position and current
+      // if read in was successful, endline position and current
       // position are the same
       inFile_.ignore(100,'\n');
       pos = inFile_.tellg();
       if (pos != lineEndPos) {
-        EXCEPTION("The node list for the "
-                  << "boundary "
-                  << "conditions has wrong size or format. Please correct it!");
+        EXCEPTION("The node list for the boundary conditions has wrong size or format. Please correct it! Pos: " << pos << " lineEndPos " << lineEndPos );
       }
       
       // get according vector index

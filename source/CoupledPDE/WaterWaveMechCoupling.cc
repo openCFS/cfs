@@ -22,6 +22,7 @@
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/IdentityOperatorInVector.hh"
 
 
 namespace CoupledField {
@@ -107,12 +108,38 @@ namespace CoupledField {
         EXCEPTION("A coupled mechanic-water wave simulation can only be"
             "performed in the acoustic potential formulation!");
       }
-      DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, 1.0, STIFFNESS, dispFct,
+      DefCouplInt( "WaterWaveMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct,
           waterFct, actSDList, oneCoefFuncs, waterRegions );
 
-      DefCouplInt( "WaterWaveMechPresMassCouplingInt", false, -1.0, MASS, waterFct,
+      DefCouplInt( "WaterWaveMechPresMassCouplingInt", false, 1.0, MASS, waterFct,
           dispFct, actSDList, coefFuncs, waterRegions );
 
+      //add gravity term;
+      Vector<Double> gravity(dim_);
+      gravity.Init(); 
+      BiLinearForm * cplInt = NULL;
+      if ( dim_ == 2 ) {
+    	  gravity[1] = -9.81;
+    	  cplInt = new SurfaceABInt<>(new IdentityOperatorInNormal<FeH1,2>(),
+    	                              new IdentityOperatorInVector<FeH1,2>(gravity),
+    	                              coefFuncs, -1.0, waterRegions);
+      }
+      else if (dim_ == 3) {
+        gravity[2] = -9.81;
+    	  cplInt = new SurfaceABInt<>(new IdentityOperatorInNormal<FeH1,3>(),
+    	                              new IdentityOperatorInVector<FeH1,3>(gravity),
+    	                              coefFuncs, -1.0, waterRegions);    
+      }
+      else {
+        EXCEPTION( "Coupling only for two and three dimensions defined" );
+      }
+      cplInt->SetName("WaterWaveMechGravityInt");
+      BiLinFormContext * context =
+    		  new BiLinFormContext(cplInt, STIFFNESS );
+
+      context->SetEntities( actSDList, actSDList );
+      context->SetFeFunctions( dispFct, dispFct );
+      assemble_->AddBiLinearForm( context );
     }
   }
 

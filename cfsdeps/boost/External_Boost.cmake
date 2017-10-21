@@ -151,8 +151,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://distfiles.lesslinux.org/boost_1_52_0.tar.bz2"
-  "http://freefr.dl.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.bz2"
+  "http://freefr.dl.sourceforge.net/project/boost/boost/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/${BOOST_GZ}"
   "${BOOST_URL}/${BOOST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/boost/${BOOST_GZ}")
@@ -165,38 +164,18 @@ CONFIGURE_FILE(
   @ONLY
   )
 
-#-------------------------------------------------------------------------------
-# The Boost external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(boost
-  DEPENDS zlib bzip2-shared bzip2-static
-  LIST_SEPARATOR ,
-  PREFIX "${boost_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${BOOST_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-  )
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "boost" "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}") 
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${boost_prefix}")
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(boost cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${boost_prefix}
-)
+SET(ZIPFROMCACHE "${boost_prefix}/boost-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  boost
-)
+SET(ZIPTOCACHE "${boost_prefix}/boost-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
 
 # These variables are used to find Boost by other projects
 SET(Boost_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE PATH "Boost include dir.")
@@ -219,8 +198,8 @@ IF(MINGW)
   LIST(GET COMPVER 0 COMPVER_MAJOR)
   LIST(GET COMPVER 1 COMPVER_MINOR)
 
-  SET(BOOST_LIB_SUFFIX_DEBUG "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-d-1_52${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  SET(BOOST_LIB_SUFFIX_RELEASE "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-1_52${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  SET(BOOST_LIB_SUFFIX_DEBUG "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-d-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  SET(BOOST_LIB_SUFFIX_RELEASE "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 ENDIF(MINGW)
 
 #-----------------------------------------------------------------------------
@@ -406,3 +385,85 @@ IF(NOT MINGW)
 ENDIF(NOT MINGW)
 
 SET(Boost_FOUND 1)
+
+
+#-------------------------------------------------------------------------------
+# The Boost external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(boost
+    PREFIX "${boost_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(boost
+    DEPENDS zlib bzip2-shared bzip2-static
+    LIST_SEPARATOR ,
+    PREFIX "${boost_prefix}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${BOOST_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS
+      ${BOOST_DATE_TIME_LIB}
+      ${BOOST_FILESYSTEM_LIB}
+      ${BOOST_IOSTREAMS_LIB}
+      ${BOOST_PRG_EXEC_MONITOR_LIB}
+      ${BOOST_PROGRAM_OPTIONS_LIB}
+      ${BOOST_PYTHON_LIB}
+      ${BOOST_REGEX_LIB}
+      ${BOOST_SERIALIZATION_LIB}
+      ${BOOST_SERIALIZATION_HDF5_LIB}
+      ${BOOST_SIGNALS_LIB}
+      ${BOOST_SYSTEM_LIB}
+      ${BOOST_TEST_EXEC_MONITOR_LIB}
+      ${BOOST_THREAD-MT_LIB}
+      ${BOOST_THREAD_LIB}
+      ${BOOST_UNIT_TEST_FRAMEWORK_LIB}
+      ${BOOST_WSERIALIZATION_LIB}
+
+    )
+
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(boost cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${boost_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(boost cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  boost
+)

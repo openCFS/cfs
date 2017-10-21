@@ -6,6 +6,7 @@
 
 #include "General/Environment.hh"
 #include "BaseOrdering.hh"
+#include <boost/unordered_set.hpp>
 
 namespace CoupledField {
 
@@ -21,6 +22,9 @@ namespace CoupledField {
 
     //! Shortcut for an STL vector of unsigned integers (UInt)
     typedef std::vector<UInt> NodeList;
+
+    //! Shortcut for an boost unordered UInt set
+    typedef boost::unordered_set<UInt> NodeSet;
 
     //! Shortcut for an iterator over an STL vector of unsigned integers (UInt)
     typedef NodeList::iterator NodeListIterator;
@@ -261,11 +265,6 @@ namespace CoupledField {
     //! prints the complete Graph for Debugging
     void Print(std::ostream &os) const;
   
-    //! print the Graph to the .las file
-    void Print() const {
-      Print(*cla);
-    }
-
     //@}
 
   protected:
@@ -422,6 +421,15 @@ namespace CoupledField {
     
     //! Final representation of blocks
     StdVector<std::pair<UInt,UInt> > sortedBlocks_;
+
+    //! set for faster add of element neighbors
+    NodeSet* setElements_;
+
+    //! flag to check if element_ pointer is ready
+    bool setToElemDone_;
+
+    //! function for converting set contents to vector
+    void MapSetToVector();
 
   };
 

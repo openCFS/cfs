@@ -86,28 +86,25 @@ namespace CoupledField
 
    virtual ~LISSolver();
 
-   /** Every call sets up a new preconditionier.
-    * @param analysis_id shall be the current info/analysis/progress/step entry and contain an "analysis_id" element */
-   void Setup(BaseMatrix &sysmat, PtrParamNode analysis_id);
+   /** Every call sets up a new preconditionier. */
+   void Setup(BaseMatrix &sysmat);
 
    /** To satisfy the compiler
-    * @param sysmat shall be the one Setup() is called with
-    * @param analysis_id @see Setup() */
-   void Solve( const BaseMatrix &sysmat,
-               const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id);
+    * @param sysmat shall be the one Setup() is called with */
+   void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
    BaseSolver::SolverType GetSolverType() { return BaseSolver::LIS; }
 
   private:
 
    ///Method to read xml definition and create the configuration string
-   void createConfigString(PtrParamNode configNode, std::string& output);
+   void CreateConfigString(PtrParamNode configNode, std::string& output);
 
    ///Reads information for solver and creates an appropriate string
-   void createSolverString(PtrParamNode solverNode, std::string& output);
+   void CreateSolverString(PtrParamNode solverNode, std::string& output);
 
    ///Reads information for solver and creates an appropriate string
-   void createPrecondString(PtrParamNode precondNode, std::string& output);
+   void CreatePrecondString(PtrParamNode precondNode, std::string& output);
 
    //LIS_SOLVER solver_;
 
@@ -117,6 +114,8 @@ namespace CoupledField
 
    //stores the system Matrix
    LIS_MATRIX A_;
+   // this is our working copy we can safely delete without disturbing cfs
+   LIS_MATRIX A0_;
 
    //stores the current solution
    LIS_VECTOR x_;
@@ -126,6 +125,26 @@ namespace CoupledField
 
    ///pointer to xml node
    PtrParamNode xml_;
+
+   ///internal status flag for updated matrix computations
+   bool firstSetup_;
+
+   ///reset solution vector to zero if Setup is called
+   bool resetXZero_;
+
+   bool ownMatrixA_;
+
+   /** with throw exception when exceeded */
+   int maxIter_ = -1;
+
+   /** not that LIS has three ways to calculate the residuum */
+   double tolerance_ = -1.0;
+
+   /** throws only an exception on maxIter exceeded if also minTol_ is not met */
+   double minTol_ = -1.0;
+
+   /** activates a lis feature */
+   bool logging_ = false;
   };
 }
 #endif

@@ -84,14 +84,28 @@ template<typename T> class ElemStoreSol;
       capacity_ = size_;
       memBelongsToMe_ = true;
 
-      if(size_ > 0)
-        data_ = new T[size_];
-      else
-        data_ = NULL;
+      data_ = size_ > 0 ? new T[size_] : NULL;
 
       for(unsigned int i = 0; i < size_; ++i)
         data_ [i] = origVec.data_[i];
     }
+
+    /** constructs a vector out of two vectors with the size of both vectors */
+    Vector(const Vector<T>& lower, const Vector<T>& upper)
+    {
+      // Obtain size info and allocate memory
+      size_     = lower.size_ + upper.size_;
+      capacity_ = size_;
+      memBelongsToMe_ = true;
+
+      data_ = size_ > 0 ? new T[size_] : NULL;
+
+      for(unsigned int i = 0; i < lower.size_; ++i)
+        data_[i] = lower.data_[i];
+      for(unsigned int i = 0; i < upper.size_; ++i)
+        data_[lower.size_ + i] = upper.data_[i];
+    }
+
 
     //! Destructor
     
@@ -129,6 +143,8 @@ template<typename T> class ElemStoreSol;
     
     //! Resize the vector to new size and initialize entries with val
     void Resize(const unsigned int newSize, const T val);
+
+    unsigned int GetSize() const { return size_; }
 
     //! Add functionality of vector class to a data array
 
@@ -178,14 +194,15 @@ template<typename T> class ElemStoreSol;
     //! array will be de-allocated, if it belongs to the vector object, and
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
-    void Clear() {
-      if(memBelongsToMe_)
-        delete[] data_;
-      
-      size_     = 0;
-      capacity_ = 0;
-      data_     = NULL;
+    void Clear(bool keepCapacity = true) {
+      size_ = 0;
+      if( keepCapacity == false ) {
+        if(memBelongsToMe_)
+          delete[] data_;
 
+        capacity_ = 0;
+        data_     = NULL;
+      }
       // We set this to true be default, to be able to do a re-size
       // afterwards. If a Replace() is done, it will adapt it accordingly.
       memBelongsToMe_ = true;
@@ -241,14 +258,35 @@ template<typename T> class ElemStoreSol;
     //! and the input vector vec. The value is returned in sum.
     void Inner(const SingleVector& vec, T& sum) const;
     
+    /** computes the inner product only for a defined range
+     * @param start first index
+     * @param end not included index */
+    T Inner(const SingleVector& vec, unsigned int start, unsigned int end) const;
+
     T Inner(const SingleVector& vec) const;
+
+    T Inner() const;
+
+    Vector<T> Conj() const;
 
     //! Override SingleVector functions
     //    virtual void Inner(const SingleVector& vec,Double& s) const;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    Double NormL2() const;
+    double NormL2() const;
+
+    /**  this functions localized the maximal component (absolute value) and returns it with its original sign
+		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
+    Double SignedMax() const; 
+
+    /** diff norm */
+    double NormL2(const Vector<T>& other) const;
+
+    /** Sum of all the vector's elements */
+    T Sum() const;
+
+    T Avg() const;
 
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
@@ -291,7 +329,7 @@ template<typename T> class ElemStoreSol;
     void ScalarMult( const Complex factor );
 
     //! Calc cross product of two vectors v = this x b
-    void CrossProduct( const Vector<T>& b, Vector<T>& v );
+    void CrossProduct( const Vector<T>& b, Vector<T>& v ) const;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);
@@ -324,7 +362,8 @@ template<typename T> class ElemStoreSol;
       return this->assignFrom(rhs); 
     }
     
-    //! Inner product for general vector expression as second argument
+    //! vector product for general vector expression as second argument.
+    //! Not that in the complex case not the complex conjugate is used! Use Inner() for that purpose!
     template <class V> 
     T operator*( const Xpr1<T,V>& rhs ) {
       T ret = 0.0;
@@ -413,8 +452,8 @@ template<typename T> class ElemStoreSol;
 
     //@{
     /** Prints the content for Logging
-     * @param level 0 is all content, 1 is only non zero
-     * @param separator as default a comma  */
+     * @param level 0 is all content, 1 is only non zero, 2 is all content in MATLAB format
+     * @param separator character  */
     std::string ToString(const int level = 0, const char separator = ' ') const;
 
     //! Export vector to file
@@ -479,6 +518,9 @@ template<typename T> class ElemStoreSol;
     //! This method sets val to the value of vector entry i
     void GetEntry( UInt i, T &val ) const;
 
+    //! Get entries at specified indices from in
+    const Vector<T> GetEntries( const StdVector<UInt>& in) const;
+
     //! Add val to the value of a vector entry
 
     //! This method adds to the entry of the vector at position i the
@@ -519,6 +561,8 @@ template<typename T> class ElemStoreSol;
       return data_;
     }
 
+    /** Check if the vector contains the specific value. A way to assert() that is is completely set */
+    bool Contains(const T val) const;
 
     /** Check if the vector contains NAN. To be used by asserts() */
     bool ContainsNaN() const;
@@ -527,28 +571,6 @@ template<typename T> class ElemStoreSol;
     bool ContainsInf() const;
 
     //@}
-
-    // =======================================================================
-    // MISCELLANEOUS METHODS
-    // =======================================================================
-
-    //! \name Miscellaneous methods
-    //@{
-
-    //! Query tag for matrix entries compatible with vector
-    std::string GetTagM() {
-      return AssocType<T>::tagM;
-    }
-
-    //! Query tag for vector entries compatible with vector
-    std::string GetTagV() {
-      return AssocType<T>::tagV;
-    }
-
-    //! Query tag for scalar entries compatible with vector
-    std::string GetTagS() {
-      return AssocType<T>::tagS;
-    }
 
   protected:
 
@@ -577,7 +599,7 @@ template<typename T> class ElemStoreSol;
 
 
   // *******************************************
-  //   Dot product between two vectors
+  //   Vector product, but not the scalar product, which would use the complex conjugate as Inner() does!
   // *******************************************
   template<typename T> template<typename T2>
   PROMOTE(T,T2) Vector<T>::
@@ -606,10 +628,6 @@ template<typename T> class ElemStoreSol;
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
   // ************************************************************
 #ifndef EXPR_TEMPLATES
-  
-  //! Explicit conjugate operation (general case)
-  template<typename T>
-  Vector<T> Conj(const Vector<T>& m);
   
   template<typename T> template<typename T2>
   Vector<PROMOTE(T,T2)> Vector<T>::
@@ -691,9 +709,5 @@ template<typename T> class ElemStoreSol;
 #endif // EXPR_TEMPLATE
 }
 
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "vector.cc"
-#endif
 
 #endif // OLAS_VECTOR_HH

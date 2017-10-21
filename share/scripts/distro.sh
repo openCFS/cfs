@@ -28,6 +28,7 @@ Help()
     echo "-h      print distribution info human readable"
     echo "-a      print distribution info awk parsable"
     echo "-u      print distribution info unique"
+    echo "-c      print distribution info for cmake"
 }
 
 if [ -z "$1" ]; then
@@ -37,7 +38,6 @@ fi
 
 # Set default sub-architecture
 SUBARCH="SUBARCHUNKNOWN"
-
 if [ "${OS}" = "SunOS" ] ; then
     ARCH=`uname -p`
     DIST=`uname -n`
@@ -65,7 +65,6 @@ elif [ "${OS}" = "Linux" ] ; then
     fi
 
     KERNEL=`uname -r`
-    
     # Now let's determine the sub-architecture. This can be EM64T or
     # OPTERON for X86_64 or SGI for IA64
     if [ "$ARCH" = "X86_64" ] ; then
@@ -100,8 +99,12 @@ elif [ "${OS}" = "Linux" ] ; then
         DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
         REV=$($LSB_REL -r -s)
         PSEUDONAME=$($LSB_REL -c -s)
-
+                
         case "$DIST" in
+            "openSUSE") if grep -q Tumbleweed /etc/os-release; then
+                # for the roling release tumbleweed the revision is something like 20150727 and no pesudoname is set 
+                REV="Tumbleweed"
+              fi ;;
             "SUSE") DIST="SLE" ;;
             "Debian") REV=$(echo $REV | sed 's/\.[0-9]*$//') ;;
             "Enterprise") DIST="ORACLE" ;;
@@ -144,6 +147,7 @@ elif [ "${OS}" = "Linux" ] ; then
         REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
 
     elif [ -f /etc/SuSE-release ] ; then
+    	# as OpenSuse has lsb_release we don't come here in this elif case any more
         SUSEREL="/etc/SuSE-release"
         FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
         ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
@@ -239,34 +243,40 @@ elif [ "${OS}" = "Linux" ] ; then
                 PSEUDONAME="Knoppix";;
         esac
     fi
+       
     if [ -f /etc/UnitedLinux-release ] ; then
         DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"
     fi
 
     OSSTR="${OS} ${DIST} ${REV} (${PSEUDONAME} ${KERNEL} ${MACH})"
-
 elif [ ${OS} = "Darwin" ]; then
     MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
     if [ $? -eq 0 ]; then
-        MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'(' -f1)
+        # up to 10.11 "OS X 10.11.6 (15G1004)" from 10.12 "macOS 10.12 (16A323"
+        MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'S' -f2 | cut -d'(' -f1)
         OS="Mac OS X"
         DIST="MACOSX"
         DIST_FAMILY="MACOSX"
         FULL_REV=$(echo $MACOSVER | sed -e 's/^[ \t]*//')
-        MAJOR_REV=`echo $FULL_REV | sed -e 's/\(\.[0-9]\)\(\.[0-9]\)$/\1/' -e 's/Server //'`
+        MAJOR_REV2=`echo $FULL_REV | sed -e 's/\(\.[0-9]\)\(\.[0-9]\)$/\1/' -e 's/Server //'`
+        MAJOR_REV="$(echo $MAJOR_REV2 | cut -d. -f1).$(echo $MAJOR_REV2 | cut -d. -f2)"
         REV=`echo $FULL_REV | sed -e 's/Server //' -e 's/ //g'`
 
+        # http://www.imore.com/os-x-version-code-names
         case "$MAJOR_REV" in
             "10.0") PSEUDONAME="Cheetah";;
             "10.1") PSEUDONAME="Puma";;
             "10.2") PSEUDONAME="Jaguar";;
-            "10.3") PSEUDONAME="Panther";;
-            "10.4") PSEUDONAME="Tiger";;
-            "10.5") PSEUDONAME="Leopard";;
+            "10.3") PSEUDONAME="Panther (Pinot)";;
+            "10.4") PSEUDONAME="Tiger (Merlot, Intel: Chardonay)";;
+            "10.5") PSEUDONAME="Leopard (Chablis)";;
             "10.6") PSEUDONAME="Snow Leopard"; ARCH="X86_64";;
-            "10.7") PSEUDONAME="Lion"; ARCH="X86_64";;
-            "10.8") PSEUDONAME="Mountain Lion"; ARCH="X86_64";;
-            "10.9") PSEUDONAME="Mavericks"; ARCH="X86_64";;
+            "10.7") PSEUDONAME="Lion (Barolo)"; ARCH="X86_64";;
+            "10.8") PSEUDONAME="Mountain Lion (Zinfandel)"; ARCH="X86_64";;
+            "10.9") PSEUDONAME="Mavericks (Cabernet)"; ARCH="X86_64";;
+            "10.10") PSEUDONAME="Yosemite (Sirah)"; ARCH="X86_64";;
+            "10.11") PSEUDONAME="El Capitan"; ARCH="X86_64";;
+            "10.12") PSEUDONAME="Sierra"; ARCH="X86_64";;
         esac
 
         OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
@@ -277,10 +287,10 @@ elif [ ${OS} = "Darwin" ]; then
 fi
 
 case "$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')" in
-    "SCIENTIFIC") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "CENTOS") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "ORACLE") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "RHEL") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
+    "SCIENTIFIC") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
+    "CENTOS") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//');;
+    "ORACLE") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
+    "RHEL") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
     "SLE") DIST_FAMILY="SLE"; MAJOR_REV=${REV} ;;
     *) break ;;
 esac

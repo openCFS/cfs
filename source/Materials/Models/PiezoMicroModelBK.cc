@@ -51,68 +51,68 @@ namespace CoupledField{
     // define the rotation anles
     rotationAngles_.Resize(dim_,numDomain_);
     rotationAngles_[0][0] = 0;
-    rotationAngles_[1][0] = -PI/2.0;
+    rotationAngles_[1][0] = -M_PI/2.0;
     rotationAngles_[2][0] = 0;
-    rotationAngles_[0][1] = PI/2.0;
+    rotationAngles_[0][1] = M_PI/2.0;
     rotationAngles_[1][1] = 0;
     rotationAngles_[2][1] = 0;
     rotationAngles_[0][2] = 0;
     rotationAngles_[1][2] = 0;
     rotationAngles_[2][2] = 0;
     rotationAngles_[0][3] = 0;
-    rotationAngles_[1][3] = PI/2.0;
+    rotationAngles_[1][3] = M_PI/2.0;
     rotationAngles_[2][3] = 0;
-    rotationAngles_[0][4] = -PI/2.0;
+    rotationAngles_[0][4] = -M_PI/2.0;
     rotationAngles_[1][4] = 0;
     rotationAngles_[2][4] = 0;
-    rotationAngles_[0][5] = PI;
+    rotationAngles_[0][5] = M_PI;
     rotationAngles_[1][5] = 0;
     rotationAngles_[2][5] = 0;
     rotationAngles_[0][6] = 0.9557;
     rotationAngles_[1][6] = 0;
-    rotationAngles_[2][6] = PI/4.0;
+    rotationAngles_[2][6] = M_PI/4.0;
     rotationAngles_[0][7] = 0.9557;
     rotationAngles_[1][7] = 0;
-    rotationAngles_[2][7] = PI/4.0 + PI/2.0;
+    rotationAngles_[2][7] = M_PI/4.0 + M_PI/2.0;
     rotationAngles_[0][8] = 0.9557;
     rotationAngles_[1][8] = 0;
-    rotationAngles_[2][8] = PI/4.0 + PI;
+    rotationAngles_[2][8] = M_PI/4.0 + M_PI;
     rotationAngles_[0][9] = 0.9557;
     rotationAngles_[1][9] = 0;
-    rotationAngles_[2][9] = PI/4.0 + 3.0*PI/2.0;
-    rotationAngles_[0][10] = PI - 0.95570;
+    rotationAngles_[2][9] = M_PI/4.0 + 3.0*M_PI/2.0;
+    rotationAngles_[0][10] = M_PI - 0.95570;
     rotationAngles_[1][10] = 0;
-    rotationAngles_[2][10] = PI/4.0;
-    rotationAngles_[0][11] = PI - 0.9557;
+    rotationAngles_[2][10] = M_PI/4.0;
+    rotationAngles_[0][11] = M_PI - 0.9557;
     rotationAngles_[1][11] = 0;
-    rotationAngles_[2][11] = PI/4.0 + PI/2.0;
-    rotationAngles_[0][12] = PI - 0.9557;
+    rotationAngles_[2][11] = M_PI/4.0 + M_PI/2.0;
+    rotationAngles_[0][12] = M_PI - 0.9557;
     rotationAngles_[1][12] = 0;
-    rotationAngles_[2][12] = PI/4.0 + PI;
-    rotationAngles_[0][13] = PI - 0.9557;
+    rotationAngles_[2][12] = M_PI/4.0 + M_PI;
+    rotationAngles_[0][13] = M_PI - 0.9557;
     rotationAngles_[1][13] = 0;
-    rotationAngles_[2][13] = PI/4.0 + 3*PI/2.0;
+    rotationAngles_[2][13] = M_PI/4.0 + 3*M_PI/2.0;
 
 //     numDomain_ =6;
 
 //     // define the rotation anles
 //     rotationAngles_.Resize(dim_,numDomain_);
 //     rotationAngles_[0][0] = 0;
-//     rotationAngles_[1][0] = -PI/2.0;
+//     rotationAngles_[1][0] = -M_PI/2.0;
 //     rotationAngles_[2][0] = 0;
-//     rotationAngles_[0][1] = PI/2.0;
+//     rotationAngles_[0][1] = M_PI/2.0;
 //     rotationAngles_[1][1] = 0;
 //     rotationAngles_[2][1] = 0;
 //     rotationAngles_[0][2] = 0;
 //     rotationAngles_[1][2] = 0;
 //     rotationAngles_[2][2] = 0;
 //     rotationAngles_[0][3] = 0;
-//     rotationAngles_[1][3] = PI/2.0;
+//     rotationAngles_[1][3] = M_PI/2.0;
 //     rotationAngles_[2][3] = 0;
-//     rotationAngles_[0][4] = -PI/2.0;
+//     rotationAngles_[0][4] = -M_PI/2.0;
 //     rotationAngles_[1][4] = 0;
 //     rotationAngles_[2][4] = 0;
-//     rotationAngles_[0][5] = PI;
+//     rotationAngles_[0][5] = M_PI;
 //     rotationAngles_[1][5] = 0;
 //     rotationAngles_[2][5] = 0;
 
@@ -248,7 +248,7 @@ namespace CoupledField{
         if ( val < -1.0 ) 
           val = -1.0;
              
-        switchingVal_[i][j] = 2.0 * std::acos( val ) / PI;
+        switchingVal_[i][j] = 2.0 * std::acos( val ) / M_PI;
         //        std::cout << "switchingVals:" << switchingVal_[i][j] << std::endl;
       }
     }

@@ -14,6 +14,7 @@ namespace CoupledField {
     complexFormat = AMPLITUDE_PHASE;
     entryType = UNKNOWN;
     definedOn = FREE;
+    fromOptimization = false;
   }
 
 
@@ -35,6 +36,19 @@ namespace CoupledField {
       dofNames = "x", "y";
     if(dim == 2 && is_axi)
       dofNames = "r", "z";
+  }
+
+  void ResultInfo::SetVectorDOFs(UInt dim, bool is_axi, bool is2p5)
+  {
+    if(dim == 3 || is2p5)
+      dofNames = "x", "y", "z";
+    else
+    {
+      if(dim == 2 && !is_axi)
+        dofNames = "x", "y";
+      if(dim == 2 && is_axi)
+        dofNames = "r", "z";
+    }
   }
 
   std::string ResultInfo::GetDofName( const UInt dof ) const {

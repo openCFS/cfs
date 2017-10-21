@@ -1,6 +1,4 @@
-IF(USE_XERCES)
-  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-ENDIF(USE_XERCES)
+INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
 
 
 SET(MESH_SRCS 
@@ -8,6 +6,11 @@ SET(MESH_SRCS
   NcInterfaces/BaseNcInterface.cc
   NcInterfaces/MortarInterface.cc
   GridCFS/GridCFS.cc
+  MeshUtils/EntityAssociation.cc
+  MeshUtils/Intersection/VolumeGridIntersection.cc
+  MeshUtils/Intersection/IntersectAlgos/CoordTetra.cc
+  MeshUtils/Intersection/IntersectAlgos/TriaIntersect.cc
+  MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.cc
   )
 
 
@@ -27,10 +30,11 @@ SET(TARGET_LL
 IF(USE_CGAL)
   SET(TARGET_LL
     ${TARGET_LL}
+    ${MPFR_LIBRARY}
+    ${GMP_LIBRARY}
+    ${GMPXX_LIBRARY}
     ${CGAL_LIBRARY}
     ${BOOST_THREAD_LIB}
-    ${GMP_LIBRARY}
-    ${MPFR_LIBRARY}
   )
 ENDIF(USE_CGAL)
 
@@ -41,12 +45,10 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND USE_OPENMP)
   )
 ENDIF()
 
-IF(USE_XERCES)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    ${XERCES_LIBRARY}
-  )
-ENDIF(USE_XERCES)
+SET(TARGET_LL
+  ${TARGET_LL}
+  ${XERCES_LIBRARY}
+)
 
 LIST(REMOVE_DUPLICATES TARGET_LL)
 

@@ -2,7 +2,6 @@
 #include "OLAS/precond/SBMDiagPrecond.hh"
 #include "MatVec/SBM_Matrix.hh"
 #include "MatVec/SBM_Vector.hh"
-#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -54,21 +53,17 @@ namespace CoupledField {
         const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
         const SingleVector * rStd = r.GetPointer(iRow);
         SingleVector * zStd = z.GetPointer(iRow);
-        stdPreconds_[iRow]->GetPrecondTimer()->Start();
         stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
-        stdPreconds_[iRow]->GetPrecondTimer()->Stop();
       }
     }
   }
 
-  void  SBMDiagPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
+  void  SBMDiagPrecond::Setup( SBM_Matrix &A ) {
     assert( A.GetNumRows() <= numBlocks_ );
     for( UInt iRow = 0; iRow < A.GetNumRows(); ++iRow ) {
       // If preconditioner for row is defined, apply it
       if( stdPreconds_[iRow] != NULL ) {
-        stdPreconds_[iRow]->BasePrecond::GetSetupTimer()->Start();
-        stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
-        stdPreconds_[iRow]->BasePrecond::GetSetupTimer()->Stop();
+        stdPreconds_[iRow]->Setup(A(iRow,iRow));
       }
     }
   }    

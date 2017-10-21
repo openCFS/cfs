@@ -10,6 +10,7 @@ SET(UTILS_SRCS
   Timer.cc
   SmoothSpline.cc
   tools.cc
+  Point.cc
   )
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})

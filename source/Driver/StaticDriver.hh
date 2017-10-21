@@ -26,7 +26,7 @@ namespace CoupledField {
     //! Initialization method
     void Init(bool restart);
 
-    /** @see BaseDriver::SolveProblem(double) */  
+    /** @see BaseDriver::SolveProblem() */
     void SolveProblem();
         
     /** @see BaseDriver::StoreResults(double) */  
@@ -39,6 +39,9 @@ namespace CoupledField {
 
     //! \copydoc SingleDriver::SetToStepValue
     virtual void SetToStepValue(UInt stepNum, Double stepVal );
+
+    /** LBM case */
+    bool lbm_;
   };
 
 }

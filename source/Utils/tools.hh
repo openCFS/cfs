@@ -1,14 +1,25 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
+#include <cmath>
+
 #include <string>
 #include <iostream>
-#include <cmath>
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+#include "Optimization/EigenInfo.hh"
+
+// C++ is so poor that there even is no really standard for pi - > why not????
+#ifndef M_PI
+  #include <boost/math/constants/constants.hpp>
+  #define M_PI boost::math::constants::pi<double>()
+#endif
+
 
 namespace CoupledField {
+
+  class SingleVector;
 
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
@@ -39,6 +50,12 @@ namespace CoupledField {
                         const char delimiter = ',' );
 
   
+  /** boost based SplitStringList() which consideres almost all whitespaces */
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
+
+  /** convert a string such that is becomes a valid filename. Might need extensions */
+  std::string ConvertToFilename(std::string org);
+
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
     return "("+xpr+")";
@@ -51,12 +68,12 @@ namespace CoupledField {
   
    //! Convert grad => rad
    inline Double Grad2Rad( Double rad ) {
-     return rad / 180.0 * PI;
+     return rad / 180.0 * M_PI;
    }
    
   //! Convert rad => grad
   inline Double Rad2Grad( Double rad ) {
-     return rad / PI * 180.0;
+     return rad / M_PI * 180.0;
    }
   
   // =========================================================================
@@ -80,12 +97,14 @@ namespace CoupledField {
   
   //! Convert (ampl,phase) => real (strings)
   std::string AmplPhaseToReal( const std::string& val, 
-                               const std::string& phase );
+                               const std::string& phase,
+							   bool isInRad = false );
 
   //! Convert (ampl,phase) => imag (strings)
   std::string AmplPhaseToImag( const std::string& val, 
-                               const std::string& phase );
-  
+                               const std::string& phase,
+							   bool isInRad = false );
+
   // ------ vector versions -----
   //! Convert (ampl,phase) => (real,imag) (strings vectors)
   void AmplPhaseToRealImag( const StdVector<std::string>& val, 
@@ -101,6 +120,10 @@ namespace CoupledField {
   /** Compares if two doubles are close to each other */
   inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
 
+  /** clang complains about std::abs(c1 - c2) if i* is unsigned int but it would be used for templated Matrix::IsSymmetric()
+   * @param eps not used but there for compatibelity*/
+  inline bool close(int i1, int i2, double eps = 0.0) { return i1 == i2; }
+  inline bool close(unsigned int i1, unsigned int i2, double eps = 0.0) { return i1 == i2; }
 
   /** separate eps version to be faster! */
   inline bool close(Double d1, Double d2, double eps) { return std::abs(d1-d2) < eps; }
@@ -119,17 +142,11 @@ namespace CoupledField {
 
   inline bool IsNoise(UInt val) { return false; }
 
-  //! power of value
-  template<class T>
-  T pow(T x, UInt power)
-  { T p=x;
-    if (!power)
-      return 1;
-
-    for (UInt i=2; i<=power; i++)
-      p*=x;
-    return p;
+  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
   }
+
 
   //! calculate distance between two points embedded in matrix
 
@@ -189,14 +206,26 @@ namespace CoupledField {
   template<class TYPE, class TYPE2>
   void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
-   #ifdef CHECK_INDEX
-      if(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols())
-        EXCEPTION("matrices do not match");
-   #endif
+   assert(out.GetNumRows() == other.GetNumRows() && out.GetNumCols() == other.GetNumCols());
    for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
      for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
        out[r][c] += fac * other[r][c];
   }
+
+  template<class TYPE, class TYPE2>
+  void Add(Vector<TYPE>& out, const TYPE2 fac, const Vector<TYPE>& other)
+  {
+   assert(out.GetSize() != other.GetSize());
+   for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
+       out[i] += fac * other[i];
+  }
+
+  /** Search for the smallest value within a row
+   * @param value set when given
+   * @param set the info if given to be used for output
+   * @return the 0-based column index */
+   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
+
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);
@@ -207,7 +236,11 @@ namespace CoupledField {
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
-  Double NormL2(const Double* data, const UInt size);
+  double NormL2(const Double* data, const UInt size);
+
+  double NormL2(const Double* data, const Double* data2, const UInt size);
+
+  double NormL2(const SingleVector* data, const SingleVector* data2);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
@@ -217,6 +250,10 @@ namespace CoupledField {
 
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line = false);
+
+  template <class TYPE>
+  std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line = false);
+
 
   /** converts data arrays to strings such that they can be copy & pasted from log to matlab.
    * Redundant to StdVector::ToString() but there the complex special implementation was not possible */
@@ -273,6 +310,18 @@ namespace CoupledField {
   /** derivative of
    * @see CalcAbsApproximation() */
   double DerivSmoothAbs(double x, double eps);
+
+  inline unsigned int Product(const StdVector<unsigned int>& vec)
+  {
+    unsigned int prod = 1;
+    for (unsigned int i = 0; i < vec.GetSize(); i++)
+      prod *= vec[i];
+
+    return prod;
+  }
+
+  /** uses the global domain->GetMathParser() to evaluate an expression */
+  double MathParse(const std::string& expr);
 
 } // end of CoupledField
 

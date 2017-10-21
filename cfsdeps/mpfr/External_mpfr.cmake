@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------
 set(mpfr_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/mpfr")
 set(mpfr_source  "${mpfr_prefix}/src/mpfr")
-set(mpfr_install  "${CMAKE_CURRENT_BINARY_DIR}")
+set(mpfr_install  "${mpfr_prefix}/install")
 
 #-------------------------------------------------------------------------------
 # Set names of configure file and template file.
@@ -37,47 +37,26 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/mpfr/${MPFR_BZ2}")
 SET(MD5_SUM ${MPFR_MD5})
 
 SET(DLFN "${mpfr_prefix}/mpfr-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  )
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
-# The mpfr external project
+# After the installation we copy to cfs
 #-------------------------------------------------------------------------------
-ExternalProject_Add(mpfr
-  DEPENDS gmp
-  PREFIX "${mpfr_prefix}"
-  SOURCE_DIR "${mpfr_source}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${MPFR_MD5}
-  BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
-  BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
-  INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
-)
+SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/mpfr/mpfr-post_install.cmake.in")
+SET(PI "${mpfr_prefix}/mpfr-post_install.cmake")
+CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(mpfr cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${mpfr_prefix}
-)
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "mpfr" "${MPFR_VER}")  
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${mpfr_install}")
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  mpfr
-)
+SET(ZIPFROMCACHE "${mpfr_prefix}/mpfr-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+SET(ZIPTOCACHE "${mpfr_prefix}/mpfr-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-----------------------------------------------------------------------------
 # Determine paths of MPFR libraries.
@@ -90,3 +69,85 @@ SET(MPFR_LIBRARY
 MARK_AS_ADVANCED(MPFR_LIBRARY)
 MARK_AS_ADVANCED(MPFR_INCLUDE_DIR)
 
+#-------------------------------------------------------------------------------
+# The mpfr external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(mpfr
+    PREFIX "${mpfr_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # GMP does not use CMake but automake: We cannot use the CMake Ninja-generator,
+    # we use make instead to build GMP
+    find_program(MPFR_MAKE_PROGRAM make)
+  else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    set(MPFR_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build MPFR")
+  endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  MARK_AS_ADVANCED(MPFR_MAKE_PROGRAM)
+  ExternalProject_Add(mpfr
+    DEPENDS gmp
+    PREFIX "${mpfr_prefix}"
+    SOURCE_DIR "${mpfr_source}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${MPFR_MD5}
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
+    BUILD_COMMAND ${MPFR_MAKE_PROGRAM} -f Makefile
+    INSTALL_COMMAND ${MPFR_MAKE_PROGRAM} -f Makefile install
+    BUILD_BYPRODUCTS ${MPFR_LIBRARY}
+  )
+
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(mpfr cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${mpfr_prefix}
+  )
+
+  #-------------------------------------------------------------------------------
+  # Execute the stuff from mpfr-post_install.cmake after installation
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(mpfr post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(mpfr cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES post_install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  mpfr
+)
+
+SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/cfsdeps/mpfr/src/mpfr")

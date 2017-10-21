@@ -1,6 +1,6 @@
 // ================================================================================================
 /*!
- *       \file     ElecCurrent.hh
+ *       \file     ElecCurrentPDE.hh
  *       \brief    This PDE models electric current conduction with the
  *                 scalar electric potential
  *
@@ -58,6 +58,9 @@ namespace CoupledField
     //! define surface integrators needed for this pde
     virtual void DefineSurfaceIntegrators(){};
 
+    //! Define all RHS linearforms for load / excitation
+    void DefineRhsLoadIntegrators();
+
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 
@@ -75,13 +78,6 @@ namespace CoupledField
     
   protected:
     
-    /** @see virtual SinglePDE::GetNativeSolutionType() */
-    SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
-
-    /** @see virtual SinglePDE::GetNativeDOF() */
-    virtual UInt GetNativeDOF() const { return 1; }
-
-
     //! SubType of electrostatic section
     std::string subType_;
 

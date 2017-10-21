@@ -1,0 +1,40 @@
+#=============================================================================
+# * remove the sgpp source, it is not yet open source 
+# * if we use precompiled cfsdeps, copy the libs there
+# * copy the libs to the cfs bin dir
+#=============================================================================
+# copy libraries to correct names
+#FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppbasestatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppbase.a")
+#FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppoptimizationstatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppoptimization.a")
+
+# copy data from install dir to the target.
+# this is the point where the cfsdeps_precompiled stuff will come in
+# copy the libraries
+FILE(COPY "@SGPP_INSTALL@/lib/sgpp/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@")
+
+# write library names to install manifest, needed for ZIP_TO_CACHE
+FILE(GLOB_RECURSE FILES_TO_INSTALL "@SGPP_INSTALL@/lib/sgpp/*")
+FOREACH(IFILE ${FILES_TO_INSTALL})
+  STRING(REPLACE "@SGPP_INSTALL@/lib/sgpp/" "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@/" IFILE "${IFILE}")
+  FILE(APPEND "@CMAKE_CURRENT_BINARY_DIR@/cfsdeps/sgpp/src/sgpp-build/install_manifest.txt" "${IFILE}\n")
+ENDFOREACH()
+
+# copy the sources and write install manifest, needed for ZIP_TO_CACHE
+# we iterate over all shared libraries to get the installed modules
+FILE(GLOB_RECURSE LIBS_TO_INSTALL "@SGPP_INSTALL@/lib/sgpp/*.so")
+FOREACH(LIB ${LIBS_TO_INSTALL})
+  # get name of module
+  STRING(REPLACE "@SGPP_INSTALL@/lib/sgpp/libsgpp" "" LIB "${LIB}")
+  STRING(REPLACE ".so" "" MODULE "${LIB}")
+
+  # copy sources
+  FILE(COPY "@SGPP_INSTALL@/${MODULE}/src/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+
+  # write manifest
+  FILE(GLOB_RECURSE FILES_TO_INSTALL "@SGPP_INSTALL@/${MODULE}/src/*")
+  FOREACH(IFILE ${FILES_TO_INSTALL})
+    STRING(REPLACE "@SGPP_INSTALL@/${MODULE}/src/" "@CMAKE_CURRENT_BINARY_DIR@/include/" IFILE "${IFILE}")
+    FILE(APPEND "@CMAKE_CURRENT_BINARY_DIR@/cfsdeps/sgpp/src/sgpp-build/install_manifest.txt" "${IFILE}\n")
+  ENDFOREACH()
+  
+ENDFOREACH()

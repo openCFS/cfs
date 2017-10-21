@@ -64,7 +64,7 @@ namespace CoupledField {
   //!       <td align="center">true</td>
   //!       <td>If this is 'true' then the Solve method of the Lapack_LU class
   //!           will be verbose and write some information on the solution
-  //!           process to the standard logfile (*cla).</td>
+  //!           process to the standard logfile (*cla)<b>(removed!)</b>.</td>
   //!     </tr>
   //!   </table>
   //! </center>
@@ -133,7 +133,7 @@ namespace CoupledField {
     //! matrix. Since the factorisation is not done in place we can delegate
     //! the actual work to the private version of Setup() that expects a const
     //! reference.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step = PtrParamNode() );
+    void Setup( BaseMatrix &sysmat);
 
     //! Direct solution of the linear system
 
@@ -143,8 +143,7 @@ namespace CoupledField {
     //! setup phase.
     //! Note that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Solve( const BaseMatrix &sysmat,
-		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step = PtrParamNode() );
+    void Solve( const BaseMatrix &sysmat,	const BaseVector &rhs, BaseVector &sol);
 
     //! Query type of this solver.
 

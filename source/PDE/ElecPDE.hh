@@ -1,8 +1,8 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
-#include "SinglePDE.hh" 
-
+#include "SinglePDE.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -54,6 +54,9 @@ namespace CoupledField
 
   protected:
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+
     //! Initialize NonLinearities
     void InitNonLin();
 
@@ -64,7 +67,7 @@ namespace CoupledField
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    virtual void DefineSurfaceIntegrators(){};
+    void DefineSurfaceIntegrators();
 
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -72,14 +75,17 @@ namespace CoupledField
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 
-    //! Init the time stepping: nothing to do
-    void InitTimeStepping() {;};
+    //! Init the time stepping:
+    void InitTimeStepping();
 
     //! Nothing to do
     void SetTimeStep(const Double dt) {;};
 
     //! Read special boundary conditions
     void ReadSpecialBCs();
+
+    void FinalizeAfterTimeStep();
+
 
     // ======================================================
     // COUPLING SECTION
@@ -99,18 +105,24 @@ namespace CoupledField
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
 
-    /** @see virtual SinglePDE::GetNativeDOF() */
-    virtual UInt GetNativeDOF() const { return 1; }
-
-
     //! SubType of electrostatic section
     std::string subType_;
 
     //! Return linear stiffness integrator for a given region
-    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     SubTensorType tensorType,
-                                     RegionIdType regionId );
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId);
+
+    //! Return linear stiffness integrator for a given region with the material tensor scaled by 'scalingFactor'
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId, PtrCoefFct scalingFactor);
     
+    //! Return flux integrator used for Nitsche coupling
+    template<typename DATA_TYPE>
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
+                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA);
+
+    //! Return penalty integrator used for Nitsche coupling
+    template<typename DATA_TYPE>
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Double factor, BiLinearForm::CouplingDirection cplDir);
+
     // *****************
     //  POSTPROCESSING
     // *****************
@@ -151,7 +163,11 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
+    //! Stores the dielectric permittivity for each region
+    std::map<RegionIdType, PtrCoefFct > regionPermittivity_;
 
+    //! Tensor type
+//    SubTensorType tensorType_;
 
   };
 

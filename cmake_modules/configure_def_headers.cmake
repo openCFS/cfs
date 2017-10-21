@@ -75,8 +75,14 @@ ENDIF()
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libfbi.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_libfbi.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_fftw.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_fftw.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libxml2.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_libxml2.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
@@ -86,6 +92,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gidpost.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ensight.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ensight.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
@@ -114,6 +123,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ccmio.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_sgpp.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_sgpp.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_xmlschema.hh.in"
   "${CFS_BINARY_DIR}/include/def_xmlschema.hh"
   @ONLY )
@@ -125,3 +137,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
   @ONLY )
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
+  "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")
+  

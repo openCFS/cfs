@@ -74,7 +74,7 @@ namespace CoupledField {
   //!       <td>This parameter is used to control the verbosity of the method.
   //!           If it is set to 'yes', then information on the CG convergence,
   //!           like e.g. the norm of the residual per iteration step will
-  //!           be logged to the standard %OLAS report stream (*cla).
+  //!           be logged to the standard %OLAS report stream (*cla) ---removed logging--.
   //!       </td>
   //!     </tr>
   //!   </table>
@@ -118,16 +118,6 @@ namespace CoupledField {
 
   public:
 
-    //!typename of matrix entries (=T)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;	
-
-    //!tiny vector of the same dimension as matrix block
-    typedef typename AssocType<T>::T_Vtype T_Vtype;	
-
-    //scalar of the same primitive data type as matrix
-    typedef typename AssocType<T>::T_Stype T_Stype;	
-
-
     /** The CG constructor initialized the variables but does not
      * start any calculation or allocate huge memory.
      * The dafaults are handlended in the impementation itself.
@@ -158,7 +148,7 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat,  
-	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step );
+	       const BaseVector& rhs, BaseVector& sol );
 
     //! Dummy setup method
 
@@ -167,7 +157,7 @@ namespace CoupledField {
     //! do actually.
     //! \note Depending on how the BaseSolver interface develops this method
     //! might be removed again.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step );
+    void Setup( BaseMatrix &sysmat );
 
     //! Query type of this solver.
 

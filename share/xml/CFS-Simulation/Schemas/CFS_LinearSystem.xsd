@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -113,15 +114,20 @@
   
   <xsd:complexType name="DT_ExportLinSys">
     <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
-    <xsd:attribute name="solution" use="optional" default="no">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="yes"/>
-          <xsd:enumeration value="no"/>
-          <xsd:enumeration value="exclusive"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
+    <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
+    <xsd:attribute name="system" use="optional" default="true" type="xsd:boolean"/>
+    <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="mass_update" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="stiffness_update" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="precond" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="damping_update" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="rhs" use="optional" default="true" type="xsd:boolean"/>
+    <xsd:attribute name="solution" use="optional" default="true" type="xsd:boolean"/>
+    <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
+
     <xsd:attribute name="format" use="optional" default="matrix-market">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -130,13 +136,17 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
-    <!-- BLOCH check  >xsd:attribute name="split_system" use="optional" default="false" type="xsd:boolean"/-->
-    <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
-    <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
-    <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
-    <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
-    <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
+
+    <xsd:attribute name="vecFormat" use="optional" default="plain">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="plain"/>
+          <xsd:enumeration value="matrix-market"/>
+          <xsd:enumeration value="harwell-boeing"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
   </xsd:complexType>
 
 
@@ -245,7 +255,8 @@
       <xsd:element name="incStopCrit" type="DT_PosFloat"/>
       <xsd:element name="resStopCrit" type="DT_PosFloat"/>
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
-	  <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
       default="fixPoint"/>
@@ -291,16 +302,13 @@
       <xsd:extension base="DT_StrategyBasic">
         <xsd:sequence>
           <!-- setup element-->
-          <xsd:element name="setup" type="DT_SystemSetup" 
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="setup" type="DT_SystemSetup" minOccurs="0" maxOccurs="1"/>
           
           <!-- exportLinSys element-->
-          <xsd:element name="exportLinSys" type="DT_ExportLinSys"
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="exportLinSys" type="DT_ExportLinSys"  minOccurs="0" maxOccurs="1"/>
           
           <!-- matrix element -->
-          <xsd:element name="matrix" type="DT_MatrixDescription"
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0" maxOccurs="1"/>
           
           <!-- eigenSolver element -->
           <xsd:element name="eigenSolver" minOccurs="0" maxOccurs="1">

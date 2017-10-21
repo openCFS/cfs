@@ -17,7 +17,6 @@ namespace CoupledField
   class SpaceErrorEstimator;
   class DirectCoupledPDE;
   class Assemble;
-  class BaseForm;
   class BiLinearForm;
   class BaseBDBInt;
   class ResultFunctor;
@@ -87,6 +86,12 @@ class BaseFieldFunctor;
       return updatedGeo_;
     }
     
+    //! check, if PDE has complex material parameters;
+    //! has to be overwritten by specific PDE
+    virtual bool IsMaterialComplex()  {
+    	return isMaterialComplex_;
+    }
+
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
@@ -111,22 +116,64 @@ class BaseFieldFunctor;
 
     ResultMap& GetResults() { return resultLists_; }
     
-    /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
+    /** Return the native solution type, MECH_DISPLACEMENT, ... */
+    virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
+
+    /**<p>This is part of ReadStoreResults(). If candidate is defined in the xml file
      * it is added to resultLists_.</p>
      * <p>This method is to be called by ReadStoreResults() for every element in
-     * availResults_. Additionally an Otimization instance calls when there a
-     * result element defines one of the solution types optResult_1/2/3 in more detail  
+     * availResults_. Additionally an Optimization instance calls when there a
+     * result element defines one of the solution types optResult_*in more detail
      * @param candidate normally an element of the (mathematical) set availResults_
      * @return true if in xml and added */
-    bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
+    bool CheckStoreResult(shared_ptr<ResultInfo> candidate);
+
+    //! Define a field result
+    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
 
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
+    /** return sub type. The string is stored internally any we need to convert. :(
+     * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
+    virtual SubTensorType GetSubTensorType() const;
+
+    //! Read single RHS excitation
+
+    //! This method reads an xml element for a general RHS excitation and
+    //! returns the entityList and CoefFunction.
+    //! \param elemName Name of ParamNode within <bcsAndLoads> to be read
+    //! \param compNames Names of the components (vector, tensor)
+    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param isComplex Denotes  if a complex valued coef-function is to be
+    //!                  generated
+    //! \param entities Vector of entityLists of the boundary condition
+    //! \param coef Vector of coefficients function for the values
+    //! \param updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
+    void ReadRhsExcitation( const std::string& elemName,
+                            const StdVector<std::string>& compNames,
+                            ResultInfo::EntryType type,
+                            bool isComplex,
+                            StdVector<shared_ptr<EntityList> >& entities,
+                            StdVector<PtrCoefFct>& coef,
+                            bool& updateGeo,
+                            PtrParamNode input = PtrParamNode());
+
+    void ReadRhsExcitation( const std::string& elemName,
+                                const StdVector<std::string>& compNames,
+                                ResultInfo::EntryType type,
+                                bool isComplex,
+                                StdVector<shared_ptr<EntityList> >& entities,
+                                StdVector<PtrCoefFct>& coef,
+                                bool& updateGeo,
+                                StdVector<std::string>& volumeRegions);
+
+
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
-    //! \param[in] name EentityList the Field should be applied to
+    //! \param[in] list EntityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
     //! \param[in] compNames Names of the components (vector, tensor)
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
@@ -144,6 +191,14 @@ class BaseFieldFunctor;
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
+    
+    /** Define all RHS linearforms for load / excitation
+     * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
+    virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
+    virtual void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
+
+    /** identify this pde for logging debug purpose */
+    std::string ToString() const;
 
   protected:
 
@@ -197,15 +252,12 @@ class BaseFieldFunctor;
     //! the internal format by setting the corresponding class attributes.
     void ReadStoreResults();
 
-
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
     
     //! define surface integrators needed for this pde
     virtual void DefineSurfaceIntegrators( )=0;
 
-    //! Define all RHS linearforms for load / excitation 
-    virtual void DefineRhsLoadIntegrators( ) {}
 
     //! Read material depenecy information
 
@@ -228,31 +280,8 @@ class BaseFieldFunctor;
                             PtrCoefFct& coef,
                             bool& updateGeo );
 
-    //! Read single RHS excitation
-    
-    //! This method reads an xml element for a general RHS excitation and
-    //! returns the entityList and CoefFunction. 
-    //! \param elemName Name of ParamNode within <bcsAndLoads> to be read 
-    //! \param compNames Names of the components (vector, tensor)
-    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
-    //! \param isComplex Denotes  if a complex valued coef-function is to be 
-    //!                  generated
-    //! \param entities Vector of entityLists of the boundary condition
-    //! \param coef Vector of coefficients function for the values
-    //! \param updateGeo Flag indicating, if coefficient function is defined
-    //!                  on an updated geometry (e.g. due to iterative coupling).
-    void ReadRhsExcitation( const std::string& elemName, 
-                            const StdVector<std::string>& compNames,
-                            ResultInfo::EntryType type,
-                            bool isComplex,
-                            StdVector<shared_ptr<EntityList> >& entities, 
-                            StdVector<PtrCoefFct>& coef,
-                            bool& updateGeo );
-
-
-
     //! Read results information for interpolation of continuous fields
-    virtual void ReadFieldResults();
+    virtual void ReadSensorArrayResults();
     
     // =======================================================================
     //   INTERPOLATION OF FIELD VARIABLES
@@ -287,7 +316,7 @@ class BaseFieldFunctor;
     };
     
     //! List of fields to be interpolated
-    StdVector<FieldAtPoints> fields_;
+    StdVector<FieldAtPoints> sensors_;
     
     //! read damping information
     virtual void ReadDampingInformation( ){
@@ -365,8 +394,6 @@ class BaseFieldFunctor;
     //@{
     //! \name Attributes connected to storing information
     
-    //! Define a field result
-    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
     
     //! Define result based on the time derivative of the main results
     void DefineTimeDerivResult( SolutionType derivSolType,
@@ -397,6 +424,9 @@ class BaseFieldFunctor;
     //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
     bool updatedGeo_;
     
+    //! flag indicating that material parametters are complex
+    bool isMaterialComplex_;
+
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 
@@ -512,8 +542,7 @@ class BaseFieldFunctor;
     //! interface.
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                NcInterfaceInfo &iface,
-                                bool icModes = false);
+                                NcInterfaceInfo &iface );
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

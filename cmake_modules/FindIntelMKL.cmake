@@ -11,6 +11,51 @@
 # On Unix  we determine the  required linker flags by  compiling one of  the MKL
 # examples and reading the flags from the Makefile output (cf. below).
 #-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Function to read MKL version from header file mkl.h or mkl_version.h
+#-----------------------------------------------------------------------------
+function(MKL_VERSION_FROM_HEADER)
+
+  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl_version.h" MKL_HEADER)
+  ELSEIF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
+    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+  ELSE(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+    SET(MSG "Please download the file ")
+    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
+    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
+
+    colormsg(HIRED "${MSG}")
+    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
+  ENDIF(EXISTS "${MKL_ROOT_DIR}/include/mkl_version.h")
+
+  foreach(line IN LISTS MKL_HEADER)
+    IF(line MATCHES "#define __INTEL_MKL")
+      STRING(REPLACE "_" ";" MKL_LIST "${line}")
+      LIST(GET MKL_LIST 4 ITEM_FOUR)
+
+      IF(ITEM_FOUR STREQUAL "")
+        LIST(GET MKL_LIST 5 MKL_MAJOR_VERSION)
+        STRING(STRIP "${MKL_MAJOR_VERSION}" MKL_MAJOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "MINOR")
+        LIST(GET MKL_LIST 6 MKL_MINOR_VERSION)
+        STRING(STRIP "${MKL_MINOR_VERSION}" MKL_MINOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "UPDATE")
+        LIST(GET MKL_LIST 6 MKL_UPDATE)
+        STRING(STRIP "${MKL_UPDATE}" MKL_UPDATE)
+      ENDIF()
+    ENDIF()
+  endforeach()
+
+  SET(MKL_MAJOR_VERSION ${MKL_MAJOR_VERSION} PARENT_SCOPE)
+  SET(MKL_MINOR_VERSION ${MKL_MINOR_VERSION} PARENT_SCOPE)
+  SET(MKL_UPDATE ${MKL_UPDATE} PARENT_SCOPE)
+  # MESSAGE("MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
+
+endfunction(MKL_VERSION_FROM_HEADER)
+
+
 IF(MINGW OR MSVC)
 
   #-----------------------------------------------------------------------------
@@ -46,41 +91,11 @@ IF(MINGW OR MSVC)
   ENDIF()
 
 
-  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
-    #---------------------------------------------------------------------------
-    # Read mkl.h and try to determine MKL version.
-    #---------------------------------------------------------------------------
-    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
-  ELSE()
-    SET(MSG "Please download the file ")
-    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
-    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
-    
-    colormsg(HIRED "${MSG}")
-    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
-  ENDIF()
-
-  foreach(line IN LISTS MKL_HEADER)
-    IF(line MATCHES "#define __INTEL_MKL")
-      STRING(REPLACE "_" ";" MKL_LIST "${line}")
-      LIST(GET MKL_LIST 4 ITEM_FOUR)
-
-      IF(ITEM_FOUR STREQUAL "")
-	LIST(GET MKL_LIST 5 MKL_MAJOR_VERSION)
-        STRING(STRIP "${MKL_MAJOR_VERSION}" MKL_MAJOR_VERSION)
-      ELSEIF(ITEM_FOUR STREQUAL "MINOR")
-	LIST(GET MKL_LIST 6 MKL_MINOR_VERSION)
-        STRING(STRIP "${MKL_MINOR_VERSION}" MKL_MINOR_VERSION)
-      ELSEIF(ITEM_FOUR STREQUAL "UPDATE")
-	LIST(GET MKL_LIST 6 MKL_UPDATE)
-        STRING(STRIP "${MKL_UPDATE}" MKL_UPDATE)
-      ENDIF()
-    ENDIF()
-  endforeach()
-
+  #---------------------------------------------------------------------------
+  # Read mkl version from header files
+  #---------------------------------------------------------------------------
+  MKL_VERSION_FROM_HEADER()
   SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
-
-  # MESSAGE("MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
 
   #-----------------------------------------------------------------------------
   # If MKL version is 11 bundle together linker libraries.
@@ -93,15 +108,15 @@ IF(MINGW OR MSVC)
       SET(MKL_BLAS_LIB
         # This works with MinGW GCC 4.7.1 on Windows XP
         -Wl,--start-group
-	${MKL_LIB_DIR}/mkl_intel_c_dll.lib
-	# ${MKL_LIB_DIR}/mkl_sequential_dll.lib
-	${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
-	${MKL_LIB_DIR}/mkl_core_dll.lib
+    	${MKL_LIB_DIR}/mkl_intel_c_dll.lib
+    	# ${MKL_LIB_DIR}/mkl_sequential_dll.lib
+    	${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+    	${MKL_LIB_DIR}/mkl_core_dll.lib
         -Wl,--end-group
         # libiomp5md is not needed for mkl_sequential lib
-	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
-	${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
-	)
+    	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
+    	${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
+    	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB "")
@@ -112,14 +127,14 @@ IF(MINGW OR MSVC)
       SET(MKL_BLAS_LIB
         # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
         -Wl,--start-group
-	${MKL_LIB_DIR}/mkl_intel_lp64.lib
-	# ${MKL_LIB_DIR}/mkl_intel_thread.lib
-	${MKL_LIB_DIR}/mkl_sequential.lib
-	${MKL_LIB_DIR}/mkl_core.lib
+    	${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    	# ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    	${MKL_LIB_DIR}/mkl_sequential.lib
+    	${MKL_LIB_DIR}/mkl_core.lib
         -Wl,--end-group
-	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
-	${MKL_ROOT_DIR}/../msvcrt/msvc100/amd64/runtmchk.lib
-	)
+    	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
+    	${MKL_ROOT_DIR}/../msvcrt/msvc100/amd64/runtmchk.lib
+    	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB "")
@@ -219,9 +234,12 @@ SET (MKL_POSSIBLE_PATHS
   ${MKL_ROOT_DIR}
   # Path the user may have specified as environment variable
   $ENV{MKL_ROOT_DIR}
+  $ENV{MKL_BASE}
   # Path which may have been given in a platform_defaults_*.cmake file 
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
+  # This happens automatically when loading mkl 
+  # modules at Erlangens RRZE HPC cluster
   $ENV{MKLROOT}
   # Local paths
   /opt/intel/composerxe-2011.4.191
@@ -232,12 +250,13 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
-  # Paths on Woody
-  /apps/intel/ComposerXE/mkl
-  /apps/intel/ComposerXE/composerxe-2011.4.191/mkl
-  /apps/intel/Compiler/11.0/069/mkl
-  /apps/intel/mkl/10.0.011
-  /apps/intel/ict/3.0/cmkl/9.0
+  /opt/intel/composer_xe_2015.2.164/mkl
+  # path for mdmt
+  /share/programs/intel-mkl/latest/mkl
+  # Paths on Lima
+  /apps/intel/ComposerXE2013/composer_xe_2013.5.192/mkl
+  # intel 2016 tools
+  /opt/intel/compilers_and_libraries/linux/mkl
  )
 
 #-------------------------------------------------------------------------------
@@ -252,7 +271,6 @@ FIND_FILE(MKL_ROOT_DIR
   NO_SYSTEM_ENVIRONMENT_PATH
   NO_CMAKE_SYSTEM_PATH
   )
-
 
 #-------------------------------------------------------------------------------
 # Replace include/mkl.h with nothing to get the MKL root dir.
@@ -295,48 +313,91 @@ If(WIN32)
     "" MKL_VERSION
     ${MKL_ROOT_DIR})
 ELSE(WIN32)
+
+  #---------------------------------------------------------------------------
+  # Read mkl version from header files
+  #---------------------------------------------------------------------------
+  MKL_VERSION_FROM_HEADER()
+
   #-----------------------------------------------------------------------------
   # Specify desired architecture and output type for make file.
   #-----------------------------------------------------------------------------
   IF(CFS_ARCH STREQUAL "I386")
     SET(MKL_ARCH_ID "lib32")
-  ENDIF(CFS_ARCH STREQUAL "I386")
+  ENDIF()
 
   IF(CFS_ARCH STREQUAL "X86_64")
-    SET(MKL_ARCH_ID "libem64t")
-  ENDIF(CFS_ARCH STREQUAL "X86_64")
+    SET(MKL_ARCH_ID "intel64")
+  ENDIF()
 
   IF(CFS_ARCH STREQUAL "IA64")
     SET(MKL_ARCH_ID "lib64")
-  ENDIF(CFS_ARCH STREQUAL "IA64")
+  ENDIF()
 
   #-----------------------------------------------------------------------------
   # Specify compiler type for make file.
   #-----------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(MKL_COMPILER_ID "intel")
-  ELSE(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  ELSE()
     SET(MKL_COMPILER_ID "gnu")
-  ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") 
+  ENDIF() 
 
   #-----------------------------------------------------------------------------
   # We always want to link against the parallel version of MKL.
   #-----------------------------------------------------------------------------
-#  IF(USE_OPENMP)
+  IF(${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} VERSION_LESS 11.3.3)
     SET(MKL_THREADING_ID "parallel")
-#  ELSE(USE_OPENMP)
-#    SET(MKL_THREADING_ID "sequential")
-#  ENDIF(USE_OPENMP)  
+  ELSE()
+    SET(MKL_THREADING_ID "omp")
+  ENDIF()
+
+  #-----------------------------------------------------------------------------
+  # Make a directory for the test compile
+  #-----------------------------------------------------------------------------
+  SET(COMPILE_MKL_TEST_DIR "${CFS_BINARY_DIR}/tmp/mkl_test")
+  FILE(MAKE_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
+
+  #-----------------------------------------------------------------------------
+  # Search for the proper $MKLROOT/examples/solver[c]/makefile.
+  #-----------------------------------------------------------------------------
+  foreach(fname "solver" "solverc") # search for example directly 
+    file(GLOB_RECURSE MKL_SOLVERMAKEFILE FOLLOW_SYMLINKS "${MKL_ROOT_DIR}/*/examples/${fname}/[Mm]akefile")
+      if(MKL_SOLVERMAKEFILE)
+        break()
+      endif(MKL_SOLVERMAKEFILE)
+  endforeach(fname)
+  
+  if(NOT MKL_SOLVERMAKEFILE) # serach for archive and extract it if found
+    foreach(fname "examples_core.tgz" "examples_core_c.tgz")
+      file(GLOB_RECURSE MKL_SOLVERMAKEFILE_TGZ FOLLOW_SYMLINKS "${MKL_ROOT_DIR}/*/${fname}")
+      #message("${fname}:${MKL_SOLVERMAKEFILE_TGZ}")
+      if(MKL_SOLVERMAKEFILE_TGZ)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${MKL_SOLVERMAKEFILE_TGZ}
+          WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}"
+        )
+        file(GLOB_RECURSE MKL_SOLVERMAKEFILE FOLLOW_SYMLINKS "${COMPILE_MKL_TEST_DIR}/solverc/makefile")
+        break()
+      endif(MKL_SOLVERMAKEFILE_TGZ)
+    endforeach(fname)
+  endif(NOT MKL_SOLVERMAKEFILE)
+
+  if(NOT MKL_SOLVERMAKEFILE)
+    message(FATAL_ERROR "did not find example solver makefile")
+  endif(NOT MKL_SOLVERMAKEFILE)
 
   #-----------------------------------------------------------------------------
   # Configure our little build script using the previously defined variables.
   #-----------------------------------------------------------------------------
-  SET(COMPILE_MKL_TEST_DIR "${CFS_BINARY_DIR}/tmp/mkl_test")
-  FILE(MAKE_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/share/scripts/compile_mkl_test.sh.in"
     "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh" @ONLY)
-
+ 
+  # Make sure we can execute the script
+  EXECUTE_PROCESS(
+    COMMAND chmod 755 "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh"
+    WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
+  
   #-----------------------------------------------------------------------------
   # Execute the build script and put the generated CMake code into mkl.cmake.
   #-----------------------------------------------------------------------------
@@ -354,12 +415,22 @@ ELSE(WIN32)
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------
     INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
-  ELSE(RETVAL EQUAL 0)
+    #---------------------------------------------------------------------------
+    # Create a custom target to copy over libiomp5.so
+    # here one could include the option USE_OMP=OFF which does not need to not copy libomp5
+    #---------------------------------------------------------------------------
+    ADD_CUSTOM_TARGET(mkl_libomp5 ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MKL_OMP_DIR}/libiomp5.so ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+      BYPRODUCTS ${LIBRARY_OUTPUT_PATH}/libiomp5.so
+      COMMENT "Copying libiomp5.so to ${LIBRARY_OUTPUT_PATH} folder..."
+      USES_TERMINAL)
+
+  ELSE()
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
-                        by hand to investigate the problem.")
-  ENDIF(RETVAL EQUAL 0)
-
+                        by hand to investigate the problem. Script output was\n ${MKL_INFO}")
+  ENDIF()
+  
 ENDIF(WIN32)
 # MESSAGE("MKL_ROOT_DIR ${MKL_ROOT_DIR}")
 # MESSAGE("MKL_MAJOR_VERSION ${MKL_MAJOR_VERSION}")
@@ -374,9 +445,10 @@ MARK_AS_ADVANCED(MKL_BLAS_LIB)
 MARK_AS_ADVANCED(MKL_LAPACK_LIB)
 MARK_AS_ADVANCED(MKL_PARDISO_LIB)
 MARK_AS_ADVANCED(MKL_ROOT_DIR)
+MARK_AS_ADVANCED(MKL_OMP_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
-# TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+# TODO: fuer libmkl_intel_lp64.a libmkl_gf_lp64.a fuer gnu einsetzen.
 ELSE(NOT CMAKE_CROSSCOMPILING)
   IF(APPLE)
     # At the moment we just hard code the paths to MKL.    
@@ -413,4 +485,15 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
+
+#-------------------------------------------------------------------------------
+# Status message of found MKL
+#-------------------------------------------------------------------------------
+IF(DEFINED MKL_UPDATE)
+  MESSAGE(STATUS "Found Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}.")
+ELSE()
+  MESSAGE(STATUS "Found Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.")
+ENDIF()
+
+
 

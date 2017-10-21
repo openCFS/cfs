@@ -1,16 +1,8 @@
-IF(USE_XERCES)
-  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-ENDIF(USE_XERCES)
-
 
 IF(USE_IPOPT)
   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
   LINK_DIRECTORIES(${IPOPT_LINK_DIR})
 ENDIF(USE_IPOPT)
-
-IF(USE_XERCES)
-  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-ENDIF(USE_XERCES)
 
 # List of source codes for current target.
 SET(CFS_SRCS CFS.cc)
@@ -34,10 +26,12 @@ SET(TARGET_LL
   )
 
 IF(USE_XERCES)
-  LIST(APPEND TARGET_LL
-    ${XERCES_LIBRARY}
-  )
+  LIST(APPEND TARGET_LL ${XERCES_LIBRARY})
 ENDIF(USE_XERCES)
+
+IF(USE_LIBXML2)
+  LIST(APPEND TARGET_LL ${LIBXML2_LIBRARY})
+ENDIF(USE_LIBXML2)  
 
 IF(USE_LIBFBI)
   LIST(APPEND TARGET_LL
@@ -50,12 +44,26 @@ IF(MINGW)
     -lws2_32
     -lwsock32
     )
+ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
+  LIST(APPEND TARGET_LL
+    -lpthread
+    -llapack
+    -lblas
+    -lquadmath
+    )
+ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
+  LIST(APPEND TARGET_LL
+    -lpthread
+########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
+#    -llapack            
+#    -lblas
+    )
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
-    )
+    -lquadmath
+     )
 ENDIF()
-
 
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin 

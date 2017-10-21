@@ -36,7 +36,7 @@ namespace CoupledField{
 
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-    MAT_DATA_TYPE fac = 0.0;
+    MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order1, order2;
@@ -48,7 +48,7 @@ namespace CoupledField{
     const UInt nrFncsB = ptFeB->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = 
+    shared_ptr<ElemShapeMap> esm =
         ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
@@ -62,7 +62,6 @@ namespace CoupledField{
                     nrFncsB * this->bOperator_->GetDimDof() );
     elemMat.Init();
     
-#define USE_BLAS_VERSION
     // Loop over all integration points
     LocPointMapped lp;
     const UInt numIntPts = intPoints.GetSize();
@@ -85,7 +84,7 @@ namespace CoupledField{
       this->dbMat_.Resize(this->dMat_.GetNumRows(), 
                           nrFncsB * this->bOperator_->GetDimDof() );
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
       this->dMat_.Mult_Blas(this->bMat_,this->dbMat_,false,false,1.0,0);
       aMat_.Mult_Blas(this->dbMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
@@ -186,7 +185,6 @@ namespace CoupledField{
                    nrFncsB * this->bOperator_->GetDimDof() );
     kernel.Init();
 
-#define USE_BLAS_VERSION
 
     // Calculate the A-matrix
     aOperator_->CalcOpMat( aMat_, lpm, ptFeA);
@@ -199,11 +197,11 @@ namespace CoupledField{
     this->dbMat_.Resize(this->dMat_.GetNumRows(),
                         nrFncsB * this->bOperator_->GetDimDof() );
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->dMat_.Mult_Blas(this->bMat_, this->dbMat_, false, false, 1.0, 0);
     aMat_.Mult_Blas(this->dbMat_, kernel, true, false, this->factor_,1.0);
 #else
-    this->dbMat_ = (this->dMat_ * this->bMat_) * fac;
+    this->dbMat_ = (this->dMat_ * this->bMat_);
     kernel += Transpose(this->aMat_) * this->dbMat_ * this->factor_;
 #endif
 

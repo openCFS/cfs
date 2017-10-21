@@ -9,7 +9,7 @@
 namespace CoupledField
 {
 
-class ParamNode;
+
 class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver
@@ -52,6 +52,9 @@ public:
     return stopFreq_;
   }
 
+  /** helper for ContextManager in case of multiple sequence optimization.  */
+  static unsigned int GetNumFreq(PtrParamNode node);
+
   //! Initialization method
   void Init(bool restart);
 
@@ -64,8 +67,7 @@ public:
    Double ComputeFrequencyStep(UInt actFreqStep);
 
    /** This StoreResults meant for Optimization only */
-  void StoreResults(UInt stepNum,
-                    double step_val );
+  void StoreResults(UInt stepNum, double step_val);
 
   //! \copydoc SingleDriver::SetToStepValue
   virtual void SetToStepValue(UInt stepNum, Double stepVal );

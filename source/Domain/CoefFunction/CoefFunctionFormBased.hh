@@ -13,7 +13,7 @@
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "Forms/Operators/BaseBOperator.hh"
-
+#include "Optimization/Design/DesignMaterial.hh"
 
 namespace CoupledField  {
 
@@ -42,18 +42,15 @@ public:
   virtual ~CoefFunctionFormBased();
   
   //! Set integrator for specific region
-  virtual void AddIntegrator( BaseBDBInt* form,  
-                              RegionIdType region );
+  virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
   
   //! Return type of entry (scalar, vector, tensor)
-  virtual CoefDimType GetDimType() const{
-	  return dimType_;
-  }
+  virtual CoefDimType GetDimType() const { return dimType_;  }
 
 protected:
   
   //! Store bilinearform for each region
-  std::map<RegionIdType, BaseBDBInt* > forms_;
+  CfsTLS< std::map<RegionIdType, BaseBDBInt* > > forms_;
   
 };
 
@@ -119,23 +116,23 @@ public:
   
 protected:
 
-  //! Differential operator for each region
+  //! Differential operator for each region (not thread relevant)
   std::map<RegionIdType, BaseBOperator* > bOps_;
  
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
-  
-  //! Result info object of result to be calculated
+
+  //! Result info object of result to be calculated (not thread relevant)
   shared_ptr<ResultInfo> res_;
   
-  //! Point to FeSpace
+  //! Point to FeSpace (not thread relevant)
   shared_ptr<FeSpace> feSpace_;
   
-  //! Solution of element
-  Vector<TYPE> elemSol_;
+  //! Solution of element (thread relevant)
+  CfsTLS< Vector<TYPE> > elemSol_;
   
   //! Operator matrix
-  Matrix<TYPE> bMat_;
+  CfsTLS< Matrix<TYPE> > bMat_;
   
   //! Additional factor
   TYPE factor_;
@@ -205,10 +202,71 @@ protected:
   shared_ptr<ResultInfo> res_;
   
   //! Solution of element
-  Vector<TYPE> elemSol;
+  CfsTLS< Vector<TYPE> > elemSol_;
 
   //! Additional factor
   TYPE factor_;
+};
+
+// ==========================================================================
+//  COEFFICIENT FUNCTION EIGEN
+// ==========================================================================
+//! Coefficient function that calculates the eigenvalues of another CoefFunction.
+
+//! This CoefFunction was designed for the purpose of calculating principal stress and principal strain
+//! Only works if the handled CoefFct (e.g. CoefFctFlux for stresses) calls a GetVector(), other methods are not implemented.
+
+class CoefFunctionEigen : public CoefFunctionFormBased {
+public:
+
+  //! Constructor
+  CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
+                    shared_ptr<ResultInfo> info,
+					PtrCoefFct stressCoef,
+                    Double factor = 1.0 );
+  //! Destructor
+  virtual ~CoefFunctionEigen();
+
+
+  // ========================
+  //  ACCESS METHODS
+  // ========================
+  //@{ \name Access Methods
+
+  //! \copydoc CoefFunction::GetVector
+  virtual void GetVector(Vector<Double>& coefVec,
+                         const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //#ifdef USE_LAPACK
+  //! Calculates Eigenvector and Eigenvalue from a stress- or strain coefVec. For principal stresses and strain.
+  void GetEigenFromCoefVec(Vector<Double> &solVec);
+  //#endif
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    EXCEPTION("This class defined coefficients of vector type only." );
+  }
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<Double> > feFct_;
+
+  //! Pointer to result info of desired result
+  shared_ptr<ResultInfo> res_;
+
+  //! Additional factor
+  Double factor_;
+
+  //! Coefficient Function of derived solution (e.g. strain or stress coefficients)
+  PtrCoefFct stressCoef_;
+
 };
 
 // ==========================================================================
@@ -220,12 +278,12 @@ protected:
 //! BdB-integrator to the element solution. This can be used e.g. to calculate
 //! the energy density.
 template<class TYPE>
-class CoefFunctionBdBKernel : public CoefFunctionFormBased {
+class CoefFunctionBdBKernel : public CoefFunctionFormBased
+{
 public:
 
   //! Constructor
-  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
-                        TYPE factor = 1.0 );
+  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,  TYPE factor = 1.0);
   //! Destructor
   virtual ~CoefFunctionBdBKernel();
 
@@ -235,18 +293,17 @@ public:
   //@{ \name Access Methods
 
   //! \copydoc CoefFunction::GetScalar
-  virtual void GetScalar( TYPE& coefScal,
-                          const LocPointMapped& lpm );
+  virtual void GetScalar( TYPE& coefScal, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const {
-    EXCEPTION("This class defines coefficients of scalar type only." );
+    EXCEPTION("This class defines coefficients of scalar type only.");
     return 0;
   }
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-    EXCEPTION("This class defines coefficients of scalar type only." );
+    EXCEPTION("This class defines coefficients of scalar type only.");
   }
 
   //@}
@@ -263,18 +320,134 @@ protected:
   shared_ptr<ResultInfo> res_;
   
   //! Kernel of element matrix
-  Matrix<TYPE> kernel_;
+  CfsTLS< Matrix<TYPE> > kernel_;
   
   //! Kernel of element matrix (always real-valued)
-  Matrix<Double> kernelR_;
+  CfsTLS< Matrix<Double> > kernelR_;
   
   //! Solution of element
-  Vector<TYPE> elemSol_;
+  CfsTLS< Vector<TYPE> > elemSol_;
 
   //! Additional factor
   TYPE factor_;
 
 };
+
+
+/** Calculates the dyadic product of strain vs. strain
+ * This is required for external topology gradient evaluation for Bloch mode analysis (Nazarov).
+ * The class is a modification of CoefFunctionBdBKernel */
+template<class TYPE>
+class CoefFunctionDyadicStrain : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionDyadicStrain();
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  virtual void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  CfsTLS< Vector<TYPE> > elemSol_;
+};
+
+
+/** Calculates the dyadic product of strain vs. strain
+ * This is required for external topology gradient evaluation for Bloch mode analysis (Nazarov).
+ * The class is a modification of CoefFunctionBdBKernel */
+template<class TYPE>
+class CoefFunctionQuadSol : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionQuadSol(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionQuadSol();
+
+  virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  CfsTLS< Vector<TYPE> > elemSol_;
+
+};
+
+/**
+ * Calculates scalar values (e.g. pressure) from lattice Boltzmann(LBM) particle distribution function values
+ */
+template<class TYPE> class CoefFunctionLBM : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo);
+
+  virtual ~CoefFunctionLBM();
+
+  virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
+  virtual void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+//  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Result name
+  SolutionType resType_;
+
+  //! Pointer to LBM object. We need this to call functions like CalcDensity() etc.
+  LatticeBoltzmannPDE* lbm_;
+};
+
+/** Simply returns the stiffness tensor. Does not work by using the existining CoefFunction :( */
+template<class TYPE>
+class CoefFunctionStiffness : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation);
+
+  virtual ~CoefFunctionStiffness();
+
+  //! \copydoc CoefFunction::GetTensorSize
+  unsigned int GetVecSize() const;
+
+  void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm);
+
+  void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+private:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  DesignMaterial::Notation notation_;
+
+};
+
 
 } // end of namespace
 #endif

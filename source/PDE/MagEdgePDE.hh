@@ -10,10 +10,8 @@ namespace CoupledField
 {
 
   // Forward declaration of classes
-  class Coil;
   class CurlCurlEdgeInt;
   class nLinCurlCurlEdgeInt;
-  class CoefFunctionMulti;
 
   //! Class for 3D magnetics using edge elements
   class MagEdgePDE : public SinglePDE
@@ -30,7 +28,7 @@ namespace CoupledField
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
-    
+
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
     shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
@@ -96,6 +94,9 @@ namespace CoupledField
 
     //! Tells if there are coils excited by voltage
     bool hasVoltCoils_;
+
+    //! Storage for CoefFunctions of external current density as source
+    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
     //@}
 
 

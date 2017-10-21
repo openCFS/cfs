@@ -15,6 +15,14 @@ namespace CoupledField {
     //! \param val Coefficient function (vector valued)
     SingleEntryInt( PtrCoefFct& val );
 
+    //! Copy constructor
+    SingleEntryInt(const SingleEntryInt& right );
+
+    //! \copydoc LinearForm::Clone
+    virtual SingleEntryInt* Clone(){
+      return new SingleEntryInt( *this );
+    }
+
     //! Destructor
     virtual ~SingleEntryInt();
 

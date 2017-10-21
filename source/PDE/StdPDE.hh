@@ -9,6 +9,7 @@
 #include "Materials/Composite.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 namespace CoupledField {
 
@@ -16,9 +17,8 @@ namespace CoupledField {
   // forward class declarations
   class BasePairCoupling;
   class WriteResults;
-  class BaseNodeStoreSol;
   class StdSolveStep;
-  class ParamNode;
+  
   class BiotSavart;
   class BaseFeFunction;
   
@@ -47,25 +47,21 @@ namespace CoupledField {
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
     
+    /** call this, e.g. in the case of ProgramOptions::DoEquationMapping() which is cfs -M */
+    void CreateEquationMapFile();
 
     // ======================================================
     // GET/SET METHODS
     // ======================================================
 
     //! Returns the feFunction which holds a result related to the specified solutionType
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType);
+    shared_ptr<BaseFeFunction> GetFeFunction(SolutionType solType);
     
     //! Return all solution FeFunctions
-    virtual  
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetFeFunctions( ) {
-      return feFunctions_;
-    }
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetFeFunctions( ) { return feFunctions_; }
     
     //! Return all Rhs FeFunctions
-    virtual 
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetRhsFeFunctions() {
-      return rhsFeFunctions_;
-    }
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetRhsFeFunctions() { return rhsFeFunctions_;  }
     
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
@@ -83,6 +79,9 @@ namespace CoupledField {
       return analysistype_;
     }
   
+    bool HasComplexMatData(RegionIdType actRegion) {
+      return complexMatData_[actRegion]; }
+
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
     {
@@ -94,6 +93,9 @@ namespace CoupledField {
       return isaxi_;
     }
     
+    //! Set geometry information
+    virtual void SetGeomInfo();
+
     //! Set special RHS values
     virtual void SetRhsValues();
 
@@ -123,21 +125,23 @@ namespace CoupledField {
     //@{
 
     //! Return list with material definition for each region
-    std::map<RegionIdType, BaseMaterial*>  GetMaterialData()
-    {return materials_;};
+    std::map<RegionIdType, BaseMaterial*>  GetMaterialData() { return materials_; }
     
-    //! Return assemble class, which olds all integrators
-    Assemble * GetAssemble(){return assemble_;}
+    //! Return assemble class, which holds all integrators
+    Assemble * GetAssemble() { return assemble_; }
 
     //! Return all regions of the PDE
-    StdVector<RegionIdType> GetRegions() {
-      return regions_;}
+    StdVector<RegionIdType> GetRegions() { return regions_; }
 
     //! Return pointer to algebraic system
-    AlgebraicSys * GetAlgSys(){return algsys_;}
+    AlgebraicSys * GetAlgSys() { return algsys_; }
     
     //! Return pointer to grid the PDE is defined on
-    Grid * GetGrid() {return ptGrid_;}
+    Grid * GetGrid() { return ptGrid_; }
+
+    /** Give the damping type by region.
+     * @return NONE if no damping in map! */
+    DampingType GetDamping(RegionIdType reg_id) const;
 
     //! Set if PDE is nonlinear
     virtual void SetNonLinearity(bool nonLin){
@@ -162,6 +166,9 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
+    bool IsHysteresis_Fixpoint()
+    { return isHysteresisFixPoint_;};
+
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
@@ -172,6 +179,57 @@ namespace CoupledField {
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
+    /** Shortcut for the DOF names */
+    StdVector<std::string>& GetDofNames(SolutionType st) {
+      return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
+    /*
+     *
+     */
+    void SetFlagInCoefFncHyst(std::string flagName,bool newState);
+
+    /*
+     * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
+     * the underlying CoefFunctionHyst
+     * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
+     * over the PDEs.
+     * As basically a PDEs that use Hysteresis will need the same set of functions, it
+     * makes sense to directly include them in the base class.
+     */
+    /*!
+     * SetPreviousHystVals -> store input and output values from last iteration
+     */
+    void SetPreviousHystVals(bool setNextToLastTS = false);
+    /*!
+     * LockUnlockHystMemory -> if locked, all changes to the Hysteresis operator are only
+     *                           done on temporary storage
+     */
+    void LockUnlockHystMemory(bool locked);
+
+    void UseNextToLastTSForDeltaMat(bool useNextToLastTS);
+
+    void LockUnlockHystDirection(bool locked);
+    /*!
+     * ActivateDeactivateDeltaMat -> if active, the getTensor function of CoefFunctionHyst
+     *                                 returns deltaOutput/deltaInput + std. mat tensor
+     *                                 as approximation of the material tensor
+     *                            -> if not active, getTensor returns only std. mat tensor
+     * Example electrostatics:
+     *  active: deltaMat = deltaP / deltaE + eps0
+     *  not active: deltaMat = eps0
+     *
+     */
+    void ActivateDeactivateDeltaMat(bool active);
+
+    virtual void FinalizeAfterTimeStep() {
+    	EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
+    }
+
+    virtual void FinilizeBeforTimeStep() {
+      ;
+    }
+
   protected:
 
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)
@@ -269,6 +327,12 @@ namespace CoupledField {
     
     //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType
     std::map<SolutionType, std::string> idbcSolNameMap_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 1 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD1_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 2 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD2_;
         
     //@}
 
@@ -282,6 +346,7 @@ namespace CoupledField {
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool isHysteresis_;     //!< flag for hysteresis
+    bool isHysteresisFixPoint_;
     bool matDepend_;        //!< flag for material dependencies
 
     //! map for each region the type of nonlinearity
@@ -404,6 +469,9 @@ namespace CoupledField {
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
+    //! This map stores the hysteresis coefFunctions
+    shared_ptr<CoefFunctionMulti> hysteresisCoefs_;
+
   }; // class StdPDE
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -411,7 +479,7 @@ namespace CoupledField {
   // =========================================================================
   //     Detailed description of the class 
   // =========================================================================
-
+  StdPDE
   //! \class StdPDE
   //! 
   //! \purpose 

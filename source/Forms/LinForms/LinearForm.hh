@@ -45,6 +45,18 @@ namespace CoupledField{
         isSolDependent_ = false;
       }
 
+      //! Copy constructor
+      LinearForm(const LinearForm& right ){
+        this->coordUpdate_ = right.coordUpdate_;
+        this->isSolDependent_ = right.isSolDependent_;
+        this->name_ = right.name_;
+        this->ptFeSpace_ = right.ptFeSpace_;
+        this->intScheme_ = right.intScheme_;
+      }
+
+      //! Make deep copy of object pointer
+      virtual LinearForm* Clone()=0;
+
       virtual ~LinearForm(){
 
       }
@@ -61,7 +73,7 @@ namespace CoupledField{
          name_ = name;
       }
       
-      std::string GetName(){
+      const std::string& GetName() const {
         return name_;
       }
 
@@ -76,10 +88,11 @@ namespace CoupledField{
       virtual bool IsSolDependent() { return isSolDependent_;}
       
       //! Return if inearform uses updated Lagrangian formulation
-      bool IsCoordUpdate() { 
-        return coordUpdate_;
-      }
+      bool IsCoordUpdate() { return coordUpdate_; }
       
+      /** set coordUpdate, required by shape opt */
+      void SetCoordUpdate(bool val) { coordUpdate_ = val; }
+
       //! Set explicit that linearform is solution dependent
       virtual void SetSolDependent() {isSolDependent_ = true;}
 

@@ -2,7 +2,11 @@
 #define FILE_CFS_H1_ELEMENTS_HH
 
 #include "FeBasis/BaseFE.hh"
-
+#include <boost/unordered_map.hpp>
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
 
 namespace CoupledField {
 
@@ -33,6 +37,12 @@ namespace CoupledField {
     //! Constructor
     FeH1();
 
+    //! Copy Constructor
+    FeH1(const FeH1 & other);
+
+    //! Deep Copy
+    virtual FeH1* Clone() = 0;
+
     //! Destructor
     virtual ~FeH1();
 
@@ -55,9 +65,9 @@ namespace CoupledField {
                             const Elem* elem, UInt comp = 1 );
 
     //! Return local derivative of shape functions
-    void GetLocDerivShFnc( Matrix<Double>& deriv, 
-                           const LocPoint& lp,
-                           const Elem* elem, UInt comp = 1 );
+    Matrix<Double>&  GetLocDerivShFnc( const LocPoint& lp,
+                                       const Elem* elem,
+                                       UInt comp = 1 );
     //@}
 
     // ======================================================================
@@ -130,10 +140,10 @@ namespace CoupledField {
     // =======================================================================
 
     //! Stores Shape Functions for each integration point defined
-    std::map<Integer, Vector<Double> > shapeFncsAtIp_;
+    boost::unordered_map<Integer, Vector<Double> > shapeFncsAtIp_;
 
     //! Stores shape function derivatives for each integration point
-    std::map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
+    boost::unordered_map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
     
     // ======================================================================
     //  Incompatible modes for mechanical softening 
@@ -160,14 +170,15 @@ namespace CoupledField {
     }
 
     //! Stores Shape Functions for each integration point defined
-    std::map<Integer, Vector<Double> > icModesAtIp_;
+    boost::unordered_map<Integer, Vector<Double> > icModesAtIp_;
 
     //! Stores shape function derivatives for each integration point
-    std::map<Integer, Matrix<Double> > icModesDerivsAtIp_;
+    boost::unordered_map<Integer, Matrix<Double> > icModesDerivsAtIp_;
 
     //@}
   private:
-    
+    //! Cached value for local derivative
+    Matrix<Double> locDeriv_;
     
   };
 

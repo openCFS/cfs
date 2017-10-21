@@ -28,8 +28,6 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 
 
-#define USE_BLAS_VERSION
-
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
@@ -62,6 +60,16 @@ namespace CoupledField{
 
     IdentityOperator(){
       return;
+    }
+
+    //! Copy constructor
+    IdentityOperator(const IdentityOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperator * Clone(){
+      return new IdentityOperator(*this);
     }
 
     virtual ~IdentityOperator(){
@@ -190,6 +198,16 @@ namespace CoupledField{
         return;
       }
 
+      //! Copy constructor
+      IdentityOperator(const IdentityOperator & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual IdentityOperator * Clone(){
+        return new IdentityOperator(*this);
+      }
+
       ~IdentityOperator(){
         return;
       }
@@ -245,11 +263,21 @@ namespace CoupledField{
   
   //! This integrator gets gets used e.g. for the mass integrator within the
   //! magneticEdge PDE.
-  template<UInt D, class TYPE>
-  class ScaledByEdgeIdentityOperator : public IdentityOperator<FeHCurl,D,1,TYPE>{
+  template<class FE, UInt D, class TYPE>
+  class ScaledByEdgeIdentityOperator : public IdentityOperator<FE,D,1,TYPE>{
     public:
       ScaledByEdgeIdentityOperator(){
         return;
+      }
+
+      //! Copy constructor
+      ScaledByEdgeIdentityOperator(const ScaledByEdgeIdentityOperator & other)
+         : IdentityOperator<FE,D,1,TYPE>(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual ScaledByEdgeIdentityOperator * Clone(){
+        return new ScaledByEdgeIdentityOperator(*this);
       }
 
       virtual ~ScaledByEdgeIdentityOperator(){
@@ -258,7 +286,7 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
+        IdentityOperator<FE,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
@@ -267,7 +295,7 @@ namespace CoupledField{
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                        const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        IdentityOperator<FE,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
@@ -287,6 +315,16 @@ namespace CoupledField{
         return;
       }
 
+      //! Copy constructor
+      IdentityOperatorPiola(const IdentityOperatorPiola & other)
+         : IdentityOperator<FE,D,D_DOF,TYPE>(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual IdentityOperatorPiola * Clone(){
+        return new IdentityOperatorPiola(*this);
+      }
+
       virtual ~IdentityOperatorPiola(){
         return;
       }
@@ -301,7 +339,7 @@ namespace CoupledField{
         //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
 
         if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.lpmVol->jacDet);
           lp.lpmVol->jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -309,7 +347,7 @@ namespace CoupledField{
           bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
         }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.jacDet);
           lp.jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
 #else
@@ -328,7 +366,7 @@ namespace CoupledField{
         bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
         bMat.Init();
         if(lp.isSurface){
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.lpmVol->jacDet);
           bMatInitial.Mult_Blas(lp.lpmVol->jac,bMat,false,true,jacDetInv,0.0);
 #else
@@ -338,7 +376,7 @@ namespace CoupledField{
           bMat *= (1.0/lp.lpmVol->jacDet);
 #endif
         }else{
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
           Double jacDetInv = (1.0/lp.jacDet);
           bMatInitial.Mult_Blas(lp.jac,bMat,false,true,jacDetInv,0.0);
 #else

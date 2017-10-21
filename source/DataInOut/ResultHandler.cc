@@ -1,7 +1,7 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-#include <math.h>
+#include <cmath>
 
 #include <def_expl_templ_inst.hh>
 
@@ -59,7 +59,7 @@ namespace CoupledField {
     if( actDof.resultName == "" ) {
       actDof.resultName = SolutionTypeEnum.ToString(actDof.resultType);
     }
-    
+
     LOG_DBG(resHandler) << "Registering result:";
     LOG_DBG(resHandler) << "-------------------";
     LOG_DBG(resHandler) << "name: " << actDof.resultName;
@@ -112,12 +112,11 @@ namespace CoupledField {
       for( UInt i = 0; i < newDest.GetSize(); i++ ) {
         
         // check, if output is registered
-        if( outFiles_.find( newDest[i] ) == outFiles_.end() ) {
-          EXCEPTION( "Output writer '" << newDest[i] 
-                     << "' was not registered yet!" );
-        }
-        LOG_DBG(resHandler) << "Registering output '" << newDest[i]
-                            << "' with result '" << actDof.resultName;
+        if( outFiles_.find( newDest[i] ) == outFiles_.end() )
+          EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
+
+        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
+
         actContext->outputIds.Push_back( newDest[i] );
         
         // register results also at the output writer class
@@ -135,13 +134,15 @@ namespace CoupledField {
     if( postProcName != "" ) {
       RegisterResultRec( *actContext, postProcName );
     }
-    LOG_TRACE(resHandler) << "Finished registering result" << std::endl;
+    LOG_DBG(resHandler) << "Finished registering result" << std::endl;
   }
   
-  void ResultHandler::BeginMultiSequenceStep( UInt step,
-                                              BasePDE::AnalysisType type,
-                                              UInt numSteps ) {
-        
+  void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
+  {
+    LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
+
+    //assert(numSteps >= numSteps_);
+
     // store current sequencestep
     sequenceStep_ = step;
     analysisType_ = type;
@@ -159,7 +160,7 @@ namespace CoupledField {
 
   void ResultHandler::BeginStep( UInt stepNum, Double stepVal ) {
 
-    LOG_TRACE(resHandler) << "Begin step " << stepNum;
+    LOG_DBG(resHandler) << "Begin step " << stepNum;
 
     // remeber current step values 
     actStep_ = stepNum;
@@ -189,49 +190,39 @@ namespace CoupledField {
       it->second->BeginStep( stepNum, stepVal );
     }
     
-    LOG_TRACE(resHandler) << "Finished beginning of new step" << std::endl;
+    LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
   }
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
 
-    LOG_TRACE(resHandler) << "Updating results";
+    LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
     
     // check, if result is to be updated
-    if( isNeeded_.find(sol) == isNeeded_.end() ) {
-      WARN("Result '" 
-           << sol->GetResultInfo()->resultName
-           << "' on entitylist '"
-           << sol->GetEntityList()->GetName() 
-           << "' is not needed in step " << actStep_);
-    }
+    if(isNeeded_.find(sol) == isNeeded_.end())
+      WARN("Result '" << sol->GetResultInfo()->resultName << "' on entitylist '" << sol->GetEntityList()->GetName() << "' is not needed in step " << actStep_);
 
     // Set flag for update to true
     isUpdated_.insert( sol );
 
-    LOG_DBG(resHandler) << "Result '" 
-                        << sol->GetResultInfo()->resultName
-                        << "' was provided on '"
-                        << sol->GetEntityList()->GetName() 
-                        << "' in step " << actStep_;
+    LOG_DBG(resHandler) << "Result '" << sol->GetResultInfo()->resultName << "' was provided on '" << sol->GetEntityList()->GetName() << "' in step " << actStep_;
 
     // Update results recursively (for postprocessing results )
-    UpdateResultRec( *(resultContexts_[sol] ) );
-    LOG_TRACE(resHandler) << "Finished updating results" << std::endl;
+    UpdateResultRec(*(resultContexts_[sol]));
+    LOG_DBG(resHandler) << "UR: finished";
   }
 
   void ResultHandler::UpdateResults() {
-    LOG_TRACE(resHandler) << "Updating results" << std::endl;
+    LOG_DBG(resHandler) << "UR: needed=" << isNeeded_.size();
     // iterate over all results, which are needed
-    std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
-    for( ; it != isNeeded_.end(); it++ ) {
-      ResultContext & actContext = *(resultContexts_[*it]);
+    for(std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin(); it != isNeeded_.end(); it++)
+    {
+      ResultContext& actContext = *(resultContexts_[*it]);
 
       if( actContext.functor ) {
-        LOG_DBG(resHandler) << "Evaluating result '" << 
-           SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
-           << "' on '" << actContext.result->GetEntityList()->GetName() 
-           << "'";
-        actContext.functor->EvalResult( actContext.result);
+        LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
+                            << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
+
+        actContext.functor->EvalResult(actContext.result);
         UpdateResult(actContext.result);
       }
     }
@@ -239,13 +230,12 @@ namespace CoupledField {
 
   void ResultHandler::FinishStep( ) {
     
-    LOG_TRACE(resHandler) << "Starting to finish step " << actStep_;
+    LOG_DBG(resHandler) << "FinishStep " << actStep_ << " enter";
 
     // -----------------------
     // First, update results
     // -----------------------
     UpdateResults();
-    
     
     // === Primary results ===
     // iterate over all results, which are needed
@@ -316,12 +306,9 @@ namespace CoupledField {
           }
         }
       }
-
       // In any case: Process also related secondary (postprocessing) results
       FinishStepRec( actContext );
-
     }
-
 
   // Trigger writing of all output writers
   std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
@@ -332,7 +319,10 @@ namespace CoupledField {
     fileIt->second->FinishStep( );
   }    
 
-  LOG_TRACE(resHandler) << "Finished step " << actStep_ << std::endl;
+  // something is written, so update also info
+  domain->GetInfoRoot()->ToFile();
+
+  LOG_DBG(resHandler) << "FinishStep " << actStep_ << " done";
 }
 
   void ResultHandler::FinishMultiSequenceStep() {
@@ -654,23 +644,22 @@ namespace CoupledField {
 
   void ResultHandler::Finalize() {
         
-    LOG_TRACE(resHandler) << "Starting to Finalize";
+    LOG_DBG(resHandler) << "Starting to Finalize";
     
     // Trigger writing and finalizing of all output writers
     std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
     for( fileIt = outFiles_.begin(); 
     fileIt != outFiles_.end(); fileIt++ ) {
-      LOG_DBG(resHandler) << "Finalizing result for output '"
-      << fileIt->second->GetName() << "'";
+      LOG_DBG(resHandler) << "Finalizing result for output '" << fileIt->second->GetName() << "'";
       fileIt->second->Finalize( );
     }    
 
-    LOG_TRACE(resHandler) << "Finished Finalizing" << std::endl;
+    LOG_DBG(resHandler) << "Finished Finalizing" << std::endl;
   }
 
   void ResultHandler::FinishMultiSequenceStepRec( ResultContext& actContext ) {
 
-    LOG_TRACE(resHandler) << "Starting to finish MsStep  recursively";
+    LOG_DBG(resHandler) << "Starting to finish MsStep  recursively";
     assert( actContext.postProcs.GetSize() ==
             actContext.nextContexts.GetSize() );
     
@@ -713,7 +702,7 @@ namespace CoupledField {
       // Call FinalizeRec recursively for each next-context in any case
       FinishMultiSequenceStepRec( next );
     }
-    LOG_TRACE(resHandler) << "Finished MsStep recursively";
+    LOG_DBG(resHandler) << "Finished MsStep recursively";
   }
   
 

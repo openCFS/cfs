@@ -6,7 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <limits.h>
 
 #include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
@@ -38,6 +38,7 @@ namespace CoupledField
     isAllowed_.insert( MECH_STIFFNESS_TENSOR );
     isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
     isAllowed_.insert( MECH_EMODULUS );
+    isAllowed_.insert( MECH_KMODULUS );
     isAllowed_.insert( MECH_EMODULUS_X );
     isAllowed_.insert( MECH_EMODULUS_Y );
     isAllowed_.insert( MECH_EMODULUS_Z );
@@ -50,17 +51,11 @@ namespace CoupledField
     isAllowed_.insert( MECH_GMODULUS_XY );
     isAllowed_.insert( MECH_LAME_LAMBDA );
     isAllowed_.insert( MECH_LAME_MU );
-    isAllowed_.insert( MECH_TEC );
-    isAllowed_.insert( MECH_TEC1 );
-    isAllowed_.insert( MECH_TEC2 );
-    isAllowed_.insert( MECH_TEC3 );
-    isAllowed_.insert( MECH_TEC_VECTOR );
-    isAllowed_.insert( MECH_TEC_VECTORPLANE );
-    isAllowed_.insert( MECH_TEC_VECTORAXI );
-    isAllowed_.insert( MECH_STIFFTENSOR_TEC_VECTOR );
-    isAllowed_.insert( MECH_STIFFTENSOR_TEC_VECTORPLANE );
-    isAllowed_.insert( MECH_STIFFTENSOR_TEC_VECTORAXI );
-    isAllowed_.insert( MECH_TEC_REFTEMPERATURE );
+    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
+    isAllowed_.insert( MECH_VISCOK_VECTOR );
+    isAllowed_.insert( MECH_VISCOG_VECTOR );
+    isAllowed_.insert( MECH_TE_TENSOR );
+    isAllowed_.insert( MECH_TE_REFTEMPERATURE );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
@@ -71,6 +66,7 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
+    isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mech );
 
   }
 
@@ -78,9 +74,6 @@ namespace CoupledField
 
     // Trigger calculation of stiffness tensor
     ComputeFullStiffTensor();
-
-    // Trigger calculation of thermal expansion vector
-    ComputeFullThermalExpanionVector();
 
   }
 
@@ -376,19 +369,22 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {
+					    
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
-
+	
     if ( pos == tensorParams_.end() ) {
       std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
-    else {
+    else { 
+	
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
         matTensor = pos->second;
       }
       else {
+
         ComputeSubTensor(matTensor, matType, subTensor);
       }
 
@@ -409,16 +405,56 @@ namespace CoupledField
     PtrCoefFct mFunct;
     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
       
-      CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
-      
-      subTensorXpr.SetSubTensorType( tensorType, transposed );
-      mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+      if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
+        /*
+         * special case: iterative magnetostrictive coupling
+         * here we need to have the 3x6 material tensor on the rhs
+         * this has to be read in as a CoefXprSubTensor instead of MechSubTensor
+         * as the later one only excepts and accepts 6x6 elasticity tensors
+         */
+        CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
+        subTensorXpr.SetSubTensorType( tensorType, transposed );
+        if ( subTensorXpr.IsComplex() ) {
+
+            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+        }
+        else {
+            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+        }
+      } else {
+        CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
+
+        subTensorXpr.SetSubTensorType( tensorType, transposed );
+        if ( subTensorXpr.IsComplex() ) {
+            mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+        }
+        else {
+            mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+        }
+      }
     } else {
       EXCEPTION( "Material tensor not found" );
     }
     return mFunct;
   }
-  
+
+  PtrCoefFct MechanicMaterial::GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real ) {
+      PtrCoefFct mFunct;
+      if( vectorCoef_.find(matType) !=  vectorCoef_.end() ) {
+          CoefXprMechSubVector subTensorXpr(mp_,  vectorCoef_[matType] );
+          subTensorXpr.SetSubTensorType( tensorType );
+          if ( subTensorXpr.IsComplex() & !real) {
+              mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
+          }
+          else {
+              mFunct = CoefFunction::Generate( mp_, Global::REAL, subTensorXpr );
+          }
+      } else {
+          EXCEPTION( "Material tensor not found" );
+      }
+      return mFunct;
+  }
+
   void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
@@ -458,8 +494,8 @@ namespace CoupledField
   {
     Complex EModul(emod);
     Complex poisson(poi); 
-    Complex LameLambda = (poisson*EModul)/
-          ((Complex(1.0,0) + poisson)*(Complex(1.0,0)  - Complex(2.0,0)*poisson));
+    Complex LameLambda = (poisson*EModul);
+    LameLambda /=  ((Complex(1.0,0) + poisson)*(Complex(1.0,0)  - Complex(2.0,0)*poisson));
     Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
     
     Matrix<Complex> elasticityTensor;
@@ -571,17 +607,62 @@ namespace CoupledField
 
   void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const
   {
+
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
     Matrix<Complex> const &mat = pos->second;
 
-    ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
+	if(matType == MAGNETOSTRICTION_TENSOR_h_mech){
+		ComputeSubTensor_magstrict(matMatrix, matType, subTensor);
+	} else {
+		ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
   }
+}
+
+void MechanicMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMatrix,
+                                         MaterialType matType, SubTensorType subTensor) const {
+  // std::cout << "MechMaterial ComputeSubTensor-> MagStrictVersion" << std::endl;
+
+  tensorMap::const_iterator pos;
+  pos = tensorParams_.find( matType );
+
+  Matrix<Complex> const &mat = pos->second;
+
+  if ( subTensor == AXI ) {
+    matMatrix.Resize(2,4);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[0][3] = mat[0][2];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+    matMatrix[1][3] = mat[1][2];
+  }
+  else if ( subTensor == PLANE_STRAIN ||
+      subTensor == PLANE_STRESS ) {
+    matMatrix.Resize(2,3);
+
+    matMatrix[0][0] = mat[0][0];
+    matMatrix[0][1] = mat[0][1];
+    matMatrix[0][2] = mat[0][5];
+    matMatrix[1][0] = mat[1][0];
+    matMatrix[1][1] = mat[1][1];
+    matMatrix[1][2] = mat[1][5];
+
+  } else {
+    subTensorNotAvailable( matType, subTensor );
+  }
+}
+
+
 
   template<class T>
   void MechanicMaterial::ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& mat)
   {
+
     switch(subTensor)
     {
     case AXI:
@@ -681,11 +762,23 @@ namespace CoupledField
           ((Complex(1.0,0) + poisson)*
               (Complex(1.0,0)  - Complex(2.0,0)*poisson));
       Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+      Complex KModul = EModul/
+              ( Complex(3.0,0) * ( Complex(1.0,0) - Complex(2.0,0)*poisson));
 
       CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
+      SetScalar(KModul, MECH_KMODULUS, Global::COMPLEX);
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
+
+//      Vector<Double> viscoCoeffs;
+//      GetVector(viscoCoeffs, MECH_VISCOALPHA_VECTOR, Global::REAL );
+//      std::cout << "ViscoAlpha: \n " << viscoCoeffs << std::endl;
+//      GetVector(viscoCoeffs, MECH_VISCOK_VECTOR, Global::REAL );
+//      std::cout << "ViscoK: \n " << viscoCoeffs << std::endl;
+//      GetVector(viscoCoeffs, MECH_VISCOG_VECTOR, Global::REAL );
+//      std::cout << "ViscoG: \n " << viscoCoeffs << std::endl;
+
       break;
     }
     case ORTHOTROPIC:
@@ -755,7 +848,7 @@ namespace CoupledField
 
     case PLANE_STRAIN:
     {
-      assert(mat != NULL && vol > 0 && vol <= 1.0);
+      assert(mat != NULL && vol > 0 && vol <= 1.000001);
       //E1 = 1/(B(1,1) + nusteg^2/rho/Esteg )
       //E2 = 1/(B(2,2) + nusteg^2/rho/Esteg )
       //E3 = rho*Esteg
@@ -903,14 +996,15 @@ namespace CoupledField
     return res;
   }
 
-  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* bm, SubTensorType stt, double vol)
   {
+    LOG_DBG2(mat) << "GOP tensor=" << tensor.ToString();
     Matrix<double> D;
     tensor.Invert(D);
 
     StdVector<std::pair<std::string, double> > res;
 
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, bm, stt, vol);
 
     res.Push_back(std::make_pair("E_1", E[0]));
     res.Push_back(std::make_pair("E_2", E[1]));
@@ -918,7 +1012,7 @@ namespace CoupledField
       res.Push_back(std::make_pair("E_3", E[2]));
     }
 
-    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
+    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, bm, stt, vol);
     // v_21=0, v_12=1, v_31=2, v_13=3, v_32=4, v_23=5
     res.Push_back(std::make_pair("v_21", v[0]));
     res.Push_back(std::make_pair("v_12", v[1]));
@@ -941,75 +1035,6 @@ namespace CoupledField
     res.Push_back(std::make_pair("err", err));
 
     return res;
-  }
-
-  void MechanicMaterial::ComputeFullThermalExpanionVector() {
-
-   // alpha_ij in Voigt notation
-   Vector<Double> tecVec(6);
-   tecVec.Init();
-   bool isSetTEC = false;
-   if (  isSet_.find( MECH_TEC ) != isSet_.end() ) {
-     Double tecScal;
-     GetScalar(tecScal, MECH_TEC, Global::REAL);
-     tecVec[0] = tecScal;
-     tecVec[1] = tecScal;
-     tecVec[2] = tecScal;
-     isSetTEC = true;
-    }
-   else if ( isSet_.find( MECH_TEC1 ) != isSet_.end() ) {
-     Double tecScal;
-     GetScalar(tecScal, MECH_TEC1, Global::REAL);
-     tecVec[0] = tecScal;
-     GetScalar(tecScal, MECH_TEC2, Global::REAL);
-     tecVec[1] = tecScal;
-     GetScalar(tecScal, MECH_TEC3, Global::REAL);
-     tecVec[2] = tecScal;
-     isSetTEC = true;
-   }
-
-   if ( isSetTEC ) {
-     //3D case
-     SetVector( tecVec, MECH_TEC_VECTOR, Global::REAL );
-
-     //2D plane strain / stress case
-     Vector<Double> tecVec2D(3);
-     tecVec2D.Init();
-     tecVec2D[0] = tecVec[0];
-     tecVec2D[1] = tecVec[1];
-     SetVector( tecVec2D, MECH_TEC_VECTORPLANE ,Global::REAL );
-
-     //2D axi
-     Vector<Double> tecVecAxi(4);
-     tecVecAxi.Init();
-     tecVecAxi[0] = tecVec[0];
-     tecVecAxi[1] = tecVec[1];
-     tecVecAxi[3] = tecVec[2];
-     SetVector( tecVecAxi, MECH_TEC_VECTORAXI ,Global::REAL );
-
-     // compute [c] TEC_VEC
-     Matrix<Double> cTensor;
-     GetTensor(cTensor, MECH_STIFFNESS_TENSOR, Global::REAL);
-
-     Vector<Double> TEV(6);
-     TEV = cTensor * tecVec;
-
-     SetVector( TEV, MECH_STIFFTENSOR_TEC_VECTOR ,Global::REAL );
-
-     //set for plane case
-     Vector<Double> TEV2d(3);
-     TEV2d.Init();
-     TEV2d[0] = TEV[0];
-     TEV2d[1] = TEV[1];
-     SetVector( TEV2d, MECH_STIFFTENSOR_TEC_VECTORPLANE ,Global::REAL );
-
-     //set for axi case
-     Vector<Double> TEVaxi(4);
-     TEVaxi.Init();
-     TEVaxi[0] = TEV[0];
-     TEVaxi[1] = TEV[1];
-     SetVector( TEVaxi, MECH_STIFFTENSOR_TEC_VECTORAXI ,Global::REAL );
-   }
   }
 
 

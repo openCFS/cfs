@@ -8,6 +8,7 @@
 #include <map>
 #include "SinglePDE.hh"
 #include "Utils/Coil.hh"
+
 namespace CoupledField
 {
 
@@ -31,6 +32,9 @@ namespace CoupledField
 
     //!  Destructor
     virtual ~MagneticPDE();
+    
+	//! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
+    void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
 
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
@@ -90,12 +94,20 @@ namespace CoupledField
     //! Tells if there are coils excited by voltage
     bool hasVoltCoils_;
 
+    //! Storage for CoefFunctions of external current density as source
+    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
     //@}
 
     //! Coefficient function, containing the overall reluctivity
     shared_ptr<CoefFunctionMulti> reluc_;
     
-    
+    //! Coefficient function, containing the overall conductivity
+    shared_ptr<CoefFunctionMulti> conduc_;
+
+    //! Map containing the remanence (B excitation on RHS)
+    //! needed for calculating H field
+    std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
+
     //! Query parameter object for information on coils
     void ReadCoils();
 
@@ -113,6 +125,13 @@ namespace CoupledField
     
     //! \copydoc SinglePDE::FinalizePostProcResults
     void FinalizePostProcResults();
+
+    //! flag for magn_strict coupling
+    bool isMagnetoStrictCoupled_;
+	
+	SinglePDE *mechanicPDE_;
+
+    void FinalizeAfterTimeStep();
 
   };
 

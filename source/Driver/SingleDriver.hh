@@ -47,7 +47,8 @@ namespace CoupledField {
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 
-    //! Flag if internal state of PDE (=FeFunctions) get written each step
+    /** Flag if internal state of PDE (=FeFunctions) get written each step.
+     * Is false and only true if set via allowPostProc in the xml file is set */
     bool writeAllSteps_;
     
     //! true, if driver is part of a multiSequence, false if first run or single run 

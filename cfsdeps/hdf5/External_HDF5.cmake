@@ -84,12 +84,12 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 
 SET(MIRRORS
-  "http://distfiles.macports.org/hdf5-18/hdf5-1.8.12.tar.bz2"
-  "http://pkgs.fedoraproject.org/repo/pkgs/hdf5/hdf5-1.8.12.tar.bz2/03ad766d225f5e872eb3e5ce95524a08/hdf5-1.8.12.tar.bz2"
-  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.12/src/hdf5-1.8.12.tar.bz2"
-  "${HDF5_URL}/${HDF5_GZ}"
+  "http://distfiles.macports.org/hdf5-18/${HDF5_BZ2}"
+  "http://pkgs.fedoraproject.org/repo/pkgs/hdf5/${HDF5_BZ2}/${HDF5_MD5}/${HDF5_BZ2}"
+  "http://www.hdfgroup.org/ftp/HDF5/releases/${HDF5_BASE}-${HDF5_VER}/src/${HDF5_BZ2}"
+  "${HDF5_URL}/${HDF5_BZ2}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_BZ2}")
 SET(MD5_SUM ${HDF5_MD5})
 
 SET(DLFN "${hdf5_prefix}/hdf5-download.cmake")
@@ -97,84 +97,19 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The hdf5-static external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(hdf5-static
-  DEPENDS zlib
-  PREFIX ${hdf5_prefix}
-  SOURCE_DIR ${hdf5_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${HDF5_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  LIST_SEPARATOR ^
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-    -DHDF5_EXTERNAL_LIB_PREFIX:STRING=
-    -DHDF5_BUILD_CPP_LIB:BOOL=ON
-    -DHDF5_BUILD_HL_LIB:BOOL=ON
-    -DHDF5_BUILD_FORTRAN:BOOL=OFF
-    -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
-    -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
-    -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-    -DHDF5_BUILD_TOOLS:BOOL=ON
-    # On Mac OS X we can get problems with the system strdup function.
-    -DH5_HAVE_STRDUP:BOOL=OFF
-    )
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(hdf5-static cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${hdf5_prefix}
 )
 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "hdf5" "${HDF5_VER}")  
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${hdf5_prefix}")
 
-SET(HDF5_BUILD_TYPE shared)
+SET(ZIPFROMCACHE "${hdf5_prefix}/hdf5-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
-SET(PFN "${hdf5_prefix}/hdf5-${HDF5_BUILD_TYPE}-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# The hdf5-shared external project
-# We need it to build a shared version of CGNS library 3.1.
-#-------------------------------------------------------------------------------
-ExternalProject_Add(hdf5-shared
-  DEPENDS zlib hdf5-static
-  PREFIX ${hdf5_prefix}
-  DOWNLOAD_COMMAND ""
-  SOURCE_DIR ${hdf5_source}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=ON
-    -DHDF5_BUILD_CPP_LIB:BOOL=ON
-    -DHDF5_BUILD_HL_LIB:BOOL=ON
-    -DHDF5_BUILD_FORTRAN:BOOL=OFF
-    -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
-    -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-    -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
-    )
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  hdf5-static
-  hdf5-shared
-)
+SET(ZIPTOCACHE "${hdf5_prefix}/hdf5-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Determine paths of HDF5 libraries.
@@ -283,6 +218,128 @@ ELSE(DEBUG)
   SET(HDF5_LT_SHARED_LIBRARY "${HDF5_LT_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
   SET(HDF5_LT_SHARED_CPP_LIBRARY "${HDF5_LT_CPP_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
 ENDIF(DEBUG)
+
+set(HDF5_LIBRARIES ${HDF5_LIBRARY} ${HDF5_CPP_LIBRARY} ${HDF5_LT_LIBRARY} ${HDF5_LT_CPP_LIBRARY} ${HDF5_SHARED_LIBRARY} ${HDF5_CPP_SHARED_LIBRARY} ${HDF5_LT_SHARED_LIBRARY} ${HDF5_LT_SHARED_CPP_LIBRARY})
+
+#-------------------------------------------------------------------------------
+# The hdf5-static external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(hdf5-static
+    PREFIX "${hdf5_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+  ExternalProject_Add(hdf5-shared
+    PREFIX "${hdf5_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(hdf5-static
+    DEPENDS zlib
+    PREFIX ${hdf5_prefix}
+    SOURCE_DIR ${hdf5_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${HDF5_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    LIST_SEPARATOR ^
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=OFF
+      -DHDF5_EXTERNAL_LIB_PREFIX:STRING=
+      -DHDF5_BUILD_CPP_LIB:BOOL=ON
+      -DHDF5_BUILD_HL_LIB:BOOL=ON
+      -DHDF5_BUILD_FORTRAN:BOOL=OFF
+      -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
+      -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
+      -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+      -DHDF5_BUILD_TOOLS:BOOL=OFF # isn't it sufficient to use system hdf5 tools?!
+      # On Mac OS X we can get problems with the system strdup function.
+      -DH5_HAVE_STRDUP:BOOL=OFF
+    BUILD_BYPRODUCTS
+      ${HDF5_LIBRARIES}
+    )
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(hdf5-static cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${hdf5_prefix}
+  )
+  
+  SET(HDF5_BUILD_TYPE shared)
+  
+  #-------------------------------------------------------------------------------
+  # Set names of patch file and template file.
+  #-------------------------------------------------------------------------------
+  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
+  SET(PFN "${hdf5_prefix}/hdf5-${HDF5_BUILD_TYPE}-patch.cmake")
+  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+  
+  #-------------------------------------------------------------------------------
+  # The hdf5-shared external project
+  # We need it to build a shared version of CGNS library 3.1.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(hdf5-shared
+    DEPENDS zlib hdf5-static
+    PREFIX ${hdf5_prefix}
+    DOWNLOAD_COMMAND ""
+    SOURCE_DIR ${hdf5_source}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=ON
+      -DHDF5_BUILD_CPP_LIB:BOOL=ON
+      -DHDF5_BUILD_HL_LIB:BOOL=ON
+      -DHDF5_BUILD_FORTRAN:BOOL=OFF
+      -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
+      -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+      -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
+  )
+    
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(hdf5-shared cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+ExternalProject_Get_Property(hdf5-shared source_dir)
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  hdf5-static
+  hdf5-shared
+)
+
+
 
 IF(UNIX)
   LIST(APPEND HDF5_LIBRARY -ldl)

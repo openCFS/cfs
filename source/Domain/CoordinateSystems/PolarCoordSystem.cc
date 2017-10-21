@@ -42,8 +42,8 @@ namespace CoupledField{
     }
     
     // transform cylindrical coords into local cartesian ones
-    temp[0] = loc[0] * std::cos(loc[1]/180*PI);
-    temp[1] = loc[0] * std::sin(loc[1]/180*PI);
+    temp[0] = loc[0] * std::cos(loc[1]/180*M_PI);
+    temp[1] = loc[0] * std::sin(loc[1]/180*M_PI);
     
      // rotate local cartesian coordinate system to global one
     glob.Resize(2);
@@ -73,7 +73,7 @@ namespace CoupledField{
     // transform local cartesian nodes to polar ones
     loc.Resize(2);
     loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
-    loc[1] = std::atan2(temp[1],temp[0])/PI*180;
+    loc[1] = std::atan2(temp[1],temp[0])/M_PI*180;
    
   }
 
@@ -85,8 +85,8 @@ namespace CoupledField{
     Global2LocalCoord( loc, point );
 
     // calculate directional sine / cosine
-    Double s = sin( loc[1] / 180 * PI );
-    Double c = cos( loc[1] / 180 * PI );
+    Double s = sin( loc[1] / 180 * M_PI );
+    Double c = cos( loc[1] / 180 * M_PI );
 
     mat.Resize(2,2);
     mat.Init();
@@ -113,8 +113,8 @@ namespace CoupledField{
     Global2LocalCoord( loc, point );
 
     // calculate directional sine / cosine
-    Double s = sin( loc[1] / 180 * PI );
-    Double c = cos( loc[1] / 180 * PI );
+    Double s = sin( loc[1] / 180 * M_PI );
+    Double c = cos( loc[1] / 180 * M_PI );
 
     mat.Resize(3,3);
     mat.Init();
@@ -196,10 +196,10 @@ namespace CoupledField{
     //    how the local x' and y' axes are defined, because in a 'global'
     //    polar coordinate system we assume, that the y-axi is aligned
     //    with the axial axis and that the x-axis is aligned with the
-    //    radial axis (where phi=0°).
+    //    radial axis (where phi=0).
     //    Therefore we can calculate the 'local' cartesian axes as follows:
     //    x': difference of 'rAxis-origin' and normalized
-    //    y': rotation of x-axis by 90°
+    //    y': rotation of x-axis by 90
 
     // Vector<Double> temp;
 //     temp = rAxis_- origin_;

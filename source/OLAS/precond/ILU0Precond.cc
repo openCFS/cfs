@@ -45,7 +45,7 @@ ILU0Precond<T>::~ILU0Precond() {
 
 
 // =================================
-//   Application of Preconditioner
+//   App::Type of Preconditioner
 // =================================
 template <typename T>
 void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
@@ -54,7 +54,7 @@ void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 
 
   UInt i, j;
-  T_Mtype sum;
+  T sum;
 
   // Step 1: Solve L * u~ = f by forward substitution
   for ( i = 0; i < size_; i++ ) {
@@ -82,7 +82,7 @@ void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 //   Setup of Preconditioner
 // ===========================
 template <typename T>
-void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
+void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
 
   // get correct ParamNode
   this->xml_->GetValue("logging", logging_, ParamNode::INSERT ) ;
@@ -97,7 +97,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
   // Get the data of the matrix. Note that we use only CRS here
   const UInt *a_rptr = mat.GetRowPointer();
   const UInt *a_cidx = mat.GetColPointer();
-  const T_Mtype *a_val  = mat.GetDataPointer();
+  const T    *a_val  = mat.GetDataPointer();
 
   // How large is the matrix to be factored?
   UInt a_nnz  = mat.GetNnz();
@@ -105,7 +105,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
   UInt a_size = mat.GetNumRows();
 
   // Allocate memory for the ILU entries
-  NEWARRAY( ilu_data_, T_Mtype, a_nnz );
+  NEWARRAY( ilu_data_, T, a_nnz );
   NEWARRAY( ilu_cidx_, UInt, a_nnz );
 
   //set ilu-matrix structure according to system matrx
@@ -140,7 +140,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
   // now perform the actual factorization
 
   UInt i,j,k, j1, j2, jj, jw, jrow;
-  T_Mtype  tl;
+  T  tl;
 
   //get help array and set it to zero;
   Integer *help;
@@ -163,7 +163,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
     actDone = (UInt)(actDone/10.0)*10;
     if ( actDone > percentDone ) {
       percentDone = (UInt)actDone;
-      (*cla) << " .. " << percentDone << "%" << std::flush;
     }
 
     // set help array for nonzero column indices of row k 
@@ -206,8 +205,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
       // obviously there is no diagonal element and the 
       // algorithm fails
       if (j >= j2) {
-        (*cla) << " terminating ILU setup. k=" << k << "jrow: " << jrow << 
-            std::endl;
         break;    
       }
 
@@ -218,8 +215,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
     // if the diagonal has not been found or is zero
     // we terminate Setup and state that it failed.
     if (jrow!=k || ilu_data_[j] == 0.0) {
-      (*cla) << "Zero pivot in ILU setup: row: " << jrow << " k=" << k
-          << " val=" << ilu_data_[j] << std::endl;
       EXCEPTION("Zero pivot in ILU setup!");
     }// 0 pivot
 
@@ -229,8 +224,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
     }
   }//k
 
-  (*cla) << "\n \n " << std::endl;
-
   delete [] (help); help = NULL;
 
   // If the user wishes, we can export the LU factorisation to a file
@@ -239,10 +232,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
     this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
     this->ExportILUFactorisation( saveFacFile);
-    if ( logging_ == true ) {
-      (*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
-          << std::endl;
-    }
   }
 }// Setup for ILU
 

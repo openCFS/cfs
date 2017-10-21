@@ -15,13 +15,15 @@ SET(MATVEC_SRCS
     CRS_Matrix.cc
     Diag_Matrix.cc
     SCRS_Matrix.cc
-    TypeDefs.cc
     Vector.cc
     VBR_Matrix.cc
     Matrix.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
+IF(MKL_INCLUDE_DIR)
+  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+ENDIF(MKL_INCLUDE_DIR)
 
 ADD_LIBRARY(matvec STATIC ${MATVEC_SRCS})
 

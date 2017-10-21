@@ -208,9 +208,9 @@ void CoefFunctionConst<T>::GetTensorValuesAtCoords( const StdVector<Vector<Doubl
   }
 }
 
-}
-
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionConst<Double>;
   template class CoefFunctionConst<Complex>;
 #endif
+
+} // namespace CoupledField

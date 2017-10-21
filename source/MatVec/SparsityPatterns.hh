@@ -25,12 +25,14 @@ namespace CoupledField {
     SCRS_Pattern() {
       cidx_ = NULL;
       rptr_ = NULL;
+      diagPtr_ = NULL;
     }
 
     //! Destructor
     virtual ~SCRS_Pattern() {
       delete [] ( cidx_ );
       delete [] ( rptr_ );
+      delete [] ( diagPtr_);
     }
 
     //! Array with column indices of non-zero matrix entries
@@ -38,6 +40,9 @@ namespace CoupledField {
 
     //! Array with starting indices of rows in cidx_ array
     UInt *rptr_;
+
+    //! Array containing the indices of the diagonal matrix entries
+    UInt *diagPtr_;
   };
   
   //! Auxilliary class for administrating patterns of CRS_Matrix objects
@@ -55,8 +60,8 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~CRS_Pattern() {
-      delete [] ( cidx_ );
-      delete [] ( rptr_ );
+//      delete [] ( cidx_ );
+//      delete [] ( rptr_ );
     }
 
     //! Array with column indices of non-zero matrix entries

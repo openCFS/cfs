@@ -1,0 +1,72 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <xsd:include schemaLocation="../CFS_Dat.xsd"/>
+
+  <!-- ******************************************************************** -->
+  <!-- Base data-type for all Filters -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:complexType name="DT_FilterList">
+    <xsd:sequence>
+      <xsd:element name="stepValueDefinition">
+        <xsd:complexType>
+          <xsd:choice>
+            <!--xsd:element name="fromInputResult">
+              <xsd:complexType>
+                <xsd:attribute name="filterId" type="xsd:token" use="required"/>
+                <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element-->
+            <xsd:element name="dynamic"/>
+            <xsd:element name="startStop">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="startStep">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="xsd:int" default="0"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="numSteps">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="xsd:int" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="startTime">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="xsd:double" default="0.0"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="delta">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="xsd:double" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="deleteOffset">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="DT_CFSBool" default="no"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <xsd:group ref="FilterGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

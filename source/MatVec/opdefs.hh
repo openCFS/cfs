@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
+#include "TypeDefs.hh"
 #include "General/Exception.hh"
-#include "MatVec/TypeDefs.hh"
 
 //! \file opdefs.hh
 
@@ -84,22 +84,10 @@ namespace CoupledField {
     return (arg.real()) * (arg.real()) + (arg.imag()) * (arg.imag());
   }
 
-  //! Compute the conjugate of a real number
-  template <typename T>
-  inline T Conj( T a ) {
-    return a;
-  }
-
-  //! Compute the conjugate of a complex number
-  template<>
-  inline Complex Conj<Complex>( Complex a ) {
-    return std::conj(a);
-  }
-
-  //! Allo conjugate notation of a real
-  template<>
-  inline double Conj<double>( double a ) {
-    return a;
+  /** this is defined only in C++11 - how can this idiots take so long?
+   * defining the same for complex leads to overloading problems with std::conj with icc 15 even w/o using std::conj */
+  inline static double conj(const double &a1) {
+    return a1;
   }
 
   template <typename T>
@@ -213,9 +201,12 @@ namespace CoupledField {
       return static_cast<T>(1.0/arg);
     }
 
-    //! Inner product for real- and complex-valued scalars
-    inline static T dotProduct( const T &a1, const T &a2 ) {
-      return a1 * Conj(a2);
+    inline static double dotProduct(const double &a1, const double &a2 ) {
+      return a1 * a2;
+    }
+
+    inline static Complex dotProduct(const Complex &a1, const Complex &a2 ) {
+      return a1 * std::conj(a2);
     }
 
     //! Computation of "Euclidean Norm" of Double or Complex scalar
@@ -228,13 +219,8 @@ namespace CoupledField {
       return Abs2( z );
     }
 
-    //! this function takes the transpose of the first argument A
-    //! and multiplies it by the second argument x. This is the same
-    //! as the standard product defined on the two types T_Mtype and
-    //! T_Vtype unless T_Mtype is an actual tiny matrix in which case
-    //! the transpose of the matrix is used. The result is stored in y.
-    inline static T multT( const T &A,
-                           const typename AssocType<T>::T_Vtype &x ) {
+    /** this implementation does noting als than mutiplying two scalars */
+    inline static T multT( const T& A, const T& x) {
       return A*x;
     }
 

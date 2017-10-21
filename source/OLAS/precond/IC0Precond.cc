@@ -34,7 +34,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat, PtrParamNode analysis_id ) {
+  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
 
     UInt nnzA = (size_ + sysmat.GetNnz() ) / 2;
 
@@ -113,7 +113,6 @@ namespace CoupledField {
         actDone = (UInt)(actDone/10.0)*10;
         if ( actDone > percentDone ) {
           percentDone = (UInt)actDone;
-          (*cla) << " .. " << percentDone << "%" << std::flush;
         }
 
         Rkk = dataU_[rptrA[k]];
@@ -166,8 +165,6 @@ namespace CoupledField {
           diagScale = 2.0 * counterFailed;
           counterFailed++;
           nPD = 1;
-//           (*cla) << "\n Perform scaling of system matrix: " << counterFailed
-//          << std::endl;
         }
 
         if (nPD ==1 )

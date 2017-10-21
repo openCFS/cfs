@@ -9,13 +9,15 @@ using posix_time::microsec_clock;
 using posix_time::time_duration;
 using std::string;
 
-Timer::Timer() :
+Timer::Timer(const std::string& name, bool sub) :
   calls_(0),
   running(false),
   start_clock(0),
   start_time(0),
   sum_time(0),
-  sum_clock(0)
+  sum_clock(0),
+  label_(name),
+  sub_(sub)
 {
 }
 
@@ -69,15 +71,18 @@ double Timer::GetCPUTime() const
   return total / (1.0 * CLOCKS_PER_SEC);
 }
 
-
 string Timer::ToXMLFormat(const string& name) const
 {
   std::ostringstream os;
 
   os << "<" << name;
+  if (label_ != "")
+    os << " label=\""<< label_ << "\"";
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
+  if (sub_)
+    os << " sub=\"true\"";
   os << "/>";
 
   return os.str();
@@ -111,6 +116,42 @@ const string Timer::GetTimeString(const time_duration period)
     suffix = " s";
   }
   return time_output.substr(0, max_length) + suffix; // cut off microseconds
+}
+
+void Timer::PrintTime(std::ostream & stream){
+  if(this->running){
+    stream << "Timer is still running! ";
+    stream << ">> Current time: wall clock: '";
+  }else{
+    stream << ">> Elapsed time: wall clock: '";
+  }
+
+
+  const int walltime((int) this->GetWallTime());
+  const int cputime((int) this->GetCPUTime());
+
+  if(walltime > 120)
+  {
+    const int wallmin((int) (walltime / 60.0));
+    const int cpumin((int) (cputime / 60.0));
+    if(wallmin > 60)
+    {
+      stream << wallmin / 60 << "h " << (wallmin % 60)
+           << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
+    }
+    else
+    {
+      stream << wallmin << "m " << (walltime % 60)
+           << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'";
+    }
+  }
+  else
+  {
+    stream << walltime << "s' CPU time: '"
+         << cputime << "s'";
+  }
+
+  stream << std::endl << std::endl;
 }
 
 

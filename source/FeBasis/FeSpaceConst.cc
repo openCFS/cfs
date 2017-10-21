@@ -13,6 +13,8 @@
 //=================================
 
 #include "FeBasis/FeSpaceConst.hh"
+#include "PDE/MagEdgePDE.hh"
+#include "PDE/MagneticPDE.hh"
 
 namespace CoupledField {
 
@@ -22,7 +24,7 @@ FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* 
   type_ = CONSTANT;
 
   allowedEntities_.insert(EntityList::COIL_LIST);
-
+  allowedEntities_.insert(EntityList::ELEM_LIST);
 }
 
 FeSpaceConst::~FeSpaceConst(){}
@@ -95,7 +97,7 @@ void FeSpaceConst::GetElemEqns(StdVector<Integer>& eqns, const Elem* elem){
 
 void FeSpaceConst::GetElemEqns(StdVector<Integer>& eqns, const Elem* elem, UInt dof){
 
-  EXCEPTION("This space does not have elements.");
+  this->GetElemEqns(eqns, elem);
 
 }
 
@@ -112,8 +114,8 @@ void FeSpaceConst::Finalize(){
     this->CheckEntityType(entIt);
     while ( !(entIt.IsEnd()) ){
       std::pair<boost::unordered_map<std::string,Integer>::iterator,bool> ret;
-      ret = equationMap_.insert( std::pair<std::string,Integer>( entIt.GetIdString(),
-          (Integer)numEqns_ + 1 ) );
+      ret = equationMap_.insert( std::pair<std::string,Integer>(
+          entIt.GetIdString(), (Integer)numEqns_ + 1) );
       if( ret.second ){
         // new entry in equation map was created
         numEqns_++;
@@ -188,12 +190,10 @@ void FeSpaceConst::MapNodalBCs(){
 
 }
 
-void FeSpaceConst::CheckEntityType(const EntityIterator ent) const {
-
-  if( allowedEntities_.find(ent.GetType()) == allowedEntities_.end() ){
+void FeSpaceConst::CheckEntityType(const EntityIterator ent) const
+{
+  if(allowedEntities_.find(ent.GetType()) == allowedEntities_.end())
     EXCEPTION("Entity type not allowed.");
-  }
-
 }
 
 }

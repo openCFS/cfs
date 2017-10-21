@@ -59,9 +59,10 @@ SET(patches
   # Fortran example.
   "gidpost-fortran.patch"
 
+  # Depreciated: What do we need hdf5 for??
   # Remove HDF5 lite functions from source/hdf5c.c and add dependency to
   # HDF5_LT_LIBRARY to targets in examples/CMakeLists.txt
-  "gidpost-hdf5-lite.patch"
+  # "gidpost-hdf5-lite.patch"
   )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

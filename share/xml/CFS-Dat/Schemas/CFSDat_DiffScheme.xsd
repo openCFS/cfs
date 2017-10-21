@@ -1,0 +1,41 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for defining additional parameters for neearest neighbour search -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DiffScheme">
+    <xsd:attribute name="epsilonScaling" type="xsd:double" use="required">
+      <xsd:annotation>
+        <xsd:documentation>
+          epsilonScaling: Controls the "smoothness" of the basis function. The smoother the Gauss-like surface
+          is, the better the results will be BUT only until a certain number, when the matrix
+          becomes so ill-conditioned, which will either result in an exception or very bad
+          results.
+          Typical values 0.1
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="logEps" type="xsd:boolean" default="false">
+      <xsd:annotation>
+        <xsd:documentation>
+          logEps: Console output of [minimal distance, maximal distance, optimized epsilon]
+          NOTE: Should only be used for investigating the quality of the derivative, because
+          it totally spams the console
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+   </xsd:complexType>
+  
+</xsd:schema>

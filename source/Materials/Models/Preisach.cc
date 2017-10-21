@@ -30,7 +30,7 @@ namespace CoupledField
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
-    StringLenght_.Resize(numElem);
+    StringLength_.Resize(numElem);
 
     strings_     = new Vector<Double>[numElem];
     helpStrings_ = new Vector<Double>[numElem];
@@ -41,9 +41,9 @@ namespace CoupledField
       strings_[el].Resize(maxStringLength_);
       helpStrings_[el].Resize(maxStringLength_+1);
 
-      StringLenght_[el] = 1;
+      StringLength_[el] = 1;
       for ( UInt i=0; i<maxStringLength_; i++) {
-	strings_[el][i] = 0.0;
+        strings_[el][i] = 0.0;
       }
     }
 
@@ -64,8 +64,20 @@ namespace CoupledField
   Double Preisach::computeValue(Double& Xin, Integer idx, bool overwrite) 
   {
 
-    Vector<Double> &stringEl     = strings_[idx];
-    UInt& actLength = StringLenght_[idx];
+    /*
+     * What is this function used for?
+     * It does not update the list of minima and maxima but only evaluates
+     * the everett function using the current list checking three cases:
+     * a) new input wipes out complete list -> only one Everett pixel needed
+     * b) new input replaces the currently last entry of list
+     * c) new input attached to end of list
+     *
+     * What about cases in between?
+     * No memory set.
+     */
+
+    Vector<Double> &stringEl = strings_[idx];
+    UInt& actLength = StringLength_[idx];
 
     //normalize input
     Double newX, Yval;
@@ -118,7 +130,7 @@ namespace CoupledField
     Vector<Double> &stringEl     = strings_[idx];
     Vector<Double> &helpStringEl = helpStrings_[idx];
 
-    UInt& actLength = StringLenght_[idx];
+    UInt& actLength = StringLength_[idx];
     UInt stringLength = actLength;
 
     if ( abs(newX) > abs(abs(stringEl[0]) - eps_) || stringLength == 0 ) {
@@ -191,6 +203,12 @@ namespace CoupledField
     if ( overwrite ) {
       actLength = stringLength;
 
+     // std::cout << "Print out entries of min/max list" << std::endl;
+//      for ( UInt i=0; i<actLength; i++ ) {
+//        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
+//      }
+     // std::cout << "#############" << std::endl;
+
       //compute preisach-sum
       preisachSum_[idx] =  everettPixel(-stringEl[0],stringEl[0]);
       for ( UInt i=0; i<actLength-1; i++ ) {
@@ -199,6 +217,14 @@ namespace CoupledField
       newY = preisachSum_[idx]; 
     }
     else {
+      /*
+       * shouldn't we start at idx=1 here as helpStringEl[0] = -stringEl[0], helpStringEl[1] = stringEl[0]
+       * by this we start with everettPixel(+stringEl[0],-stringEl[0])
+       * then add 2*everettPixel(-stringEl[0],+stringEl[0])
+       * ???
+       * -> No, see line 181 -> elements get shifted to the right by 1
+       *
+       */
       newY = everettPixel(-helpStringEl[0], helpStringEl[0]);
       for ( UInt i=0; i<stringLength-1; i++ ) {
         newY +=  2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);
@@ -218,6 +244,7 @@ namespace CoupledField
     UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
 
+  //  std::cout << "delta: " << delta << std::endl;
     //compute index for X1 (alpha)
     Integer idx1 = -1;
     Double alpha = -1.0;
@@ -240,14 +267,22 @@ namespace CoupledField
     }
     beta -= delta;
 
+    // X1 >= X2
+    // -> mit alpha_0 = beta_0 = -1 und gleichem delta -> idx1 >= idx2
+
+//    std::cout << "idx1: " << idx1 << std::endl;
+//    std::cout << "idx2: " << idx2 << std::endl;
+
     Double area = 0.0;
     if ( idx1 >= 0 ) {
       UInt start = std::min(idx1,idx2);
       UInt stop  = std::max(idx1,idx2);
+
+      // why do we iterate over the whole square and not over the triangle?
       for ( UInt i=start; i<=stop; i++ ) {
-	for ( UInt j=start; j<=stop; j++ ) {
-	  area += preisachWeights_[i][j];
-	}
+        for ( UInt j=start; j<=stop; j++ ) {
+          area += preisachWeights_[i][j];
+        }
       }
 
       area *= 0.5*delta*delta;
@@ -257,36 +292,45 @@ namespace CoupledField
       Double diffX2 = X2    - beta;
       Double minusArea;
  
+      /*
+       * The idea behind the minusArea is to handle input variation which are smaller than delta
+       * Assume for example a min/max list with differences between mins and maxs < delta
+       * In that case, the same preisach element would flip from +1 to -1 and the single steps would cancel
+       * out in the sum. By reducing the weighting areas accordingly, we can also treat input lists of the described form
+       * as now the summed up terms are weighted with different areas!
+       * Commit out the section below and you will see, that it does not work anymore!
+       */
+
       //check, if we are already on the diagonal!!
       if ( idx1 == idx2 ) {
-	minusArea = (   diffX2 * (delta - 0.5*diffX2) 
-		      + diffX1 * (delta - 0.5*diffX1)
-                      - diffX1*diffX2 
-		     ) * preisachWeights_[idx1][idx2];
+        minusArea = (   diffX2 * (delta - 0.5*diffX2)
+                + diffX1 * (delta - 0.5*diffX1)
+                            - diffX1*diffX2
+               ) * preisachWeights_[idx1][idx2];
       }
       else {
-	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
-	  * preisachWeights_[idx1][idx2];
+        minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 )
+          * preisachWeights_[idx1][idx2];
 
-	Integer idx = idx1-1;
-	while ( idx > idx2 ) {
-	  minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
-	  idx--;
-	  //	  std::cout << "minusArea2=" << minusArea << std::endl;
-	}
-	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
-	  * preisachWeights_[idx][idx2]; 
+        Integer idx = idx1-1;
+        while ( idx > idx2 ) {
+          minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
+          idx--;
+          //	  std::cout << "minusArea2=" << minusArea << std::endl;
+        }
+        minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
+          * preisachWeights_[idx][idx2];
 
-	idx = idx2 + 1;
-	while ( idx < idx1 ) {
-	  minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
-	  idx++;
-	}
-	minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )  
-	  * preisachWeights_[idx1][idx];
+        idx = idx2 + 1;
+        while ( idx < idx1 ) {
+          minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
+          idx++;
+        }
+        minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )
+          * preisachWeights_[idx1][idx];
       }
 
-      area -= minusArea; 
+      area -= minusArea;
     }
 
     //sgn-function
@@ -318,5 +362,4 @@ namespace CoupledField
 
     return Xout;
   }
-
 }

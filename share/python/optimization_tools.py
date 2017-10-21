@@ -1,105 +1,273 @@
 # This collects some tool routines for optimization
 
-
-import libxml2
 import numpy
 import numpy.linalg
 import math
 import os
+import sys
 from lxml import etree
-
+from PIL import Image
 from cfs_utils import *
-from distutils.command.build_scripts import first_line_re
 
-## Read an arbitrary density file as NDArray
+# dump some information about a density file
+def print_design_info(filename, attribute, set = None, fill = None):
+  try: 
+    dens = read_density(filename, attribute, set=set, fill=fill)
+    print("for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)))
+  except:  
+    print("failed to read '" + attribute + "'")
+    #print  sys.exc_info()
+
+
+
+# # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
-def read_density(filename, attribute="design", x = None, y = None, z = None):
-  vals = read_density_as_vector(filename, attribute)
+# @param set optional name of set, if not given use default
+# @param fill if the density is a subset of the mesh return 1D or fill with fill_value if fill is set
+def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None):
+  vals = read_density_as_vector(filename, 'density', attribute, set)
+  mx, my, mz = read_mesh_info(filename, silent=True)
 
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  root = tree.getroot()
   if x == None:
-    x = int(root.xpath("//mesh/@x")[0])
+    x = mx
   if y == None:  
-    y = int(root.xpath("//mesh/@y")[0])
+    y = my
   if z == None:
-    z = int(root.xpath("//mesh/@z")[0])
+    z = mz
+  
+  if x == None and y == None and z == None:
+    x = len(vals)
+    y = 1
+    z = 1
 
   assert(x > 0 and y > 0 and z > 0)  
-
+  
   # density files where not the whole domain is design domain are read and re-written
   # as 1D arrays
   dim = cond(y > 1, cond(z > 1, 3, 2), 1)
-  ret = 0
-     
-  if len(vals) > x*y*z:
+  ret = numpy.zeros((x, y)) if dim == 2 else numpy.zeros((x, y, z)) # might be overwritten to 1D 
+       
+  if len(vals) > x * y * z:
     raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
                         + " does not match " + str(len(vals)) + " elements in " + filename) 
-  if len(vals) == x*y*z:
-    # full array!
-    if dim == 2:
-      ret = numpy.zeros((x, y))
-    else:
-      ret = numpy.zeros((x, y, z))
+  if len(vals) == x * y * z:
 
     # copy data from linear list
     for k in range(z):
       for j in range(y):
         for i in range(x):
-          idx = int(x*y*k + x*j + i)
+          idx = int(x * y * k + x * j + i)
           # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
           setNDArrayEntry(ret, i, j, k, vals[idx])
 
   
-  if len(vals) < x*y*z:
-    # we need to be 1D
-    print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-         + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
-    x = len(vals)
-    ret = numpy.zeros((x))
-    for i in range(x):
-      ret[i] = vals[i]    
+  if len(vals) < x * y * z:
+    if fill == None:
+      # we need to be 1D
+      print("read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute)
+      x = len(vals)
+      ret = numpy.zeros((x)) # overwrite full array
+      for i in range(x):
+        ret[i] = vals[i]    
+    else:
+      print("fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
+           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z))
+
+      ret += fill # was zeros, fill with default value
+      num = read_density_as_vector(filename, 'density', 'nr', set)
+      nt = x * y * z
+      for c in range(len(num)):
+        n = int(num[c] -1)
+        coords = numpy.unravel_index(n,(z,y,x))
+        setNDArrayEntry(ret, coords[2], coords[1], coords[0], vals[c]) # 'nr' is one base in general
         
   return ret
 
-
+# # read arbitrary multi-design density file as numpy array
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  root = tree.getroot()
+  if matrix:
+    x, y, z = read_mesh_info(filename, silent=True)
   
-## Reads a density.xml file as vector
+    if x == None and y == None and z == None:
+      x = 1
+      y = 1
+      z = 1
+  
+    assert(x > 0 and y > 0 and z > 0)  
+  sett = root.xpath("//set[last()]")[0]
+  #print(len(sett))
+  
+  designs = 1
+  if design2:
+    designs = 2
+  if design3:
+    designs = 3  
+  if design4:
+    designs = 4
+  if design5:
+    designs = 5
+  if design6:
+    designs = 6
+    
+  length = len(sett) / designs
+  
+  out = numpy.zeros((length, designs))
+  for element in sett:
+    nr = int(element.get("nr"))
+    type = element.get("type")
+    idx = -1
+    if type == design1:
+      idx = 0
+    if design2 and type == design2:
+      idx = 1
+    if design3 and type == design3:
+      idx = 2
+    if design4 and type == design4:
+      idx = 3
+    if design5 and type == design5:
+      idx = 4
+    if design6 and type == design6:
+      idx = 5
+    if not idx == -1:
+      tmp = element.get(attribute)
+      if tmp is None:
+        print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
+        tmp = element.get("design")
+      des = float(tmp)
+      out[nr - 1, idx] = des
+  if matrix:
+    output = numpy.zeros((x, y, z, designs))
+    for t in range(designs):
+      count = 0
+      for k in range(z):
+        for j in range(y):
+          for i in range(x):
+            output[i][j][k][t] = out[count][t]
+            count += 1
+    out = output
+  return out
+  
+## returns all set ids from a density xml
+# return a list of string like stuff
+def read_set_ids(filename):
+  tree = etree.parse(filename)
+  root = tree.getroot()
+  sett = root.xpath("//set/@id")
+  return sett
+  
+  
+## tests for an attribute in the density.xml
+# @param attribute you might want to check for physical which is not present when generated via create_density.py
+# @return True if the attribute is given
+def test_density_xml_attribute(filename, attribute, set = None):
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))      
+  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
+  query += '/element/@' + attribute
+  s = tree.getroot().xpath(query)
+  return len(s) > 0
+    
+  
+## parse the 'mesh' information of the header of a density.xml file
+# @param silent if True and no mesh info is found return None, None, None. otherwise raise exception
+# return x, y, z as ints
+def read_mesh_info(filename, silent = True):
+  if not os.path.exists(filename):
+    if silent:
+      return None, None, None
+    else:
+      raise RuntimeError("cannot find '" + filename + "'")
+  
+  tree = etree.parse(filename)
+  root = tree.getroot()
+  mesh = root.xpath('//cfsErsatzMaterial/header/mesh')
+  
+  if len(mesh) == 0:
+    if not silent:
+      raise RuntimeError("file '" + filename + "' has no mesh information")
+    return None, None, None
+  
+  else:
+    assert(len(mesh) == 1)
+    nx = int(mesh[0].get("x"))
+    ny = int(mesh[0].get("y"))
+    nz = int(mesh[0].get("z"))
+    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    return nx, ny, nz    
+       
+  
+# # Reads a density.xml file as vector. 
 # @param filename from which the last 'set' is used
+# @param dt = type, assume shapeParamElement for node or profile, else query element
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
-def read_density_as_vector(filename, attribute="design"):
+# @param set optionally give a set name (string) when not given the last is used
+def read_density_as_vector(filename, dt="density", attribute="design", set=None):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  qset = 'last()' if set is None else '@id="' + set + '"'
+  qelement = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element' 
   
-  root = tree.getroot()
-  sett = root.xpath("//set[last()]")[0]
-  # print "reading set with id = " + sett.get("id")
-  
-  length = len(sett)
+  xml = open_xml(filename)
+  query = '//set[' + qset + ']/' + qelement + '[@type="' + dt + '"]/@' + attribute
 
-  # print "check for attribute " + attribute
-  counter = 0
-  vals=[0]*length
-  for element in sett:
+  res = xml.xpath(query)
+  vals = [0] * len(res)
+  for idx, element in enumerate(res):
     # traverse the elements and get the design
-    vals[counter] = float(element.get(attribute))
-    counter = counter + 1
-  
-  # print "found " + str(length) + " elements, read " + str(counter) + " elements"
+    vals[idx] = float(element)
   
   return vals
   
-## write the data to a density.xml file
+## wraps density data into an xml file
+# @param bulk a string or a list of size D of strings with the full data
+# @param setname either a string or D strings (list, tuple, ...)
+# @param silend if False prints that the file is created
+def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setname='optimization_tools.py', param = 1, silent=True):
+  
+  if not silent:
+    print("create '" + filename + "'")
+    
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  if x and y and z:
+    out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
+  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
+  out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
+  out.write('  </header>\n')
+  
+  assert((type(bulk) == str and type(setname) == str) or len(bulk) == len(setname))
+
+  if type(setname) == str:  
+    out.write('  <set id="' + setname + '">\n')
+    out.write(bulk)
+    out.write('  </set>\n')
+  else:
+    for idx, set in enumerate(setname):
+      assert(type(set) == str)
+      assert(type(bulk[idx]) == str)
+      out.write('  <set id="' + set + '">\n')
+      out.write(bulk[idx])
+      out.write('  </set>\n')
+  
+  out.write(' </cfsErsatzMaterial>\n')
+  out.close()
+  
+# # write the data to a density.xml file
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
 #               The data can be obtained from read_density(...,elemnr=True)
-def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
+def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -109,58 +277,89 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
   else:
     data_list.append(data_inp)
     setname_list.append(setname_inp)
-
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-
-  data    = data_list[0]
-  x, y, z = getDim(data)
-  out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  if param > 0:
-    out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
-  else:
-    out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
-  out.write('  </header>\n')
-
- 
-  for i in range(len(data_list)):
-    data    = data_list[i]
-    setname = setname_list[i]
-    out.write('  <set id="' + setname + '">\n')
-    dim = data.ndim
-    x, y, z = getDim(data)
+  
+  x, y, z = getDim(data_list[0])
+  
+  bulk_list = []
+  for i, data in enumerate(data_list):
+    string_list = []
     nr = 1
-
     for k in range(z):
       for j in range(y):
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
-           if elemnr <> None:
-             nr = int(getNDArrayEntry(elemnr, i, j ,k))
-           
+           if elemnr is not None:
+             nr = int(getNDArrayEntry(data, i, j , k))
+            
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
-            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val**param) + '"/>\n')
+             string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
            else:
-            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
-           nr = nr + 1       
-         
-    out.write('  </set>\n')
+            string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
+           if elemnr is None:
+             nr = nr + 1       
 
+    # this is a fast way to create a large string which is added to bulk_list: https://waymoot.org/home/python_string/
+    bulk_list.append(''.join(string_list)) 
+ 
+  write_density_file_bulk(filename, bulk_list, x, y, z, setname_list, param)
+
+# # write simple multi-design density files
+# @data matrix with N rows of D colums
+# @data desings list of D designs
+# @elemnr optional array of N numbers
+def write_multi_design_file(filename, data, designs, elemnr=None):
+  # assert(data.shape[1] == len(designs))
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  out.write('  </header>\n')
+  out.write('  <set id="optimization_tools.py">\n')
+    
+  for d in range(len(designs)):
+    for e in range(len(data)):
+      enr = e + 1 if elemnr == None else int(elemnr[e])
+      out.write('    <element nr="' + str(enr) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
+  out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
 
+## reads partial domain within a full array. E.g. if the design domain is circular
+# visualize via img = Image.fromarray(a, 'RGB'), img.show()
+# @param dt -> type 
+def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
+  msh  = read_mesh_info(filename, silent = False)
+  vals = read_density_as_vector(filename, 'density', attribute, set)
+  nrs  = read_density_as_vector(filename, 'density', 'nr', set)
 
-## replaces the element numbers by new element numbers.
+  assert(msh[2] == 1) # implement 3D if you need it
+  
+  a = numpy.ones(msh[0:2]) * fill  
+  
+  nx = msh[0]
+  ny = msh[1]
+  
+  assert(len(nrs) <= nx * ny)
+  
+  for i in range(len(nrs)):
+    n = int(nrs[i]) -1 # the element number is 1 based!
+    # assume a lexicographic order
+    y = int(n / ny)
+    x = n % ny
+    #print 'i=' + str(i) + ' y=' + str(y) + ' x=' + str(x) 
+    
+    a[y, x] = vals[i]
+      
+  return a
+
+# # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)
 # @param map element mapping as tupel list from cfs_grid.map_elements()
 # @return again an ndarray which can be used as parameter for write_density_file()
 def apply_elmennr_mapping(org, map):
   x, y, z = getDim(org)
-  assert(x*y*z == len(map))
+  assert(x * y * z == len(map))
 
   result = numpy.zeros((x, y, z))
   for k in range(z):
@@ -181,7 +380,9 @@ def apply_elmennr_mapping(org, map):
   
 
 
-## evaluates the physical volume fraction
+
+
+# # evaluates the physical volume fraction
 # @param data 2D/3D data
 # @param penalty 1 for no penalty
 def physical_volume(data, penalty):
@@ -203,30 +404,37 @@ def physical_volume(data, penalty):
   return vol / data.size              
 
 
-## apply a threshold filter on a 2D/3D matrix
-# @param data original 2D/3D data
+# # apply a threshold filter on a 2D/3D matrix
+# @param data original 2D/3D data or vector
 # @param treshold all smaller threshold becomes min, otherwise max
-# @return a new data array 
+# @return new data of input type 
 def threshold_filter(data, threshold, min, max):
   
-  dim = data.ndim
-  x, y, z = getDim(data)
-  res = numpy.copy(data)
-    
   # handle the case that threshold is smaller than min
-  barrier = cond(threshold < min, min, threshold)
+  barrier = numpy.max((threshold, min))
+  res = None  
+  
+  if type(data) == list:
+    res = [0.0] * len(data)
+    for i in range(len(data)):
+      res[i] = max if data[i] >= barrier else min
+  else:
     
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        org = getNDArrayEntry(data, i, j, k)
-        val = cond(org < barrier, min, max)
-        setNDArrayEntry(res, i, j, k, val)        
+    dim = data.ndim
+    x, y, z = getDim(data)
+    res = numpy.copy(data)
+  
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          org = getNDArrayEntry(data, i, j, k)
+          val = cond(org < barrier, min, max)
+          setNDArrayEntry(res, i, j, k, val)        
 
   return res  
 
 
-## threshold towards a given final volume
+# # threshold towards a given final volume
 # @param data original 2d/3d data
 # @param min niminum final density in the result, ignores penalty, max = 1
 # @param target volume fraction to be reached
@@ -239,9 +447,9 @@ def auto_threshold_filter(data, min, target, material_penalty):
   lower = min
   upper = 1
   while upper - lower > 1e-14:
-    mid = lower + 0.5 *(upper - lower)
+    mid = lower + 0.5 * (upper - lower)
     val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
-    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    print(" lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val))
     # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
     if val > target:
       lower = mid
@@ -250,7 +458,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
   
   return threshold_filter(data, lower, min, 1), lower   
 
-## interpolates a floating point coordinate within an numpy.array
+# # interpolates a floating point coordinate within an numpy.array
 # @param data an numpy.array
 # @param position an arbitrary 2D/ 3D array from where we want to get the data
 # @param quiet error if the data does not exist or evaluate periodic
@@ -258,7 +466,7 @@ def auto_threshold_filter(data, min, target, material_penalty):
 # @param default_value
 def interpolate(data, position, quiet=False, periodic=True, default_value=0.001):
 
-  #this is the corrected position pointer
+  # this is the corrected position pointer
   corrected = numpy.copy(position)
   
   for i in range(len(position)):
@@ -284,7 +492,7 @@ def interpolate(data, position, quiet=False, periodic=True, default_value=0.001)
 
   return val 
 
-## rotates an ndarray by an arbitrary rotation matrix
+# # rotates an ndarray by an arbitrary rotation matrix
 # for all intermediate materials there will be data with no origin,
 # these data is considered periodic
 def rotate(data, rot):
@@ -297,8 +505,8 @@ def rotate(data, rot):
     for j in range(y):
       for k in range(z):
         # algorithm for each target point rotate backwards to the original point
-        target = [i-center[0], j - center[1], k - center[2]]
-        brt = numpy.dot(rot.T, target) # back_rot_target
+        target = [i - center[0], j - center[1], k - center[2]]
+        brt = numpy.dot(rot.T, target)  # back_rot_target
         # denormalize the center
         origin = brt + center
         # print "rotate " + str(target) + " back to " + str(brt) + " -> " + str(origin) 
@@ -307,7 +515,7 @@ def rotate(data, rot):
          
   return result       
 
-## flip a 2d matrix
+# # flip a 2d matrix
 # exchange x and y
 def flip_2d_matrix(data):
   
@@ -324,7 +532,7 @@ def flip_2d_matrix(data):
 
   return res  
 
-## rotate a 3d matrix
+# # rotate a 3d matrix
 # exchange x and y
 def rotate_matrix_x_y(data):
   
@@ -340,7 +548,8 @@ def rotate_matrix_x_y(data):
 
   return res  
 
-## rotate a 3d matrix
+
+# # rotate a 3d matrix
 # exchange x and z
 def rotate_matrix_x_z(data):
   
@@ -356,12 +565,12 @@ def rotate_matrix_x_z(data):
 
   return res
 
-## Enlarge a density matrix by multiples of the original data
+# # Enlarge a density matrix by multiples of the original data
 # @param data a two or three dimensional ndata array
 # @param x_times how often to repeat in x direction. 1 = no change
 # @param z_times ignored when data is 2D
 # @return a new ndata array (might be huge!!)
-def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
+def enlarge_matrix(data, times_x, times_y=1, times_z=1):
 
   dim = data.ndim
   x_edge = data.shape[0]
@@ -369,23 +578,23 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
   
   if dim == 3:
     z_edge = data.shape[2]
-  res = numpy.zeros((x_edge * times_x, y_edge * times_y, z_edge * times_z))
-  
-  for x in range(times_x):
-    for y in range(times_y):
+    res = numpy.zeros((x_edge * times_x, y_edge * times_y, z_edge * times_z))
+    
+    for x in range(times_x):
+      for y in range(times_y):
         for z in range(times_z):
-        # copy complete block
-        x_base = x * x_edge
-        y_base = y * y_edge
-        z_base = z * z_edge
-        
-        for i in range(x_edge):
-          for j in range(y_edge):
-            for k in range(z_edge):
-              val = getNDArrayEntry(data, i, j, k)
-              setNDArrayEntry(res, x_base + i, y_base + j, z_base + k, val)
-
-  return res                     
+          # copy complete block
+          x_base = x * x_edge
+          y_base = y * y_edge
+          z_base = z * z_edge
+          
+          for i in range(x_edge):
+            for j in range(y_edge):
+              for k in range(z_edge):
+                val = getNDArrayEntry(data, i, j, k)
+                setNDArrayEntry(res, x_base + i, y_base + j, z_base + k, val)
+  
+    return res                
   else:
     res = numpy.zeros((x_edge * times_x, y_edge * times_y))
     
@@ -402,40 +611,58 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
     
     return res     
 
-## handles arbitrary 2d and 3d density files, doubles in each dimension 
+
+
+# # handles arbitrary 2d and 3d density files, doubles in each dimension 
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
 # @param returns also the new ndata array
-def refine_density(infile, outfile):
-  org = read_density(infile)
-
-  x, y, z = getDim(org)
-  dim = org.ndim
+def refine_density(infile, outfile, design1=None, design2=None, design3=None, design4=None, design5 = None):
+  if design1 is None:
+    org = read_density(infile)
+    x, y, z = getDim(org)
+    ndes = 1
+    dim = org.ndim
+  else:
+    org = read_multi_design(infile, design1, design2, design3, design4, design5, True)
+    x, y, z, ndes = getDim(org, True)
+    dim = 3
+    if z == 1:
+      dim = 2
+    
   # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
-  out = numpy.zeros((x*2, y*2))
+  
+  out = numpy.zeros((x * 2, y * 2))
 
   # In 3D we need to overwrite with 3D array or else setNDArrayEntry will not work properly
-  if(org.ndim == 3):
-    out = numpy.zeros((x*2, y*2, z*2))
+  if(dim == 3):
+    out = numpy.zeros((x * 2, y * 2, z * 2))
+    
+  output = numpy.zeros((out.size, ndes))
 
   # print "debug: x=" + str(x) + ", y=" + str(y) + ", z=" + str(z) + ", dim=" + str(dim)
-
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        val = getNDArrayEntry(org, i, j, k)
-        # in 2D the z-component is ignored and we set the value twice
-        setNDArrayEntry(out, i*2 + 0, j*2 + 0, k*2 + 0, val)
-        setNDArrayEntry(out, i*2 + 0, j*2 + 0, k*2 + 1, val)
-        setNDArrayEntry(out, i*2 + 0, j*2 + 1, k*2 + 0, val)
-        setNDArrayEntry(out, i*2 + 0, j*2 + 1, k*2 + 1, val)
-        setNDArrayEntry(out, i*2 + 1, j*2 + 0, k*2 + 0, val)
-        setNDArrayEntry(out, i*2 + 1, j*2 + 0, k*2 + 1, val)
-        setNDArrayEntry(out, i*2 + 1, j*2 + 1, k*2 + 0, val)
-        setNDArrayEntry(out, i*2 + 1, j*2 + 1, k*2 + 1, val)
-        
-  write_density_file(outfile, out, "refined")
-  return out 
+  for d in range(ndes):
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          val = getNDArrayEntry(org, i, j, k, d)
+          # in 2D the z-component is ignored and we set the value twice
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 1, val)
+    if design1 is None:
+      write_density_file(outfile, out, "refined")
+      return out
+    else:
+      output[:,d] = numpy.ravel(out,order='F')
+  
+  write_multi_design_file(outfile, output, (design1, design2, design3, design4, design5)[0:ndes])
+  return output
 
 # Assuming there is a sequence of CFS runs by a parameter study. This method finds the closes
 # valid run
@@ -447,22 +674,21 @@ def refine_density(infile, outfile):
 # @raise exception: if no info.xml with status 'finished' found    
 def find_closes_info_xml(filename, key, start, end):
   checked = 0
-  failed  = 0
+  failed = 0
   # we can search upwards or downwards
   direction = cond(end < start, -1, 1)
   for i in range(start, end + direction, direction):
     name = string.replace(filename, key, str(i))
     
-    print  "check " + name + "\n"
+    print("check " + name + "\n")
     
     if not os.path.exists(name):
       continue
     
-    doc = libxml2.parseFile(name)
-    xml = doc.xpathNewContext()
+    xml = open_xml(name)
     
     status = xpath(xml, "/cfsInfo/@status")
-    print "file " + name + " has status " + status
+    print("file " + name + " has status " + status)
 
     if status == "finished":
       return i
@@ -503,17 +729,17 @@ def restore_lower_densities(infile, outfile, targetlength, lower):
       counter = counter + 1 
       # if we didn't skip anything, just take the values and go for it
       if nr == counter:
-        out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(design) + '"/>\n')
+        out.write('  <element nr="' + str(counter) + '" type="density" design="' + str(design) + '"/>\n')
       else:
         # we missed some entries: restore them to lower bound
         missing = nr - counter
         for n in range(missing):
-          out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(lower) + '"/>\n')
+          out.write('  <element nr="' + str(counter) + '" type="density" design="' + str(lower) + '"/>\n')
           counter = counter + 1 
 
         # the one design is missing, must insert here
         counter = nr
-        out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(design) + '"/>\n')
+        out.write('  <element nr="' + str(counter) + '" type="density" design="' + str(design) + '"/>\n')
 
   infi.close()
 
@@ -523,7 +749,7 @@ def restore_lower_densities(infile, outfile, targetlength, lower):
     missing = targetlength - counter
     counter = counter + 1 
     for n in range(missing):
-      out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(lower) + '"/>\n')
+      out.write('  <element nr="' + str(counter) + '" type="density" design="' + str(lower) + '"/>\n')
       counter = counter + 1 
 
 
@@ -539,7 +765,7 @@ def extract_old_header(infile):
   infi = open(infile, "r")
   for event, element in etree.iterparse(infi):
     if element.tag == "header":
-      print "found header"
+      print("found header")
       # we use the header from the original file
       header = etree.tostring(element)
       break
@@ -551,9 +777,9 @@ def extract_old_header(infile):
 class LumpedMechDisplacement:
   def __init__(self, elemNum, x, y, z):
     self.elemNum = elemNum
-    self.x       = x
-    self.y       = y
-    self.z       = z
+    self.x = x
+    self.y = y
+    self.z = z
     
   def toString(self):
     return "elem=" + str(self.elemNum) + " x=" + str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
@@ -565,50 +791,49 @@ class LumpedMechDisplacement:
 # @return an list of tuples. the first item is the frequency, the next is a list of  LumpedMechDisplacement elements.
 #        Multiple frequencies are not possible but the last one is used.
 def readLumpedMechDisplacement(info_xml, region):
-  doc = libxml2.parseFile(info_xml)
-  xml = doc.xpathNewContext()
+  xml = open_xml(info_xml)
   # detect multiple eigenfrequencies
   last_freq = "-1.0"
   result = []
-  for step in range(0,5000):
+  for step in range(0, 5000):
     xpath_base = "//result[@data='lumpedMechDisplacement'][@location='" + region + "']/item[@step='" + str(step) + "']"
-    res = xml.xpathEval(xpath_base + "/@step_val")
-    if len(res) == 0 or res[0].getContent() == last_freq:
+    res = xml.xpath(xpath_base)
+    if len(res) == 0 or not 'step_val' in res[0].attrib or res[0].attrib['step_val'] == last_freq:
       continue
-    last_freq = res[0].getContent()
+    last_freq = res[0].attrib['step_val']
     item = []
     item.append(float(last_freq))
     # read data
-    e = xml.xpathEval(xpath_base + "/@id")
-    x = xml.xpathEval(xpath_base + "/@x")
-    y = xml.xpathEval(xpath_base + "/@y")
-    z = xml.xpathEval(xpath_base + "/@z")
+    e = xml.xpath(xpath_base + "/@id")
+    x = xml.xpath(xpath_base + "/@x")
+    y = xml.xpath(xpath_base + "/@y")
+    z = xml.xpath(xpath_base + "/@z")
     # assume len(res) = len(x) = len(y), eventually also len(z)
     data = []
     for i in range(len(e)):
-      e_val = int(e[i].getContent())
-      x_val = float(x[i].getContent())
-      y_val = float(y[i].getContent())
-      z_val = cond(len(z) == 0, 0.0, float(z[i].getContent()))
+      e_val = int(e[i])
+      x_val = float(x[i])
+      y_val = float(y[i])
+      z_val = cond(len(z) == 0, 0.0, float(z[i]))
       data.append(LumpedMechDisplacement(e_val, x_val, y_val, z_val))
     item.append(data)
     result.append(item)
   return result  
 
-## create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
+# # create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
 # below the first frequency we assume full material, above the highest frequency an exception is thrown
 # @param data is the result from readLumpedMechDisplacement
 # @param f the frequency to interpolate
 # @param density_file the filename where the density file is written to
 # @param mode 'min' or 'max' or 'auto'
 # @return lower, upper, alpha, beta, min, max
-def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "auto"):
+def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode="auto"):
   # find upper and lower frequency
   lower = 0.0
   upper = -1.0
   
   # the data array of interest
-  lower_data = [] # stays empty if f is below first eigenfrequency, assume 1.0 values then
+  lower_data = []  # stays empty if f is below first eigenfrequency, assume 1.0 values then
   upper_data = []
   
   for i in range(len(data)):
@@ -617,18 +842,18 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "au
       lower = test
       continue 
     else:
-      upper  = test
+      upper = test
       upper_data = data[i][1]
       if i > 0:
-        lower_data = data[i-1][1]
+        lower_data = data[i - 1][1]
       break
   if upper == -1.0:
-    raise RuntimeError("Cannot find frequency " + str(f) + " within lumpedMechDisplacement data set from f=" + str(data[0][0]) + " to f=" + str(data[len(data)-1][0]))
+    raise RuntimeError("Cannot find frequency " + str(f) + " within lumpedMechDisplacement data set from f=" + str(data[0][0]) + " to f=" + str(data[len(data) - 1][0]))
 
   # determine interpolation parameter, normalized to 1
   beta = (f - lower) / (upper - lower)
   alpha = 1.0 - beta
-  print "f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n"
+  print("f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n")
 
   # preliminary result, before normalizing to 1.0
   tmp = []
@@ -636,7 +861,7 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "au
   max_v = -1e30   
   min_v = +1e30
   for i in range(len(upper_data)):
-    lower_value = 1.0 # there is no real condition operator in python :( 
+    lower_value = 1.0  # there is no real condition operator in python :( 
     if len(lower_data) > 0:
       lower_value = lower_data[i].z
     upper_value = upper_data[i].z
@@ -650,9 +875,9 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "au
   for i in range(len(tmp)):
     if mode == "both":
       v = tmp[i]
-      max_case = cond(v / max_v > 1e-7, v / max_v, 1e-7) # max_case in [1e-7:1]
-      min_case = cond(v / min_v > 1e-7, v / min_v, 1e-7) # if min_v > 0: min_case >= 1, for min_v < 0 also [1e-7:+1]
-      tmp[i] = cond(v >= 0, max_case, -1.0*min_case) # this is not solid plate for min_v > 0!
+      max_case = cond(v / max_v > 1e-7, v / max_v, 1e-7)  # max_case in [1e-7:1]
+      min_case = cond(v / min_v > 1e-7, v / min_v, 1e-7)  # if min_v > 0: min_case >= 1, for min_v < 0 also [1e-7:+1]
+      tmp[i] = cond(v >= 0, max_case, -1.0 * min_case)  # this is not solid plate for min_v > 0!
     if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
       # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
       tmp[i] = cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)
@@ -692,7 +917,7 @@ def make2DWindow(divider, strength, lower):
   if strength <= 0.01 or strength > 0.48:
     raise RuntimeError("invalid strength")
   
-  #fraction
+  # fraction
   f = strength
   # counter fraction
   cf = 1.0 - f
@@ -702,10 +927,10 @@ def make2DWindow(divider, strength, lower):
       i = float(ii)
       j = float(jj)
   
-      ip = i / (divider-1)
-      jp = j / (divider-1)
+      ip = i / (divider - 1)
+      jp = j / (divider - 1)
       
-      #print str(ip) + " - " + str(jp) + " f " + str(f) + " cf " + str(cf)
+      # print str(ip) + " - " + str(jp) + " f " + str(f) + " cf " + str(cf)
       if ip > f and ip < cf and jp > f and jp < cf:
         ret[i][j] = lower
       else:
@@ -716,7 +941,7 @@ def make2DWindow(divider, strength, lower):
 # extrudes an 2D array to the third dimenstion
 def extrude(data_2d):
   edge = data_2d.shape[0] 
-  if edge <> data_2d.shape[1]:
+  if edge != data_2d.shape[1]:
     raise RuntimeError("require quadratic input")
   
   ret = numpy.zeros((edge, edge, edge))
@@ -769,9 +994,197 @@ def is_valid_density_file(infile):
 
   return (ersatzfound and headerfound and setfound)
 
-
-
 # do an ascii print of the density data
 def ascii_print(data, threshold):
   x, y, z = getDim(data)
   assert()
+  
+# # convert textual tensordata to XML for rectangle homogenization
+# @param tensordata: file with lines  a b 11 12 22 33 where a and b are percent
+# @param xmlfile writes the xml file if given
+# return a string with the text 
+def convert_hom_rect_tensor_to_xml(tensordata, xmlfile=None):
+  a = numpy.genfromtxt(tensordata)
+  assert(a.shape[1] == 6)
+  
+  out = "<homRect>\n"
+  for i in range(len(a)):
+    data = a[i]
+    # <data a="0.0" b="0.0" e11="" e12="" e22="" e33="" />
+    out += '<data a="' + str(data[0] / 100.0) + '" b="' + str(data[1] / 100.0)
+    out += '" e11="' + str(data[2]) + '" e12="' + str(data[3]) + '" e22="' + str(data[4]) + '" e33="' + str(data[5]) + '"/>\n'
+  out += "</homRect>\n"    
+
+  if xmlfile:
+    file = open(xmlfile, "w")
+    file.write(out)
+    file.close()
+
+  return out    
+
+# # rotate if possible
+# @param data 2d array 
+# @param center list with sufficient size of indices
+# @param angle counter-clock-wise in rad
+# @return new array with org where no rotation was possible
+def rotate(data, center, angle):
+  ret = data.copy()
+  
+  cx, cy = center
+  
+  nx, ny = data.shape
+  
+  # the general algorithm for rotation around a given point is
+  # - translate to center
+  # - rotate around center
+  # - translate back
+  
+  for y in range(ny):
+    for x in range(nx):
+       x2 = numpy.cos(angle) * (x - cx) - numpy.sin(angle) * (y - cy) + cx
+       y2 = numpy.sin(angle) * (x - cx) + numpy.cos(angle) * (y - cy) + cx
+       #print "x=" + str(x) + " y=" + str(y) + " v="  + str(data[y, x]) + " ->  x2=" + str(x2) + " y2=" + str(y2)
+       h = 1.0/nx
+       bx = 0.5*h + x*h
+       by = 0.5*h + y*h
+       bx2 = 0.5*h + x2*h
+       by2 = 0.5*h + y2*h
+       print("org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")")
+        
+       if x2 >= 0 and x2 < nx and y2 >= 0 and y2 < ny:
+         ret[y, x] = data[y2, x2] 
+       
+  return ret
+  
+  
+## returns an image out of an numpy array.
+# @param data numpy array
+# @param scale if not given the original size is given 
+# @return visualize with .show()
+def get_image(data, scale = None):
+  
+  x, y = data.shape
+    
+  ret = numpy.zeros((y, x), dtype="uint8")
+  
+  # copy data from linear list
+  for i in range(y):
+    for j in range(x):
+      ret[y-i-1][j] = 255 - int(255 * data[j][i])
+
+  img = Image.fromarray(ret)
+  if scale:
+    img = img.resize((scale, y/x * scale), Image.NEAREST) # higher quality with ANTIALIAS
+  return img
+
+
+## calculate the normalized perimeter
+# @param data array
+# @param eps for continuation, 0.0 is ok
+# @param order TV order, 2 = taxi cap or 4. See Petersson, Beckers and Duysinx, 1999
+# @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain  
+def perimeter(data, eps = 0.0, order = 2, normalize = True):
+  
+  assert(order == 2 or order == 4)
+ 
+  n2, n1 = data.shape
+  per = 0.0
+
+  h1 = 1.0/n1
+  h2 = 1.0/n2
+
+   
+  for j in range(0,n2): 
+    for i in range(1,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j,i-1] # rho_i-1,j
+      scale = h2/(n1-1) if normalize else h2
+      per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  for j in range(1,n2):
+    for i in range(0,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j-1,i] # rho_i,j-1
+      scale = h1/(n2-1) if normalize else h1
+      per += h1 * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  if order == 4:
+    # Petersson, Beckers and Dun2sinn1, "Almost Isotropic Perimeters in Topologn2 Optimization: Theoretical and Numerical Aspects", 1999  
+    # -> (5)      
+    h = numpy.sqrt(h1**2 + h2**2)
+
+    for j in range(0,n2-1):
+      for i in range(0,n1-1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i+1] # rho_i+1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h) 
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+  
+    for j in range(0,n2-1):
+      for i in range(1,n1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i-1] # rho_i-1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h)
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+
+  # normalization is done for TV_2, for TV_4 we need to correkt the diagonal elements -> c_4^-1 = 1 + 2 | cos(theta) | below (3)
+  if not normalize and order ==4:
+    per /= 1 + 2 * numpy.cos(numpy.pi / 4)
+  
+  return per
+  
+# add a save ghost cell around an array
+# @param reproduce shall the outer boundary be copied 
+def add_ghost_cells(data, reproduce = False):
+  x, y = data.shape
+  result = numpy.zeros((x + 2, y + 2))
+  result[1:x+1, 1:y+1] = data
+
+  # copy the boundary
+  if reproduce:
+    result[0,]    = result[1,]
+    result[y+1,]  = result[y,]
+    result[:,0]   = result[:,1]
+    result[:,x+1] = result[:,x] 
+
+  return result
+  
+
+# read properties from an bloch mode optimization
+# returns a dictionary with the most relevant properteis
+def read_bloch_properties(xml):
+  iter = xml.xpath("//iteration[last()]")[0]
+  
+  for ev in range(1,30):
+    if 'ev_'+ str(ev) + '_max' in iter.attrib and 'ev_'+ str(ev+1) + '_min' in iter.attrib:  
+      lower = float(iter.attrib['ev_'+ str(ev) + '_max'])
+      upper = float(iter.attrib['ev_'+ str(ev+1) + '_min'])
+      assert(lower > 0)
+      
+      norm = (upper-lower) / (lower + .5*(upper-lower))
+      rel  = (upper-lower) / lower
+
+      dict = {'iter' : int(iter.get('number')), 'lower' : lower, 'upper' : upper, 'ev' : ev, 'norm' : norm, 'rel' : rel}
+      return dict 
+      
+  raise RuntimeError("no ev_(i)_max and ev_(i+i)_min pair found")
+
+    
+# a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
+# a[:,0] *= 0.11
+# a[:,1] *= 0.11
+# b = a[:,0:3]
+# write_multi_design_file("hom_rect_40.density.xml", b, "hom_rect_a", "hom_rect_b", "rotAngle")
+
+#a = read_multi_design("hom_rect_ml_min_compl.density.xml", "stiff1", "stiff2", "rotAngle")
+#numpy.savetxt("hom_rect_ml_min_compl.dat", a)
+    
+#a = read_multi_design("smooth-full-100.xml", "density", "stiff1, "stiff2", "rotAngle")
+#b = numpy.zeros(a.shape[0],4);
+#b[:,0] = a[:,0]*a[:,1]**.5;
+#b[:,1] = a[:,0]*a[:,2]**.5;
+#b[:,2] = a[:,3];
+#write_multi_design_file("sqrt-smooth-full-100.xml", b, "tensor11", "tensor22", "tensor33",  "rotAngle")
+#a[:,1] = a[:,1]**.5;
+#a[:,2] = a[:,2]**.5;
+#write_multi_design_file("sqrt-smooth-full-100.xml", a, "density", "tensor11", "tensor22", "tensor33", "rotAngle")

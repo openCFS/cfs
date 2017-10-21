@@ -24,6 +24,8 @@
 #include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 #include <def_use_openmp.hh>
+#include <def_disable_optimization.hh>
+
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -47,13 +49,14 @@
 #endif
 #endif
 
-#ifdef USE_ACML
-#include <acml.h>
+#ifdef USE_OPENBLAS
+#include <openblas_config.h>
 #endif
 #include <bzlib.h>
 #include <zlib.h>
 
 #include <H5public.h>
+#include <H5Ppublic.h>
 
 #ifdef USE_METIS
 #include <defs.h> 
@@ -182,6 +185,9 @@ namespace CoupledField {
       ( "history,H",
         "history of revisions" )
 
+      ( "numThreads,t", po::value<UInt>()->default_value(1),
+        "number of threads used in CFS run. Default 1." )
+
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
 
@@ -197,8 +203,8 @@ namespace CoupledField {
       ( "restart,r",
         "read restart file of previous simulation run" )
 
-      ( "forceSegFault,f",
-        "force a segmentation fault at exceptions")
+      ( "detailed,d",
+        "detailed output to info.xml")
 
       ( "printGrid,g",
         "read grid from input and write it to output file" )
@@ -206,14 +212,17 @@ namespace CoupledField {
       ( "exportGrid,G",
         "export the grid to the info.xml file, best with -g")
 
+      ( "equationMap,M",
+        "create a .map file with details about the equation mapping")
+
       ( "writeSkeleton,w",
         "write skeleton of XML file for subsequent simulation" )
 
       ( "logConfFile,l", po::value<string>(),
         "name of configuration file for logging streams" )
 
-      ( "detailed,d",
-        "detailed output to info.xml")
+      ( "forceSegFault,f",
+        "force a segmentation fault at exceptions")
 
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
@@ -378,7 +387,7 @@ namespace CoupledField {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
       fs::path paramPath( varMap_["paramFile"].as<string>());
-      return fs::system_complete( paramPath );
+      return fs::complete( paramPath ); //
     }
   }
 
@@ -487,11 +496,15 @@ namespace CoupledField {
     return varMap_.count("exportGrid") > 0;
   }
 
+  bool ProgramOptions::DoEquationMapping() const
+  {
+    return varMap_.count("equationMap") > 0;
+  }
+
   bool ProgramOptions::GetRestart() const
   {
     return (varMap_.count( "restart") > 0);
   }
-
 
   bool ProgramOptions::GetWriteSkeleton() const
   {
@@ -514,6 +527,19 @@ namespace CoupledField {
     return varMap_.count("quiet") > 0;
   }
   
+  UInt ProgramOptions::GetNumThreads() const
+  {
+#ifdef USE_OPENMP
+    if( varMap_.count( "numThreads") != 0 ) {
+      return varMap_["numThreads"].as<UInt>();
+    }else{
+      return 1;
+    }
+#else
+    return 1;
+#endif
+  }
+
   void ProgramOptions::PrintHelp( std::ostream& out )
   {
     out << helpMsg_;
@@ -528,6 +554,7 @@ namespace CoupledField {
     in->Get("logConfFile")->SetValue(GetLogConfFileStr());
     in->Get("detailed")->SetValue(DoDetailedInfo());
     in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
+    in->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
 
     // cfs information
     in = in->Get("cfs");
@@ -535,6 +562,10 @@ namespace CoupledField {
     in->Get("name")->SetValue(CFS_NAME);
     in->Get("build")->SetValue(CMAKE_BUILD_TYPE);
     in->Get("svn_revision")->SetValue(CFS_WC_REVISION);
+    std::string url(CFS_WC_URL);
+    if(url.size() > 0 && url.find_last_of("/") != string::npos)
+      in->Get("svn_branch")->SetValue(url.substr(url.find_last_of("/")+1));
+    in->Get("exe")->SetValue(exe_);
   }
 
   
@@ -648,12 +679,21 @@ namespace CoupledField {
         << fg_blue  << "NO" << fg_reset << endl;
 #endif
 
+#ifdef DISABLE_OPTIMIZATION
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "YES" << fg_reset << endl;
+#else
+    out << "DISABLE_OPTIMIZATION:  "
+        << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+
+
 #ifdef USE_ARPACK    
     out << "USE_ARPACK:            "
         << fg_blue  << "YES" << fg_reset << endl;
     out << "ARPACK_VERSION:        "
-        << fg_blue  << ARPACK_VERSION_NUMBER << " "
-        << ARPACK_VERSION_DATE << fg_reset << endl;
+        << fg_blue  << ARPACK_VERSION_NUMBER << fg_reset << endl;
 #else
     out << "USE_ARPACK:            "
         << fg_blue  << "NO" << fg_reset << endl;
@@ -687,18 +727,16 @@ namespace CoupledField {
     out << "MKL_NUM_THREADS:       "
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
         << fg_reset << endl;
+
+    out << "OMP_NUM_THREADS:       "
+        << fg_blue << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-")
+        << fg_reset << endl;
  #endif
- #ifdef USE_ACML
-    Integer acml_major, acml_minor, acml_patch;
-
-    acmlversion(&acml_major, &acml_minor, &acml_patch);
-
-    out << "ACML_VERSION:          " << fg_blue
-        << acml_major << "."
-        << acml_minor << "."
-        << acml_patch << fg_reset
-        << endl;
-    acmlinfo();
+ #ifdef USE_OPENBLAS
+    out << "OPENBLAS:              " << fg_blue
+        << OPENBLAS_VERSION << fg_reset << endl
+        << "OPENBLAS_CORE          " << fg_blue
+        << OPENBLAS_CHAR_CORENAME << fg_reset << endl;
  #endif
 #else
     out << "USE_BLAS:              "
@@ -906,8 +944,6 @@ namespace CoupledField {
     out << endl;
 
 #ifdef USE_XERCES
-    out << "USE_XERCES:            "
-        << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_XERCES_VERSION:    "
         << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
     out << "XMLSCHEMA:             ";
@@ -915,10 +951,9 @@ namespace CoupledField {
       out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
     else
       out << fg_blue << XMLSCHEMA << fg_reset << endl;
-    
 #else
-    out << "USE_XERCES:            "
-        << fg_blue << "NO" << fg_reset << endl;
+      out << "USE_XERCES:            "
+          << fg_blue << "NO" << fg_reset << endl;
 #endif
 
     out << endl;
@@ -1028,8 +1063,19 @@ namespace CoupledField {
         << endl
         << "14.08, Maximale Verwirrung" << endl
         << "  The FE-Space branch is the new trunk and the optimization group starts to add "
-        << "  its stuff." << endl;
-
+        << "  its stuff." << endl
+        << endl
+        << "15.07, Verlorene Soehne" << endl
+        << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
+        << "  not all features yet, but the the boys are back in town! :)" << endl
+        << endl
+        << "15.11, Back To The Future" << endl
+        << "  Precompiled CFSDEPS are back and eamc080 is a new mirror server for CFSDEPS." << endl
+        << "  Tests now are able to compare info.xml files." << endl
+        << endl
+        << "16.1, Concurrent Monorail" << endl
+        << "  Starting point of making classes thread safe in preparation to parallelize assembly loop." << endl
+        << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
@@ -1050,7 +1096,8 @@ namespace CoupledField {
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
           << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
-          << " as " << CMAKE_BUILD_TYPE << endl;
+          << " as " << CMAKE_BUILD_TYPE << endl
+          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run" << endl;
       out << "============================================================"
           << "==========="
           << endl << endl;

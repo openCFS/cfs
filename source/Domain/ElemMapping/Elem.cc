@@ -12,8 +12,13 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
   Elem::Elem() : 
     elemNum(0),
     type(ET_UNDEF),
-    regionId( NO_REGION_ID )
+    regionId(NO_REGION_ID),
+    extended(NULL)
   {}
+
+  Elem::~Elem(){
+    delete extended;
+  }
 
 //
 
@@ -29,9 +34,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      type = t.type;
      regionId=t.regionId;
      connect = t.connect;
-     edges = t.edges;
-     faces = t.faces;
-     faceFlags = t.faceFlags;
+     if(t.extended){
+       extended = new ExtendedElementInfo;
+       extended->edges = t.extended->edges;
+       extended->faces = t.extended->faces;
+       extended->faceFlags = t.extended->faceFlags;
+     }
    }
    return *this;
  }
@@ -40,7 +48,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const {
    // check, if face is defined at all
-   Integer locFaceIndex = this->faces.Find(faceNum);
+   Integer locFaceIndex = this->extended->faces.Find(faceNum);
    if( locFaceIndex < 0 ) {
      EXCEPTION("Could not find face " << faceNum << " for element #" 
                << this->elemNum );
@@ -58,8 +66,8 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    // check, if edge is defined at all
    UInt locEdgeIndex = 0;
    bool found = false;
-   while(locEdgeIndex < edges.GetSize() ) {
-     if( std::abs(edges[locEdgeIndex]) == static_cast<Integer>(edgeNum) ) {
+   while(locEdgeIndex < extended->edges.GetSize() ) {
+     if( std::abs(extended->edges[locEdgeIndex]) == static_cast<Integer>(edgeNum) ) {
        found = true;
        break;
      }
@@ -124,7 +132,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      connect[2] = connect[1];
      connect[1] = connect[0];
      connect[0] = dummy;
-     dummy = connect[3];
      break;
    case ET_HEXA20:
      for (int n1=8; n1<=11; n1++) {
@@ -1926,7 +1933,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // ************************************************************************
     {
       //      + 6    
-      //     /|\   
+      //     /|\
       //    / |  \           zeta
       // 4 +----- + 5         ^  eta
       //   |  + 3 |           |/ 
@@ -2316,7 +2323,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     } 
     
       
-    Elem::ShapeType Elem::GetShapeType( Elem::FEType type )  {
+    Elem::ShapeType Elem::GetShapeType( Elem::FEType type ) {
       ShapeType ret = ST_UNDEF;
       switch(type) {
         case ET_UNDEF:
@@ -2357,6 +2364,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         case ET_WEDGE18:
           ret = ST_WEDGE;
           break;
+        case ET_POLYGON:
+          ret = ST_POLYGON;
+          break;
+        case ET_POLYHEDRON:
+          ret = ST_POLYHEDRON;
+          break;
       }
       return ret;
     }
@@ -2389,6 +2402,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         case ST_WEDGE:
           feType = ET_WEDGE6;
           break;
+        case ST_POLYGON:
+          feType = ET_POLYGON;
+          break;
+        case ST_POLYHEDRON:
+          feType = ET_POLYHEDRON;
+          break;
         case ST_UNDEF:
           EXCEPTION("Unknown shape type");
       }
@@ -2409,7 +2428,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        EnumTuple(Elem::ST_TET,    "TET"),
        EnumTuple(Elem::ST_HEXA,   "HEX"),
        EnumTuple(Elem::ST_PYRA,   "PYRA"),
-       EnumTuple(Elem::ST_WEDGE,  "WEDGE")
+       EnumTuple(Elem::ST_WEDGE,  "WEDGE"),
+       EnumTuple(Elem::ST_POLYGON,  "POLYGON"),
+       EnumTuple(Elem::ST_POLYHEDRON,  "POLYHEDRON")
     };
     Enum<Elem::ShapeType> Elem::shapeType = \
        Enum<Elem::ShapeType>("Finite Element Shape Types",
@@ -2437,7 +2458,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        EnumTuple(Elem::ET_PYRA14,  "PYRA14"),
        EnumTuple(Elem::ET_WEDGE6,  "WEDGE6"),
        EnumTuple(Elem::ET_WEDGE15, "WEDGE15"),
-       EnumTuple(Elem::ET_WEDGE18, "WEDGE18")
+       EnumTuple(Elem::ET_WEDGE18, "WEDGE18"),
+       EnumTuple(Elem::ET_POLYGON, "POLYGON"),
+       EnumTuple(Elem::ET_POLYHEDRON, "POLYHEDRON")
      };
 
      Enum<Elem::FEType> Elem::feType = \

@@ -3,7 +3,8 @@
 
 namespace CoupledField {
 
-  //! \file Define different types of hierarchic Polynomials
+  //! \file Polynomials.hh
+  //! \brief {Define different types of hierarchic Polynomials}
   
 
 // ========================================================================
@@ -251,11 +252,11 @@ inline void TriaInnerLegendre2( T_VEC& values, UInt order,
   //  | y-oringal
   //  +
   //  |\
-  //  |  \            
+  //  |  \
   //  |    \      ... y' direction
   //  |     .\    \\\ x' direction (get scaled with increasing y')
-  //  |  .     \         
-  //  |.         \    
+  //  |  .     \
+  //  |.         \
   //  +-----------+---> x-original
   //
   // The bubble function evaluates to 4*x*y*(1 - x - y), i.e. it
@@ -285,6 +286,33 @@ inline void TriaInnerLegendre2( T_VEC& values, UInt order,
   }
 }
 
+
+// =======================================================
+//   T E T R A H E D R A L   S H A P E   F U N C T I O N S
+// =======================================================
+
+template <typename T_SCAL, class T_VEC>
+inline UInt TetInnerLegendre( T_VEC& values,
+                               const UInt& pos, UInt order,
+                               const T_SCAL& lambda1, const T_SCAL& lambda2,
+                               const T_SCAL& lambda3, const T_SCAL& lambda4 ) {
+  T_VEC f1, f2, f3;
+  UInt nfct = 0;
+  UInt myPos = pos;
+  ScaledIntLegendreP2(f1, order, lambda2+lambda1,lambda1-lambda2);
+  ScaledLegendre(f2, order, T_SCAL(1) - lambda4, 2.0*lambda3-T_SCAL(1)+lambda4);
+  Legendre(f3, order, lambda4*2.0 - T_SCAL(1));
+
+  for( UInt i = 0; i <= order - 4; ++i ) {
+    for( UInt j = 0; j <= order - 4 - i; ++j ) {
+      for( UInt k=0; k <= order -4 - i - j; ++k){
+      values[myPos++] = f1[i] * f2[j] * f3[k] * lambda3 * lambda4;
+      nfct++;
+      }
+    }
+  }
+  return nfct;
+}
 
 
 #ifdef CFS_POLYNOMILAS_TEST

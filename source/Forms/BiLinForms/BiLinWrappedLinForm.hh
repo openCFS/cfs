@@ -22,6 +22,14 @@ public:
   BiLinWrappedLinForm(LinearForm* linForm,
                       bool assembleTranposed = false);
 
+  //! Copy Constructor
+  BiLinWrappedLinForm(const BiLinWrappedLinForm& right);
+
+  //! \copydoc BiLinearForm::Clone
+  virtual BiLinWrappedLinForm* Clone(){
+    return new BiLinWrappedLinForm( *this );
+  }
+
   //! Destructor
   virtual ~BiLinWrappedLinForm();
 
