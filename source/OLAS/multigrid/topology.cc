@@ -635,7 +635,7 @@ GetNumInterpolatedPoints( StdVector<UInt>& sizes ) const
     Integer totalNumPoints = 0;
 
     // run over all fine grid points
-    for( Integer i = 0; i < GetSizeh(); i++ ) {
+    for( Integer i = 0; i < (Integer)GetSizeh(); i++ ) {
         // only coarse points interpolate other points
         if( IsCPoint(i) ) {
             // initialize the counter with 1, because every coarse
