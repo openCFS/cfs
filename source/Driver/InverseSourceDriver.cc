@@ -47,7 +47,8 @@ namespace CoupledField
       timer_(new Timer())
   {
     // Set correct analysistype
-    analysis_ = BasePDE::INVERSESOURCE;
+	//set analysis_ to HARMONIC to be able to visualize the results with paraview!!
+    analysis_ = BasePDE::HARMONIC; //INVERSESOURCE;
 
     param_ = param_->Get("inverseSource");
 
