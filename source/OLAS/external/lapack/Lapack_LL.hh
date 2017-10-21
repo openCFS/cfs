@@ -46,7 +46,7 @@ namespace CoupledField {
   //!       <td align="center">true</td>
   //!       <td>If this is 'true' then the Setup() and Solve() methods of the
   //!           Lapack_LL class will be verbose and write some information to
-  //!           the standard logfile (*cla).</td>
+  //!           the standard logfile (*cla) <b>(removed!)</b>.</td>
   //!     </tr>
   //!     <tr>
   //!       <td>newMatrixPattern</td>
@@ -110,7 +110,7 @@ namespace CoupledField {
     //! problem matrix. Depending on the type of matrix entry the factorisation
     //! is delegated to the appropriate private method. Note that the
     //! factorisation over-writes the internal copy of the system matrix.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id );
+    void Setup( BaseMatrix &sysmat );
 
     //! Direct solution of the linear system
 
@@ -120,7 +120,7 @@ namespace CoupledField {
     //! setup phase.
     //! Note that the method will neglect the sysMat input parameter.
     void Solve( const BaseMatrix &sysmat, 
-		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id );
+		const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 

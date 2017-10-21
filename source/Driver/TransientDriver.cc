@@ -3,7 +3,7 @@
 #include <string>
 #include <stdio.h>
 #include <list>
-#include <math.h>
+#include <cmath>
 
 // signal handling for catching Ctrl-C
 #include <signal.h>
@@ -64,7 +64,7 @@ namespace CoupledField {
     param_ = param_->Get("transient");
 
     info_ = info_->Get("transient");
-    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
+    info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -127,7 +127,9 @@ namespace CoupledField {
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        EXCEPTION( "Could not assign default signal action");
+        std::cerr << "Could not assign default signal action" << std::endl; // to exceptions is destructors with gcc 6
+        domain->GetInfoRoot()->ToFile();
+        exit(-1);
       }
       
       // set global pointer to zero
@@ -144,7 +146,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem() 
+  void TransientDriver::SolveProblem()
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
@@ -181,6 +183,9 @@ namespace CoupledField {
     
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
     
+    //only used if AMG is set
+    ptPDE_->GetSolveStep()->SetAuxMat(false);
+
     // Outer loop over all timesteps
     UInt count = 0;
     for (actTimeStep_ = startStep; 
@@ -211,6 +216,15 @@ namespace CoupledField {
         percentCounter += timeStepPercent;
       }
 
+      /*
+       * for debugging -> remove later one
+       * TODO: remove!
+       */
+      if(true){
+        log = true;
+      }
+
+
       if(log)
       {
         if(progOpts->IsQuiet())
@@ -223,19 +237,14 @@ namespace CoupledField {
       }
       
 
-      // do we really want to create a new entry? Might blast up the output
-      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
-      analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
-        
-      analysis_id_->Get("step")->SetValue(actTimeStep_);
-      analysis_id_->Get("value")->SetValue(actTime_);
-      
+      analysis_id_.time = actTime_;
+      analysis_id_.step = actTimeStep_;
+
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
+      ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
 
       // writing results in output-file(s)
@@ -265,11 +274,11 @@ namespace CoupledField {
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
         
-        analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = info_->GetRoot()->
-            Get(ParamNode::PN_HEADER)->Get("environment");
+            Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
+        envNode->Get("timePerStep")->SetValue(timePerStep_);
       }
       
     }

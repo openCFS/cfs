@@ -50,7 +50,8 @@ template<typename T>
 CholMod<T>::~CholMod()
 {
   CholModFreeFactorization();
-  free(mat_); // this should not free pointers contained in mat, just mat itself
+  delete mat_; // this should not free pointers contained in mat, just mat itself
+  mat_ = NULL;
   cholmod_finish(&common_);
   LOG_TRACE(cholmod) <<  "~CholMod()";
 }
@@ -79,6 +80,24 @@ void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
   mat_->i = const_cast<void*>(static_cast<const void*>(scrs.GetColPointer()));
   mat_->x = const_cast<void*>(static_cast<const void*>(scrs.GetDataPointer()));
   
+  /*std::cout<<"rowPtr = ";
+  for (int i = 0; i <= (int) n; i++) {
+    std::cout<<scrs.GetRowPointer()[i]<<", ";
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"colPtr = ";
+  for (int i = 0; i < (int) mat_->nzmax; i++) {
+    std::cout<<scrs.GetColPointer()[i]<<", ";
+  }
+  std::cout<<std::endl;
+
+        std::cout<<"dataPtr = ";
+        for (int i = 0; i < (int) mat_->nzmax; i++) {
+          std::cout<<scrs.GetDataPointer()[i]<<", ";
+        }
+        std::cout<<std::endl; */
+
   mat_->nz = NULL;
   mat_->stype = -1; // s.p.d. matrix, using lower triangular part;
   mat_->itype = CHOLMOD_INT;
@@ -89,12 +108,12 @@ void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
 }
 
 template<typename T>
-void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
+void CholMod<T>::Setup(BaseMatrix &sysMat)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("setup", at);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+  // out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   LOG_TRACE2(cholmod) <<  "Setup: matrix -> " << sysMat.ToString();
 
@@ -136,12 +155,12 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 
 template<typename T>
 void CholMod<T>::Solve(const BaseMatrix &base_mat, 
-    const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
+    const BaseVector &base_rhs,  BaseVector &base_sol)
 
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+  // out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the matrix
   if (mat_->nzmax == 0)
@@ -173,6 +192,7 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
   T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();
   std::copy(static_cast<T*>(sol->x), static_cast<T*>(sol->x) + sol->nrow, sol_ptr);
   cholmod_free_dense(&sol, &common_); // free the temp. solution
+  LOG_TRACE2(cholmod) <<  "Solve: sol= " << base_sol.ToString();
 }
 
 
@@ -186,7 +206,7 @@ void CholMod<T>::InitParameters()
   CholModDefaultParams();
   
   // dump the parameter block and overwrite
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_HEADER)->Get("parameters");
+  PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
   
   CheckParameter(out, &common_.nmethods, "factorization/nmethods");
   CheckParameter(out, &common_.postorder, "factorization/postorder");

@@ -16,6 +16,33 @@ namespace CoupledField {
     //! constructor getting x, y(x)
     SmoothSpline( std::string nlFncName, MaterialType matType );
 
+    //! Copy Constructor
+    SmoothSpline(const SmoothSpline& right)
+      : ApproxData(right){
+      this->size_ = right.size_;
+      this->node_ = right.node_;
+      this->ind_ = right.ind_;
+      this->mu_ = right.mu_;
+      this->mat_ = right.mat_;
+      this->coef_ = right.coef_;
+      this->rhs_ = right.rhs_;
+      this->h_ = right.h_;
+      this->g_ = right.g_;
+      this->xStart_ = right.xStart_;
+      this->xEnd_ = right.xEnd_;
+      this->yEnd_ = right.yEnd_;
+      this->theta_ = right.theta_;
+      this->delta_ = right.delta_;
+      this->nuMax_ = right.nuMax_;
+      this->yMax_ = right.yMax_;
+      this->extrapolAlpha_ = right.extrapolAlpha_;
+      this->extrapolBeta_ = right.extrapolBeta_;
+    }
+
+    virtual SmoothSpline* Clone(){
+      return new SmoothSpline( *this );
+    }
+
     //! destructor
     virtual ~SmoothSpline();
 

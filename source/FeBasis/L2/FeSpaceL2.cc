@@ -463,7 +463,7 @@ namespace CoupledField{
              for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
 
 
-               UInt edgeNum = std::abs(actEl->edges[iEdge]);
+               UInt edgeNum = std::abs(actEl->extended->edges[iEdge]);
                //get the permutation Vector
                ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
                numEdgeNodes = permutations.GetSize();
@@ -508,7 +508,7 @@ namespace CoupledField{
            // check if faces of this element ware already numbered
            if( ftn.vNodes.GetSize() == 0 ) {
              for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-               UInt faceNum = actEl->faces[iFace];
+               UInt faceNum = actEl->extended->faces[iFace];
                //get the permutation Vector
                ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
                numFaceNodes = permutations.GetSize();
@@ -569,7 +569,10 @@ namespace CoupledField{
      } // loop entity lists
    }
 
-  void FeSpaceL2::PrintEqnMap(){
+  void FeSpaceL2::PrintEqnMap(std::ostream* file)
+  {
+    std::ostream& out = file != NULL ? *file : std::cout;
+
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     // obtain (fctId,eqnNr) -> feFct mapping from OLAS
@@ -626,37 +629,37 @@ namespace CoupledField{
         ptElem = ptGrid->GetElem(elemIt->first);
       }
 
-      std::cout << "=============\n"
+      out << "=============\n"
           << " Elem #" << elemIt->first << std::endl
           << "=============\n";
-      std::cout << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
-      std::cout << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
+      out << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
+      out << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
 
       // Print edge  information
-      std::cout << "Edges: ";
-      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+      out << "Edges: ";
+      for( UInt i=0, numEdges = ptElem->extended->edges.GetSize(); i < numEdges; ++i ) {
         StdVector<UInt> edgeNodes;
-        Integer edgeNum = ptElem->edges[i];
+        Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
-        std::cout << "E #" << edgeNum << " (" 
+        out << "E #" << edgeNum << " ("
             << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
       }
-      std::cout << "\n";
+      out << "\n";
 
       // Print face  information
-      std::cout << "Faces: ";
-      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+      out << "Faces: ";
+      for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
-        UInt faceNum = ptElem->faces[i];
+        UInt faceNum = ptElem->extended->faces[i];
         ptElem->GetFaceNodes( faceNum, faceNodes );
-        std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
+        out << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
-      std::cout << "\n\n";
+      out << "\n\n";
 
 
       // print header
-      std::cout << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
-      std::cout << "\t\t=================================================================\n";
+      out << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
+      out << "\t\t=================================================================\n";
 
       std::string prefix = "\t\t\t";
 
@@ -682,13 +685,13 @@ namespace CoupledField{
           entNumbers = ptElem->connect;
           entNumbers.Resize(offset.GetSize());
         } else if( type == BaseFE::EDGE ) {
-          entNumbers.Resize(ptElem->edges.GetSize());
-          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
-            entNumbers[i] = std::abs(ptElem->edges[i]);
+          entNumbers.Resize(ptElem->extended->edges.GetSize());
+          for( UInt i=0; i < ptElem->extended->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->extended->edges[i]);
         } else if( type == BaseFE::FACE ) {
-          entNumbers.Resize(ptElem->faces.GetSize());
-          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
-            entNumbers[i] = ptElem->faces[i];
+          entNumbers.Resize(ptElem->extended->faces.GetSize());
+          for( UInt i=0; i < ptElem->extended->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->extended->faces[i];
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)
@@ -710,25 +713,25 @@ namespace CoupledField{
         }
         // if any nodes are available
         if( vNodes.GetSize() ) {
-          std::cout << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
-          std::cout << "========\n";
+          out << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
+          out << "========\n";
         } else {
           continue;
         }
         // loop over all entities
         UInt pos = 0;
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
-          std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t";
+          out << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t";
 
           // leave, virtual node numbers are assigned
           for( UInt j = 0; j < offset[i]; ++j ) {
 
             // print virtual node only for first entry
             if( j > 0 ) {
-              std::cout << prefix;
+              out << prefix;
             }
             // print virtual node
-            std::cout << vNodes[pos] << "\t";
+            out << vNodes[pos] << "\t";
 
 
             // equation numbers (loop)
@@ -738,28 +741,28 @@ namespace CoupledField{
 
               // indent succeeding equations correctly
               if( iEqn > 0 ) {
-                std::cout << prefix << "\t";
+                out << prefix << "\t";
               }
 
               //equation number
-              std::cout << eqn << "\t";
+              out << eqn << "\t";
 
               if( eqn > 0 ) {
                 // SBM-Block
-                std::cout << blockNums[eqn-1] << "\t";
+                out << blockNums[eqn-1] << "\t";
 
                 // index
-                std::cout << indices[eqn-1] << "\n";
+                out << indices[eqn-1] << "\n";
               } else {
-                std::cout << "-\t-\n";
+                out << "-\t-\n";
               }
             }
             pos++;
           } // loop over virtual nodes
         } // loop over entity numbers
-        std::cout << "\n";
+        out << "\n";
       } // loop over entity types
-      std::cout << "\n\n";
+      out << "\n\n";
     } // loop over elements
 
 
@@ -773,53 +776,53 @@ namespace CoupledField{
     boost::unordered_map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
     boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
-    std::cout << "EQUATION MAPPING" << std::endl << std::endl;
-    std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (7)
+    out << "EQUATION MAPPING" << std::endl << std::endl;
+    out << "nodeNr \t|"  << " type  | " <<  std::setw (7)
     <<" Comp" << "|\teqnNr  \t| SBM\t|\tindex   |\t BC" << std::endl;
-    std::cout << "----------------------------------------------------------------------------"
+    out << "----------------------------------------------------------------------------"
         << std::endl;
     while(nodeIt != nodeMap_.eqns.end()){
       nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
       for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
         // virtual node number (only once for all dofs) and type
         if( iDof == 0) {
-          std::cout << nodeIt->first;
+          out << nodeIt->first;
 
           // type of node (print first character of entityType )
-          std::cout << "\t|  "
+          out << "\t|  "
               << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
         } else {
-          std::cout << "        |";
+          out << "        |";
         }
 
         // component
-        std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
+        out << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
         // eqn number
         Integer & eqn = nodeIt->second[iDof];
-        std::cout << "|\t" << eqn;
+        out << "|\t" << eqn;
 
 
         if( eqn == 0) {
-          std::cout << "\t|" << std::setw(1) << "-";;
+          out << "\t|" << std::setw(1) << "-";;
 
           // index
-          std::cout << "\t|" << std::setw(8) << "-";
+          out << "\t|" << std::setw(8) << "-";
         } else {
           // sbm-block
-          std::cout << "\t|" << std::setw(1) << blockNums[eqn-1];
+          out << "\t|" << std::setw(1) << blockNums[eqn-1];
 
           // index
-          std::cout << "\t|" << std::setw(8) << indices[eqn-1];
+          out << "\t|" << std::setw(8) << indices[eqn-1];
         }
 
         // bc type
-        std::cout << "\t|\t";
+        out << "\t|\t";
         if(  nodeBcIt != nodeMap_.BcKeys.end() ) {
           if( nodeBcIt->second[iDof] != NOBC ) {
-            std::cout << BcTypeEnum.ToString(nodeBcIt->second[iDof]);
+            out << BcTypeEnum.ToString(nodeBcIt->second[iDof]);
           }
         }
-        std::cout << std::endl;
+        out << std::endl;
       }
       nodeIt++;
     }

@@ -25,6 +25,8 @@ DECLARE_LOG(fefunc)
  BaseFeFunction::BaseFeFunction(MathParser* mp){
 
   fctId_ = NO_FCT_ID;
+  pde_ = NULL;
+  grid_ = NULL;
   if(mp) {
     mp_ = mp;
     mHandle_ = mp_->GetNewHandle();
@@ -77,25 +79,52 @@ DECLARE_LOG(fefunc)
   void BaseFeFunction::AddEntityList( shared_ptr<EntityList> list ){
     // Security check: If entity list was already added, leave
     
-    // Note: As the shared_ptr to an Entitylist is not
-    // unique within CFS, we have to ensure, that the names of 
-    // the entity lists rather than the pointers match!
-    
-    std::string entName = list->GetName();
+    // Note: As the shared_ptr to an Entitylist is not unique within CFS, we have to ensure,
+    // that the names of the entity lists rather than the pointers match!
+
+    // This can be very expensive for periodic B.C. (Constraints) as there
+    // are at least each 2-node pair added twice (@see BaseFeFunction::AddConstraint())
+    // for that case only check via two_node_entries_cache_
     bool found = false;
-    for( UInt i = 0; i < entities_.GetSize(); ++i ) {
-      if( entities_[i]->GetName() == entName )
+
+    if(list->GetSize() == 2 && list->GetType() == EntityList::NODE_LIST)
+    {
+      assert(boost::dynamic_pointer_cast<NodeList>(list) != NULL); // we ask for it in if, so make a static_cast
+      shared_ptr<NodeList> nl = boost::static_pointer_cast<NodeList>(list);
+
+      assert(nl->GetNodes().GetSize() == 2);
+      std::list<unsigned int>& list = two_node_entries_cache_[nl->GetNodes()[0]];
+      if(find(list.begin(), list.end(), nl->GetNodes()[1]) != list.end())
         found = true;
+      else
+        list.push_back(nl->GetNodes()[1]); // not found? Then add to cache and below the entry will be added
     }
-    if( found ) {
-      // nothing to be done
-    } else {
+    else
+    {
+      const std::string& entName = list->GetName();
+      for(unsigned int i = 0; !found && i < entities_.GetSize(); ++i) {
+        if(entities_[i]->GetName() == entName) {
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if(!found) {
       entities_.Push_back(list);
-      regions_.insert( list->GetRegion() );
-      
+      regions_.insert(list->GetRegion());
     }
   }
   
+  void BaseFeFunction::GetEntitySolution(SingleVector& elemSol, const Elem* elem)
+  {
+    ElemList elemList(grid_);
+    elemList.SetElement(elem);
+    const EntityIterator& it = elemList.GetIterator();
+
+    GetEntitySolution(elemSol, it);
+  }
+
   StdVector< shared_ptr<EntityList> > BaseFeFunction::GetEntityList(){
     return entities_;
   }
@@ -187,6 +216,22 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->slaveEntities);
   }
   
+  bool BaseFeFunction::HasPeriodicBC() const  {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++)
+      if(constraints_[i]->periodic)
+        return true;
+    return false;
+  }
+
+  bool BaseFeFunction::HasConstraint(std::string& name, unsigned int dof) const {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++) {
+      if(constraints_[i]->name == name && constraints_[i]->masterDof == dof)
+        return true;
+    }
+    return false;
+  }
+
+
   UInt BaseFeFunction::GetVecSize() const {
     assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );
     return result_->dofNames.GetSize();
@@ -320,6 +365,7 @@ DECLARE_LOG(fefunc)
     // derivative fe function
     if( timeDerivOrder_ == 0 ) {
       coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
+      coeffs_->Init();
     }
 
     /* Check: If boundary conditions are defined on node lists with more than
@@ -394,12 +440,9 @@ DECLARE_LOG(fefunc)
                     << "are handled" );
          break;
      }
-     if( feSpace_ ) {
-     if( feSpace_->GetSpaceType() == FeSpace::HCURL ) {
-          dimType_ = CoefFunction::VECTOR;
-        }
-     }
-     
+     if(feSpace_ && feSpace_->GetSpaceType() == FeSpace::HCURL)
+         dimType_ = CoefFunction::VECTOR;
+
      // Create interpolation operator
      UInt dim = grid_->GetDim();
      UInt numDofs = feSpace_->GetNumDofs();
@@ -449,8 +492,7 @@ DECLARE_LOG(fefunc)
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
         LocPoint lp;
-        const Elem* myElem = 
-            grid_->GetElemAtNode(nodeNum, lp, regions_ );
+        const Elem* myElem = grid_->GetElemAtNode(nodeNum, lp, regions_ );
         
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
@@ -680,6 +722,7 @@ DECLARE_LOG(fefunc)
     // to use interpolation to interpolate the continuous result to the
     // nodal locations in the entity list
     if( eqns.GetSize() == 0){
+
       //ok so the space does not know about this particular entity
       //we try to determine its value via interpolation
       Vector<T> elemSolution;
@@ -710,13 +753,13 @@ DECLARE_LOG(fefunc)
 
       this->GetElemSolution(elemSolution,myElem);
       BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+
       idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
     } else {
 
-
       for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
         if( eqns[iDof] != 0 ) {
-          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+	    temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
         } else {
           temp[iDof] = 0.0;
         }
@@ -726,8 +769,7 @@ DECLARE_LOG(fefunc)
 
   //! Get solution as matrix for specific entity
    template<typename T>
-   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                   const EntityIterator& it ){
+   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol, const EntityIterator& it ){
      //for now we put the unkowns in the columns
      //and the dof entrys in rows
      Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
@@ -752,7 +794,7 @@ DECLARE_LOG(fefunc)
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
     StdVector<Integer> eqns;
-    Vector<T> & vals = *coeffs_;
+    const Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
@@ -772,9 +814,14 @@ DECLARE_LOG(fefunc)
     // ==================================================
     //loop over all inhomogeneous BCs
     LOG_DBG(fefunc) << PREFIX << "ApplyBC() (inhomogeneous)";
+
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
       InhomDirichletBc const & actBc = *(idBcs_[i]);
       
+      // get time derivation order of boundary condition
+      // (e.g. 2 for mech acceleration, 0 for mech displacement
+      UInt bcOrder = actBc.timeDerivOrder;
+            
       // check, if entity list is defined on elements or nodes
       if( actBc.entities->GetType() == EntityList::ELEM_LIST ||
           actBc.entities->GetType() == EntityList::SURF_ELEM_LIST ) {
@@ -796,11 +843,20 @@ DECLARE_LOG(fefunc)
           Integer eqnNr = coefIt->first; 
           T val = coefIt->second;
           
+		// if the solution order and the bc order do not match, adaptBC
+		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
+		if( this->GetTimeScheme() ) {
+			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqnNr);
+		} 
+		/*
           // In case of effective mass-formulation, 
           // the bcs have to be adjusted
           if( this->GetTimeScheme() ) {
             this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
           }
+          
+            */
           
           algsys_->SetDirichlet(  fctId_, eqnNr, val);
         }  // loop coefs 
@@ -813,6 +869,7 @@ DECLARE_LOG(fefunc)
         // Note: The legacy based is implemented only for 
         // coefficient functions not depending on space
         if( actBc.value->GetDependency() == CoefFunction::GENERAL ||
+            actBc.value->GetDependency() == CoefFunction::SPACE ||
             actBc.value->GetDependency() == CoefFunction::SOLUTION) {
           EXCEPTION("Boundary condition, which are not defined on elements "
               << "are not allowed to be spatially dependent!");
@@ -837,11 +894,19 @@ DECLARE_LOG(fefunc)
           UInt numEqns = eqns.GetSize();
 
           for( UInt i = 0; i < numEqns; ++i ) {
+		// if the solution order and the bc order do not match, adaptBC
+		// (e.g. in mechanics solution order = 2 (mass formulation) but bc order = 0 (mech displ) or
+		//  solution order = 0 (stiff formulation) but bc order = 2 (mech acc.) )  
+		if( this->GetTimeScheme() ) {
+			this->GetTimeScheme()->AdaptBC(val,val,bcOrder,eqns[i]);
+		}
+		/*
             // In case of effective mass-formulation, 
             // the bcs have to be adjusted
             if( this->GetTimeScheme() ) {
               this->GetTimeScheme()->AdaptBC(val,val,0,eqns[i]);
             }
+            */
             algsys_->SetDirichlet(  fctId_, eqns[i], val);
           } // loop: eqns
         } // loop: dofs
@@ -890,7 +955,6 @@ DECLARE_LOG(fefunc)
 		  }// loop: coefs
   }
 
-
   template<typename T>
   void FeFunction<T>::ApplyLoads(PtrCoefFct& values) {
 	  //loop over all loads
@@ -910,6 +974,49 @@ DECLARE_LOG(fefunc)
 			  this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
 		  }
 	  }// loop: coefs
+  }
+
+
+  template<typename T>
+  void FeFunction<T>::ApplyGeomInfo(){
+
+    boost::unordered_map< Integer, EqNodeGeom> eqIndGeomMap;
+    UInt maxEqn, dim;
+    feSpace_->CreateEquIndGeomMap(eqIndGeomMap, maxEqn, dim);
+    //this EqNodeGeom could be used later on, but now we only need
+    //index<->coordinate, so extract the coordinate from the map, eqnNum remains the key
+    StdVector< Vector<Double> > indGeom;
+    bool edge = false;
+    if( feSpace_->GetSpaceType() != feSpace_->HCURL ){
+      indGeom.Resize(eqIndGeomMap.size());
+    }else{
+      edge = true;
+      indGeom.Resize(2 * eqIndGeomMap.size() + 1);
+    }
+
+
+    boost::unordered_map< Integer , EqNodeGeom >::const_iterator eqIt = eqIndGeomMap.begin();
+    if( edge != true){
+      while(eqIt != eqIndGeomMap.end() ){
+        //used for mech and poisson
+        indGeom[eqIt->second.indexNum - 1] = eqIt->second.coord;
+       eqIt++;
+      }
+      this->algsys_->SetGeomIndexMap(indGeom, dim);
+    }else{
+
+      boost::unordered_map< Integer, StdVector<Integer> > eNodes;
+      boost::unordered_map< Integer, Double > lengths;
+      while(eqIt != eqIndGeomMap.end() ){
+        eNodes[eqIt->second.indexNum - 1] = eqIt->second.eNodes;
+        Vector<Double> n1, n2;
+        n1 = eqIt->second.eCoords[0];
+        n2 = eqIt->second.eCoords[1];
+        lengths[eqIt->second.indexNum - 1] = n1.NormL2(n2);
+        eqIt++;
+      }
+      this->algsys_->SetEdgeIndexMap(lengths, eNodes);
+    }
   }
 
   template<typename T>

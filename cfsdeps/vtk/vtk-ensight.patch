@@ -1,0 +1,10 @@
+--- IO/EnSight/vtkEnSightReader.cxx.orig
++++ IO/EnSight/vtkEnSightReader.cxx
+@@ -985,5 +985,7 @@ 
+   int timeSet, numTimeSteps, i, filenameNum, increment, lineRead;
+   float timeStep;
+
++  this->TimeSetFileNameNumbers->RemoveAllItems();
++
+   // found TIME section
+   int firstTimeStep = 1;

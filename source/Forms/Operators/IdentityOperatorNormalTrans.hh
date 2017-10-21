@@ -68,6 +68,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorNormalTrans(const IdentityOperatorNormalTrans & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorNormalTrans * Clone(){
+      return new IdentityOperatorNormalTrans(*this);
+    }
+
     virtual ~IdentityOperatorNormalTrans(){
       return;
     }

@@ -28,7 +28,7 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
   
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order;
@@ -46,7 +46,7 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
         << "elements are present!");
   }
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm = 
+  shared_ptr<ElemShapeMap> esm =
       ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
   // Get integration points
@@ -67,7 +67,6 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
   elemMat22.Resize(nrIcModes * nrDofs);
   elemMat22.Init();
   
-#define USE_BLAS_VERSION
   
   // Loop over all integration points
   LocPointMapped lp;
@@ -107,7 +106,7 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
     this->dbMat_.Resize(this->dMat_.GetNumRows(), nrDofs * nrFncs);
     this->dgMat_.Resize(this->dMat_.GetNumRows(), nrDofs * nrIcModes);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->dMat_.Mult_Blas(this->bMat_, this->dbMat_, false, false, 1.0, 0);
     this->bMat_.Mult_Blas(this->dbMat_,elemMat,true,false,
                           this->factor_ * fac,1.0);
@@ -145,7 +144,7 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
   elemMat22.Invert(invElemMat22);
 
   Matrix<MAT_DATA_TYPE> part1 (nrIcModes * nrDofs, nrFncs * nrDofs);
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
   // We now compute elemMat - k12^T * k22^(-1) * k12
   invElemMat22.Mult_Blas(elemMat12, part1, false, false, 1.0, 0);
   elemMat12.Mult_Blas(part1, elemMat, true, false, -1.0, 1.0);

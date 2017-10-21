@@ -135,12 +135,10 @@ SetupSuse() {
 }
 
 SetupFedora() {
-    # /usr/bin/audit from package audit conflicts with binutils.
-    yum remove audit
 
-    yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
+    dnf install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
-        python-pygments doxygen tcl-devel python-devel git-svn \
+        python-pygments doxygen tcl-devel python-devel python-argparse git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
         patch diffutils zip libXt-devel libXp ncurses-devel \
         mesa-libGL-devel mesa-libGLU-devel libXmu-devel mesa-libglapi || ExitFail
@@ -157,7 +155,7 @@ SetupRHEL() {
     ADD_ADDITIONAL_REPOS=1
     case "${RHEL_REL}" in
 	5) SUPPORTED=1 ;;
-	6) SUPPORTED=1 ;;
+	6) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	7) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	*)
             echo "RHEL release ${RHEL_REL} is NOT supported!"
@@ -172,23 +170,38 @@ SetupRHEL() {
 	cd /etc/yum.repos.d && \
 	    rm -f graphviz-rhel.repo || ExitFail 
 	wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
+
+	rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+	wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
 	
-	YC=atrpms.repo
-	echo "[atrpms]" > $YC && \
-	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
-	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
-	    echo "gpgcheck=1" >> $YC || ExitFail
-	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
-	
-	YC=epel.repo
-	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
-	echo "[epel]" > $YC && \
-	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
-	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
+# 	YC=atrpms.repo
+# 	echo "[atrpms]" > $YC && \
+# 	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
+# 	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
+# 	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
+# 	    echo "gpgcheck=1" >> $YC || ExitFail
+# 	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
+
+    if [ "$DIST" = "CENTOS" ]; then
+        case "${RHEL_REL}" in
+           5) wget http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm
+              rpm -ivh epel-release-5-4.noarch.rpm
+              ;;
+           6) wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+              rpm -ivh epel-release-6-8.noarch.rpm
+              ;;
+           *) echo "RHEL release ${RHEL_REL} is not supported!"
+              ;;	
+        esac
+    fi
+#	YC=epel.repo
+#	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
+#	echo "[epel]" > $YC && \
+#	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
+#	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+#	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+#	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+#	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 	
 	ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
 	BASE=http://pkgs.repoforge.org/rpmforge-release
@@ -225,24 +238,34 @@ SetupRHEL() {
 
     yum makecache || ExitFail
 
-    cd /opt && \
-    rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
-    wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
-    unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
+    # cd /opt && \
+    # rm -f org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
+    # wget http://www.svnkit.com/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    # unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || \
+    # wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    # unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
 
     if [ "$DIST" = "CENTOS" ]; then
 	ENABLE_REPO="--enablerepo=centosplus"
     fi
 
-    yum $ENABLE_REPO install fuse-sshfs subversion gcc gcc-c++ \
+    yum $ENABLE_REPO install -y fuse-sshfs subversion gcc gcc-c++ \
                 perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
                 automake autoconf cmake gcc-gfortran ncurses-devel \
-                java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
-                tcl-devel python-devel git-svn patch diffutils zip \
+                java-1.6.0-openjdk-devel tk-devel python-pygments python-argparse doxygen \
+                tcl-devel python-devel git-svn patch diffutils zip unzip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
                 glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
-                libstdc++-devel.x86_64 libstdc++-devel.i686 || ExitFail
-           
+                libstdc++-devel.x86_64 libstdc++-devel.i686 numpy || ExitFail
+
+    if [[ "$DIST" = "CENTOS" ]] && [[ "$RHEL_REL" -lt  7 ]]; then
+        # CENTOS6 does not support gcc 4.8 . dectoolset-2 provides gcc in /opt/rh/devtoolset-2
+        # which can be used directly or can be sourced with "source /opt/rh/devtoolset-2/enable"
+        yum install -y devtoolset-2 || ExitFail
+        yum install -y libxml2-python || ExitFail
+    fi
+
+
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
     else
@@ -252,7 +275,7 @@ SetupRHEL() {
     ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
     printf "JAVA_HOME=/usr\n" >> $ENV_CFS
-    printf "PATH=/opt/svnkit-1.3.5.7406:\$PATH\n" >> $ENV_CFS
+    printf "PATH=/opt/svnkit-1.3.8.7406:\$PATH\n" >> $ENV_CFS
     printf "export JAVA_HOME PATH\n" >> $ENV_CFS
 
 }
@@ -261,10 +284,67 @@ SetupMacOS() {
     ISOK=1
 
     # Install Xcode from the MacOS X installation DVD (optional packages -> Xcode)
-    if [ ! -f /Developer/Applications/Xcode.app/Contents/MacOS/Xcode ]; then
-	echo "Xcode is  not installed. Please install it from your  MacOS X DVD or"
-	echo "download it from Apple."
-	ISOK=0
+    if [ -f /Applications/Xcode.app/Contents/MacOS/Xcode ]; then
+        # We seem to be under Maverick, Yosemite or newer
+        PORTSLIST="gcc49 gcc5"
+
+        # OSX 10.10 headers seem to be incompatible with GCC:
+        # http://stackoverflow.com/questions/27976312/how-to-cope-with-non-gcc-compatible-code-in-os-x-yosemite-core-headers
+        if [ -f /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h ]; then
+
+            # Apply patch to make Yosemite headers GCC compatible.
+            cat << EOF | patch -p0 
+--- /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h.orig	2015-05-25 17:32:41.000000000 +0200
++++ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h	2015-05-25 17:33:15.000000000 +0200
+@@ -157,7 +157,7 @@
+     #define __OSX_AVAILABLE_BUT_DEPRECATED_MSG(_osxIntro, _osxDep, _iosIntro, _iosDep, _msg) \\
+                                                     __AVAILABILITY_INTERNAL##_iosIntro##_DEP##_iosDep##_MSG(_msg)
+ 
+-#elif defined(__MAC_OS_X_VERSION_MIN_REQUIRED)
++#elif defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && defined(__clang__)
+     #define __OSX_AVAILABLE_STARTING(_osx, _ios) __AVAILABILITY_INTERNAL##_osx
+     #define __OSX_AVAILABLE_BUT_DEPRECATED(_osxIntro, _osxDep, _iosIntro, _iosDep) \\
+                                                     __AVAILABILITY_INTERNAL##_osxIntro##_DEP##_osxDep
+EOF
+        fi
+        if [ -f /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h ]; then
+
+            # Apply patch to make Yosemite headers GCC compatible.
+            cat << EOF | patch -p0 
+--- /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h.orig	2015-05-25 17:26:42.000000000 +0200
++++ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h	2015-05-25 17:27:02.000000000 +0200
+@@ -140,7 +140,11 @@
+  * Instead, the block literal must be copied to the heap with the Block_copy()
+  * function or by sending it a -[copy] message.
+  */
++#ifdef __clang__
+ typedef void (^dispatch_block_t)(void);
++#else
++typedef void* dispatch_block_t;
++#endif
+ 
+ __BEGIN_DECLS
+EOF
+        fi
+    else
+        if [ ! -f /Applications/Xcode.app/Contents/MacOS/Xcode ]; then
+            echo "Xcode is  not installed. Please install it from your  MacOS X DVD or"
+	    echo "download it from Apple."
+	    ISOK=0
+        fi
+
+        # Check for gfortran.
+        if [ ! -f /usr/bin/gfortran-4.2 ]; then
+            echo "Could not find /usr/bin/gfortran-4.2!"
+            echo "No  proper gfortran is installed.  You can download  and install "
+            echo "gfortran from http://r.research.att.com/tools/"
+            echo
+            echo "Different binaries are also available from:"
+            echo "http://www.macresearch.org/files/gfortran/gfortran-4.3-Nov.mpkg.zip"
+            echo "http://www.macresearch.org/gfortran-leopard"
+            echo "http://hpc.sourceforge.net."
+            ISOK=0
+        fi
     fi
 
     if [ ! -f /usr/bin/gcc ]; then
@@ -280,35 +360,33 @@ SetupMacOS() {
 	ISOK=0
     fi
 
-    # Check for gfortran.
-    if [ ! -f /usr/bin/gfortran-4.2 ]; then
-	echo "Could not find /usr/bin/gfortran-4.2!"
-	echo "No  proper gfortran is installed.  You can download  and install "
-	echo "gfortran from http://r.research.att.com/tools/"
-        echo
-	echo "Different binaries are also available from:"
-	echo "http://www.macresearch.org/files/gfortran/gfortran-4.3-Nov.mpkg.zip"
-	echo "http://www.macresearch.org/gfortran-leopard"
-	echo "http://hpc.sourceforge.net."
-	ISOK=0
-    fi
-
     # Find CMake
     TMPFILE=$(mktemp -t bootstrap) || exit 1
     find /Applications -name 'CMake*.app' | while read dir; do 
-	CMAKE_VERSION=$("$dir/Contents/bin/cmake" --version | cut -d' ' -f3 | sed 's/\(2.8\)\(.*\)/\1/')
+	CMAKE_VERSION=$("$dir/Contents/bin/cmake" --version | head -1 | cut -d' ' -f3)
 	CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
 	CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
-	if [ $CMAKE_MAJOR_VERSION -ge 2 -a $CMAKE_MINOR_VERSION -ge 8 ]; then
+
+        if [ $CMAKE_MAJOR_VERSION -ge 2 ]; then
+            if [ $CMAKE_MAJOR_VERSION -eq 2 -a $CMAKE_MINOR_VERSION -lt 8 ] || [ $CMAKE_MAJOR_VERSION -eq 3 -a $CMAKE_MINOR_VERSION -lt 3 ]; then
+                ISOK=0
+            fi
+        else
+            ISOK=0
+        fi
+
+
+	if [ "$ISOK" = "1" ]; then
 	    echo "CMAKEDIR=\"$dir/Contents/bin\"" > $TMPFILE;
+            break;
 	fi
     done
 
     . $TMPFILE
     rm $TMPFILE
     if [ "$CMAKEDIR" = "" ]; then
-	echo "CMake 2.8 not found! Please  go to www.cmake.org and download the latest"
-	echo "CMake package for Mac.";
+	echo "CMake 2.8 or 3.1 not found! Please go to www.cmake.org and download the latest"
+	echo "CMake package for Mac and place it in the /Applications folder.";
 	ISOK=0
     fi
 
@@ -321,8 +399,12 @@ SetupMacOS() {
     /opt/local/bin/port selfupdate || ExitFail
 
     # Install required packages
-    /opt/local/bin/port install doxygen graphviz teTeX texlive_texmf-minimal wget  || ExitFail
-    /opt/local/bin/port install git-core +svn || ExitFail
+    /opt/local/bin/port install doxygen graphviz texlive wget  || ExitFail
+    /opt/local/bin/port install git +svn || ExitFail
+
+    for pckg in $PORTSLIST; do
+        /opt/local/bin/port install $pckg || ExitFail
+    done
 
     # Make sure CMake 2.8 is on PATH
     PATH=$CMAKEDIR:$PATH
@@ -363,10 +445,12 @@ SetupCMake() {
         return 1
     fi
 
-    CMAKE_MAJOR_VERSION=2
-    CMAKE_MINOR_VERSION=8
-    CMAKE_PATCH_LEVEL=12.2
-
+    CMAKE_MAJOR_VERSION=3
+    CMAKE_MINOR_VERSION=3
+    CMAKE_PATCH_LEVEL=1
+    #CMAKE_MAJOR_VERSION=2
+    #CMAKE_MINOR_VERSION=8
+    #CMAKE_PATCH_LEVEL=12.2
     PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
@@ -377,7 +461,7 @@ SetupCMake() {
 
     # Define list of mirrors
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
-             ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
+             ftp://cfs.mdmt.tuwien.ac.at/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
     MD5SUM="17c6513483d23590cbce6957ec6d1e66"
 

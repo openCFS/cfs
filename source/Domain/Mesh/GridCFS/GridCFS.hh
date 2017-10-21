@@ -4,6 +4,7 @@
 
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <boost/sort/sort.hpp>
 
 namespace CoupledField
 {
@@ -11,7 +12,6 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-  class ParamNode;
 
   //! Implementation of a simple, one level grid.
 
@@ -32,7 +32,7 @@ namespace CoupledField
 
     //! Standard Constructor 
     GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
-        const std::string &id = "default");
+        const std::string &id = "default",bool buildExtend = true);
   
     //! Destructor
     virtual ~GridCFS();
@@ -60,6 +60,9 @@ namespace CoupledField
                                 std::map<std::string, CoordSystem*>& coordSysMap );
 
     //@}
+
+    /**  @see Grid::ExportGrid() */
+    void ExportGrid(PtrParamNode out);
 
 
     // =======================================================================
@@ -166,6 +169,12 @@ namespace CoupledField
                             const UInt inode,
                             bool updated ) const;
     
+    //! \see Grid::GetNodeCoordinates
+    void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
+                                           StdVector<UInt> & nodeList,
+                                           bool updated ) const;
+
+
     //! \see Grid::GetNodeCoordinate3D
     void GetNodeCoordinate3D( Vector<Double> & rfPoint,
                               const UInt inode,
@@ -185,7 +194,12 @@ namespace CoupledField
     
     //! Returns a single element with the given element number
     //! \param elemNr element number
-    const Elem * GetElem( UInt elemNr );
+    const Elem* GetElem(UInt elemNr)
+    {
+      assert(orderedElems_[elemNr-1] != NULL);
+      assert(orderedElems_[elemNr-1]->elemNum == elemNr);
+      return orderedElems_[elemNr-1];
+    }
 
     virtual UInt GetMaxNumNodesPerElem()
     {
@@ -242,6 +256,14 @@ namespace CoupledField
     void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
 
+    //! Returns element neighbors of given node
+    //! \param node number of interest
+    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
+    {
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
+      return mapNodeToElems_[node];
+    }
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
     
@@ -258,7 +280,8 @@ namespace CoupledField
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
                             const StdVector<UInt> & connect,
                             bool updated );
-  
+
+
     //! Get elements associated with given nodes
 
     //! Returns a list of elements, which have one or more of the given
@@ -272,7 +295,25 @@ namespace CoupledField
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
                               const StdVector<RegionIdType> 
-                              & regionIds );
+                              & regionIds);
+
+    //! Get number of elements associated with given nodes
+
+    //! Returns the number of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! IMPORTANT: Before using this method, SetNodesToElemsMap() has to be
+    //! called first.
+    //! \param num (out) number of elements which have one or more nodes
+    //!                          of nodeList
+    //! \param node (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    void GetNumOfElemsNextToNodes( UInt & num,
+        const UInt & node,
+        const StdVector<RegionIdType>& regionIds);
+
+
 
     //! Get volume elements lying next to given surface elements
   
@@ -307,6 +348,9 @@ namespace CoupledField
     //! If not found, Elem vector \parm surfEl (in) is empty.
     virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS);
     
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated);
+
     //@}
 
     // =======================================================================
@@ -347,21 +391,26 @@ namespace CoupledField
     //! 'Volume' here means, that for 2D elements the third dimension is 
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
-    //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
-    Double CalcVolumeOfRegion( const RegionIdType regionId ,
-                               bool isaxi = false,
-                               bool updated = false);
+    double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
 
 
     //! \copydoc Grid::CalcVolumeOfEntityList
     Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                    bool updated = false );
 
+    /** Total volume of a sparse grid. Works only for parallelograms. */
+    Double CalcHullVolume(bool updated = false);
+
     //! @copydoc Grid::CalcBoundingBoxOfRegion
     void CalcBoundingBoxOfRegion (const RegionIdType regId,
                                   Matrix<Double> & minMax,
                                   CoordSystem* cSys);
+
+    /** @see Grid::CalcRegulardGridDiscretization() */
+    StdVector<unsigned int> CalcRegulardGridDiscretization();
+
+
     //@}
 
 
@@ -378,9 +427,13 @@ namespace CoupledField
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                             const StdVector<Elem*> & elemList,
+                             StdVector<const Elem*> & elemList,
 			     bool onlyLinNodes = false);
     
+    void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                             StdVector<Elem*> & elemList,
+           bool onlyLinNodes = false);
+
 
     //! Set offset for coordinates due to updated Lagrangian formulation
     void SetNodeOffset( const StdVector<UInt>& nodes, 
@@ -433,6 +486,10 @@ namespace CoupledField
     //! new nodes of intersection elements after each time step.
     void DeleteNamedNodes( const std::string &name );
     
+    /** gives the element with the lowest elemNum for a region.
+     * Slow implementation with linear search */
+    Elem* SearchFistRegionElement(RegionIdType reg) const;
+
 
   private:
 
@@ -448,6 +505,22 @@ namespace CoupledField
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
 
+    //! Find for every node the neighbouring elements
+
+    //! Methods fills the mapNodeToElems_ or mapNodeToElemsNew_ vector with a NodeNeighbourElems-
+    //! entry for every volume-region
+    void SetNodesToElemsMap();
+
+
+    inline double CalcVolumeOfAllRegions(bool updated=false) {
+      // Volume of all regions
+      Double s = 0.0;
+      for( UInt i = 0; i < volRegionIds_.GetSize(); i++ )
+        s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+      return s;
+    }
+
+
     //! helper struct for passing information about nodes
     struct PointSelection{
       bool isFree;
@@ -455,6 +528,14 @@ namespace CoupledField
       Double start, stop, inc; // only for free components
       std::string value; // only for fixed components
     };
+
+    //! helper struct for storing the number of neighbour-elements for every node
+    struct NodeNeighbourElems{
+      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+      RegionIdType regID;
+    };
+
+
 
     // =======================================================================
     // Helper Methods
@@ -564,6 +645,7 @@ namespace CoupledField
     //! Flag indicating use of quadratic elements
     bool isQuadratic_;
 
+
     //@}
 
     // =======================================================================
@@ -584,6 +666,13 @@ namespace CoupledField
     std::map<Elem::FEType, UInt> numElemTypes_;
 
     UInt maxNumElemNodes_;
+
+
+    //! Maps from a node number to all neighbor elements
+    StdVector<StdVector<Elem*> > mapNodeToElems_;
+
+    //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once
+    bool mappedNodeToElems_ = false;
     //@}
   
     //! Vector containing all faces 
@@ -592,6 +681,9 @@ namespace CoupledField
     //! Vector containing all edges
     StdVector<Edge> edges_;
     
+    //! Boolean controlling the creation of extended element information
+    bool buildExtendedElemInfo_;
+
     // =======================================================================
     // Named Entities
     // =======================================================================

@@ -14,7 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
-
+#include "def_use_openmp.hh"
 
 /*
  The FeSpace always knows just vertex/nodal, edge, face
@@ -220,22 +220,30 @@ namespace CoupledField{
     refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
     refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
     
     refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
     refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
     refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+    refElems1St_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
     refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    refElems1St_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
 
     refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
-    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+    refElems1St_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();;
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+    refElems1St_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
 
     
@@ -284,11 +292,11 @@ namespace CoupledField{
 
         // a) loop over all edges
         // -----------------------
-        UInt numEdges = el.edges.GetSize();
+        UInt numEdges = el.extended->edges.GetSize();
         LOG_DBG3(feSpaceHCurlHi) << "Checking " << numEdges << " edges ";
         const StdVector<bool>& edgeGradients = myFe->GetEdgeGradient();
         for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ){
-          UInt edgeNum = std::abs(el.edges[iEdge]);
+          UInt edgeNum = std::abs(el.extended->edges[iEdge]);
           bool gradient = edgeGradients[iEdge];
 
           // check if edge got already mapped
@@ -314,11 +322,11 @@ namespace CoupledField{
         // b) loop over all faces (only in 3D case )
         // -----------------------------------------
         if( ptGrid_->GetDim() == 3 ) {
-          UInt numFaces = el.faces.GetSize();
+          UInt numFaces = el.extended->faces.GetSize();
           LOG_DBG3(feSpaceHCurlHi) << "Checking " << numFaces << " faces ";
           const StdVector<bool>& faceGradients = myFe->GetFaceGradient();
           for( UInt iFace = 0; iFace < numFaces; ++iFace ){
-            UInt faceNum = el.faces[iFace];
+            UInt faceNum = el.extended->faces[iFace];
             bool gradient = faceGradients[iFace];
 
             // check if face got already mapped
@@ -393,9 +401,9 @@ namespace CoupledField{
      // different order. We will use the maximum rule
      if( applyMaxRule && gradEdges_.size() ) {
        // loop over all edges
-       UInt numEdges = ptEl->edges.GetSize();
+       UInt numEdges = ptEl->extended->edges.GetSize();
        for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-         UInt edgeNum = std::abs( ptEl->edges[iEdge] );
+         UInt edgeNum = std::abs( ptEl->extended->edges[iEdge] );
          // check if edge got adjusted
          if( gradEdges_.find(edgeNum) != gradEdges_.end() ) {
            LOG_DBG3(feSpaceHCurlHi) << "Setting grad edge " << edgeNum
@@ -408,9 +416,9 @@ namespace CoupledField{
 
      if( applyMaxRule && gradFaces_.size() && ptGrid_->GetDim() == 3  ) {
        // loop over all faces
-       UInt numFaces = ptEl->faces.GetSize();
+       UInt numFaces = ptEl->extended->faces.GetSize();
        for( UInt iFace = 0; iFace < numFaces; ++iFace ) {
-         UInt faceNum = ptEl->faces[iFace];
+         UInt faceNum = ptEl->extended->faces[iFace];
          // check if face got adjusted
          if( gradFaces_.find(faceNum) != gradFaces_.end() ) {
            LOG_DBG3(feSpaceHCurlHi) << "Setting grad face " << faceNum
@@ -457,6 +465,18 @@ namespace CoupledField{
     MapNodalEqns(1);
     MapNodalEqns(2);
     
+#ifdef USE_OPENMP
+    std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regIt = refElems_.begin();
+    while(regIt != refElems_.end()){
+      TL_refElems_[regIt->first] = regIt->second;
+      ++regIt;
+    }
+    std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regIt1St = refElems1St_.begin();
+    while(regIt1St != refElems1St_.end()){
+      TL_refElems1St_[regIt->first] = regIt1St->second;
+      ++regIt1St;
+    }
+#endif
     isFinalized_ = true;
   }
   
@@ -483,11 +503,11 @@ namespace CoupledField{
 
     // Collect edge nodes
     {
-      UInt numEdges = ptElem->edges.GetSize();
+      UInt numEdges = ptElem->extended->edges.GetSize();
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
 
         for( UInt i = 0; i < numEdges; ++i ) {
-          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
           for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
             nodes.Push_back(edgeNodes[j]);
           }
@@ -500,11 +520,11 @@ namespace CoupledField{
     if( !onlyLowestOrder_) {
       // Collect face nodes
       {
-        UInt numFaces = ptElem->faces.GetSize();
+        UInt numFaces = ptElem->extended->faces.GetSize();
         if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
 
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -564,22 +584,29 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
+#ifdef USE_OPENMP
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+#else
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+#endif
 
     FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
       ApproxOrder order;
       order.SetIsoOrder(0);
-      myFe = refElems1St_[eRegion][ent.GetElem()->type];
+      myFe = refMap1St[ent.GetElem()->type];
       // attention: here we do NOT apply the max/min rule, as we assume constant
       // element order for all elements
       SetElemOrder( ent.GetElem(), myFe, order, false );
     } else {
       // Fetch reference element and set correct order
-      myFe = refElems_[eRegion][ent.GetElem()->type];
+      myFe = refMap[ent.GetElem()->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ent.GetElem(), myFe, it->second, true );
       SetElemGrad( ent.GetElem(), myFe, eRegion, true );
-      myFe = refElems_[eRegion][ent.GetElem()->type];
+      myFe = refMap[ent.GetElem()->type];
     }
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
@@ -604,21 +631,30 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
+
+#ifdef USE_OPENMP
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+#else
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+#endif
+
     FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
       ApproxOrder order;
       order.SetIsoOrder(0);
-      myFe = refElems1St_[eRegion][ptElem->type];
+      myFe = refMap1St[ptElem->type];
       // attention: here we do NOT apply the max/min rule, as we assume constant
       // element order for all elements
       SetElemOrder( ptElem, myFe, order, false );
     } else {
       // Fetch reference element and set correct order
-      myFe = refElems_[eRegion][ptElem->type];
+      myFe = refMap[ptElem->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ptElem, myFe, it->second, true );
       SetElemGrad( ptElem, myFe, eRegion, true );
-      myFe = refElems_[eRegion][ptElem->type];
+      myFe = refMap[ptElem->type];
     }
     
     return myFe;
@@ -874,13 +910,13 @@ namespace CoupledField{
           Integer minDir = minDirs[iDir];
 
           // Loop over all faces of this element orthogonal to "short"-direction
-          for( UInt iFace = 0; iFace < ptEl->faces.GetSize(); ++iFace ) {
+          for( UInt iFace = 0; iFace < ptEl->extended->faces.GetSize(); ++iFace ) {
 
             if( shape.faceLocDirs[iFace][0] != minDir &&
                 shape.faceLocDirs[iFace][1] != minDir ) {
               //            if( shape.faceLocDirs[iFace][0] == minDir ||
               //                shape.faceLocDirs[iFace][1] == minDir ) {
-              elemFaces.insert( ptEl->faces[iFace]);
+              elemFaces.insert( ptEl->extended->faces[iFace]);
             }
           } // loop element faces
         } // loop local directions
@@ -1056,7 +1092,15 @@ namespace CoupledField{
     if(refElems_[region].find(type) == refElems_[region].end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    ret = refElems_[region][type]; 
+
+#ifdef USE_OPENMP
+    if(isFinalized_ && omp_get_num_threads()>1)
+      ret = TL_refElems_[region][type];
+    else
+      ret = refElems_[region][type];
+#else
+    ret = refElems_[region][type];
+#endif
     return ret;
   }
 

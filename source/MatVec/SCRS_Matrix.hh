@@ -68,6 +68,7 @@ namespace CoupledField {
       colInd_      = NULL;
       rowPtr_      = NULL;
       data_        = NULL;
+      diagPtr_    = NULL;
       patternPool_ = NULL;
       patternID_   = NO_PATTERN_ID;
       this->nnz_   = 0;
@@ -97,7 +98,7 @@ namespace CoupledField {
     //!              the matrix is symmetric and only (nnz + nrows) / 2 will
     //!              actually be stored. Therefore here the number of non-zero
     //!              must be passed, as if the matrix was not symmetric.
-    SCRS_Matrix( Integer nrows, UInt ncols, UInt nnz ) {
+    SCRS_Matrix( Integer nrows, UInt ncols, UInt nnz ) : diagPtr_( NULL ){
 
 
       // assign storage type for dynamic type information
@@ -118,6 +119,7 @@ namespace CoupledField {
       // a pattern from the pool
       colInd_ = NULL;
       rowPtr_ = NULL;
+      diagPtr_ = NULL;
 
       // We do not know a pool or pattern id yet
       patternPool_ = NULL;
@@ -151,6 +153,7 @@ namespace CoupledField {
       if ( patternPool_ == NULL ) {
         delete[] (rowPtr_);
         delete[] (colInd_);
+        delete[] (diagPtr_);
       }
       else {
         patternPool_->DeRegisterUser( patternID_ );
@@ -466,6 +469,7 @@ namespace CoupledField {
 
     //! Method to scale all matrix entries by a fixed factor
     void Scale( Double factor );
+    void Scale( Complex factor );
     
     //! \copydoc StdMatrix::Scale(Double, std::set<UInt>, std::set<UInt>)
     void Scale( Double factor, 
@@ -553,6 +557,16 @@ namespace CoupledField {
       return rowPtr_;
     }
 
+    //! Get diag pointer array
+    UInt* GetDiagPointer() {
+      return diagPtr_;
+    }
+
+    //! Get diag pointer array
+    const UInt* GetDiagPointer() const{
+      return diagPtr_;
+    }
+
     //! Get row pointer array (read only)
     const UInt* GetRowPointer() const {
       return rowPtr_;
@@ -595,6 +609,16 @@ namespace CoupledField {
 
     //! Array containing the column indices of the non-zero matrix entries
     UInt *colInd_;
+
+    //! Array containing the indices of the diagonal matrix entries
+
+    //! This array stores for each matrix row k the index into the #data_
+    //! array at which the corresponding diagonal matrix entry is stored.
+    //! In the case that the diagonal entry is not part of the sparsity
+    //! pattern, or there is no position (k,k) in the matrix, e.g. in case
+    //! of a rectangular matrix, an index of 0 is stored.
+    UInt* diagPtr_;
+
 
     //! Array containing the (potentially) non-zero matrix entries
     T* data_;

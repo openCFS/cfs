@@ -53,7 +53,7 @@ namespace CoupledField
 
     // replace our info node by a more detailed level
     info_ = info_->Get("inverseSource");
-    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
+    info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("Hz");
 
     fileNameMeasdata_ = param_->Get("measDataFilename")->As<std::string>();
     freq_ = param_->Get( "freq")->MathParse<Double>();
@@ -188,8 +188,8 @@ namespace CoupledField
       Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
-      analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
-      PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::PN_HEADER)->Get("environment");
+      //analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
+      PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     } // loop: frequencies
@@ -205,16 +205,18 @@ namespace CoupledField
 
   Double InverseSourceDriver::ComputeFrequencyStep(UInt actFreqStep)
   {
-    assert(actFreqStep >= 1);
-    assert(actFreqStep <= numFreq_+restartStep_);
+	assert(actFreqStep >= 1);
+	assert(actFreqStep <= numFreq_+restartStep_);
 
-    actFreqStep_ = actFreqStep;
+	actFreqStep_ = actFreqStep;
+	std::cout << "Freq: " <<  actFreq_  << std::endl;
 
-    // Determine next frequency value from precalculated list
-    actFreq_ = freq_;
-    std::cout << "Freq: " <<  actFreq_  << std::endl;
+	this->analysis_id_.step = actFreqStep;
+	this->analysis_id_.time = actFreq_;
 
-    //get pointers to CoefFncs
+	std::cout << "Freq and Step set " << std::endl;
+
+	//get pointers to CoefFncs
     bool isRHSsource = false;
     bool isRHSmeas = false;
     UInt num = 0;
@@ -254,18 +256,9 @@ namespace CoupledField
     rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
     rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
 
-    analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
-    analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
-    analysis_id_->Get("step")->SetValue(actFreqStep_);
-    analysis_id_->Get("value")->SetValue(actFreq_);
-
     // Set current frequency value in the mathParser
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
-
-    // Perform steps for the solution
-    ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
 
     bool gradMethod = true;
 
@@ -279,8 +272,10 @@ namespace CoupledField
     	rhsMeas_->SetActive(true);
     	std::cout << "Compute first time MEAS" << std::endl;
 
+    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
-    	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	ptPDE_->GetSolveStep()->SolveStepHarmonic();
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     	//compute with RHS as the current identified sources
@@ -288,8 +283,10 @@ namespace CoupledField
     	rhsSource_->SetActive(true);
     	std::cout << "Compute first time SRC" << std::endl;
 
+    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
-    	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	ptPDE_->GetSolveStep()->SolveStepHarmonic();
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     	//save source data
@@ -315,8 +312,11 @@ namespace CoupledField
     		rhsMeas_->SetActive(true);
     		if ( !approxSourceWithDeltaFnc_ )
     			ptPDE_->GetSolveStep()->SetAdjointSource();
+
+        	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+        	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
-    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic();
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     		//compute optimality condition and delta values of amplitude and phase
@@ -340,8 +340,10 @@ namespace CoupledField
     			//compute with RHS as the current identified sources
     			rhsMeas_->SetActive(false);
     			rhsSource_->SetActive(true);
+    	    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    	    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
-    			ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     			rhsMeas_->ComputeDiff2Meas( res2 );
@@ -366,8 +368,10 @@ namespace CoupledField
     				//compute with RHS as the current identified sources
     				rhsMeas_->SetActive(false);
     				rhsSource_->SetActive(true);
+    		    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    		    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     				ptPDE_->GetSolveStep()->PreStepHarmonic();
-    				ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    				ptPDE_->GetSolveStep()->SolveStepHarmonic();
     				ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     				rhsMeas_->ComputeDiff2Meas( res2 );
@@ -391,8 +395,11 @@ namespace CoupledField
     			rhsMeas_->SetActive(true);
         		if ( !approxSourceWithDeltaFnc_ )
         			ptPDE_->GetSolveStep()->SetAdjointSource();
+
+            	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+            	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
-    			ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     			//compute optimality condition and delta values of amplitude and phase
@@ -415,8 +422,10 @@ namespace CoupledField
     	//final computation
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
+    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
-    	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	ptPDE_->GetSolveStep()->SolveStepHarmonic();
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     }
@@ -432,9 +441,12 @@ namespace CoupledField
     		rhsMeas_->SetActive(true);
     		if ( !approxSourceWithDeltaFnc_ )
     			ptPDE_->GetSolveStep()->SetAdjointSource();
+
+    		ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    		ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
     		std::cout << "\n SOLVE_MEASURE \n" << std::endl;
-    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic();
     		std::cout << "\n INV_MEASURE solved \n" << std::endl;
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
 
@@ -448,9 +460,11 @@ namespace CoupledField
     		//compute with RHS as the current identified sources
     		rhsMeas_->SetActive(false);
     		rhsSource_->SetActive(true);
+    		ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    		ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
     		std::cout << "\n SOLVE_SOURCE \n" << std::endl;
-    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic();
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
     		std::cout << "\n INV_SOURCE solved \n" << std::endl;
 
@@ -479,6 +493,7 @@ namespace CoupledField
     handler_->FinishStep( );
 
   }
+
 
 
   void InverseSourceDriver::ReadRestart() {

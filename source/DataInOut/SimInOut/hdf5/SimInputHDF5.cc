@@ -47,6 +47,7 @@ namespace CoupledField {
     PtrParamNode pNode;
     coordSysId_ = "default";
     scaleFac_ = 1.0;
+    numNodes_ = 0;
 
     // Change defaults according to XML file
     pNode = myParam_->Get("generateRegionNodes", ParamNode::PASS);
@@ -697,6 +698,7 @@ namespace CoupledField {
       //std::cout << "entityNodeMap_[" << regionName << "] Size " << entityNodeMap_[regionName].GetSize() << std::endl;
     } else {
       idx.Resize( numEntities );
+
       for( UInt i = 0; i < numEntities ; i++ )
         idx[i] = i;
     }
@@ -717,6 +719,7 @@ namespace CoupledField {
       H5IO::ReadArray( resGroup, "Imag", imagVals );
 
       resVec.Resize( resVecSize );
+
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
           resVec[i*numDofs+iDof] = Complex( realVals[idx[i]*numDofs+iDof],
@@ -1369,11 +1372,11 @@ namespace CoupledField {
 
   void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
   {
-    if (dim_ != coordSys.GetDim()) {
-      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
-                << coordSys.GetName() << ") to transform a "
-                << dim_ << "D mesh (" << fileName_ << ").");
-    }
+//    if (dim_ != coordSys.GetDim()) {
+//      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
+//                << coordSys.GetName() << ") to transform a "
+//                << dim_ << "D mesh (" << fileName_ << ").");
+//    }
     
     Vector<Double> p, globPoint;
     p.Resize(dim_);

@@ -50,12 +50,14 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Clear()
+  void StdVector<TYPE>::Clear(bool keepCapacity )
   {
     size_ = 0;
-    capacity_ = 0;
-    delete[] data_;
-    data_ = NULL;
+    if( keepCapacity == false ) {
+      capacity_ = 0;
+      delete[] data_;
+      data_ = NULL;
+    }
   }
 
   template<class TYPE>
@@ -202,37 +204,25 @@ namespace CoupledField {
   //   Push_back
   // *************
   template<class TYPE>
-  void StdVector<TYPE>::Push_back( const TYPE &y )
+  void StdVector<TYPE>::_Push_back_expand( const TYPE &y )
   {
-    // Check whether capacity is sufficiently large to perform
-    // a push-back operation. If not allocate memory according
-    // to the following simply scheme: Each time capacity is
-    // exceeded allocate twice as much memory as there was before.
-    if ( size_ >= capacity_ ) {
+    TYPE *help;
 
-      TYPE *help;
+    // perform memory allocation
+    capacity_ = (size_ == 0)? 1 : 2 * size_;
+    help = new TYPE[ capacity_ ];
 
-      // perform memory allocation
-      capacity_ = size_ == 0 ? 1 : 2 * size_;
-      help = new TYPE[ capacity_ ];
+    // copy old entries into new buffer if we have data
+    std::copy(data_, data_+size_, help);
 
-      // copy old entries into new buffer
-      std::copy(data_, data_+size_, help);
+    // Perform push-back and increase size
+    // note, that y might point to data, so copy before delete
+    help[size_] = y;
+    size_++;
 
-      // Perform push-back and increase size
-      // note, that y might point to data, so copy before delete
-      help[size_] = y;
-      size_++;
-
-      // delete old buffer and re-set pointer
-      delete[] data_;
-      data_ = help;
-
-    } else {
-      // Perform push-back and increase size
-      data_[size_] = y;
-      size_++;
-    }
+    // delete old buffer and re-set pointer
+    delete[] data_;
+    data_ = help;
   }
 
 
@@ -322,6 +312,30 @@ namespace CoupledField {
     // not found
     return -1;
   }
+
+  template<class TYPE>
+  StdVector<unsigned int> StdVector<TYPE>::FindAll(const TYPE &x) const
+  {
+    StdVector<unsigned int> t (0);
+    for(unsigned int i = 0; i < size_; ++i){
+      if(data_[i] == x) t.Push_back(i);
+    }
+    return t;
+  }
+
+
+  template<class TYPE>
+  bool StdVector<TYPE>::IsUnique() const
+  {
+    // possibly not the fastest algorithm as we check any pair
+    for(unsigned int s = 0; s < size_; s++) // slow variable
+      for(unsigned int f = s+1; f < size_; f++) // fast variable
+        if(data_[s] == data_[f])
+          return false;
+
+    return true;
+  }
+
 
   template<class TYPE>
   bool StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
@@ -420,61 +434,70 @@ namespace CoupledField {
   }
 
 
-//  template<class TYPE>
-//  bool StdVector<TYPE>::InWindow(unsigned int index)
-//  {
-//    return index >= window.GetStart() && index < window.GetStart() + window.GetSize();
-//  }
-//
-//  template<class TYPE>
-//  StdVector<TYPE>::Window::Window()
-//  {
-//    this->active_ = false;
-//    this->start_  = std::numeric_limits<unsigned int>::max();
-//    this->size_   = std::numeric_limits<unsigned int>::max();
-//  }
-//
-//  template<class TYPE>
-//  void StdVector<TYPE>::Window::Set(unsigned int start, unsigned int size)
-//  {
-//    this->active_ = true;
-//    this->start_  = start;
-//    this->size_   = size;
-//  }
-//
-//  template<class TYPE>
-//  void StdVector<TYPE>::Window::Set(StdVector<TYPE>& vec)
-//  {
-//    this->active_ = true;
-//    this->start_  = 0;
-//    this->size_   = vec.GetSize();
-//  }
-//
-//
-//  template<class TYPE>
-//  unsigned int StdVector<TYPE>::Window::GetStart() const
-//  {
-//#ifdef CHECK_INITIALIZED
-//    if(!active_)
-//      EXCEPTION("Vector: window not initialized." );
-//#endif
-//    return start_;
-//  }
-//
-//  template<class TYPE>
-//  unsigned int StdVector<TYPE>::Window::GetSize() const
-//  {
-//#ifdef CHECK_INITIALIZED
-//    if(!active_)
-//      EXCEPTION("Vector: window not initialized." );
-//#endif
-//    return size_;
-//  }
+  template<class TYPE>
+  bool StdVector<TYPE>::InWindow(unsigned int index)
+  {
+    return index >= window.GetStart() && index < window.GetStart() + window.GetSize();
+  }
 
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString(int level, int stride ) const
+  StdVector<TYPE>::Window::Window()
   {
+    this->active_ = false;
+    this->start_  = std::numeric_limits<unsigned int>::max();
+    this->size_   = std::numeric_limits<unsigned int>::max();
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(unsigned int start, unsigned int size)
+  {
+    this->active_ = true;
+    this->start_  = start;
+    this->size_   = size;
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(StdVector<TYPE>& vec)
+  {
+    this->active_ = true;
+    this->start_  = 0;
+    this->size_   = vec.GetSize();
+  }
+
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetStart() const
+  {
+    #ifdef CHECK_INITIALIZED
+      if(!active_)
+        EXCEPTION("Vector: window not initialized." );
+    #endif
+    return start_;
+  }
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetSize() const
+  {
+    #ifdef CHECK_INITIALIZED
+      if(!active_)
+        EXCEPTION("Vector: window not initialized." );
+    #endif
+    return size_;
+  }
+
+  template<class TYPE>
+  std::string StdVector<TYPE>::ToString(int level, int stride, bool in_window) const
+  {
+    if(!in_window)
       return StdVector<TYPE>::ToString(size_, data_, level, stride);
+    else
+    {
+      #ifdef CHECK_INDEX
+        if(window.GetStart() + window.GetSize() > size_)
+          EXCEPTION("Vector: window bounds violated." );
+      #endif
+      return StdVector<TYPE>::ToString(window.GetSize(), data_ + window.GetStart(), level, stride);
+    }
   }
   
   template<class TYPE>  

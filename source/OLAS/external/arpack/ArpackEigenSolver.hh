@@ -9,8 +9,8 @@
 namespace CoupledField {
   
   class StdMatrix;
-  class ParamNode;
-  class ParamNode;
+  
+  
   
   // =========================================================================
   //   ARPACK SOLVER
@@ -41,8 +41,7 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & mat,
-                UInt numFreq, Double freqShift );
+    void Setup(const BaseMatrix & mat, UInt numFreq, double freqShift, bool sort);
 
     //! Setup routine for a generalized eigenvalue problem
     
@@ -53,9 +52,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & stiffMat,
-                const BaseMatrix & massMat,
-                UInt numFreq, Double freqShift, bool bloch);
+    void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat,
+               UInt numFreq, double freqShift, bool sort, bool bloch);
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -68,22 +66,16 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & stiffMat,
-                const BaseMatrix & massMat,
-                const BaseMatrix & dampMat,
-                UInt numFreq, Double freqShift );
+    void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
+               UInt numFreq, double freqShift, bool sort );
 
 
     //! Solve the linear generalized eigenvalue problem
     
     //! This method triggers the calculation of the eigenvalue problem.
-    //! Its return value is the number of converged eigenvalues and the
-    //! related error.
-    //! \param sol Vector with converged eigenvalues
+    //! \param sol Vector with converged eigenvalues. The size is the number of converged evs
     //! \param err Vector with error bound of eigenvalues
-    //! \return Number of converged eigenvalues
-    UInt CalcEigenFrequencies( BaseVector &sol,
-                               BaseVector &err );
+    void CalcEigenFrequencies(BaseVector &sol, BaseVector &err);
     
     //! Calculate a particular eigenmode as a postprocessing solution
 
@@ -91,8 +83,8 @@ namespace CoupledField {
     //! It calculates a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
-    void CalcEigenMode( UInt modeNr, Vector<Complex> & mode );
-    void CalcComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
+    void GetEigenMode( UInt modeNr, Vector<Complex> & mode );
+    void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
 
 
     //! Calculate condition number
@@ -108,25 +100,40 @@ namespace CoupledField {
     //! Method for generation of complex matrices from real ones
     void SetupComplexMatrices();
 
-    //! Pointer to matrix interface
-    ArpackSolver * arpackSolver_;
+    /** Setup idx_. If not sort_ it is set to match 1:1. But it needs to be called! */
+    void SetupIndex(unsigned int numev);
+
+    /** for SetupIndex */
+    typedef std::pair<double, unsigned int> ev_idx;
+
+    /** for SetupIndex */
+    static bool comperator(const ev_idx& one, const ev_idx& two)
+    {
+      return one.first < two.first;
+    }
+
+    /** print setup information */
+    void ToInfo();
 
     //! Pointer to matrix interface
-    ArpackMatInterface * interface_;
+    ArpackSolver* arpackSolver_;
+
+    //! Pointer to matrix interface
+    ArpackMatInterface* interface_;
     
     //! Pointer to matrices
-    const StdMatrix * matrixA_, * matrixB_, *matrixD_;
+    const StdMatrix* matrixA_;
+    const StdMatrix* matrixB_;
+    const StdMatrix* matrixD_;
 
-    //! Pointer to complex matrices
-    const StdMatrix *complexStiff_, *complexMass_, *complexDamp_;
     //! Pointer to complex matrices
     StdMatrix *zStiff_, *zMass_, *zDamp_;
 
     //! Pointer to solver ovbject
-    BaseSolver * solver_;
+    BaseSolver* solver_;
 
     //! Pointer to precond object
-    BasePrecond * precond_;
+    BasePrecond* precond_;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
@@ -137,11 +144,12 @@ namespace CoupledField {
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
     
-    //! Flag for use of logging
-    bool logging_;
-
     //! Character string for 'which' setting of  arpack
-    char * which_;
+    char* which_;
+
+    /** this is the permutation matrix which allows sorting. Always used
+     * and in the non-sorting case set to 0,1,2, ... */
+    StdVector<unsigned int> idx_;
   };
 }
 

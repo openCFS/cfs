@@ -27,8 +27,8 @@ namespace CoupledField{
 
 template<typename DATA_TYPE>
 CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDomain,
-        PtrParamNode configNode,PtrParamNode curInfo)
-		:CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode) {
+        PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions)
+		:CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode, regions) {
 
   //====================================================
   // Determine information about source grid and result
@@ -41,10 +41,6 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   this->extDataInfo_ = curInfo->Get("defaultGrid",ParamNode::APPEND);
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue("noInterpolation");
-
-  std::string factorString = this->factorFnc_->ToString();
-  this->extDataInfo_->Get("interpolation")->Get("factor",ParamNode::INSERT)->SetValue(factorString);
-
   this->srcGrid_ = this->domain_->GetGrid();
 
   //lets determine the destination region and set it to our source regions
@@ -60,6 +56,7 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   //resize the source, source-incremental and source-save vectors
   UInt numNodes = nodeListSource_->GetSize();
+  std::cout<< "NumNodes: " << numNodes << std::endl;
   sourceAmp_.Resize( numNodes );
   sourceAmp_.Init();
   sourcePhi_.Resize( numNodes );
@@ -105,6 +102,10 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   //GridcoefFunctions are always general!
   this->dependType_ = CoefFunction::GENERAL;
+
+
+  // add Region list
+  AddEntityList(regions);
 
   //define the operator
   this->CreateOperator(this->srcGrid_->GetDim(),this->dimDof_);
@@ -207,7 +208,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 		//std::cout << "Mean element SOS: " <<  meanSOS << std::endl;
 
 		meanSOS = 340.0;
-		Double waveNumber = 2*PI*freq_ / std::pow( meanSOS, 2.0 );;
+		Double waveNumber = 2*M_PI*freq_ / std::pow( meanSOS, 2.0 );;
 		Double factorPropStiff = std::pow( meanElemVol_, 1.0/(Double)this->srcGrid_->GetDim() );
 		Double factorPropMass  = waveNumber * waveNumber * meanElemVol_;
 
@@ -320,29 +321,31 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     //this function may not be called if eqnMapping has already
     //been performed because there will be exactly one srcRegion to one target 
     //region and both are identical
-	 //std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList" << std::endl;
+	std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList" << std::endl;
 
-    if(this->eqnMapComplete_ && !this->entities_.Contains(ent))
-      EXCEPTION("Call to AddEntities after eqnMapping has been performed. This should not happen!");
-    
-    //first we check if its a region list.CoefFunctionGrid
-    //otherwise this will be shit
-    if(ent->GetDefineType() != EntityList::REGION)
-      EXCEPTION("CoefFunctionGridNodalSource can only be used with regions");
-
+//    if(this->eqnMapComplete_ && !this->entities_.Contains(ent))
+//      EXCEPTION("Call to AddEntities after eqnMapping has been performed. This should not happen!");
+//
+//    //first we check if its a region list.CoefFunctionGrid
+//    //otherwise this will be shit
+//    if(ent->GetDefineType() != EntityList::REGION)
+//      EXCEPTION("CoefFunctionGridNodalSource can only be used with regions");
+//
     if(!this->entities_.Contains(ent)){
       this->entities_.Push_back(ent);
     }else{
       WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
     }
-
-    //in this special coeffunction,
-    //the sourceRegion is equal to the destination
+//
+//    //in this special coeffunction,
+//    //the sourceRegion is equal to the destination
     this->srcRegions_.insert(ent->GetName());
-
-    if(ent->GetType() == EntityList::SURF_ELEM_LIST){
-      this->srcIsSurface_ = true;
-    }
+    std::cout << "SRC Region: " << ent->GetName() << std::endl;
+//
+//
+//    if(ent->GetType() == EntityList::SURF_ELEM_LIST){
+//      this->srcIsSurface_ = true;
+//    }
 
     if ( this->inverseType_ == CoefFunction::INVSOURCE ) {
     	//get all elements belonging to region
@@ -362,7 +365,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     	    }
     	}
     	meanElemVol_ /= (Double)numEl;
-    	//std::cout << "Mean element volume: " <<  meanElemVol_  << std::endl;
+    	std::cout << "Mean element volume: " <<  meanElemVol_  << std::endl;
     }
 
     //====================================================
@@ -371,10 +374,14 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     //in this special class we start with the equation mapping right
     //after the first call to get entities as this method should not be called twice!
     this->MapEqns();
-    //read in the first solution
-    if ( this->inverseType_ == CoefFunction::INVMEASURE )
-    	this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    this->InitSolVec();
 
+    //read in the first solution
+    if ( this->inverseType_ == CoefFunction::INVMEASURE ) {
+    	std::cout << "read Solution" << std::endl;
+    	this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    	std::cout << "read Solution OK" << std::endl;
+    }
     this->extDataInfo_->Get("RegionList")->Get("SourceRegion")->Get("name")->SetValue(ent->GetName());
   }
 
@@ -449,8 +456,6 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace> targetSpace,
                                                               Vector<DATA_TYPE>& feFncVec) {
 
-	// std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative" << std::endl;
-
   //if the targetSpace is also using grid ordering, we just take the nodal values and map them to the
   //target equations
   //if the target space has arbitrary order, this does not really make sense, so we issue an exception
@@ -474,7 +479,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
   if ( this->isActive_ ) {
 	  if (  this->inverseType_ == CoefFunction::INVMEASURE ) {
-		 // std::cout << "\n DO RHS INVERSE_MEASURE" << std::endl;
+		  std::cout << "\n DO RHS INVERSE_MEASURE" << std::endl;
 		  //First, fetch the solutions at the measurement position
 		  //and store them in measVec_
 		  if ( !isDataReadFromFile_ ) {
@@ -499,7 +504,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 			  }
 			  //==================NEW=============================================
 		  }
-
 		  //reset RHS to zero:
 		  this->solVec_.Init();
 
@@ -541,16 +545,8 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		    	  }
 		      }
 		  }
-
-//		  for ( UInt i=0; i<measNodes_.GetSize(); i++ ) {
-//			  std::cout << "SolPrev: " << actPDEsol[i] << "  Meas: " << measVec_[i] << std::endl;
-//			  Complex val = actPDEsol[i] - measVec_[i];
-//			  this->solVec_[i] =  	std::conj( val );
-//			  std::cout << "RHS-MEASURE: " <<  this->solVec_[i] << std::endl;
-//		  }
 	  }
 	  else if (this->inverseType_ == CoefFunction::INVSOURCE ) {
-		  //std::cout << "\n DO RHS INVERS_SOURCE" << std::endl;
 		  //reset RHS
 		  this->solVec_.Init();
 
@@ -564,7 +560,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 			  result.Init();
 			  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
 			  actPDEsol[k] = result[0];
-			  //std::cout << "INVERSE_SOURCE solPrev: " << actPDEsol[k] << std::endl;
 			  entIt++;
 			  k++;
 		  }
@@ -572,7 +567,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  for ( UInt i=0; i<actPDEsol.GetSize(); i++ ) {
 			  Complex val( sourceAmp_[i]*std::cos(sourcePhi_[i]), sourceAmp_[i]*std::sin(sourcePhi_[i]) );
 			  this->solVec_[i] = val;
-			  //std::cout << "RHS-Source: " << val << std::endl;
 		  }
 	  }
   }
@@ -597,8 +591,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace){
 
-	 //std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc" << std::endl;
-
 	//loop over the entitylist and obtain for each element the equation numbers
 	std::set<std::string>::iterator regIter = this->srcRegions_.begin();
 	for( ; regIter != this->srcRegions_.end(); ++regIter) {
@@ -613,7 +605,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpac
 			StdVector<Integer> eqns;
 			targetSpace->GetEqns(eqns,ents);
 			UInt curNode = ents.GetNode();
-			//std::cout << "Node: " << curNode << std::endl;
 			UInt solIdx = this->nodeIdxMap_[curNode];
 			//safety check
 			if(this->eqnNumbers_[solIdx].GetSize() != eqns.GetSize()){
@@ -633,7 +624,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpac
 				}
 				if(eqns[i] > 0){
 					curP.first = eqns[i]-1;
-
 					if ( this->inverseType_ == CoefFunction::INVMEASURE ) {
 						if ( nodeFound ) {
 							isMeasuredNode_.Push_back(true);
@@ -659,8 +649,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::GetElemsForPoints(const StdVector<V
                                                                   StdVector< const Elem* > & elements,
                                                                   StdVector<LocPoint> & locals){
 
-	 //std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::GetElemsForPoints" << std::endl;
-
   //build up set of source regions
   std::set<std::string>::iterator regIter = this->srcRegions_.begin();
   StdVector<shared_ptr<EntityList> > lists; 
@@ -682,8 +670,6 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::GetElemsForPoints(const StdVector<V
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData(Vector<DATA_TYPE>& actPDEsol) {
 
-	 //std::cout << typeCoeff_ << ": CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData" << std::endl;
-	//Vector<Double> amp(actPDEsol.GetSize());
 	for (UInt i=0; i<actPDEsol.GetSize(); i++ ) {
 		//amplitude
 		Double val;
@@ -772,7 +758,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 		//phase
 		Double deltaPsi;
 		deltaPsi = 2*beta_*psi - sourceAmp_[i]*valC.imag()
-						+ 2*psi / ( (PI/2 + psi) * (PI/2-psi) );
+						+ 2*psi / ( (M_PI/2 + psi) * (M_PI/2-psi) );
 
 //		if ( this->approxSourceType_ == CoefFunction::DELTA )
 //		else {
@@ -857,7 +843,6 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared,
 		                                                  bool adjustAlpha, bool adjustBeta ) {
 
-	 //std::cout << typeCoeff_ << ":  CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh" << std::endl;
 	Double valAmp = 0;
 	Double valPhi = 0;
 

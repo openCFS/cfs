@@ -52,7 +52,7 @@ namespace CoupledField {
 
 
   // =================================
-  //   Application of Preconditioner
+  //   App::Type of Preconditioner
   // =================================
   template <typename T>
   void ILUTP_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,
@@ -74,8 +74,7 @@ namespace CoupledField {
   //   Setup of Preconditioner
   // ===========================
   template <typename T>
-  void ILUTP_Precond<T>::Setup( CRS_Matrix<T> &sysMat,
-                                PtrParamNode analysis_id ) {
+  void ILUTP_Precond<T>::Setup(CRS_Matrix<T> &sysMat) {
 
 
     // Query parameter object for factorisation parameters
@@ -90,10 +89,6 @@ namespace CoupledField {
     else {
       maxFill_ = (-aux) * ( sysMat.GetNnz() / sysMat.GetNumCols() - 1 );
     }
-
-    // Report parameters to standard log stream
-    (*cla) << "ILUTP_Precond: Performing an ILU( " << tau_ << " , " << maxFill_
-      	   << " ) factorisation" << std::endl;
 
     // Perform the factorisation
     this->Factorise( sysMat );

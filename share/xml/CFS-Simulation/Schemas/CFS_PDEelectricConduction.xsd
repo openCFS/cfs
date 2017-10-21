@@ -1,9 +1,6 @@
-
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -16,8 +13,10 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for electric conduction PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="elecConduction" type="DT_PDEelecConduction"
-    substitutionGroup="PDEBasic">
+  <xsd:element name="elecConduction" type="DT_PDEelecConduction" substitutionGroup="PDEBasic">
+    <xsd:annotation>
+      <xsd:documentation>Solves electric conduction PDE (Laplacian of electric potential); primary dof is electric potential</xsd:documentation>
+    </xsd:annotation>
     <xsd:unique name="CS_ElecConductionRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
@@ -42,10 +41,13 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
+                      > </xsd:attribute>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/> <!-- added by SE for voltage dependent conductance -->
-                    <!-- <xsd:attribute name="specialRegion" type="xsd:token" use="optional" default=""/>--><!-- may not be a good place -->
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <!-- added by SE for voltage dependent conductance -->
+                    <!-- <xsd:attribute name="specialRegion" type="xsd:token" use="optional" default=""/>-->
+                    <!-- may not be a good place -->
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -56,11 +58,16 @@
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="elecConductivity" type="DT_ElecConductionNonLin"/>  <!-- can't think of electric conductivity depending on potential. It can only depend on voltage drops, hence the following types: -->
-                <xsd:element name="elecBiPole" type="DT_ElecBiPole"/>   <!-- e.g. dielectric break down  -->
-                <xsd:element name="elecBiPoleTempDep" type="DT_ElecBiPole"/>   <!-- e.g. diode -->
-                <xsd:element name="elecTriPole" type="DT_ElecTriPole"/>   <!-- e.g. transistor -->
-                <xsd:element name="elecTriPoleTempDep" type="DT_ElecTriPole"/>   <!-- e.g. transistor -->
+                <xsd:element name="elecConductivity" type="DT_ElecConductionNonLin"/>
+                <!-- can't think of electric conductivity depending on potential. It can only depend on voltage drops, hence the following types: -->
+                <xsd:element name="elecBiPole" type="DT_ElecBiPole"/>
+                <!-- e.g. dielectric break down  -->
+                <xsd:element name="elecBiPoleTempDep" type="DT_ElecBiPole"/>
+                <!-- e.g. diode -->
+                <xsd:element name="elecTriPole" type="DT_ElecTriPole"/>
+                <!-- e.g. transistor -->
+                <xsd:element name="elecTriPoleTempDep" type="DT_ElecTriPole"/>
+                <!-- e.g. transistor -->
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -69,7 +76,11 @@
           <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="elecConductivity" type="DT_matDependency"/>
+                <xsd:element name="elecConductivity" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Electric conductivity as funnction of temperature</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -93,39 +104,58 @@
           </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines, which interfaces are non-conforming</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                            
-              <!-- Initial state of previous sequence step / external file -->
-              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
-              
- 		      </xsd:choice>
- 		    </xsd:complexType>
-		  </xsd:element>
-          
-          <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                <!-- Dirichlet Boundary Conditions -->  
-                <xsd:element name="ground"    type="DT_BcHomScalar"/>
-                <xsd:element name="potential" type="DT_BcInhomScalar"/>    
+
+                <!-- Initial state of previous sequence step / external file -->
+                <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
 
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
-		  <!-- Section for specifying initial conditions (optional) -->
-          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="ground" type="DT_BcHomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Fixes electric potential to zero</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="potential" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Fixes electric potential to a prescribed value</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="normalCurrentDensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Specify a current density on a surface to indirectly specify a current.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Section for specifying initial conditions (optional) >
+          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/-->
 
           <!-- Desired solution values (optional) -->
-          <xsd:element name="storeResults" type="DT_ElecConductionStoreResults"
-            minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="storeResults" type="DT_ElecConductionStoreResults" minOccurs="0"
+            maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines storage at nodes, volume and surface elements</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
         </xsd:sequence>
       </xsd:extension>
@@ -141,7 +171,7 @@
       <xsd:enumeration value="elecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for electric conduction -->
@@ -153,8 +183,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="elecPotential"
-          type="DT_ElecConductionUnknownType"/>
+        <xsd:attribute name="quantity" default="elecPotential" type="DT_ElecConductionUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -165,8 +194,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_ElecConductionHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -175,14 +203,12 @@
   <xsd:complexType name="DT_ElecConductionIN">
     <xsd:complexContent>
       <xsd:extension base="DT_ElecConductionHD">
-        <xsd:attribute name="value" type="xsd:double" use="optional"
-          default="0.0"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
-      </xsd:extension>    
+        <xsd:attribute name="value" type="xsd:double" use="optional" default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
@@ -198,13 +224,13 @@
   <!-- Definition of element result types of electric conduction PDE -->
   <xsd:simpleType name="DT_ElecConductionElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecCurrentDensity"/>      
+      <xsd:enumeration value="elecCurrentDensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecPowerDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
-  <!-- Definition of region result types of electrostatic PDE -->  
+
+  <!-- Definition of region result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecConductionRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPower"/>
@@ -218,10 +244,11 @@
     </xsd:restriction>
   </xsd:simpleType>
 
- <!-- Definition of surface region result types of elecCurrent PDE -->
+  <!-- Definition of surface region result types of elecCurrent PDE -->
   <xsd:simpleType name="DT_ElecConductionSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecCurrent"/> <!-- integration of current density over surface __region__ -->
+      <xsd:enumeration value="elecCurrent"/>
+      <!-- integration of current density over surface __region__ -->
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -231,7 +258,8 @@
       <xsd:choice maxOccurs="unbounded">
 
         <!-- Nodal result definition -->
-        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
                 <xsd:attribute name="type" type="DT_ElecConductionNodeResult" use="required"/>
@@ -241,7 +269,8 @@
         </xsd:element>
 
         <!-- Element result definition -->
-        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
                 <xsd:attribute name="type" type="DT_ElecConductionElemResult" use="required"/>
@@ -251,21 +280,18 @@
         </xsd:element>
 
         <!-- Surface result definition -->
-        <xsd:element name="surfElemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_ElecCurrentSurfElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_ElecCurrentSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
 
         <!-- Region result definition -->
-        <xsd:element name="regionResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
@@ -275,7 +301,8 @@
           </xsd:complexType>
         </xsd:element>
 
-        <!-- Surface result definition --> <!--
+        <!-- Surface result definition -->
+        <!--
         <xsd:element name="surfElemResult" minOccurs="0"
           maxOccurs="unbounded">
           <xsd:complexType>
@@ -289,13 +316,11 @@
         </xsd:element> -->
 
         <!-- Surface region result definition -->
-        <xsd:element name="surfRegionResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_ElecConductionSurfRegionResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_ElecConductionSurfRegionResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -311,7 +336,8 @@
   <!-- ******************************************************************* -->
 
   <!-- Definition of electric conduction nonlinearity type -->
-  <xsd:complexType name="DT_ElecConductionNonLin"> <!-- application unclear to me (SE) -->
+  <xsd:complexType name="DT_ElecConductionNonLin">
+    <!-- application unclear to me (SE) -->
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
@@ -334,49 +360,49 @@
     <xsd:complexContent>
       <xsd:extension base="DT_PoleBasic">
         <xsd:sequence>
-          <xsd:element name="anode" minOccurs="1" maxOccurs="1">          
-	  	<xsd:complexType>
-	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
-	  	</xsd:complexType>	    	
-	  </xsd:element>
-          <xsd:element name="cathode" minOccurs="1" maxOccurs="1">          
-	  	<xsd:complexType>
-	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
-	  	</xsd:complexType>	    	
-	  </xsd:element>
+          <xsd:element name="anode" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="region" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="cathode" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="region" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
-    </xsd:complexContent> 
+    </xsd:complexContent>
   </xsd:complexType>
 
   <xsd:complexType name="DT_TriPoleDefinition">
     <xsd:complexContent>
       <xsd:extension base="DT_PoleBasic">
         <xsd:sequence>
-          <xsd:element name="gate" minOccurs="1" maxOccurs="1">          
-	  	<xsd:complexType>
-	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
-	  	</xsd:complexType>	    	
-	  </xsd:element>
-          <xsd:element name="drain" minOccurs="1" maxOccurs="1">          
-	  	<xsd:complexType>
-	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
-	  	</xsd:complexType>	    	
-	  </xsd:element>
-          <xsd:element name="source" minOccurs="1" maxOccurs="1">          
-	  	<xsd:complexType>
-	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
-	  	</xsd:complexType>	    	
-	  </xsd:element>
+          <xsd:element name="gate" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="region" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="drain" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="region" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="source" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="region" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
-    </xsd:complexContent> 
+    </xsd:complexContent>
   </xsd:complexType>
 
-  <xsd:complexType name="DT_PoleBasic">    
+  <xsd:complexType name="DT_PoleBasic">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="id" type="xsd:token"  use="required"/>
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

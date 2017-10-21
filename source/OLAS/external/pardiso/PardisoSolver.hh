@@ -6,6 +6,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/StdVector.hh"
 #include "OLAS/solver/BaseSolver.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -108,14 +109,14 @@ namespace CoupledField {
     //! After Setup is called the BaseMatrix (expected to be either a CRS
     //! or SCRS-matrix) will be reordered using the Nested Dissection or
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id);
+    void Setup( BaseMatrix &sysmat);
 
     //! Direct solution of the linear system
 
     //! After Solve is called the matrix (which has already to be factorised
     //! by a call of Setup) is finally solved by backward-forward substitution.
     void Solve( const BaseMatrix &sysmat,
-                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id );
+                const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 
@@ -240,6 +241,9 @@ namespace CoupledField {
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
 
+    // ! Should PARDISO performance be logged for each PARDISO call?
+    bool logPerformance_;
+
     //! Array with identity reordering
 
     //! This pointer is either NULL or points to a one-based array containing
@@ -253,6 +257,9 @@ namespace CoupledField {
 
     //! number of non zero entries
     UInt nnz_;
+
+    //! Timer objects
+    Timer tNumfact_, tSymfact_;
 
   };
 

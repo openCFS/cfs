@@ -37,9 +37,33 @@ namespace CoupledField {
 
     //! cast the matrix into its full type and perform the Setup 
     //! of the preconditioner as subclass
-    virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
+    virtual void Setup( BaseMatrix &A ) {
       AssocMatrixType& idA = dynamic_cast<AssocMatrixType&>(A);
-      SubClass().Setup(idA, analysis_id);
+      SubClass().Setup(idA);
+      readyToUse_ = true;
+    }
+
+    //! A call of this method triggers the construction of the preconditioner, using
+    //! algebraic multigrid (AMG).
+
+    //! When this method is called the AMG-preconditioner will be constructed.
+    //! This involves a complex setup (construction of hierarchy levels,
+    //! transfer operators and solving the coarse system).
+    //! Note that only after this method has been called once, the preconditioner
+    //! can be applied.
+    //! \param sysmat problem matrix
+    //! \param auxmat auxiliary matrix
+    //! \param amgType type of AMG-version (scalar, vectorial, edge)
+    //! \param edgeIndNode connection of indices in the matrix and geometrical info
+    //! \param nodeNumIndex connection of indices in the matrix and node-numbers
+    virtual void SetupMG( BaseMatrix &A,
+                          BaseMatrix& B,
+                          const AMGType amgType,
+                          const StdVector< StdVector< Integer> >& edgeIndNode,
+                          const StdVector<Integer>& nodeNumIndex) {
+      AssocMatrixType& idA = dynamic_cast<AssocMatrixType&>(A);
+      AssocMatrixType& idB = dynamic_cast<AssocMatrixType&>(B);
+      SubClass().SetupMG(idA, idB, amgType, edgeIndNode, nodeNumIndex);
       readyToUse_ = true;
     }
 

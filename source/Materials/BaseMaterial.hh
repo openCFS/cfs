@@ -109,8 +109,11 @@ namespace CoupledField {
     //! Trigger finalization of material (calculation of rotated matrices)
     virtual void Finalize() {};
 
+    /** helper for ToInfo(). If the  imaginary part is zero, only the real part is printed  */
+    void StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat);
+
     /** Print the material data which is actually read and stored in isSet */
-    void ToInfo(PtrParamNode in);
+    void ToInfo(PtrParamNode in, SubTensorType stt = NO_TENSOR,  const Vector<double>* rot = NULL);
 
     //! set the name of the material set
     void SetName(const char* name) {
@@ -149,7 +152,12 @@ namespace CoupledField {
     //! Return a specific sub-tensor as coefficient function (linear)
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
-                                            bool transposed  ) ;
+                                            bool transposed  );
+
+    //! Return a sub-vector in Voigt notation
+    virtual PtrCoefFct GetSubVectorCoefFnc( MaterialType matType, SubTensorType tensorType, bool real=false) {
+        EXCEPTION("Currently only implemented for Mechanic material");
+    }
 
     //! Return tensor-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,
@@ -160,7 +168,12 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency );
+                                            PtrCoefFct dependency );                             
+                                            
+    //! Return scalar-valued coefficient function for nonlinear function (only for magstrict nu)
+    virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct dependency );                                           
 					    
     //! Return scalar-valued coefficient function for nonlinear function
     //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
@@ -202,7 +215,7 @@ namespace CoupledField {
 
     //! set the symmetry type
     void SetSymmetryType(MaterialType matType, SymmetryType symType) {
-      symmetryType_[matType]=symType; 
+      symmetryType_[matType]=symType;
     };
 
     //! get the symmetry type
@@ -270,10 +283,9 @@ namespace CoupledField {
     
     //! Set a nonlinear anisotropic approximation
     virtual void SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data );
-    
+
     //! Set a coefficient function
     virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
-
 
     //! get a string material parameter
     virtual void GetScalar( std::string& param, MaterialType matType) const;
@@ -355,8 +367,13 @@ namespace CoupledField {
     //@{ \name Hysteresis Related Information
 
     //Initialize hysteresis
-    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
-                           bool isInverse = false, bool computeInverse = false );
+    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+    //                       bool isInverse = false, bool computeInverse = false );
+
+    //Initialize hysteresis
+    // calls either Preisach or VectorPreisach depending on the dimensions
+    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                           bool isInverse = false, bool computeInverse = false, UInt dim = 1);
 
     //Initialize hysteresis
     virtual void InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
@@ -463,6 +480,12 @@ namespace CoupledField {
                                  Double dampFreq, Double RatioDeltaF,
                                  bool adjustDamping, bool isHarmonic );
 
+    /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
+    static MaterialType ConvertMaterialClass(MaterialClass mc);
+
+    /** compute the correct subTensor (3D, AXI, ..)
+     * Not all materials implement this method! */
+    virtual void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const { assert(false); };
 
   protected:
 
@@ -538,7 +561,7 @@ namespace CoupledField {
     
     //! map storing the anisotropic nonlinear material parameters
     nonLinAnisoMap nonlinAnisoParams_;
-    
+
     // ========================================================
     //  New coefficient based material representation
     // ========================================================
@@ -553,7 +576,6 @@ namespace CoupledField {
     
     //! Scalar coefficients
     CoefMap scalarCoef_;
-    
     
     //! Pointer to math parser instance
     MathParser *  mp_;
@@ -590,6 +612,15 @@ namespace CoupledField {
 
     Vector<Double> Xprevious_; //! previous Xval in hysteresis
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
+
+    //! for vector version
+    //! note that we do not use the matrices below due to differen sorting at the moment
+    Vector<Double>* XpreviousVEC_;
+    Vector<Double>* YpreviousVEC_;
+
+    // dimension of hystersis: 1 = Preisach, 2,3 = VectorPreisach
+    // independent from SimplePreisach which uses dimVecHyst_
+    UInt dim_;
 
     Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
     Matrix<Double> vecYprevious_; //! previous Yval in hysteresis

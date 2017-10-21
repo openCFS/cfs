@@ -1,0 +1,6 @@
+#=============================================================================
+# * copy the files to the cfs bin dir
+#=============================================================================
+
+# copy data from install dir to the target.
+FILE(COPY "@mpfr_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

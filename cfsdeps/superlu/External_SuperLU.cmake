@@ -78,7 +78,7 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
+)
 
 # Since CMake may have problems with symlinks inside archives on Windows, we
 # have to unpack the archive using the GNU tar and gunzip utilities.
@@ -87,48 +87,24 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cfsdeps/superlu/superlu-download-untar.cmake.in"
   "${DLFN_UNTAR}"
   @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The superlu external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(superlu
-  PREFIX "${superlu_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${SUPERLU_MD5}
-  DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${DLFN_UNTAR}"
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  LIST_SEPARATOR "^"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
 )
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(superlu cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${superlu_prefix}
-)
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "superlu" "${SUPERLU_VER}")
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${superlu_prefix}")
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  superlu
-)
+SET(ZIPFROMCACHE "${superlu_prefix}/superlu-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-SET(SUPERLU_INCLUDE_DIR "${CFS_BINARY_DIR}/include/superlu")
+SET(ZIPTOCACHE "${superlu_prefix}/superlu-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-----------------------------------------------------------------------------
 # Determine paths of SuperLU libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(SUPERLU_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -143,5 +119,71 @@ ELSE()
 ENDIF()
 
 MARK_AS_ADVANCED(SUPERLU_LIBRARY)
+
+#-------------------------------------------------------------------------------
+# The superlu external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(superlu
+    PREFIX "${superlu_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(superlu
+    PREFIX "${superlu_prefix}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${SUPERLU_MD5}
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${DLFN_UNTAR}"
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    LIST_SEPARATOR "^"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${SUPERLU_LIBRARY}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(superlu cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${superlu_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(superlu cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  superlu
+)
+
+SET(SUPERLU_INCLUDE_DIR "${CFS_BINARY_DIR}/include/superlu")
 MARK_AS_ADVANCED(SUPERLU_INCLUDE_DIR)
 

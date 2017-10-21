@@ -2,6 +2,7 @@
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
+#include "PDE/MechPDE.hh"
 
 
 namespace CoupledField {
@@ -49,13 +50,25 @@ namespace CoupledField {
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(INVERSESOURCE, "inverseSource");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
+
+    MechPDE::testStrain.SetName("MechPDE::TestStrain");
+    MechPDE::testStrain.Add(MechPDE::X, "x");
+    MechPDE::testStrain.Add(MechPDE::Y, "y");
+    MechPDE::testStrain.Add(MechPDE::Z, "z");
+    MechPDE::testStrain.Add(MechPDE::YZ, "yz");
+    MechPDE::testStrain.Add(MechPDE::XZ, "xz");
+    MechPDE::testStrain.Add(MechPDE::XY, "xy");
+
   }
   
   std::map<FEMatrixType,Integer>  BasePDE::GetMatrixDerivativeMap(){
     std::map<FEMatrixType,Integer> retMap;
     retMap[MASS] = 2;
+    retMap[MASS_UPDATE] = 2;
     retMap[DAMPING] = 1;
+    retMap[DAMPING_UPDATE] = 1;
     retMap[STIFFNESS] = 0;
+    retMap[STIFFNESS_UPDATE] = 0;
     retMap[AUXILIARY] = 0;
     retMap[CONVECTION] = 0;
 

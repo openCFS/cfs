@@ -1,18 +1,18 @@
 #include <def_use_arpack.hh>
+#include <def_use_pardiso.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
 #include "generateEigensolver.hh"
-#include "BaseEigenSolver.hh"
 
+
+#include "BaseEigenSolver.hh"
 #ifdef USE_ARPACK
 #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
 
-
 namespace CoupledField {
-
 
   // *********************************
   //   Generate a EigenSolver object
@@ -24,7 +24,7 @@ namespace CoupledField {
                                               PtrParamNode precondList,
                                               PtrParamNode  eigenInfo ) {
     
-    BaseEigenSolver *retSolver = NULL;
+    BaseEigenSolver* retSolver = NULL;
 
     // Obtain current eigensolver id from strategy object and try
     // to find eigenSolver in xml list.
@@ -61,26 +61,22 @@ namespace CoupledField {
       EXCEPTION("Could not determine eigensolver!")
     }
 
-    BaseEigenSolver::EigenSolverType solver = BaseEigenSolver::NOEIGENSOLVER;
+    BaseEigenSolver::EigenSolverType solver = BaseEigenSolver::NO_EIGENSOLVER;
     solver = BaseEigenSolver::eigenSolverType.Parse(solverStr);
     
     // Branch depending on desired EigenSolver
-    switch( solver ) {
-
-#ifdef USE_ARPACK
+    switch(solver)
+    {
     case BaseEigenSolver::ARPACK:
-      retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
-      (*cla) << " GenerateEigenSolver: Generated ARPACK Eigensolver"
-             << std::endl;
-      break;
-#endif
-
-    case BaseEigenSolver::SUBSPACE:
-      EXCEPTION( "GenerateEigenSolver: Subsapce algorithm not yet supported.\n" );
+      #ifdef USE_ARPACK
+        retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
+      #else
+        EXCEPTION( "compiled without Arpack!" );
+      #endif
       break;
 
-      default:
-        EXCEPTION( "GenerateEigenSolver: Request for unknown solver type!" );
+    case BaseEigenSolver::NO_EIGENSOLVER:
+      assert(false);
     }
 
     return retSolver;

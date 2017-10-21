@@ -39,7 +39,7 @@ add_external_project(paraview
   DEPENDS_OPTIONAL
     # boost hdf5 qt zlib cgns
     cosmotools ffmpeg libxml3 manta matplotlib mpi numpy png python visitbridge silo
-    mesa osmesa nektarreader
+    mesa osmesa nektarreader qt4
     ${PV_EXTERNAL_PROJECTS}
 
   PATCH_COMMAND 
@@ -53,7 +53,7 @@ add_external_project(paraview
     -DPARAVIEW_BUILD_PLUGIN_CoProcessingScriptGenerator:BOOL=ON
     -DPARAVIEW_BUILD_PLUGIN_EyeDomeLighting:BOOL=ON
     -DPARAVIEW_BUILD_PLUGIN_MantaView:BOOL=${manta_ENABLED}
-    -DPARAVIEW_BUILD_QT_GUI:BOOL=${qt_ENABLED}
+    -DPARAVIEW_BUILD_QT_GUI:BOOL=${qt4_ENABLED}
     -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
     -DPARAVIEW_ENABLE_FFMPEG:BOOL=${ffmpeg_ENABLED}
     -DPARAVIEW_ENABLE_PYTHON:BOOL=${python_ENABLED}

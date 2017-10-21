@@ -19,6 +19,8 @@
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 #include "FeBasis/H1/H1ElemsLagVar.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
+
 namespace CoupledField {
 
 class FeSpaceL2Nodal : public FeSpaceL2 {
@@ -100,6 +102,9 @@ public:
         
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
+
+    //! Thread Local cache for reference elements
+    std::map< RegionIdType, TLMap<Elem::FEType, FeH1* > > TL_RefElems_;
 };
 
 }

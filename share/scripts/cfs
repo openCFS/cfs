@@ -28,6 +28,26 @@ for param in "$@"; do
     fi
 done
 
+# check for the -t parameter
+t_arg_next=0
+for arg in $@; do
+    # if we had -t|-numThreads before
+    if [ "$t_arg_next" -eq "1" ]; then
+        CFS_THREADS=$arg
+	break
+    fi
+    # analyze argument: -t n | --numThreads n | --numThreads=n
+    if expr "$arg" : '^-t$\|^--numThreads$' >/dev/null; then
+	t_arg_next=1; # read next arg
+    elif expr "$arg" : '^--numThreads=[0-9]\+$' >/dev/null; then
+        CFS_THREADS=$(echo $arg | sed 's/^.\+=//')
+	break
+    elif expr "$arg" : '^-t[0-9]\+$' > /dev/null; then
+        CFS_THREADS=$(echo $arg | sed 's/^-t//')
+	break
+    fi
+done
+
 if [ ! "$REV" = "" ]; then
     ANSYS_REV="v$REV"
 fi
@@ -151,6 +171,7 @@ MINGW=0
 if [ ! -e $CFS_EXE ]; then
   
   for arch in "X86_64" "I386"; do
+    if [[ -e $CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsbin.exe ]]; then
       CFS_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsbin.exe"
       if [ -e $CFS_EXE ]; then
 	  ARCH=$arch
@@ -158,6 +179,7 @@ if [ ! -e $CFS_EXE ]; then
 	  MINGW=1;
 	  break;
       fi
+    fi
   done
 fi
 
@@ -232,10 +254,21 @@ if [ "$OS" = "LINUX" ]; then
     fi
 fi
 
-# Check if OMP_NUM_THREADS has been previously set and set it to 1 if not.
+
+# check if CFS_THREADS has been set (and set to 1 otherwise)
+if [ -z $CFS_THREADS ]; then
+    CFS_THREADS=1
+fi
+
+# Check if OMP_NUM_THREADS has been previously set and set it to CFS_THREADS (-t X) if not.
 if [ "$OMP_NUM_THREADS" = "" ]
 then
-    OMP_NUM_THREADS=1
+    OMP_NUM_THREADS=$CFS_THREADS
+else
+    if [ $OMP_NUM_THREADS != $CFS_THREADS ]
+    then
+        echo "Warning: OMP_NUM_THREADS (=${OMP_NUM_THREADS}) does not match with the intended cli parameter (=${CFS_THREADS})"
+    fi
 fi
 
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
@@ -245,11 +278,15 @@ fi
 
 export OMP_NUM_THREADS
 
-# Check if MKL_NUM_THREADS has been previously set and set it to
-# OMP_NUM_THREADS if not.
+# Check if MKL_NUM_THREADS has been previously set and set it to CFS_THREADS (-t X) if not.
 if [ "$MKL_NUM_THREADS" = "" ]
 then 
-    MKL_NUM_THREADS=$OMP_NUM_THREADS
+    MKL_NUM_THREADS=$CFS_THREADS
+else
+    if [ $MKL_NUM_THREADS != $CFS_THREADS ]
+    then
+        echo "Warning: MKL_NUM_THREADS (=${MKL_NUM_THREADS}) does not match with the intended cli parameter (=${CFS_THREADS})"
+    fi
 fi
 
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]

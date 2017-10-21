@@ -85,7 +85,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LDLSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -134,17 +134,6 @@ namespace CoupledField {
                  << "We only solve problems with n > 2!");
       }
 
-      // Logging
-      bool logging = false;
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << " LDLSOLVER::SETUP\n Factorisation of a "
-               << scrsMat.GetNumRows() << " x " << scrsMat.GetNumCols()
-               << " matrix (nnz = " << scrsMat.GetNnz() << ")"
-               << std::endl;
-      }
-
       // TODO: newMatrixPattern was previously only set to false in olasparams.cc
       // and never changed. Is it really necessary? Investigate further!
       bool newMatrixPattern = false;
@@ -159,11 +148,6 @@ namespace CoupledField {
         delete [] ( dataU_ );  dataU_  = NULL;
         delete [] ( cidxU_ );  cidxU_  = NULL;
         delete [] ( rptrU_ );  rptrU_  = NULL;
-
-        // Pretty-printing
-        if ( logging ) {
-          (*cla) << '\n';
-        }
 
         // Perform analysis
         Analyse( scrsMat );
@@ -203,9 +187,6 @@ namespace CoupledField {
       }
 
       // Now trigger factorisation
-      if ( logging ) {
-        (*cla) << '\n';
-      }
       Factorise( scrsMat );
       amFactorised_ = true;
 
@@ -234,12 +215,6 @@ namespace CoupledField {
       if( saveFacToFile &&  (!savePatternOnly) ) {
         ExportFactorisation( facFileName.c_str(), false );
       }
-
-      // finish log report
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n" << std::endl;
-      }
   }
 
 
@@ -249,10 +224,7 @@ namespace CoupledField {
   template<typename T>
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
                             const BaseVector  &rhs,
-                            BaseVector &sol, PtrParamNode analysis_step ) {
-
-
-    bool logging = false;
+                            BaseVector &sol ) {
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
@@ -264,14 +236,6 @@ namespace CoupledField {
     const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
     Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
     
-      // Logging
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << " LDLSOLVER::SOLVE: Solving a problem with "
-               << sysMat.GetNumCols() << " unknowns" << std::endl;
-      }
-
       this->SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
                       &(dataD_[0]), mySol, myRHS, sysMatDim_ );
 
@@ -294,24 +258,6 @@ namespace CoupledField {
         // Reset number of iterations after refinement
         itRefSteps_ = numSteps;
       }
-
-      // Logging
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << std::endl;
-      }
-
-    // Generate Report
-
-    // Now this currently is of dubious value, since the two things queried
-    // from olasReport are actually meaningless in the context of a direct
-    // solver. Nevertheless we supply some values for consistency
-    if( logging ) {
-      PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
-      out->Get("numIter")->SetValue(-1);
-      out->Get("finalNorm")->SetValue(-1.0);
-    }
 
   }
 
@@ -339,14 +285,6 @@ namespace CoupledField {
     Integer *auxVec = new Integer[nCols+1];
     ASSERTMEM( auxVec, sizeof( Integer ) * nCols );
     UInt auxVecNumEntries = 0;
-
-    // =================
-    //  Report start-up
-    // =================
-    bool logging = false;
-    if ( logging ) {
-      (*cla) << " Phase: ANALYSE" << std::endl;
-    }
 
 #ifdef DEBUG_LDLSOLVER_ANALYSE
     (*debug) << " LDLSOLVER:\n Phase: ANALYSE\n" << std::endl;
@@ -391,12 +329,6 @@ namespace CoupledField {
     (*debug) << " Factor (L + D) will contain " << profile << " entries"
              << " (at most)" << std::endl;
 #endif
-
-    // Report
-    if ( logging ) {
-      (*cla) << " Factor (L + D) can at most contain " << profile
-             << " entries" << std::endl;
-    }
 
     // ============================================
     //  Memory Allocation (Phase 1):
@@ -464,7 +396,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    (*cla) << " Fill-pattern analysis done:\n" << " 0%" << std::flush;
 
     // ----------------------------------------
     //  main loop for determining fill-pattern
@@ -479,7 +410,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
       // Determine number of non-zero entries in this row
@@ -636,35 +566,10 @@ namespace CoupledField {
     // array explicitely
     rptrU_[sysMatDim_] = rptrU_[sysMatDim_-1];
 
-    // Finish logging progress
-    if ( percentDone < 100 ) {
-      (*cla) << " .. 100%\n";
-      
-    }
-
     // ============================================
     //  Memory Allocation (Phase 2):
     // ============================================
 
-    // Report
-    if ( logging ) {
-      (*cla) << " Factor (L + D) contains "
-             << rptrU_[sysMatDim_] + sysMatDim_
-             << " entries" << std::endl;
-
-      // Compute required memory in GByte
-      Double memReq = 0;
-      memReq  = rptrU_[sysMatDim_] + sysMatDim_;
-      memReq *= sizeof(T) + sizeof(UInt);
-      memReq += (sysMatDim_ + 1) * sizeof(UInt);
-      memReq /= 1024 * 1024 * 1024;
-      (*cla) << " Storage will require "
-             << std::fixed << memReq << " GByte" << std::endl;
-
-      cla->unsetf( std::ios_base::fixed );
-      cla->flush();
-    }
- 
     // Now we know how many entries the pattern will have, so we can
     // do the final allocation
     NEWARRAY( cidxU_, UInt, rptrU_[sysMatDim_] );
@@ -686,10 +591,6 @@ namespace CoupledField {
         cidxU_[k+j] = auxPtr[j];
       }
     }
-
-    // Finish logging
-    (*cla) << std::endl;
-
 
     // ================
     //  Export pattern
@@ -750,14 +651,6 @@ namespace CoupledField {
     UInt k, i, j, numOffD;
     T elim;
 
-    // =================
-    //  Report start-up
-    // =================
-    bool logging = false;
-    if ( logging ) {
-      (*cla) << " Phase: FACTORISE" << std::endl;
-    }
-
 #ifdef DEBUG_LDLSOLVER_FACTORISE
     (*debug) << " LDLSOLVER:\n Phase: FACTORISE\n" << std::endl;
 #endif
@@ -765,7 +658,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    (*cla) << " Numerical factorisation done:\n" << " 0%" << std::flush;
 
     // ==================
     //  Get Matrix Info
@@ -885,7 +777,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
       // Copy k-th row of A into dense vector (omitting diagonal)
@@ -1175,16 +1066,6 @@ namespace CoupledField {
       (*debug) << std::endl;
 #endif
     }
-
-    // ============
-    //   Clean-up
-    // ============
-
-    // Finish logging to las-file
-    if ( percentDone < 100 ) {
-      (*cla) << " .. 100%";
-    }
-    (*cla) << std::endl;
 
   }
 

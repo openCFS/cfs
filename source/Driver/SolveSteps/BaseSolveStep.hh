@@ -10,8 +10,6 @@ namespace CoupledField
 {
 
   class BaseDriver;
-  class InfoNode;
-  class AdjointParameters;
 
   //! Base class for solution of a single step
 
@@ -29,11 +27,8 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic( ) = 0;
     
-    /** base method for solving one static step 
-     * @param analysis_id references the "base" analysis step. 
-     *        is the the info/OLAS/process/step element and required the attribute
-     *        "analysis_id" to be set!. In the non-lin case subelements are created. */
-    virtual void SolveStepStatic(PtrParamNode analysis_id) = 0;
+    /** base method for solving one static step */
+    virtual void SolveStepStatic() = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -46,9 +41,8 @@ namespace CoupledField
     // neede in case of FSI-Iterative-Coupling
     //virtual void PredictorStep() = 0;
 
-    /** base method for solving one transient step
-     * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepTrans(PtrParamNode analysis_id) = 0;
+    /** base method for solving one transient step */
+    virtual void SolveStepTrans() = 0;
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
@@ -66,34 +60,31 @@ namespace CoupledField
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepHarmonic() = 0;
 
-    /** base method for solving one harmonic step
-     * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id) = 0;
+    /** base method for solving one harmonic step */
+    virtual void SolveStepHarmonic() = 0;
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;
 
     //----------------------- HARMONIC ---------------------------------------
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
-    virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies,
-                                       Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift ) {
+    virtual UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds,
+                                       UInt numFreq, double shift, bool sort) {
       EXCEPTION( "Not implemented her!");
       return 0;
     }
 
     /** Calculate the Eigenfrequencies of a quadratic eigenvalue problem
     @param bloch quadratic problem or bloch modes */
-    virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
-                                       Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift, bool bloch) {
+    virtual UInt CalcEigenFrequencies( Vector<Complex>& frequencies, Vector<Double>& errBounds,
+                                       UInt numFreq, double shift, bool sort, bool bloch) {
       EXCEPTION( "Not implemented here!" );
       return 0;
     }
     
-    //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
+    //! extract the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
-    virtual void CalcEigenMode( UInt numMode ) {
+    virtual void GetEigenMode( UInt numMode ) {
       EXCEPTION( "Not implemented here!" );
     }
 
@@ -158,6 +149,11 @@ namespace CoupledField
       couplingIter_ = count;
     }
     
+    //! if AMG is used, the auxiliary matrix only needs to be assembled once
+    void SetAuxMat(bool set) {
+    	auxSet_ = set;
+    }
+
     //! set adjoint
     void SetAdjointSource() {
     	adjointSource_ = true;
@@ -188,8 +184,12 @@ namespace CoupledField
     //! Counter for iterative coupling
     UInt couplingIter_;
 
+    //! if AMG is used, is auxiliary built?
+    bool auxSet_;
+
     //!
     bool adjointSource_;
+
   };
 
 

@@ -20,8 +20,14 @@ public:
   //! Constructor
   FeHCurlHi( Elem::FEType feType  );
 
+  //! Copy Constructor
+  FeHCurlHi(const FeHCurlHi & other);
+
   //! Destructor
   virtual ~FeHCurlHi();
+
+  //! Deep Copy
+  virtual FeHCurlHi* Clone() = 0;
 
   //! Set Usage of only lowest order functions
   void SetOnlyLowestOrder( bool flag);
@@ -34,14 +40,14 @@ public:
                    EntityType fctEntityType,
                    UInt dof = 1 );
   
-  //! This holds only for line, quad and hex,
-  //! if other types are available the has to be re-implemented!
+  //! This holds only for line,quad and hex,
+  //! if other types are available the has to be reimplemented!
   //! Get the permutation Vector for a given Face or Edge
   //! e.g. If asked for a face, the element will check the flags
   //! of this face and return a vector of size NumberOfFncs on the Face
   //! holding the correct ordering 
   /*!
-  \param fncPermutation (output) The Permutation Vector 
+  \param fncPermutation (output) The Permuation Vector 
   \param ptElem (input) pointer to Grid Element to get grip of flags 
   \param fctEntityType (input) The Entity type, Node/Edge/Face where the 
   nodes are located at
@@ -65,7 +71,7 @@ public:
   //! \copydoc BaseFE::GetAnsiOrder
   virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
   
-  //! Compare two elements for equality (= same shape and approximation);
+  //! Compare two element for equality (= same shape and approximation);
   bool operator==( const FeHCurlHi& comp) const;
   
   //! Set general usage of gradient shape functions
@@ -109,7 +115,6 @@ protected:
   //! Flag if gradient shape functions are used in interior
   bool useInteriorGrad_;
   //@}
-
 };
 
 
@@ -121,24 +126,42 @@ public:
   //! Constructor
   FeHCurlHiTria();
 
+  //! Copy Constructor
+  FeHCurlHiTria(const FeHCurlHiTria & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiTria* Clone(){
+    return new FeHCurlHiTria(*this);
+  }
+
   //! Destructor
   virtual ~FeHCurlHiTria();
 
-  //! @copydoc FeHCurl::CalcLocShFnc
-  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                     const Elem* elem, UInt comp = 1 );
 
-  //! @copydoc FeHCurl::CalcLocCurlShFnc
-  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+  //! Return HCurl shape functions
+  virtual void GetShFnc( Matrix<Double>& shape,
+                         const LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl,
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl,
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+
 protected:
   
   //! Calculate number of unknowns
   void CalcNumUnknowns();
   
 };
-
-
 
 
 //! HCurl conforming hierarchical higher order quadrilateral element
@@ -149,16 +172,34 @@ public:
   //! Constructor
   FeHCurlHiQuad();
 
+  //! Copy Constructor
+  FeHCurlHiQuad(const FeHCurlHiQuad & other)
+    : FeHCurlHi(other){
+  }
+
   //! Destructor
   virtual ~FeHCurlHiQuad();
 
-  //! @copydoc FeHCurl::CalcLocShFnc
-  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                     const Elem* elem, UInt comp = 1 );
+  //! Create deep copy
+  virtual FeHCurlHiQuad* Clone(){
+    return new FeHCurlHiQuad(*this);
+  }
 
-  //! @copydoc FeHCurl::CalcLocCurlShFnc
-  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
 protected:
   
   //! Calculate number of unknowns
@@ -167,32 +208,10 @@ protected:
 };
 
 
-//! HCurl conforming hierarchical higher order wedge element
-class  FeHCurlHiWedge : public FeHCurlHi {
 
-public:
-
-  //! Constructor
-  FeHCurlHiWedge();
-
-  //! Destructor
-  virtual ~FeHCurlHiWedge();
-
-  //! @copydoc FeHCurl::CalcLocShFnc
-  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                     const Elem* elem, UInt comp = 1 );
-
-  //! @copydoc FeHCurl::CalcLocCurlShFnc
-  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
-                         const Elem* elem, UInt comp = 1 );
-
-protected:
-
-  //! Calculate number of unknowns
-  void CalcNumUnknowns();
-};
-
-
+// ============
+//  HEXAHEDRAL 
+// ============
 
 //! HCurl conforming hierarchical higher order hexahedral element
 class  FeHCurlHiHex : public FeHCurlHi {
@@ -201,6 +220,16 @@ public:
 
   //! Constructor
   FeHCurlHiHex();
+
+  //! Copy Constructor
+  FeHCurlHiHex(const FeHCurlHiHex & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiHex* Clone(){
+    return new FeHCurlHiHex(*this);
+  }
 
   //! Destructor
   virtual ~FeHCurlHiHex();
@@ -236,6 +265,52 @@ protected:
 };
 
 // =======
+//  WEDGE
+// =======
+//! HCurl conforming hierarchical higher order wedge / prismatic element
+class  FeHCurlHiWedge : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiWedge();
+
+  //! Copy Constructor
+  FeHCurlHiWedge(const FeHCurlHiWedge & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiWedge* Clone(){
+    return new FeHCurlHiWedge(*this);
+  }
+
+
+  //! Destructor
+  virtual ~FeHCurlHiWedge();
+
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+protected:
+
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+};
+
+// =======
 //  TET  
 // =======
 //! HCurl conforming hierarchical higher order tetrahedral element
@@ -245,6 +320,16 @@ public:
 
   //! Constructor
   FeHCurlHiTet();
+
+  //! Copy Constructor
+  FeHCurlHiTet(const FeHCurlHiTet & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiTet* Clone(){
+    return new FeHCurlHiTet(*this);
+  }
 
   //! Destructor
   virtual ~FeHCurlHiTet();
@@ -270,6 +355,51 @@ protected:
   void CalcNumUnknowns();
 };
 
+
+// =======
+//  PYRA
+// =======
+//! HCurl conforming hierarchical higher order pyramidal element
+class  FeHCurlHiPyra : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiPyra();
+
+  //! Copy Constructor
+  FeHCurlHiPyra(const FeHCurlHiPyra & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiPyra* Clone(){
+    return new FeHCurlHiPyra(*this);
+  }
+
+  //! Destructor
+  virtual ~FeHCurlHiPyra();
+
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+protected:
+
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+};
 
 } // namespace
 

@@ -8,7 +8,10 @@
 %% 
 %% This is a generated file.
 %% 
-%% Copyright (C) 2009, 2010 by
+%% Project: ltxcmds
+%% Version: 2011/11/09 v1.22
+%% 
+%% Copyright (C) 2009-2011 by
 %%    Heiko Oberdiek <heiko.oberdiek at googlemail.com>
 %% 
 %% This work may be distributed and/or modified under the
@@ -31,16 +34,23 @@
 %% This work consists of the main source file ltxcmds.dtx
 %% and the derived files
 %%    ltxcmds.sty, ltxcmds.pdf, ltxcmds.ins, ltxcmds.drv,
-%%    ltxcmds-test1.tex.
+%%    ltxcmds-test1.tex, ltxcmds-test-gobble.tex,
+%%    ltxcmds-test-ifempty.tex, ltxcmds-test-zapspace.tex,
+%%    ltxcmds-test-ifboxempty.tex, ltxcmds-test-nextchar.tex,
+%%    ltxcmds-test-carcdr.tex.
 %% 
-\begingroup
-  \catcode44 12 % ,
-  \catcode45 12 % -
-  \catcode46 12 % .
-  \catcode58 12 % :
-  \catcode64 11 % @
-  \catcode123 1 % {
-  \catcode125 2 % }
+\begingroup\catcode61\catcode48\catcode32=10\relax%
+  \catcode13=5 % ^^M
+  \endlinechar=13 %
+  \catcode35=6 % #
+  \catcode39=12 % '
+  \catcode44=12 % ,
+  \catcode45=12 % -
+  \catcode46=12 % .
+  \catcode58=12 % :
+  \catcode64=11 % @
+  \catcode123=1 % {
+  \catcode125=2 % }
   \expandafter\let\expandafter\x\csname ver@ltxcmds.sty\endcsname
   \ifx\x\relax % plain-TeX, first loading
   \else
@@ -48,7 +58,6 @@
     \ifx\x\empty % LaTeX, first loading,
       % variable is initialized, but \ProvidesPackage not yet seen
     \else
-      \catcode35 6 % #
       \expandafter\ifx\csname PackageInfo\endcsname\relax
         \def\x#1#2{%
           \immediate\write-1{Package #1 Info: #2.}%
@@ -60,21 +69,24 @@
       \aftergroup\endinput
     \fi
   \fi
-\endgroup
-\begingroup
-  \catcode35 6 % #
-  \catcode40 12 % (
-  \catcode41 12 % )
-  \catcode44 12 % ,
-  \catcode45 12 % -
-  \catcode46 12 % .
-  \catcode47 12 % /
-  \catcode58 12 % :
-  \catcode64 11 % @
-  \catcode91 12 % [
-  \catcode93 12 % ]
-  \catcode123 1 % {
-  \catcode125 2 % }
+\endgroup%
+\begingroup\catcode61\catcode48\catcode32=10\relax%
+  \catcode13=5 % ^^M
+  \endlinechar=13 %
+  \catcode35=6 % #
+  \catcode39=12 % '
+  \catcode40=12 % (
+  \catcode41=12 % )
+  \catcode44=12 % ,
+  \catcode45=12 % -
+  \catcode46=12 % .
+  \catcode47=12 % /
+  \catcode58=12 % :
+  \catcode64=11 % @
+  \catcode91=12 % [
+  \catcode93=12 % ]
+  \catcode123=1 % {
+  \catcode125=2 % }
   \expandafter\ifx\csname ProvidesPackage\endcsname\relax
     \def\x#1#2#3[#4]{\endgroup
       \immediate\write-1{Package: #3 #4}%
@@ -93,58 +105,179 @@
   \fi
 \expandafter\x\csname ver@ltxcmds.sty\endcsname
 \ProvidesPackage{ltxcmds}%
-  [2010/03/09 v1.4 LaTeX kernel commands for general use (HO)]
-\begingroup
-  \catcode123 1 % {
-  \catcode125 2 % }
+  [2011/11/09 v1.22 LaTeX kernel commands for general use (HO)]%
+\begingroup\catcode61\catcode48\catcode32=10\relax%
+  \catcode13=5 % ^^M
+  \endlinechar=13 %
+  \catcode123=1 % {
+  \catcode125=2 % }
+  \catcode64=11 % @
   \def\x{\endgroup
     \expandafter\edef\csname LTXcmds@AtEnd\endcsname{%
-      \catcode35 \the\catcode35\relax
-      \catcode64 \the\catcode64\relax
-      \catcode123 \the\catcode123\relax
-      \catcode125 \the\catcode125\relax
+      \endlinechar=\the\endlinechar\relax
+      \catcode13=\the\catcode13\relax
+      \catcode32=\the\catcode32\relax
+      \catcode35=\the\catcode35\relax
+      \catcode61=\the\catcode61\relax
+      \catcode64=\the\catcode64\relax
+      \catcode123=\the\catcode123\relax
+      \catcode125=\the\catcode125\relax
     }%
   }%
-\x
-\catcode35 6 % #
-\catcode64 11 % @
-\catcode123 1 % {
-\catcode125 2 % }
+\x\catcode61\catcode48\catcode32=10\relax%
+\catcode13=5 % ^^M
+\endlinechar=13 %
+\catcode35=6 % #
+\catcode64=11 % @
+\catcode123=1 % {
+\catcode125=2 % }
 \def\TMP@EnsureCode#1#2{%
   \edef\LTXcmds@AtEnd{%
     \LTXcmds@AtEnd
-    \catcode#1 \the\catcode#1\relax
+    \catcode#1=\the\catcode#1\relax
   }%
-  \catcode#1 #2\relax
+  \catcode#1=#2\relax
 }
+\TMP@EnsureCode{36}{3}% $
+\TMP@EnsureCode{38}{4}% &
 \TMP@EnsureCode{40}{12}% (
 \TMP@EnsureCode{41}{12}% )
 \TMP@EnsureCode{45}{12}% -
 \TMP@EnsureCode{46}{12}% .
 \TMP@EnsureCode{47}{12}% /
 \TMP@EnsureCode{60}{12}% <
-\TMP@EnsureCode{61}{12}% =
 \TMP@EnsureCode{62}{12}% >
 \TMP@EnsureCode{91}{12}% [
 \TMP@EnsureCode{96}{12}% `
 \TMP@EnsureCode{93}{12}% ]
 \TMP@EnsureCode{94}{12}% ^ (superscript) (!)
 \TMP@EnsureCode{124}{12}% |
+\edef\LTXcmds@AtEnd{\LTXcmds@AtEnd\noexpand\endinput}
 \chardef\ltx@zero=0 %
 \chardef\ltx@one=1 %
 \chardef\ltx@two=2 %
+\chardef\ltx@active=13 %
 \chardef\ltx@cclv=255 %
+\def\ltx@minusone{%
+  -\ltx@one
+}
+\toksdef\ltx@LocToksA=0 %
+\toksdef\ltx@LocToksB=2 %
+\toksdef\ltx@LocToksC=4 %
+\toksdef\ltx@LocToksD=6 %
+\toksdef\ltx@LocToksE=8 %
+\toksdef\ltx@GlobToksA=1 %
+\toksdef\ltx@GlobToksB=3 %
+\toksdef\ltx@GlobToksC=5 %
+\toksdef\ltx@GlobToksD=7 %
+\toksdef\ltx@GlobToksE=9 %
+\dimendef\ltx@LocDimenA=0 %
+\dimendef\ltx@LocDimenB=2 %
+\dimendef\ltx@LocDimenC=4 %
+\dimendef\ltx@LocDimenD=6 %
+\dimendef\ltx@LocDimenE=8 %
+\dimendef\ltx@GlobDimenA=1 %
+\dimendef\ltx@GlobDimenB=3 %
+\dimendef\ltx@GlobDimenC=5 %
+\dimendef\ltx@GlobDimenD=7 %
+\dimendef\ltx@GlobDimenE=9 %
+\skipdef\ltx@LocSkipA=0 %
+\skipdef\ltx@LocSkipB=2 %
+\skipdef\ltx@LocSkipC=4 %
+\skipdef\ltx@LocSkipD=6 %
+\skipdef\ltx@LocSkipE=8 %
+\skipdef\ltx@GlobSkipA=1 %
+\skipdef\ltx@GlobSkipB=3 %
+\skipdef\ltx@GlobSkipC=5 %
+\skipdef\ltx@GlobSkipD=7 %
+\skipdef\ltx@GlobSkipE=9 %
 \long\def\ltx@gobble#1{}
 \long\def\ltx@gobbletwo#1#2{}
 \long\def\ltx@gobblethree#1#2#3{}
 \long\def\ltx@gobblefour#1#2#3#4{}
+\def\ltx@GobbleNum#1{%
+  \romannumeral
+  \csname ltx@zero%
+  \expandafter\LTXcmds@GobbleNum
+  \romannumeral\LTXcmds@num{#1}000{m\endcsname}%
+}
+\def\LTXcmds@GobbleNum#1{%
+  \csname LTXcmds@G#1\LTXcmds@GobbleNum
+}
+\long\def\LTXcmds@Gm#1{%
+  \endcsname
+}
 \long\def\ltx@firstofone#1{#1}
 \long\def\ltx@firstoftwo#1#2{#1}
 \long\def\ltx@secondoftwo#1#2{#2}
+\long\def\ltx@firstofthree#1#2#3{#1}
+\long\def\ltx@secondofthree#1#2#3{#2}
+\long\def\ltx@thirdofthree#1#2#3{#3}%
+\long\def\ltx@firstoffour#1#2#3#4{#1}
+\long\def\ltx@secondoffour#1#2#3#4{#2}
+\long\def\ltx@thirdoffour#1#2#3#4{#3}%
+\long\def\ltx@fourthoffour#1#2#3#4{#4}%
+\long\def\ltx@carzero#1\@nil{}%
+\long\def\LTXcmds@cdrzero#1\@nil{#1}
+\def\ltx@cdrzero{%
+  \romannumeral\LTXcmds@cdrzero\ltx@zero
+}
 \long\def\ltx@car#1#2\@nil{#1}
-\long\def\ltx@cdr#1#2\@nil{#2}
-\long\def\ltx@ReturnAfterFi#1\fi{#1}
-\long\def\ltx@ReturnAfterFi#1\else#2\fi{#1}
+\long\def\ltx@cdr#1{%
+  \romannumeral\LTXcmds@cdrzero\ltx@zero
+}
+\long\def\ltx@cartwo#1#2#3\@nil{#1#2}
+\long\def\ltx@carsecond#1#2#3\@nil{#2}
+\long\def\ltx@cdrtwo#1#2{%
+  \romannumeral\LTXcmds@cdrzero\ltx@zero
+}
+\long\def\ltx@carthree#1#2#3#4\@nil{#1#2#3}
+\long\def\ltx@carthird#1#2#3#4\@nil{#3}
+\long\def\ltx@cdrthree#1#2#3{%
+  \romannumeral\LTXcmds@cdrzero\ltx@zero
+}
+\long\def\ltx@carfour#1#2#3#4#5\@nil{#1#2#3#4}
+\long\def\ltx@carfourth#1#2#3#4#5\@nil{#4}
+\long\def\ltx@cdrfour#1#2#3#4{%
+  \romannumeral\LTXcmds@cdrzero\ltx@zero
+}
+\def\ltx@CarNum#1{%
+  \romannumeral
+  \csname LTXcmds@CarNumFinish%
+  \expandafter\LTXcmds@CarNum
+  \romannumeral\LTXcmds@num{#1}000{x\endcsname}%
+}
+\def\LTXcmds@CarNum#1{%
+  \csname LTXcmds@C#1\LTXcmds@CarNum
+}
+\long\def\LTXcmds@Cm#1#2{%
+  \endcsname{#1#2}%
+}
+\def\LTXcmds@Cx#1{%
+  \endcsname{}%
+}
+\long\def\LTXcmds@CarNumFinish#1#2\@nil{%
+  \ltx@zero
+  #1%
+}
+\def\ltx@CarNumth#1{%
+  \romannumeral
+  \expandafter\expandafter\expandafter
+  \LTXcmds@CarNumth
+  \ltx@GobbleNum{#1}{}%
+}
+\long\def\LTXcmds@CarNumth#1#2\@nil{%
+  \ltx@zero
+  #1%
+}
+\def\ltx@CdrNum#1{%
+  \romannumeral%
+  \expandafter\expandafter\expandafter\ltx@cdrzero
+  \expandafter\expandafter\expandafter\ltx@zero
+  \ltx@GobbleNum{#1}%
+}
+\long\def\ltx@ReturnAfterFi#1\fi{\fi#1}
+\long\def\ltx@ReturnAfterElseFi#1\else#2\fi{\fi#1}
 \def\ltx@empty{}
 \def\ltx@space{ }
 \begingroup
@@ -156,6 +289,21 @@
   \lccode`0=`\\\relax
 \lowercase{\endgroup
   \def\ltx@backslashchar{0}%
+}
+\begingroup
+  \lccode`0=`\#\relax
+\lowercase{\endgroup
+  \def\ltx@hashchar{0}%
+}
+\begingroup
+  \lccode`0=`\{\relax
+\lowercase{\endgroup
+  \def\ltx@leftbracechar{0}%
+}
+\begingroup
+  \lccode`0=`\}\relax
+\lowercase{\endgroup
+  \def\ltx@rightbracechar{0}%
 }
 \def\ltx@newif#1{%
   \begingroup
@@ -174,6 +322,29 @@
   }%
   \expandafter\edef\csname#1false\endcsname{%
     \let
+    \expandafter\noexpand\csname if#1\endcsname
+    \noexpand\iffalse
+  }%
+  \csname#1false\endcsname
+}
+\def\ltx@newglobalif#1{%
+  \begingroup
+    \escapechar=-1 %
+  \expandafter\endgroup
+  \expandafter\LTXcmds@newglobalif\string#1\@nil
+}
+\begingroup
+  \escapechar=-1 %
+\expandafter\endgroup
+\expandafter
+\def\expandafter\LTXcmds@newglobalif\string\if#1\@nil{%
+  \expandafter\edef\csname#1true\endcsname{%
+    \global\let
+    \expandafter\noexpand\csname if#1\endcsname
+    \noexpand\iftrue
+  }%
+  \expandafter\edef\csname#1false\endcsname{%
+    \global\let
     \expandafter\noexpand\csname if#1\endcsname
     \noexpand\iffalse
   }%
@@ -224,6 +395,12 @@
 \def\ltx@StripPrefix{%
   \expandafter\ltx@RemovePrefix
 }
+\def\ltx@onelevel@sanitize#1{%
+  \edef#1{%
+    \expandafter
+    \ltx@RemovePrefix\meaning#1%
+  }%
+}
 \def\ltx@clsextension{cls}
 \def\ltx@pkgextension{sty}
 \def\ltx@iffileloaded#1{%
@@ -268,7 +445,7 @@
   \fi
 }
 \def\ltx@ifclasslater#1{%
-  \ltx@ifclasslater{#1.\ltx@clsextension}%
+  \ltx@iffilelater{#1.\ltx@clsextension}%
 }
 \def\ltx@ifpackagelater#1{%
   \ltx@iffilelater{#1.\ltx@pkgextension}%
@@ -296,7 +473,7 @@
     \fi
   }%
 }
-\def\ltx@GlobalAppendToMacro#1#2{%
+\long\def\ltx@GlobalAppendToMacro#1#2{%
   \ifx\ltx@undefined#1%
     \let#1\ltx@empty
   \else
@@ -305,11 +482,11 @@
     \fi
   \fi
   \begingroup
-    \toks0\expandafter{#1#2}%
-    \xdef#1{\the\toks0}%
+    \ltx@LocToksA\expandafter{#1#2}%
+    \xdef#1{\the\ltx@LocToksA}%
   \endgroup
 }
-\def\ltx@LocalAppendToMacro#1#2{%
+\long\def\ltx@LocalAppendToMacro#1#2{%
   \global\let\LTXcmds@gtemp#1%
   \ifx\ltx@undefined\LTXcmds@gtemp
     \global\let\LTXcmds@gtemp\ltx@empty
@@ -319,43 +496,252 @@
     \fi
   \fi
   \begingroup
-    \toks0\expandafter{\LTXcmds@gtemp#2}%
-    \xdef\LTXcmds@gtemp{\the\toks0}%
+    \ltx@LocToksA\expandafter{\LTXcmds@gtemp#2}%
+    \xdef\LTXcmds@gtemp{\the\ltx@LocToksA}%
+  \endgroup
+  \let#1\LTXcmds@gtemp
+}
+\long\def\ltx@GlobalPrependToMacro#1#2{%
+  \ifx\ltx@undefined#1%
+    \let#1\ltx@empty
+  \else
+    \ifx\relax#1%
+      \let#1\ltx@empty
+    \fi
+  \fi
+  \begingroup
+    \ltx@LocToksA{#2}%
+    \ltx@LocToksB\expandafter{#1}%
+    \xdef#1{\the\ltx@LocToksA\the\ltx@LocToksB}%
+  \endgroup
+}
+\long\def\ltx@LocalPrependToMacro#1#2{%
+  \global\let\LTXcmds@gtemp#1%
+  \ifx\ltx@undefined\LTXcmds@gtemp
+    \global\let\LTXcmds@gtemp\ltx@empty
+  \else
+    \ifx\relax\LTXcmds@gtemp
+      \global\letLTXcmds@gtemp\ltx@empty
+    \fi
+  \fi
+  \begingroup
+    \ltx@LocToksA{#2}%
+    \ltx@LocToksB\expandafter{\LTXcmds@gtemp}%
+    \xdef\LTXcmds@gtemp{\the\ltx@LocToksA\the\ltx@LocToksB}%
   \endgroup
   \let#1\LTXcmds@gtemp
 }
 \long\def\ltx@ifnextchar#1#2#3{%
   \begingroup
   \let\LTXcmds@CharToken= #1\relax
-  \toks\ltx@zero{#2}%
-  \toks\ltx@two{#3}%
+  \ltx@LocToksA{\endgroup#2}%
+  \ltx@LocToksB{\endgroup#3}%
   \futurelet\LTXcmds@LetToken\LTXcmds@ifnextchar
 }
 \def\LTXcmds@ifnextchar{%
   \ifx\LTXcmds@LetToken\LTXcmds@CharToken
-    \expandafter\endgroup\the\toks\expandafter\ltx@zero
+    \the\expandafter\ltx@LocToksA
   \else
-    \ifx\LTXcmds@LetToken\LTXcmds@SpaceToken
+    \expandafter
+      \ifx\csname LTXcmds@LetToken\endcsname\LTXcmds@SpaceToken
       \expandafter\expandafter\expandafter\LTXcmds@@ifnextchar
     \else
-      \expandafter\endgroup\the\toks
-      \expandafter\expandafter\expandafter\ltx@two
+      \the\expandafter\expandafter\expandafter\ltx@LocToksB
     \fi
   \fi
 }
-\begingroup
-  \def\x#1{\endgroup
-    \def\LTXcmds@@ifnextchar#1{%
-      \futurelet\LTXcmds@LetToken\LTXcmds@ifnextchar
+\def\LTXcmds@@ifnextchar{%
+  \expandafter\futurelet
+  \expandafter\LTXcmds@LetToken
+  \expandafter\LTXcmds@ifnextchar
+  \romannumeral-`\.%
+}
+\ltx@firstofone{\let\LTXcmds@SpaceToken= } %
+\long\def\ltx@ifnextchar@nospace#1#2#3{%
+  \begingroup
+  \let\LTXcmds@CharToken= #1\relax
+  \ltx@LocToksA{\endgroup#2}%
+  \ltx@LocToksB{\endgroup#3}%
+  \futurelet\LTXcmds@LetToken\LTXcmds@ifnextchar@nospace
+}
+\def\LTXcmds@ifnextchar@nospace{%
+  \the
+  \ifx\LTXcmds@LetToken\LTXcmds@CharToken
+    \expandafter\ltx@LocToksA
+  \else
+    \expandafter\ltx@LocToksB
+  \fi
+}
+\ltx@IfUndefined{quitvmode}{%
+  \ltx@IfUndefined{leavevmode}{%
+    \ltx@IfUndefined{voidb@x}{%
+      \ltx@IfUndefined{newbox}{%
+        \def\ltx@leavevmode{%
+          \begingroup
+            \setbox\ltx@zero=\hbox{}%
+            \begingroup
+              \setbox\ltx@zero=\hbox{\box\ltx@zero}%
+            \endgroup
+            \unhbox\ltx@zero
+          \endgroup
+        }%
+      }{%
+        \csname newbox\endcsname\LTXcmds@VoidBox
+        \ifvoid\LTXcmds@VoidBox
+        \else
+          \setbox\LTXcmds@VoidBox=\hbox{}%
+          \begingroup
+            \setbox\LTXcmds@VoidBox=\hbox{\box\LTXcmds@VoidBox}%
+          \endgroup
+        \fi
+        \def\ltx@leavevmode{\unhbox\LTXcmds@VoidBox}%
+      }%
+    }{%
+      \def\ltx@leavevmode{\unhbox\voidb@x}%
+    }%
+  }{%
+    \let\ltx@leavevmode\leavevmode
+  }%
+}{%
+  \let\ltx@leavevmode\quitvmode
+}
+\def\ltx@mbox{%
+  \ltx@leavevmode
+  \hbox
+}
+\ltx@IfUndefined{numexpr}{%
+  \def\LTXcmds@num#1{%
+    \expandafter\ltx@firstofone\expandafter{%
+      \number#1%
     }%
   }%
-\x{ }
-\begingroup
-  \def\x#1{\endgroup
-    \let\LTXcmds@SpaceToken= #1%
+}{%
+  \def\LTXcmds@num#1{%
+    \expandafter\ltx@firstofone\expandafter{%
+      \the\numexpr#1%
+    }%
   }%
-\x{ }
-\LTXcmds@AtEnd
+}
+\ltx@IfUndefined{detokenize}{%
+  \def\LTXcmds@temp#1{%
+    \long\def\ltx@ifempty##1{%
+      \romannumeral0%
+      \iffalse{\fi
+        \expandafter\ltx@gobble\expandafter{%
+          \expandafter{\string##1}%
+          \expandafter\ltx@gobble\string
+        }%
+        \expandafter\ltx@firstofthree\expandafter
+        {\iffalse}\fi
+        \expandafter#1\ltx@secondoftwo
+      }%
+      \expandafter#1\ltx@firstoftwo
+    }%
+    \long\def\ltx@ifblank##1{%
+      \romannumeral0%
+      \iffalse{\fi
+        \expandafter\expandafter\expandafter\ltx@gobble
+        \expandafter\expandafter\expandafter{%
+          \expandafter\expandafter\expandafter{%
+            \expandafter\string\ltx@gobble##1.%
+          }%
+          \expandafter\ltx@gobble\string
+        }%
+        \expandafter\ltx@firstofthree\expandafter
+        {\iffalse}\fi
+        \expandafter#1\ltx@secondoftwo
+      }%
+      \expandafter#1\ltx@firstoftwo
+    }%
+  }%
+  \LTXcmds@temp{ }%
+}{%
+  \long\def\ltx@ifempty#1{%
+    \romannumeral%
+    \csname
+      LTXcmds@ifempty%
+      \ifcat$\detokenize{#1}$%
+        @%
+      \fi
+    \endcsname
+  }%
+  \long\def\LTXcmds@ifempty@#1#2{0 #1}%
+  \long\def\LTXcmds@ifempty#1#2{0 #2}%
+  \long\def\ltx@ifblank#1{%
+    \romannumeral%
+    \csname
+      LTXcmds@ifempty%
+      \ifcat$\detokenize\expandafter{\ltx@gobble#1.}$%
+        @%
+      \fi
+    \endcsname
+  }%
+}
+\long\def\ltx@zapspace#1{%
+  \romannumeral
+  \LTXcmds@zapspace\ltx@zero#1 \@nil
+}
+\long\def\LTXcmds@zapspace#1 #2\@nil{%
+  \ltx@ifempty{#2}{%
+    #1%
+  }{%
+    \LTXcmds@zapspace#1#2\@nil
+  }%
+}
+\ltx@IfUndefined{lastnodetype}{%
+  \catcode`\$=9 %
+  \catcode`\&=14 %
+}{%
+  \catcode`\$=14 %
+  \catcode`\&=9 %
+}
+\def\ltx@IfBoxEmpty#1{%
+  \ifvoid#1\relax
+    \expandafter\ltx@secondoftwo
+  \else
+&   \begingroup
+&     \setbox\ltx@zero=\ifhbox#1\hbox\else\vbox\fi{%
+&       \ifhmode\unhcopy\else\unvcopy\fi#1\relax
+&       \expandafter
+&     }%
+&   \expandafter\endgroup
+&   \ifnum\lastnodetype<\ltx@zero
+&     \expandafter\expandafter\expandafter\ltx@firstoftwo
+&   \else
+&     \expandafter\expandafter\expandafter\ltx@secondoftwo
+&   \fi
+$   \begingroup
+$     \setbox\ltx@zero=\ifhbox#1\hbox\else\vbox\fi{%
+$       \penalty\ltx@one
+$       \ifhmode\unhcopy\else\unvcopy\fi#1\relax
+$       \expandafter
+$     }%
+$     \ifnum\lastpenalty=\ltx@one
+$       \endgroup
+$       \begingroup
+$       \setbox\ltx@zero=\ifhbox#1\hbox\else\vbox\fi{%
+$         \penalty\ltx@two
+$         \ifhmode\unhcopy\else\unvcopy\fi#1\relax
+$         \expandafter
+$       }%
+$       \ifnum\lastpenalty=\ltx@two
+$         \def\next{\endgroup\expandafter\ltx@firstoftwo}%
+$       \else
+$         \def\next{\endgroup\expandafter\ltx@secondoftwo}%
+$       \fi
+$     \else
+$       \def\next{\endgroup\expandafter\ltx@secondoftwo}%
+$     \fi
+$   \next
+  \fi
+}
+\def\ltx@IfBoxVoidOrEmpty#1{%
+  \ifvoid#1\relax
+    \expandafter\ltx@thirdoffour
+  \fi
+  \ltx@IfBoxEmpty{#1}%
+}
+\LTXcmds@AtEnd%
 \endinput
 %%
 %% End of file `ltxcmds.sty'.

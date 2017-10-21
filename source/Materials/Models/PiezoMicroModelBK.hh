@@ -22,7 +22,7 @@ typedef boost::multi_array<Double, 4> arrayD4;
 namespace CoupledField {
 
   // forward class declarations
-  class ParamNode;
+  
 
   //! class for Belov-Kreher micro-piezoelectric model
   class PiezoMicroModelBK {

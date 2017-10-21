@@ -26,22 +26,22 @@ namespace CoupledField
     void PreStepStatic( );
 
     //! base method for solving one static step 
-    void SolveStepStatic(PtrParamNode analysis_id);
+    void SolveStepStatic();
 
     //! solves for one nonlinear static step 
-    void StepStaticNonLinEpsDiff(PtrParamNode analysis_id);
+    void StepStaticNonLinEpsDiff();
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initializations before execution the SolveStep-method
     void PreStepTrans( );
 
     //! base method for solving one transient step 
-    void SolveStepTrans(PtrParamNode analysis_id)
-    {SolveStepStatic(analysis_id);};
+    void SolveStepTrans()
+    {SolveStepStatic();};
 
     //! solves for one linear transient step 
-    void StepTransLin(PtrParamNode analysis_id)
-    {StepStaticLin(analysis_id);};
+    void StepTransLin()
+    {StepStaticLin();};
 
     //! routine for actions after the SolveStep-method
      void PostStepTrans()

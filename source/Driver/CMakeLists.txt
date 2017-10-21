@@ -9,6 +9,7 @@ SET(DRIVER_SRCS
   StaticDriver.cc
   TransientDriver.cc
   InverseSourceDriver.cc
+  AnalysisID.cc
   SolveSteps/BaseSolveStep.cc
   SolveSteps/IterSolveStep.cc
   SolveSteps/SolveStepElec.cc

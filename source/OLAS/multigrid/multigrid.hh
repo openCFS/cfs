@@ -12,29 +12,32 @@
  * included, too.
  **********************************************************/
 
-#include "multigrid/ppflags.hh"
+#include "OLAS/multigrid/ppflags.hh"
 
 // include sources with implementation in *.cc
 //#ifdef INCLUDE_MULTIGRID_CC_FILES
 
-//#include  "multigrid/prematrix.cc"
-#include  "multigrid/depgraph.cc"
-#include  "multigrid/topology.cc"
-#include  "multigrid/transfer.cc"
-//#include  "multigrid/hierarchylevel.cc"
-#include  "multigrid/smoother.cc"
-#include  "multigrid/gaussseidel.cc"
-#include  "multigrid/jacobi.cc"
-#include  "multigrid/amg.cc"
+#include  "OLAS/multigrid/prematrix.cc"
+#include  "OLAS/multigrid/depgraph.cc"
+#include  "OLAS/multigrid/topology.cc"
+#include  "OLAS/multigrid/agglomerate.cc"
+#include  "OLAS/multigrid/transfer.cc"
+#include  "OLAS/multigrid/hierarchylevel.cc"
+#include  "OLAS/multigrid/smoother.cc"
+#include  "OLAS/multigrid/gaussseidel.cc"
+#include  "OLAS/multigrid/AFWsmoother.cc"
+#include  "OLAS/multigrid/jacobi.cc"
+//#include  "OLAS/multigrid/amg.cc"
 
-#include  "multigrid/prematrix.hh"
-#include  "multigrid/depgraph.hh"
-#include  "multigrid/topology.hh"
-#include  "multigrid/transfer.hh"
-#include  "multigrid/hierarchylevel.hh"
-#include  "multigrid/smoother.hh"
-#include  "multigrid/gaussseidel.hh"
-#include  "multigrid/jacobi.hh"
-#include  "multigrid/amg.hh"
+#include  "OLAS/multigrid/prematrix.hh"
+#include  "OLAS/multigrid/depgraph.hh"
+#include  "OLAS/multigrid/topology.hh"
+#include  "OLAS/multigrid/transfer.hh"
+#include  "OLAS/multigrid/hierarchylevel.hh"
+#include  "OLAS/multigrid/smoother.hh"
+#include  "OLAS/multigrid/gaussseidel.hh"
+#include  "OLAS/multigrid/AFWsmoother.hh"
+#include  "OLAS/multigrid/jacobi.hh"
+#include  "OLAS/multigrid/amg.hh"
 
 //#endif // INCLUDE_MULTIGRID_CC_FILES

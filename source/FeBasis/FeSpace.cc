@@ -14,6 +14,10 @@
 #include "FeSpaceConst.hh"
 
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField {
 
 
@@ -164,13 +168,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     bcCounter_[IDBC] = 0;
     bcCounter_[CS] = 0;
     
+    lastElemNum_.Set(0);
+
     // get already integrationScheme from grid
     // In the future we could also create our own instance,
     // where only the maximum integration order defined by 
     // the user gets initialized
     intScheme_ = ptGrid_->GetIntegrationScheme();
-
-
   }
 
   FeSpace::~FeSpace(){
@@ -297,12 +301,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         break;
       case HCURL:
         LOG_DBG(feSpace) << "Creating HCurl space";
-        if( polyType == LAGRANGE )  {
-          // create explicit lower order HCurl space
-          EXCEPTION("Explicit lower order space H-Curl not defined yet");
-        } else {
-          ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
-        }
+        //if( polyType == LAGRANGE )  {
+        //  // create explicit lower order HCurl space
+        //  EXCEPTION("Explicit lower order space H-Curl not defined yet");
+        //} else {
+        ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
+        //}
         break;
       case CONSTANT:
         LOG_DBG(feSpace) << "Creating CONST space";
@@ -424,8 +428,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetNodesOfElement( StdVector<UInt>& nodes,
                                    const Elem* ptElem,
                                    BaseFE::EntityType entType){
-    nodes.Clear();
-    nodes.Reserve(30);
+    nodes.Clear(true);
 
     EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
     EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
@@ -440,7 +443,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt numNodes = ptElem->connect.GetSize();
       if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
         for( UInt i = 0; i < numNodes; ++i ) {
-          StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
+          const StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
           for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
             nodes.Push_back(vertexNodes[j]);
           }
@@ -449,14 +452,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
     // Collect edge nodes
-    {
-      UInt numEdges = ptElem->edges.GetSize();
+    if(eNodes.size() >0){
+      UInt numEdges = ptElem->extended->edges.GetSize();
+
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
         // Check for permutation
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[perm[j]]);
@@ -464,7 +468,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[j]);
             }
@@ -474,21 +478,21 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
     // Collect face nodes
-    {
-      UInt numFaces = ptElem->faces.GetSize();
+    if(fNodes.size() >0){
+      UInt numFaces = ptElem->extended->faces.GetSize();
       if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[perm[j]]);
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -773,7 +777,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           ptFe->GetNumFncs( numFncs, BaseFE::EDGE );
           // loop over edges
           for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+            UInt edgeNum = std::abs(actEl->extended->edges[iEdge]);
             StdVector<UInt> & en = etn[edgeNum];
 
             // check if edge got already numbered
@@ -809,7 +813,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
           // loop over faces
           for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-            UInt faceNum = actEl->faces[iFace];
+            UInt faceNum = actEl->extended->faces[iFace];
             StdVector<UInt> & fn = ftn[faceNum];
             // check if face got already numbered
             if( numFncs.GetSize() > 0 ) {
@@ -1000,10 +1004,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
-      if(ptElem->edges.GetSize() != 1) {
+      if(ptElem->extended->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
       }
-      UInt edgeNr = std::abs(ptElem->edges[0]);
+      UInt edgeNr = std::abs(ptElem->extended->edges[0]);
       const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
      
       // loop until element with highest dimension and acceptable regionId 
@@ -1171,7 +1175,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     if ( ent.GetType() == EntityList::NODE_LIST ) {
       UInt node = ent.GetNode();
       eqns.Resize(dofsPerUnknown);
-      eqns.Init();
       if (gridToVirtualNodes_.find(node) != gridToVirtualNodes_.end()){
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
           eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
@@ -1186,16 +1189,32 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
-      StdVector<UInt> nodes;
-      GetNodesOfElement(nodes, ent.GetElem());
-      eqns.Resize( nodes.GetSize() * dofsPerUnknown );
-      eqns.Init();
-      for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-        for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-          eqns[(iNode*dofsPerUnknown) + iDof] = 
-              nodeMap_[nodes[iNode]][iDof];
+
+      // check if last accessed element is the same as this one
+
+      UInt& lastElemNum             = lastElemNum_.Mine();
+      StdVector<Integer>& lastEqns  = lastEqns_.Mine();
+      StdVector<UInt>& eqnNodes     = eqnNodes_.Mine();
+
+      UInt elemNum = ent.GetElem()->elemNum;
+      if( elemNum == lastElemNum ) {
+        eqns = lastEqns;
+      } else {
+        GetNodesOfElement(eqnNodes, ent.GetElem());
+        UInt nrNodes = eqnNodes.GetSize();
+        eqns.Resize( nrNodes * dofsPerUnknown );
+        //eqns.Init();
+        UInt pos = 0;
+        for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
+          const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes[iNode]];
+          for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+            eqns[pos + iDof] = nodeEqns[iDof];
+          }
+          pos += dofsPerUnknown;
         }
-      }
+        lastElemNum = elemNum;
+        lastEqns = eqns;
+      } // if: lastElemNum == elemNum
     } else {
       EXCEPTION("In FeSpace::GetEqns(): Supplied an iterator which is not supported by FeSpace");
     }
@@ -1324,7 +1343,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt dofsPerUnknown = GetNumDofs();
 
       StdVector<UInt> nodes;
+      //this function uses hash maps... pretty dangerous for concurrent access
+#pragma omp critical (FeSpace_GetNodesOfElementCall)
+      {
       this->GetNodesOfElement(nodes,elem);
+      }
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1525,7 +1548,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // 2nd block: contains all element interior equations (in 2D: faces)
       
       // Preliminary first set: all equations
-      // If we have lateron no interior equations, we can directly return
+      // If we have later on no interior equations, we can directly return
       // this set
       std::set<Integer>  nonIntEqns;
       for( UInt i = 0; i < numEqns_; ++i ) {
@@ -1602,7 +1625,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
   }
     
-  void FeSpace::PrintEqnMap(){
+  void FeSpace::PrintEqnMap(std::ostream* file)
+  {
+    std::ostream& out = file != NULL ? *file : std::cout;
 
     // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
     StdVector<UInt> blockNums, indices;
@@ -1613,14 +1638,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     if( algSys )
       algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
-    std::string resultName = 
-        SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
+    std::string resultName = SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
     
-    std::cout << " *****************************************\n";
-    std::cout << "  F E - S P A C E - I N F O R M A T I O N \n";
-    std::cout << " *****************************************\n";
-    std::cout << " Physical Quantity: " << resultName << std::endl;
-    std::cout << " FeFunction Id: " << fctId << std::endl << std::endl;
+    out << " *****************************************\n";
+    out << "  F E - S P A C E - I N F O R M A T I O N \n";
+    out << " *****************************************\n";
+    out << " Physical Quantity: " << resultName << std::endl;
+    out << " FeFunction Id: " << fctId << std::endl << std::endl;
     
     
     // =================================
@@ -1637,37 +1661,37 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // print element information (type, region, connect, edges, faces)
       const Elem * ptElem = *elemIt;
       
-      std::cout << "=============\n"
+      out << "=============\n"
                 << " Elem #" << ptElem->elemNum << std::endl
                 << "=============\n";
-      std::cout << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
-      std::cout << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
+      out << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
+      out << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
       
       // Print edge  information
-      std::cout << "Edges: ";
-      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+      out << "Edges: ";
+      for( UInt i=0, numEdges = ptElem->extended->edges.GetSize(); i < numEdges; ++i ) {
         StdVector<UInt> edgeNodes;
-        Integer edgeNum = ptElem->edges[i];
+        Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
-        std::cout << "E #" << edgeNum << " (" 
+        out << "E #" << edgeNum << " ("
                   << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
       }
-      std::cout << "\n";
+      out << "\n";
       
       // Print face  information
-      std::cout << "Faces: ";
-      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+      out << "Faces: ";
+      for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
-        UInt faceNum = ptElem->faces[i];
+        UInt faceNum = ptElem->extended->faces[i];
         ptElem->GetFaceNodes( faceNum, faceNodes );
-        std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
+        out << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
-      std::cout << "\n\n";
+      out << "\n\n";
 
 
       // print header
-      std::cout << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
-      std::cout << "\t\t=================================================================\n";
+      out << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
+      out << "\t\t=================================================================\n";
 
       std::string prefix = "\t\t\t";
       
@@ -1692,13 +1716,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             entNumbers.Resize( shape.numVertices );
           }
         } else if( type == BaseFE::EDGE ) {
-          entNumbers.Resize(ptElem->edges.GetSize());
-          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
-            entNumbers[i] = std::abs(ptElem->edges[i]);
+          entNumbers.Resize(ptElem->extended->edges.GetSize());
+          for( UInt i=0; i < ptElem->extended->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->extended->edges[i]);
         } else if( type == BaseFE::FACE ) {
-          entNumbers.Resize(ptElem->faces.GetSize());
-          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
-            entNumbers[i] = ptElem->faces[i];
+          entNumbers.Resize(ptElem->extended->faces.GetSize());
+          for( UInt i=0; i < ptElem->extended->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->extended->faces[i];
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)
@@ -1710,15 +1734,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
         // if any nodes of the given are available
         if( vNodes.size() ) {
-          std::cout << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
-          std::cout << "========\n";
+          out << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
+          out << "========\n";
         } else {
           continue;
         }
         // loop over all entities
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
           UInt entNumber = entNumbers[i];
-          std::cout << "\t\t#" << entNumber << "\t";
+          out << "\t\t#" << entNumber << "\t";
 
           // Get hold of virtual nodes for given entity type
           StdVector<UInt>& vNodesEnt = vNodes[entNumber];
@@ -1726,24 +1750,24 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           
           // check, if any virtual nodes are assigned at all
           if( vNodesEnt.GetSize() == 0 ) {
-            std::cout << "-\t-\t-\t-\n";
+            out << "-\t-\t-\t-\n";
           }
           // leave, virtual node numbers are assigned
           for( UInt j = 0; j < entNumNodes; ++j ) {
 
             // print virtual node only for first entry            
             if( j > 0 ) {
-              std::cout << prefix;
+              out << prefix;
             }
             // print virtual node
-            std::cout << vNodesEnt[j] << "\t";
+            out << vNodesEnt[j] << "\t";
             
 
             // equation numbers (loop)
             StdVector<Integer> & eqns = nodeMap_[vNodesEnt[j]];
             // immediately begin new line, if entity has no equations
             if( eqns.GetSize() == 0 ){
-              std::cout << "\n";
+              out << "\n";
             }
             
             for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
@@ -1751,27 +1775,27 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
               // indent succeeding equations correctly
               if( iEqn > 0 ) {
-                std::cout << prefix << "\t";
+                out << prefix << "\t";
               }
 
               //equation number
-              std::cout << eqn << "\t";
+              out << eqn << "\t";
 
               if( eqn > 0 && algSys) {
                 // SBM-Block
-                std::cout << blockNums[eqn-1] << "\t";
+                out << blockNums[eqn-1] << "\t";
 
                 // index
-                std::cout << indices[eqn-1] << "\n";
+                out << indices[eqn-1] << "\n";
               } else {
-                std::cout << "-\t-\n";
+                out << "-\t-\n";
               }
             }
           } // loop over virtual nodes
         } // loop over entity numbers
-        std::cout << "\n";
+        out << "\n";
       } // loop over entity types
-      std::cout << "\n\n";
+      out << "\n\n";
     } // loop over elements
 
 
@@ -1785,58 +1809,238 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
     boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
-    std::cout << "EQUATION MAPPING" << std::endl << std::endl;
-    std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (7)
+    out << "EQUATION MAPPING" << std::endl << std::endl;
+    out << "nodeNr \t|"  << " type  | " <<  std::setw (7)
     <<" Comp" << "|\teqnNr  \t| SBM\t|\tindex   |\t BC" << std::endl;
-    std::cout << "----------------------------------------------------------------------------" 
+    out << "----------------------------------------------------------------------------"
               << std::endl;
     while(nodeIt != nodeMap_.eqns.end()){
       nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
       for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
         // virtual node number (only once for all dofs) and type
         if( iDof == 0) { 
-          std::cout << nodeIt->first;
+          out << nodeIt->first;
           
           // type of node (print first character of entityType )
-          std::cout << "\t|  " 
+          out << "\t|  "
               << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
         } else {
-          std::cout << "        |";
+          out << "        |";
         }
 
         // component 
-        std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
+        out << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
         // eqn number
         const Integer & eqn = nodeIt->second[iDof];
-        std::cout << "|\t" << eqn;
+        out << "|\t" << eqn;
 
 
         if( eqn == 0 || !algSys) {
-          std::cout << "\t|" << std::setw(1) << "-";; 
+          out << "\t|" << std::setw(1) << "-";;
 
           // index
-          std::cout << "\t|" << std::setw(8) << "-";
+          out << "\t|" << std::setw(8) << "-";
         } else {
           // sbm-block  
-          std::cout << "\t|" << std::setw(1) << blockNums[std::abs(eqn)-1]; 
+          out << "\t|" << std::setw(1) << blockNums[std::abs(eqn)-1];
 
           // index
-          std::cout << "\t|" << std::setw(8) << indices[std::abs(eqn)-1];
+          out << "\t|" << std::setw(8) << indices[std::abs(eqn)-1];
         }
 
         // bc type
-        std::cout << "\t|\t"; 
+        out << "\t|\t";
         if(  nodeBcIt != nodeMap_.BcKeys.end() ) {
           if( nodeBcIt->second[iDof] != NOBC ) {
-            std::cout << BcTypeEnum.ToString(nodeBcIt->second[iDof]);
+            out << BcTypeEnum.ToString(nodeBcIt->second[iDof]);
           } 
         }
-        std::cout << std::endl;
+        out << std::endl;
       }
       nodeIt++;
     }
   }
   
+
+
+  void FeSpace::CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>& eqIndGeomMap,
+                                    UInt& maxEqn, UInt& dim){
+    // since it's only used for lowest order FE-functions, the node-entity is
+    // whether vertex or edge (for edge-elements)
+
+    // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
+    StdVector<UInt> blockNums, indices;
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    FeFctIdType fctId = feFct->GetFctId();
+    AlgebraicSys * algSys = feFct->GetSystem();
+    if( algSys )
+      algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
+    if( this->GetSpaceType() != this->HCURL ){
+      /************** H1 Lagrange - Version *******************/
+      // 1) loop over every node and store it's equations,
+      //    index and grid-geometry
+      boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
+      boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+      maxEqn = 0;
+      while(nodeIt != nodeMap_.eqns.end()){
+        BaseFeFunction::EqNodeGeom nMap;
+        dim = nodeIt->second.GetSize();
+        Vector<Double> c;
+        feFct->GetGrid()->GetNodeCoordinate(c, nodeIt->first);
+        // only if equation number != 0 (they start with 1)
+        // this would indicate that we have a Dirichlet (inh. or hom.)
+        // but they are not handled inside AMG!!!
+
+        switch (dim){
+        case 1:
+          if( nodeIt->second[0]){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+
+        case 2:
+          if( nodeIt->second[0] || nodeIt->second[1]){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+
+        case 3:
+          if( nodeIt->second[0] || nodeIt->second[1] || nodeIt->second[2] != 0
+          ){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+        }//switch dim
+        nodeIt++;
+      }//while nodeIt != nodeMap_.eqns.end()
+    }else{
+      if( this->GetSpaceType() == this->HCURL ){
+        /************** HCurl Nedelec - Version *******************/
+        dim = 1;
+        std::map<UInt,StdVector<UInt> > indexGeomMap;
+        // iterate over all elements
+        std::set<const Elem*> allElems;
+        GetAllElems(allElems);
+
+        BaseFeFunction::EqNodeGeom nMap;
+        // loop over all elements and store geometric information
+        std::set<const Elem*>::iterator elemIt;
+        for( elemIt = allElems.begin(); elemIt != allElems.end(); ++elemIt ) {
+
+          const Elem * ptElem = *elemIt;
+
+          BaseFE::EntityType type;
+          type = BaseFE::EDGE;
+
+          // vector containing entity numbers
+          StdVector<UInt> entNumbers;
+          EntityNodesType &vNodes = vNodesCont_[type];
+
+
+          // loop over all edges
+          for( UInt i = 0; i < ptElem->extended->edges.GetSize(); ++i ) {
+            UInt edgeNum = std::abs(ptElem->extended->edges[i]);
+            // direction of edge
+            UInt dir = ptElem->extended->edges[i] < 0 ? 0 : 1;
+            // Get hold of virtual nodes for given edge
+            StdVector<UInt>& vNodesEdge = vNodes[edgeNum];
+            UInt edgeNumNodes = vNodesEdge.GetSize();
+            // check, if any virtual nodes are assigned at all
+            if( vNodesEdge.GetSize() != 0 ) {
+              for( UInt j = 0; j < edgeNumNodes; ++j ) {
+                // equation numbers (loop)
+                StdVector<Integer> & eqns = nodeMap_[vNodesEdge[j]];
+
+                //geometry information
+                StdVector<UInt> edgeNodes;
+                StdVector<UInt> edgeNodesC; //for getting the coordinates
+                ptElem->GetEdgeNodes( edgeNum , edgeNodes );
+
+                //for 0th order edge-elements (=Nédélec elements) there
+                //should only be one equation per edge
+                if(eqns.GetSize() > 1){
+                  EXCEPTION("FeSpace.cc: Index<->Geometry mapping for edges only works for 0th order EdgeElements!");
+                }else{
+                  //for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
+                  Integer & eqn = eqns[0];
+                  if( eqn > 0 && algSys) {
+                    // index
+                    UInt index = indices[eqn-1];
+                    // Assign index and edge-number to the map only if it is not already mapped
+                    if(indexGeomMap.find(index) == indexGeomMap.end()){
+                      //don't know why the node-numbering in GetNodeCoordinates is 0-based
+                      //and in the FeSpace it's 1-based ?!
+                      nMap.indexNum = index;
+                      edgeNodesC.Resize(2);
+                      edgeNodesC[0] = edgeNodes[0] - 1;
+                      edgeNodesC[1] = edgeNodes[1] - 1;
+                      StdVector< Vector<Double> > nCoords;
+                      feFct->GetGrid()->GetNodeCoordinates(nCoords, edgeNodesC, false);
+
+                      nMap.eCoords.Resize(2);
+                      nMap.eCoords[0] = nCoords[0];
+                      nMap.eCoords[1] = nCoords[1];
+                      nMap.eNodes.Resize(2); // 2 nodes per edge
+                      switch(dir)
+                      {
+                      case 1:
+                        indexGeomMap[index].Push_back(edgeNodes[0]);
+                        indexGeomMap[index].Push_back(edgeNodes[1]);
+                        nMap.eNodes[0] = edgeNodes[0];
+                        nMap.eNodes[1] = edgeNodes[1];
+                        break;
+                      case 0:
+                        indexGeomMap[index].Push_back(edgeNodes[1]);
+                        indexGeomMap[index].Push_back(edgeNodes[0]);
+                        nMap.eNodes[0] = edgeNodes[1];
+                        nMap.eNodes[1] = edgeNodes[0];
+                        break;
+                      }
+                      // insert it into final map
+                      eqIndGeomMap[eqns[0]] = nMap; //nodeIt->second[iDof] is the eqn
+                    }
+                  }//if( eqn > 0 && algSys)
+                } // loop over virtual nodes
+              }// loop over nodes of edge i
+            } // if vNodes.GetSize != 0
+          } // loop over edges
+        }// loop over elements
+      }else EXCEPTION("AMG: FeSpace is not H1 nor HCurl !!!");
+    }
+  }
+
+
   UInt FeSpace::GetNumDofs() const {
     // Just return number of components
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer

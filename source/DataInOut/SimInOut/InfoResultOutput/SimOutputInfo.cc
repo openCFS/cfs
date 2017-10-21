@@ -24,7 +24,7 @@ SimOutputInfo::SimOutputInfo(PtrParamNode outputNode, PtrParamNode infoNode,
   dirName_ = ".";
   
   
-  info_root = myInfo_->Get("calculation")->Get(ParamNode::PN_PROCESS);
+  info_root = myInfo_->Get("calculation")->Get(ParamNode::PROCESS);
 }
 
 SimOutputInfo::~SimOutputInfo() 

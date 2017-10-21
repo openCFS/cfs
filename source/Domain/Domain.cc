@@ -5,8 +5,12 @@
 #include "Domain.hh"
 
 #include <set>
+#include <map>
 #include <memory>
 #include <boost/filesystem.hpp>
+
+#include "def_use_openmp.hh"
+#include "def_disable_optimization.hh"
 
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -19,15 +23,22 @@
 #include "Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "Domain/Results/BaseResults.hh"
+
+#ifdef USE_OPENMP
+#include "Utils/mathParser/mathParserOMP.hh"
+#endif
 #include "Utils/mathParser/mathParser.hh"
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
+
+#include "Optimization/Design/DensityFile.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimization.hh"
 
 
 #include "DataInOut/ResultHandler.hh"
@@ -35,6 +46,7 @@
 // Single Field PDEs
 #include "PDE/AcousticPDE.hh"
 #include "PDE/AcousticMixedPDE.hh"
+#include "PDE/AcousticSplitPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
@@ -45,11 +57,13 @@
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
 #include "PDE/WaterWavePDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "CoupledPDE/MagnetoStrictCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
@@ -82,8 +96,12 @@ Domain::Domain(
   isParentDomain_ = output;
 
   // Create new MathParser
+#ifdef USE_OPENMP
+  mathParser_ = new MathParserOMP();
+#else
   mathParser_ = new MathParser();
-  
+#endif
+
   // assign pointers
   gridInputs_ = gridInputs;
   simState_ = simState;
@@ -97,7 +115,8 @@ Domain::Domain(
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   
-  
+  optimization_ = NULL;
+  designSpace_ = NULL;
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -290,23 +309,55 @@ void Domain::ReadGrid(const std::string & gridId,
 
 void Domain::PostInit(UInt sequenceStep)
 {
-  
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
-  // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
+  // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init (which is done later!).
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
-  SetDriver(driver); // see above!
-  //info_->FinishProgress();
+  SetDriver(driver);
+  bool restart = isParentDomain_ ? progOpts->GetRestart() : false;
 
-  // initialize the driver
-  // Note: In case this is not the parent / main domain, we do not read a 
-  // restart file.
-  driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
-  
-  if( multiSequenceDriver_ && !isParentDomain_ )
+  // the single driver initilized the pde which cannot be done prior initialization of optimization,
+  // the multisequence intitialization does not set up the pdes itself and is necessary to init optimization
+  if(domain->GetMultiSequenceDriver() != NULL)
+    driver->Init(restart);
+
+  // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
+  if(GetParamRoot()->Has("optimization"))
+  {
+    #ifdef DISABLE_OPTIMIZATION
+      throw Exception("CFS++ was compiled with disabled optimization.");
+    #endif
+    Optimization::CreateInstance(); // has an SetOptimization() included
+  }
+  else
+  {
+    // check if we simulate with ersatz material - after driver and only if not used with optimization
+    // if used with optimization loadErsatzMaterial specifies the starting point for optimization
+    // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
+    if(DensityFile::NeedLoadErsatzMaterial())
+      designSpace_ = DensityFile::ReadErsatzMaterial();
+  }
+
+  // For optimization the design needs to be already set to initialize the proper material coefficients
+  // in the multisequence case init does something else and was already called above
+  // not that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
+  if(domain->GetMultiSequenceDriver() == NULL)
+    driver->Init(restart);
+
+  // we need driver->Init() first
+  if(optimization_ != NULL)
+  {
+    // second initialization phase, constructs material
+    optimization_->PostInit();
+    // third initialization phase, constructs optimizer
+    optimization_->PostInitSecond();
+  }
+
+  // note that in the common case isParentDomain_ is true
+  if(multiSequenceDriver_ && !isParentDomain_)
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
 }
 
@@ -372,21 +423,31 @@ Domain::~Domain()
     mathParser_ = NULL;
   }
 
+  // the optimization is optional. Important, before ersatzMaterial!
+  if (optimization_ != NULL) {
+    delete optimization_;
+    optimization_ = NULL;
+  }
+
+  // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
+  if(designSpace_ != NULL) {
+    delete designSpace_;
+    designSpace_ = NULL;
+  }
+
 }
 
 void Domain::SolveProblem()
 {
   BaseDriver* driver = multiSequenceDriver_;
-  if (driver == NULL)
+  if(driver == NULL)
     driver = ptSingleDriver_;
 
   // PostInit needs to be called in advance!
-//  if (GetOptimization() != NULL) {
-//    EXCEPTION("Optiization not yet adapted to new structure");
-//    GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
-//  } else {
+  if(optimization_ != NULL)
+    optimization_->SolveProblem(); // will call multiple driver-SolveProblem
+  else
     driver->SolveProblem();
-//  }
 }
 
   // **********************
@@ -448,10 +509,9 @@ void Domain::SolveProblem()
 
 
 
-SinglePDE * Domain::GetSinglePDE(const std::string pdeName,
-    bool throw_exception)
+SinglePDE* Domain::GetSinglePDE(const std::string pdeName,  bool throw_exception)
 {
-  // check for the pede an return
+  // check for the pde an return
   for (UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i)
   {
     if (ptSinglePde_[i]->GetName() == pdeName)
@@ -486,7 +546,18 @@ BasePDE* Domain::GetBasePDE()
 
 }
 
-Grid * Domain::GetGrid(const std::string& id)
+DesignSpace* Domain::GetDesign(bool throw_exception)
+{
+  if(designSpace_ != NULL)
+    return designSpace_;
+
+//if(throw_exception)
+  //  EXCEPTION("no ersatzMaterial set in domain");
+
+  return NULL;
+}
+
+Grid* Domain::GetGrid(const std::string& id)
 {
   if (gridMap_.find(id) == gridMap_.end())
   {
@@ -496,7 +567,7 @@ Grid * Domain::GetGrid(const std::string& id)
   return gridMap_[id];
 }
 
-CoordSystem * Domain::GetCoordSystem(const std::string & name)
+CoordSystem* Domain::GetCoordSystem(const std::string & name)
 {
 
   std::map<std::string, CoordSystem*>::iterator it;
@@ -511,6 +582,16 @@ CoordSystem * Domain::GetCoordSystem(const std::string & name)
 
   return (*it).second;
 
+}
+
+StdVector<std::string> Domain::GetCoordSystems() const
+{
+  StdVector<std::string> res;
+
+  for(std::map<std::string, CoordSystem*>::const_iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
+    res.Push_back(it->first);
+
+  return res;
 }
 
 // **************************
@@ -528,11 +609,21 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
   CreateIterCoupledPDE(sequenceStep, infoNode);
 }
 
+void Domain::RestorePDEs(StdVector<SinglePDE*>& single)
+{
+  ptSinglePde_ = single;
+  assert(ptSinglePde_.GetSize() == single.GetSize());
+  numSinglePde_ = single.GetSize();
+
+  // restoring direct coupled and iterative coupled not yet implemented
+  isDirectCoupled_.clear();
+  for(unsigned int i = 0; i < single.GetSize(); i++)
+    isDirectCoupled_[single[i]] = false;
+}
+
+
 void Domain::InitPDEs(UInt sequenceStep)
 {
-  
-  
-  
   // in case we have an iterative coupled PDE,
   // we take its info pointer and use it
   // as base for the coupled ones
@@ -544,7 +635,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   // Initialize those PDEs which are not directly coupled
   std::map<SinglePDE*, bool>::iterator it;
 
-  for( UInt iStage = 0; iStage < 3; ++iStage ) {
+  for( UInt iStage = 0; iStage < 1; ++iStage ) {
     for (UInt i = 0; i < numSinglePde_; i++) {
       it = isDirectCoupled_.find(ptSinglePde_[i]);
       if ((*it).second == false) {
@@ -571,11 +662,42 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    if( isParentDomain_) 
-      std::cout << "++ Initializing direct coupling" << std::endl;
+    if( isParentDomain_) {
+	std::cout << "++ Initializing direct coupling" << std::endl;
+	}
+	//std::cout << "Domain.cc - preInit: pde->Name()? " << ptDirectCoupledPde_[i]->GetName() << std::endl;
+	//std::cout << "Domain.cc - preInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
+	
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
+    
+    //std::cout << "Domain.cc - postInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
   }
+
+  
+    // Initialize those PDEs which are not directly coupled
+  for( UInt iStage = 1; iStage < 3; ++iStage ) {
+    for (UInt i = 0; i < numSinglePde_; i++) {
+      it = isDirectCoupled_.find(ptSinglePde_[i]);
+      if ((*it).second == false) {
+        switch(iStage) {
+          case 0:
+            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
+            break;
+          case 1:
+            ptSinglePde_[i]->Init_Stage2();
+            break;
+          case 2:
+            ptSinglePde_[i]->Init_Stage3();
+            break;
+          default:
+            EXCEPTION( "Only 3 stages of initialization known");
+            break;
+        }
+      }
+    }
+  }
+
 
   // Initialize algebraic system of each SinglePDE
   // Note: DefineAlgSys() triggers only the initialization
@@ -588,7 +710,6 @@ void Domain::InitPDEs(UInt sequenceStep)
       ptSinglePde_[i]->DefineAlgSys();
     }
   }
-
 }
 
 // **************************
@@ -596,19 +717,14 @@ void Domain::InitPDEs(UInt sequenceStep)
 // **************************
 void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
-
   // default grid
-  Grid * defaultGrid = gridMap_["default"];
+  Grid* defaultGrid = gridMap_["default"];
 
-  ParamNodeList pdeNodes;
-  pdeNodes
-      = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
-      ->Get("pdeList")->GetChildren();
+  ParamNodeList pdeNodes = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
   ptSinglePde_.Init();
   numSinglePde_ = pdeNodes.GetSize();
-
   
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
@@ -616,66 +732,62 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
     if( isParentDomain_) 
-      std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
+      std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '"
+                << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;
 
     if (actPdeName == "electrostatic")
-      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "mechanic")
-      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "acoustic") {
-        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode,
+        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+    else if (actPdeName == "split") {
+        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
                                           simState_, this );
     }
     else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 //
 //    else if (actPdeName == "smooth")
 //      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
 //
    else if (actPdeName == "magnetic")
-      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode,
-                                        simState_, this );
+      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "magneticEdge")
-      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode,
-                                       simState_, this );
+      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     
 //    else if (actPdeName == "magneticScalar")
 //          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
 //
 //
     else if (actPdeName == "heatConduction")
-      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
 
       if (formulation == "perturbed") {
-        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
       else {
-        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
     }
     else if (actPdeName == "testPDE") {
-        ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode,
-                                      simState_, this );
+        ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "elecConduction") {
-        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode,
-                                      	  	  simState_, this );
+        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "waterWave") {
-        ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode,
-                                              simState_, this );
+      ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+    else if (actPdeName == "LatticeBoltzmann") {
+        ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else
     {
@@ -684,7 +796,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
     // by default, not single pde is directly coupled
     isDirectCoupled_[ptSinglePde_[i]] = false;
-
     
     // Ensure, that at least one PDE is present
     if( numSinglePde_ == 0 ) {
@@ -694,9 +805,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
   }
-
-} // end of InitPDE()
-
+}
 
 void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
 {
@@ -732,7 +841,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
-    //std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
+    // std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   
@@ -753,14 +862,11 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
   }
 
   // get "couplingList" node (must exist)
-  PtrParamNode couplingNode =
-      param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)
-        ->Get("couplingList");
+  PtrParamNode couplingNode =  param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)->Get("couplingList");
   PtrParamNode directNode = couplingNode->Get("direct", ParamNode::PASS);
   if (!directNode)
     return;
 
-  
   // get nodes of pairwise direct couplings
   ParamNodeList pairNodes = directNode->GetChildren();
 
@@ -823,6 +929,20 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i], info_,
                                       simState_, this );
     }
+    
+    else if (couplingName == "magnetoStrictDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("magnetic");
+
+	//pass mechanic pde to magnetic for the case of nonlinear magnetostriction
+      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling(pde1);
+
+      coupling = new MagnetoStrictCoupling(pde1, pde2, pairNodes[i], info_,
+                                      simState_, this );
+    }
+    
     // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
     {
@@ -944,7 +1064,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::CreateCoordinateSystems()
 {
-  PtrParamNode in = info_->Get(ParamNode::PN_HEADER)->Get("domain");
+  PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian
@@ -1000,8 +1120,7 @@ void Domain::CreateCoordinateSystems()
 
 void Domain::RegisterVariables() 
 {
-  PtrParamNode varListNode = param_->Get("domain")
-      ->Get("variableList", ParamNode::PASS);
+  PtrParamNode varListNode = param_->Get("domain")->Get("variableList", ParamNode::PASS);
   if( varListNode ) {
    ParamNodeList & varNodes = varListNode->GetChildren();
    ParamNodeList::iterator it = varNodes.Begin();
@@ -1013,8 +1132,7 @@ void Domain::RegisterVariables()
      (*it)->GetValue("name", varName);
      (*it)->GetValue("value", valString);
      // check for reserved variable names
-     if ( (varName == "t") || (varName == "dt") 
-         || (varName == "f") || (varName == "step") )
+     if ( (varName == "t") || (varName == "dt") || (varName == "f") || (varName == "step") )
      {
        EXCEPTION("The variable '" << varName
                  << "' is reserved, its value will be set automatically. "
@@ -1034,12 +1152,12 @@ void Domain::SetDriver(BaseDriver * driver)
 {
   if (driver->GetAnalysisType() == BasePDE::MULTI_SEQUENCE)
   {
-    multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*> (driver);
+    multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*>(driver);
     ptSingleDriver_ = multiSequenceDriver_->GetSingleDriver(); // NULL before Init()!!
   }
   else
   {
-    ptSingleDriver_ = dynamic_cast<SingleDriver*> (driver);
+    ptSingleDriver_ = dynamic_cast<SingleDriver*>(driver);
   }
 }
 
@@ -1051,26 +1169,27 @@ BaseDriver* Domain::GetDriver()
 // *************
 //   ResetPDEs
 // *************
-void Domain::ResetPDEs()
+void Domain::ResetPDEs(bool keep)
 {
-
+  // keep is for optimization with multiple sequences.
+  // Then the MultiSequenceDriver keeps drivers and pdes instead of deleting then with a new sequence step
   // Delete single pde(s)
-  for (UInt iPDE = 0; iPDE < numSinglePde_; iPDE++)
-  {
-    delete ptSinglePde_[iPDE];
-  }
-  ptSinglePde_.Clear();
+  for(UInt iPDE = 0; iPDE < numSinglePde_; iPDE++)
+    if(!keep)
+      delete ptSinglePde_[iPDE];
+
+  ptSinglePde_.Clear(); // for keep the drivers are alread in MultiSequenceDriver::keptPDEs_
 
   // delete direct coupled pde(s)
-  for (UInt iPDE = 0; iPDE < numDirectCoupledPde_; iPDE++)
-  {
+  for (UInt iPDE = 0; iPDE < numDirectCoupledPde_; iPDE++) {
+    assert(!keep); // not yet implemented
     delete ptDirectCoupledPde_[iPDE];
   }
   ptDirectCoupledPde_.Clear();
 
   // delete iterative coupled pde
-  if (ptIterCoupledPde_ != NULL)
-  {
+  if (ptIterCoupledPde_ != NULL) {
+    assert(!keep); // not yet implemented
     delete ptIterCoupledPde_;
   }
   ptIterCoupledPde_ = NULL;
@@ -1126,6 +1245,33 @@ void Domain::ToInfo(PtrParamNode in)
     s->Get("name")->SetValue(it->first);
     it->second->ToInfo(s);
   }
+
+  if(progOpts->DoDetailedInfo()) {
+    // Get bounding box of the grid
+    Matrix<double> m = this->GetGrid()->CalcGridBoundingBox();
+    PtrParamNode s = in_->Get("domain", ParamNode::APPEND);
+    s->Get("min_x")->SetValue(m[0][0]);
+    s->Get("max_x")->SetValue(m[0][1]);
+    s->Get("min_y")->SetValue(m[1][0]);
+    s->Get("max_y")->SetValue(m[1][1]);
+    if (m.GetNumRows() > 2) {
+      s->Get("min_z")->SetValue(m[2][0]);
+      s->Get("max_z")->SetValue(m[2][1]);
+    }
+  }
+
+}
+
+bool Domain::HasPerdiodicBC() const
+{
+  for(unsigned int i = 0; i < ptSinglePde_.GetSize(); i++)
+  {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > fes = ptSinglePde_[i]->GetFeFunctions();
+    for(std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it = fes.begin(); it != fes.end(); it++)
+      if(it->second->HasPeriodicBC())
+        return true;
+  }
+  return false;
 }
 
 }

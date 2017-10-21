@@ -24,7 +24,6 @@ namespace CoupledField
   class Grid;
   class BaseMaterial;
   struct Composite;
-  class ParamNode;
   class FunctionDescription;
   class BaseBDBInt;
   class BaseFieldFunctor;
@@ -175,6 +174,8 @@ namespace CoupledField
 
     //! read material data
     virtual void ReadMaterialData();
+    
+    virtual void ReadSensorArrayResults();
 
     // =====================================================
     // Miscellaneous
@@ -305,6 +306,35 @@ namespace CoupledField
 
     //! ResultInfos of second PDE
     ResultInfoList results2_;
+    //! Helper struct for interpolating field variables at arbitrary points
+    struct FieldAtPoints {
+
+      //! Physical Quantity
+      shared_ptr<ResultInfo> resultInfo;
+     
+      //! Filename where points get written to
+      std::string fileName;
+
+      //! Format output file as CSV (comma separated values)
+      bool csv;
+
+      //! Delimiter for CSV fields
+      char delim;
+
+      //! Pointer to coordinate system
+      CoordSystem * coordSys;
+      
+      //! Vector with elements 
+      StdVector<const Elem*> elems;
+      
+      //! Vector with local points
+      StdVector<LocPoint> locPoints;
+
+      //! Flux values for each point
+      SingleVector* field;
+    };
+    
+    StdVector<FieldAtPoints> sensors_;
     //@}
 
   };

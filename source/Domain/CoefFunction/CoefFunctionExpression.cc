@@ -15,7 +15,7 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
         mHandle_(mp_->GetNewHandle(true))
         {
   
-  // this type of coefficient is always variable
+  // this type of coefficient is per default general, but my change, if the expression string is set
   dependType_ = GENERAL;
   
   // this coefficient function is still analytic, as it
@@ -117,7 +117,7 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
 void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar, 
                                                const LocPointMapped& lpm){
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Vector<Double> pointCoord;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){
@@ -147,6 +147,7 @@ SetTensor( const StdVector<std::string>& val,
   
   // Set expression at math parser, where each entry is separated by ", "
   mp_->SetExpr(mHandle_, val.Serialize(','));
+  dependType_ = ExprDependsOnTimeFreq(mp_, val) ? GENERAL : SPACE;
 }
 
 void CoefFunctionExpression<Double>::
@@ -157,6 +158,7 @@ SetVector( const StdVector<std::string>& val ){
   
   // Set expression at math parser, where each entry is separated by ", "
   mp_->SetExpr(mHandle_, val.Serialize(','));
+  dependType_ = ExprDependsOnTimeFreq(mp_, val) ? GENERAL : SPACE;
 }
 
 void CoefFunctionExpression<Double>::SetScalar(const std::string& val){
@@ -166,6 +168,7 @@ void CoefFunctionExpression<Double>::SetScalar(const std::string& val){
   
   // Register expression at math parser
   mp_->SetExpr(mHandle_, val);
+  dependType_ = ExprDependsOnTimeFreq(mp_, val) ? GENERAL : SPACE;
 }
 
 std::string CoefFunctionExpression<Double>::ToString() const {
@@ -393,6 +396,7 @@ void CoefFunctionExpression<Complex>::SetTensor( const StdVector<std::string>& r
   // Set expression at math parser, where each entry is separated by ", "
   mp_->SetExpr(mHandleReal_, realVal.Serialize(','));
   mp_->SetExpr(mHandleImag_, imagVal.Serialize(','));
+  dependType_ = (ExprDependsOnTimeFreq(mp_, realVal) || ExprDependsOnTimeFreq(mp_, imagVal)) ? GENERAL : SPACE;
 }
 
 void CoefFunctionExpression<Complex>::SetVector( const StdVector<std::string>& realVal,
@@ -405,6 +409,7 @@ void CoefFunctionExpression<Complex>::SetVector( const StdVector<std::string>& r
   // Set expression at math parser, where each entry is separated by ", "
   mp_->SetExpr(mHandleReal_, realVal.Serialize(','));
   mp_->SetExpr(mHandleImag_, imagVal.Serialize(','));
+  dependType_ = (ExprDependsOnTimeFreq(mp_, realVal) || ExprDependsOnTimeFreq(mp_, imagVal)) ? GENERAL : SPACE;
 }
 
 void CoefFunctionExpression<Complex>::SetScalar( const std::string& realVal,
@@ -417,6 +422,7 @@ void CoefFunctionExpression<Complex>::SetScalar( const std::string& realVal,
   // Register expression at math parser
   mp_->SetExpr(mHandleReal_, realVal);
   mp_->SetExpr(mHandleImag_, imagVal);
+  dependType_ = (ExprDependsOnTimeFreq(mp_, realVal) || ExprDependsOnTimeFreq(mp_, imagVal)) ? GENERAL : SPACE;
 }
 
 std::string CoefFunctionExpression<Complex>::ToString() const {
@@ -562,7 +568,7 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Vector<Double> pointCoord;
   vals.Resize(points.GetSize());
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){

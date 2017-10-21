@@ -1,7 +1,7 @@
 #include "CoordSystem.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "boost/math/special_functions/fpclassify.hpp"
+#include <boost/math/special_functions/fpclassify.hpp>
 
 namespace CoupledField{
 
@@ -9,7 +9,6 @@ namespace CoupledField{
   CoordSystem::CoordSystem( const std::string & name,
                             Grid * ptGrid,
                             PtrParamNode myParamNode ) {
-
     name_ = name;
     ptGrid_ = ptGrid;
     myParam_ = myParamNode;
@@ -66,7 +65,7 @@ namespace CoupledField{
 
     angles.Resize(3);
 
-    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
     
@@ -106,7 +105,7 @@ namespace CoupledField{
      *  convention: set gamma = 0 degree 
      */
     angles[0] = rotMat[1][2];
-    angles[1] = PI/2.0;
+    angles[1] = M_PI/2.0;
     angles[2] = 0;
   }
     
@@ -134,14 +133,11 @@ namespace CoupledField{
     // This could be extended to further checks (e.g. orthonormality)
     Double det; 
     rotationMat_.Determinant(det);
-    if( std::abs(det-1.0) > EPS  
-        || boost::math::isnan(det) 
-    || boost::math::isinf(det) ) {
+    if(std::abs(det-1.0) > EPS || (boost::math::isnan)(det) || (boost::math::isinf)(det))
       WARN( "The determinant of the rotation matrix of the coordinate system '"
           << name_ << "' is " << det << " instead of 1.\n"
           << "This indicates an error. Please check the definition of the "
           << "current coordinate system.");
-    }
   }
 
 

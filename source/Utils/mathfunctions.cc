@@ -8,6 +8,7 @@
 #include "MatVec/Matrix.hh"
 
 #include <boost/math/special_functions/bessel.hpp>
+#include <boost/math/special_functions/hankel.hpp>
 
 
 namespace CoupledField {
@@ -29,15 +30,15 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( t < nPerFadeIn * T ) {
-      ret = sin( 2 * PI * freq * t) *
-            pow( sin( 2 * PI * freq * t / 4 / nPerFadeIn), 2);
+      ret = sin( 2 * M_PI * freq * t) *
+            pow( sin( 2 * M_PI * freq * t / 4 / nPerFadeIn), 2);
     }
     else if( t < (numPeriods - nPerFadeOut) * T )  {
-      ret = sin( 2 * PI * freq * t);
+      ret = sin( 2 * M_PI * freq * t);
     }
     else if( t < numPeriods * T) {
-      ret = sin( 2 * PI * freq * t) *
-            pow( sin( 2 * PI * freq *
+      ret = sin( 2 * M_PI * freq * t) *
+            pow( sin( 2 * M_PI * freq *
                 (t - numPeriods * T) / 4 / nPerFadeOut), 2);
     }
 
@@ -60,7 +61,7 @@ namespace CoupledField {
     if( mode == 1) {
       //! using sin^2
       if ( t < fadeInTime ) {
-        ret = sin(2 * PI * t / fadeInTime / 4) * sin(2 * PI * t / fadeInTime / 4);
+        ret = sin(2 * M_PI * t / fadeInTime / 4) * sin(2 * M_PI * t / fadeInTime / 4);
       }
       else {
         ret = 1.0;
@@ -107,14 +108,14 @@ namespace CoupledField {
     Double h = 1.0;
     Double g = 1.0;
     if( t < t00 ) {
-      h =  sin( 2 * PI * f00 * t / (4.*nPerFadeIn)) *
-           sin( 2 * PI * f00 * t / (4.*nPerFadeIn));
+      h =  sin( 2 * M_PI * f00 * t / (4.*nPerFadeIn)) *
+           sin( 2 * M_PI * f00 * t / (4.*nPerFadeIn));
     }
     if( t > t01 ) {
-      g = 1 - sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut)) *
-              sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut));
+      g = 1 - sin(2 * M_PI * f00 * (t01-t) / (4.*nPerFadeOut)) *
+              sin(2 * M_PI * f00 * (t01-t) / (4.*nPerFadeOut));
     }
-    Double c = sin(2 * PI * ( b * t * t + startFreq*t));
+    Double c = sin(2 * M_PI * ( b * t * t + startFreq*t));
     return h * c * g;
 
   }
@@ -133,7 +134,7 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( (Mod(t,T) < pulseWidth/2.0) || (Mod(t,T) > T - pulseWidth/2.0)  )  {
-      ret = 1 + cos( 2 * PI * t / pulseWidth);
+      ret = 1 + cos( 2 * M_PI * t / pulseWidth);
     }
 
     return ret;
@@ -152,7 +153,7 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( t > numPeriods * T )  {
-      ret = sin( 2 * PI * freq * t );
+      ret = sin( 2 * M_PI * freq * t );
     }
 
     switch ( pT ) {
@@ -200,6 +201,22 @@ namespace CoupledField {
     return ret;
   }
 
+  Double Triangle( Double freq, Double minVal, Double maxVal, Double dutyCycle,
+                   Double phase, Double t ) {
+    /* The triangle signal will oscillate between minVal and maxVal.
+       The duty cycle must be in the interval [0,1].
+       A duty cycle of 0 or 1 results in a sawtooth.
+       The phase is specified in degrees.
+       phase = 0 means a rising signal starting from minVal at t = k*2*pi, k = 0,1,2,... */
+    Double period = 1.0/freq;
+    Double t_norm = Mod( (t + phase/360.0*period), period )/period;
+    if( (dutyCycle != 0.0) && (t_norm <= dutyCycle) )
+    {
+      return (maxVal - minVal)/dutyCycle*t_norm + minVal;
+    }
+    return (minVal - maxVal)/(1.0 - dutyCycle)*(t_norm - dutyCycle) + maxVal;
+  }
+
   //! Modulo function
   Double Mod( Double x, Double m ) {
 
@@ -216,7 +233,7 @@ namespace CoupledField {
       return exp( -0.5 * help * help );
     }
     else {
-      return 1.0 / ( sigma * sqrt( 2 * PI) ) *
+      return 1.0 / ( sigma * sqrt( 2 * M_PI) ) *
              exp( -0.5 * help * help );
     }
   }
@@ -239,6 +256,16 @@ namespace CoupledField {
   //! Calculate spherical bessel function of second kind
   Double BesselSphY( Double x, Double v ) {
     return boost::math::sph_neumann( (UInt) v, x );
+  }
+
+  //! Calculate cylindric Hankel function of first kind
+  Complex HankelCyl1( Double x, Double v ) {
+    return boost::math::cyl_hankel_1(v, x);
+  }
+
+  //! Calculate cylindric Hankel function of second kind
+  Complex HankelCyl2( Double x, Double v ) {
+    return boost::math::cyl_hankel_2(v, x);
   }
 
   Double gammaln(Double xx)

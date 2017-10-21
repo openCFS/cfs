@@ -42,7 +42,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LUSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -52,36 +52,25 @@ namespace CoupledField {
 
     StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
-      // Now test the storage layout
-      BaseMatrix::StorageType sType = stdMat.GetStorageType();
-      if ( sType != BaseMatrix::SPARSE_NONSYM ) {
-        EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
-            << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
-            << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
-            << " format." );
-      }
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
+          << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
+          << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " format." );
+    }
 
-      // Down-cast to CRS_Matrix
-      CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
+    // Down-cast to CRS_Matrix
+    CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
 
-      // Logging
-      (*cla) << " -----------------------------------------------\n"
-	     << " LUSolver: Factorisation of a "
-	     << crsMat.GetNumRows() << " x " << crsMat.GetNumCols()
-	     << " matrix (nnz = " << crsMat.GetNnz() << ")"
-	     << std::endl;
+    // Set estimate for growth of sparsity pattern
+    // Being generous here improves performance
+    this->memGrowthEstimate_ = 25;
 
-      // Set estimate for growth of sparsity pattern
-      // Being generous here improves performance
-      this->memGrowthEstimate_ = 25;
-
-      // Perform the factorisation
-      this->Factorise( crsMat );
-      amFactorised_ = true;
-
-      // Logging
-      (*cla) << " -----------------------------------------------"
-	     << std::endl;
+    // Perform the factorisation
+    this->Factorise( crsMat );
+    amFactorised_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file
     bool saveFacToFile = false;
@@ -104,7 +93,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
-			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+			   const BaseVector &rhs, BaseVector &sol ) {
 
 
     // Test that a factorisation is available, if not issue a warning.
@@ -119,14 +108,6 @@ namespace CoupledField {
     // Solve the problem
     const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
     Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
-
-    // Logging
-    bool logging = false;
-    if ( logging ) {
-      (*cla) << " -----------------------------------------------\n"
-             << " LUSolver: Solving a problem with "
-             << sysMat.GetNumCols() << " unknowns" << std::endl;
-    }
 
     // Actual solve is done by CroutLU class
     CroutLU<T>::Solve( myRHS, mySol );
@@ -153,18 +134,12 @@ namespace CoupledField {
 
     }
 
-      // Logging
-      if ( logging ) {
-        (*cla) << " -----------------------------------------------"
-               << std::endl;
-      }
-
     // Generate Report
 
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 

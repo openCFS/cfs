@@ -25,7 +25,7 @@ namespace CoupledField {
   class BaseSBMPrecond;
   class StdMatrix;
   class SBM_Matrix;
-  class ParamNode;
+  
   class SolStrategy;
   
   //! Generate a standard preconditioner object

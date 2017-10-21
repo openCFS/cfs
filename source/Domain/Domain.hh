@@ -11,7 +11,6 @@ namespace CoupledField
 
   //! Forward class declarations
   class BasePDE;
-  class BaseForm;
   class BaseMaterial;
   class StdPDE;
   class SinglePDE;
@@ -26,10 +25,12 @@ namespace CoupledField
   class MultiSequenceDriver;
   class SimInput;
   class ResultHandler;
-  class ParamNode;
+  
   class SimState;
   class BaseDriver;
   class MathParser;
+  class Optimization;
+  class DesignSpace;
   struct Elem;
   
 
@@ -87,14 +88,21 @@ namespace CoupledField
     //! Create PDE objects
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param infoNode infoNode for adding information
-    void CreatePDEs( UInt sequenceStep, PtrParamNode infoNode );
+    void CreatePDEs(UInt sequenceStep, PtrParamNode infoNode);
     
+    /** Alternative to CreatePDEs for optimization with the MultiSequenceDriver
+     * Up to now only implemented for single pdes, not for coupled ones
+     * @see MultiSequenceDriver::keep_
+     * @see MultiSequenceDriver::keptPDEs_ */
+    void RestorePDEs(StdVector<SinglePDE*>& pdes);
+
     //! Initialize all PDEs which are previously created
     //! \param sequenceStep step index in MultiSequenceSimulation
     void InitPDEs( UInt sequenceStep );
 
-    //! Delete pointer to PDEs and create them new
-    void ResetPDEs();
+    /** reset pdes
+     * @param keep if false the pointers are deleted if true they are to be kept in the multi sequence driver */
+    void ResetPDEs(bool keep);
     
     //! Set the grids and their IDs from external
     
@@ -126,7 +134,9 @@ namespace CoupledField
     /** Get pointer to SinglePDE by name.
      * @param throw_exception shall an exception be thrown if the name does not exist
      * @return the pde or NULL if !throw_exception */
-    SinglePDE * GetSinglePDE(const std::string pdename, bool throw_exception = true);
+    SinglePDE* GetSinglePDE(const std::string pdename, bool throw_exception = true);
+
+    StdVector<SinglePDE*> GetSinglePDEs() const { return ptSinglePde_; }
 
     //! Get driver object
     BaseDriver* GetDriver();
@@ -135,22 +145,17 @@ namespace CoupledField
      * MultiSequenceDrivers(). */ 
     void SetDriver( BaseDriver * driver );
 
-    /** Get driver object. Note, that this might be NULL for not initialized 
-     * MultiSequenceDriver()! */
-    SingleDriver * GetSingleDriver() { return ptSingleDriver_; }
+    /** Get driver object. Note, that this might be NULL for not initialized MultiSequenceDriver()! */
+    SingleDriver* GetSingleDriver() { return ptSingleDriver_; }
+
+    /** Gets the multi sequence driver or NULL if we have none */
+    MultiSequenceDriver* GetMultiSequenceDriver() { return multiSequenceDriver_; }
 
     //! Get pointer to CoupledPDE
-    DirectCoupledPDE* GetDirectCoupledPDE()
-    {  if (ptDirectCoupledPde_.GetSize() > 0)
-      return ptDirectCoupledPde_[0]; 
-    else 
-      return NULL;
-    }
+    DirectCoupledPDE* GetDirectCoupledPDE() { return ptDirectCoupledPde_.GetSize() > 0 ? ptDirectCoupledPde_[0] : NULL; }
     
     //! Get map for all registered grids and their reader
-    std::map<std::string, Grid* >  GetGridMap() {
-      return gridMap_;
-    }
+    std::map<std::string, Grid* >  GetGridMap() {  return gridMap_;  }
 
     //! Get pointer to input-file
       //    FileType * GetInFile(){ return InFile_;}
@@ -165,18 +170,37 @@ namespace CoupledField
     shared_ptr<SimState> GetSimState() {return simState_; }
     
     //! Get pointer to grid object
-    Grid * GetGrid( const std::string& id = "default" );
+    Grid* GetGrid( const std::string& id = "default" );
+
+    /** return the name of the registered coordinate systems */
+    StdVector<std::string> GetCoordSystems() const;
 
     //! Return local coordinate system by name
-    CoordSystem * GetCoordSystem( const std::string & name 
-                                  = std::string("default") );
+    CoordSystem* GetCoordSystem( const std::string & name = std::string("default") );
 
     //! Return Math Parser object for evaluating math expressions
-    MathParser * GetMathParser() { return mathParser_; }
+    MathParser* GetMathParser() { return mathParser_; }
 
-    /** The post init does more advancec stuff like reading the ersatz material.
+    /** Returns the optimization
+     *  @return null if there is none */
+    Optimization* GetOptimization() { return optimization_; };
+
+    /** Sets the optimization from outside, like the driver */
+    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };
+
+    /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities.
+     * @return  NULL but an exception if not set and not silent*/
+    DesignSpace* GetDesign(bool throw_exception = true);
+
+    /** This is set by optimization which holds the data (in a derved form) or when we do loadErsatzMaterial or -x
+     * Is is also reset here by the optimization destructor.
+     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
+     * @param regionId the region for the ersatz material */
+     void SetDesign(DesignSpace* data) { this->designSpace_ = data; }
+
+    /** The post init does more advanced stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
-     * @excpetion checks for error, thefore this is a void method */
+     * @excpetion checks for error, therefore this is a void method */
     void PostInit( UInt sequenceStep = 1 );
 
     /** solves the problem, either the "driver" or the optimization problem.
@@ -187,6 +211,9 @@ namespace CoupledField
 
     /** e.g. coordinate systems */
     void ToInfo(PtrParamNode info);
+
+    /** has any of the single pdes perdiodic boundary conditions set? */
+    bool HasPerdiodicBC() const;
 
 
   protected:
@@ -208,7 +235,7 @@ namespace CoupledField
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param infoNode infoNode for adding information
     void CreateSinglePDEs( UInt sequenceStep, PtrParamNode infoNode );
-  
+
     //! Initialize direct coupled pde(s)
 
     //! Initialize direct coupled pde(s)
@@ -304,6 +331,14 @@ namespace CoupledField
 
     //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
+
+    /** an optinal optimizer */
+    Optimization* optimization_;
+
+    /** The ersatz material pointer is set be the domain or it points
+     * to optimization data */
+    DesignSpace* designSpace_;
+
 
     //! Mathematic parser object
     MathParser * mathParser_;

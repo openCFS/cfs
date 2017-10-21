@@ -2,7 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "multigrid/prematrix.hh"
+#include "OLAS/multigrid/prematrix.hh"
+
+
+#include "OLAS/multigrid/hierarchylevel.hh"
+#include "OLAS/multigrid/gaussseidel.hh"
+#include "OLAS/multigrid/jacobi.hh"
+
+#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/BaseSolver.hh"
+#include "OLAS/precond/IdPrecondStd.hh"
+
+
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR
@@ -33,6 +44,24 @@ PreMatrix<T>::PreMatrix()
 {
 }
 
+
+template <typename T>
+PreMatrix<T>::PreMatrix( const UInt num_rows)
+            : rows_( NULL ),
+              cols_( NULL ),
+              rowSize_( NULL ),
+#ifndef PREMATRIX_USE_MODULO
+              buffSize_( NULL ),
+#endif
+              numRows_( num_rows ),
+              hasRowsSorted_(false),
+              hasDiagFirst_(false)
+{
+ SetNumRows(num_rows);
+
+}
+
+
 template <typename T>
 PreMatrix<T>::~PreMatrix()
 {
@@ -43,26 +72,18 @@ PreMatrix<T>::~PreMatrix()
 /**********************************************************/
 
 template <typename T>
-inline Integer PreMatrix<T>::GetNumNonzeros() const
+UInt PreMatrix<T>::GetNumNonzeros() const
 {
-    Integer nnz = 0;
-    for( Integer i = 1; i <= numRows_; i++ )  nnz += rowSize_[i];
+    UInt nnz = 0;
+    for( UInt i = 0; i < numRows_; i++ )  nnz += rowSize_[i];
     return nnz;
 }
 
 /**********************************************************/
 
 template <typename T>
-inline Integer PreMatrix<T>::GetRowSize( const Integer row ) const
+UInt PreMatrix<T>::GetRowSize( const UInt row ) const
 {
-#ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNumRows() ) {
-        Error( __FILE__, __LINE__,
-               "PreMatrix::GetRowSize(%d): %d is not a valid "
-               "row index in range [1,%d]",
-               row, row, GetNumRows() );
-    }
-#endif
 
     return rowSize_[row];
 }
@@ -70,16 +91,8 @@ inline Integer PreMatrix<T>::GetRowSize( const Integer row ) const
 /**********************************************************/
 
 template <typename T>
-inline const T* PreMatrix<T>::GetRowData( const Integer row ) const
+const T* PreMatrix<T>::GetRowData( const UInt row ) const
 {
-#ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNumRows() ) {
-        Error( __FILE__, __LINE__,
-               "PreMatrix::GetRowData(%d): %d is not a valid "
-               "row index in range [1,%d]",
-               row, row, GetNumRows() );
-    }
-#endif
 
     return rows_[row];
 }
@@ -87,23 +100,15 @@ inline const T* PreMatrix<T>::GetRowData( const Integer row ) const
 /**********************************************************/
 
 template <typename T>
-inline const Integer* PreMatrix<T>::
-GetRowCols( const Integer row ) const
+const UInt* PreMatrix<T>::
+GetRowCols( const UInt row ) const
 {
-#ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNumRows() ) {
-        Error( __FILE__, __LINE__,
-               "PreMatrix::GetRowCols(%d): %d is not a valid "
-               "row index in range [1,%d]",
-               row, row, GetNumRows() );
-    }
-#endif
 
     return cols_[row];
 }
 
 template <typename T>
-inline Integer PreMatrix<T>::
+inline UInt PreMatrix<T>::
 GetNumRows() const
 {
     return numRows_;
@@ -112,11 +117,11 @@ GetNumRows() const
 /**********************************************************/
 
 template <typename T>
-inline T PreMatrix<T>::GetEntry( const Integer i,
-                        const Integer j ) const
+T PreMatrix<T>::GetEntry( const UInt i,
+                        const UInt j ) const
 {
-    const Integer* const cols = GetRowCols(i);
-    for( Integer ij = 1; ij <= GetRowSize(i); ij++ ) {
+    const UInt* const cols = GetRowCols(i);
+    for( UInt ij = 0; ij < GetRowSize(i); ij++ ) {
         if( cols[ij] == j ) {
             return GetRowData(i)[ij];
         }
@@ -127,21 +132,12 @@ inline T PreMatrix<T>::GetEntry( const Integer i,
 /**********************************************************/
 
 template <typename T>
-void PreMatrix<T>::SetEntry( const Integer  row, const Integer col,
+void PreMatrix<T>::SetEntry( const UInt  row, const UInt col,
                              const T& value )
 {
 
-#ifdef DEBUG_PREMATRIX
-    if( row < 1 || GetNumRows() < row ) {
-        Error( __FILE__, __LINE__,
-               "PreMatrix::SetEntry(%d,%d,..): %d is not a valid "
-               "row index in range [1,%d]",
-               row, col, row, GetNumRows() );
-    }
-#endif
-
     // find eventually allready present entry
-    for( Integer ic = 1; ic <= rowSize_[row]; ic++ ) {
+    for( UInt ic = 0; ic < rowSize_[row]; ic++ ) {
         if( cols_[row][ic] == col ) {
             rows_[row][ic] = value;
             return;
@@ -158,22 +154,15 @@ void PreMatrix<T>::SetEntry( const Integer  row, const Integer col,
 /**********************************************************/
 
 template <typename T>
-void PreMatrix<T>::AddToEntry( const Integer  row,
-                               const Integer  col,
+void PreMatrix<T>::AddToEntry( const UInt  row,
+                               const UInt  col,
                                const T& value )
 {
-
-#ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNumRows() ) {
-        Error( __FILE__, __LINE__,
-               "PreMatrix::AddToEntry(%d,%d,..): %d is not a valid "
-               "row index in range [1,%d]",
-               row, col, row, GetNumRows() );
+    if( row < 0 || row > GetNumRows() ){
+      EXCEPTION("PreMatrix::AddToEntry recieved a wrong row index !!")
     }
-#endif
-
     // find eventually allready present entry
-    for( Integer ic = 1; ic <= rowSize_[row]; ic++ ) {
+    for( UInt ic = 0; ic < rowSize_[row] ; ic++ ) {
         if( cols_[row][ic] == col ) {
             rows_[row][ic] += value;
             return;
@@ -184,7 +173,8 @@ void PreMatrix<T>::AddToEntry( const Integer  row,
     CheckBufferSize( row );
     // add new entry
     rows_[row][++rowSize_[row]] = value;
-    cols_[row][  rowSize_[row]] = col;
+    cols_[row][rowSize_[row]] = col;
+
 }
 
 /**********************************************************/
@@ -194,32 +184,22 @@ void PreMatrix<T>::SortDiagonal()
 {
 
     T tdat;
-    for( Integer i = 1; i <= numRows_; i++ ) {
+    for( UInt i = 0; i < numRows_; i++ ) {
         // search the diagonal entry
-        for( Integer ij = 1; ij <= rowSize_[i]; ij++ ) {
+        for( UInt ij = 0; ij < rowSize_[i]; ij++ ) {
             // place the diagonal entry at leading position
             if( cols_[i][ij] == i ) {
                 // swap the column indices
-                cols_[i][ij] = cols_[i][1];
-                cols_[i][1]  = i;
+                cols_[i][ij] = cols_[i][0];
+                cols_[i][0]  = i;
                 // swap the data
                 tdat         = rows_[i][ij];
-                rows_[i][ij] = rows_[i][1];
-                rows_[i][1]  = tdat;
+                rows_[i][ij] = rows_[i][0];
+                rows_[i][0]  = tdat;
                 // jump to next row
                 break;
             }
-#ifdef  DEBUG_PREMATRIX
-            // if we reach this part of the loop in the last
-            // loop run, this means that we could not find the
-            // diagonal entry
-            if( ij == rowSize_[i] ) {
-                WARN( __FILE__, __LINE__,
-                         "PreMatrix::SortDiagonal: found row [%d] "
-                         "without diagonal entry", i );
-                         
-            }
-#endif
+
         }
     }
 
@@ -231,16 +211,16 @@ void PreMatrix<T>::SortDiagonal()
 template <typename T>
 void PreMatrix<T>::Sort()
 {
-
+EXCEPTION("Attention! Sort() not yet ported from 1 to 0-based indexing !!!")
     hasDiagFirst_ = true;
 
     T tdat;
-    for( Integer i = 1; i <= numRows_; i++ ) {
+    for( UInt i = 0; i < numRows_; i++ ) {
 //std::cerr
 //<< "sorting row "<<i<<" / "<<numRows_<<": size = "<<rowSize_[i]<<std::endl;
         // search the diagonal entry
-        Integer ij;
-        for( ij = 1; ij <= rowSize_[i]; ij++ ) {
+        UInt ij;
+        for( ij = 0; ij < rowSize_[i]; ij++ ) {
             // place the diagonal entry at leading position
             if( cols_[i][ij] == i ) {
                 // swap the column indices
@@ -275,14 +255,14 @@ void PreMatrix<T>::Reset()
 
     // delete array with row data
     if( rows_ != NULL ) {
-        for( Integer i = 1; i <= numRows_; i++ ) {
+        for( UInt i = 0; i < numRows_; i++ ) {
           delete [] ( rows_[i] );  rows_[i]  = NULL;
 				}
         delete [] ( rows_ );  rows_  = NULL;
     }
     // delete array with column data
     if( cols_ != NULL ) {
-        for( Integer i = 1; i <= numRows_; i++ )
+        for( UInt i = 0; i < numRows_; i++ )
 				{
           delete [] ( cols_[i] );  cols_[i]  = NULL;
 				}
@@ -300,77 +280,7 @@ void PreMatrix<T>::Reset()
     hasRowsSorted_ = false;
 }
 
-/**********************************************************/
-#ifdef PREMATRIX_ENABLE_IMPORT
 
-template <typename T>
-bool PreMatrix<T>::ImportASCII( const char* const filename )
-{
-
-    FILE    *file   = fopen( filename, "rt" );
-    char    *line   = NULL;
-    size_t   length = 0;
-    ssize_t  read   = 0;
-    
-    if( file == NULL ) {
-        WARN( __FILE__, __LINE__,
-                 "PreMatrix::importASCII: could not open file "
-                 "\"%s\". Matrix stayes unchanged.",
-                 filename );
-        return false;
-    }
-
-    int nrows = -1,
-        ncols = -1,
-        nnz   = -1;
-
-    while( -1 != (read = getline(&line, &length, file)) ) {
-        // skip comments in the file header. Here we restrict to
-        // recognize comments, that start with a % character.
-        if( line[0] == '%' )  continue;
-        // read matrix data
-        if( nrows < 0 ) {
-            if( 3 == sscanf(line, "%d %d %d", &nrows, &ncols, &nnz) ) {
-                if( !SetNumRows(nrows) ) {
-                    fclose( file );
-                    return false;
-                }
-            } else {
-                WARN( __FILE__, __LINE__,
-                         "PreMatrix::importASCII: could not read matrix "
-                         "header data in file \"%s\". File might not have"
-                         " the appropriate format.", filename );
-                fclose( file );
-                return false;
-            }
-        // read matrix entry
-        } else {
-            int     row, col;
-            T val;
-            if( ImportEntryASCII(line, row, col, val) ) {
-                SetEntry( row, col, val );
-                // read las entry
-                if( --nnz <= 0 )  break;
-            } else {
-                WARN( __FILE__, __LINE__,
-                         "PreMatrix::importASCII: Could not read matrix "
-                         "entry in file \"%s\". Still %d non-zero entries "
-                         "are missing. Aborting import.",
-                         filename, nnz );
-                fclose( file );
-                return false;
-            }
-        }
-    }
-
-    if( line )  free( line );
-    fclose( file );
-
-    return true;
-}
-
-#endif // PREMATRIX_ENABLE_IMPORT
-/**********************************************************/
 
 template <typename T>
 std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
@@ -380,8 +290,8 @@ std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
         << "  "<<GetNumRows()<<" rows " << std::endl
         << "  "<<GetNumNonzeros()<<" entries: " << std::endl;
     
-    for( Integer r = 1; r <= GetNumRows(); r++ ) {
-        for( Integer ic = 1; ic <= GetRowSize(r); ic++ ) {
+    for( UInt r = 0; r < GetNumRows(); r++ ) {
+        for( UInt ic = 0; ic < GetRowSize(r); ic++ ) {
             out << "("<<r<<","<<GetRowCols(r)[ic]<<") = "
                 << GetRowData(r)[ic] << std::endl;
         }
@@ -393,14 +303,14 @@ std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
 /**********************************************************/
 
 template <typename T>
-bool PreMatrix<T>::CreateArrays( const Integer num_rows )
+bool PreMatrix<T>::CreateArrays( const UInt num_rows )
 {
 
     if( !num_rows ) { Reset();  return true; }
 
     // delete rows and the rows array, if it cannot be reused
     if( rows_ != NULL ) {
-        for( Integer i = 1; i <= numRows_; i++ ) {
+        for( UInt i = 0; i < numRows_; i++ ) {
             delete [] ( rows_[i] );  rows_[i]  = NULL;
 				}
         if( num_rows != numRows_ ) {
@@ -410,12 +320,12 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
     // new rows array
     if( rows_ == NULL ) {
         NEWARRAY( rows_, T*, num_rows );
-        for( Integer i = 1; i <= num_rows; i++ )  rows_[i] = NULL;
+        for( UInt i = 0; i < num_rows; i++ )  rows_[i] = NULL;
     }
 
     // delete column indices and columns array, if it cannot be reused
     if( cols_ != NULL ) {
-        for( Integer i = 1; i <= numRows_; i++ ) {
+        for( UInt i = 0; i < numRows_; i++ ) {
             delete [] ( cols_[i] );  cols_[i]  = NULL;
 				}
         if( num_rows != numRows_ ) {
@@ -424,23 +334,23 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
     }
     // new column array
     if( cols_ == NULL ) {
-        NEWARRAY( cols_, Integer*, num_rows );
-        for( Integer i = 1; i <= num_rows; i++ )  cols_[i] = NULL;
+        NEWARRAY( cols_, UInt*, num_rows );
+        for( UInt i = 0; i < num_rows; i++ )  cols_[i] = NULL;
     }
 
     // new array for row sizes
-    if( num_rows != numRows_ ) {
+    if( num_rows != numRows_ || !rowSize_) {
         delete [] ( rowSize_ );  rowSize_  = NULL;
-        NEWARRAY( rowSize_, Integer, num_rows );
+        NEWARRAY( rowSize_, UInt, num_rows );
 #ifndef PREMATRIX_USE_MODULO
         delete [] ( buffSize_ );  buffSize_  = NULL;
-        NEWARRAY( buffSize_, Integer, num_rows );
+        NEWARRAY( buffSize_, UInt, num_rows );
 #endif
     }
     // must be initialized or reset in any case
-    for( Integer i = 1; i <= num_rows; i++ )  rowSize_[i] = 0;
+    for( UInt i = 0; i < num_rows; i++ )  rowSize_[i] = 0;
 #ifndef PREMATRIX_USE_MODULO
-    for( Integer i = 1; i <= num_rows; i++ )  buffSize_[i] = 0;
+    for( UInt i = 0; i < num_rows; i++ )  buffSize_[i] = 0;
 #endif
     numRows_ = num_rows;
 
@@ -465,16 +375,13 @@ void PreMatrix<T>::InstantiatePublicMethods()
     SortDiagonal();
     Sort();
     Reset();
-#ifdef PREMATRIX_ENABLE_IMPORT
-    ImportASCII( NULL );
-#endif
     Print( std::cout );
 }
 
 /**********************************************************/
 
 template <typename T>
-inline void PreMatrix<T>::CheckBufferSize( const Integer row )
+inline void PreMatrix<T>::CheckBufferSize( const UInt row )
 {
 
 #ifdef PREMATRIX_USE_MODULO
@@ -492,19 +399,19 @@ inline void PreMatrix<T>::CheckBufferSize( const Integer row )
         NEWARRAY( newRow, T,
                   buffSize_[row] += PREMATRIX_ROW_GRANULARITY );
 #endif
-        for( Integer i = 1; i <= rowSize_[row]; i++ ) {
+        for( UInt i = 0; i < rowSize_[row]; i++ ) {
             newRow[i] = rows_[row][i]; }
         delete [] ( rows_[row] );  rows_[row]  = NULL;
         rows_[row] = newRow;
         // enlarge column array
-        Integer *newCols = NULL;
+        UInt *newCols = NULL;
 #ifdef PREMATRIX_USE_MODULO
-        NEWARRAY( newCols, Integer,
+        NEWARRAY( newCols, UInt,
                   rowSize_[row] + PREMATRIX_ROW_GRANULARITY );
 #else
-        NEWARRAY( newCols, Integer, buffSize_[row] );
+        NEWARRAY( newCols, UInt, buffSize_[row] );
 #endif
-        for( Integer i = 1; i <= rowSize_[row]; i++ ) {
+        for( UInt i = 0; i < rowSize_[row]; i++ ) {
             newCols[i] = cols_[row][i]; }
         delete [] ( cols_[row] );  cols_[row]  = NULL;
         cols_[row] = newCols;
@@ -514,22 +421,22 @@ inline void PreMatrix<T>::CheckBufferSize( const Integer row )
 /**********************************************************/
 
 template <typename T>
-void PreMatrix<T>::QuickSort(       Integer *const cols,
+void PreMatrix<T>::QuickSort(       UInt *const cols,
                                     T *const data,
-                              const Integer        length )
+                              const UInt        length )
 {
 
     if( length <= 1 )  return;
 
-    const Integer last         = length-1,
+    const UInt last         = length-1,
                   splitter     = cols[last];
     const T splitterData = data[last];
 
-    Integer tcol, i = 0;
+    UInt tcol, i = 0;
     T tdat;
 
     // splitt array
-    for( Integer j = 0; j < last; j++ ) {
+    for( UInt j = 0; j < last; j++ ) {
         if( cols[j] < splitter ) {
             // swap the column index
             tcol    = cols[j];
@@ -554,19 +461,7 @@ void PreMatrix<T>::QuickSort(       Integer *const cols,
     QuickSort( cols+i, data+i, length - i );
 }
 
-/**********************************************************/
-#ifdef PREMATRIX_ENABLE_IMPORT
 
-template <typename T>
-bool PreMatrix<T>::
-ImportEntryASCII( const char* const line,
-                  Integer &row, Integer &col, T &val )
-{
-    return 3 == sscanf( line, "%d %d %lg", &row, &col, &val );
-}
-
-#endif // PREMATRIX_ENABLE_IMPORT
-/**********************************************************/
 #undef  PREMATRIX_ROW_GRANULARITY
 /**********************************************************/
 } // namespace CoupledField
@@ -577,8 +472,9 @@ ImportEntryASCII( const char* const line,
 
 namespace std {
 template <typename T> std::ostream& operator <<
-( std::ostream& out, const OLAS::PreMatrix<T>& A ) {
+( std::ostream& out, const CoupledField::PreMatrix<T>& A ) {
     return A.Print( out ); }
+
 }
 
 /**********************************************************/

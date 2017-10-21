@@ -18,7 +18,7 @@ echo "BLOCKING $BLOCKING"
 PWDLINE=$(getent passwd $USER)
 HOME=$(echo $PWDLINE | cut -d':' -f6)
 echo "HOME $HOME"
-CTEST="/opt/pckg/cmake/bin/ctest"
+CTEST="/opt/pckg/bin/ctest"
 NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY"
 LOG_FILE="/vagrant/logs/nightly_test.log"
 echo "LOG_FILE $LOG_FILE"

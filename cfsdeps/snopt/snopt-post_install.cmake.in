@@ -1,0 +1,17 @@
+#=============================================================================
+# * remove libblas.a built by snopt, we have own blas in CFS!
+# * remove the snopt source, it is confidential and not open source 
+# * if we use precompiled cfsdeps, copy the libs there
+# * copy the libs to the cfs bin dir
+#
+# Hints: for the libblas.a and precompiled stuff snopt is built a tempory file 
+#=============================================================================
+
+# remove the source, it is not open source
+#FILE(REMOVE_RECURSE "@SNOPT_SOURCE@")
+
+# remove libblas.a, we have own blas in cfs
+FILE(REMOVE "@SNOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libblas.a")
+
+# copy data from install dir to the target.
+FILE(COPY "@SNOPT_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

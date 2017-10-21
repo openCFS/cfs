@@ -13,7 +13,7 @@
 namespace CoupledField {
 
   class BasePrecond;
-  class ParamNode;
+  
   class OLAS_Report;
   
   // template<typename> class Matrix;
@@ -44,16 +44,6 @@ namespace CoupledField {
   class RichardsonSolver : public BaseIterativeSolver {
 
   public:
-
-    //!typename of matrix entries (=T)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;	
-
-    //!tiny vector of the same dimension as matrix block
-    typedef typename AssocType<T>::T_Vtype T_Vtype;	
-
-    //scalar of the same primitive data type as matrix
-    typedef typename AssocType<T>::T_Stype T_Stype;	
-
     //! Constructor
 
     //! This constructor does nothing but initialise the internal array
@@ -80,14 +70,14 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat,
-	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step);
+	       const BaseVector& rhs, BaseVector& sol);
 
     //! Dummy setup method
 
     //! This method implements the pure virtual setup function defined in the
     //! BaseSolver class. In the case of the Richardson solver there is nothing
     //! to be done.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {};
+    void Setup( BaseMatrix &sysmat ) {};
 
     //! Query type of the solver
 

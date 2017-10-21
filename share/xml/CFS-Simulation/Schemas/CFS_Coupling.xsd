@@ -1,4 +1,4 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
@@ -66,6 +66,7 @@
                 <xsd:attribute name="maxNumIters" type="xsd:positiveInteger"/>
                 <xsd:attribute name="stopOnDivergence" type="DT_CFSBool" use="optional" default="yes"/>
                 <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="no"/>
+                <xsd:attribute name="justNorm" type="DT_CFSBool" use="optional" default="no"/>
               </xsd:complexType>
             </xsd:element>
             
@@ -95,9 +96,12 @@
         <xsd:attribute name="name" use="required">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
+		  <xsd:enumeration value="magPotential"/>
               <xsd:enumeration value="magForceLorentzDensity"/>
+              <xsd:enumeration value="magFluxDensity"/>
               <xsd:enumeration value="magForceLorentz"/>
               <xsd:enumeration value="mechDisplacement"/>
+              <xsd:enumeration value="mechStrain"/>
               <xsd:enumeration value="mechAcceleration"/>
               <xsd:enumeration value="elecPower"/>
               <xsd:enumeration value="elecCurrent"/>

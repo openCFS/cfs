@@ -50,8 +50,15 @@ namespace CoupledField
     //! LU decomoposition of a general matrix
     void dgetrf( int* M, int *N, double* A, int* lda, int* IPIV, int* INFO );
 
+    void zgetrf( const int* m, const int* n, std::complex<double>* a,
+                 const int* lda, int* ipiv, int* info );
+
     //! generate inverse of a matrix given its LU decomposition
     void dgetri( int* N, double* A, int* lda, int* IPIV, double* WORK, int* lwork, int* INFO );
+
+    void zgetri( const int* n, std::complex<double>* a, const int* lda,
+                 const int* ipiv, std::complex<double>* work, const int* lwork,
+				 int* info );
 
     //! Cholesky decomposition of a symmetric matrix
     void dpotrf( char*, int*, double*, int*, int* );
@@ -115,6 +122,9 @@ namespace CoupledField
                  int*);
     void zpbtrs( char*, int*, int*, int*, double*, int*, double*, int*,
                  int*);
+    void dsyev( char*, char*, int*, double*, int*, double*, double*, int*, int* );
+
+    void dgecon( char*, int*, double*, int*, double*, double*, double*, int*, int*);
 
     // ! To be continued ...
 

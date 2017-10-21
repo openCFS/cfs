@@ -84,7 +84,7 @@ namespace CFSTool
     
     // added char(0) to end of the read in path to ensure that the path ends correctly
     // reason: during the last build I sometimes encountered errors when starting cfstoolsbin;
-    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstoolbin`�O��~
+    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstoolbin`
 
     buf[success_] = char(0);
 //    std::cout << "BUFFER AFTER MOD: " << buf << std::endl;    

@@ -42,12 +42,15 @@ void CoefFunctionApprox::Init( Double coefScalar, ApproxData * nLinFnc,
 void CoefFunctionApprox::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  
   // evaluate vector of dependency
   Vector<Double> elemSol;
+
   dependCoef_->GetVector( elemSol, lpm);
   
+
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
+    // in case of permeability (reluctivity) the function depends on the norm of the field
+    // it is specialized in terms of evaluation
     Double fieldAbs = elemSol.NormL2();
 
     if( fieldAbs == 0 ) { 
@@ -55,11 +58,28 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
     } else {
       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
     }
+  } else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
+
+	 Double SignedMaxStrain = elemSol.SignedMax();
+	 coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
+}
+  else if( nLinFnc_->GetMatType() == CORE_LOSS ){
+    // this is the case for general functions depending on the norm of a field
+    Double fieldAbs = elemSol.NormL2();
+
+    if( fieldAbs == 0 ) {
+      coefScalar = coefScalar_;
+    } else {
+      coefScalar = nLinFnc_->EvaluateFunc(fieldAbs);
+    }
   }
   else {
+    // case for functions depending on the vector, specialize as needed
     coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
   }
-  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+  // LOG does not check if lpm is a dummy
+  // LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
 }
 
 bool IsComplex(){
@@ -285,7 +305,8 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
   MultiplyByElemArea(coefScalar, lpm);
 
-  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+  // LOG does not check if lpm is a dummy
+  //LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }
 
@@ -294,7 +315,7 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
 CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {
   // this type of coefficient is nonlinear, i.e. spatial and time dependent
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isComplex_ = false;
 }
 
@@ -421,24 +442,28 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       angleBPhi = 90.0;
     }
     
+    bool is3d = elemSol.GetSize() > 2;
+
     // ---------------------------------
     //  compute angle theta of B vector
     // ---------------------------------
-    Double angleBTheta;
-    angleBTheta = std::acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] + 
-        elemSol[1]*elemSol[1] + elemSol[2]*elemSol[2] ));
-    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
-    
-    // theta in spherical coordinates is defined as the angle between the 
-    // zenith direction and the line segment (origin->point) with a range [0°;180°]
-    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
-    angleBTheta = abs(90 - angleBTheta);   
+    Double angleBTheta = 0.0;
+    if( is3d ) {
+      angleBTheta = std::acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] +
+                               elemSol[1]*elemSol[1] + elemSol[2]*elemSol[2] ));
+      angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
-    // take care that theta does not exceed its limits 
-    // TODO-avolk: Improve handling like it is done for phi!
-    if (angleBTheta > 90) {
-      angleBTheta = 90;
-      WARN("GetScalar(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      // theta in spherical coordinates is defined as the angle between the
+      // zenith direction and the line segment (origin->point) with a range [0;180]
+      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
+      angleBTheta = abs(90 - angleBTheta);
+
+      // take care that theta does not exceed its limits
+      // TODO-avolk: Improve handling like it is done for phi!
+      if (angleBTheta > 90) {
+        angleBTheta = 90;
+        WARN("GetScalar(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      }
     }
     
     
@@ -463,7 +488,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     // Interpolation method of coefficients
     // ------------------------------------
     //
-    //                90°
+    //                90
     //                 o
     //                / \
     //               /   \
@@ -473,7 +498,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //         3 o           o
     //          /     x       \
     //         /               \
-    //     0° o-----o-----o-----o 90°
+    //     0 o-----o-----o-----o 90
     //              1     2
     //                phi
     //
@@ -524,102 +549,104 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
       
-      // value of coefficient interpolated within the xy-plane and theta=0°
-//      coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs)
-//                      + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
+      // value of coefficient interpolated within the xy-plane and theta=0
+      //  coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs)
+      //                 + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
       Double VALklo, VALkhi;
       nLinFnc_[klo]->GetScalar(VALklo, lpm);
       nLinFnc_[khi]->GetScalar(VALkhi, lpm);
       coefScalarXY =   ahi * VALklo + alo * VALkhi;
     }
-       
-    // --------------------------------------------------------------------
-    //  Angular based interpolation according to z direction (angle theta)
-    // --------------------------------------------------------------------
-    
-    // ASSUMPTION: material behavior of in thickness direction (theta) is 
-    //             equivalent to behavior in transverse direction (phi).
-    //             therefore we use the same BH-curves but scale them by 
-    //             an appropriate scaling factor. 
-    
-    Double coefScalarZ = 0.0;
 
-    // if angle is out of bounds or we have just one entry,
-    // return boundary value (i.e. first or last) 
-    if ( angleBTheta > angles_[kend] || kend == 0) {
-      //coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
-      nLinFnc_[kend]->GetScalar(coefScalarZ, lpm);
+    if( ! is3d ) {
+      coefScalar = coefScalarXY;
+      return;
     }
-    else if ( angleBTheta < angles_[0] ) {
-//      coefScalarZ = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
-      nLinFnc_[0]->GetScalar(coefScalarZ, lpm);
-    }
-    else {  // now that the angle is in range, search for the "best" given angle 
-      UInt klo,khi,k;
-      klo=0;
-      khi=kend;
-      // We will find the right place in the table by means of bisection.
-      // klo and khi bracket the input value of theta-value
-      while (khi-klo > 1) {
-        k=(khi+klo) >> 1; // binary right shift
-        if (angles_[k] > angleBTheta)
-          khi=k;
-        else
-          klo=k;
+    
+    
+    bool is2dAnisotropic = false;
+    
+    // check for scaling factor == 0
+    // if only one scaling factor is set to zero consideration of z-direction is disabled
+    for (UInt i = 0; i <= kend; i++) {
+      if (zScalings_[i] == 0.0) {
+        is2dAnisotropic = true;
+        break;
       }
-
-      // size of theta interval
-      Double dThetaVal = angles_[khi] - angles_[klo]; 
-
-      // The theta-values must be distinct!
-      if (dThetaVal == 0.0) {
-        EXCEPTION("You cannot have two equal angular values!" );
-      }
-
-      // relative distance of theta-value to theta-bounds
-      Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
-      Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
-
-      // value of coefficient interpolated along z-direction and phi=0°
-      // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
-      //       nu = 1/mu; c*mu => 1/c*mu
-      Double VALkhi, VALklo;
-      nLinFnc_[klo]->GetScalar(VALklo, lpm);
-      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
-      coefScalarZ =   ahi * VALklo * (1/zScalings_[klo])
-                     + alo * VALkhi * (1/zScalings_[khi]);
-//      coefScalarZ =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[klo])
-//                    + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[khi]);
     }
     
-    // ----------------------------------------------------------------------------------------
-    //  Interpolation between calculated coefficients in xy-plane and z-direction (angle theta)
-    // ----------------------------------------------------------------------------------------
-    
-    Double bhi = ( 90 - angleBTheta ) / 90;
-    Double blo = ( angleBTheta - 0.0 ) / 90;
-    coefScalar = bhi * coefScalarXY + blo * coefScalarZ;
+    if ( is2dAnisotropic ) {
+      coefScalar = coefScalarXY;
+    }
+    else {
+      // --------------------------------------------------------------------
+      //  Angular based interpolation according to z direction (angle theta)
+      // --------------------------------------------------------------------
+      
+      // ASSUMPTION: material behavior of in thickness direction (theta) is 
+      //             equivalent to behavior in transverse direction (phi).
+      //             therefore we use the same BH-curves but scale them by 
+      //             an appropriate scaling factor. 
+      
+      Double coefScalarZ = 0.0;
+  
+      // if angle is out of bounds or we have just one entry,
+      // return boundary value (i.e. first or last) 
+      if ( angleBTheta > angles_[kend] || kend == 0) {
+        //coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+        nLinFnc_[kend]->GetScalar(coefScalarZ, lpm);
+      }
+      else if ( angleBTheta < angles_[0] ) {
+  //      coefScalarZ = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+        nLinFnc_[0]->GetScalar(coefScalarZ, lpm);
+      }
+      else {  // now that the angle is in range, search for the "best" given angle 
+        UInt klo,khi,k;
+        klo=0;
+        khi=kend;
+        // We will find the right place in the table by means of bisection.
+        // klo and khi bracket the input value of theta-value
+        while (khi-klo > 1) {
+          k=(khi+klo) >> 1; // binary right shift
+          if (angles_[k] > angleBTheta)
+            khi=k;
+          else
+            klo=k;
+        }
+  
+        // size of theta interval
+        Double dThetaVal = angles_[khi] - angles_[klo]; 
+  
+        // The theta-values must be distinct!
+        if (dThetaVal == 0.0) {
+          EXCEPTION("You cannot have two equal angular values!" );
+        }
+  
+        // relative distance of theta-value to theta-bounds
+        Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
+        Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
+  
+        // value of coefficient interpolated along z-direction and phi=0
+        // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
+        //       nu = 1/mu; c*mu => 1/c*mu
+        Double VALkhi, VALklo;
+        nLinFnc_[klo]->GetScalar(VALklo, lpm);
+        nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+        coefScalarZ =   ahi * VALklo * (1/zScalings_[klo])
+                       + alo * VALkhi * (1/zScalings_[khi]);
+  //      coefScalarZ =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[klo])
+  //                    + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[khi]);
+      }
+      
+      // ----------------------------------------------------------------------------------------
+      //  Interpolation between calculated coefficients in xy-plane and z-direction (angle theta)
+      // ----------------------------------------------------------------------------------------
+      
+      Double bhi = ( 90 - angleBTheta ) / 90;
+      Double blo = ( angleBTheta - 0.0 ) / 90;
+      coefScalar = bhi * coefScalarXY + blo * coefScalarZ;
+    } // endif ( is2dAnisotropic )
 
-
-#ifndef NDEBUG
-    // some debug output... TODO-avolk: weg damit!
-    std::cerr << "GetScalar(): statistics of element " << lpm.ptEl->elemNum << ":";
-//    std::cerr << " B_x=" << elemSol[0];
-//    std::cerr << " B_y=" << elemSol[1];
-//    std::cerr << " B_z=" << elemSol[2];
-    std::cerr << " angleBPhi=" << angleBPhi;
-    std::cerr << " angleBTheta=" << angleBTheta;
-    std::cerr << " zScaling(end)=" << zScalings_[kend];
-//    std::cerr << " startAngle=" << angles_[klo]; 
-//    std::cerr << " stopAngle=" << angles_[khi];
-//    std::cerr << " ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
-    std::cerr << " coefScalarXY=" << coefScalarXY;
-    std::cerr << " coefScalarZ=" << coefScalarZ;
-    std::cerr << " coefScalar=" << coefScalar;
-//    std::cerr << std::setprecision(4); 
-    std::cerr << std::endl;
-#endif
-    
   }
 }
 
@@ -646,7 +673,8 @@ void CoefFunctionApproxDerivAniso::Init( StdVector<shared_ptr<CoefFunction> > nL
                                          StdVector<Double> angles,
                                          StdVector<Double> zScalings,
                                          UInt dimDMat,
-                                         PtrCoefFct dependCoef ) {
+                                         PtrCoefFct dependCoef,
+                                         shared_ptr<CoefFunctionApproxAniso> baseCoef) {
   // set type to TENSOR
   dimType_ = TENSOR;
   nLinFnc_ = nLinFnc;
@@ -654,6 +682,7 @@ void CoefFunctionApproxDerivAniso::Init( StdVector<shared_ptr<CoefFunction> > nL
   zScalings_ = zScalings;
   dimDMat_ = dimDMat;
   dependCoef_ = dependCoef;
+  baseCoef_ = baseCoef;
 }
 
 void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat, 
@@ -682,26 +711,29 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       angleBPhi = 90.0;
     }
 
+    bool is3d = elemB.GetSize() > 2;
+
     // ---------------------------------
     //  compute angle theta of B vector
     // ---------------------------------
-    Double angleBTheta;
-    angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] + 
-                              elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
-    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
+    Double angleBTheta = 0.0;
+    if( is3d ){
+      angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] +
+                               elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
+      angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
-    // theta in spherical coordinates is defined as the angle between the 
-    // zenith direction and the line segment (origin->point) with a range [0°;180°]
-    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
-    angleBTheta = abs(90 - angleBTheta);
+      // theta in spherical coordinates is defined as the angle between the
+      // zenith direction and the line segment (origin->point) with a range [0;180]
+      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
+      angleBTheta = abs(90 - angleBTheta);
 
-    // take care that theta does not exceed its limits 
-    // TODO-avolk: Improve handling like it is done for phi!
-    if (angleBTheta > 90) {
-      angleBTheta = 90;
-      WARN("GetTensor(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      // take care that theta does not exceed its limits
+      // TODO-avolk: Improve handling like it is done for phi!
+      if (angleBTheta > 90) {
+        angleBTheta = 90;
+        WARN("GetTensor(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      }
     }
-    
     
     // ---------------------------- 
     //  Nearest neighbour approach
@@ -724,7 +756,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // Interpolation method of coefficients
     // ------------------------------------
     //
-    //                90°
+    //                90
     //                 o
     //                / \
     //               /   \
@@ -734,7 +766,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     //         3 o           o
     //          /     x       \
     //         /               \
-    //     0° o-----o-----o-----o 90°
+    //     0 o-----o-----o-----o 90
     //              1     2
     //                phi
     //
@@ -745,7 +777,9 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // ---------------------------------------------------
     //  Angular based interpolation in the xy-plane (phi)
     // ---------------------------------------------------
-    Double nuPrime, nuPrimeXY, nuPrimeZ;
+    double nuPrime = 0.0;
+    double nuPrimeXY = 0.0;
+    double nuPrimeZ = 0.0;
     
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 
@@ -784,80 +818,129 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
 
-      // value of nuPrime interpolated within the xy-plane and theta=0°
+      // value of nuPrime interpolated within the xy-plane and theta=0
       Double VALklo, VALkhi;
       nLinFnc_[klo]->GetScalar(VALklo, lpm);
       nLinFnc_[khi]->GetScalar(VALkhi, lpm);
       nuPrimeXY =   ahi * VALklo + alo * VALkhi;
 //      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs)
 //                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
-    }
+    //}
+
+      if( ! is3d ) {
+        // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B
+        /*Vector<Double> eB(dimDMat_);
+        eB = elemB / fieldAbs;
+        coefMat.DyadicMult( eB );
+        coefMat *= nuPrimeXY * fieldAbs;*/
+
+        // this matrix also accounts for the change of nu in phi direction
+        // the change with respect to phi is approximated by the difference quotient between two angles
+        // basic idea: total derivative of nu with respect to B
+        // for x component:
+        // dnu(|B|,phi)/dBx = dnu/d|B| * d|B|/dBx + dnu/dphi * dphi/dBx
+        // d|B|/dBx = Bx/|B|
+        // phi = atan(By/Bx) => dphi/dBx = - By/|B|^2
+        //                      dphi/dBy = Bx/|B|^2
+        // still not sure how this tensor really is built
+        // but I figured out it is equivalent to (dnu/d\vec{B})^T * \vec{B}^T where
+        // (dnu/d\vec{B})^T is the transposed Jacobian of nu with respect to \vec{B}
+        // which is how I build the coefMat
+        Double nuValLo, nuValHi;
+        baseCoef_->nLinFnc_[klo]->GetScalar( nuValLo, lpm );
+        baseCoef_->nLinFnc_[khi]->GetScalar( nuValHi, lpm );
+        Double dnudPhi = (nuValHi - nuValLo)/dPhiVal;
+        Vector<Double> dnudB(2);
+        dnudB[0] = nuPrimeXY*elemB[0]/fieldAbs - dnudPhi*elemB[1]/(fieldAbs*fieldAbs);
+        dnudB[1] = nuPrimeXY*elemB[1]/fieldAbs + dnudPhi*elemB[0]/(fieldAbs*fieldAbs);
+        coefMat.DyadicMult(dnudB,elemB);
+
+        return;
+      } // end if !is3d
+    } // end if angle out of bounds
     
-    // --------------------------------------------------------------------
-    //  Angular based interpolation according to z direction (angle theta)
-    // --------------------------------------------------------------------
-        
-    // ASSUMPTION: material behavior of in thickness direction (theta) is 
-    //             equivalent to behavior in transverse direction (phi).
-    //             therefore we use the same BH-curves but scale them by 
-    //             an appropriate scaling factor. 
     
-    // if angle is out of bounds or we have just one entry,
-    // return boundary value (i.e.first or last) 
-    if ( angleBTheta > angles_[kend] || kend == 0) {
-      nLinFnc_[kend]->GetScalar(nuPrimeZ, lpm);
-      //nuPrimeZ = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
+    bool is2dAnisotropic = false;
+    
+    // check for scaling factor == 0
+    // if only one scaling factor is set to zero consideration of z-direction is disabled
+    for (UInt i = 0; i <= kend; i++) {
+      if (zScalings_[i] == 0.0) {
+        is2dAnisotropic = true;
+        break;
+      }
     }
-    else if ( angleBTheta < angles_[0] ) {
-      nLinFnc_[0]->GetScalar(nuPrimeZ, lpm);
-//      nuPrimeZ = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+
+    if ( is2dAnisotropic ) {
+      nuPrime = nuPrimeXY;
     }
     else {
-      UInt klo,khi,k;
-      klo=0;
-      khi=kend;
-      // We will find the right place in the table by means of bisection.
-      //  klo and khi bracket the input value of theta-value
-      while (khi-klo > 1) {
-        k=(khi+klo) >> 1; // binary right shift
-        if (angles_[k] > angleBTheta)
-          khi=k;
-        else
-          klo=k;
+      // --------------------------------------------------------------------
+      //  Angular based interpolation according to z direction (angle theta)
+      // --------------------------------------------------------------------
+          
+      // ASSUMPTION: material behavior of in thickness direction (theta) is 
+      //             equivalent to behavior in transverse direction (phi).
+      //             therefore we use the same BH-curves but scale them by 
+      //             an appropriate scaling factor. 
+      
+      // if angle is out of bounds or we have just one entry,
+      // return boundary value (i.e.first or last) 
+      if ( angleBTheta > angles_[kend] || kend == 0) {
+        nLinFnc_[kend]->GetScalar(nuPrimeZ, lpm);
+        //nuPrimeZ = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
       }
-
-      // size of theta interval
-      Double dThetaVal = angles_[khi] - angles_[klo];
-
-      // The theta-values must be distinct!
-      if (dThetaVal == 0.0) {
-        EXCEPTION("You cannot have two equal angular values!" );
+      else if ( angleBTheta < angles_[0] ) {
+        nLinFnc_[0]->GetScalar(nuPrimeZ, lpm);
+  //      nuPrimeZ = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
       }
-
-      // relative distance of phi-value to phi-bounds
-      Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
-      Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
-
-      // value of nuPrime interpolated along z-direction and phi=0°
-      // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
-      // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
-      // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
-      Double VALklo, VALkhi;
-      nLinFnc_[klo]->GetScalar(VALklo, lpm);
-      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
-      nuPrimeZ =   ahi * VALklo * (1/zScalings_[klo])
-                 + alo * VALkhi * (1/zScalings_[khi]);
-//      nuPrimeZ =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[klo])
-//                 + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[khi]);
-    }
-
-    // -----------------------------------------------------------------------------------
-    //  Interpolation between calculated nuPrime in xy-plane and z-direction (angle theta)
-    // -----------------------------------------------------------------------------------
-    
-    Double bhi = ( 90 - angleBTheta ) / 90;
-    Double blo = ( angleBTheta - 0.0 ) / 90;
-    nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;        
+      else {
+        UInt klo,khi,k;
+        klo=0;
+        khi=kend;
+        // We will find the right place in the table by means of bisection.
+        //  klo and khi bracket the input value of theta-value
+        while (khi-klo > 1) {
+          k=(khi+klo) >> 1; // binary right shift
+          if (angles_[k] > angleBTheta)
+            khi=k;
+          else
+            klo=k;
+        }
+  
+        // size of theta interval
+        Double dThetaVal = angles_[khi] - angles_[klo];
+  
+        // The theta-values must be distinct!
+        if (dThetaVal == 0.0) {
+          EXCEPTION("You cannot have two equal angular values!" );
+        }
+  
+        // relative distance of phi-value to phi-bounds
+        Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
+        Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
+  
+        // value of nuPrime interpolated along z-direction and phi=0
+        // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
+        // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
+        // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
+        Double VALklo, VALkhi;
+        nLinFnc_[klo]->GetScalar(VALklo, lpm);
+        nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+        nuPrimeZ =   ahi * VALklo * (1/zScalings_[klo])
+                   + alo * VALkhi * (1/zScalings_[khi]);
+  //      nuPrimeZ =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[klo])
+  //                 + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[khi]);
+      }
+  
+      // -----------------------------------------------------------------------------------
+      //  Interpolation between calculated nuPrime in xy-plane and z-direction (angle theta)
+      // -----------------------------------------------------------------------------------
+      
+      Double bhi = ( 90 - angleBTheta ) / 90;
+      Double blo = ( angleBTheta - 0.0 ) / 90;
+      nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;        
+    } // endif ( is2dAnisotropic )
     
     
     // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B 

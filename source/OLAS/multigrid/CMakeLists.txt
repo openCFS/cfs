@@ -1,8 +1,27 @@
-SET(MATVEC_SRCS StdMatrix.cc StdVector.cc SBM_Vector.cc SBM_Matrix.cc
-	        generatematvec.cc)
+IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
-ADD_DEFINITIONS()
+SET(MG_SRCS
+    ${MG_SRCS}
+    amg.cc
+    hierarchylevel.cc
+    topology.cc
+    transfer.cc
+    gaussseidel.cc
+    jacobi.cc
+    smoother.cc
+    transfer.cc
+    depgraph.cc
+    prematrix.cc
+    agglomerate.cc
+    AFWsmoother.cc
+    )
+ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
-ADD_LIBRARY(matvec STATIC ${MATVEC_SRCS})
 
+ADD_LIBRARY(multigrid-olas STATIC ${MG_SRCS})
 
+SET(TARGET_LL
+  multigrid-olas
+)
+
+TARGET_LINK_LIBRARIES(multigrid-olas ${TARGET_LL})

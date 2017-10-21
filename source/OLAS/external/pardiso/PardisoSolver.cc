@@ -11,6 +11,7 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "Domain/Domain.hh"
 
 #include "def_use_pardiso.hh"
 #include <def_cfs_fortran_interface.hh>
@@ -137,6 +138,8 @@ extern "C" {
     // Set default solver type to direct sparse solver
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
+
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -177,8 +180,8 @@ extern "C" {
   PardisoSolver<T>::~PardisoSolver() {
 
     // PARDISO - Last Phase: Cleaning up the parameters
-    if ( firstCall_ == false ) {
-
+    if ( firstCall_ == false )
+    {
       int errorFlag = 0;
       int phase = -1;
 
@@ -196,9 +199,10 @@ extern "C" {
                 &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != PARDISO_NO_ERROR) {
-        EXCEPTION( "Error occured during cleanup:\n"
-                   << GetErrorString(errorFlag) )
+      if(errorFlag != PARDISO_NO_ERROR) {
+        std::cout << "Error occured during cleanup: " << GetErrorString(errorFlag) << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in destructors
       }
 
     // Read iterative solver statistics
@@ -215,7 +219,9 @@ extern "C" {
       try {
         fs::remove("pardiso-ml.out");
       } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+        std::cout << "Error while trying to remove pardiso-ml.out: " << ex.what() << std::endl;
+        domain->GetInfoRoot()->ToFile();
+        exit(-1); // no exceptions in destructors
       }      
     }
 
@@ -232,7 +238,7 @@ extern "C" {
   //   Setup
   // *********
   template<typename T>
-  void PardisoSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void PardisoSolver<T>::Setup( BaseMatrix &sysMat) {
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
@@ -328,14 +334,9 @@ extern "C" {
     // ====================================
 
     // Some flags for determining the type of the matrix
-    bool symPard, defPard, herPard, strPard;
+    bool defPard, herPard, strPard;
 
-    if ( stype == BaseMatrix::SPARSE_SYM ) {
-      symPard = true;
-    }
-    else {
-      symPard = false;
-    }
+    bool symPard = stype == BaseMatrix::SPARSE_SYM ? true : false;
 
     mType_ = 0;
 
@@ -348,37 +349,41 @@ extern "C" {
     strPard = false;
     xml_->GetValue("symStruct", strPard, ParamNode::INSERT);
 
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && ( strPard) ) mType_ =  3;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && ( defPard) ) mType_ =  4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && (!defPard) ) mType_ = -4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( symPard) ) mType_ = 6;
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && (!strPard) ) mType_ = 11;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && (!strPard) && (!herPard)) {
-      mType_ = 13;
+    infoNode_->Get("hermitean")->SetValue(herPard);
+    infoNode_->Get("symStruct")->SetValue(strPard);
+    infoNode_->Get("symmetric")->SetValue(symPard);
+    infoNode_->Get("posDef")->SetValue(defPard);
+
+    // see pardiso manual -> MTYPE, page 9
+    if(etype == BaseMatrix::DOUBLE)
+    {
+      if(strPard)
+        mType_ = 1;                 // 1: real and structurally symmetric -- wtf is this???
+      if(symPard)
+        mType_ = defPard ? 2 : -2;  // 2: real and symmetric positive definite, -2: real and symmetric indefinite
+      if(!symPard && !strPard)
+        mType_ = 11;                // 11: real and nonsymmetric
     }
-    if ( mType_ == 0 ) {
-      EXCEPTION( "PardisoSolver: There appears to be an inconsistency in "
-               << "the input parameters. I cannot determine correct matrix "
-               << "properties for pardiso" );
-    }
-    else {
-      LOG_TRACE(pardisoSolver) << " Classified matrix as mType = " << mType_;
+    else
+    {
+      if(herPard)
+        mType_ = defPard ? 4 : -4; // 4: complex and Hermitian positive definite, -4 : complex and Hermitian indefinite
+      if(strPard)
+        mType_ = 3;                // 3: complex and structurally symmetric
+      if(!strPard && !herPard)
+        mType_ = symPard ? 6 : 13; // 6: complex and symmetric, 13: complex  and nonsymmetric
     }
 
-    if(mSolver_ == 1) {
-      LOG_TRACE(pardisoSolver) << " Using iterative solver";
-      switch(mType_) {
-        case 11:
-        case 13:
-          EXCEPTION( "PardisoSolver: The iterative solver just supports symmetric matrices!" );
-          break;
-      }
-    } else {
-      LOG_TRACE(pardisoSolver) << " Using direct solver";
-    }
+
+
+    infoNode_->Get("pardiso_matrix")->SetValue(mType_);
+    infoNode_->Get("solver")->SetValue(mSolver_ == 1 ? "iterative" : "direct");
+
+    if(mType_ == 0)
+      throw Exception("Pardiso matrix type cannot be determined.");
+
+    if(mSolver_ == 1 && (mType_ == 11 || mType_ == 13))
+      throw Exception("The iterative pardiso solver just supports symmetric matrices!" );
 
     // Set default input values for dparm_;
     dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
@@ -399,7 +404,7 @@ extern "C" {
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
     xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
 
-    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
+    dparm_[6] = 10;    // Maximum number of fill-in in each column in the factor.
     xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
 
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
@@ -595,14 +600,20 @@ extern "C" {
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
 
+
+    // write out additional information in info xml file
+    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
+    node->Get("number")->SetValue(tNumfact_.GetCalls());
+
+
     // ========================
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
 
+      tSymfact_.ResetStart();
       // log report
-      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
-                               << " ... ";
+      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation) ... ";
 
       // only analyse
       int phase = 11;
@@ -630,14 +641,17 @@ extern "C" {
       else {
         LOG_TRACE(pardisoSolver) << "done";
       }
+
+      tSymfact_.Stop();
+      node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+      node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
     }
-
-
     // =========================
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
 
+      tNumfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
@@ -667,8 +681,17 @@ extern "C" {
       }
       else {
         LOG_TRACE(pardisoSolver) << "done";
+        LOG_TRACE(pardisoSolver) << "Memory consumption during numerical factorization and solution: " << iparm_[16] << "kBytes";
       }
+
+      tNumfact_.Stop();
+      node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
+      node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
     }
+
+    node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
+    node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
+    node->Get("numfact/peakMem")->SetValue(iparm_[16]);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
@@ -689,8 +712,7 @@ extern "C" {
   //   Solve linear system
   // *************************
   template<typename T>
-  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
 
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";
@@ -790,7 +812,7 @@ extern "C" {
 
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

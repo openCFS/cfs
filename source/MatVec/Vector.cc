@@ -1,10 +1,13 @@
-#include <cstdio>
-#include <cmath>
 
 #include "Vector.hh"
 #include "opdefs.hh"
+#include <boost/type_traits/is_complex.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
-using namespace std;
+#include <cstdio>
+#include <cmath>
+#include <cfloat>
+
 
 namespace CoupledField {
 
@@ -105,7 +108,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += idvec[i];
   }
@@ -121,7 +124,7 @@ namespace CoupledField {
     const Vector<T>& idvec1 = dynamic_cast<const Vector<T>&>(vec1);
     const Vector<T>& idvec2 = dynamic_cast<const Vector<T>&>(vec2);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = a * idvec1[i] + b * idvec2[i];	
   }
@@ -156,7 +159,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += a * idvec[i];
   }
@@ -204,8 +207,45 @@ namespace CoupledField {
 
     return sum;
   }
+
+  template <typename T>
+  T Vector<T>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
+  {
+    T sum(0);
+
+    const Vector<T>& secVec = dynamic_cast<const Vector<T>&>(vec);
+
+    for(unsigned int i = start; i < end; i++)
+      sum += OpType<T>::dotProduct(data_[i], secVec[i]);
+
+    return sum;
+  }
+
+  template <typename T>
+  T Vector<T>::Inner() const
+  {
+    T sum(0);
+
+    for(unsigned int i = 0; i < size_; i++)
+      sum += OpType<T>::dotProduct(data_[i], data_[i]);
+
+    return sum;
+  }
   
-  
+  template<typename T>
+  Vector<T> Vector<T>::Conj() const {
+    return *this;
+  }
+
+  template<>
+  Vector<Complex> Vector<Complex>::Conj() const {
+    Vector<Complex> ret(size_);
+    for( UInt i = 0; i < size_; ++i )
+      ret[i] = std::conj(data_[i]);
+
+    return ret;
+  }
+
   /*
   template <typename T>
   void Vector<T>::Inner(const SingleVector& vec,Double& s) const {
@@ -238,22 +278,106 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  Double Vector<T>::NormL2() const
+  inline Double Vector<T>::NormL2() const
   {				
-    Double sum(0.0);
+    double sum = 0;
 
-//#pragma omp parallel for reduction(+:sum)
+    //#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
-    
+
     return sqrt(sum);
   }
+
+
+  template <typename T>
+  inline double Vector<T>::NormL2(const Vector<T>& other) const
+  {
+    if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
+
+    double sum = 0;
+
+    //#pragma omp parallel for reduction(+:sum)
+    for(unsigned int i = 0; i < size_; ++i)
+      sum += OpType<T>::zConjz(data_[i] - other[i]);
+
+    return sqrt(sum);
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Sum() const
+  {
+    T s(0);
+    for(unsigned int i = 0; i < size_; ++i)
+      s+=data_[i];
+
+    return s;
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Avg() const
+  {
+    assert(size_ > 0);
+
+    return Sum() * (1.0/size_);
+  }
+
+
 
   template<class TYPE> 
   Double Vector<TYPE>::NormMax() const 
   { 
     EXCEPTION( "Vector<TPYE>::NormMax only defined for TYPE=Complex/Double" ); 
     return TYPE(); 
+  } 
+
+  // this functions localized the maximal component (absolute value) and returns it with its original sign
+  // example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1
+  template<class TYPE> 
+  Double Vector<TYPE>::SignedMax() const 
+  { 
+    EXCEPTION( "Vector<TPYE>::SignedMax only defined for TYPE=/Double" ); 
+    return TYPE(); 
+  } 
+
+
+  template<> 
+  double Vector<Double>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i){
+      ret_new = std::max(ret, std::abs(data_[i]));
+      if(ret != ret_new){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	}
+	ret = ret_new;
+	}
+		
+    return data_[idx]; 
+  }
+
+  template<> 
+  double Vector<Complex>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i) {
+      ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
+      if(std::abs(ret) != std::abs(ret_new)){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	ret = ret_new;
+	}
+    }		
+    return data_[idx].real(); 
   } 
 
   template<> 
@@ -375,7 +499,7 @@ namespace CoupledField {
   {
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
-      EXCEPTION( "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
+      EXCEPTION( "Vector<>::SetVectorEntry: "
                << "Detected index error:"
                << "\n index = " << i
                << "\n size  = " << size_ );
@@ -401,9 +525,25 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::GetEntry( const unsigned int i, T &val ) const
   {
+    //assert(i<size_);
     val = data_[i];
   }
   
+
+  // ********************
+  //   Get several entries
+  // ********************
+  template<typename T>
+  const Vector<T> Vector<T>::GetEntries( const StdVector<UInt>& in) const
+  {
+    Vector<T> vals;
+    vals.Resize(in.GetSize());
+    for(UInt i = 0; i < in.GetSize(); ++i){
+      vals[i] = data_[in[i]];
+    }
+    return vals;
+  }
+
   template<typename T>
   void  Vector<T>::Push_back(const T & y)
   {
@@ -496,8 +636,7 @@ namespace CoupledField {
   }
 
   template<>
-  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
-                                 bool zeroOtherPart ) {
+  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector, bool zeroOtherPart ) {
     if(size_ != partVector.GetSize())
       EXCEPTION( "Vector<Complex>::SetPart: Dimension of vectors do not match!" );
 
@@ -541,20 +680,40 @@ namespace CoupledField {
   template<typename T>
   std::string Vector<T>::ToString(const int level, const char separator) const
   {
-    assert(level == 0 || level == 1);
     std::ostringstream os;
-    int nnz = 0;
-    for(unsigned int i = 0; i < size_; ++i)
-    {
-      if(level == 1 && Abs(data_[i]) == 0) continue;
-      if(level == 1) os << " " << i << ":";
-      os << data_[i];
-      if(i < size_-1) os << separator;
-      nnz++;
-    }
 
-    if(level > 0)
-      os << " size=" << size_ << " nnz=" << nnz;
+    if(level == 0 || level == 1)
+    {
+      int nnz = 0;
+      for(unsigned int i = 0; i < size_; ++i)
+      {
+        if(level == 1 && Abs(data_[i]) == 0) continue;
+        if(level == 1) os << " " << i << ":";
+        os << data_[i];
+        if(i < size_-1) os << separator;
+        nnz++;
+      }
+
+      if(level == 1)
+        os << " size=" << size_ << " nnz=" << nnz;
+    }
+    if(level == 2)
+    {
+      os << std::scientific << std::setprecision(7);
+      os << "[";
+      for(unsigned int i = 0; i < size_; ++i)
+      {
+        if(boost::is_complex<T>::value)
+        {
+          Complex cval = (Complex) data_[i];
+          os << cval.real() << "+" << cval.imag() << "i";
+        }
+        else
+          os << data_[i];
+        os << (i < size_-1 ? "; " : "");
+      }
+      os << "]";
+    }
 
     return os.str();
   }
@@ -591,6 +750,9 @@ namespace CoupledField {
       default:
         break;
       }
+      break;
+    case BaseMatrix::PLAIN:
+      sstr << ".vec";
       break;
     }
     
@@ -699,6 +861,13 @@ namespace CoupledField {
       }
     }  
     break;
+    case BaseMatrix::PLAIN:
+    for(unsigned int k = 0; k < size_; ++k)
+    {
+      OpType<T>::ExportEntry(data_[k], 0, fp);
+      fprintf(fp, "\n");
+    }
+    break;
     }
     
     // close output file
@@ -761,12 +930,21 @@ namespace CoupledField {
       OpType<T>::MultWithComplex( data_[i], factor ); 
   }
 
+  template<class TYPE>
+  bool Vector<TYPE>::Contains(const TYPE val) const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+      if(data_[k] == val) return true;
+
+    return false;
+  }
+
 
   template<class TYPE>
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isnan(data_[k])) return true;
+      if((boost::math::isnan)(data_[k])) return true;
 
     return false;
   }
@@ -776,8 +954,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isnan(data_[k].real())) return true;
-      if(std::isnan(data_[k].imag())) return true;
+      if((boost::math::isnan)(data_[k].real())) return true;
+      if((boost::math::isnan)(data_[k].imag())) return true;
     }
     return false;
   }
@@ -787,7 +965,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isinf(data_[k])) return true;
+      if((boost::math::isinf)(data_[k])) return true;
 
     return false;
   }
@@ -797,8 +975,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isinf(data_[k].real())) return true;
-      if(std::isinf(data_[k].imag())) return true;
+      if((boost::math::isinf)(data_[k].real())) return true;
+      if((boost::math::isinf)(data_[k].imag())) return true;
     }
     return false;
   }
@@ -843,7 +1021,7 @@ namespace CoupledField {
   //   Cross Product Calculation for vector in 3D
   // **********************************************  
   template <typename T> 
-  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v)
+  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v) const
   {
     if( size_ != 3 || b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
@@ -861,6 +1039,7 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
+  
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  
@@ -929,6 +1108,8 @@ namespace CoupledField {
       EXCEPTION("Vector: undefined Vector in operator +()" );
 #endif
     
+
+    // this is not the addition operator but the positive sign, therefore nothing changes!
     return *this;
   }
 
@@ -992,20 +1173,6 @@ namespace CoupledField {
      return out;
    }
 
-   template<typename T>
-   Vector<T> Conj(const Vector<T>& m) {
-     return m;
-   }
-
-   template<>
-   Vector<Complex> Conj<Complex>(const Vector<Complex>& m) {
-     const UInt size = m.GetSize();
-     Vector<Complex> ret(size);
-     for( UInt i = 0; i < size; ++i ) {
-       ret[i] = std::conj(m[i]);
-     }
-     return ret;
-   }
    
    
 // Explicit template instantiation
@@ -1018,7 +1185,6 @@ namespace CoupledField {
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
   template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
-  template Vector<Double> Conj<Double>(const Vector<Double>&);
 #endif
 
 

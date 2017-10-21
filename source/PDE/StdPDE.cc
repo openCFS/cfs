@@ -8,6 +8,7 @@
 #include "MatVec/generatematvec.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TransientDriver.hh"
+#include "Driver/MultiSequenceDriver.hh"
 
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -38,9 +39,14 @@ namespace CoupledField {
     nonLinMaterial_(false),
     nonLinTotalFormulation_(false),
     isHysteresis_(false),
+    isHysteresisFixPoint_(false),
+    matDepend_(false),
+    nonLinMethod_(FIXEDPOINT),
+    pdematerialclass_(NO_CLASS),
     isIterCoupled_(false),
     diagMass_(false),
     needsAlgsys_(true),
+    analysistype_(BasePDE::NO_ANALYSIS),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
@@ -100,11 +106,10 @@ namespace CoupledField {
   void StdPDE::DefineAlgSys() 
   {
     LOG_TRACE(stdPde) << pdename_ << ": Defining Algsys";
-   
+
     // Immediately leave if external simState is provided
     if (simState_->HasInput())
       return;
-    
     
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
@@ -126,7 +131,7 @@ namespace CoupledField {
     //std::map<UInt,StdVector <MinorBlockDef > > minorBlocks;
     //          ^        ^
     //          |        |
-    //        sbm   min blockNum
+    //        sbm   minor blockNum
 
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
@@ -134,7 +139,6 @@ namespace CoupledField {
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
     // -----------------------------------------------------------
-
     // Note: currently we use the same graph for all matrix
     // types (STIFFNESS, MASS, SYSTEM...)
     UInt numFcts = feFunctions_.size();
@@ -143,9 +147,7 @@ namespace CoupledField {
 
     LOG_DBG(stdPde) << pdename_ << ": Registering functions";
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fctIt;
-    for( fctIt = feFunctions_.begin(); 
-        fctIt != feFunctions_.end(); 
-        fctIt++ ) {
+    for( fctIt = feFunctions_.begin(); fctIt != feFunctions_.end(); fctIt++ ) {
       FeSpace & feSpace = *(fctIt->second->GetFeSpace());
       FeFctIdType fctId = fctIt->second->GetFctId();
       shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
@@ -168,7 +170,6 @@ namespace CoupledField {
     // ---------------------------------------
     //  2) Define SBM-Blocks and minor blocks
     // ---------------------------------------
-
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
     UInt numBlocks = sbmBlocks.GetSize();
@@ -183,8 +184,7 @@ namespace CoupledField {
 
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
-      bool isInnerBlock = solStrat_->UseStaticCondensation() &&
-          (i == numBlocks-1);
+      bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
@@ -192,11 +192,14 @@ namespace CoupledField {
         // check if minor blocks are defined at all
         if(sbmSubBlocks.GetSize() == 0 ) continue;
 
-        // Warning: Sub-matrix block is currently restricted to 
+        // Warning: Sub-matrix block is currently restricted to
         // just one FeFunction
         if( feFunctions_.size() > 1){
-          EXCEPTION( "Sub-matrix block is currently just working for "
-              << "1 FeFunction!" );
+          WARN( "Sub-matrix block is currently just working for "
+              << "1 FeFunction!"
+              << "However unless you don't use any sub-block specific stuff like "
+              << "special preconditioners it could work." );
+          continue;
         }
         FeFctIdType fctId = feFunctions_.begin()->second->GetFctId();
 
@@ -255,23 +258,59 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
-      // Print equation information
-      //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
 
+    if(progOpts->DoEquationMapping())
+      CreateEquationMapFile();
 
-    //exit(0);
     // Trigger writing of info file
-    myInfo_->GetRoot()->ToFile("", true );
+    myInfo_->GetRoot()->ToFile(true);
 
   }
 
-  BaseSolveStep * StdPDE::GetSolveStep() {
-    
+   void StdPDE::CreateEquationMapFile()
+   {
+     // to be called after DefineAlgSys()
+
+     std::string name =progOpts->GetSimName();
+
+     if(domain->GetMultiSequenceDriver() != NULL)
+       name += "_sequence_" + boost::lexical_cast<std::string>(domain->GetMultiSequenceDriver()->GetActSequenceStep());
+
+     if(domain->GetSinglePDEs().GetSize() > 1)
+       name += "_" + GetName(); // in case of more than one pde name it
+
+     name += ".map";
+
+     std::ofstream* out = new std::ofstream(name.c_str());
+     if(out == NULL)
+       throw Exception("cannot open equation mapping file " + name + " for writing");
+
+     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+     fncIt= feFunctions_.begin();
+     while(fncIt != feFunctions_.end()){
+       // Print equation information
+       fncIt->second->GetFeSpace()->PrintEqnMap(out);
+       fncIt++;
+     }
+     out->close();
+     delete out;
+   }
+
+  BaseSolveStep * StdPDE::GetSolveStep()
+  {
     return solveStep_;
   }
-  
+
+  DampingType StdPDE::GetDamping(RegionIdType reg_id) const
+  {
+    std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
+
+    return it != dampingList_.end() ? it->second : NONE;
+  }
+
+
 
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...) 
@@ -303,10 +342,9 @@ namespace CoupledField {
   //FeFunction Methods
   //============================================================================================
 
-  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction(SolutionType solType) {
 
     shared_ptr<BaseFeFunction> feFct;    
-    
     if( feFunctions_.find(solType) != feFunctions_.end() ){
       feFct = feFunctions_[solType];
     }
@@ -323,6 +361,17 @@ namespace CoupledField {
 
   }
 
+  // **********
+  // Geometry Information
+  // **********
+  void StdPDE::SetGeomInfo() {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator FncIt= this->feFunctions_.begin();
+
+    while(FncIt != this->feFunctions_.end()){
+      FncIt->second->ApplyGeomInfo();
+      FncIt++;
+    }
+  }
 
   // **********
   // SetRhsLoads
@@ -335,6 +384,101 @@ namespace CoupledField {
     	rFncIt->second->ApplyLoads();
     	rFncIt++;
     }
+  }
+
+  // **********
+  // Hysteresis
+  // **********
+  void StdPDE::SetPreviousHystVals(bool setNextToLastTS){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->SetPreviousHystVals(setNextToLastTS);
+        }
+     }
+  }
+
+  void StdPDE::SetFlagInCoefFncHyst(std::string flagName,bool newState){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->SetFlag(flagName,newState);
+        }
+     }
+  }
+
+  void StdPDE::LockUnlockHystMemory(bool locked){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->setOverwrite(!locked);
+        }
+     }
+  }
+
+
+  void StdPDE::LockUnlockHystDirection(bool locked){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If locked = true, overwrite = false
+           */
+          it->second->setOverwriteDirection(!locked);
+        }
+     }
+  }
+
+  void StdPDE::UseNextToLastTSForDeltaMat(bool useNextToLastTS){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If active = true, deltaComputation shall be true
+           */
+          it->second->setUseNextToLastTS(useNextToLastTS);
+        }
+     }
+  }
+
+
+  void StdPDE::ActivateDeactivateDeltaMat(bool active){
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+          /*
+           * Note: If active = true, deltaComputation shall be true
+           */
+          it->second->setDeltaComputation(active);
+        }
+     }
   }
 
 } // end of namespace

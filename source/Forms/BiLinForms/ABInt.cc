@@ -45,7 +45,7 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
 
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -57,7 +57,7 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   const UInt nrFncsB = ptFeB->GetNumFncs();
 
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm = 
+  shared_ptr<ElemShapeMap> esm =
       ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
   // Get integration points
@@ -71,7 +71,6 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp;
   const UInt numIntPts = intPoints.GetSize();
@@ -91,7 +90,7 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
     elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
@@ -140,7 +139,7 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   const Elem* ptElem1 = ent1.GetElem();
   const Elem* ptElem2 = ent2.GetElem();
 
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -169,7 +168,6 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp1,lp2;
   const UInt numIntPts = intPoints.GetSize();
@@ -194,7 +192,7 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         this->factor_*fac, 1.0);
 #else
@@ -256,7 +254,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                                         : mSe2->ptSlave->ptVolElems[0] ;
 
   Matrix<MAT_DATA_TYPE> aMat, bMat;
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -325,7 +323,6 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
    myFactor *= tmp/(surface1+surface2);
   }
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp1,lp2;
   const UInt numIntPts = intPoints.GetSize();
@@ -346,7 +343,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         myFactor*fac, 1.0);
 #else
@@ -394,9 +391,10 @@ SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                       RegionIdType masterVolRegion,
                       RegionIdType slaveVolRegion,
                       bool coplanar,
-                      bool coordUpdate)
+                      bool coordUpdate,
+                      BiLinearForm::CouplingDirection cplDirection)
 : ABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor, coordUpdate),
-  isCoplanar_(coplanar)
+  isCoplanar_(coplanar), cplDirection_(cplDirection)
 {
   this->name_ = "SurfaceMortarABInt";
   this->isSymmetric_ = true;
@@ -434,7 +432,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                      << "\n\tslave parent #" << ptSurfSlave->elemNum;
   LOG_DBG2(mortarInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
   
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   BaseFE* ptFeMaster = this->ptFeSpaceField_->GetFe(ptSurfMaster->elemNum);
@@ -477,7 +475,6 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   LocPoint ipMaster, ipSlave;
   LocPointMapped lpmNc, lpmMaster, lpmSlave;
 
-#define USE_BLAS_VERSION
   const UInt numIntPts = intPoints.GetSize();
   for( UInt i = 0; i < numIntPts; ++i ) {
     // Calculate global coordinates of integration point
@@ -523,17 +520,28 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     lpmSlave.Set( ipSlave, esmSlave, this->volRegions_, weights[i] );
 
     // Calculate A-matrix (first differential operator)
-    this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
-
     // Calculate B-matrix (second differential operator)
-    this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+    if (cplDirection_ == BiLinearForm::MASTER_SLAVE)
+    {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+    }
+    else if (cplDirection_ == BiLinearForm::SLAVE_MASTER)
+    {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmSlave, ptFeSlave );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmMaster, ptFeMaster );
+    }
+    else
+    {
+      EXCEPTION("Cannot calculate operator matrices for the current coupling direction: " + boost::lexical_cast<std::string>(cplDirection_));
+    }
 
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lpmSlave);
 
     fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
 
-#ifdef USE_BLAS_VERSION
+#ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
         this->factor_*fac, 1.0);
 #else
@@ -550,14 +558,19 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 ::SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
   shared_ptr<BaseFeFunction> feFunc1 = feSpace1->GetFeFunction().lock(),
                              feFunc2 = feSpace2->GetFeFunction().lock();
-  
-  if ( feFunc1->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+  // IsLagrSurfSpace check is included to be able to work with other kinds of Lagrange multipliers
+  if (feFunc1->GetResultInfo()->resultType == LAGRANGE_MULT)
+  {
     ptFeSpaceLM_ = feFunc1->GetFeSpace();
     ptFeSpaceField_ = feFunc2->GetFeSpace();
-  } else if (feFunc2->GetResultInfo()->resultType == LAGRANGE_MULT) {
+  }
+  else if (feFunc2->GetResultInfo()->resultType == LAGRANGE_MULT)
+  {
     ptFeSpaceLM_ = feFunc2->GetFeSpace();
     ptFeSpaceField_ = feFunc1->GetFeSpace();
-  } else {
+  }
+  else
+  {
     EXCEPTION("FeSpace for Lagrange multiplier is not defined");
   }
   

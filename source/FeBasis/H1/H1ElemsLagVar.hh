@@ -34,6 +34,9 @@ namespace CoupledField {
     //! Constructor
     FeH1LagrangeVar();
 
+    //! Copy Constructor
+    FeH1LagrangeVar(const FeH1LagrangeVar& other);
+
       //! Destructor
     virtual ~FeH1LagrangeVar();
 
@@ -120,8 +123,17 @@ namespace CoupledField {
     //! Constructor
     FeH1LagrangeLineVar();
 
+    //! Copy Constructor
+    FeH1LagrangeLineVar(const FeH1LagrangeLineVar& other)
+      :FeH1LagrangeVar(other) {
+    }
+
     //! Destructor
     virtual ~FeH1LagrangeLineVar();
+
+    virtual FeH1LagrangeLineVar* Clone(){
+      return new FeH1LagrangeLineVar(*this);
+    }
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
     //! by the child classes to calculate the number of functions according to
@@ -155,8 +167,17 @@ namespace CoupledField {
     //! Constructor
     FeH1LagrangeQuadVar();
 
+    //! Copy Constructor
+    FeH1LagrangeQuadVar(const FeH1LagrangeQuadVar& other)
+      :FeH1LagrangeVar(other) {
+    }
+
     //! Destructor
     virtual ~FeH1LagrangeQuadVar();
+
+    virtual FeH1LagrangeQuadVar* Clone(){
+      return new FeH1LagrangeQuadVar(*this);
+    }
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
     //! by the child classes to calculate the number of functions according to
@@ -208,8 +229,17 @@ namespace CoupledField {
     //! Constructor
     FeH1LagrangeHexVar();
 
+    //! Copy Constructor
+    FeH1LagrangeHexVar(const FeH1LagrangeHexVar& other)
+      :FeH1LagrangeVar(other) {
+    }
+
     //! Destructor
     virtual ~FeH1LagrangeHexVar();
+
+    virtual FeH1LagrangeHexVar* Clone(){
+      return new FeH1LagrangeHexVar(*this);
+    }
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
     //! by the child classes to calculate the number of functions according to

@@ -14,6 +14,13 @@ namespace CoupledField
     preComputShFnc_ = true;
   }
 
+  BaseFE::BaseFE(const BaseFE & other){
+    this->shape_ = other.shape_;
+    this->actNumFncs_ = other.actNumFncs_;
+    this->feType_ = other.feType_;
+    this->preComputShFnc_ = other.preComputShFnc_;
+  }
+
   BaseFE::~BaseFE() {
       
   }

@@ -49,13 +49,13 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id);
+    virtual void SolveStepStatic();
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(PtrParamNode analysis_id);
+    virtual void StepStaticLin();
 
     //! solves for one nonlinear static step: incremental formulation 
-    virtual void StepStaticNonLin(PtrParamNode analysis_id);
+    virtual void StepStaticNonLin();
 
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -73,24 +73,20 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id);
+    virtual void SolveStepTrans();
 
     //! solves for one linear transient step
-    virtual void StepTransLin(PtrParamNode analysis_id);
+    virtual void StepTransLin();
 
     //! solves for one nonlinear transient step: incremental formulation 
-    virtual void StepTransNonLin(PtrParamNode analysis_id);
+    virtual void StepTransNonLin();
 
     //! solves for one nonlinear transient step: total formulation 
-    virtual void StepTransNonLinTotal(PtrParamNode analysis_id);
+    virtual void StepTransNonLinTotal();
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial(PtrParamNode analysis_id);
-
-    //! solves for one nonlinear transient step 
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis(PtrParamNode analysis_id);
+    void StepTransNonLinMaterial();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -100,35 +96,57 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic();
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(PtrParamNode analysis_id);
+    virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin(PtrParamNode analysis_id)
+    virtual void StepHarmonicNonLin()
     {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-
     //----------------------- HARMONIC ---------------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
-    UInt CalcEigenFrequencies( Vector<Double> & frequencies,
-                               Vector<Double> & errBounds,
-                               UInt numFreq, Double shift );
+    UInt CalcEigenFrequencies( Vector<Double> & frequencies, Vector<Double> & errBounds,
+                               UInt numFreq, double shift, bool sort);
 
     //! Calculate the Eigenfrequencies of a quadratic eigenvalue problem
-    UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
-                               Vector<Double> & errBounds,
-                               UInt numFreq, Double shift, bool bloch);
+    UInt CalcEigenFrequencies( Vector<Complex> & frequencies, Vector<Double> & errBounds,
+                               UInt numFreq, double shift, bool sort, bool bloch);
 
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
-    void CalcEigenMode( UInt numMode );
+    void GetEigenMode( UInt numMode );
     
+    //----------------------- HYSTERESIS -------------------------------------
+    //! solves for one nonlinear transient step
+    //! consideres hystreresis nonlinearities in direct coupled PDEs
+    virtual void StepTransNonLinHysteresis();
+    virtual void StepTransNonLinHysteresisTotal();
+    /*!
+     * Helper funciton for setting up the equation system during
+     *            StepTransNonLinHysteresis()
+     * Background: During the solve step, the matrices and the rhs have to be
+     *  assembled multiple times during linesearch, for the calculation of the
+     *  residual error and of course to get a system to be solved;
+     *  for simplification, encapsulate that sequence of function calls
+     *  in a separate function
+     */
+    /*
+     * for residual computation we need a slightly different version -> see .cc file
+     */
+    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta, UInt stage, UInt callingCnt, UInt evalVersion, bool trans);
+
+    virtual void ConfigureSystemForHysteresisResidual(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta,UInt stage, bool trans);
+
+    virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
+    //! does a line search and returns the optimal residual norm
+    Double LineSearchHyst(SBM_Vector& solIncrement, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
+                      bool trans=false, bool performLineSearch=true);
     
     //----------------------- helpfull methods--------------------------------------
 
@@ -139,7 +157,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
@@ -214,6 +232,7 @@ namespace CoupledField
     AlgebraicSys* algsys_;             //!< pointer to algsys object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object
+
     
     //! Pointer to solution strategy object
     shared_ptr<SolStrategy> solStrat_;
@@ -233,15 +252,16 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
-	Double minValidValue_;     //! stopping if any value in the region exceeds value
-	Double maxValidValue_;     //! stopping if any value in the region exceeds value
-	SolutionType solutionLimit_; //! solution type for which a limit is set
-	RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+    Double minValidValue_;     //! stopping if any value in the region exceeds value
+    Double maxValidValue_;     //! stopping if any value in the region exceeds value
+    SolutionType solutionLimit_; //! solution type for which a limit is set
+    RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
 
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
+    bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
@@ -252,8 +272,14 @@ namespace CoupledField
     //! Vector containing all solution vectors of the FE-functions
     SBM_Vector solVec_;
     
-    //! Vector containing all solution vectors of the FE-functions
+    //! Vector containing rhs
     SBM_Vector rhsVec_;
+
+    //! Vector containing residual
+    SBM_Vector resVec_;
+
+    //! nonLinRHS
+    SBM_Vector nonLinRHS_;
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

@@ -7,16 +7,19 @@ SET(MATERIALS_SRCS
   MechanicMaterial.cc
   FlowMaterial.cc 
   PiezoMaterial.cc
+  magStrictMaterial.cc
   ElectricConductionMaterial.cc
   TestMaterial.cc
   Models/Hysteresis.cc
   Models/Jiles.cc
   Models/PiezoMicroModelBK.cc
   Models/PiezoMicroModelHF.cc
+  Models/VectorPreisachv10.cc
+  #Models/VectorPreisachv7.cc
+  #Models/VectorPreisach.cc
   Models/Preisach.cc
   Models/SimplePreisachInv.cc 
   )
-
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
 

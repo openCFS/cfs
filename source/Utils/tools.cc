@@ -1,15 +1,22 @@
 #include <fstream>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Exception.hh"
+#include "Domain/Domain.hh"
+#include "Utils/mathParser/mathParser.hh"
+
+using boost::char_separator;
+using boost::tokenizer;
+using boost::bad_lexical_cast;
 
 DECLARE_LOG(tools)
 DEFINE_LOG(tools, "tools")
@@ -57,6 +64,24 @@ namespace CoupledField {
 
   }
 
+  std::string ConvertToFilename(std::string org)
+  {
+    std::string result = org;
+    boost::replace_all(result, ":", "_");
+    boost::replace_all(result, ",", "_");
+    boost::replace_all(result, "(", "");
+    boost::replace_all(result, ")", "");
+    return result;
+  }
+
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
+  {
+    char_separator<char> sep(" ,\t\n");
+    tokenizer<char_separator<char> > tok(s, sep);
+    for(tokenizer<char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
+      strVec.Push_back(*beg);
+  }
+
 
   // =========================================================================
   //  COMPLEX CONVERSION
@@ -69,45 +94,53 @@ namespace CoupledField {
   //! Convert (real,imag) => phase
   Double RealImagToPhase( const Complex& in ) {
     return (std::abs(in.imag()) > 1e-16) ?                   
-        std::atan2(in.imag(),in.real() )*180/PI : 
+        std::atan2(in.imag(),in.real() )*180/M_PI : 
         ( in.real() < 0.0 ) ? 180 : 0 ; 
   }
 
 
   //! Convert (ampl,phase) => (real,imag)
   Complex AmplPhaseToComplex( Double val, Double phase ) {
-    return Complex( val * std::cos( phase / 180 * PI ),
-                    val * std::sin( phase / 180 * PI ) ); 
+    return Complex( val * std::cos( phase / 180 * M_PI ),
+                    val * std::sin( phase / 180 * M_PI ) ); 
   }
 
   //! Convert (ampl,phase) => real
   Double AmplPhaseToReal( Double val, Double phase ) {
-    return val * std::cos( phase / 180 * PI );
+    return val * std::cos( phase / 180 * M_PI );
   }
 
   //! Convert (ampl,phase) => imag
   Double AmplPhaseToImag( Double val, Double phase ) {
-    return val * std::sin( phase / 180 * PI );
+    return val * std::sin( phase / 180 * M_PI );
   }
 
 
   //! Convert (ampl,phase) => real (strings)
   std::string AmplPhaseToReal( const std::string& val, 
-                               const std::string& phase ) {
+                               const std::string& phase,
+							   bool isInRad ) {
     if( phase == "0.0" || phase == "0" ) {
       return "( " + val + " ) ";
     } else {
-      return "( (" + val + ") * cos( " + phase + " / 180 * pi ) )";
+      if (isInRad)
+        return "( (" + val + ") * cos( " + phase + " ) )";
+      else
+        return "( (" + val + ") * cos( " + phase + " / 180 * pi ) )";
     }
   }
 
   //! Convert (ampl,phase) => imag (strings)
   std::string AmplPhaseToImag( const std::string& val, 
-                               const std::string& phase ) {
+                               const std::string& phase,
+							   bool isInRad ) {
     if( phase == "0.0" || phase == "0" ) {
       return "( 0.0 )";
     } else {
-    return "( (" + val + ") * sin( " + phase + " / 180 * pi ) )";
+      if (isInRad)
+        return "( (" + val + ") * sin( " + phase + " ) )";
+      else
+        return "( (" + val + ") * sin( " + phase + " / 180 * pi ) )";
     }
   }
 
@@ -156,6 +189,29 @@ namespace CoupledField {
     return std::sqrt(result);
   }
 
+  Double NormL2(const Double* data1, const Double* data2, const UInt size)
+  {
+    Double result = 0.0;
+    for(UInt i = 0; i < size; i++)
+      result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+
+    return std::sqrt(result);
+  }
+
+  double NormL2(const SingleVector* data, const SingleVector* data2)
+  {
+    assert(data != NULL && data2 != NULL);
+
+    if(data->GetSize() != data2->GetSize()) EXCEPTION("incompatible sizes");
+    if(data->GetEntryType() != data2->GetEntryType()) EXCEPTION("incompatible entry types");
+
+    if(data->GetEntryType() == BaseMatrix::COMPLEX)
+      return dynamic_cast<const Vector<Complex>& >(*data).NormL2(dynamic_cast<const Vector<Complex>& >(*data2));
+    else
+      return dynamic_cast<const Vector<double>& >(*data).NormL2(dynamic_cast<const Vector<double>& >(*data2));
+  }
+
+
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size)
   {
@@ -170,6 +226,17 @@ namespace CoupledField {
 
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line)
+  {
+    std::ostringstream os;
+
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      os << i << "=" << "[" << data[i].ToString() << "]" << (new_line ? "\n": " ");
+
+    return os.str();
+  }
+
+  template <class TYPE>
+  std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line)
   {
     std::ostringstream os;
 
@@ -274,6 +341,40 @@ namespace CoupledField {
     target.Resize(n);
     for(UInt i = 0; i < n; i++)
       target[i] = factor * other[i];
+  }
+
+  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val, EigenInfo* info)
+  {
+    // make sure we have an info to operate on
+    EigenInfo tmp;
+    if(info == NULL)
+      info = &tmp;
+
+    info->col = 0;
+    info->max = mat[row][0];
+    info->min = mat[row][0];
+
+    for(unsigned int c = 1, n = mat.GetNumCols(); c < n; c++)
+    {
+      double val = mat[row][c];
+      if(val < info->min)
+      {
+        info->min = val;
+        if(minimum)
+          info->col = c;
+      }
+      if(val > info->max)
+      {
+        info->max = val;
+        if(!minimum)
+          info->col = c;
+      }
+    }
+
+    if(val != NULL)
+      *val = minimum ? info->min : info->max;
+
+    return info->col;
   }
 
   void Conj(Matrix<Complex>& mat)
@@ -466,6 +567,24 @@ namespace CoupledField {
     return x / std::sqrt(x*x + eps*eps);
   }
 
+
+  double MathParse(const std::string& expr)
+  {
+    // obtain handle
+    MathParser* parser = domain->GetMathParser();
+    MathParser::HandleType handle = parser->GetNewHandle(false);
+
+    // Set expression and evaluate
+    parser->SetExpr(handle, expr);
+    double ret = parser->Eval(handle);
+
+    // release handle
+    parser->ReleaseHandle(handle);
+
+    return ret;
+  }
+
+
   // explicit template instantiation
   template std::string ToString<double>(const double* data, unsigned int size);
   template std::string ToString<int>(const int* data, unsigned int size);
@@ -473,5 +592,6 @@ namespace CoupledField {
   template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
 
   template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
+  template std::string ToString<unsigned int>(const StdVector<StdVector<unsigned int> >& data, bool new_line);
 
 }// namespace CoupledField

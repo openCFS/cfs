@@ -514,10 +514,9 @@ namespace CFSTool {
         if( output) {
           output->BeginStep( actStepNum, actStepVal );
         }
-        std::cout << "\n\t=============================================\n";
-        std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
-            << "s / Hz\n";
-        std::cout << "\t=============================================\n";
+        std::cout << "\n\t======================================================\n";
+        std::cout << "\t  Treating step nr " << actStepNum << " val " << actStepVal << " s / Hz/ iteration\n";
+        std::cout << "\t======================================================\n";
 
         // iterate over all results
         for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
@@ -531,7 +530,7 @@ namespace CFSTool {
           input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
           input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
 
-          std::cout << "\n\t-- Comparing result " <<
+          std::cout << "\t-- Comparing result " <<
               inResults_fut[iRes]->GetResultInfo()->resultName << " on " 
               << inResults_fut[iRes]->GetEntityList()->GetName() << " --\n";
 
@@ -608,13 +607,13 @@ namespace CFSTool {
                 pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                 // correct 2*pi-offset if phase angles have different signs
-                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                  pDiff+= 2*PI;
-                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                  pDiff-= 2*PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff<0) )
+                  pDiff+= 2*M_PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff>0) )
+                  pDiff-= 2*M_PI;
 
                 // Dirty hack! Write differences in real_imag format.
-                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+                outVec[actIndex] = Complex( aDiff, pDiff*180/M_PI );
 
                 // return maximum of amplitude difference
                 if  (aDiff > maxDiff)
@@ -662,13 +661,13 @@ namespace CFSTool {
                 pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                 // correct 2*pi-offset if phase angles have different signs
-                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                  pDiff+= 2*PI;
-                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                  pDiff-= 2*PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff<0) )
+                  pDiff+= 2*M_PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff>0) )
+                  pDiff-= 2*M_PI;
 
                 // Dirty hack! Write differences in real_imag format.
-                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+                outVec[actIndex] = Complex( aDiff, pDiff*180/M_PI );
 
                 // maximum and minimum values
                 if( pDiff > pMax )
@@ -695,8 +694,8 @@ namespace CFSTool {
                 std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
                 << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
-              std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
-                  << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+              std::cout << "\tMaximum + phase difference:      " << pMax*180/M_PI <<  " deg\n"
+                  << "\tMaximum - phase difference:     " << pMin*180/M_PI <<  " deg\n";
 
               // return maxDiff for differences in real and imaginary part
               if ( (rMax > iMax) && (rMax > maxDiff) )
@@ -1033,7 +1032,7 @@ int main(int argc, char** argv)
     {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)
@@ -1044,7 +1043,7 @@ int main(int argc, char** argv)
     } else if (param_mode == "convert") {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)
@@ -1056,23 +1055,20 @@ int main(int argc, char** argv)
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide 'reference_file' and 'file_under_test'" );
+        EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
+                    << " file1='" << file1 << "' file2='" << file2 << "'");
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
         << "==========================\n";
-      maxDiffMesh = CFSTool::Diff( file1, file2, "", \
-                                  true, false, maxDiffResultName);
+      maxDiffMesh = CFSTool::Diff( file1, file2, "", true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
         << "=============================\n";
-      maxDiffHist = CFSTool::Diff( file1, file2, "", \
-                                  true, true, maxDiffResultName );
+      maxDiffHist = CFSTool::Diff( file1, file2, "", true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "'" << file1 << "' and '" << file2
-                  << "' have maximum difference " << maxDiff
-                  << " at '" << maxDiffResultName << "' which is greater than "
-                  << "the specified tolerance " << tolerance << ".\n";
+        std::cout << "error: maximum difference " << maxDiff << " for '" << maxDiffResultName << "' > " << tolerance
+                  << " for '" << file1 << "' and '" << file2 << std::endl;
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";
@@ -1106,7 +1102,7 @@ int main(int argc, char** argv)
 
     if (info != NULL)
     {
-      info->Get(ParamNode::PN_ERROR)->SetValue(ex.what());
+      info->Get(ParamNode::FAIL)->SetValue(ex.what());
       info->ToFile(infoFileName);
     }
 

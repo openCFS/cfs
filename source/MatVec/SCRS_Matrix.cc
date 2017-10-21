@@ -5,6 +5,7 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 #include "Matrix.hh"
+#include "Utils/SyncAccess.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class
@@ -22,6 +23,7 @@ namespace CoupledField {
     
     colInd_      = NULL;
     rowPtr_      = NULL;
+    diagPtr_     = NULL;
     data_        = NULL;
     patternPool_ = NULL;
     patternID_   = NO_PATTERN_ID;
@@ -44,6 +46,7 @@ namespace CoupledField {
       // Allocate memory for internal arrays
       NEWARRAY( colInd_, UInt, numEntries_ );
       NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
       NEWARRAY( data_, T, numEntries_ );
 
       // Copy information
@@ -54,6 +57,7 @@ namespace CoupledField {
 
       for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
         rowPtr_[i] = origMat.rowPtr_[i];
+        diagPtr_[i] = origMat.diagPtr_[i];
       }
     }
 
@@ -88,7 +92,7 @@ namespace CoupledField {
 
   // Specialisation for the RMatrix1 case
   template<>
-  SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) {
+  SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) : diagPtr_( NULL ){
 
 
     // Set general matrix pattern and dimension info
@@ -177,7 +181,7 @@ namespace CoupledField {
 
     // Destroy auxilliary vector
     delete[] (auxVec);
-
+    NEWARRAY( diagPtr_, UInt, this->nrows_ );
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves
     patternPool_ = NULL;
@@ -187,7 +191,7 @@ namespace CoupledField {
 
   // Specialisation for the CMatrix1 case
   template<>
-  SCRS_Matrix<Complex>::SCRS_Matrix( CoordFormat<Complex> &sparseMat ) {
+  SCRS_Matrix<Complex>::SCRS_Matrix( CoordFormat<Complex> &sparseMat ) : diagPtr_( NULL ) {
 
 
     // Set general matrix pattern and dimension info
@@ -271,7 +275,7 @@ namespace CoupledField {
         pos[ curRow ]++;
       }
     }
-
+    NEWARRAY( diagPtr_, UInt, this->nrows_ );
     // Destroy auxilliary vector
     delete[] (auxVec);
 
@@ -460,6 +464,10 @@ namespace CoupledField {
         colInd_[i] = srcColInd[i];
       }
       
+      for ( UInt i = 0; i < (UInt)numEntries_; i++ ) {
+        data_[i] = T(0.0);
+      }
+
       for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
         rowPtr_[i] = srcRowPtr[i];
       }
@@ -483,8 +491,8 @@ namespace CoupledField {
     assert(mvec.GetSize() == rvec.GetSize());
     assert(this->ncols_ == mvec.GetSize());
 
-    register UInt k, rs;
-    register UInt c;
+    UInt k, rs;
+    UInt c;
     UInt i, j;
 
     rvec.Init();
@@ -511,8 +519,8 @@ namespace CoupledField {
   inline void SCRS_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                        Vector<T> & rvec ) const {
 
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -538,8 +546,8 @@ namespace CoupledField {
                                        Vector<T> &rvec ) const {
 
 
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -625,8 +633,8 @@ namespace CoupledField {
 
 
     std::stringstream os;
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -801,7 +809,7 @@ namespace CoupledField {
         }else if(colInd_[k] < j){
           l = k+1;
         }else{
-          data_[k] += v;
+          SyncAccess<SYNC_DATA>::AddTo(data_[k],v);
           found = true;
           break;
         }
@@ -917,7 +925,7 @@ namespace CoupledField {
       }else if(colInd_[k] < col){
         l = k+1;
       }else{
-        data_[k] = v;
+        SyncAccess<SYNC_DATA>::Set(data_[k],v);
         found = true;
         break;
       }
@@ -939,13 +947,34 @@ namespace CoupledField {
   // *********
   //   Scale
   // *********
-  template<typename T>
-  void SCRS_Matrix<T>::Scale( Double factor ) {
+  template<>
+  void SCRS_Matrix<Double>::Scale( Double factor ) {
     for ( UInt i = 0; i < numEntries_; i++ ) {
       data_[i] *= factor;
     }
   }
   
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Double factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+  template<>
+  void SCRS_Matrix<Double>::Scale( Complex factor ) {
+	  EXCEPTION("CRS: Matrix is Double; you can't multiply be a complex value");
+  }
+
+
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Complex factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+
   // ************************
   //   Scale on index subset
   // ************************
@@ -1068,7 +1097,7 @@ namespace CoupledField {
     //    --> loop over row / column indices to be set
     std::set<UInt>::const_iterator rowIt, colIt;
     if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
-      register UInt k, rs;
+      UInt k, rs;
       UInt j;
       rowIt = rowIndices.begin();
 
@@ -1099,7 +1128,7 @@ namespace CoupledField {
         //    -> either loop over selected rows and take into account
         //       all columns
         std::set<UInt>::const_iterator rowIt;
-        register UInt k, rs;
+        UInt k, rs;
         UInt j;
         rowIt = rowIndices.begin();
 

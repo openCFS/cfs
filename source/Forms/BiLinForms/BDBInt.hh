@@ -25,6 +25,8 @@
 #include "Forms/Operators/BaseBOperator.hh"
 #include "MatVec/promote.hh"
 #include "FeBasis/BaseFE.hh"
+#include "Domain/Domain.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 
 namespace CoupledField {
@@ -47,7 +49,15 @@ public:
       BiLinearForm(coordUpate) {
       
     }
-    
+
+  //! Copy constructor
+  BaseBDBInt(const BaseBDBInt& right) :
+    BiLinearForm(right){
+  }
+
+  //! \copydoc BiLinearForm::Clone
+  virtual BaseBDBInt* Clone()=0;
+
   //! Destructor
   virtual ~BaseBDBInt() {
   }
@@ -148,8 +158,23 @@ public:
             PtrCoefFct dData, MAT_DATA_TYPE factor,
             bool coordUpdate = false );
 
-      //! Destructor
-      virtual ~BDBInt();
+    //! Copy constructor
+    BDBInt(const BDBInt& right)
+      : BaseBDBInt(right)
+    {
+      //here we would also need to create a new operator
+      this->bOperator_ = right.bOperator_->Clone();
+      this->factor_ = right.factor_;
+      this->dData_ = right.dData_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual BDBInt* Clone(){
+      return new BDBInt( *this );
+    }
+
+    //! Destructor
+    virtual ~BDBInt();
 
       //! \copydoc BaseBDBInt::GetBOp
       virtual BaseBOperator* GetBOp() {
@@ -224,7 +249,7 @@ public:
       
       //! \copydoc BiLinearForm::IsSolDependent
       virtual bool IsSolDependent() {
-        return dData_->GetDependency() == CoefFunction::SOLUTION;
+        return isSolDependent_;
       }
 
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {

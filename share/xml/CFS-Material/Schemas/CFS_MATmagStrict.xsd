@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -18,14 +19,14 @@
 
   <xsd:complexType name="DT_MatMagStrict">
     <xsd:sequence>
-	    <xsd:element name="magnetoStrictionTensor" type="DT_MagStrictTensor"/>
+	    <xsd:element name="magnetoStrictionTensor_h" type="DT_MagStrictTensor"/>
     </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of piezo coupling tensor                               -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MagStrictTensor">
+ <xsd:complexType name="DT_MagStrictTensor">
     <xsd:sequence>
       <xsd:element name="real">
         <xsd:simpleType>

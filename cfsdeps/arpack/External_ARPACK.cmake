@@ -13,6 +13,11 @@ set(ARPACK_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/arpack")
 set(ARPACK_source  "${ARPACK_prefix}/src/arpack")
 set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+#MESSAGE("CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS_RELEASE}")
+#MESSAGE("CMAKE_Fortran_FLAGS_RELEASE=${CMAKE_Fortran_FLAGS_RELEASE}")
+#MESSAGE("CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+#MESSAGE("CMAKE_CXX_FLAGS_INITIAL=${CMAKE_CXX_FLAGS__INITIAL}")
+
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
@@ -52,59 +57,94 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
+# the github stuff doesn't work as the archhives are called "3.2.0.tar.gz" instead of "arpack-ng-3.2.0.tar.gz" :(
+# "https://github.com/opencollab/arpack-ng/archive/${ARPACK_VER}.tar.gz"
 SET(MIRRORS
-  "http://ftp.rrze.uni-erlangen.de/macports/distfiles/arpack/arpack-ng_3.1.5.tar.gz"
-  "http://forge.scilab.org/index.php/p/arpack-ng/downloads/get/arpack-ng_3.1.5.tar.gz"
+  "http://ftp.uni-erlangen.de/macports/distfiles/arpack/${ARPACK_GZ}"
+  "${CFS_FAU_MIRROR}/sources/arpack/${ARPACK_GZ}"
   "${ARPACK_URL}/${ARPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
 SET(MD5_SUM ${ARPACK_MD5})
 
 SET(DLFN "${ARPACK_prefix}/arpack-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  ) 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
-#-------------------------------------------------------------------------------
-# The ARPACK external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(arpack
-  PREFIX "${ARPACK_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${ARPACK_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "arpack" "${ARPACK_VER}") 
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(arpack cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${ARPACK_prefix}
-)
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${ARPACK_prefix}")
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  arpack
-)
+SET(ZIPFROMCACHE "${ARPACK_prefix}/arpack-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${ARPACK_prefix}/arpack-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Determine paths of ARPACK libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ARPACK_LIBRARY
-  "${LD}/libarpack.a"
-  CACHE FILEPATH "ARPACK library.")
-
-# MARK_AS_ADVANCED(ARPACK_INCLUDE_DIR)
+SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
 MARK_AS_ADVANCED(ARPACK_LIBRARY)
+
+#-------------------------------------------------------------------------------
+# The ARPACK external project
+#-------------------------------------------------------------------------------
+
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(arpack
+    PREFIX "${ARPACK_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE()
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(arpack
+    PREFIX "${ARPACK_prefix}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${ARPACK_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
+  )
+
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(arpack cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${ARPACK_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(arpack cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF()
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS ${CFSDEPS} arpack)
+

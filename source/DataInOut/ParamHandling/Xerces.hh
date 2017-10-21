@@ -1,7 +1,5 @@
 #include <def_use_xerces.hh>
 
-#ifdef USE_XERCES
-
 #ifndef XERCES_HH_
 #define XERCES_HH_
 
@@ -14,10 +12,7 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
-
 namespace CoupledField {
-
-  class ParamNode;
 
   /** This class fills a ParamNode element with an XML file content using the DOM parser from xerces. 
    * <p>This might be a good place for any XML stuff besides only filling a ParamNode</p>
@@ -104,5 +99,3 @@ namespace CoupledField {
 
 
 #endif // XERCES_HH_
-
-#endif // USE_XERCES

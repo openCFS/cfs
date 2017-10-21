@@ -47,6 +47,14 @@ namespace CoupledField {
     
     // Initialize nonlinearities
     InitNonLin();
+
+    //check consistency in time stepping
+    MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
+    AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
+    PtrParamNode mechParam = mechPDE->GetMyParam();
+    PtrParamNode acouParam = acouPDE->GetMyParam();
+    if ( mechParam->Get("timeStepAlpha")->As<Double>() != acouParam->Get("timeStepAlpha")->As<Double>() )
+    	EXCEPTION("Alpha value of time stepping algorithm has to be the same in acousticPDE and mechPDE");
   }
 
 
@@ -134,10 +142,10 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U 
             // has a switched sign.
           
-          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct, 
+          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
                        acouFct, actSDList, coefFuncs, acouRegions );
-          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0, 
-                       DAMPING, acouFct, dispFct,  
+          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
+                       DAMPING, acouFct, dispFct,
                        actSDList, coefFuncs, acouRegions );
           }
         }

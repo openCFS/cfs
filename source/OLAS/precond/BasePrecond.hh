@@ -3,6 +3,7 @@
 
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
 
@@ -24,7 +25,7 @@ namespace CoupledField {
     //! The enumeration contains the following values:
     //! - NOPRECOND
     //! - ID
-    //! - MG
+    //! - MG (AMG)
     //! - JACOBI
     //! - SSOR
     //! - ILU0
@@ -71,10 +72,32 @@ namespace CoupledField {
     //! Note that only after this method has been called once, the precontioner
     //! can be applied.
     //! \param sysmat problem matrix
-    //! \param analysis_id references to the info/analysis/progress/step(/substep) 
-    //!                    element with the "analysis_id" attribute 
-    virtual void Setup( BaseMatrix& sysmat,
-                        PtrParamNode analysis_id ) = 0;
+    virtual void Setup( BaseMatrix& sysmat) = 0;
+
+    struct EdgeGeom{
+      StdVector<Integer> eNodes; // edge nodes
+      Double length;
+    };
+
+    //! A call of this method triggers the construction of the preconditioner, using
+    //! algebraic multigrid (AMG).
+
+    //! When this method is called the AMG-preconditioner will be constructed.
+    //! This involves a complex setup (construction of hierarchy levels,
+    //! transfer operators and solving the coarse system).
+    //! Note that only after this method has been called once, the preconditioner
+    //! can be applied.
+    //! \param sysmat problem matrix
+    //! \param auxmat auxiliary matrix
+    //! \param amgType type of AMG-version (scalar, vectorial, edge)
+    //! \param edgeIndNode connection of indices in the matrix and geometrical info
+    //! \param nodeNumIndex connection of indices in the matrix and node-numbers
+    virtual void SetupMG( BaseMatrix& sysmat,
+                          BaseMatrix& auxmat,
+                          const AMGType amgType,
+                          const StdVector< StdVector< Integer> >& edgeIndNode,
+                          const StdVector<Integer>& nodeNumIndex){}
+
 
     //! Applies the preconditioner by "solving" Az=r for z
 
@@ -84,8 +107,7 @@ namespace CoupledField {
     //! \param sysmat problem matrix
     //! \param r residual vector for current iteration step
     //! \param z output vector computed by the preconditioner
-    virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, 
-                       BaseVector& z) = 0;
+    virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, BaseVector& z) = 0;
 
     //! Export precontitioned matrix \f[C^{-1}A\f]
     
@@ -105,7 +127,7 @@ namespace CoupledField {
     
     //! Return timer object for setup of preconditioner
     shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
-    
+
     //! Return timer object for application of preconditioner
     shared_ptr<Timer> GetPrecondTimer() { return precondTimer_; }
 
@@ -130,7 +152,7 @@ namespace CoupledField {
 
     //! Pointer to timer object for setup of preconditioner
     shared_ptr<Timer> setupTimer_;
-    
+
     //! Pointer to timer object for application of preconditioner
     shared_ptr<Timer> precondTimer_;
   };
@@ -184,7 +206,7 @@ namespace CoupledField {
 
     //! This version of the Setup method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
-    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id ) = 0;
+    virtual void Setup( SBM_Matrix &A ) = 0;
 
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -194,7 +216,7 @@ namespace CoupledField {
     //! SBM_Matrix/SBM_Vector type and calling the Setup method with the
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
-    virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id );
+    virtual void Setup( BaseMatrix &A );
     
     //! \copydoc BasePrecond::GetPrecondType
     virtual PrecondType GetPrecondType() const {return NOPRECOND;}

@@ -1,0 +1,64 @@
+# This is a single test case to be called via nightly_test.cmake.
+#
+# You may test this script alone via ctest -S <test>.ctest
+#
+# see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
+# enable highlighting in kate via Tools->Highlighting->Other->CMake
+#
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_no_prec_gcc_release")
+
+include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
+
+IDENTIFY_DISTRO()
+# empty binary directory
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
+
+# set the compiler environment
+SET_COMPILER_ENV("GCC")
+
+SET(BUILDTYPE "RELEASE")
+SET(CTEST_BUILD_NAME "shared_opt no_prec ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+set(CTEST_SITE "${HOSTNAME}") 
+
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
+
+#-----------------------------------------------------------------------------
+# Enter the following values into the initial cache
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
+#-----------------------------------------------------------------------------
+INIT_CACHE(CTEST_INITIAL_CACHE)
+SET(CTEST_INITIAL_CACHE
+  "${CTEST_INITIAL_CACHE}
+   DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
+   MATVIZ_TESTS:BOOL=OFF
+   CFS_DEPS_PRECOMPILED:BOOL=OFF
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   CFSDAT:BOOL=OFF
+   USE_OPENMP:BOOL=ON
+   USE_PARDISO:BOOL=ON
+   USE_CGAL:BOOL=ON
+   USE_CGNS:BOOL=OFF
+   USE_CCMIO:BOOL=OFF
+   USE_FLANN:BOOL=OFF   
+   USE_ENSIGHT:BOOL=OFF
+   USE_ILUPACK:BOOL=ON
+   USE_LIS:BOOL=ON
+   USE_IPOPT:BOOL=ON
+   USE_SNOPT:BOOL=ON
+   USE_SCPIP:BOOL=ON
+   MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
+
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
+
+DO_TESTING()

@@ -433,8 +433,9 @@ public:
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
 
-  //! Dump information of the equation map to the console
-  virtual void PrintEqnMap();
+  /** Dump information of the equation map to the console
+   * @param file if NULL std::cout is used, otherwise give an fil ostream */
+  virtual void PrintEqnMap(std::ostream* file = NULL);
   
   //! Update the FeSpace in case of a multistep solution strategy
   
@@ -449,7 +450,6 @@ public:
   {
     lagrangeSurfSpace_ = true;
   }
-
 
   //! Map a general coefficient function onto a given FeFunction
   
@@ -490,6 +490,12 @@ public:
   //! and can be copied.
   virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
                                           shared_ptr<FeSpace> space ) = 0;
+
+
+  //! Create a map of equation-index-geometry for AMG-solver/preconditioner
+  //! ONLY for single-PDE's with lowest order Lagrange- or edge-elements
+  void CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
+                          UInt&, UInt&);
 
 protected:
   
@@ -662,6 +668,21 @@ protected:
   //! list of virtual Nodes
   boost::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
   
+  // ====================================================================
+  // CACHE ACCESS TO LAST USED EQUATIONS
+  // ====================================================================
+  //@{
+  //! Last accessed element number (only for element access)
+  CfsTLS<UInt> lastElemNum_;
+
+  //! Last accessed equations numbers
+  CfsTLS< StdVector<Integer> > lastEqns_;
+
+  //! Temporary vector for equation numbers
+  CfsTLS< StdVector<UInt> > eqnNodes_;
+
+  //@}
+
   // ====================================================================
   // Equation Map
   // ====================================================================

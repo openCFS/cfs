@@ -34,6 +34,7 @@ SET(CONFIGURE_CMD
   "-nomake" "examples"
   "-nomake" "demos"
   "-no-separate-debug-info"
+  "-dbus"
 )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")

@@ -82,6 +82,9 @@ namespace CoupledField {
     /** Helper to set dof names for vector. Sets to x, y (,z) or r, z */
     void SetVectorDOFs(UInt dim, bool is_axi);
 
+    /** If an extended 2D (2.5D) formulation is used, vectors must have 3 components */
+    void SetVectorDOFs(UInt dim, bool is_axi, bool is2p5);
+
     //! Number of degrees of freedoms
     StdVector<std::string> dofNames;
 
@@ -97,8 +100,8 @@ namespace CoupledField {
     //! Type of entity the unknowns are defined on
     EntityUnknownType definedOn;
 
-    /////! Type of approximation used for the result
-    ///shared_ptr<AnsatzFct> fctType;
+    //! Is this result provided from the optimization part
+    bool fromOptimization;
 
     /** Gives back a debug summary of the result info */
     std::string ToString() const; 

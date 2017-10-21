@@ -31,10 +31,8 @@ namespace CoupledField{
   }
   
   void SingleDriver::InitializePDEs() {
-   
-       // read in pde data 
+    // read in pde data
     if( ! isPartOfSequence_ ) {
-      
       // Initialize pdes 
       domain_->CreatePDEs( 1, info_->GetParent() );
       ptPDE_ = domain_->GetBasePDE();
@@ -42,8 +40,6 @@ namespace CoupledField{
       ptPDE_->SetSourceApproxType( approxSourceWithDeltaFnc_);
 
       domain_->InitPDEs( 1 );
-
-      std::cout << "++ Starting to solve problem" << std::endl;
     }
   }
 

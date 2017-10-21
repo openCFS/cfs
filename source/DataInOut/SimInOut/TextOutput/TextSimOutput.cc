@@ -29,6 +29,8 @@ namespace CoupledField {
     dirName_ = "history";
     fileName_ = fileName;
     coordSys_ = NULL;
+    // revert to revision 12363
+    stepNumOffset_ = 0;
     globalNumbering_ = true;
     // initialize delimiter string
     delim_ = "  ";
@@ -126,6 +128,13 @@ namespace CoupledField {
 
     actStep_ = stepNum;
     actStepVal_ = stepVal;
+
+    // revert to revision 12363
+    // add  offset to step value to account for multisequence steps
+    if( actAnalysis_ == BasePDE::TRANSIENT ||
+           actAnalysis_ == BasePDE::STATIC  ) {
+           actStep_ += stepNumOffset_;
+    }
     resultMap_.clear();
   }
 
@@ -136,6 +145,13 @@ namespace CoupledField {
   }
   
   void SimOutputText::FinishStep( ) {
+
+    // from revision 12363
+// set offset for step value and number to last values
+     if( actAnalysis_ == BasePDE::TRANSIENT ||
+          actAnalysis_ == BasePDE::STATIC ) {
+       stepNumOffset_ = actStep_;
+      }
 
     // call correct function according to  fileCollectionType
     if( collecType_ == TIMEFREQ ) {
@@ -314,7 +330,8 @@ namespace CoupledField {
             std::ofstream& actOut = *ptFiles[it.GetPos()];
             actOut << actStepVal_;;
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-              actOut << delim_ << vec[it.GetPos()*numDofs + iDof];
+              //actOut << delim_ << vec[it.GetPos()*numDofs + iDof];
+              actOut << delim_ << std::setprecision(12) << vec[it.GetPos()*numDofs + iDof];
             }
             actOut << std::endl;
           
@@ -426,8 +443,11 @@ namespace CoupledField {
                                    UInt step,
                                    Double stepVal ) {
 
-    std::string namePrefix="history/" + fileName_ + "-ms" +
-        lexical_cast<std::string>(currMS_) + "-";
+    // revert to 12363 -> write everything into the same file
+    std::string namePrefix="history/" + fileName_ + "-";
+
+    //std::string namePrefix="history/" + fileName_ + "-ms" +
+    //    lexical_cast<std::string>(currMS_) + "-";
     std::string totalName;
 
     // determine type of entity the result is defined on

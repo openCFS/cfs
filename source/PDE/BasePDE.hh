@@ -17,7 +17,7 @@ namespace CoupledField
   // forward class declarations
   class BaseSolveStep;
   class Assemble;
-  class ParamNode;
+  
   class BaseFeFunction;
   class SimState;
   class Domain;
@@ -52,7 +52,7 @@ namespace CoupledField
 
     //! Return all Rhs FeFunctions
     virtual
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetRhsFeFunctions() {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetRhsFeFunctions() {
     	EXCEPTION("GetRhsFeFunctions not implemented in Base PDE");
     }
 
@@ -109,10 +109,13 @@ namespace CoupledField
      */
     virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap();
 
+    virtual PtrParamNode GetMyParam() {
+    		return myParam_;
+    }
+
     virtual void SetSourceApproxType( bool type ) {
     	approxSourceWithDeltaFnc_ = type;
     }
-
 
   protected:
     
@@ -134,7 +137,7 @@ namespace CoupledField
     //! ParamNode of current pde
     PtrParamNode myParam_;
     
-    //! Info ParameerNode of current pde
+    //! Info ParameterNode of current pde
     PtrParamNode myInfo_;
     //@}
 

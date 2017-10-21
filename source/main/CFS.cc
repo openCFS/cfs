@@ -6,9 +6,9 @@
 
 #include <iomanip>
 #include <fstream>
-#include <def_use_xerces.hh>
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
@@ -22,7 +22,7 @@
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
 #include <unistd.h>
@@ -41,6 +41,8 @@
 
 using namespace CoupledField;
 using namespace std;
+using namespace boost::posix_time;
+using namespace boost::gregorian;
 
 
 #ifdef __MINGW32__
@@ -113,9 +115,12 @@ CFS::CFS(int argc, const char **argv) :
   // Parse command line
   progOpts->ParseData();
 
+  //now set the number of threads from the commandline
+  SetNumberOfThreads(progOpts->GetNumThreads());
+
   // Log program startup
   progOpts->GetHeaderString( cout );
-  
+
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
   logConf_ = new LogConfigurator(confFile);
@@ -128,11 +133,9 @@ CFS::CFS(int argc, const char **argv) :
   SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-      //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
-  infoNode->SetName("cfsInfo");
+  infoNode = ParamNode::GenerateWriteNode("cfsInfo", progOpts->GetSimName() + ".info.xml", ParamNode::INSERT, true, true); // lazy write and add counters
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  infoNode->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
+  infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
   // Register callback function with exception class for warning
@@ -143,7 +146,7 @@ CFS::CFS(int argc, const char **argv) :
   using namespace boost::gregorian;
 
   // our calculation environment
-  PtrParamNode env = infoNode->Get(ParamNode::PN_HEADER)->Get("environment");
+  PtrParamNode env = infoNode->Get(ParamNode::HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
   
@@ -212,7 +215,6 @@ int CFS::Run()
       cout << endl;
     }
 
-
     ReadXMLFile();
     SetupIO(paramNode_);
 
@@ -223,46 +225,53 @@ int CFS::Run()
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
-    else
+    else{
       SolveProblem();
+    }
+
+    // wait for all drivers to be initialized before printing the math parser variables
+    domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
+    if(!progOpts->IsQuiet())
+      cout << endl; // conditional empty line
     
     cout << ">> Total time: wall clock: '";
     
-    const int walltime((int) timer->GetWallTime());
-    const int cputime((int) timer->GetCPUTime());
+    int walltime = (int) timer->GetWallTime();
+    double cputime = timer->GetCPUTime();
 
     if(walltime > 120) 
     {
-      const int wallmin((int) (walltime / 60.0));
-      const int cpumin((int) (cputime / 60.0));
+      int wallmin((int) (walltime / 60.0));
+      int cpumin((int) (cputime / 60.0));
       if(wallmin > 60)
-      {
-        cout << wallmin / 60 << "h " << (wallmin % 60) 
-             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
-      }
+        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
       else
-      {
-        cout << wallmin << "m " << (walltime % 60) 
-             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
-      }
+        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
     }
     else
     {
-      cout << walltime << "s' CPU time: '" 
-           << cputime << "s'";
+      cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
+    if(progOpts->IsQuiet())
+      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
+
     
     cout << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    infoNode->Get(ParamNode::SUMMARY)->SetComment("memory in MB");
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)/1024.);
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true)/1024.);
 
     return 0;
+  }
+  catch(const mu::ParserError& e)
+  {
+    cerr << endl << "mu::ParserError: " << e.GetMsg() << endl;
+    return 1;
   }
   catch(exception& ex)
   {
@@ -284,12 +293,18 @@ int CFS::Run()
     // Print error cause to info file
     if(infoNode != NULL)
     {
-      PtrParamNode errorNode = infoNode->Get(ParamNode::PN_ERROR);
+      PtrParamNode errorNode = infoNode->Get(ParamNode::FAIL);
       errorNode->SetValue(ex.what());
       infoNode->Get("status")->SetValue("aborted");
       infoNode->ToFile();
     }
 
+    return 1;
+  }
+  catch (...)
+  {
+    cerr << "leftover exception caught:" << endl;
+    cerr << boost::current_exception_diagnostic_information() << endl;
     return 1;
   }
 }
@@ -317,14 +332,9 @@ void CFS::SolveProblem()
  // Solves the driver or optimization problem
  domain->SolveProblem();
  
- using namespace boost::posix_time;
- using namespace boost::gregorian;
- cout << "\n++ Finished solving the problem at " 
-     << to_simple_string( second_clock::local_time() ) 
-     << endl;
-
+ if(!progOpts->IsQuiet())
+   cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
-
 
 
 void CFS::WriteXMLSkeleton()
@@ -355,26 +365,17 @@ void CFS::ReadXMLFile()
   // Generate parameter handler and pass address to global pointer
   string xmlFile = progOpts->GetParamFileStr();
 
-  // Write information to command line
-  cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
-
-#ifndef USE_XERCES
-  EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
-#endif
+  // Conditionally write information to command line
+  if(!progOpts->IsQuiet())
+    cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(schema);
-  xerces->SetFile(xmlFile);
-
-  // set the global ParamNode tree pointer
-  paramNode_ = xerces->CreateParamNodeInstance();
-  // save us in the info stuff, with defaults but no comments
-  // release the xerces ressources, param is not affected
-  delete xerces;
+  // parse the problem xml file, validate and fill with defaults from schema
+  // continue to work only with the ParamNode tree
+  paramNode_ = XmlReader::ParseFile(xmlFile, schema);
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )
@@ -409,31 +410,28 @@ void CFS::SetupIO(PtrParamNode rootNode )
     resultHandler->AddOutputDest( outputIt->second, 
                                   outputIt->first,
                                   outGridIds[outputIt->first] );
-    // check if writer has hdf5 format
-    if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) {
-      hdf5Writer = dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
-    }
-  }
-  for( ; inputIt != inFiles.end(); inputIt++ ) {
-    resultHandler->AddInputReader( inputIt->second, inputIt->first );
-  }
 
+    // check if writer has hdf5 format
+    // a dynamic cast leads for icc to error: cannot convert pointer to base class "CoupledField::SimOutput" to pointer to derived class "CoupledField::SimOutputHDF5" -- base class is virtual
+    // in boost/smart_ptr/shared_ptr.hpp(805) itself :(
+    if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) 
+      hdf5Writer = boost::dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
+  }
+  for(; inputIt != inFiles.end(); inputIt++) 
+    resultHandler->AddInputReader(inputIt->second, inputIt->first);
+  
   // Pass hdf5 writer to simState class
   simState->SetOutputHdf5Writer(hdf5Writer);
-  simState->SetMatParamFile( progOpts->GetParamFileStr(),
-                             materialHandler->GetFileName() );
+  simState->SetMatParamFile(progOpts->GetParamFileStr(), materialHandler->GetFileName());
   
   // Log command line parameters
-  progOpts->ToInfo(infoNode->Get(ParamNode::PN_HEADER)->Get("progOpts"));
+  progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
   
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    infoNode->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
-  
-  // Open file for status reports by OLAS
-  fileHandler.OpenFile( DefineInOutFiles::OLAS_FILE );
+    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
 }
 

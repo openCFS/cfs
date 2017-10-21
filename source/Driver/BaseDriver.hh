@@ -4,7 +4,7 @@
 #include "PDE/BasePDE.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "Driver/AnalysisID.hh"
 
 namespace CoupledField
 {
@@ -13,7 +13,6 @@ namespace CoupledField
   class Domain;
   class WriteResults;
   class ResultHandler;
-  class InfoNode;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -24,7 +23,7 @@ namespace CoupledField
     BaseDriver(shared_ptr<SimState> simState, Domain* domain, 
                PtrParamNode paramNode, PtrParamNode infoNode );
 
-    //! Destructor
+    //! DestructorInverseSourceDriver
     virtual ~BaseDriver();
 
     //! Initialization method
@@ -40,8 +39,6 @@ namespace CoupledField
      * <p>For optimization this defines a single forward problem, therefore
      * one might skip the writing of the results and call StoreResults()
      * explicitly</p>
-     * @param write_results if false nothing is written to the output files
-     * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
     virtual void SolveProblem() = 0;
     
@@ -51,8 +48,7 @@ namespace CoupledField
      * will have been called with write_results = true.<p>
      * <p>Note that you have to Wrap within a Multisequencestep and finalize the result handler explicitly, 
      * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
-    virtual void StoreResults(UInt stepNum = 1,
-                              double step_val = -1.0) { assert(false); }
+    virtual void StoreResults(UInt stepNum = 1, double step_val = -1.0) { assert(false); }
 
     //! Return current analysistype
 
@@ -66,32 +62,12 @@ namespace CoupledField
     //! Return current time / frequency step of simulation
     virtual UInt GetActStep ( const std::string& pdename ) = 0;
     
-    /** Every analysis step has a unique id stored within an InfoNode.
-     * It allows the identification of
-     * Analysis information (timestep, frequency, optimization iteration)
-     * with OLAS information (time, memory, iterations, residual).
-     * @see CreateAnalysisId() and CreateAnalysisIdChild) */
-    PtrParamNode GetAnalysisId() { return analysis_id_; }
-    
+    /** Give the current analysis_id which describes the current algebraic problem. */
+    AnalysisID& GetAnalysisId() { return analysis_id_; }
+
     /** shortcut the Bloch Mode Eigenfrequency Analysis */
     virtual bool DoBlochModeEigenfrequency() const { return false; }
 
-    /** Helper function to create a child analysis step
-     * Adds a child-element to base with "analysis_id" = the analysis_id of the base
-     * plus ":" plus the child_name (plus ":" plus child_id)
-     * @param base where to add to or if NULL then a info/analysis/process/step is created
-     * @param child_name e.g. "nonLin", "adjoint" ...
-     * @param child_id will be added after child_name. is optional (-1)
-     * @return the child element */
-    PtrParamNode CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id = -1,
-        const std::string& child_2_name = "", int child_2_id = -1);
-
-    /** Adds a new analysis id for this driver.
-     * @see CreateAnalysisIdChild() */
-    PtrParamNode CreateAnalysisId(const std::string& child_name, int child_id = -1,
-                               const std::string& child_2_name = "", int child_2_id = -1);
-
-    
     /** This is an factory pattern implementation. The result is the
      * proper driver based on the analysis type and adaptiviy setting.
      * set this object in the domain and take care for deletion! */
@@ -99,7 +75,7 @@ namespace CoupledField
                                       PtrParamNode paramNode, PtrParamNode infoNode);  
   
     /** We need to differentiate the SingleDrivers from the MultiSequenceDriver */
-    typedef enum { SINGLE_DRIVER, MULTI_SEQUENCE_DRIVER } DriverClass;
+    typedef enum { SINGLE_DRIVER = 0, MULTI_SEQUENCE_DRIVER } DriverClass;
   
     /** Identification of the driver */
     virtual DriverClass GetDriverClass() = 0;
@@ -110,6 +86,9 @@ namespace CoupledField
     /** Helper method which determines if an AnalyisType is complex. */
     virtual bool IsComplex() = 0;
 
+    PtrParamNode GetInfo() { return info_; }
+
+    PtrParamNode GetParam() { return param_; }
   protected:
     
     //! type of analysis
@@ -121,9 +100,9 @@ namespace CoupledField
     //! Pointer to information node (general information)
     PtrParamNode info_;
     
-    //! Pointer to step-specific info node
-    PtrParamNode analysis_id_;
-    
+    /** Identifies the current algebraic problem. Used for info.xml and exportLinSys */
+    AnalysisID analysis_id_;
+
     //! Pointer to simulation domain
     Domain * domain_;
 
@@ -138,11 +117,6 @@ namespace CoupledField
     
     //! Static flag to HALT the simulation
     static bool abortSimulation_;
-    
-  private:
-    /** helper function. Items are separated via ':' to be replaces when using as filename! */
-    std::string ConcatAnalysisId(PtrParamNode analysis_id, const std::string& child_name, int child_id, 
-                                 const std::string& child_2_name, int child_2_id);
   };
 
 }

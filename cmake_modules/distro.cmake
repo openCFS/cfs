@@ -180,10 +180,11 @@ ENDIF(MINGW)
 #-------------------------------------------------------------------------------
 # Get informations about the distro / Windows version in CMake format.
 #-------------------------------------------------------------------------------
-EXEC_PROGRAM("${DISTRO_SCRIPT}"
-  ARGS -c
+EXECUTE_PROCESS(
+  COMMAND "${DISTRO_SCRIPT}" -c
   OUTPUT_VARIABLE CFS_DISTRO_TEST
-  RETURN_VALUE RETVAL)
+  RESULT_VARIABLE RETVAL
+  )
 
 EXECUTE_PROCESS(
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
@@ -229,6 +230,14 @@ IF(NOT MINGW)
     SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
 
+    # MESSAGE("APPLE = ${APPLE}")
+    # MESSAGE("CMAKE_CROSSCOMPILING = ${CMAKE_CROSSCOMPILING}")
+    # MESSAGE("CFS_ARCH = ${CFS_ARCH}")
+    # MESSAGE("CFS_DISTRO = ${CFS_DISTRO}")
+    # MESSAGE("CFS_DISTRO_VER = ${CFS_DISTRO_VER}")
+    # MESSAGE("MAJOR_REV = ${MAJOR_REV}")
+    
+        
     IF(APPLE AND CMAKE_CROSSCOMPILING)
       SET(CFS_OS "MAC OS X")
       SET(CFS_TARGET_OS "${CFS_OS}")
@@ -244,7 +253,7 @@ IF(NOT MINGW)
       SET(CFS_FULL_DISTRO_VER "${MACOSX_DISTRO_VER}")
     ENDIF()
 
-  ELSE(NOT WIN32)
+  ELSE()
     #---------------------------------------------------------------------------
     # We are on Windows. Since Windows is very compatible across versions we
     # use the C++ compiler toolchain version as CFS_DISTRO.
@@ -266,9 +275,8 @@ IF(NOT MINGW)
     SET(CFS_BUILD_OS "${OS}")
     SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
-
-  ENDIF(NOT WIN32)
-ELSE(NOT MINGW)
+  ENDIF()
+ELSE()
   #---------------------------------------------------------------------------
   # We are using the MinGW toolchain on Linux or Windows. We just use MINGW
   # as CFS_DISTRO since the toolchain version is already given by the compiler
@@ -290,7 +298,7 @@ ELSE(NOT MINGW)
   SET(CFS_TARGET_OS "WINDOWS")
   SET(CFS_TARGET_ARCH "${MINGW_TARGET_ARCH}")
 
-ENDIF(NOT MINGW)
+ENDIF()
 
 # MESSAGE("CFS_DISTRO: ${CFS_DISTRO}")
 # MESSAGE("CFS_DISTRO_VER: ${CFS_DISTRO_VER}")
@@ -298,6 +306,7 @@ ENDIF(NOT MINGW)
 # MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
 # MESSAGE("CFS_SUBARCH: ${CFS_SUBARCH}")
 # MESSAGE("CFS_BUILD_DISTRO ${CFS_BUILD_DISTRO}")
+
 
 #-----------------------------------------------------------------------------
 # Set a few distribution specific variables (FORTRAN libs, ...)
@@ -322,29 +331,6 @@ ELSEIF(CFS_DISTRO STREQUAL "FEDORA" OR
     CFS_DISTRO STREQUAL "CENTOS")
 
 ELSEIF(MINGW)
-  #   MESSAGE("${DIST} ${REV} ${OS}")
-   SET(MINGW_DIST_WRONG TRUE)
-   IF(OS STREQUAL "WINDOWS")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "UBUNTU" AND REV STREQUAL "12.04")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "CENTOS" OR
-          DIST STREQUAL "ORACLE" OR
-          DIST STREQUAL "SCIENTIFIC" AND
-          REV MATCHES "6\\.")
-     SET(MINGW_DIST_WRONG FALSE)
-   ENDIF()
-
-   IF(MINGW_DIST_WRONG)
-       MESSAGE(FATAL_ERROR
-"
-Cross compiling for Windows 64-bit has been only tested on
-CentOS/Oracle 6 and Ubuntu 12.04 LTS (cf. Developer's Manual).
-If you know what you are doing, disable this error and fix
-the build for your platform. But don't say, I did not warn you!
-"
-       )
-   ENDIF()
 
 ELSEIF(CFS_DISTRO MATCHES "MSVC")
   # Just to support Microsoft toolchain.
@@ -371,11 +357,11 @@ ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
     ENDIF(OSX_ARCH STREQUAL "i386")
 
   ELSE(CMAKE_OSX_ARCHITECTURES)
-    IF(CFS_DISTRO_VER GREATER 10.5)
+    IF(CFS_DISTRO_VER VERSION_GREATER 10.5)
       SET(CMAKE_OSX_ARCHITECTURES "x86_64")
-    ELSE(CFS_DISTRO_VER GREATER 10.5)
+    ELSE(CFS_DISTRO_VER VERSION_GREATER 10.5)
       SET(CMAKE_OSX_ARCHITECTURES "i386")
-    ENDIF(CFS_DISTRO_VER GREATER 10.5)
+    ENDIF(CFS_DISTRO_VER VERSION_GREATER 10.5)
   ENDIF(CMAKE_OSX_ARCHITECTURES)
 ELSE()
   MESSAGE(FATAL_ERROR "CFS_DISTRO '${CFS_DISTRO}' not supported!")

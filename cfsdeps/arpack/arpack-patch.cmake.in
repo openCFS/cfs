@@ -25,32 +25,11 @@ EXECUTE_PROCESS(
 )
 
 #=============================================================================
-# Generate C/C++ compatible arpack version header.
+# Arpack-ng has not up to date version header (NG-3.5.0). Create one to be
+# returned by cfs --version (programOptions.cc)
 #=============================================================================
-FILE(READ "SRC/version.h" lines)
-
-foreach(line IN LISTS lines)
-#  MESSAGE("line: ${line}")
-
-  STRING(REPLACE "VERSION_NUMBER ' "
-    "ARPACK_VERSION_NUMBER '" line
-    ${line})
-
-  STRING(REPLACE "VERSION_DATE   ' "
-    "ARPACK_VERSION_DATE   '" line
-    ${line})
-
-  STRING(REPLACE
-    "'"  "\""
-    line
-    ${line})    
-
-  foreach(part IN LISTS line)
-    LIST(APPEND OUTPUT "${part}")
-  endforeach(part)
-endforeach(line)
-
-FILE(WRITE "SRC/arpack_version.h" "${OUTPUT}")
+SET(ARPACK_VER_FILE "// see arpack-patch.cmake.in\n#define ARPACK_VERSION_NUMBER \"@ARPACK_VER@\"\n")
+FILE(WRITE "SRC/arpack_version.h" "${ARPACK_VER_FILE}")
 
 #=============================================================================
 # Apply some patches).

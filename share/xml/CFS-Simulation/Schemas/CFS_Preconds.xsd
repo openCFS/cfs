@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -108,7 +109,6 @@
   <!-- ==                                                                == -->
   <!-- ==================================================================== -->
 
-
   <!-- ******************************************************************** -->
   <!-- Definition of element for OLAS_MG Preconditioner -->
   <!-- ******************************************************************** -->
@@ -127,32 +127,31 @@
             minOccurs="0"/>
           <xsd:element name="minSystemSize" type="xsd:positiveInteger"
             minOccurs="0"/>
+          <xsd:element name="gs_jacobi_omega" type="xsd:double"
+            minOccurs="0"/>
           <xsd:element name="numPreSmooth" type="xsd:nonNegativeInteger"
             minOccurs="0"/>
           <xsd:element name="numPostSmooth" type="xsd:nonNegativeInteger"
             minOccurs="0"/>
           <xsd:element name="cycleParam" type="xsd:positiveInteger"
             minOccurs="0"/>
-          <xsd:element name="alpha" type="DT_FloatUnitInterval" minOccurs="0"/>
-          <xsd:element name="strongDiagRatio" type="DT_FloatUnitInterval"
+          <xsd:element name="alpha" type="xsd:double" minOccurs="0"/>
+          <xsd:element name="strongDiagRatio" type="xsd:double"
             minOccurs="0"/>
-          <xsd:element name="forceFineRatio" type="DT_PosFloat"
-            minOccurs="0"/>
+          <xsd:element name="forceFineRatio" type="xsd:double" minOccurs="0"/>
           <xsd:element name="directSolver" minOccurs="0">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="noSolver"/>
-                <xsd:enumeration value="lapackLU"/>
-                <xsd:enumeration value="directLDL"/>
                 <xsd:enumeration value="pardiso"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
 
 
   <!-- ==================================================================== -->

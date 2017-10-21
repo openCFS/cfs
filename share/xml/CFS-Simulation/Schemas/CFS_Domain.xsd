@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -145,6 +146,15 @@
           this side are assumed to be smaller than the ones on the slave side.
         </xsd:documentation>
       </xsd:annotation>
+    </xsd:attribute>   
+    <xsd:attribute name="useMeshSmoothing" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+	    This option is only reasonable if iterative coupling and a geometry update
+	    is activated. This option will cause the interface to be updated according
+	    to the mesh update calculated in the iterative coupling.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="slaveSide" type="xsd:token" use="required">
       <xsd:annotation>
@@ -168,7 +178,7 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="forceXValue" type="xsd:token" use="optional" default="none">
+    <xsd:attribute name="forceXValue" type="xsd:token" use="optional" default="">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
         Usefull for a coplanar interfaces. It sets the x-coordinate of all 
@@ -177,7 +187,7 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="forceYValue" type="xsd:token" use="optional" default="none">
+    <xsd:attribute name="forceYValue" type="xsd:token" use="optional" default="">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
         Usefull for a coplanar interfaces. It sets the y-coordinate of all 
@@ -186,7 +196,7 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="forceZValue" type="xsd:token" use="optional" default="none">
+    <xsd:attribute name="forceZValue" type="xsd:token" use="optional" default="">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
         Usefull for a coplanar interfaces. It sets the z-coordinate of all 
@@ -219,6 +229,15 @@
           (which is the collection of all pairwise intersections of master and
           slave elements) is stored as a surfRegion in the grid, so it can be
           visualized.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="mutualProjection" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Used for creating an intersection grid handling periodic boundary conditions.
+          In this case, the master and the slave surfaces don't lie on the same interface. Therefore,
+          there will be no intersection grid found unless they are projected on a common interface.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -255,6 +274,11 @@
   <!--  ********************************************************************  -->
   <xsd:complexType name="DT_DomainEntSelect">
     <xsd:choice minOccurs="0" maxOccurs="1">
+      <xsd:element name="allNodesInRegion">
+        <xsd:complexType>
+          <xsd:attribute name="regName" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
       <!-- pair of coordinates -->
       <xsd:element name="coord">
         <xsd:complexType>
@@ -271,7 +295,7 @@
       <xsd:element name="list">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="freeCoord" minOccurs="0" maxOccurs="2">
+            <xsd:element name="freeCoord" minOccurs="0" maxOccurs="3">
               <xsd:complexType>
                 <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
                 <xsd:attribute name="start" type="xsd:token" use="required"/>

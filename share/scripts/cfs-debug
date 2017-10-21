@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This script facilitates to run CFS with various profiling / debbuging tools:
 # 
@@ -6,6 +6,7 @@
 #  - valgrind-memcheck (memory leak detection)
 #  - valgrind-callgrind (generation of call graph)
 #  - valgrind-massif (detailed heap-profiling)
+#  - valgrind-drd (thread error detector)
 #  - gperftools-cpu (generation of call graph, FAST)
 
 
@@ -38,19 +39,26 @@ PrintUsage() {
     echo -e "4) Valgrind-massif run"
     echo -e "-------------------------"
     echo -e "Create dynamic memory profile of a CFS run."
-    echo -e "Results can be investigeated using 'ms_print'.\n"
+    echo -e "Results can be investigated using 'ms_print'.\n"
     echo -e "Usage:"
     echo -e "\t cfs-debug massif [cfs-arguments]\n"
     echo -e "NOTE: Valgrind slows down the execution up to 10-20 times!\n\n"
 
-    echo -e "5) GPerftools-CPU profiler run"
+    echo -e "5) Valgrind-DRD run"
+    echo -e "-------------------------"
+    echo -e "Detect errors with multithreading of a CFS run."
+    echo -e "Usage:"
+    echo -e "\t cfs-debug drd [cfs-arguments]\n"
+    echo -e "NOTE: Valgrind slows down the execution up to 10-20 times!\n\n"
+
+    echo -e "6) GPerftools-CPU profiler run"
     echo -e "------------------------------"
     echo -e "Create dynamic callgraph with profiling information."
     echo -e "Results can be investigeated using using 'kcachegrind' (if format=callgrind)"
     echo -e "Usage:"
     echo -e "\t cfs-debug gperf-cpu <outfile> <format> [cfs-arguments]\n\n"
 
-    echo -e "6) GPerftools-Heap profiler run"
+    echo -e "7) GPerftools-Heap profiler run"
     echo -e "-------------------------------"
     echo -e "Create dynamic memory profile of a CFS run."
     echo -e "Usage:"
@@ -76,8 +84,41 @@ RunGdb()
         echo -e "----------------"
         echo -e "Executing: gdb --args $CFS_EXE $@ \n\n";
         
-        gdb --args $CFS_EXE "$@";  
+        gdb --batch -ex run --ex bt --ex q --args $CFS_EXE "$@" > gdb.txt 2>&1;  
+        
+        #print out gdb operation
+	      CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\ngdb.txt\nignore\n"
+	      printf $CMDSTR > tmp.dat
+	      echo "Output of 'GDB Session': " >> tmp.dat
+	      echo >> tmp.dat
+	      echo "================================================================================" >> tmp.dat
+	      cat gdb.txt >> tmp.dat
+	      $H5TOOL_EXE < tmp.dat > /dev/null 
+        rm tmp.dat
+
+        #print out cfs information
+        $CFS_EXE --noColor -v > cfs_version.txt
+	      CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\ncfs_version.txt\nignore\n"
+	      printf $CMDSTR > tmp.dat
+	      echo "CFS binary version info: " >> tmp.dat
+	      echo >> tmp.dat
+	      echo "================================================================================" >> tmp.dat
+	      cat cfs_version.txt >> tmp.dat
+	      $H5TOOL_EXE < tmp.dat > /dev/null 
+        rm tmp.dat
+
         PostCfsRun
+        echo -e "================================================================================================="
+        echo -e "GDB execution finished!\nIMPORTANT: Send a detailed report or open a ticket which includes:\n"
+        echo -e "- if possible: $hdf5_file_name"
+        echo -e "- if $hdf5_file_name is too large, send:"
+        echo -e "\t- Text file ./gdb.txt"
+        echo -e "\t- Text file ./cfs_version.txt"
+        echo -e "\t- parameter XML file and material XML file"
+        echo -e "\t- mesh file"
+        echo -e "\t- $sim_name.info.xml"
+        echo -e "\t- $sim_name.las"
+        echo -e "================================================================================================="
     else
         echo -e "The gdb executable is not in the path"
     fi
@@ -128,6 +169,24 @@ RunMassif()
         echo -e "Executing: valgrind --tool=massif $CFS_EXE $@ \n\n";
         
         valgrind --tool=massif $CFS_EXE "$@";
+        PostCfsRun  
+    else
+        echo -e "The valgrind executable is not in the path"
+    fi
+}
+
+# run valgrind-DRD thread error detector on the executable
+RunDrd()
+{
+    # check if valgrind is in the path
+    if CommandExists valgrind ; then
+        CMD="valgrind --tool=drd --check-stack-var=yes --read-var-info=yes $CFS_EXE"
+        echo -e "---------------------------------"
+        echo -e " CFS - VALGRIND - DRD RUN "
+        echo -e "---------------------------------"
+        echo -e "Executing: $CMD $@ \n\n";
+        
+        $CMD "$@";
         PostCfsRun  
     else
         echo -e "The valgrind executable is not in the path"
@@ -243,32 +302,32 @@ PostCfsRun() {
 
     # Get file state of output HDF5 file
     if [ -r "$hdf5_file_name" ]; then
-	if [ "$OS" = "Mac" ]; then
-	    eval "$(stat -s $hdf5_file_name)"
-	    st_size_after=$st_size
-	    st_mtime_after=$st_mtime
-	else
-	    st_size_after=$(stat --format %s $hdf5_file_name)
-	    st_mtime_after=$(stat --format %Y $hdf5_file_name)
-	fi
+	    if [ "$OS" = "Mac" ]; then
+	        eval "$(stat -s $hdf5_file_name)"
+	        st_size_after=$st_size
+	        st_mtime_after=$st_mtime
+	    else
+	        st_size_after=$(stat --format %s $hdf5_file_name)
+	        st_mtime_after=$(stat --format %Y $hdf5_file_name)
+	    fi
     fi
 
     # If HDF5 file did not change just exit
     if [ "$st_size_before" = "$st_size_after" ] && [ "$st_mtime_before" = "$st_mtime_after" ]; then
-	exit 0
+        exit 0
     fi
 
     # Create OS-specific hardware info files
+    STATCMD="stat"
     if [ "$OS" = "Mac" ]; then
-	/usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
-	OSFILELIST="macosx_info.txt";
-	STATCMD="stat -x"
+	    /usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
+	    OSFILELIST="macosx_info.txt";
+	    STATCMD="$STATCMD -x"
     fi
     if [ "$OS" = "Linux" ]; then
-	cat /proc/cpuinfo > linux_cpuinfo.txt
-	cat /proc/meminfo > linux_meminfo.txt
-	OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
-	STATCMD="stat"
+	    cat /proc/cpuinfo > linux_cpuinfo.txt
+	    cat /proc/meminfo > linux_meminfo.txt
+	    OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
     fi
 
     # Create dump of environment (OMP_NUM_THREADS, etc.)
@@ -283,17 +342,17 @@ PostCfsRun() {
 
     # Iterate over all files and import them
     for file in $FILELIST; do
-	if [ -r $file ]; then
-	    CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\n${file}\nignore\n"
-	    printf $CMDSTR > tmp.dat
-	    echo "Output of '$STATCMD $file': " >> tmp.dat
-	    $STATCMD $file >> tmp.dat
-	    echo >> tmp.dat
-	    echo "================================================================================" >> tmp.dat
-	    cat ${file} >> tmp.dat
-	    $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
-	    rm -f tmp.dat
-	fi
+	    if [ -r $file ]; then
+	        CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\n${file}\nignore\n"
+	        printf $CMDSTR > tmp.dat
+	        echo "Output of '$STATCMD $file': " >> tmp.dat
+	        $STATCMD $file >> tmp.dat
+	        echo >> tmp.dat
+	        echo "================================================================================" >> tmp.dat
+	        cat ${file} >> tmp.dat
+	        $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
+	        rm -f tmp.dat
+	    fi
     done
 
     # Delete OS-specific files
@@ -653,6 +712,7 @@ for token in "$@"; do
     fi
 
 done
+sim_name="${@: -1}"
 
 # Initialize st_size and st_mtime to defined values and get the before/after
 # values of these variables to check if HDF5 file has changed.
@@ -678,6 +738,7 @@ if [ $# != 0 ]; then
     REST_ARGS=${@:2}
     case "$1" in
         "gdb")
+            echo "GDB MODE\n"
             RunGdb $REST_ARGS
             ;;
         "memcheck")
@@ -688,6 +749,9 @@ if [ $# != 0 ]; then
             ;;
          "massif")
             RunMassif $REST_ARGS
+            ;;
+         "drd")
+            RunDrd $REST_ARGS
             ;;
          "gperf-cpu")
             RunGperfCpu $REST_ARGS
