@@ -57,7 +57,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   pdename_          = "magnetic";
   pdematerialclass_ = ELECTROMAGNETIC;
   
-  updatedGeo_        = false;  //true; //! Always use updated Lagrangian formulation
+  updatedGeo_        = !true; //! true needed for NC interface to give correct results while moving
   isMagnetoStrictCoupled_ = false;
   mechanicPDE_ = NULL;
   
@@ -246,12 +246,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 			  // ====================================================================
 			  shared_ptr<CoefFunction > curCoef;
 
-			  if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+			  if ( nonLinTypes.Find(HYSTERESIS) != -1 ){// || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
 				  /* for both the delta material method as well as the std fixpoint method we have to know
 				   * which regions are affected by hystersis
 				   */
 
-				  shared_ptr<CoefFunction > curCoef_tmp;
+				  //shared_ptr<CoefFunction > curCoef_tmp;
 				  // create new entity list
 
 				  //see above
@@ -277,46 +277,49 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 				   */
 				  PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
-				  curCoef_tmp.reset(new CoefFunctionHyst( actMat, actSDList,
-						  magFieldCoef,tensorType,MAG_RELUCTIVITY));
+				  curCoef.reset(new CoefFunctionHyst( actMat, actSDList,
+						  magFieldCoef,tensorType,MAG_RELUCTIVITY, mySpace));
 
-				  std::cout << "Add to hystCoefs" << std::endl;
-				  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-				  hysteresisCoefs_->AddRegion( actRegion, curCoef_tmp);
-				  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
+				//  std::cout << "Add to hystCoefs" << std::endl;
+				//  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
+				  hysteresisCoefs_->AddRegion( actRegion, curCoef);
+				//  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
 				  //std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-
-				  if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-					  /*
-					   * here we treat the case: B = mu0*H + mu0*M
-					   * however we solve for H, so we need: H = 1/mu_0 B - M
-					   * M will be put on the rhs, for stiffness integrator we need just 1/mu0, so we reset curCoef to 1/mu0 = nu0
-					   */
-					  //std::string mu0 = "1.2566370614e-6";
-					  std::string nu0 = "795774.715482";
-					  StdVector<std::string> realVal = StdVector<std::string>(3*3);
-					  realVal.Init("0.0");
-					  realVal[0] = nu0;
-					  if(dim_ == 2){
-						  realVal[3] = nu0;
-					  } else if(dim_ == 3){
-						  realVal[4] = nu0;
-						  realVal[8] = nu0;
-					  }
-					  StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
-					  imagVal.Init("0.0");
-
-					  curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
-
-					  std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
-
-					  isHysteresisFixPoint_ = true;
-				  } else {
-					  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
-
-					  curCoef = curCoef_tmp;
-					  isHysteresisFixPoint_ = false;
-				  }
+//
+//      enum Hysteresis_fixpoint removed; the different hysteresis types are no selectable
+//      via input flag evaluationParameter > see stdSolveStep for more info
+//
+//				  if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+//					  /*
+//					   * here we treat the case: B = mu0*H + mu0*M
+//					   * however we solve for H, so we need: H = 1/mu_0 B - M
+//					   * M will be put on the rhs, for stiffness integrator we need just 1/mu0, so we reset curCoef to 1/mu0 = nu0
+//					   */
+//					  //std::string mu0 = "1.2566370614e-6";
+//					  std::string nu0 = "795774.715482";
+//					  StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+//					  realVal.Init("0.0");
+//					  realVal[0] = nu0;
+//					  if(dim_ == 2){
+//						  realVal[3] = nu0;
+//					  } else if(dim_ == 3){
+//						  realVal[4] = nu0;
+//						  realVal[8] = nu0;
+//					  }
+//					  StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
+//					  imagVal.Init("0.0");
+//
+//					  curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
+//
+//					  std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
+//
+//					  isHysteresisFixPoint_ = true;
+//				  } else {
+//					//  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
+//
+//					  curCoef = curCoef_tmp;
+//					  isHysteresisFixPoint_ = false;
+//				  }
 			  } else{
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
@@ -357,14 +360,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 			  bdbInts_[actRegion] = stiffInt;
 
 			  // add also material to global, distributed reluctivity coefficient function
-			  if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-			    //std::cout << "Do not add to reluc" << std::endl;
+			  if ( nonLinTypes.Find(HYSTERESIS) != -1){// || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+			   // std::cout << "Do not add to reluc" << std::endl;
 			    /*
 			     * we cannot directly add coefFunctionHyst to reluc_ as reluc_ expects tensorial coefFncs
 			     * but coefFunctionHyst has to be a vector coefFnc
 			     */
 			  } else {
-			    //std::cout << "Add to reluc" << std::endl;
+			   // std::cout << "Add to reluc" << std::endl;
 			    reluc_->AddRegion(actRegion, curCoef);
 			  }
 
@@ -816,8 +819,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     // =================================
 
     //check for hysteresis
-    if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
-      std::cout << "Putting magnetization to rhs" << std::endl;
+    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == true ) {
+  //    std::cout << "Putting magnetization to rhs" << std::endl;
       LOG_DBG(magpde) << "Putting magnetization to rhs";
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -831,13 +834,17 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( curReg );
 
-        // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
-        bool fullevaluation = false;
+        // currently we evaluate M only at the midpoint -> fullevaluation inside BUIntegrator has to be false
+        // activate fullevaluation here; later in coefFncHyst we will decide if we really want to evaluate
+        // the rhs at each integration point or only at midpoint
+        bool fullevaluation = !false;
 
+        //std::cout << "Put magnetization on rhs" << std::endl;
+        //factor = factor*(-1.0);
         if(isComplex_) {
           if( dim_ == 2 ) {
             if(isaxi_){
-           // we need +factor as we put -rotH to the rhs
+           // we need +factor as we put -rotM to the rhs
            // note: use BDUIntegrator, even though we have no material (dMat = Identity)
               //lin = new BDUIntegrator<CurlOperatorAxi<Double>, Complex>(Complex(factor),
                     //                                                         coef[i], reluc_, coefUpdateGeo);
@@ -1076,6 +1083,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     // Use complete implicit scheme
     Double gamma = 1;
     GLMScheme * scheme = new Trapezoidal(gamma);
+   // std::cout << "nonLin_?" << nonLin_ << std::endl;
+
     TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
@@ -1374,6 +1383,19 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     resultFunctors_[MAG_FLUX] = fluxFct;
     availResults_.insert(flux);
 
+    // Magnetizatin
+    if ( isHysteresis_){
+     hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+     shared_ptr<ResultInfo> magM ( new ResultInfo );
+     magM->resultType = MAG_MAGNETIZATION;
+     magM->SetVectorDOFs(dim_, isaxi_);
+     magM->unit = "A/m";
+     magM->definedOn = ResultInfo::ELEMENT;
+     magM->entryType = ResultInfo::VECTOR;
+     DefineFieldResult( hysteresisCoefs_, magM );
+     availResults_.insert( magM );
+    }
+
     // === MAGNETIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> magIntens ( new ResultInfo );
     magIntens->resultType = MAG_FIELD_INTENSITY;
@@ -1387,21 +1409,26 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     } else {
       magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
     }
-    DefineFieldResult( magIntensFunc, magIntens );
     stiffFormCoefs_.insert(magIntensFunc);
 
-    if ( isHysteresis_){
-     hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-     shared_ptr<ResultInfo> magM ( new ResultInfo );
-     magM->resultType = MAG_MAGNETIZATION;
-     magM->SetVectorDOFs(dim_, isaxi_);
-     magM->unit = "A/m";
-     magM->definedOn = ResultInfo::ELEMENT;
-     magM->entryType = ResultInfo::VECTOR;
-     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-     DefineFieldResult( hysteresisCoefs_, magM );
-     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-     availResults_.insert( magM );
+    PtrCoefFct magIntensFuncMod;
+    if ( isHysteresis_ ){
+      /*
+       * in case of hysteresis, H has is computed from B using nu0;
+       * however, B = nu0^-1 H + nu0^-1 M
+       * i.e.
+       * H = nu0*B - M
+       * i.e.
+       * subtract M
+       */
+      if( isComplex_ ) {
+        magIntensFuncMod = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,magIntensFunc,hysteresisCoefs_,CoefXpr::OP_SUB));
+      } else {
+        magIntensFuncMod = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,magIntensFunc,hysteresisCoefs_,CoefXpr::OP_SUB));
+      }
+      DefineFieldResult( magIntensFuncMod, magIntens );
+    } else {
+      DefineFieldResult( magIntensFunc, magIntens );
     }
 
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor

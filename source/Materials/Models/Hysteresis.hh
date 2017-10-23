@@ -90,6 +90,15 @@ namespace CoupledField {
       EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
     };
 
+    virtual std::string runtimeToString(){
+      EXCEPTION( "runtimeToString not implemented in base-Class" );
+    };
+
+    virtual void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+      EXCEPTION( "setFlags not inplemented in base-Class")
+    };
+
+
   protected:
 
   private:

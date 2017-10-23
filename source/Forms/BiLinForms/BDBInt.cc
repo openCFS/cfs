@@ -99,6 +99,7 @@ namespace CoupledField{
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
+   //   std::cout << "Integration point " << i << " of " << numIntPts << std::endl;
       dData_->GetTensor(dMat_,lp);
       assert(dMat_.IsSymmetric(1e-8) > 0);
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);

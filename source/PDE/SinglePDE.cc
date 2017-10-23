@@ -550,8 +550,13 @@ namespace CoupledField {
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
 
-          if ( nonLinTypes_[nonLinId] == HYSTERESIS or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )
-        	  isHysteresis_ = true;
+          if ( nonLinTypes_[nonLinId] == HYSTERESIS ){
+            isHysteresis_ = true;
+            //or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )// enum removed
+            //fixpoint iteration can be selected via evaluationParameter flag
+            // > see stdSolveStep for more details
+          }
+
         }
       }
 

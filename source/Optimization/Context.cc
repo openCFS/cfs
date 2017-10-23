@@ -85,6 +85,10 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     assert(false); // not yet implemented
     break;
 
+  case BasePDE::INVERSESOURCE:
+    EXCEPTION("Optimizaion with analysis type INVERSESOURCE makes no sense!");
+    break;
+
   case BasePDE::MULTI_SEQUENCE:
   case BasePDE::NO_ANALYSIS:
     assert(false);

@@ -127,6 +127,8 @@ namespace CoupledField
     //! consideres hystreresis nonlinearities in direct coupled PDEs
     virtual void StepTransNonLinHysteresis();
     virtual void StepTransNonLinHysteresisTotal();
+
+    void SetLastItOrLastTSSBMVectors(bool lastTS);
     /*!
      * Helper funciton for setting up the equation system during
      *            StepTransNonLinHysteresis()
@@ -139,14 +141,13 @@ namespace CoupledField
     /*
      * for residual computation we need a slightly different version -> see .cc file
      */
-    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta, UInt stage, UInt callingCnt, UInt evalVersion, bool trans);
+    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement, SBM_Vector& stageSol, Double usedEta,
+                                                          UInt stage, UInt callingCnt, UInt evalVersion, bool trans, bool forceReevaluation,
+                                                          bool skipReassembly, bool debugOutput, bool reset);
 
-    virtual void ConfigureSystemForHysteresisResidual(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta,UInt stage, bool trans);
-
-    virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
     //! does a line search and returns the optimal residual norm
-    Double LineSearchHyst(SBM_Vector& solIncrement, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
-                      bool trans=false, bool performLineSearch=true);
+    Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
+                      bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5);
     
     //----------------------- helpfull methods--------------------------------------
 
@@ -275,11 +276,35 @@ namespace CoupledField
     //! Vector containing rhs
     SBM_Vector rhsVec_;
 
-    //! Vector containing residual
-    SBM_Vector resVec_;
+    //! Vectors used for NonLinHysteresis
+    // current > current timestep and iteration
+    SBM_Vector currentLinRhsVec_;
+    SBM_Vector currentNonLinRhsVec_;
+    SBM_Vector currentResVec_;
+    SBM_Vector currentRHSload_partial_; // for full stepping only;
+    // stores f_currentTS - f_lastTS - f_nonlin_lastTS; needs to be evaluated only during first iteration
+    // during each iteration f_nonlin_currentTS has to be added to get full RHSload
 
-    //! nonLinRHS
-    SBM_Vector nonLinRHS_;
+    // + solVec which is defined above
+
+    // oldTS > values after last iteration of previous TS
+    // to be stored after iteration suceeded
+    SBM_Vector oldTSLinRhsVec_;
+    SBM_Vector oldTSNonLinRhsVec_;
+    SBM_Vector oldTSSolVec_;
+
+    // oldIt > values of the current TS but from previous It
+    // during first iterartion of a new TS, these vectors contain the values
+    // after the last iteration of the previous TS (similar as oldTS...)
+    SBM_Vector oldItNonLinRhsVec_;
+    SBM_Vector oldItResVec_;
+
+    //! Additional flags and parameter for hyst
+    UInt evalVersion_;
+    bool forceReevaluation_;
+    bool debugOutput_;
+    UInt remainingEvalParameter_;
+
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

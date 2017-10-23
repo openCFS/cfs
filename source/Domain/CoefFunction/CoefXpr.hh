@@ -126,10 +126,12 @@ public:
     OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
-    OP_SQRT,                   /*!< Unary square root operation */
-    OP_TRACE,                  /*!< Unary trace of tensor operation  */
+    OP_SQRT,                  /*!< Unary square root operation */
+    OP_TRACE,                 /*!< Unary trace of tensor operation  */
     OP_INV,                   /*!< Unary inversion operation */
-    OP_DET                    /*!< Unary operation, returning the determinant of a square tensor*/
+    OP_DET,                   /*!< Unary operation, returning the determinant of a square tensor*/
+	OP_RE,					  /*!< Unary operation, returning the real part*/
+    OP_IM					  /*!< Unary operation, returning the imaginary part*/
   } OpType;
   
   //! Get number of operands for OpType

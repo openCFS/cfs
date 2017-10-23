@@ -600,39 +600,15 @@ public:
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
   //! Functions needed for Hystersis
-  virtual void SetPreviousHystVals(bool setNextToLastTS_too = false) {
+  virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  //! function for Hysteresis operator to activate or deactivate computation of deltaMatrix
-  virtual void setDeltaComputation(bool deltaComputation_new){
-    EXCEPTION("setDeltaComputation not available");
-  }
-
-  //! function for Hysteresis operator to switch between using the
-  // value of the nextToLastTS or of the previousIteration
-  virtual void setUseNextToLastTS(bool useNextToLastTS_new){
-    EXCEPTION("setUseNextToLastTS not available");
-  }
-
-  //! function for Hysteresis operator to allow or disallow memory setting
-  virtual void setOverwrite(bool overwrite){
-    EXCEPTION("setOverwrite not available");
-  }
-
-  //! function for Hysteresis operator to allow or disallow direction setting
-  virtual void setOverwriteDirection(bool overwrite){
-    EXCEPTION("setOverwrite not available");
-  }
-
-  //! for calculation of div and rot in coefFncHyst, we need information about grid
-  //! and about regions which have hysteresis assigned;
-  //! we can get access to both information if we know the PDE which called this coef function
-  virtual void SetLinkedPDE(StdPDE* linkedPDE){
+  virtual void SetInputDependentFlags(UInt intState){
     EXCEPTION( "Not implemented in base class");
   }
 
-  virtual void SetFlag(std::string flagName,bool newState){
+  virtual void SetRuntimeDependentFlag(std::string flagName, UInt intState){
     EXCEPTION( "Not implemented in base class");
   }
 
