@@ -184,10 +184,11 @@ namespace CoupledField {
       return feFunctions_[st]->GetResultInfo()->dofNames;
     }
 
+
     /*
      *
      */
-    void SetFlagInCoefFncHyst(std::string flagName,bool newState);
+    void SetFlagInCoefFncHyst(std::string flagName, UInt newState);
 
     /*
      * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
@@ -200,27 +201,7 @@ namespace CoupledField {
     /*!
      * SetPreviousHystVals -> store input and output values from last iteration
      */
-    void SetPreviousHystVals(bool setNextToLastTS = false);
-    /*!
-     * LockUnlockHystMemory -> if locked, all changes to the Hysteresis operator are only
-     *                           done on temporary storage
-     */
-    void LockUnlockHystMemory(bool locked);
-
-    void UseNextToLastTSForDeltaMat(bool useNextToLastTS);
-
-    void LockUnlockHystDirection(bool locked);
-    /*!
-     * ActivateDeactivateDeltaMat -> if active, the getTensor function of CoefFunctionHyst
-     *                                 returns deltaOutput/deltaInput + std. mat tensor
-     *                                 as approximation of the material tensor
-     *                            -> if not active, getTensor returns only std. mat tensor
-     * Example electrostatics:
-     *  active: deltaMat = deltaP / deltaE + eps0
-     *  not active: deltaMat = eps0
-     *
-     */
-    void ActivateDeactivateDeltaMat(bool active);
+    void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false);
 
     virtual void FinalizeAfterTimeStep() {
     	EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");

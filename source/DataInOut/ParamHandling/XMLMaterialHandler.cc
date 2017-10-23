@@ -1021,6 +1021,24 @@ namespace CoupledField {
           material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
         }
 
+        if(p->Has("angularResolution")){
+          material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
+        } else {
+          material->SetScalar(0.0001, ANG_RESOLUTION, Global::REAL);
+        }
+
+        if(p->Has("angularClipping")){
+          material->SetScalar(p->Get("angularClipping")->As<Double>(), ANG_CLIPPING, Global::REAL);
+        } else {
+          material->SetScalar(0.0001, ANG_CLIPPING, Global::REAL);
+        }
+
+        if(p->Has("amplitudeResolution")){
+          material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
+        } else {
+          material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
+        }
+
         // not used anymore
 //        if(p->Has("isTesting")){
 //          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
@@ -1039,6 +1057,22 @@ namespace CoupledField {
           ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
         }
+
+        Matrix<Double> initialStateTensor;
+        if(p->Has("initialState"))
+        {
+          std::cout << "InitialState found" << std::endl;
+          ParamTools::AsTensor<double>(p->Get("initialState"),1, 3, initialStateTensor);
+          std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        } else {
+          std::cout << "NO InitialState found" << std::endl;
+          initialStateTensor.Resize(1,3);
+          initialStateTensor.Init();
+        }
+
+        material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+        material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+        material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
 
         /*
          * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
@@ -1401,117 +1435,148 @@ namespace CoupledField {
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
         }
       }
+
       else if (mag->Get("hystModel")->Has("vectorPreisach"))
-      {
-        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
+            {
+              PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
 
-        // force name
-        material->SetScalar("vectorPreisach", HYST_MODEL);
+              // force name
+              material->SetScalar("vectorPreisach", HYST_MODEL);
 
-        // read E saturation of Preisach hysterese model
-        if(p->Has("hSat")){
-          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
-        }
+              // read E saturation of Preisach hysterese model
+              if(p->Has("hSat"))
+                material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+              // read P saturation of Preisach hysterese model
+              if(p->Has("mSat"))
+                material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
 
-        Double tmp;
-        material->GetScalar(tmp, X_SATURATION, Global::REAL);
+              /*
+               * new numbering: 1 -> classical vector model (sutor2012)
+               *                2 -> revised model (sutor2015)
+               *                10 -> classical vector model, matrix based
+               *                20 -> revised model, matrix based
+               */
+              if(p->Has("evalVersion")){
+                material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+              } else {
+                material->SetScalar(2, EVAL_VERSION);
+              }
 
-        // read P saturation of Preisach hysterese model
-        if(p->Has("mSat")){
-          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
-        }
-        /*
-         * new numbering: 1 -> classical vector model (sutor2012)
-         *                2 -> revised model (sutor2015)
-         *                10 -> classical vector model, matrix based
-         *                20 -> revised model, matrix based
-         */
-        if(p->Has("evalVersion")){
-          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
-        } else {
-          material->SetScalar(2, EVAL_VERSION);
-        }
+              // never used so far
+      //        // read P saturation of Preisach hysterese model
+      //        if(p->Has("Pr"))
+      //          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
 
-        // never used so far
-//        // read P saturation of Preisach hysterese model
-//        if(p->Has("Pr"))
-//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
+              // only relevant for scalar model
+      //        // read direction of polarization
+      //        if(p->Has("dirP"))
+      //        {
+      //          int dir = p->Get("dirP")->As<Integer>();
+      //
+      //          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+      //          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+      //          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+      //
+      //          if(dir != 1 && dir != 2 && dir != 3)
+      //            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+      //                      << " hysteresis model polarization");
+      //        }
 
-        // only relevant for scalar model
-//        // read direction of polarization
-//        if(p->Has("dirP"))
-//        {
-//          int dir = p->Get("dirP")->As<Integer>();
-//
-//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-//
-//          if(dir != 1 && dir != 2 && dir != 3)
-//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-//                      << " hysteresis model polarization");
-//        }
+              //not needed anymore as vectorPreisach always is vectorial
+              material->SetScalar("VECTOR", PREISACH_DIM);
+      //        if(p->Has("preisachDim"))
+      //        {
+      //          int dim = p->Get("preisachDim")->As<Integer>();
+      //
+      //          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+      //          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+      //          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+      //        } else {
+      //          material->SetScalar("SCALAR", PREISACH_DIM);
+      //        }
 
-        //not needed anymore as vectorPreisach always is vectorial
-        material->SetScalar("VECTOR", PREISACH_DIM);
-//        if(p->Has("preisachDim"))
-//        {
-//          int dim = p->Get("preisachDim")->As<Integer>();
-//
-//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
-//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
-//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
-//        } else {
-//          material->SetScalar("SCALAR", PREISACH_DIM);
-//        }
+              if(p->Has("rotResistance")){
+                material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+              } else {
+                material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+              }
 
-        if(p->Has("rotResistance")){
-          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
-        }
+              if(p->Has("angularDistance")){
+                material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
+              } else {
+                material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
+              }
 
-        if(p->Has("angularDistance")){
-          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
-        }
+              if(p->Has("angularResolution")){
+                material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
+              } else {
+                material->SetScalar(0.0, ANG_RESOLUTION, Global::REAL);
+              }
 
-        // not used anymore
-//        if(p->Has("isTesting")){
-//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
-//        } else {
-//          material->SetScalar(0, IS_TESTING);
-//        }
+              if(p->Has("angularClipping")){
+                material->SetScalar(p->Get("angularClipping")->As<Double>(), ANG_CLIPPING, Global::REAL);
+              } else {
+                material->SetScalar(0.0001, ANG_CLIPPING, Global::REAL);
+              }
 
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+              if(p->Has("amplitudeResolution")){
+                material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
+              } else {
+                material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
+              }
 
-        // read real permittivity tensor
-        if(p->Has("weights"))
-        {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
-        }
+              // not used anymore
+      //        if(p->Has("isTesting")){
+      //          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+      //        } else {
+      //          material->SetScalar(0, IS_TESTING);
+      //        }
 
-        /*
-         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
-         * written to a bmp file of resolution bmpResolution
-         */
-        if(p->Has("printOut")){
-          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
-        } else {
-          material->SetScalar(0, PRINT_PREISACH);
-        }
+              // read weight dimension of Preisach hysterese model for weights
+              int dim = -1;
+              if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
 
-        if(p->Has("bmpResolution")){
-          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
-        } else {
-          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
-        }
-      }
+              // read real permittivity tensor
+              if(p->Has("weights"))
+              {
+                Matrix<Double> preisachWeightTensor(dim,dim);
+                ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+                material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+              }
+
+              Matrix<Double> initialStateTensor;
+              if(p->Has("initialState"))
+              {
+                std::cout << "InitialState found" << std::endl;
+                ParamTools::AsTensor<double>(p->Get("initialState"),1, 3, initialStateTensor);
+                std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+              } else {
+                std::cout << "NO InitialState found" << std::endl;
+                initialStateTensor.Resize(1,3);
+                initialStateTensor.Init();
+              }
+
+              material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+              material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+              material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+
+              /*
+               * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+               * written to a bmp file of resolution bmpResolution
+               */
+              if(p->Has("printOut")){
+                material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+              } else {
+                material->SetScalar(0, PRINT_PREISACH);
+              }
+
+              if(p->Has("bmpResolution")){
+                material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+              } else {
+                material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
+              }
+            }
+
     }
 
  /*

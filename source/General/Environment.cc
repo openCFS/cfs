@@ -843,8 +843,6 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
-    } else if( in == "hysteresis_fixpoint") {
-      out = HYSTERESIS_FIXPOINT;
     } else if( in == "piezoMicroHF") {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
@@ -902,9 +900,6 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
-        break;
-      case HYSTERESIS_FIXPOINT:
-        out = "hysteresis_fixpoint";
         break;
       case NLELEC_CONDUCTIVITY:
         out = "elecConductivity";
@@ -1410,6 +1405,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
+    SolutionTypeEnum.Add(MAG_JOULE_LOSS_DENSITY, "magJouleLossDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
@@ -1626,6 +1622,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add( IS_TESTING, "isTesting" );
     MaterialTypeEnum.Add( EVAL_VERSION, "evalVersion" );
     MaterialTypeEnum.Add( ANG_DISTANCE, "angularDistance" );
+    MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
+    MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
+    MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
+    MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
+    MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );

@@ -13,7 +13,10 @@ namespace CoupledField
     : Hysteresis(numElem)
   {
 
-    eps_ = 1e-5;
+    std::cout << "ScalarPreisach: Using Everett function" << std::endl;
+
+    //eps_ = 1e-5;
+    eps_ = 1e-15;
 
     if (xSat > 0 ) {
       Xsaturated_  = xSat;
@@ -133,6 +136,22 @@ namespace CoupledField
     UInt& actLength = StringLength_[idx];
     UInt stringLength = actLength;
 
+//    std::cout << "Element: " << idx << std::endl;
+//
+//    std::cout << "Input Xin: " << Xin << std::endl;
+
+//    std::cout << "Print out entries of min/max list before update" << std::endl;
+//    for ( UInt i=0; i<stringLength; i++ ) {
+//      std::cout << "index " << i << ": " << stringEl[i] << std::endl;
+//    }
+//    std::cout << "#############" << std::endl;
+
+//    std::cout << "Print out entries of helper min/max list before update" << std::endl;
+//    for ( UInt i=0; i<stringLength; i++ ) {
+//      std::cout << "index " << i << ": " << helpStringEl[i] << std::endl;
+//    }
+//    std::cout << "#############" << std::endl;
+
     if ( abs(newX) > abs(abs(stringEl[0]) - eps_) || stringLength == 0 ) {
       stringLength = 1;
       if ( overwrite ) 
@@ -160,8 +179,9 @@ namespace CoupledField
           a = helpStringEl[stringLength-k-1];
           b = helpStringEl[stringLength-k];
         }
-        
+//        std::cout << "Old string length: " << stringLength << std::endl;
         stringLength = stringLength - k + 1;
+//        std::cout << "New string length: " << stringLength << std::endl;
         
         if (overwrite ) {
           //check, if capacity of string-arrays is too less
@@ -191,11 +211,48 @@ namespace CoupledField
           stringEl[stringLength-1] = newX;
         }
         else {
+
+//          std::cout << "Print out entries of helper min/max list before resorting" << std::endl;
+//
+//           for ( UInt i=0; i<stringLength+1; i++ ) {
+//             std::cout << "index " << i << ": " << helpStringEl[i] << std::endl;
+//           }
+//           std::cout << "#############" << std::endl;
+
           //correct storage in helpString
           for ( UInt i=0; i<stringLength-1; i++ ) {
               helpStringEl[i] = helpStringEl[i+1];
           }
+
+//          std::cout << "Print out entries of helper min/max list after resorting" << std::endl;
+//
+//           for ( UInt i=0; i<stringLength+1; i++ ) {
+//             std::cout << "index " << i << ": " << helpStringEl[i] << std::endl;
+//           }
+//           std::cout << "#############" << std::endl;
+
           helpStringEl[stringLength-1] = newX; 
+        }
+      }
+      else {
+        /*
+         * Note: We check if a new input is large/small enough to modify the
+         * actual storage stringEl;
+         * if this is the case, we update
+         * either stringEl (if update = true) or helpStringEl (if update = false)
+         * and everything works just fine
+         *
+         * if this is not the case, we do neither change stringEl nor helpStringEl
+         * if update = true, this is no problem, as we evaluate stringEl which is
+         * up to date (otherwise an update would have been needed)
+         * if update = false, we evaluate helpStringEl. This can be a serious problem
+         * if helpStringEl is not stringEL
+         * -> if no update of list was performed, copy stringEl (which is up to date)
+         * to helpStringEl
+         */
+      //  std::cout << "No update needed; copy current stringEl to helpStringEl" << std::endl;
+        for ( UInt i=0; i<=stringLength-1; i++ ) {
+          helpStringEl[i] = stringEl[i];
         }
       }
     }
@@ -203,11 +260,19 @@ namespace CoupledField
     if ( overwrite ) {
       actLength = stringLength;
 
-     // std::cout << "Print out entries of min/max list" << std::endl;
+//      std::cout << "Overwrite = true" << std::endl;
+//      std::cout << "Print out entries of min/max list" << std::endl;
+//      for ( UInt i=0; i<stringLength; i++ ) {
+//        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
+//      }
+//      std::cout << "#############" << std::endl;
+
+//      std::cout << "Updated non-temporary min/max list" << std::endl;
+//      std::cout << "Print out entries of min/max list" << std::endl;
 //      for ( UInt i=0; i<actLength; i++ ) {
 //        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
 //      }
-     // std::cout << "#############" << std::endl;
+//      std::cout << "#############" << std::endl;
 
       //compute preisach-sum
       preisachSum_[idx] =  everettPixel(-stringEl[0],stringEl[0]);
@@ -225,6 +290,15 @@ namespace CoupledField
        * -> No, see line 181 -> elements get shifted to the right by 1
        *
        */
+
+//       std::cout << "Overwrite = false" << std::endl;
+//       std::cout << "Print out entries of helper min/max list" << std::endl;
+//
+//       for ( UInt i=0; i<stringLength; i++ ) {
+//         std::cout << "index " << i << ": " << helpStringEl[i] << std::endl;
+//       }
+//       std::cout << "#############" << std::endl;
+
       newY = everettPixel(-helpStringEl[0], helpStringEl[0]);
       for ( UInt i=0; i<stringLength-1; i++ ) {
         newY +=  2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);

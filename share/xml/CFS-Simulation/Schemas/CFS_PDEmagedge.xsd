@@ -244,6 +244,7 @@
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
     <xsd:restriction base="xsd:token"> </xsd:restriction>
   </xsd:simpleType>
+  
 
   <!-- Definition of elem result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
@@ -260,6 +261,7 @@
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
+      <xsd:enumeration value="magJouleLossDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

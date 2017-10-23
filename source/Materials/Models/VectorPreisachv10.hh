@@ -4,6 +4,7 @@
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Hysteresis.hh"
+#include "Utils/Timer.hh"
 //#include "Preisach.hh"
 
 namespace CoupledField {
@@ -659,7 +660,7 @@ class VectorPreisachv10 : public Hysteresis
 public:
   VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
        Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-       bool classical, Double angularDistance);
+       bool classical, Double angularDistance, Double angularClipping);
 
   virtual ~VectorPreisachv10();
 
@@ -682,9 +683,38 @@ public:
     EXCEPTION("Not implemented in base class");
   }
 
+  void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+
+    if(performanceFlag >= 2){
+      /*
+       * start with 2
+       * -> Reason: coefFunctionHyst uses performanceFlag with
+       *      0 > no measurement
+       *      1 > measurement but only in coefFunctionHyst
+       *      2 > measurement also in Preisach operator
+       */
+      performanceMeasurement_ = true;
+    } else {
+      performanceMeasurement_ = false;
+    }
+
+    if(textOutputFlag > 2){
+      textOutputFlag = 2;
+    }
+    textOutputLevel_ = textOutputFlag;
+
+    mappingVersion_ = mappingFlag;
+
+  }
+
+  std::string runtimeToString(){
+    EXCEPTION("Not implemented in base class");
+  }
 
 protected:
   Vector<Double> evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal);
+
+  Vector<Double> clipNewRotationDirection(Vector<Double>& e_u_new);
 
   /*!
    * Global quantities, i.e. the same for all FE elements of the same material
@@ -719,6 +749,37 @@ protected:
    */
   Double angularDistance_; //! angular distance between old rotation state and new input direction which remains for small fields
 
+  /*
+   * The input direction gets clipped to discrete angles inside the used coordinate system;
+   * angularClipping = 0 -> no clipping
+   * angularClipping > 0 -> minimal angular step that gets resolved; value in rad
+   */
+  Double angularClipping_;
+
+
+  /*
+   * runtime measurement
+   */
+  bool performanceMeasurement_;
+
+  /*
+   * can be used for output
+   * O = no output
+   * 1 = info
+   * 2 = debug
+   */
+  UInt textOutputLevel_;
+
+
+  /*
+   * allows to switch between new and old mapping function
+   * (mapRectangelTo...)
+   *
+   * 0 = old version
+   * 1 = new version (default)
+   */
+  UInt mappingVersion_;
+
 };
 
 class VectorPreisachv10_MatrixApproach : public VectorPreisachv10
@@ -726,7 +787,7 @@ class VectorPreisachv10_MatrixApproach : public VectorPreisachv10
 public:
   VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-         bool classical, Double angularDistance);
+         bool classical, Double angularDistance, Double angularClipping);
 
   ~VectorPreisachv10_MatrixApproach();
 
@@ -734,6 +795,8 @@ public:
   Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
 
   void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
+
+  std::string runtimeToString();
 
 private:
 
@@ -749,6 +812,20 @@ private:
   Matrix<Double>* rotationStateX_; //! stores the current rotation state in x
   Matrix<Double>* rotationStateY_; //! stores the current rotation state in y
   Matrix<Double>* rotationStateZ_; //! stores the current rotation state in z
+
+  /*
+   * Timer and counter
+   */
+  UInt updateMatricesCounter_;
+  Timer* updateMatricesTimer_;
+
+  UInt evaluateMatricesCounter_;
+  Timer* evaluateMatricesTimer_;
+
+  UInt copyToTemporalStorageCounter_;
+  Timer* copyToTemporalStorageTimer_;
+  Timer* copyFromTemporalStorageTimer_;
+
 };
 
 class VectorPreisachv10_ListApproach : public VectorPreisachv10
@@ -757,7 +834,7 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
   public:
   VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
        Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-       bool classical, Double angularDistance);
+       bool classical, Double angularDistance, Double angularClipping);
 
     virtual ~VectorPreisachv10_ListApproach();
 
@@ -765,6 +842,8 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
 
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
+
+    std::string runtimeToString();
 
   private:
 
@@ -778,6 +857,8 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     bool getRectanglesFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, Rectangle& rect2, bool lastRotListEntryv10);
     void Evaluate_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList, Vector<Double>& retVec);
     void Evaluate_LowerTriangle();
+    Double mapRectangleToPreisachWeightsOLD(Rectangle& rect, bool skipUpperDiagonal = false);
+    Double mapRectangleToPreisachWeightsNEW(Rectangle& rect, bool skipUpperDiagonal = false);
     Double mapRectangleToPreisachWeights(Rectangle& rect, bool skipUpperDiagonal = false);
     Double getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
            std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
@@ -786,6 +867,8 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     void Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
     void mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal = false,bool isRotState = false);
     void Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
+    void Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue);
+
 
     /*!
      * Local quantities, i.e. one for each FE elements of the same material
@@ -798,6 +881,22 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     Vector<Double>* lastEu_; //! last rotation state; only used in output function rotationStateToBmp
 
     Double lowerTriangleValue_; //! Integral over the Preisach weights in the lower triangular region
+
+    /*
+     * Timer and counter
+     */
+    UInt updateNestedListCounter_;
+    Timer* updateRotListTimer_;
+    Timer* updateSwitchingListTimer_;
+    Timer* simplifyRotListTimer_;
+    Timer* simplifySwitchingListTimer_;
+
+    UInt evaluateNestedListCounter_;
+    Timer* evaluateNestedListTimer_;
+
+    UInt copyToTemporalStorageCounter_;
+    Timer* copyToTemporalStorageTimer_;
+
 
   };
 } // end of namespace
