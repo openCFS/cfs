@@ -1952,7 +1952,12 @@
       <xsd:enumeration value="transfoMatrix21"/>
       <xsd:enumeration value="transfoMatrix22"/>
       <!-- Shape mapping -->
+      <!-- for 2D -->
       <xsd:enumeration value="node"/>
+      <!-- 2D and 3D center node a -->
+      <xsd:enumeration value="node_a"/>
+      <!-- 3D center node b-->
+      <xsd:enumeration value="node_b"/>
       <xsd:enumeration value="profile"/>
     </xsd:restriction>
   </xsd:simpleType>
