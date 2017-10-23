@@ -66,6 +66,12 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   if((relative_node_bound_ >= 0.0 || relative_profile_bound_ >= 0.0) && !DensityFile::NeedLoadErsatzMaterial())
     info_->Get(ParamNode::HEADER)->SetWarning("relative shape map bounds overwrite design bounds");
 
+  // validate result settings
+  if((dim_ == 3 && GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE) != -1)   ||
+     (dim_ == 2 && GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE_A) != -1) ||
+     (dim_ == 2 && GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE_B) != -1))
+  info_->Get(ParamNode::HEADER)->SetWarning("'result' attribute 'detail' with 'node' for 2D and 'node_a' and 'node_b' for 3D");
+
   // from the shapes create the rho equivalent ShapeParamElement variables
   SetupShapeParam();
 
@@ -1650,7 +1656,9 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
    // !! Also all simp gradients are not computed before the first WriteGradientToExtern() which triggers this MapShapeGradient
 
    // shall we store max_grad for output? -1 if not
-   int res_idx_da = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE);
+
+   int res_idx_da = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, dim_ == 2 ? DesignElement::SM_NODE : DesignElement::SM_NODE_A);
+   int res_idx_db = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE_B);
    int res_idx_dw = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_PROFILE);
 
    // in the tanh_sum case the inner sum is constructed by 1/2* normal beta
@@ -1746,6 +1754,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                {
                  da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
                  assert(!std::isnan(da) && !std::isinf(da));
+                 LOG_DBG3(SMD) << "MSG: da d=" << de->GetIndex() << " p=" << de->GetLocation()->ToString() << " ip=" << ip.ToString() << " da=" << da;
                  if(dim_ == 3) // FIXME assumes center nodes!
                    db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
 
@@ -1807,6 +1816,8 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
      LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da << " sum dw=" << log_dw;
      if(res_idx_da >= 0)
        de->specialResult[res_idx_da] = log_da;
+     if(res_idx_db >= 0)
+       de->specialResult[res_idx_db] = log_db;
      if(res_idx_dw >= 0)
        de->specialResult[res_idx_dw] = log_dw;
    } // end loop over density elements
@@ -1965,9 +1976,9 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    t = ip[dir]; // Setup2d()
    assert(t >= 0 && t <= 1);
 
-   double a = a1 + t * (a2 - a1);
-   double b = b1 + t * (b2 - b1);
-   double w = w1 + t * (w2 - w1);
+   a = a1 + t * (a2 - a1);
+   b = b1 + t * (b2 - b1);
+   w = w1 + t * (w2 - w1);
 
    r = sqrt((a-x)*(a-x)+(b-y)*(b-y)); // not that r can be 0!! Important for gradients!!
    erw = exp(beta * (r-w));
@@ -2045,7 +2056,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    return 1/(erw +1);
  }
 
- double ShapeMapDesign::EvalAtIp::EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const
+ inline double ShapeMapDesign::EvalAtIp::EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const
  {
    assert(!std::isnan(erw));
    assert(!std::isinf(erw));
@@ -2075,6 +2086,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    // e(x,y)=exp(beta * (r(x,y)-w))
    // f(x,y)=1/(exp(beta*(r(x,y)-w))+1)
    // da(x,y)=-1 * beta*(a-x) * e(x,y) / (r(x,y) * (e(x,y)+1)**2)
+   // db(x,y)=-1 * beta*(b-y) * e(x,y) / (r(x,y) * (e(x,y)+1)**2)
    // dw(x,y)=beta * e(x,y) / (e(x,y)+1)**2
    // splot da(x,y)
 
@@ -2085,12 +2097,12 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    if(r < 1e-13)
      return 0;
 
-   if(grad_a)
-     return -1 * beta*(a-x) * erw / (r * (erw+1)*(erw+1));
-   if(grad_b)
-     return  -1 * beta*(b-x) * erw / (r * (erw+1)*(erw+1));
-   assert(false);
-   return -1;
+   assert(grad_a || grad_b);
+   double grad = grad_a ? -1 * beta*(a-x) * erw / (r * (erw+1)*(erw+1)) :
+                          -1 * beta*(b-y) * erw / (r * (erw+1)*(erw+1));
+
+   LOG_DBG3(SMD) << "ETG3: da=" << grad_a << " a=" << a << " b=" << b << " x=" << x << " y=" << y << " r=" << r << " erw=" << erw << " -> " << grad;
+   return grad;
  }
 
 
