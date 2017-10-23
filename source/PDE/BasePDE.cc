@@ -25,6 +25,7 @@ namespace CoupledField {
     domain_(ptDomain),
     mp_(ptDomain->GetMathParser())
   {
+	  approxSourceWithDeltaFnc_ = false;
   }
 
   // **************
@@ -47,6 +48,7 @@ namespace CoupledField {
     analysisType.Add(HARMONIC, "harmonic");
     analysisType.Add(HARMONIC, "paramIdent", false); // the value is not unique
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
+    analysisType.Add(INVERSESOURCE, "inverseSource");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
 
     MechPDE::testStrain.SetName("MechPDE::TestStrain");

@@ -380,9 +380,9 @@ namespace CoupledField {
 
     //do the same for RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
-    while(rFncIt != this->rhsFeFunctions_.end()){
-      rFncIt->second->ApplyLoads();
-      rFncIt++;
+    while(rFncIt != this->rhsFeFunctions_.end()) {
+    	rFncIt->second->ApplyLoads();
+    	rFncIt++;
     }
   }
 
