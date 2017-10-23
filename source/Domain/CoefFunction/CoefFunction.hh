@@ -38,6 +38,7 @@ class CoordSystem;
 class CoefXpr;
 class CoefFunction;
 class FeSpace;
+class BaseFeFunction;
 
 //! This is the base class for describing coefficients
 
@@ -98,6 +99,22 @@ public:
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   
+  //! Dependency of coefficient function
+  typedef enum{
+	NOINVERS,
+    INVSOURCE,         /*!< Invserse scheme: source data */
+    INVMEASURE         /*!< Inverse scheme: measured data */
+  } CoefInverseType;
+  static Enum<CoefInverseType> CoefInverseType_;
+
+  //! Dependency of coefficient function
+  typedef enum{
+	NOINFORMATION,
+    FEBASIS,         /*!< Invserse scheme: source data */
+    DELTA         /*!< Inverse scheme: measured data */
+  } CoefInverseSourceApprox;
+  static Enum<CoefInverseSourceApprox> CoefInverseSourceApprox_;
+
   //! Modifications of coefficient function
   typedef enum{
     NONE,              /*!< Default interpolation of data*/
@@ -336,6 +353,11 @@ public:
     coordSys_ = cSys;
   }
   
+  //!
+  virtual void SetFeFunction( shared_ptr<BaseFeFunction> fct1, SolutionType solType) {
+	  feFunctions_[solType] = fct1;
+  }
+
   //! Get associated coordinate system
   CoordSystem* GetCoordinateSystem(){
     return coordSys_;
@@ -344,6 +366,21 @@ public:
   //! Return dependency of CoefFunction
   CoefDependType GetDependency() {
     return dependType_;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseType GetInverseType() {
+    return inverseType_;
+  }
+
+  //! Set type of approximation for source type
+  void SetInverseSourceApproxType( CoefInverseSourceApprox type )  {
+	  approxSourceType_ = type;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseSourceApprox GetInverseSourceApproxType() {
+    return approxSourceType_;
   }
 
   //! Return type of entry (scalar, vector, tensor)
@@ -372,6 +409,12 @@ public:
     return isComplex_;
   }
 
+  //! stes the coefFnc as active (just used for inverse source identififcation)
+  virtual void SetActive(bool val) {
+    isActive_ = val;
+  }
+
+
   //! Dump coefficient function to string 
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
@@ -387,6 +430,41 @@ public:
   virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
     EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
     return;
+  }
+  //! computes the optimality condition
+  virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
+	  EXCEPTION("CoefFuncion::ComputeOptCondition not implemented");
+   }
+
+  //! computes the L2 norm of error
+  virtual void ComputeDiff2Meas( Double& error ) {
+	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not implemented");
+  }
+
+  //! computes the L2 norm of error
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
+		                        Double& freq, std::string fileNameMeasdata ) {
+ 	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
+   }
+
+  //! update the source values (amplitude and phase)
+  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
+  }
+
+  //! computes the L2 norm of error
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
+                           bool adjustAlpha, bool adjustBeta) {
+	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
+  }
+
+  //! compute square of L2-norm of measured pressure at mic-positions
+  virtual void ComputeMeasL2squared( Double& vaL2 ) {
+	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not implemented");
+  }
+
+  virtual void SetApproxSourceDelta() {
+	  EXCEPTION("CoefFuncion::SetApproxSourceDelta not implemented");
   }
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
@@ -588,6 +666,12 @@ protected:
   //! storing the derivative type of the CoefFunction
   CoefDerivativeType derivType_;
 
+  //! storing the type for inverse scheme
+   CoefInverseType inverseType_;
+
+  //! how the source term is approximated
+  CoefInverseSourceApprox inverseApproxType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
@@ -603,6 +687,14 @@ protected:
   //! volume region id of the specified neighbor (important for surface coefficients!)
   RegionIdType neighborRegionId_;
 
+  //! Map Storing FeSpaces for each unknown of PDE
+  std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+
+  //! sets the rhsFnc active
+  bool isActive_;
+
+  //! approximate source terms with delta fu	nctions
+  CoefInverseSourceApprox approxSourceType_;
 };
 
 

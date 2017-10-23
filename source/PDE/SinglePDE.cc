@@ -1192,7 +1192,7 @@ namespace CoupledField {
         derivFeFct->Finalize();
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
-        if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
+        if( analysistype_ == HARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY) {
           FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
           shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
@@ -2481,7 +2481,6 @@ namespace CoupledField {
                                   StdVector<std::string>& volumeRegions){
       // get nodes
       ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
-
       // read the Volume Region from each node
       volumeRegions.Resize(elems.GetSize());
       for( UInt i = 0; i < elems.GetSize(); ++i ) {
