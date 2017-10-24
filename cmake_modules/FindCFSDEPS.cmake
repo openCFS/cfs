@@ -194,112 +194,107 @@ IF(USE_GIDPOST)
   INCLUDE("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)
 
-IF(USE_BLAS OR USE_LAPACK)
-
-  #-----------------------------------------------------------------------------
-  # Find Netlib BLAS/LAPACK library
-  #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+#-----------------------------------------------------------------------------
+# Find Netlib BLAS/LAPACK library
+# MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
+#-----------------------------------------------------------------------------
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
     
-    SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
-    SET(LAPACK_BASE "lapack")
-    SET(LAPACK_VER "3.4.2")
-    SET(LAPACK_GZ "${LAPACK_BASE}-${LAPACK_VER}.tgz")
-    SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
+  SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
+  SET(LAPACK_BASE "lapack")
+  SET(LAPACK_VER "3.4.2")
+  SET(LAPACK_GZ "${LAPACK_BASE}-${LAPACK_VER}.tgz")
+  SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
     
-    INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
+  INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
 
-  #-----------------------------------------------------------------------------
-  # Find OpenBLAS/LAPACK library
-  #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+#-----------------------------------------------------------------------------
+# Find OpenBLAS/LAPACK library
+# see NETLIB comment
+#-----------------------------------------------------------------------------
+IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
-    SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
-    SET(OPENBLAS_BASE "OpenBLAS")
-    SET(OPENBLAS_VER "0.2.18")
-    # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
-    SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-    SET(OPENBLAS_MD5 "805e7f660877d588ea7e3792cda2ee65")
+  SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
+  SET(OPENBLAS_BASE "OpenBLAS")
+  SET(OPENBLAS_VER "0.2.20")
+  # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
+  SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+  SET(OPENBLAS_MD5 "48637eb29f5b492b91459175dcc574b1")
     
-    INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
+  INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
     
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
 
+#-----------------------------------------------------------------------------
+# Find Intel Math Kernel library
+# see NETLIB comment
+#-----------------------------------------------------------------------------
+IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
-
-  #-----------------------------------------------------------------------------
-  # Find Intel Math Kernel library
-  #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
-
-  # unclear what it means. Fabian 30.5.16
-  #IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
-  #  SET(BLAS_LIBRARY "-framework Accelerate")
-  #  SET(LAPACK_LIBRARY "-framework Accelerate")
-  #ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
-
-  #-----------------------------------------------------------------------------
-  # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
-  # duces a new incompatible API due to the new iterative solver feature.
-  # However MKL still uses the old API of Pardiso 3.x. This is obviously a
-  # software engineering nightmare and the ones responsible for it deserve to
-  # be hanged from the highest mast!
-  #
-  # ATTENTION: If you switch CFS_PARDISO you should also clear
-  # PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
-  #-----------------------------------------------------------------------------
-  IF(USE_PARDISO)
-    INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
-  ENDIF(USE_PARDISO)
+#-----------------------------------------------------------------------------
+# Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
+# duces a new incompatible API due to the new iterative solver feature.
+# However MKL still uses the old API of Pardiso 3.x. This is obviously a
+# software engineering nightmare and the ones responsible for it deserve to
+# be hanged from the highest mast!
+#
+# ATTENTION: If you switch CFS_PARDISO you should also clear
+# PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
+# 
+# The non-MKL Pardiso version hasn't been used for quite a while. 
+# Generally one needs to switch off USE_PARDISO with CFS_BLAS_LAPACK not MKL!
+#-----------------------------------------------------------------------------
+IF(USE_PARDISO)
+  INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
+ENDIF(USE_PARDISO)
   
-  #-----------------------------------------------------------------------------
-  # If USE_ARPACK option is defined find ARPACK library
-  #-----------------------------------------------------------------------------
-  IF(USE_ARPACK)
-    SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
-    SET(ARPACK_BASE "arpack")
-    SET(ARPACK_VER "ng-3.2.0")
-    SET(ARPACK_GZ "${ARPACK_BASE}-${ARPACK_VER}.tar.gz")
-    SET(ARPACK_MD5 "0ae8a0bb796370b06647d9e005c0f3ea")
+#-----------------------------------------------------------------------------
+# If USE_ARPACK option is defined find ARPACK library
+#-----------------------------------------------------------------------------
+IF(USE_ARPACK)
+  SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
+  SET(ARPACK_BASE "arpack")
+  SET(ARPACK_VER "ng-3.2.0")
+  SET(ARPACK_GZ "${ARPACK_BASE}-${ARPACK_VER}.tar.gz")
+  SET(ARPACK_MD5 "0ae8a0bb796370b06647d9e005c0f3ea")
   
-    INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
-  ENDIF(USE_ARPACK)
+  INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
+ENDIF(USE_ARPACK)
   
-  #-----------------------------------------------------------------------------
-  # Find SuiteSparse/CholMod/UMFPACK/AMD library
-  #-----------------------------------------------------------------------------
-  IF(USE_SUITESPARSE OR USE_ILUPACK)
-    SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
-    SET(SUITESPARSE_BASE "SuiteSparse")
-    SET(SUITESPARSE_VER "4.2.1")
-    SET(SUITESPARSE_GZ "${SUITESPARSE_BASE}-${SUITESPARSE_VER}.tar.gz")
-    SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
+#-----------------------------------------------------------------------------
+# Find SuiteSparse/CholMod/UMFPACK/AMD library
+#-----------------------------------------------------------------------------
+IF(USE_SUITESPARSE OR USE_ILUPACK)
+  SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
+  SET(SUITESPARSE_BASE "SuiteSparse")
+  SET(SUITESPARSE_VER "4.2.1")
+  SET(SUITESPARSE_GZ "${SUITESPARSE_BASE}-${SUITESPARSE_VER}.tar.gz")
+  SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
-    INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-  ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
+  INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
+ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
 
-  #-----------------------------------------------------------------------------
-  # Find ILUPACK library
-  #-----------------------------------------------------------------------------
-  IF(USE_ILUPACK)
-    SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
-    SET(ILUPACK_BASE "ilupack")
-    SET(ILUPACK_VER "2.2.1")
-    SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
-    SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
-    
-    INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
-  ENDIF(USE_ILUPACK)
+#-----------------------------------------------------------------------------
+# Find ILUPACK library
+#-----------------------------------------------------------------------------
+IF(USE_ILUPACK)
+  SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
+  SET(ILUPACK_BASE "ilupack")
+  SET(ILUPACK_VER "2.2.1")
+  SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
+  SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
+   
+  INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
+ENDIF(USE_ILUPACK)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
 #  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
   
-ENDIF(USE_BLAS OR USE_LAPACK)
 
 #-------------------------------------------------------------------------------
 # Find Library of Iterative Solvers
@@ -377,7 +372,7 @@ IF(USE_XERCES)
 ENDIF(USE_XERCES)
 
 #-------------------------------------------------------------------------------
-# libxml is an alternative for Xerces
+# libxml2 is an alternative for Xerces
 #-------------------------------------------------------------------------------
 IF(USE_LIBXML2)
   SET(LIBXML2_VER "2.9.4")
@@ -387,7 +382,7 @@ IF(USE_LIBXML2)
 ENDIF(USE_LIBXML2)
 
 #-----------------------------------------------------------------------------
-# Find VTK 
+# Find VTK - used for Ensight only
 #-----------------------------------------------------------------------------
 IF(USE_VTK)
   SET(VTK_URL "${CFS_DS_SOURCES_DIR}/vtk")
@@ -471,7 +466,8 @@ IF(USE_FLANN)
 ENDIF(USE_FLANN)
 
 #-----------------------------------------------------------------------------
-# Find SCPIP - A special optimizer for topology optimization 
+# Find SCPIP - A special optimizer for topology optimization. 
+# This is not open source, so check with Christoph Zillober, Uni-Wuerzburg first 
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
@@ -543,66 +539,11 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 #-----------------------------------------------------------------------------
-# Find ParaView postprocessor
-#-----------------------------------------------------------------------------
-IF(BUILD_PARAVIEW)
-  #---------------------------------------------------------------------------
-  # Setup a list of dependencies for ParaView.
-  #---------------------------------------------------------------------------
-  SET(CFS_PV_DEPENDENCIES hdf5-shared cgns boost zlib)
-
-  #---------------------------------------------------------------------------
-  # Qt - Let's check if a valid version of Qt is available
-  #---------------------------------------------------------------------------
-  FIND_PACKAGE(Qt4 4.8.2)
-  IF(NOT QT4_FOUND)
-    SET(QT4_URL "${CFS_DS_SOURCES_DIR}/qt4")
-    SET(QT4_BASE "qt-everywhere")
-    SET(QT4_VER "4.8.2")
-    SET(QT4_GZ "${QT4_BASE}-opensource-src-${QT4_VER}.tar.gz")
-    SET(QT4_MD5 3c1146ddf56247e16782f96910a8423b)
-
-    INCLUDE("${CFSDEPS_DIR}/qt4/External_Qt4.cmake")
-  ENDIF()
-
-  #---------------------------------------------------------------------------
-  # Build QtCurve style.
-  #---------------------------------------------------------------------------
-  IF(UNIX)
-    INCLUDE("${CFSDEPS_DIR}/qt4/External_QtCurve.cmake")
-  ENDIF()
-
-  #---------------------------------------------------------------------------
-  # Finally add an external project for ParaViewSuperbuild
-  #---------------------------------------------------------------------------
-  SET(PARAVIEW_SB_URL "${CFS_DS_SOURCES_DIR}/paraview")
-  SET(PARAVIEW_SB_BASE "pvsuperbuild")
-  SET(PARAVIEW_SB_VER "4.4.0")
-  SET(PARAVIEW_SB_TGZ "${PARAVIEW_SB_BASE}-${PARAVIEW_SB_VER}.tgz")
-  SET(PARAVIEW_SB_MD5 f2c38c4f764f0ca5fdf54accf2e90233)
-  INCLUDE("${CFSDEPS_DIR}/paraview/External_ParaViewSuperbuild.cmake")
-ENDIF(BUILD_PARAVIEW)
-
-
-#-----------------------------------------------------------------------------
 # Find HDF file viewer
 #-----------------------------------------------------------------------------
 IF(BUILD_HDFVIEW)
   MESSAGE(FATAL_ERROR "HDFView has not been ported to CMake externals yet.")
 ENDIF(BUILD_HDFVIEW)
-
-IF(USE_PYTHON)
-  SET(PYTHON_MAJOR 2)
-  SET(PYTHON_MINOR 7)
-  SET(PYTHON_PATCH 2)
-  SET(PYTHON_VER ${PYTHON_MAJOR}.${PYTHON_MINOR}.${PYTHON_PATCH})
-  SET(PYTHON_BASE "Python")
-  SET(PYTHON_URL "${CFS_DS_SOURCES_DIR}/python")
-  SET(PYTHON_TGZ "${PYTHON_BASE}-${PYTHON_VER}.tgz")
-  SET(PYTHON_MD5 0ddfe265f1b3d0a8c2459f5bf66894c7)
-  
-  INCLUDE("${CFSDEPS_DIR}/python/External_Python.cmake")
-ENDIF(USE_PYTHON)
 
 #-------------------------------------
 # External anaconda 3

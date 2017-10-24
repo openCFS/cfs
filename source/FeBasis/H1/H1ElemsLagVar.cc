@@ -238,16 +238,13 @@ namespace CoupledField {
         }
       }
 
-#ifndef USE_LAPACK
-      Matrix<Double> t;
-      C_tmp.Invert(t);
-      t.Transpose(C);
-#else
       C_tmp.Invert_Lapack();
       C_tmp.Transpose(C);
-#endif
 
-
+      // none-lapack variant
+      // Matrix<Double> t;
+      // C_tmp.Invert(t);
+      // t.Transpose(C);
     }
 
   //=========================================================================

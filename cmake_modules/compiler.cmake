@@ -105,7 +105,7 @@ IF(OPENMP_FOUND)
   ENDIF()
 ENDIF()
 #-------------------------------------------------------------------------------
-# Check if we are using the GNU C++ compiler
+# Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
@@ -118,11 +118,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   # we assue C++11 for CFS for any compiler
   SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
-
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
-     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
-  ENDIF()
   
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -179,14 +174,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   ENDIF()
   
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
-  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
-
-    STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
-    SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
+    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
   ENDIF()
 
   IF(APPLE)
