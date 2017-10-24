@@ -283,7 +283,10 @@ ENDIF()
 
 include(FortranCInterface)
 
-# this stuff is important such that the linker finds the functions if the names are different (uppercase, ...)
+# This stuff is important such that the linker finds the functions if the names
+# are different (uppercase, tailing underline, ...).
+# Each fortran function which are used in CFS have to be listed here else one
+# will get an undefined reference to 'symbol' error.
 FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS
