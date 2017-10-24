@@ -311,10 +311,10 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
 
      // when in 2D dof=x then we traverse the ny_+1, with 3D center pairs x and y with traverse nz_+1 for both, with 3D surface x it will be (ny_+1)*(nz_+1)
      unsigned int end = (int) n_[node.orientation] + 1;
-     LOG_DBG(SMD) << "SMD end = " << end << " shape=" << node.ToString();
      for (unsigned int e = 0; e < end; e++)
        CreateShapeVariable(&node, node.orientation, e, e == 0 || e == (end - 1)); // makes a push_back to shape_param_
      node.end_param = shape_param_.GetSize();
+     LOG_DBG(SMD) << "SSP: node s=" << s << " end = " << end << " shape=" << node.ToString();
    }
    num_node_shape_params_ = shape_param_.GetSize();
 
@@ -332,8 +332,10 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      for(int e = 0; e < node.end_param - node.start_param; e++)
        CreateShapeVariable(&prof, prof.orientation, e, e == 0 || e == (node.end_param - node.start_param - 1));
      prof.end_param = shape_param_.GetSize();
-     assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
-     assert(prof.start_param - num_node_shape_params_ == node.start_param);
+     LOG_DBG(SMD) << "SSP: prof n=" << n << " end = " << (node.end_param - node.start_param) << " nsp=" << num_node_shape_params_ << " prof=" << prof.ToString();
+     assert(prof.end_param - prof.start_param == node.end_param - node.start_param); // same size
+     assert(prof.start_param >= num_node_shape_params_);
+     // note that the profile 0 connects to node 0 but profile 1 connects to node 2 as the nodes order is a0,b0,a1,b1,...
    }
    assert(dim_ == 3 || (int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // doubles variables for 2D. In 3D different for center nodes
 
@@ -347,6 +349,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
 
    // num_nodes has no 3D second center nodes and is then smaller num_node_shapes_
    int num_nodes = num_node_shapes_ - FindCenters().GetSize();
+   LOG_DBG(SMD) << "SSP nns=" << num_node_shapes_ << " fc=" << FindCenters().GetSize() << " -> nn=" << num_nodes;
 
    for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
    {
@@ -461,10 +464,15 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
       ShapeParam* shape = FindShape(spe1); // GetShape() not yet ready
       assert(spe1->GetType() == Convert(shape->type));
 
+      // the structure idx is different from the shape idx and counts the structures within Item::nodes.
+      // In 3D with center nodes we store only the fist center node shapes 0 and 2 for but the struct_idx is 0 and 1
+      assert((int) FindCenters().GetSize() * 2 == num_node_shapes_);
+      unsigned int struct_idx = shape->idx/2; // change when we have not only center nodes, e.g. to attribute
+
       // the 3D surface case is not yet implemented
       assert(shape->IsFirstCenterNode() || shape->IsSecondCenterNode());
 
-      LOG_DBG2(SMD) << "SSP: spe1=" << spe1->ToString() << " s=" << shape->ToString() << " idx=" << spe1->idx.ToString();
+      LOG_DBG2(SMD) << "SSP: spe1=" << spe1->ToString() << " idx=" << spe1->idx.ToString() << " s=" << shape->ToString();
 
       // we operate only on the first center node and search for the second
       if(shape->IsFirstCenterNode())
@@ -496,9 +504,9 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
             {
               LOG_DBG2(SMD) << "SSP: x=" << x << (x < (int) nx_ ? "+" : "!") << ", y=" << y << " z=" << z << " -> " << DensityIdx(x, y);
               if(x < (int) nx_)  // not yet topmost plane
-                map_[DensityIdx(x, y, z)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(x-1 >= 0)  // also not the lowest plane
-                map_[DensityIdx(x-1, y, z)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x-1, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -513,9 +521,9 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
             for(unsigned int x = 0; x < nx_; x++)
             {
               if(y < (int) ny_)
-                map_[DensityIdx(x, y, z)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(y-1 >= 0)
-                map_[DensityIdx(x, y-1, z)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x, y-1, z)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -530,9 +538,9 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
             for(unsigned int x = 0; x < nx_; x++)
             {
               if(z < (int) nz_)
-                map_[DensityIdx(x, y, z)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(z-1 >= 0)
-                map_[DensityIdx(x, y, z-1)].nodes[shape->idx].Push_back(spe1, spe2);
+                map_[DensityIdx(x, y, z-1)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -2663,10 +2671,12 @@ std::string ShapeMapDesign::ShapeParam::ToString() const
   ss << ShapeMapDesign::type.ToString(this->type) << " idx=" << idx << " dof=" << dof << " o=" << orientation
      << " oc=" << (other_center == NULL ? -1 : other_center->idx)
      << " p=" << (partner == NULL ? -1 : partner->idx)
-     << " xsym=" << x_sym << " ysim=" << y_sym
-     << " ortho=" << (sym_ortho != NULL ? sym_ortho->idx : -1)
-     << " diag=" << (sym_diag != NULL ? sym_diag->idx : -1)
-     << " diag_ortho=" << (sym_diag_ortho != NULL ? sym_diag_ortho->idx : -1) << " ind=" << sym_induced;
+     << " sp=" << start_param << " ep=" << end_param
+     << " so=" << start_opt << " eo=" << end_opt;
+    // << " xsym=" << x_sym << " ysim=" << y_sym
+    // << " ortho=" << (sym_ortho != NULL ? sym_ortho->idx : -1)
+    // << " diag=" << (sym_diag != NULL ? sym_diag->idx : -1)
+    // << " diag_ortho=" << (sym_diag_ortho != NULL ? sym_diag_ortho->idx : -1) << " ind=" << sym_induced;
   return ss.str();
 }
 
