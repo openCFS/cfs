@@ -288,6 +288,7 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS
   # BLAS and LAPACK
+  dgecon
   dgemm
   zgemm
   dgemv
@@ -317,6 +318,9 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   zpbtrf
   dpbtrs
   zpbtrs
+  dsyev
+  zgetrf
+  zgetri
   ilaver
   # ARPACK
   dsaupd
