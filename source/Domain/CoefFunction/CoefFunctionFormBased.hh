@@ -240,10 +240,8 @@ public:
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
 
-  //#ifdef USE_LAPACK
   //! Calculates Eigenvector and Eigenvalue from a stress- or strain coefVec. For principal stresses and strain.
   void GetEigenFromCoefVec(Vector<Double> &solVec);
-  //#endif
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {

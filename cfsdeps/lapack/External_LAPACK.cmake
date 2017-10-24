@@ -1,6 +1,9 @@
 #-------------------------------------------------------------------------------
 # Set paths to lapack sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
+
+# Note that the proper name would be actually NETLIB, as the blas and lapack from NETLIB are built!
+
 set(lapack_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/lapack")
 set(lapack_source  "${lapack_prefix}/src/lapack")
 set(lapack_install  "${CFS_BINARY_DIR}")
@@ -151,7 +154,7 @@ IF(WIN32)
   SET(NETLIB_LAPACK_LIBRARY_RELEASE
     ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX}
     CACHE FILEPATH "Netlib LAPACK library.")
-ELSE(WIN32)
+ELSE()
   SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libblas.a")
   SET(LAPACK_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a")
 
@@ -159,19 +162,11 @@ ELSE(WIN32)
     LIST(APPEND BLAS_LIB ${GFORTRAN_LIBRARY})
   ENDIF()
 
-  SET(NETLIB_BLAS_LIBRARY_DEBUG
-    ${BLAS_LIB}
-    CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_BLAS_LIBRARY_RELEASE
-    ${BLAS_LIB}
-    CACHE FILEPATH "Netlib BLAS library.")
-  SET(NETLIB_LAPACK_LIBRARY_DEBUG
-    ${LAPACK_LIB}
-    CACHE FILEPATH "Netlib LAPACK library.")
-  SET(NETLIB_LAPACK_LIBRARY_RELEASE
-    ${LAPACK_LIB}
-    CACHE FILEPATH "Netlib LAPACK library.")
-ENDIF(WIN32)
+  SET(NETLIB_BLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_BLAS_LIBRARY_RELEASE ${BLAS_LIB} CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_LAPACK_LIBRARY_DEBUG ${LAPACK_LIB} CACHE FILEPATH "Netlib LAPACK library.")
+  SET(NETLIB_LAPACK_LIBRARY_RELEASE ${LAPACK_LIB} CACHE FILEPATH "Netlib LAPACK library.")
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Mark paths of LAPACK libraries as advanced.

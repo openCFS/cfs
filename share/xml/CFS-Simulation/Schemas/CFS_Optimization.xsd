@@ -1163,10 +1163,10 @@
                             <xsd:complexType>
                               <xsd:attribute name="dof" use="required" type="DT_Axis" />
                               <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
-<!--                               <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
-                              <xsd:attribute name="initial" type="xsd:token" use="required" />
-                              <xsd:attribute name="lower" type="xsd:token" use="required" />
-                              <xsd:attribute name="upper" type="xsd:token" use="required" />
+                              <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                              <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                              <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                              <xsd:attribute name="fixed" type="xsd:token" use="optional" />
                            </xsd:complexType>
                           </xsd:element>
                         </xsd:sequence>
@@ -1185,12 +1185,12 @@
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:attribute name="dof" use="required" type="DT_Axis" />
-                         <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
-                         <xsd:attribute name="initial" type="xsd:token" use="required" />
-                        <xsd:attribute name="lower" type="xsd:token" use="required" />
-                        <xsd:attribute name="upper" type="xsd:token" use="required" />
-                        <!-- alternative to lower, uppde and initial when it is implemented to not have a design variable -->
-                        <!-- <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                         <!-- lower, upper and initial go together or fixed. We apply the mathparser to all of them! -->
+                        <xsd:attribute name="initial" type="xsd:token" use="optional" />
+                        <xsd:attribute name="lower" type="xsd:token" use="optional" />
+                        <xsd:attribute name="upper" type="xsd:token" use="optional" />
+                        <!-- alternative to  lower, upper and initial -->
+                        <xsd:attribute name="fixed" type="xsd:token" use="optional"/>
                         <!-- optional symmetries -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
@@ -1214,7 +1214,7 @@
                         <xsd:attribute name="initial" type="xsd:token" use="optional"/>
                         <xsd:attribute name="lower" type="xsd:token" use="optional"/>
                         <xsd:attribute name="upper" type="xsd:token" use="optional"/>
-                        <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
+                        <!-- alternative to  lower, upper and initial -->
                         <xsd:attribute name="fixed" type="xsd:token" use="optional"/>
                         <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). 
                              Overwrites shapeMap relative_*_bound if given. Negative disables.-->
@@ -1445,7 +1445,10 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <!-- writes a .gz file. Much faster than the better compressing bz2 -->
                 <xsd:attribute name="compress" default="false" type="xsd:boolean"/>
+                <!-- allows to skip writing densities. Then only slack and shape mapping variables are written -->
+                <xsd:attribute name="density" default="true" type="xsd:boolean"/>
               </xsd:complexType>
             </xsd:element>                       
            
@@ -1949,7 +1952,12 @@
       <xsd:enumeration value="transfoMatrix21"/>
       <xsd:enumeration value="transfoMatrix22"/>
       <!-- Shape mapping -->
+      <!-- for 2D -->
       <xsd:enumeration value="node"/>
+      <!-- 2D and 3D center node a -->
+      <xsd:enumeration value="node_a"/>
+      <!-- 3D center node b-->
+      <xsd:enumeration value="node_b"/>
       <xsd:enumeration value="profile"/>
     </xsd:restriction>
   </xsd:simpleType>

@@ -1354,7 +1354,6 @@ namespace CoupledField
                                 bool trans_a, bool trans_b,
                                 TYPE alpha, TYPE beta, bool conjugate ) const {
 
-#ifdef USE_BLAS
 #ifdef CHECK_INDEX
     if((trans_a == true) && (trans_b == true)){
       if (size_row_ != mMat1.GetNumCols())
@@ -1413,9 +1412,6 @@ namespace CoupledField
     int ldb = trans_b ? k : m;
     int ldc = m;
     CallGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
-#else
-    EXCEPTION("Compile with USE_BLAS = yes ");
-#endif
    }
   
 
@@ -1725,8 +1721,6 @@ namespace CoupledField
   }
 
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
   template<>
   void Matrix<Complex>::solveWithLapack(Matrix<Complex> & b1,
                                         lapackSysMatType & LAPACK_MATRIX_TYPE)
@@ -1855,10 +1849,8 @@ namespace CoupledField
     delete[] lp_workf77;
     
   }
-#endif
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
+
   template <class T>
   void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
@@ -1940,7 +1932,6 @@ namespace CoupledField
     
   }
 
-#endif
 
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const SingleVector & v1, const SingleVector & v2)
@@ -2066,21 +2057,16 @@ namespace CoupledField
   
   template<> void Matrix<Complex>::Invert_Lapack() {
 #ifdef CHECK_INDEX
-    if( size_row_ != size_col_) {
+    if( size_row_ != size_col_)
       EXCEPTION("Can only invert square matrices");
-    }
 #endif
 
-#ifndef USE_LAPACK
-    EXCEPTION("Compile with LAPACK support for matrix inversion");
-#else
 //TODO make sure this inversion is correct
     //std::cout<<"---------------------------------------------------\n"
     //		 <<"PLEASE TAKE CARE, THE INVERSION OF A COMPLEX MATRIX\n"
     //		 <<"USING LAPACK IS NOT THOROUGHLY TESTED!!!!!!!!!!!!!!\n"
     //		 <<"---------------------------------------------------"
 	//		 <<std::endl;
-
 
     int *ipiv = new int[size_row_];
     int n = size_row_;
@@ -2103,21 +2089,14 @@ namespace CoupledField
 
     delete[] ipiv;
     delete[] work;
-#endif
   }
 
   template<> void Matrix<Double>::Invert_Lapack() {
 #ifdef CHECK_INDEX
-    if( size_row_ != size_col_) {
+    if( size_row_ != size_col_)
       EXCEPTION("Can only invert square matrices");
-    }
 #endif
 
-#ifndef USE_LAPACK
-    EXCEPTION("Compile with LAPACK support for matrix inversion");
-#else
-    
-    
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
@@ -2139,7 +2118,6 @@ namespace CoupledField
 
     delete[] ipiv;
     delete[] work;
-#endif
   }
 
   

@@ -395,7 +395,9 @@ public:
       /*!< only for the projection function. This is the element wise fake filter part */
       PROJECTION_FILTER,
       TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22,
-      SM_NODE, /*!< for shape map */
+      SM_NODE, /*!< for 2D shape map */
+      SM_NODE_A, /*!< for 3D shape map */
+      SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE  /*!< for shape map */
     } Detail;
 

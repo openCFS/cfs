@@ -1138,36 +1138,42 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
-  for(unsigned int des = 0; des < nd; des++){
+  for(unsigned int des = 0; des < nd; des++)
+  {
     StdVector<DesignRegion>& cur_des = regions[des];
     const unsigned int nr = regions[des].GetSize();
-    for(unsigned int r = 0; r < nr; r++){
+    for(unsigned int r = 0; r < nr; r++)
+    {
       DesignRegion& cur_reg = cur_des[r];
       const double scaling = cur_reg.scale_design;
       const double translation = cur_reg.translate_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
-      if(cur_reg.constant == VARIABLE) {
-        for(unsigned int d = cur_reg.base; d < u; d++){
+      if(cur_reg.constant == VARIABLE)
+      {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
           const double v = space[s] * scaling + translation;
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
-      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
+      }
+      else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS)
+      { // in FIXED case, nothing is done
         const double v = space[s] * scaling + translation;
-        for(unsigned int d = cur_reg.base; d < u; d++){
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
         } // for d
-        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) ){
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
           s++; // only advance after having set all element of this region (or even all regions) to the corresponding value
-        }
       } // if/else constant
     } // for r
   } // for des
