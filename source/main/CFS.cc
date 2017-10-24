@@ -9,7 +9,7 @@
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/exception/diagnostic_information.hpp>
-
+#include "petsc.h"
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineInOutFiles.hh"
@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-
 #include <def_use_mesh.hh>
 
 #ifdef USE_MESH
@@ -68,11 +67,23 @@ extern "C" void _allmul() {
 // Create global info node
 PtrParamNode infoNode;
 
-int main(int argc, const char **argv)
-{
-  CFS cfs(argc, argv);
+
+
+
+int main(int argc, const char **argv){
+  
+ 
+  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL); 
+  
+
+  CFS cfs(argc, argv);   
   int ret = cfs.Run();
-  return ret;
+  return ret;  
+
+  
+  PetscFinalize();
+ 
+  
 }
 
 void PrintWarning(CoupledField::Exception& ex ) {
@@ -226,7 +237,7 @@ int CFS::Run()
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else{
-      SolveProblem();
+        SolveProblem();
     }
 
     // wait for all drivers to be initialized before printing the math parser variables
