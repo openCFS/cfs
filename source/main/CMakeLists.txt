@@ -34,42 +34,20 @@ IF(USE_LIBXML2)
 ENDIF(USE_LIBXML2)  
 
 IF(USE_LIBFBI)
-  LIST(APPEND TARGET_LL
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF(USE_LIBFBI)
+  LIST(APPEND TARGET_LL ${BOOST_THREAD_LIB} )
+ENDIF()
 
 IF(MINGW)
   LIST(APPEND TARGET_LL
     -lws2_32
-    -lwsock32
-    )
-ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
-  LIST(APPEND TARGET_LL
-    -lpthread
-    -llapack
-    -lblas
-    -lquadmath
-    )
-ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
-  LIST(APPEND TARGET_LL
-    -lpthread
-########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
-#    -llapack            
-#    -lblas
-    )
-ELSE()
-  LIST(APPEND TARGET_LL
-    -lpthread
-    -lquadmath
-     )
+    -lwsock32 )
 ENDIF()
 
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin 
-  ${TARGET_LL}
-  )
+TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL} )
 
+# lapack is in NETLIB, OPENBLAS and MKL
+# LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
 #IF(MINGW)
 #  IF(CFS_BLAS_LAPACK STREQUAL MKL)
@@ -85,6 +63,7 @@ SET(CFS_LINK_FLAGS "")
 IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
 ENDIF(UNIX AND USE_ANSYSRST)
+
 
 # This is dirty stuff and shall be removed! - Fabian 
 # copy & paste in cfstoolbin

@@ -13,10 +13,8 @@
 #include "generatesolver.hh"
 #include "General/Exception.hh"
 
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/Lapack_LU.hh"
 #include "OLAS/external/lapack/Lapack_LL.hh"
-#endif
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/PardisoSolver.hh"
@@ -200,7 +198,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   break;
 
 
-#ifdef USE_LAPACK
   case BaseSolver::LAPACK_LU:
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "LAPACK_LU only works with a LAPACK_GBMATRIX!");
@@ -234,14 +231,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       }
     }
     break;
-#else
-  case BaseSolver::LAPACK_LU:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LU solver" );
-    break;
-  case BaseSolver::LAPACK_LL:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LL solver" );
-    break;
-#endif
 
   case BaseSolver::PARDISO_SOLVER:
 

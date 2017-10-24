@@ -918,6 +918,8 @@ void DesignElement::SetEnums()
   detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
   detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
   detail.Add(SM_NODE, "node");
+  detail.Add(SM_NODE_A, "node_a");
+  detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
 }
 

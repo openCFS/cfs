@@ -150,7 +150,7 @@ public:
     bool IsCenterNode() const { return other_center != NULL; }
 
     /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
-     * center node and the common profile node.
+     * center node and the common profile node. Note that the implementation is at the end of this file.
      * @return NULL if none of the three cases above holds */
     inline ShapeParam* GetFirstCenterNode();
 
@@ -232,6 +232,11 @@ public:
     void InheritProperties(ShapeParam* base);
   };
 
+  /** Give ShapeParam, very fast! */
+  ShapeParam* GetShape(const ShapeParamElement* spe) { return shape_param_map_[spe->GetIndex()]; }
+  ShapeParam* GetShape(const ShapeParamElement& spe) { return GetShape(&spe); }
+  const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
+  const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
 
   /** combines our settings for numerical integration */
   struct NumInt
@@ -321,14 +326,14 @@ private:
   /** centers have in xml two nodes as children. They are not stored as center in shape_ but need to be searched. */
   StdVector<std::pair<ShapeMapDesign::ShapeParam*, ShapeMapDesign::ShapeParam*> > FindCenters();
 
-  /** Give ShapeParam, very fast! */
-  ShapeParam* GetShape(const ShapeParamElement* spe) { return shape_param_map_[spe->GetIndex()]; }
-  ShapeParam* GetShape(const ShapeParamElement& spe) { return GetShape(&spe); }
-  const ShapeParam* GetShape(const ShapeParamElement* spe) const { return shape_param_map_[spe->GetIndex()]; }
-  const ShapeParam* GetShape(const ShapeParamElement& spe) const { return GetShape(&spe); }
 
   /** slow version of GetShape() when shape_param_map_ is not yet initialized */
   ShapeParam* FindShape(const ShapeParamElement* spe);
+
+  /** Searches shape matching to the function by order.
+   * @param function if function design is not PROFILE the first shape is a candidate.
+   * @param opt if set only shapes with opt_idx are considered */
+  const ShapeParam* FindShape(const Function* f, bool opt) const;
 
   /** for shape which is either first or second center node (3D!) and a test which is part of first or second
    * center node, return the second center node param. This might be test
@@ -357,17 +362,24 @@ private:
   /** do we use a fixed profile? Then opt_shape_param_ is smaller than shape_param_ */
   bool IsProfileFixed() const;
 
-  /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
-   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile AND if we have no symmetries! */
-  unsigned int GetFirstVarIdx(const Function* f, bool opt) const;
+  /** do we have at least a single node shape which is not fixed?.
+   * contains a loop, hence cache! */
+  bool IsAllNodeFixed() const;
+
+
+  /** small helper which gives the start index of the element based on type (default, node or profile) of opt_shape_param_ */
+  unsigned int GetFirstOptVarIdx(const Function* f) const;
 
   /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
-  unsigned int GetEndVarIdx(const Function* f, bool opt) const;
+  unsigned int GetEndOptVarIdx(const Function* f) const;
 
-  /** similar to GetFirstVarIdx() but for shape_ instead of shape_param_ */
-  unsigned int GetFirstShapeIdx(const Function* f, bool opt) const;
+  /** similar to GetFirstVarIdx() but for shape_ instead of opt_shape_param_. Checks only shapes which do optimization.
+   * No fixed and no symmetry
+   * @return 0 or num_node_shape_ */
+  unsigned int GetFirstShapeIdx(const Function* f) const;
 
-  unsigned int GetEndShapeIdx(const Function* f, bool opt) const;
+  /* @return num_node_shape_ or shape_.GetSize() */
+  unsigned int GetEndShapeIdx(const Function* f) const;
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
@@ -386,9 +398,6 @@ private:
 
   /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
   int num_node_shape_params_ = -1;
-
-  /** same as num_node_shape_params_ but based on opt_shape_param_ */
-  int num_node_opt_shape_params_ = -1;
 
   /** symmetry means that fewer data is in opt_shape_param_ but all is in shape_param_. There are different ways to map
    * from opt_shape_param_ to shape_param_ which is stored in opt_sym_param_ */
@@ -464,8 +473,13 @@ private:
 
     /** This is static information.
      * The node variables the mapping is based on. Profiles via the nodes
-     * For the number of shapes the pair nodes (2 for 2D and 4 for 3D center nodes).
-     * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected. The size is num_node_shapes_ - FindCenterNodes().GetSize() */
+     * The major order is structures, the SPE* vector are the variables for the structure
+     * Note that in 3D with center nodes #nodes < num_node_shapes_ as the a and b shapes are collected in the SPE* vector.
+     * The major size in 3D is num_node_shapes_ - FindCenterNodes().GetSize() -> 2 center nodes have 4 shapes but 2 * [4*SPE]
+     * The SPE* vector is 2 for 2D and 4 for 3D center nodes.*
+     * 2D: The ordering of the SPE is for the two nodes which we interpolate between (1-t)*a0 + t*a1
+     * 3D: The ordering is a0,b0,a1,b1
+     * Filled in SetupShapeParam() */
     StdVector<StdVector<ShapeParamElement*> > nodes;
 
     /** This is for each "real" node the minimal corner value of all 4 (8 corners). Set by EvalAllCorners() */
@@ -629,6 +643,23 @@ private:
 
   void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 };
+
+
+
+/** as the inline function is used in DensityFile it needs to be given in the header */
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetFirstCenterNode()
+{
+  assert(!(other_center != NULL && other_center->other_center != this));
+  assert(!(other_center != NULL && type == PROFILE)); // due to unsymmetry only nodes have the link
+  assert(!(other_center != NULL && idx == other_center->idx));
+  assert(idx >= 0 && (other_center == NULL || other_center->idx >= 0));
+  assert(!(type == PROFILE && partner != NULL));
+  if(other_center != NULL)
+    return idx < other_center->idx ? this : other_center;
+  if(type == PROFILE && partner->other_center != NULL)
+    return partner->idx < partner->other_center->idx ? partner : partner->other_center;
+  return NULL;
+}
 
 } // end of name space
 

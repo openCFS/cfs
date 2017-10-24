@@ -20,10 +20,10 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(solver-olas STATIC ${SOLVER_SRCS})
 
-
-SET(TARGET_LL
+# lapack is always present (netlib, openblas and mkl)
+SET(TARGET_LL 
   utils-olas
-)
+  lapack-olas )
 
 IF(USE_PARDISO)
   SET(TARGET_LL ${TARGET_LL} pardiso-olas)
