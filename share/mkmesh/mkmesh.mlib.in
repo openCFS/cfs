@@ -1,9 +1,9 @@
-! For more information see also
-! http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
+INIT
 !=======================================
-! INIT method - initializes this script
+! INIT method - initializes this library
 !=======================================
-INIT                              
+! For more information see also http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
+! WARNING: comments must not be placed between ´function name´ and ´\EOF´
 /NOPR                             ! Issuing this command with no arguments suppresses the interpreted data input print out.
 jninit_=0                         ! jninit_ ---> JN = Job Name; INIT = initialize
 fuowel_=0                         ! fuowel_ ---> FUO = ...; WEL = Write ELements 
@@ -21,13 +21,12 @@ fuowse_=0                         ! fuowse_ ---> FUO = ...; WSE = Write Saved El
 *abbr,mkhdf5,*use,mkhdf5
 /GOPR                             ! Reactivates suppressed print out (by \NOPR).
 /EOF                              ! Exits the file being read.
+SETELEMS
 !===========================================
 ! SETELEMS method - sets element parameters
 !===========================================
-SETELEMS
 /NOPR
-! enter the model creation preprocessor.
-/prep7
+/prep7 ! enter the model creation preprocessor.
 ! ET - Defines a local element type from the element library.
 et,100,200,0        ! because type,0 uses default which is 1 
 et,101,200,1
@@ -95,10 +94,10 @@ type_=1001
 %C elements with %C order selected.  ! %C relates to the both variables from the previous line
 /GOPR
 /EOF
+WELEMS
 !=============================================================
 ! WELEMS method - writes elements to "jobname_.elements"-file
 !=============================================================
-WELEMS
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -125,10 +124,10 @@ WELEMS
 ewrite,jname_,elements,,1,long
 /GOPR
 /EOF
+WREGELEM
 !==================================================================
 ! WREGELEM method - writes reg elements to "jobname_.regelem"-file
 !==================================================================
-WREGELEM
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -151,10 +150,10 @@ nsle
 nwrite,jname_,regelem,,1,long
 /GOPR
 /EOF
+WNODES
 !=======================================================
 ! WNODES method - writes nodes to "jobname_.nodes"-file
 !=======================================================
-WNODES
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -164,10 +163,10 @@ WNODES
 nwrite,jname_,nodes
 /GOPR
 /EOF
+WNODBC
 !===========================================================================
 ! WNODBC method - writes node boundary conditions to "jobname_.nodebc"-file
 !===========================================================================
-WNODBC
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -190,10 +189,10 @@ WNODBC
 nwrite,jname_,nodebc,,1
 /GOPR
 /EOF
+WSAVNOD
 !================================================================
 ! WSAVNOD method - writes save nodes to "jobname_.savenode"-file
 !================================================================
-WSAVNOD
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -216,10 +215,10 @@ WSAVNOD
 nwrite,jname_,savenode,,1
 /GOPR
 /EOF
+WSAVELEM
 !====================================================================
 ! WSAVELEM method - writes save elements to "jobname_.saveelem"-file
 !====================================================================
-WSAVELEM
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -242,11 +241,11 @@ WSAVELEM
 ewrite,jname_,saveelem,,1,long
 /GOPR
 /EOF
+MKMESH
 !=============================================================================================
 ! MKMESH method - writes the mesh as "jobname_.mesh"-file using the mkmesh awk script.
 ! For more information see http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
 !=============================================================================================
-MKMESH
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
@@ -263,11 +262,11 @@ MKMESH
 /syp,@CFS_BINARY_DIR@/bin/mkmesh,degensw_,jname_
 /GOPR
 /EOF
+MKHDF5
 !============================================================================================
 ! MKHDF5 method - writes the mesh as "jobname_.h5"-file. Requires cplreader to be installed!
 ! For more information see http://cfs-doc.mdmt.tuwien.ac.at/mediawiki/index.php/Creating_Meshes
 !============================================================================================
-MKHDF5 
 /NOPR
 ! check if job name is initialized
 *if,jninit_,eq,0,then
