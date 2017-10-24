@@ -16,9 +16,7 @@
 #include "OLAS/solver/BaseSolver.hh"
 #include "OLAS/precond/IdPrecondStd.hh"
 
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/lapack.hh"
-#endif
 
 
 #ifndef  LOGLINE

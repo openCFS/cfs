@@ -675,6 +675,11 @@ namespace CoupledField {
 #ifdef USE_OPENMP
     out << "USE_OPENMP:            "
         << fg_blue  << "YES" << fg_reset << endl;
+
+    out << "OMP_NUM_THREADS:       "
+        << fg_blue << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-")
+        << fg_reset << endl;
+
 #else
     out << "USE_OPENMP:            "
         << fg_blue  << "NO" << fg_reset << endl;
@@ -700,9 +705,6 @@ namespace CoupledField {
         << fg_blue  << "NO" << fg_reset << endl;
 #endif
 
- #ifdef USE_BLAS
-    out << "USE_BLAS:              "
-        << fg_blue  << "YES" << fg_reset << endl;
     out << "BLAS_IMPLEMENTATION:   "
         << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
  #ifdef USE_MKL
@@ -729,34 +731,20 @@ namespace CoupledField {
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
         << fg_reset << endl;
 
-    out << "OMP_NUM_THREADS:       "
-        << fg_blue << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-")
-        << fg_reset << endl;
  #endif
  #ifdef USE_OPENBLAS
-    out << "OPENBLAS:              " << fg_blue
+    out << "OPENBLAS:             " << fg_blue
         << OPENBLAS_VERSION << fg_reset << endl
         << "OPENBLAS_CORE          " << fg_blue
         << OPENBLAS_CHAR_CORENAME << fg_reset << endl;
  #endif
-#else
-    out << "USE_BLAS:              "
-        << fg_blue  << "NO" << fg_reset << endl;
-#endif
     out << endl;
 
- #ifdef USE_LAPACK
-    out << "USE_LAPACK:            "
-        << fg_blue << "YES" << fg_reset << endl;
     Integer major, minor, rev;
     ilaver(&major, &minor, &rev);
     out << "LAPACK_VERSION:        "
         << fg_blue << major << "." << minor << "." << rev
         << fg_reset << endl;
-#else
-    out << "USE_LAPACK:            "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
 
  #ifdef USE_ILUPACK
     out << endl;
@@ -1076,7 +1064,10 @@ namespace CoupledField {
         << endl
         << "16.1, Concurrent Monorail" << endl
         << "  Starting point of making classes thread safe in preparation to parallelize assembly loop." << endl
-        << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl;
+        << "  Introducing CFSDat program for lightweight, pipeline based data processing." << endl
+        << endl
+        << "18.8, AMGme" << endl
+        << "  Contains Klaus' algebraic multigrid." << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

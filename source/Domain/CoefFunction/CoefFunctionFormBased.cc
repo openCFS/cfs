@@ -380,7 +380,6 @@ UInt CoefFunctionEigen::GetVecSize() const{
      return this->res_->dofNames.GetSize();
 }
 
-#ifdef USE_LAPACK
 void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   {
   //This function calculates the principal stresses and principal strains from a given
@@ -457,9 +456,6 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   //solVec after dsyev: eigenvectors and eigenvalues in order as mentioned above.
 
 }
-#else
-  EXCEPTION("Compile with USE_LAPACK = ON");
-#endif
 
 std::string CoefFunctionEigen::ToString() const {
   std::stringstream out;

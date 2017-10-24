@@ -1,9 +1,0 @@
-if(UNIX)
-  # Provide a version of 'setup.py' fixing detect_tkinter function:
-  # It basically force the list of possible tcl/tk dir to: '8.4', '84'
-  # Doing so will make sure tkinter is linked against the provided Tcl/Tk8.4
-  CONFIGURE_FILE(
-    "@CFS_SOURCE_DIR@/cfsdeps/python/python_setup.py.in"
-    "@python_source@/setup.py"
-    COPY)
-ENDIF()
