@@ -157,7 +157,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
     assemble_->AssembleLinRHS();
-    //Set special RHS Values
+    // Set special RHS Values
     PDE_.SetRhsValues();
 
     PDE_.SetBCs();
@@ -172,7 +172,17 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
                                          matrix_factor_[NO_FCT_ID] );
     }
 
-    // Incorporate Boundary conitions and
+    // Check if the AMG-framework is used (if so, we have
+    // to gather some geometry information at this point)
+    if(algsys_->UseAMG() ){
+      // only works for elimination
+      if( solStrat_->UseDirichletPenalty() ) EXCEPTION("AMG only works for Dirichlet elimination!");
+      PDE_.SetGeomInfo();
+      algsys_->BuildAMGAuxMatrix();
+    }
+
+
+    // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
@@ -533,6 +543,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
         assemble_->AssembleMatrices();
         if(assemble_->IsMatrixUpdated()){
+          //if AMG is used, rebuild auxiliary matrix
+          auxSet_ = false;
           //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
 
           // set system matrix to zero initially, as ConstructEffectiveMatrix only
@@ -547,6 +559,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           }
           effectiveMatrixUpdated = true;
         }
+
       }
 
       //now compute the effective right hand side
@@ -560,6 +573,17 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
             fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fctId));
           }
         algsys_->UpdateRHS(matIt->first,stageRHS_,effectiveMatrixUpdated);
+      }
+
+      // Check if the AMG-framework is used (if so, we have
+      // to gather some geometry information at this point)
+      // needs only be built once, doesn't change over frequency
+      if( (algsys_->UseAMG()) && (auxSet_ == false) ){
+        // only works for elimination
+        if( solStrat_->UseDirichletPenalty() ) EXCEPTION("AMG only works for Dirichlet elimination!");
+        PDE_.SetGeomInfo();
+        algsys_->BuildAMGAuxMatrix();
+        auxSet_ = true;
       }
 
       // set boundary conditions
@@ -3415,6 +3439,20 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
 
+    // Check if the AMG-framework is used (if so, we have
+    // to gather some geometry information at this point)
+    // needs only be built once, doesn't change over frequency
+    if( ((algsys_->UseAMG()) && (auxSet_ == false)) ||
+        ((algsys_->UseAMG()) && (algsys_->GetAMGType() != AMGType::EDGE)) ){
+      // only works for elimination
+      if( solStrat_->UseDirichletPenalty() ) EXCEPTION("AMG only works for Dirichlet elimination!");
+      PDE_.SetGeomInfo();
+      algsys_->BuildAMGAuxMatrix();
+      auxSet_ = true;
+    }
+
+    // Incorporate Boundary conditions and
+    // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
@@ -3461,7 +3499,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver  - we cannot be quadratic and bloch concurrently!
-   algsys_->SetupEigenSolver(numFreq, shift, !bloch, sort, bloch);
+    algsys_->SetupEigenSolver(numFreq, shift, !bloch, sort, bloch);
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds );

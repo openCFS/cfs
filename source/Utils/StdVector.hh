@@ -280,6 +280,12 @@ namespace CoupledField {
       }
     }
 
+    /** convenience function adding two elements */
+    inline void Push_back(const TYPE& a, const TYPE& b) {
+      Push_back(a);
+      Push_back(b);
+    }
+
     //! Delete element from vector on position pos
     void Erase(const unsigned int pos);
 
@@ -295,6 +301,12 @@ namespace CoupledField {
     //! Finds the element x in the vector and returns the 
     //! position. If no element was found, it returns -1.
     int Find(const TYPE &x) const;
+
+    //! Finds all elements x in the vector and returns the
+    //! position. If no element was found, the length of
+    //! the returned vector is zero.
+    StdVector<unsigned int> FindAll(const TYPE &x) const;
+
 
     /** Checks if an element exists */ 
     bool Contains(const TYPE &x) const { 

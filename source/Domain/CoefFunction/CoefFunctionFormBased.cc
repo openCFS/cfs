@@ -380,39 +380,37 @@ UInt CoefFunctionEigen::GetVecSize() const{
      return this->res_->dofNames.GetSize();
 }
 
-#ifdef USE_LAPACK
 void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   {
   //This function calculates the principal stresses and principal strains from a given
   //stress or strain state in coefVec and return it to solVec.
+  //Generic result, so it must be "sliced" in MechPDE with MathParser
   //
-  //Returns principal stress/strain vectors in a stacked order, where the
-  //eigenvector belonging to min(eigenvalue) is the first one.
-  //eigenvector belonging to max(eigenvalue) is the last one.
+  //Returns principal stresses/strains in the following order:
+  //-minimum principal stress vector
+  //-medium principal stress vector (for 3D)
+  //-maximum principal stress vector
+  //-minimim principal stress scalar
+  //-medium principal stress scalar (for 3D)
+  //-maximum principal stress scalar
 
   //Step 1: Conversion of this (coefVec) to a std::vector a in the correct order
 
   std::vector<double> lp_a, lp_w, lp_work;
 
-  int lp_n;
+  // throwing otherwise "Not a valid Voigt stress/strain tensor for eigenvalue calculation"
+  // is expensive as exception throwing has a slight overhead
+  assert(solVec.GetSize() == 3 || solVec.GetSize() == 6);
 
-  if (solVec.GetSize() == 3) {
-    lp_n = 2;
-  }
+  int lp_n = solVec.GetSize() == 3 ? 2 : 3;
 
-  else if (solVec.GetSize() == 6) {
-	lp_n = 3;
-  }
-  else {
-	EXCEPTION("Not a valid Voigt stress/strain tensor for eigenvalue calculation")
-  }
-
-  char lp_jobz = 'V'; //Documentation in LAPACK: dsyev
   char lp_uplo = 'L';
-
+  char lp_jobz = 'V'; //Documentation in LAPACK: dsyev
   int lp_lda = lp_n;
   int lp_info;
   int lp_lwork;
+
+  assert(lp_n == 2 || lp_n == 3);
 
   if (lp_n == 2){                             //2D-case
     lp_lwork = 68;                            //68 is the optimum value for a 2x2 matrix
@@ -421,7 +419,7 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
     lp_a.push_back(solVec.GetDoubleEntry(2));
     lp_a.push_back(solVec.GetDoubleEntry(1));
   }
-  else if (lp_n == 3){                        //3D-case
+  else {                                      //3D-case
     lp_lwork = 102;                           //102 is the optimum value for a 3x3 matrix
     lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
     lp_a.push_back(solVec.GetDoubleEntry(5)); //style in FORTRAN
@@ -435,13 +433,11 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
   }
 
   lp_w.resize(lp_n);
-
   lp_work.resize(lp_lwork);
-
-  solVec.Resize(lp_n * lp_n);
 
   //Step 2: Eigensolver
 
+  solVec.Resize(lp_n * (lp_n+1));
   dsyev(&lp_jobz, &lp_uplo, &lp_n, &*lp_a.begin(), &lp_lda, &*lp_w.begin(), &*lp_work.begin(), &lp_lwork, &lp_info);
 
   //Step 3: Back-conversion of a to solVec
@@ -450,15 +446,16 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
       solVec[i*lp_n + j] = lp_w[i] * lp_a[i*lp_n + j]; //Stacking the eigenvectors in a 4x1 (2D) or 9x1(3D) vector
     }
   }
+  for(int i = 0; i < lp_n; ++i) {
+    solVec[lp_n * lp_n + i] = lp_w[i];
+  }
+
   //lp_w: vector of eigenvalues
-  //lp_a:
-  //before dsyev: "stacked" stress or strain tensor
-  //after  dsyev: stacked normalized eigenvectors
+  //lp_a: vector of normalized eigenvectors
+  //solVec before dsyev: "stacked" stress or strain tensor
+  //solVec after dsyev: eigenvectors and eigenvalues in order as mentioned above.
 
 }
-#else
-EXCEPTION("Compile with USE_LAPACK = ON");
-#endif
 
 std::string CoefFunctionEigen::ToString() const {
   std::stringstream out;

@@ -2,9 +2,9 @@
 # Set the version number of CMake which is required to build CFS++.
 #-----------------------------------------------------------------------------
 
-SET(REQ_MAJOR_VER 2)
-SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 11)
+SET(REQ_MAJOR_VER 3)
+SET(REQ_MINOR_VER 7)
+SET(REQ_PATCH_VER 2)
 
 #-----------------------------------------------------------------------------
 # Include global definitions for CFS++ development server (host name, etc.)
@@ -99,14 +99,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "17")
-SET(CFS_VERSION_MONTH "4")
+SET(CFS_VERSION_MONTH "10")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Aerosource")
+SET(CFS_NAME "AMGme")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -172,9 +172,10 @@ OPTION(CFS_DEPS_PRECOMPILED
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
-OPTION(USE_PYTHON
-  "Build our own Python for CFS++."
-  ${USE_PYTHON_DEFAULT})
+# exteranl anaconda
+OPTION(USE_ANACONDA3
+  "build anaconda3 from continuum analytics, not necessary for CFS++ itself"
+  OFF)
 
 # exteranl anaconda
 OPTION(USE_ANACONDA3
@@ -239,6 +240,8 @@ OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SC
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
+OPTION(USE_PHIST "Use the PHIST eigensolver library."
+  ${USE_PHIST_DEFAULT})
 OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
   ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
@@ -247,14 +250,6 @@ OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
   ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
   ${USE_SUPERLU_DEFAULT})
-
-IF(USE_PARDISO OR USE_ARPACK OR USE_ILUPACK OR USE_SUITESPARSE)
-  SET(USE_BLAS ON CACHE BOOL "Use the Basic Linear Algebra Subroutines library." FORCE)
-  SET(USE_LAPACK ON CACHE BOOL "Use the LAPACK linear algebra library." FORCE)
-ELSE()
-  OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ${USE_LAPACK_DEFAULT})
-  OPTION(USE_BLAS "Use the Basic Linear Algebra Subroutines library." ${USE_BLAS_DEFAULT})
-ENDIF()
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -594,6 +589,20 @@ ENDIF(CFS_ARCH STREQUAL "X86_64")
 SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}
   CACHE INTERNAL "Single output directory for building all executables.")
 
+#-----------------------------------------------------------------------------
+# Create symlinks to lib & bin dirs allowing the build to run on (newer) linux
+#-----------------------------------------------------------------------------
+if(UNIX)
+  # lib dir
+  get_filename_component(wd ${LIBRARY_OUTPUT_PATH} DIRECTORY)
+  add_custom_target(symlink_lib_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY ${wd})
+  # bin dir
+  add_custom_target(symlink_bin_dir ALL
+     COMMAND ${CMAKE_COMMAND} -E create_symlink ${CFS_ARCH_STR} "LINUX_${CFS_ARCH}"
+     WORKING_DIRECTORY "${CFS_BINARY_DIR}/bin")
+endif(UNIX)
 
 #-----------------------------------------------------------------------------
 # Create and set a path where temporaries should go
@@ -663,13 +672,15 @@ IF(USE_ARPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/arpack)
 ENDIF(USE_ARPACK)
 
+IF(USE_PHIST)
+  ADD_SUBDIRECTORY(source/OLAS/external/phist)
+ENDIF(USE_PHIST)
+
 IF(USE_ILUPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
 ENDIF(USE_ILUPACK)
 
-IF(USE_LAPACK)
-  ADD_SUBDIRECTORY(source/OLAS/external/lapack)
-ENDIF(USE_LAPACK)
+ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)

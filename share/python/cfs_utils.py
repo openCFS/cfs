@@ -75,7 +75,7 @@ def xpath(xml, path):
   try:
     res = xml.xpath(path, namespaces = namespace(path))  
     if  len(res) == 0:
-      raise RuntimeError(path + " not found")
+      raise RuntimeError(path + " not found with ns='" + str(namespace(path)) + "'")
     if len(res) > 1:
       str(res)
       raise RuntimeError(path + " has " + str(len(res)) + " hits")
@@ -188,32 +188,32 @@ def execute(cmd, output = False, silent = False):
  return ret    
 
 # return the first line of a file
-def first_line(file_name, append = ""):
+def first_line(file_name, append = "", no_eol = False):
    file = open(file_name, "r")
    line = file.readline()
    file.close() 
    if len(line) == 0:
      raise RuntimeError("file '" + file_name + "' is empty")
-   return line.strip() + append + "\n"
+   return line.strip() + append + ("\n" if not no_eol else "")
 
 # return the second line of a file, this skips the gnuplot header
-def second_line(file_name, append = ""):
+def second_line(file_name, append = "", no_eol = False):
    file = open(file_name, "r")
    lines = file.readlines()
    file.close() 
    if len(lines) == 0:
      raise RuntimeError("file '" + file_name + "' is empty")
-   return lines[1].strip() + append + "\n"
+   return lines[1].strip() + append + ("\n" if not no_eol else "")
 
 # return the last line of a file and append 'append'
-def last_line(file_name, append = ""):
+def last_line(file_name, append = "", no_eol = False):
    file = open(file_name, "r")
    lines = file.readlines()
    file.close() 
    if len(lines) == 0:
      raise RuntimeError("file '" + file_name + "' is empty")
    string = lines[len(lines)-1]
-   return string.rstrip() + append + "\n"
+   return string.rstrip() + append + ("\n" if not no_eol else "")
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
@@ -362,3 +362,16 @@ def check_cfs_status(problem):
   else:
     return "not_found"
      
+## takes a list of dicts assuming all dicts have the same structure and prints them as gnuplot table
+def dicts_to_gnuplot(dicts):     
+  header = "#"
+  for idx, key in enumerate(dicts[0].keys()):
+    header += '(' + str(idx+1) + ') ' + key + ' \t'
+  print(header)
+
+  for item in dicts:
+    line = ""
+    for idx, key in enumerate(dicts[0].keys()):
+      line += str(item[key])  + ' \t'
+    print(line)
+

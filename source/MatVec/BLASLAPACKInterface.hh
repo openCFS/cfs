@@ -17,8 +17,8 @@ namespace CoupledField
   //! the BLAS and LAPACK libraries.
   //! Consider using LAPACKE in the future: http://www.netlib.org/lapack/lapacke.html
 
-#ifdef USE_BLAS
-
+   //! Make sure to add the function also to cmake_modules/CheckFortranRuntime.cmake
+   //! to have proper name mangling also for netlib and openblas
   extern "C"{
     // matrix matrix multiplication
     void dgemm(char*, char*, int*, int*, int*, double*, double*, int* ,
@@ -40,9 +40,6 @@ namespace CoupledField
     
   }
 
-#endif
-
-#ifdef USE_LAPACK
 
   //! Prototypes for LAPACK routines
   extern "C" {
@@ -50,8 +47,15 @@ namespace CoupledField
     //! LU decomoposition of a general matrix
     void dgetrf( int* M, int *N, double* A, int* lda, int* IPIV, int* INFO );
 
+    void zgetrf( const int* m, const int* n, std::complex<double>* a,
+                 const int* lda, int* ipiv, int* info );
+
     //! generate inverse of a matrix given its LU decomposition
     void dgetri( int* N, double* A, int* lda, int* IPIV, double* WORK, int* lwork, int* INFO );
+
+    void zgetri( const int* n, std::complex<double>* a, const int* lda,
+                 const int* ipiv, std::complex<double>* work, const int* lwork,
+				 int* info );
 
     //! Cholesky decomposition of a symmetric matrix
     void dpotrf( char*, int*, double*, int*, int* );
@@ -120,7 +124,6 @@ namespace CoupledField
     // ! To be continued ...
 
   }
-#endif
 
 }
 #endif

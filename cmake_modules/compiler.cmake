@@ -105,7 +105,7 @@ IF(OPENMP_FOUND)
   ENDIF()
 ENDIF()
 #-------------------------------------------------------------------------------
-# Check if we are using the GNU C++ compiler
+# Check if we are using the GNU C++ or clang compiler
 #-------------------------------------------------------------------------------
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
@@ -118,11 +118,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   # we assue C++11 for CFS for any compiler
   SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
-
-  IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
-     # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
-     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
-  ENDIF()
   
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -173,14 +168,20 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   ENDIF()
   
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
-  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
+    # on macOS with gcc-7.1 
+    # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined") 
+  ENDIF()
+  
+  # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
+  IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-expansion-to-defined")
-
-    STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
-    SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
+    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-constant-conversion")
   ENDIF()
 
   IF(APPLE)
@@ -213,8 +214,10 @@ main ()
   ENDIF(COVERAGE)
   
   IF(NOT USE_OPENMP)
-    SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    IF(NOT USE_PHIST)
+      SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
+      SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
+    ENDIF(NOT USE_PHIST)  
   ENDIF(NOT USE_OPENMP)
 
   IF(NOT USE_CGAL)
@@ -273,13 +276,13 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     # however it works without a flag, mabye the intel compiler checks the stdlib.
     # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
     # It's anoying that intel depends on the system stdlib :(
-    SET(CFS_CXX_FLAGS "-std=c+11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
     # see above with -std=c++11
-    SET(CFS_CXX_FLAGS "-std=c+11 -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
   

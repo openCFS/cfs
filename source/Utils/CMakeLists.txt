@@ -22,7 +22,7 @@ SET(TARGET_LL
   ${BOOST_SERIALIZATION_LIB}
 )
 
-TARGET_LINK_LIBRARIES(utils
+TARGET_LINK_LIBRARIES(utils 
   ${TARGET_LL}
 )
 
@@ -42,27 +42,19 @@ IF(USE_ANSYSRST)
   ADD_LIBRARY(CFSDynLd SHARED DynamicLibrary.cc)
 
   IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    TARGET_LINK_LIBRARIES(CFSDynLd
-      -ldl
-      )
+    TARGET_LINK_LIBRARIES(CFSDynLd -ldl )
   ENDIF(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
   ADD_LIBRARY(DynamicLibTestClassIface SHARED DynamicLibTestClassIface.cc)
-  TARGET_LINK_LIBRARIES(DynamicLibTestClassIface
-    CFSDynLd
-    )
+  TARGET_LINK_LIBRARIES(DynamicLibTestClassIface CFSDynLd )
+
   ADD_LIBRARY(DynamicLibTestClass SHARED DynamicLibTestClass.cc)
-  TARGET_LINK_LIBRARIES(DynamicLibTestClass
-    DynamicLibTestClassIface
-    )
+  TARGET_LINK_LIBRARIES(DynamicLibTestClass DynamicLibTestClassIface )
+
   ADD_EXECUTABLE(DynamicLibTest DynamicLibTest.cc)
-  TARGET_LINK_LIBRARIES(DynamicLibTest
-    DynamicLibTestClassIface
-    )
+  TARGET_LINK_LIBRARIES(DynamicLibTest DynamicLibTestClassIface )
 ENDIF(USE_ANSYSRST)
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-set_source_files_properties(piezoMicroModelBK.cc
-                              PROPERTIES COMPILE_FLAGS
-                              -wd279)
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  set_source_files_properties(piezoMicroModelBK.cc PROPERTIES COMPILE_FLAGS -wd279)
+ENDIF()
