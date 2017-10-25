@@ -2635,7 +2635,6 @@ double Function::Local::Identifier::CalcOverhang(Function::Type ft, double eps) 
   double res = -1.0;
 
   if(ft == OVERHANG_HOR)
-
   {
     double tmp = ((an-wn) - (a-w)); // abs for the lower points only. For the upper part of a horizontal structure we can build everything. Note, we need >= c^*
     res = SmoothAbs(tmp, eps);
@@ -2643,7 +2642,6 @@ double Function::Local::Identifier::CalcOverhang(Function::Type ft, double eps) 
                    << " tmp=" << tmp << " eps=" << eps << " -> " << res;
   }
   else
-
   {
     res = s == 1 ? ((an+wn) - (a+w)) : ((a-w) - (an-wn)); // the right part is checked for right overhang only, the left part for a left overhang only
     LOG_DBG3(func) << "L:I:CO ft=" << Function::type.ToString(ft) + " sign=" << s
@@ -2664,7 +2662,6 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
   assert(!(ft == OVERHANG_HOR && sign != NO_SIGN)); // hor knows only one sign as it is real smooth abs() as >= cannot be double bounded
 
   //assert(this->sign == 1); // the other stuff is not considered yet. n = i+1
-
   // OVERHANG_HOR:  |(an-wn) - (a-w)| >= c^* // real smoothed abs required!! no double signs
   // OVERHANG_VERT: ((an+wn) - (a+w)) <= c^* and ((a-w) - (an-wn)) <= c^*
   assert(sign == 1 || sign == -1 || sign == BOTH || sign == NO_SIGN);
