@@ -5377,6 +5377,8 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   // make the code save and remove the lock in calling DesingSpace!
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
   // make the code save and remove the lock in calling DesingSpace!
+  // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
+  // make the code save and remove the lock in calling DesingSpace!
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     return false;
 
