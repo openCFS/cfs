@@ -108,7 +108,6 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-
     //----------------------- HARMONIC ---------------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
@@ -233,6 +232,7 @@ namespace CoupledField
     AlgebraicSys* algsys_;             //!< pointer to algsys object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object
+
     
     //! Pointer to solution strategy object
     shared_ptr<SolStrategy> solStrat_;

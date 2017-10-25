@@ -4,10 +4,8 @@
 
 
 // Include LAPACK stuff
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/lapack.hh"
 #include "OLAS/external/lapack/LapackGBMatrix.hh"
-#endif
 
 #include "Vector.hh"
 
@@ -109,12 +107,10 @@ BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType ent
       retVector = new Vector<Complex>(length);
 
     // scalar vectors to go together with LAPACK matrices
-#ifdef USE_LAPACK
     if(eType == BaseMatrix::F77REAL8)
       retVector = new Vector<Double>(length);
     if(eType == BaseMatrix::F77COMPLEX16)
       retVector = new Vector<Complex>(length);
-#endif
 
     // Check, if we were able to generate a vector object. If not, complain.
     if ( retVector == NULL ) {
@@ -154,10 +150,8 @@ if ( ( eType == MATRIX_ENTRY ) ) { \
     COPY_VECTOR( BaseMatrix::COMPLEX,  Vector<Complex>     );
 
     // scalar vectors to go together with LAPACK matrices
-#ifdef USE_LAPACK
     COPY_VECTOR( BaseMatrix::F77REAL8    ,  Vector<Double>  );
     COPY_VECTOR( BaseMatrix::F77COMPLEX16,  Vector<Complex> );
-#endif
 
     // Check, if we were able to generate a vector object. If not, complain.
     if ( retVector == NULL ) {
@@ -258,8 +252,6 @@ LOG_DBG(genMatVec) << " Generated matrix of type: "<< MACRO2STRING(matrix_obj_ty
       MATRIX_OBJ( BaseMatrix::COMPLEX, BaseMatrix::DIAG, DiagComplexDof1 );
       break;
 
-
-#ifdef USE_LAPACK
     case BaseMatrix::LAPACK_GBMATRIX:
 
       // real entries
@@ -284,13 +276,6 @@ LOG_DBG(genMatVec) << " Generated matrix of type: "<< MACRO2STRING(matrix_obj_ty
       }
       break;
 
-#else
-
-    case LAPACK_GBMATRIX:
-      EXCEPTION( "Compile with USE_LAPACK to enable support for LapackGBMatrix" );
-      break;
-
-#endif
 
       // Should not be reached (hopefully :)
     default:

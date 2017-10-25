@@ -426,16 +426,16 @@ namespace CoupledField
        /** Default constructor as C++ has no defaults :( */
        DesignRegion();
 
-       DesignElement::Type design;
-       RegionIdType regionId;
-       unsigned int base;
-       unsigned int elements;
-       DesignConstant constant;
-       double scale_design;
-       double translate_design;
+       DesignElement::Type design = DesignElement::NO_TYPE;
+       RegionIdType regionId = -1;
+       unsigned int base = 0;
+       unsigned int elements = 0;
+       DesignConstant constant = VARIABLE;
+       double scale_design = 0.0;
+       double translate_design = 0.0;
 
        /** points to the multimaterial array or is NULL */
-       MultiMaterial* multimaterial;
+       MultiMaterial* multimaterial = NULL;
 
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 

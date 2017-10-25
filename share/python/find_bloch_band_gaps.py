@@ -116,12 +116,15 @@ parser.add_argument("bloch", help="a sorted bloch.dat file. Sort by sort_bloch.p
 parser.add_argument("--dim", help="2 or 3 dimensions, for old .bloch.dat files without #<ibz/>", type=int, required=False, choices=[2,3])
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
-parser.add_argument('--maxmode', help="maximal mode number to be considered (default 9999)", default=9999, type=int)
+parser.add_argument('--maxmode', help="maximal mode number to be considered", default=9999, type=int)
+parser.add_argument('--maxfrequency', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info to a xml file')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
+parser.add_argument('--paper', action='store_true', help="tune for paper publishing (e.g. gray)")
+parser.add_argument('--fontsize', type=int, help="gnuplot font size")
 parser.add_argument('--title', action='store_true', help="gnuplot: add title, off by default")
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
 parser.add_argument('--horizontal', action='store_true', help='display only the horizontal part of the wavevector (G->X)')
@@ -177,13 +180,15 @@ if args.xml:
 gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
   
 if args.gnuplot:
+  fontsize = str(args.fontsize) if args.fontsize else "18"
+  
   if args.gnuplot == "eps":
     print('set size ratio 1.0')
-    print('set terminal postscript eps enhanced "Helvetica, 12" color') #  change to monochrome for papers
+    print('set terminal postscript eps enhanced "Helvetica, ' + fontsize + '" color') #  change to monochrome for papers
     print('set output "' + args.bloch[:-len(".dat")] + '.eps"')
   if args.gnuplot == "png":
     print('set size ratio 1.0')
-    print('set terminal png size 1000,1000 font "Helvetica, 16"')
+    print('set terminal png size 1000,1000 font "Helvetica, ' + fontsize + '"')
     print('set output "' + args.bloch[:-len(".dat")] + '.png"') # leave it as bloch.png
         
     # print 'set output "tmp.eps"'
@@ -211,10 +216,13 @@ if not args.horizontal:
     check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
 
 if args.gnuplot:
-  if args.commonsymbol:
-    print('set yrange [0:*]')
-  else:
-    print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
+  if args.maxfrequency:
+    print('set yrange [0:' + str(args.maxfrequency) + ']')
+  else:  
+    if args.commonsymbol:
+      print('set yrange [0:*]')
+    else:
+      print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
   if args.horizontal:
     print('set xrange [0:' + str(segments[-1]) + ']')    
   else:
@@ -222,18 +230,19 @@ if args.gnuplot:
       print('set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')  
   
   if args.nicelabel:
-     print('set ylabel "eigenfrequency in Hz"')
+     print('set ylabel "eigenfrequency in Hz" offset 1')
      print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
-     xtics = 'set xtics ("O" 0'
+     symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
+     xtics = 'set xtics (' + symbols[0] + ' 0'
      for i in range(len(segments)):
-        xtics += ', "' +  chr(ord('A')+i) + '" ' + str(segments[i])
+        xtics += ', ' + symbols[i+1 if i < len(segments)-1 else 0] + ' ' + str(segments[i])
      print(xtics + ')')    
   else:
     print('unset ylabel') 
     print('unset xlabel')     
 
-  wl =   '' if args.nolines else ' with linespoints lw 2 '
-  lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
+  wl =   '' if args.nolines else ' with linespoints lw 2 ' if not args.commonsymbol else ' with lines lw 2' 
+  lc = ' lc black ' if args.paper or args.commonsymbol else ''
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i-offset+1) + '. mode" ' 
     print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')) 

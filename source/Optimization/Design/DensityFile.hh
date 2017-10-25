@@ -63,6 +63,9 @@ private:
    * The difference is superfluous file writing .*/
   bool finally_only_;
   
+  /** write density. This is the "density" attribute in export. For 3D ShapeMapping one might want to skip it. */
+  bool write_density_;
+
   /** we don't own this data, therefore we also don't delete it! */
   DesignSpace* space_;
 

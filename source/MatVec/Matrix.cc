@@ -493,14 +493,14 @@ namespace CoupledField
     *
     *   Coloring:
     *     - angle between rotation state and x-axis defines color
-    *       0° -> red
-    *       120° -> blue
-    *       240° -> green
-    *       0°-120° -> red decreases linearly, blue increases linearly, green = 0
-    *       120° - 240° -> red = 0, blue decreases linearly, green increases linearly
-    *       240° - 360° -> red increases linearly, blue = 0, green decreases linearly
+    *       0 -> red
+    *       120 -> blue
+    *       240 -> green
+    *       0-120 -> red decreases linearly, blue increases linearly, green = 0
+    *       120 - 240 -> red = 0, blue decreases linearly, green increases linearly
+    *       240 - 360 -> red increases linearly, blue = 0, green decreases linearly
     *     - switching state gives a scaling to the values and a possible offset to the angle
-    *       -> switching state < 0 -> 190° offset
+    *       -> switching state < 0 -> 190 offset
     *       -> abs(switching state) < 0 -> scale all colors with that value
     *
     *
@@ -789,7 +789,7 @@ namespace CoupledField
         if ((*rotX)[idy][idx] != 0 || (*rotY)[idy][idx] != 0){
           if(data_[idy][idx] < 0){
             /*
-             * new coloring: angles > 180° have same color as angle-180 but only every second pixel is colored
+             * new coloring: angles > 180 have same color as angle-180 but only every second pixel is colored
              */
             // every second pixel white
             if((x+y)%2 == 0){
@@ -1354,7 +1354,6 @@ namespace CoupledField
                                 bool trans_a, bool trans_b,
                                 TYPE alpha, TYPE beta, bool conjugate ) const {
 
-#ifdef USE_BLAS
 #ifdef CHECK_INDEX
     if((trans_a == true) && (trans_b == true)){
       if (size_row_ != mMat1.GetNumCols())
@@ -1413,9 +1412,6 @@ namespace CoupledField
     int ldb = trans_b ? k : m;
     int ldc = m;
     CallGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
-#else
-    EXCEPTION("Compile with USE_BLAS = yes ");
-#endif
    }
   
 
@@ -1725,8 +1721,6 @@ namespace CoupledField
   }
 
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
   template<>
   void Matrix<Complex>::solveWithLapack(Matrix<Complex> & b1,
                                         lapackSysMatType & LAPACK_MATRIX_TYPE)
@@ -1855,10 +1849,8 @@ namespace CoupledField
     delete[] lp_workf77;
     
   }
-#endif
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
+
   template <class T>
   void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
@@ -1940,7 +1932,6 @@ namespace CoupledField
     
   }
 
-#endif
 
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const SingleVector & v1, const SingleVector & v2)
@@ -2064,18 +2055,48 @@ namespace CoupledField
     EXCEPTION("General case not implemented");
   }
   
-  template<> void Matrix<Double>::Invert_Lapack() {
+  template<> void Matrix<Complex>::Invert_Lapack() {
 #ifdef CHECK_INDEX
-    if( size_row_ != size_col_) {
+    if( size_row_ != size_col_)
       EXCEPTION("Can only invert square matrices");
-    }
 #endif
 
-#ifndef USE_LAPACK
-    EXCEPTION("Compile with LAPACK support for matrix inversion");
-#else
-    
-    
+//TODO make sure this inversion is correct
+    //std::cout<<"---------------------------------------------------\n"
+    //		 <<"PLEASE TAKE CARE, THE INVERSION OF A COMPLEX MATRIX\n"
+    //		 <<"USING LAPACK IS NOT THOROUGHLY TESTED!!!!!!!!!!!!!!\n"
+    //		 <<"---------------------------------------------------"
+	//		 <<std::endl;
+
+    int *ipiv = new int[size_row_];
+    int n = size_row_;
+    int lwork = size_row_ * size_row_;
+    std::complex<double> *work = new  std::complex<double>[lwork];
+    int info;
+
+    // calculate LU-factorization of block
+    zgetrf(&n,&n,data_[0],&n,ipiv,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during LU-factorization of matrix. "
+                << "Error value is " << info );
+    }
+    // invert matrix using previous LU factorization
+    zgetri(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during inversion of matrix. "
+                << "Error value is " << info );
+    }
+
+    delete[] ipiv;
+    delete[] work;
+  }
+
+  template<> void Matrix<Double>::Invert_Lapack() {
+#ifdef CHECK_INDEX
+    if( size_row_ != size_col_)
+      EXCEPTION("Can only invert square matrices");
+#endif
+
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
@@ -2097,7 +2118,6 @@ namespace CoupledField
 
     delete[] ipiv;
     delete[] work;
-#endif
   }
 
   
@@ -2482,6 +2502,51 @@ namespace CoupledField
     for(unsigned int i = 0; i < size_row_; i++)
       vec[i] = (*this)[i][col]; // do it faster if you like
   }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetColMin(Vector<TYPE>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++)
+        vec[r] = std::min(vec[r], (*this)[r][c]); // do it faster if you like
+  }
+
+  template<>
+  void Matrix<Complex>::GetColMin(Vector<Complex>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++) {
+        vec[r].real(std::min(vec[r].real(), (*this)[r][c].real()));
+        vec[r].imag(std::min(vec[r].imag(), (*this)[r][c].imag()));
+      }
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetColMax(Vector<TYPE>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++)
+        vec[r] = std::max(vec[r], (*this)[r][c]); // do it faster if you like
+  }
+
+  template<>
+  void Matrix<Complex>::GetColMax(Vector<Complex>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++) {
+        vec[r].real(std::max(vec[r].real(), (*this)[r][c].real()));
+        vec[r].imag(std::max(vec[r].imag(), (*this)[r][c].imag()));
+      }
+  }
+
 
 
   /// gets the diagonal elements of a  matrix in a one column matrix

@@ -8,7 +8,9 @@
 #define OLAS_DEPGRAPH_HH
 
 #include "MatVec/CRS_Matrix.hh"
-#include "multigrid/ppflags.hh"
+#include "OLAS/multigrid/ppflags.hh"
+
+
 
 namespace CoupledField {
 /**********************************************************/
@@ -29,7 +31,7 @@ namespace CoupledField {
  *  not tell us that there are StartIndex_[i+1] - StartIndex_[i] edges
  *  at node [i], but maximal StartIndex_[i+1] - StartIndex_[i] edges
  *  at node [i]. The real number of edges at node [i] is stored in a
- *  separat array NodeSize_. This allows the efficient implementation
+ *  separate array NodeSize_. This allows the efficient implementation
  *  of a dynamic graph, of which the maximal numbers of edges at each
  *  node are known.
  *  <br>
@@ -56,8 +58,8 @@ class DependencyGraph
          *         per node
          *  \return true, if successful, false, otherwise
          */
-        bool Create( const Integer num_nodes,
-                     const Integer num_edges_per_node );
+        bool Create( const UInt num_nodes,
+                     const UInt num_edges_per_node );
 
         //! creates graph with already set "diagonal" edges at first position
 
@@ -70,8 +72,8 @@ class DependencyGraph
          *         per node
          *  \return true, if successful, false, otherwise
          */
-        bool CreateWithDiagonals( const Integer num_nodes,
-                                  const Integer num_edges_per_node );
+        bool CreateWithDiagonals( const UInt num_nodes,
+                                  const UInt num_edges_per_node );
 
         //! creates an empty graph
 
@@ -89,9 +91,9 @@ class DependencyGraph
          *  \param num_edges maximal total number of edges in the graph
          *  \return true, if successful, false, otherwise
          */
-        bool Create( const Integer        num_nodes,
-                     const Integer *const node_size,
-                           Integer        num_edges = -1 );
+        bool Create( const UInt        num_nodes,
+                     const UInt *const node_size,
+                     Integer        num_edges = -1 );
 
         //! creates an empty graph
 
@@ -119,8 +121,8 @@ class DependencyGraph
          *         debug mode
          *  \return true, if the creation was successful
          */
-        bool Create( const Integer        num_nodes,
-                     const Integer *const startarray,
+        bool Create( const UInt        num_nodes,
+                     const UInt *const startarray,
                      const bool           accroach_startarray,
                      const bool           copy_startarray );
         
@@ -148,6 +150,7 @@ class DependencyGraph
         bool Create( const CRS_Matrix<T>& matrix,
                      const bool buildemptygraph = false,
                      const bool copystartarray  = false );
+
 
         //! insert an array with start positions
         
@@ -179,8 +182,8 @@ class DependencyGraph
          *  \param force  if set to true (default false), an eventually
          *         already present array will be replaced
          */
-        bool InsertStartArray( const Integer *const startarray,
-                               const Integer size,
+        bool InsertStartArray( const UInt *const startarray,
+                               const UInt size,
                                const bool    accroach = false,
                                const bool    copy     = false,
                                const bool    force    = false  );

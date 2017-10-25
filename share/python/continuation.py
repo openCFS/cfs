@@ -27,13 +27,13 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
     
   # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
   start = ""  
-  if old_var == -1 and initial <> None:
+  if old_var == -1 and initial != None:
     start = "-x " + initial
   if old_var > -1:   
     start = "-x " + old_problem + ".density.xml"
 
   if not os.path.exists(short_problem + ".xml"):
-    print "error: file '" + short_problem + ".xml' not found"
+    print("error: file '" + short_problem + ".xml' not found")
     os.sys.exit()
   
   xml = open_xml(short_problem + ".xml")     
@@ -56,7 +56,7 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
       query = '//cfs:shapeMap/@relative_node_bound'
     if type == 'alphaSlackQuotient':
       query = '//cfs:constraint[@type="alphaSlackQuotient"]/@value'
-    assert(query <> None)
+    assert(query != None)
 
     r = replace(xml, query, str(var), unique = False)
     if r == 0:
@@ -69,11 +69,11 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
     # see http://beige.ucs.indiana.edu/I590/node45.html
     generate_qsub_script(qsub, cmd, var_problem + '.sh', silent = True)
     if old_var == -1:
-      print('CONT' + str(cnt) + '=$(qsub ' + var_problem + '.sh)')
-      print('echo $CONT' + str(cnt))
+      print(('CONT' + str(cnt) + '=$(qsub ' + var_problem + '.sh)'))
+      print(('echo $CONT' + str(cnt)))
     else:  
-      print('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)')
-      print('echo $CONT' + str(cnt))
+      print(('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)'))
+      print(('echo $CONT' + str(cnt)))
   else:
     execute(cmd, output=True, silent = failsafe)
       
@@ -101,17 +101,17 @@ args = parser.parse_args()
 
 if args.qsub:
   if not os.path.exists(args.qsub):
-    print('qsub template file not found ' + args.qsub)
+    print(('qsub template file not found ' + args.qsub))
     os.sys.exit(1)
   args.noshow = True
   
 if args.range:
   vals = eval(args.range)   
   if len(vals) == 0 or len(vals) == 1:
-    print "given --range '" + args.range + "' evaluates to " + str(len(val)) + " values"
+    print("given --range '" + args.range + "' evaluates to " + str(len(val)) + " values")
     sys.exit(-1)  
   for i in range(len(vals)):
-    ri = i if len(vals) <> len(set(vals)) else -1  
+    ri = i if len(vals) != len(set(vals)) else -1  
     continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
 else:
   old = -1  
@@ -132,7 +132,7 @@ else:
         xml_info = doc_info.xpathNewContext()
         conv  = xpath(xml_info, "//break/@converged")
       else:
-        print infoXmlName + " does not exist."
+        print(infoXmlName + " does not exist.")
       #old = digits(var, dig)
       #if conv == 'yes':
       success = var_problem + ".density.xml"
@@ -142,7 +142,7 @@ else:
       #  inc /= 2.
       #  var += inc     
   while var <= args.end:
-   continuation(args.initial, cmt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
+   continuation(args.initial, cnt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
    old = digits(var, dig)
    var += var * args.inc
    i += 1

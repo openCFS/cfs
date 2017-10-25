@@ -169,8 +169,17 @@ namespace CoupledField
     //! Get pointer to simulation state object
     shared_ptr<SimState> GetSimState() {return simState_; }
     
-    //! Get pointer to grid object
-    Grid* GetGrid( const std::string& id = "default" );
+    /** Get pointer to grid object
+    * @param id "default" would work */
+    Grid* GetGrid(const std::string& id);
+
+    /** works only with a single grid */
+    Grid* GetGrid()
+    {
+      assert(gridMap_.size() == 1);
+      return gridMap_.begin()->second;
+    }
+
 
     /** return the name of the registered coordinate systems */
     StdVector<std::string> GetCoordSystems() const;

@@ -80,9 +80,6 @@ namespace CoupledField {
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(mat);
-    if ( matrixA_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     UInt size = matrixA_->GetNumRows();
 
@@ -136,17 +133,11 @@ namespace CoupledField {
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
-    if ( matrixA_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
     // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
 
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
-    if ( matrixB_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     UInt size = matrixA_->GetNumRows();
 
@@ -228,19 +219,10 @@ namespace CoupledField {
 
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
-    if ( matrixA_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
-    if ( matrixB_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     matrixD_ = & dynamic_cast<const StdMatrix&>(dampMat);
-    if ( matrixD_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     // need twice the original system size and twice the number of frequencies
     UInt size = 2*matrixA_->GetNumRows();
@@ -434,9 +416,6 @@ namespace CoupledField {
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(mat);
-    if ( matrixA_ == NULL ) {
-      EXCEPTION( WRONG_CAST_MSG );
-    }
 
     UInt size = matrixA_->GetNumRows();
 
