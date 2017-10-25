@@ -2269,7 +2269,24 @@
       <xsd:enumeration value="5" />
       <xsd:enumeration value="6" />
       <xsd:enumeration value="7" />
-      <xsd:enumeration value="8" />      
+      <xsd:enumeration value="8" />    
+      <xsd:enumeration value="9" />      
+      <xsd:enumeration value="10" />
+      <xsd:enumeration value="11" />
+      <xsd:enumeration value="12" />
+      <xsd:enumeration value="13" />
+      <xsd:enumeration value="14" />
+      <xsd:enumeration value="15" />
+      <xsd:enumeration value="16" />
+      <xsd:enumeration value="17" />
+      <xsd:enumeration value="18" />
+      <xsd:enumeration value="19" />
+      <xsd:enumeration value="20" />
+      <xsd:enumeration value="21" />
+      <xsd:enumeration value="22" />
+      <xsd:enumeration value="23" />
+      <xsd:enumeration value="24" />
+      <xsd:enumeration value="25" />  
     </xsd:restriction>
   </xsd:simpleType>
 
