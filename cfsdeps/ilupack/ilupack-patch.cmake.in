@@ -61,10 +61,5 @@ LIST(APPEND patches
   "ilupack-mainsym3.patch"
   )
 
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
-  LIST(APPEND patches
-    "ilupack-dmumps-open64.patch"
-  )
-ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/ilupack")
