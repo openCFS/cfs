@@ -10,6 +10,8 @@ namespace CoupledField
 
 /** The Timer class is based on the code timer.hh from Ken Wilder (http://sites.google.com/site/jivsoft/Home/timer)
  * It implements a timer object which sums up time intervals.
+ *
+ * A convenient way to create a timer is via ParamNode::AsTimer().
  */
 class Timer
 {
@@ -34,6 +36,11 @@ class Timer
 
   void SetLabel(const std::string& name) {
     label_ = name;
+  }
+
+  /** to set sub when created as ParamNode::AsTimer() */
+  void SetSub() {
+    sub_ = true;
   }
 
   /** The number of Start() calls since construction or the last ResetStart()+1.

@@ -315,6 +315,16 @@ namespace CoupledField {
     return s;
   }
 
+  template <typename T>
+  inline T Vector<T>::Product() const
+  {
+    T s(1);
+    for(unsigned int i = 0; i < size_; ++i)
+      s*=data_[i];
+
+    return s;
+  }
+
 
   template <typename T>
   inline T Vector<T>::Avg() const

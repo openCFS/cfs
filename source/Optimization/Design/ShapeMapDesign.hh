@@ -262,6 +262,12 @@ public:
     Vector<double> tailored_bounds; // 1e-10, 1e-9, ..., 0.1, 1
     Vector<int>    tailored_order;
 
+    /** for statistics: cells which need integration */
+    unsigned int int_cells_cnt = 0;
+
+    /** for statistics: sum of 1D integration on cells we integrate (-> avg. order)  */
+    unsigned int int_cells_order_sum = 0;
+
   private:
     /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
      * based on the tanh(beta) max - min bounds per element
@@ -284,6 +290,9 @@ public:
     int FindOrder(double x1, double x2, double pos, double accuracy) const;
 
     double beta = -1.0;
+
+    /** product of n */
+    unsigned int cells_;
   };
 
 private:
@@ -380,6 +389,8 @@ private:
 
   /* @return num_node_shape_ or shape_.GetSize() */
   unsigned int GetEndShapeIdx(const Function* f) const;
+
+  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
@@ -639,9 +650,13 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-  NumInt numInt_;
+  /** Measure MapShapeToDensity() */
+  shared_ptr<Timer> mapping_timer_;
 
-  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+  /** Measure MapShapeGradient() */
+  shared_ptr<Timer> gradient_timer_;
+
+  NumInt numInt;
 };
 
 
