@@ -121,6 +121,7 @@ def find_corners(centers):
         min[c] = test[c]
       if test[c] > max[c]:
         max[c] = test[c]
+        
   return min, max      
 
 def last_h5_step(hdf5_file,multistep=1):          
@@ -146,10 +147,6 @@ def read_displacement(hdf5_file,nr,region = 'mech'):
   u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/'+region+'/Nodes/Real'].value
   return u
 
-def read_density(hdf5_file):
-  dens = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/physicalPseudoDensity/mech/Elements/Real'].value
-  return dens
-    
 # dumps meta data    
 def dump_h5_meta(hdf5_file):   
   print('Steps in "' + hdf5_file.filename + '":')

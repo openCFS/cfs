@@ -1,0 +1,9 @@
+SET(PETSC_SRC PETSCSolver.cc)
+
+SET_SOURCE_FILES_PROPERTIES(${PETSC_SRC}
+  PROPERTIES COMPILE_FLAGS "-fno-strict-aliasing")
+
+ADD_LIBRARY(petsc-olas STATIC ${PETSC_SRC})
+
+
+TARGET_LINK_LIBRARIES(petsc-olas petsc )

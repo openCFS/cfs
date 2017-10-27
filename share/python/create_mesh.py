@@ -43,7 +43,7 @@ parser.add_argument('--height', help="optional height in m", type=float, require
 parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced', 'cantilever3d', 'lbm2d', 'lbm3d','msfem_two_load','two_load', 'validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct','traegerblz'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet', 'low_in_high_out'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
-parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
+parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball","top_panel"])
 parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
 parser.add_argument('--inclusion_overlap', help="alternative to inclusion_size for ball. Give fraction of overlapping to boundary", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
@@ -89,7 +89,7 @@ if args.type == "voxels_from_optistruct" or args.type == "convert_optistruct":
 mesh= None 
     
 if args.type == 'bulk3d' or args.type == 'validation_test' or args.type == 'cantilever3d' or args.type == 'traegerblz':
-  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)    
+  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size,scale=args.width)    
 elif args.type.startswith('lbm'):
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')

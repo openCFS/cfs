@@ -69,7 +69,9 @@ def remove(xml, path, unique = True):
 
 # returns an xpath value. Assumes we have lxml as xml tree, change your old libxml2 code.
 # if 'cfs:' is in path we add a namespace mapping automatically
-# example '//cfs:materialData/@file' for any materialData element
+# example '//cfs:materialData/@file' for any materialData element;
+# to get text inside a xml tag, e.g. material tensor from .info.xml:
+# xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") gives a string
 def xpath(xml, path):
   # assume lxml first
   try:
@@ -177,7 +179,7 @@ def generate_qsub_script(template, cmd, filename, silent = False):
   out.close()
   return "qsub " + filename
 
-# execute cmd and rais error when not 0 and not silen
+# execute cmd and raise error when not 0 and not silent
 # return error code, 0 for no problem
 def execute(cmd, output = False, silent = False):
  if output:
