@@ -51,6 +51,8 @@ public:
 */
 class BaseTLS{
 public:
+  typedef enum { MAX_CFS_THREADS, MAX_OMP_THREADS } NumThreads;
+
   inline UInt GetNumSlots() const{
     return numSlots_;
   }
@@ -69,7 +71,21 @@ protected:
 template<class T>
 class CfsTLS : public BaseTLS{
 public:
-  CfsTLS(){
+  /**
+   * @param num MAX_CFS_THREADS to use value specified by -t from command line;
+   *            MAX_OMP_THREADS set by environment variable
+   *            WARNING: Make sure this matches "omp parallel num_threads(NUM_CFS_THREADS)" or "omp parallel" for implicit OMP_NUM_THREADS threads
+   */
+  CfsTLS(NumThreads num = MAX_CFS_THREADS){
+    if (num == MAX_CFS_THREADS)
+      numSlots_ = NUM_CFS_THREADS;
+    else {
+      #ifdef USE_OPENMP
+        numSlots_ = omp_get_max_threads();
+      #else
+        numSlots_ = 1;
+      #endif
+    }
     tlsContainer_.Resize(numSlots_);
   }
 
@@ -83,6 +99,7 @@ public:
 
    inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
+    assert(omp_get_thread_num() < numSlots_);
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
@@ -91,6 +108,7 @@ public:
 
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
+    assert(omp_get_thread_num() < numSlots_);
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];

@@ -2,7 +2,7 @@
 # import mesh_tool first because of h5py
 
 import matplotlib
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -97,6 +97,7 @@ def create_mesh_with_profiles(args,infoXml,log):
   print("stiffnesses: "  +str(args.x1) + "," + str(args.x2) + "," + str(args.y1) + "," + str(args.y2) + "," + str(args.z1) + "," + str(args.z2))
   
   mesh = None
+  infoStr = None
   
   if not args.stiffness_as_diameter:
     # calculating radii in relation to given stiffnesses x1,x2,y1,...
@@ -112,6 +113,13 @@ def create_mesh_with_profiles(args,infoXml,log):
     infoStr += ' rz1="' + str(args.z1) + '" '
     args.z2 = calc_radius(args.z2)
     infoStr += ' rz2="' + str(args.z2) + '"'
+  else:
+    infoStr = '  <radii rx1="' + str(args.x1/2.0) + '" '
+    infoStr += ' rx2="' + str(args.x2/2.0) + '" '
+    infoStr += ' ry1="' + str(args.y1/2.0) + '" '
+    infoStr += ' ry2="' + str(args.y2/2.0) + '" '
+    infoStr += ' rz1="' + str(args.z1/2.0) + '" '
+    infoStr += ' rz2="' + str(args.z2/2.0) + '"'  
   
   if infoXml is not None:
     assert(infoStr)
@@ -130,6 +138,16 @@ def create_mesh_with_profiles(args,infoXml,log):
     else:
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
+      if args.save_mesh_data:
+        data_txt = open(meshName + "_data.txt","w")
+        data_txt.write("#number of nodes: " + str(len(mesh.nodes)) + "\n")
+        for n in mesh.nodes:
+          data_txt.write(str(n[0]) + " \t" + str(n[1]) + " \t" + str(n[2]) + "\n")
+        data_txt.write("#number of elements: " + str(len(mesh.elements)) + "\n")  
+        for e in mesh.elements:
+          data_txt.write(str(e.nodes[0]) + " \t" + str(e.nodes[1]) + " \t" + str(e.nodes[2]) + " \t" + str(e.nodes[3]) + " \t" + str(e.nodes[4]) + " \t" + str(e.nodes[5]) + " \t" + str(e.nodes[6]) + " \t" + str(e.nodes[7]) + "\n")
+        data_txt.close()
+        
     mesh_tool.validate_periodicity(mesh)
   elif args.target.startswith("surface") or args.target.startswith("contour"):
     stlName = args.save if args.save else "surface"
@@ -182,10 +200,10 @@ if __name__ == "__main__":
   parser.add_argument('--force_bisec', help="take given bisec curve", choices=['bicubic','bspline','linear','heaviside'], required=False)
   parser.add_argument('--beta', help="steepness of heaviside function", type=float, default=10)
   parser.add_argument('--eta', help="midpoint heaviside function", type=float, default=0.5)
-  parser.add_argument('--logging',help="print logging while fixing surface gaps to log_fix_surface_gaps.txt", action='store_true',default=False,required=False)
   parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
+  parser.add_argument('--save_mesh_data', help="writes nodes and element data of volume mesh to file mesh_data.txt", action='store_true',default=False)
   
   args = parser.parse_args()
   
@@ -273,13 +291,10 @@ if __name__ == "__main__":
     infoXml.write('<?xml version="1.0"?>\n\n')
     infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
     infoXml.write('  <cmd value="' + cmd + '"/>\n')
-    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '"/>\n')
+    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '" interpolation="' + args.interpolation + '"/>\n')
   
   log = None 
   
-  if args.logging:
-    log = open(meshName+".log","w")
-    
   # sanity checks
   if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
     raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")
@@ -314,7 +329,8 @@ class Basecell_Data():
     self.beta = beta
     self.eta = eta  
     self.interpolation = interpolation
-    self.target = target
+#     self.target = target
+    self.target = "contour"
     
     # set debugging stuff 
     self.verbose = "off"
@@ -333,13 +349,35 @@ class Basecell_Data():
       self.res_surf_lines = res
     
 class Basecell():
-  data = cell = vol = None
   # data is an object of type Basecell_Data()
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
     dumm, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
-      
+    # xmin, ymin, zmin, xmax, ymax, zmax
+    self.bounds = np.zeros(6)
+    self.update()
+    self.center = np.asarray([0.5,0.5,0.5])
+    
+  def scale(self,scalex,scaley,scalez):
+    for i in range(len(self.points)):
+      self.points[i] = np.asanyarray(self.points[i]) * np.asarray([scalex,scaley,scalez])
+    
+    self.center = self.center * np.asarray([scalex,scaley,scalez])
+  def translate(self,x,y,z):
+    for i in range(len(self.points)):
+      self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z])
+    
+    self.center = self.center + np.asanyarray([x,y,z])
+    
+  # recalculate bounds after rescaling and translating
+  def update(self):
+    self.bounds[0] = np.min(np.asarray(self.points)[:,0])
+    self.bounds[1] = np.min(np.asarray(self.points)[:,1])
+    self.bounds[2] = np.min(np.asarray(self.points)[:,2])
+    self.bounds[3] = np.max(np.asarray(self.points)[:,0])
+    self.bounds[4] = np.max(np.asarray(self.points)[:,1])
+    self.bounds[5] = np.max(np.asarray(self.points)[:,2])
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>
@@ -358,3 +396,4 @@ class Basecell():
 #  </bisectionSpline>
 # </profile>
 # /<basecell>
+        

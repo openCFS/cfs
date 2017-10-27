@@ -1347,6 +1347,7 @@ share/python/material_catalogue/process_sparse.py -text
 share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
 share/python/matviz_2d.py -text
+share/python/matviz_3d_ortho.py -text
 share/python/matviz_rot.py -text
 share/python/matviz_streamline.py -text
 share/python/matviz_unstructured_mesh.py -text
