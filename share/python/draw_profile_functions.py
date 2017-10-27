@@ -5,15 +5,15 @@ import sympy.solvers
 from sympy import Symbol, symbols
 import sys
 import math
-#try:
-import vtk
-from vtk.util.numpy_support import vtk_to_numpy
-import matviz_vtk
-# except:
-#   print("WARNING: failed to load vtk!")
+try:
+  import vtk
+  from vtk.util.numpy_support import vtk_to_numpy
+  import matviz_vtk
+except:
+  print("WARNING: failed to load vtk!")
 
 import matplotlib
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate, spatial
@@ -293,7 +293,7 @@ class PrincipleSpline():
     self.left = left_flag
     
     if infoXml is not None:
-      infoXml.write('    <bspline degree="' + str(degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
+      infoXml.write('    <bspline degree="' + str(np.degrees(angle)) + '" rad1="' + str(x1) + '" rad2="' + str(y1) + '" bend="' + str(bend) + '">\n')
     
     self.angle = angle
     P = np.array([[0,1-rx],[ry*bend,1-rx],[ry,1-rx*bend],[ry,1]])
@@ -472,7 +472,7 @@ class BisecSpline:
         self.type = "linear"
     
     if infoXml:
-      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(degrees(self.angle)) + '"/>\n')
+      infoXml.write('      <selection type="' + str(self.type) + '" angle="' + str(np.degrees(self.angle)) + '"/>\n')
       infoXml.write('    </bisectionFunction>\n\n')  
       
   def get_coords_cut(self):
@@ -813,14 +813,6 @@ def get_surface_point_candidate(profile,alpha,x):
  
   return point
 
-def add_triangle(id1,id2,id3,cells):
-  assert(id1 != id2 and id2 != id3)
-  tri = vtk.vtkTriangle()
-  tri.GetPointIds().SetId(0, id1)
-  tri.GetPointIds().SetId(1, id2)
-  tri.GetPointIds().SetId(2, id3)
-  cells.InsertNextCell(tri)
-  
 # calc distance between two points
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
@@ -951,26 +943,23 @@ def generate_basecell(args,info,log,offset=0):
     
     # adding triangles connectivity from Marching Cube
     for f in faces:
-      add_triangle(f[0], f[1], f[2], cells)
+      matviz_vtk.add_triangle(new_surf_points,f[0], f[1], f[2], cells)
       
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
     
-    outputData = polydata
-    
-    if args.tets:
-      fillHoles = vtk.vtkFillHolesFilter()
-      fillHoles.SetInputData(polydata)
-      fillHoles.SetHoleSize(1e6)
-      fillHoles.Update()
-      outputData = fillHoles.GetOutput() 
-    
+    normals = vtk.vtkPolyDataNormals()
+    normals.SetInputData(polydata)
+    normals.SetConsistency(1)
+    normals.SetAutoOrientNormals(1)
+    normals.Update()
+        
     if args.save:
       stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
-      matviz_vtk.write_stl(outputData,stlName)
+      matviz_vtk.write_stl(normals.GetOutput(),stlName)
     
     if args.save_vtp:
-      matviz_vtk.show_write_vtk(outputData,1000,args.save+".vtp")
+      matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1004,12 +993,12 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
     #plt.plot(theta,map[:,0],linewidth=5.0)
     for i,bisec in enumerate(profile.bisecs_left):
       phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
+      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
     plt.plot(theta,map[:,int(res/2)+1],linewidth=5.0)
     
     for i,bisec in enumerate(profile.bisecs_left):
       phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
+      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
     plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
     plt.rcParams.update({'font.size': 18})
     plt.show()
@@ -1120,9 +1109,9 @@ def write_profile_to_array(array,profile,overlap):
         center[minor_1] = y
         center[minor_2] = z
         
-        projection = calc_projection(profile, center)
-        if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
-#         if (valx-r <= 1e-6):
+#         projection = calc_projection(profile, center)
+#         if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
+        if (valx-r <= 1e-6):
           # detected overlap of profiles
           if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
             point = radius_to_3d_coords(profile,x,phi)
@@ -1453,16 +1442,17 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
   # each entry contains a list representing one boundary face of the base cell
   lists = extract_boundary_points(surf_points,vtk_points)
   assert(len(lists) == 6)
-  
+   
   lists_2d = []
-  
+  surf_points = list(surf_points)
+   
   count = 0
   for dir in (0,1,2):
     lists_2d.append(extract_plane_coordinates(lists[count], dir))
     count += 1
     lists_2d.append(extract_plane_coordinates(lists[count], dir))
     count += 1
-    
+     
   for count,l in enumerate(lists_2d):  
     # component 0 and 1 store plane coordinates
     # component 2 store vtk point id
@@ -1472,13 +1462,13 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
     info.set_points(test)
     info.set_facets(round_trip_connect(0,len(l)-1))
     mesh = triangle.build(info,generate_faces=True) 
-  
+   
     mesh_points = np.array(mesh.points)
     mesh_tris = np.array(mesh.elements)
-    
+     
 #     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
 #     plt.show()
-    
+     
     major_dir = -1
     if count == 0 or count == 1:
       major_dir = 0
@@ -1486,28 +1476,31 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
       major_dir = 1
     else:
       major_dir = 2
-     
+    
+    new_points = []  
     minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
     # up to len(l), l and mesh_points have the same ordering of points
     # map from local mesh_points point ids to global ones from points in vtk_points
     lookup = np.ones(len(mesh_points),dtype=int) * (-1)
     for i in range(0,len(l)):
       lookup[i] = l[i][2]
+      new_points.append(surf_points[l[i][2]])
     for i in range (len(l),len(mesh_points)):
       point = np.zeros(3)
       if count%2 == 0: # left side of profile
         point[major_dir] = 0.0
       else:
         point[major_dir] = 1.0
-          
+           
       point[minor_dir_2] = mesh_points[i][0]
       point[minor_dir_1] = mesh_points[i][1] 
       lookup[i] = vtk_points.InsertNextPoint(point)
-      
+      new_points.append(point)
+      surf_points.append(point)
+    
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)      
-
+      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)

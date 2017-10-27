@@ -223,16 +223,11 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
-  unsigned int numOMPThreads = 1;
-  #ifdef USE_OPENMP
-    numOMPThreads = omp_get_max_threads();
-  #endif
-
   // make temporal storage thread local
   // each entry is assigned to one thread
   // each thread gets a vector to store the element neighborhood
   // When this vector is reused and copied in the loop we have a sufficiently high capacity and Push_back() is cheap
-  StdVector<StdVector<Filter::NeighbourElement> > neighborhood(numOMPThreads);
+  CfsTLS< StdVector<Filter::NeighbourElement> > neighborhood(BaseTLS::MAX_OMP_THREADS);
 
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
@@ -259,14 +254,9 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     if(!regular)  // save calling if possible
       radius = FindFilterRadius(filter_space_, de, value);
 
-    unsigned int aThread = 0;
-    #ifdef USE_OPENMP
-      aThread = omp_get_thread_num();
-    #endif
-
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
-    StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
+    StdVector<Filter::NeighbourElement>& neighbors = neighborhood.Mine();
     neighbors.Resize(0); // keeps capacity
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
