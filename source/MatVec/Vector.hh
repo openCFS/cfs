@@ -288,6 +288,15 @@ template<typename T> class ElemStoreSol;
 
     T Avg() const;
 
+    /** Extremal element. For Complex separate for real and imaginary part */
+    T Min() const;
+
+    T Max() const;
+
+    /** return the minimal and maximal element concurrently.
+     * @see Min() for complex */
+    void MinMax(T& min, T& max) const;
+
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
 
@@ -517,6 +526,9 @@ template<typename T> class ElemStoreSol;
 
     //! This method sets val to the value of vector entry i
     void GetEntry( UInt i, T &val ) const;
+
+    //! Get entries at specified indices from in
+    const Vector<T> GetEntries( const StdVector<UInt>& in) const;
 
     //! Add val to the value of a vector entry
 

@@ -108,7 +108,6 @@ void DivergenceDifferentiator::PrepareCalculation(){
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
 
 
-  const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
   StdVector<CF::UInt> globSrcEntity;
   GetUsedMappedEntities(scrMap_, globSrcEntity, srcRegions_, inGrid_);
   const CF::UInt numSrcEntities = CountUsedEntities(globSrcEntity);

@@ -14,13 +14,12 @@
 #include "generatesolver.hh"
 #include "General/Exception.hh"
 
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/Lapack_LU.hh"
 #include "OLAS/external/lapack/Lapack_LL.hh"
-#endif
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/PardisoSolver.hh"
+#include "OLAS/external/pardiso/PardisoSolverPrimitive.hh"
 #endif
 
 #ifdef USE_ILUPACK
@@ -203,7 +202,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   break;
 
 
-#ifdef USE_LAPACK
   case BaseSolver::LAPACK_LU:
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "LAPACK_LU only works with a LAPACK_GBMATRIX!");
@@ -237,14 +235,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       }
     }
     break;
-#else
-  case BaseSolver::LAPACK_LU:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LU solver" );
-    break;
-  case BaseSolver::LAPACK_LL:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LL solver" );
-    break;
-#endif
 
   case BaseSolver::PARDISO_SOLVER:
 
@@ -449,6 +439,57 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   return retSolver;
 }
+
+
+
+// *******************************************************
+//   Generate a direct solver object for coarse system AMG
+// *******************************************************
+BaseSolver* GenerateDirSolverObjectAMG( const BaseMatrix &mat,
+                                        PtrParamNode  olasInfo ){
+
+  BaseSolver *retSolver = NULL;
+  BaseMatrix::EntryType eType = mat.GetEntryType();
+  std::string solverStr = "";
+
+  // Hardcoded ... do we need other direct solvers (LU, ...) ????
+  //BaseSolver::SolverType solver = BaseSolver::PARDISO_SOLVER;
+
+#ifdef USE_PARDISO
+    LOG_DBG(genSolver) << "structure type of matrix: " << mat.GetStructureType();
+    // Check suitability of matrix
+    if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "PardisoSolver only works with (S)CRS_Matrix class!" );
+    }
+    else {
+      const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+          stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  ) {
+        EXCEPTION( "PardisoSolver only works with (S)CRS_Matrix class!" );
+      }
+    }
+    PtrParamNode solverNode;
+    if ( eType == BaseMatrix::DOUBLE ) {
+      retSolver = new PardisoSolverPrimitive<Double>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(PardisoSolverPrimitive<Double>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated real Pardiso solver";
+    }
+    if ( eType == BaseMatrix::COMPLEX ) {
+      retSolver = new PardisoSolverPrimitive<Complex>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(PardisoSolverPrimitive<Complex>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated complex Pardiso solver";
+    }
+#else
+    EXCEPTION( "Compile with USE_PARDISO to enable interface to Pardiso "
+               "library" );
+#endif
+
+  // Check for unsupported matrix entry type
+  if (retSolver == NULL ) EXCEPTION("unhandled type " << eType);
+
+  return retSolver;
+}
+
 
 std::set<BaseMatrix::StorageType> 
 GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {

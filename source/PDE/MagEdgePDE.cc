@@ -1300,38 +1300,43 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // === CORE LOSS DENSITY ===
     // This is a "density" per kg, not per m^3. That's why we cannot integrate it over
     // the volume to get the core loss (see below).
-    shared_ptr<CoefFunctionMulti> cldCoef =
-        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
-    BaseMaterial* actMat = NULL;
-    regIt = regions_.Begin();
-    for( ; regIt != regions_.End(); ++regIt ) {
-      RegionIdType actRegion = *regIt;
-      actMat = materials_[actRegion];
-      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
-          GetCoefFct(MAG_FLUX_DENSITY) );
-      cldCoef->AddRegion(actRegion, coreLossFct);
-    }
 
-    // === CORE LOSS ===
-    // The core loss per kg has to be multiplied by the density to get it per m^3.
-    // Then we can integrate over the volume in order to get the core loss.
-    shared_ptr<CoefFunctionMulti> clCoef =
-        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
-    actMat = NULL;
-    regIt = regions_.Begin();
-    for( ; regIt != regions_.End(); ++regIt ) {
-      RegionIdType actRegion = *regIt;
-      actMat = materials_[actRegion];
-      // core loss density in W/kg
-      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
-          GetCoefFct(MAG_FLUX_DENSITY) );
-      // core loss density in W/m^3, which deserves to be called density
-      PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part,
-          CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
-      clCoef->AddRegion( actRegion, coreLossDensCoef );
-    }
+//TODO Core loss computation is disabled temporarily for harmonic analysis because otherwise we
+// get an error in AddRegion, due to the multiplication of a real- and a complex-valued
+// coefficient function. CHECK THIS !!!
+    if( analysistype_ != HARMONIC ) {
+		shared_ptr<CoefFunctionMulti> cldCoef =
+			dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
+		BaseMaterial* actMat = NULL;
+		regIt = regions_.Begin();
+		for( ; regIt != regions_.End(); ++regIt ) {
+		  RegionIdType actRegion = *regIt;
+		  actMat = materials_[actRegion];
+		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
+			  GetCoefFct(MAG_FLUX_DENSITY) );
+		  cldCoef->AddRegion(actRegion, coreLossFct);
+		}
 
+		// === CORE LOSS ===
+		// The core loss per kg has to be multiplied by the density to get it per m^3.
+		// Then we can integrate over the volume in order to get the core loss.
+		shared_ptr<CoefFunctionMulti> clCoef =
+			dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
+		actMat = NULL;
+		regIt = regions_.Begin();
+		for( ; regIt != regions_.End(); ++regIt ) {
+		  RegionIdType actRegion = *regIt;
+		  actMat = materials_[actRegion];
+		  // core loss density in W/kg
+		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
+			  GetCoefFct(MAG_FLUX_DENSITY) );
+		  // core loss density in W/m^3, which deserves to be called density
+		  PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
+		  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part,
+			  CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
+		  clCoef->AddRegion( actRegion, coreLossDensCoef );
+		}
+    }
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> > 

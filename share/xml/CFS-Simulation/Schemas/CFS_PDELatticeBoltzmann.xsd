@@ -106,7 +106,7 @@
               
 							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />
               
-							<xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional" default="100000" >
+							<xsd:attribute name="maxIter" type="xsd:float" use="optional" default="1e6" >
                 <xsd:annotation>
                   <xsd:documentation>upper bound of the LBM iterations</xsd:documentation>
                 </xsd:annotation>

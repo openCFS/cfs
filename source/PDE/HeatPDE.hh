@@ -110,6 +110,16 @@ namespace CoupledField {
     
     bool interfaceDrivenHeatSource_;
 
+    //! Coefficient function for the convective velocity
+
+    //! This coefficient function describes the velocity field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> convecVelCoef_;
+
+    //! store convective bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

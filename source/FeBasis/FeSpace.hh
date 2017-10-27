@@ -491,6 +491,12 @@ public:
   virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
                                           shared_ptr<FeSpace> space ) = 0;
 
+
+  //! Create a map of equation-index-geometry for AMG-solver/preconditioner
+  //! ONLY for single-PDE's with lowest order Lagrange- or edge-elements
+  void CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
+                          UInt&, UInt&);
+
 protected:
   
   bool lagrangeSurfSpace_;  

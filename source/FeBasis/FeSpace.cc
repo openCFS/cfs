@@ -1861,6 +1861,186 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
   }
   
+
+
+  void FeSpace::CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>& eqIndGeomMap,
+                                    UInt& maxEqn, UInt& dim){
+    // since it's only used for lowest order FE-functions, the node-entity is
+    // whether vertex or edge (for edge-elements)
+
+    // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
+    StdVector<UInt> blockNums, indices;
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    FeFctIdType fctId = feFct->GetFctId();
+    AlgebraicSys * algSys = feFct->GetSystem();
+    if( algSys )
+      algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
+    if( this->GetSpaceType() != this->HCURL ){
+      /************** H1 Lagrange - Version *******************/
+      // 1) loop over every node and store it's equations,
+      //    index and grid-geometry
+      boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
+      boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+      maxEqn = 0;
+      while(nodeIt != nodeMap_.eqns.end()){
+        BaseFeFunction::EqNodeGeom nMap;
+        dim = nodeIt->second.GetSize();
+        Vector<Double> c;
+        feFct->GetGrid()->GetNodeCoordinate(c, nodeIt->first);
+        // only if equation number != 0 (they start with 1)
+        // this would indicate that we have a Dirichlet (inh. or hom.)
+        // but they are not handled inside AMG!!!
+
+        switch (dim){
+        case 1:
+          if( nodeIt->second[0]){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+
+        case 2:
+          if( nodeIt->second[0] || nodeIt->second[1]){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+
+        case 3:
+          if( nodeIt->second[0] || nodeIt->second[1] || nodeIt->second[2] != 0
+          ){
+            for(UInt iDof = 0; iDof < dim; iDof++){
+              // index
+              nMap.indexNum = indices[nodeIt->second[iDof] - 1 ]; // index[i] = eqn[i] - 1
+              //nodeNum
+              nMap.nodeNum = nodeIt->first;
+              //coord
+              nMap.coord = c;
+              if(nodeIt->second[iDof] > (Integer)maxEqn) maxEqn = nodeIt->second[iDof];
+              // insert it into map
+              eqIndGeomMap[nodeIt->second[iDof]] = nMap; //nodeIt->second[iDof] is the eqn
+            }
+          }
+          break;
+        }//switch dim
+        nodeIt++;
+      }//while nodeIt != nodeMap_.eqns.end()
+    }else{
+      if( this->GetSpaceType() == this->HCURL ){
+        /************** HCurl Nedelec - Version *******************/
+        dim = 1;
+        std::map<UInt,StdVector<UInt> > indexGeomMap;
+        // iterate over all elements
+        std::set<const Elem*> allElems;
+        GetAllElems(allElems);
+
+        BaseFeFunction::EqNodeGeom nMap;
+        // loop over all elements and store geometric information
+        std::set<const Elem*>::iterator elemIt;
+        for( elemIt = allElems.begin(); elemIt != allElems.end(); ++elemIt ) {
+
+          const Elem * ptElem = *elemIt;
+
+          BaseFE::EntityType type;
+          type = BaseFE::EDGE;
+
+          // vector containing entity numbers
+          StdVector<UInt> entNumbers;
+          EntityNodesType &vNodes = vNodesCont_[type];
+
+
+          // loop over all edges
+          for( UInt i = 0; i < ptElem->extended->edges.GetSize(); ++i ) {
+            UInt edgeNum = std::abs(ptElem->extended->edges[i]);
+            // direction of edge
+            UInt dir = ptElem->extended->edges[i] < 0 ? 0 : 1;
+            // Get hold of virtual nodes for given edge
+            StdVector<UInt>& vNodesEdge = vNodes[edgeNum];
+            UInt edgeNumNodes = vNodesEdge.GetSize();
+            // check, if any virtual nodes are assigned at all
+            if( vNodesEdge.GetSize() != 0 ) {
+              for( UInt j = 0; j < edgeNumNodes; ++j ) {
+                // equation numbers (loop)
+                StdVector<Integer> & eqns = nodeMap_[vNodesEdge[j]];
+
+                //geometry information
+                StdVector<UInt> edgeNodes;
+                StdVector<UInt> edgeNodesC; //for getting the coordinates
+                ptElem->GetEdgeNodes( edgeNum , edgeNodes );
+
+                //for 0th order edge-elements (=Nédélec elements) there
+                //should only be one equation per edge
+                if(eqns.GetSize() > 1){
+                  EXCEPTION("FeSpace.cc: Index<->Geometry mapping for edges only works for 0th order EdgeElements!");
+                }else{
+                  //for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
+                  Integer & eqn = eqns[0];
+                  if( eqn > 0 && algSys) {
+                    // index
+                    UInt index = indices[eqn-1];
+                    // Assign index and edge-number to the map only if it is not already mapped
+                    if(indexGeomMap.find(index) == indexGeomMap.end()){
+                      //don't know why the node-numbering in GetNodeCoordinates is 0-based
+                      //and in the FeSpace it's 1-based ?!
+                      nMap.indexNum = index;
+                      edgeNodesC.Resize(2);
+                      edgeNodesC[0] = edgeNodes[0] - 1;
+                      edgeNodesC[1] = edgeNodes[1] - 1;
+                      StdVector< Vector<Double> > nCoords;
+                      feFct->GetGrid()->GetNodeCoordinates(nCoords, edgeNodesC, false);
+
+                      nMap.eCoords.Resize(2);
+                      nMap.eCoords[0] = nCoords[0];
+                      nMap.eCoords[1] = nCoords[1];
+                      nMap.eNodes.Resize(2); // 2 nodes per edge
+                      switch(dir)
+                      {
+                      case 1:
+                        indexGeomMap[index].Push_back(edgeNodes[0]);
+                        indexGeomMap[index].Push_back(edgeNodes[1]);
+                        nMap.eNodes[0] = edgeNodes[0];
+                        nMap.eNodes[1] = edgeNodes[1];
+                        break;
+                      case 0:
+                        indexGeomMap[index].Push_back(edgeNodes[1]);
+                        indexGeomMap[index].Push_back(edgeNodes[0]);
+                        nMap.eNodes[0] = edgeNodes[1];
+                        nMap.eNodes[1] = edgeNodes[0];
+                        break;
+                      }
+                      // insert it into final map
+                      eqIndGeomMap[eqns[0]] = nMap; //nodeIt->second[iDof] is the eqn
+                    }
+                  }//if( eqn > 0 && algSys)
+                } // loop over virtual nodes
+              }// loop over nodes of edge i
+            } // if vNodes.GetSize != 0
+          } // loop over edges
+        }// loop over elements
+      }else EXCEPTION("AMG: FeSpace is not H1 nor HCurl !!!");
+    }
+  }
+
+
   UInt FeSpace::GetNumDofs() const {
     // Just return number of components
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer

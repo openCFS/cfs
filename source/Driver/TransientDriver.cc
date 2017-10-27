@@ -183,6 +183,9 @@ namespace CoupledField {
     
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
     
+    //only used if AMG is set
+    ptPDE_->GetSolveStep()->SetAuxMat(false);
+
     // Outer loop over all timesteps
     UInt count = 0;
     for (actTimeStep_ = startStep; 

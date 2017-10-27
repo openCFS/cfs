@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <set>
+#include <time.h>
 
 #include "GridCFS.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -39,7 +40,7 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
-    mapNodeToElems_.Resize(GetNumNodes()+1);
+    mapNodeToElems_.Resize(0);
     buildExtendedElemInfo_ = buildExtend;
   }
 
@@ -803,14 +804,17 @@ namespace CoupledField {
       regionData[regionElemIt->first].type = VOLUME_REGION;
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(regionElemIt->first);
-      
       // make number of region nodes unique
       StdVector<UInt> & regionNodes = regionNodeIt->second;
-      std::sort( regionNodes.Begin(), regionNodes.End() );
+
+      // spreadsort is about 20 times faster than std::sort (tested for 1e7 nodes)
+      boost::sort::spreadsort::spreadsort( regionNodes.Begin(), regionNodes.End() );
+      //std::sort( regionNodes.Begin(), regionNodes.End() );
+
       StdVector<UInt>::iterator uIt;
       uIt = std::unique( regionNodes.Begin(), regionNodes.End() );
       UInt numRegionNodes = std::distance(regionNodes.Begin(), uIt);
-      numVolElemNodes_.Push_back(numRegionNodes); 
+      numVolElemNodes_.Push_back(numRegionNodes);
     }
     volRegionNodes.clear();
   
@@ -1862,7 +1866,6 @@ namespace CoupledField {
     return numElems;
   }
 
-
   void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
   {
     // Check if entities with given name exist already
@@ -2117,6 +2120,26 @@ namespace CoupledField {
     }
   }
   
+
+  void GridCFS::GetNodeCoordinates( StdVector< Vector<Double> > & nodeCoords,
+                                   StdVector<UInt> & nodeList,
+                                   bool updated ) const {
+
+    nodeCoords.Resize(nodeList.GetSize());
+    // check if nodes are available
+    for (UInt i = 0; i < nodeList.GetSize(); ++i) {
+      if (nodeList[i] > numNodes_ ) {
+        EXCEPTION( "GridCFS: There are only " << numNodes_
+                   << " nodes in the grid. You requested coordinates for "
+                   << "node number " << nodeList[i] <<". Go check your mesh file!" );
+      }
+      nodeCoords[i] = coords_[nodeList[i]];
+      if (updated && deltCoords_.GetSize() > 0) {
+        nodeCoords[i] += deltCoords_[nodeList[i]];
+      }
+    }
+  }
+
   void GridCFS::GetNodeCoordinate3D( Vector<Double> & rfPoint,
                                    const UInt inode,
                                    bool updated ) const {
@@ -2586,6 +2609,7 @@ namespace CoupledField {
     }
   }
   
+
   void GridCFS::GetElemNodes( StdVector<UInt> & connect,
                               const UInt iElem ) {
 
@@ -2632,11 +2656,10 @@ namespace CoupledField {
 
   }
 
-
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType>
-                                     & regionIds ) {
+                                     & regionIds) {
     bool belongs2Interface;
 
     StdVector<UInt> map;
@@ -2660,6 +2683,7 @@ namespace CoupledField {
       for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
       {
         Elem *aux = elems[iNS];
+
         StdVector<UInt>  const & aux_connect = aux->connect;
 
         belongs2Interface = false;
@@ -2680,8 +2704,18 @@ namespace CoupledField {
           elemList.Push_back(elems[iNS]);
       }
     }
+
+
   }
 
+  void GridCFS::GetNumOfElemsNextToNodes( UInt & num,
+                                     const UInt & node,
+                                     const StdVector<RegionIdType>& regionIds) {
+    num = 0;
+    for(auto i = mapNodeToElems_[node].Begin(); i != mapNodeToElems_[node].End(); ++i){
+      if( regionIds.Contains( (*i)->regionId) ) ++num;
+    }
+  }
 
   void GridCFS::GetElemsNextToSurface( StdVector<Elem*> & neighbours,
                                        const StdVector<Elem*> & surfElems,
@@ -2690,15 +2724,42 @@ namespace CoupledField {
     EXCEPTION( "Not implemented" );
   }
 
-
-
-
   // ======================================================
   // MISCELLANEOUS
   // ======================================================
 
   void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                    const StdVector<Elem*> & elemList,
+                                    StdVector<const Elem*> & elemList,
+                                    bool onlyLinNodes) {
+
+    std::set<UInt> elemNodes;
+    std::set<UInt>::iterator it;
+    UInt iElem, iNode, numElemCorners;
+
+    // First, create a set with node numbers of elements
+    for ( iElem = 0; iElem < elemList.GetSize(); iElem++ ) {
+      StdVector<UInt> const & connecth = elemList[iElem]->connect;
+      ElemShape & actShape = Elem::shapes[elemList[iElem]->type];
+      if (onlyLinNodes == true)
+        numElemCorners = actShape.numNodes;
+      else
+        numElemCorners = connecth.GetSize();
+
+      for ( iNode = 0; iNode < numElemCorners; iNode++ ) {
+        elemNodes.insert(connecth[iNode]);
+      }
+    }
+
+    // Then copy this set into the nodeList vector
+    nodeList.Resize(elemNodes.size());
+    iNode = 0;
+    for ( it = elemNodes.begin(); it != elemNodes.end(); it++) {
+      nodeList[iNode++] = *it;
+    }
+  }
+
+  void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
+                                    StdVector<Elem*> & elemList,
                                     bool onlyLinNodes) {
 
     std::set<UInt> elemNodes;
@@ -3172,7 +3233,7 @@ namespace CoupledField {
         for( UInt j=i+1; j < points.GetSize()/2.0; j++ )
         {
           det = (points[2*i][0] - points[2*i+1][0]) * (points[2*j][1] - points[2*j+1][1]) - (points[2*j][0] - points[2*j+1][0]) * (points[2*i][1] - points[2*i+1][1]);
-          if(det != 0) {
+          if( abs(det) > 1e-10 ) {
             det1 = points[2*i][0] * points[2*i+1][1] - points[2*i+1][0] * points[2*i][1];
             det2 = points[2*j][0] * points[2*j+1][1] - points[2*j+1][0] * points[2*j][1];
             r[0] = ( det1 * (points[2*j][0] - points[2*j+1][0]) - det2 * (points[2*i][0] - points[2*i+1][0]) ) / det;

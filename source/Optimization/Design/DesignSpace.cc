@@ -436,12 +436,11 @@ void DesignSpace::PostInit(int objectives, int constraints)
     {
       Context& ctxt = Optimization::manager.context[i];
       // FIXME there might be an multi sequence issue
-      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0)
+      {
         TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
-        if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
-          PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-          in->SetValue("no transfer function 'mass' given for harmonic model");
-        }
+        if(tf == NULL && ctxt.pde->GetName() != "electrostatic")
+          info_->Get(ParamNode::HEADER)->Get("transferFunctions")->SetWarning("no transfer function 'mass' given for harmonic model");
       }
     }
   }
@@ -685,13 +684,21 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                        DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
+  assert(design != DesignElement::NO_TYPE); // this cannot be set in xml. DEFAULT can also only be set by omitting the attribute
+
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
-    // two step check
-    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
-    // second check
-    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation) continue;
+    // if either rd.desgin from xml or the given design is DEFAULT, we do NOT compare both
+    if(rd.design != DesignElement::DEFAULT && design != DesignElement::DEFAULT && rd.design != design)
+      continue;
+
+    if(rd.value != value || rd.detail != detail || rd.access != access)
+      continue;
+
+    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation)
+      continue;
+
     // we are right.
     switch(rd.solutionType)
     {
@@ -1131,36 +1138,42 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
-  for(unsigned int des = 0; des < nd; des++){
+  for(unsigned int des = 0; des < nd; des++)
+  {
     StdVector<DesignRegion>& cur_des = regions[des];
     const unsigned int nr = regions[des].GetSize();
-    for(unsigned int r = 0; r < nr; r++){
+    for(unsigned int r = 0; r < nr; r++)
+    {
       DesignRegion& cur_reg = cur_des[r];
       const double scaling = cur_reg.scale_design;
       const double translation = cur_reg.translate_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
-      if(cur_reg.constant == VARIABLE) {
-        for(unsigned int d = cur_reg.base; d < u; d++){
+      if(cur_reg.constant == VARIABLE)
+      {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
           const double v = space[s] * scaling + translation;
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
-      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
+      }
+      else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS)
+      { // in FIXED case, nothing is done
         const double v = space[s] * scaling + translation;
-        for(unsigned int d = cur_reg.base; d < u; d++){
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
         } // for d
-        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) ){
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
           s++; // only advance after having set all element of this region (or even all regions) to the corresponding value
-        }
       } // if/else constant
     } // for r
   } // for des
@@ -1370,8 +1383,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 }
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
+  unsigned int end   = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
 

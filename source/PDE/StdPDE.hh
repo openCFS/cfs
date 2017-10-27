@@ -93,6 +93,9 @@ namespace CoupledField {
       return isaxi_;
     }
     
+    //! Set geometry information
+    virtual void SetGeomInfo();
+
     //! Set special RHS values
     virtual void SetRhsValues();
 

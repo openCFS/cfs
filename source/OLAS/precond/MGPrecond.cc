@@ -1,31 +1,25 @@
-#define  INCLUDE_MULTIGRID_CC_FILES
+//#define  INCLUDE_MULTIGRID_CC_FILES
+#include <def_expl_templ_inst.hh>
 
-#include "precond/MGPrecond.hh"
+#include "OLAS/precond/MGPrecond.hh"
+#include "DataInOut/ProgramOptions.hh"
 
 namespace CoupledField {
-/**********************************************************/
 
-template <typename T>
-MGPrecond<T>::MGPrecond( OLAS_Params *params )
-    : params_( params ),
-      report_( NULL ),
-      AMG_( NULL )
-{
-  // The MG preconditioner is currently not working
-  WARN("The MG-Preconditioner is not yet ported from 1 to 0 based"
-      "numbering, i.e. it will NOT work correctly!" );
-}    
-
-/**********************************************************/
 
 template <typename T>
 MGPrecond<T>::MGPrecond( const StdMatrix   &matrix,
-                         OLAS_Params *params,
-                         OLAS_Report *report )
-    : params_( params ),
-      report_( report ),
+                        PtrParamNode precondNode,
+                        PtrParamNode olasInfo )
+    : params_( precondNode ),
+      report_( olasInfo ),
       AMG_( NULL )
 {
+
+  // Set pointers to communication objects
+  this->xml_ = precondNode;
+  this->infoNode_ = olasInfo->Get("MG", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+
 }
 
 /**********************************************************/
@@ -43,56 +37,35 @@ template <typename T>
 void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
 {
 
-    if( ! AMG_ ) {
-      if( NULL == (AMG_ = New AMGSolver<T>(params_)) ) {
-	Error( "MGPrecond::Setup: could not create serial "
-	       "AMG object", __FILE__, __LINE__ );
-      } else {
-	AMG_->Reset();
-      }
-    }
-    // cast the matrix to a serial CRS matrix and call Setup
+  // The new implementation only works with the auxiliary-
+  // matrix approach
+  EXCEPTION("MGPrecond::Setup : wrong constructor was called!");
 
-    CRS_Matrix<T>& crsSysMatrix = dynamic_cast<CRS_Matrix<T>&>(sysmatrix);
-      // eventually change the layout of the matrix
-    if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
-      crsSysMatrix.ChangeLayout( CRS_Matrix<T>::LEX_DIAG_FIRST );
-    }
-    // setup the serial AMG object
-    if( ! AMG_->Setup(&crsSysMatrix) ) {
-      Error( "MGPrecond::Setup: could not set up the AMG "
-	     "preconditioner\n", __FILE__, __LINE__ );
-    }
-    this->readyToUse_ = true;  
 }
 
 /**********************************************************/
 
 template <typename T>
-void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
-                          const StdMatrix& auxmatrix )
+void MGPrecond<T>::SetupMG(StdMatrix& sysmatrix,
+                           StdMatrix& auxmatrix,
+                           const AMGType amgType,
+                           const StdVector< StdVector< Integer> >& edgeIndNode,
+                           const StdVector<Integer>& nodeNumIndex)
 {
-
-    ///////////////////////////////////////////////////////////
-    Error( "MGPrecond::Setup(StdMatrix,StdMatrix) not yet "
-           "implemented\n", __FILE__, __LINE__ );
-    ///////////////////////////////////////////////////////////
-
-    // cast the standart matrix objects (AMG works with
+    // cast the standard matrix objects (AMG works with
     // CRS matrices only)
-    CRS_Matrix<T>* const pSysMatrix = dynamic_cast<CRS_Matrix<T>*>(&sysmatrix);
-    CRS_Matrix<T>* const pAuxMatrix = dynamic_cast<CRS_Matrix<T>*>(&auxmatrix);
+    CRS_Matrix<T>& pSysMatrix = dynamic_cast<CRS_Matrix<T>&>(sysmatrix);
+    CRS_Matrix<Double>& pAuxMatrix = dynamic_cast<CRS_Matrix<Double>&>(auxmatrix);
 
-    if( ! pSysMatrix && ! pAuxMatrix ) {
-        Error( "MGPrecond::Setup: AMG works with CRS matrices "
-               "only\n", __FILE__, __LINE__ );
-    }
+    AMG_ = new AMGSolver<T>(params_, report_);
 
     // setup the serial matrix object
-    if( !AMG_.Setup(&sysmatrix, &auxmatrix) ) {
-        Error( "could not set up the AMG preconditioner\n",
-               __FILE__, __LINE__ );
+    if( !AMG_->Setup(&pSysMatrix, &pAuxMatrix, amgType, edgeIndNode, nodeNumIndex) ) {
+      EXCEPTION( "could not set up the AMG preconditioner");
     }
+
+    AMG_->Print(std::cout);
+    this->readyToUse_ = true;
 }
 
 /**********************************************************/
@@ -110,6 +83,7 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
     // a parallel program. Also in this case the casts to
     // (const) Vector<T> are OK, because Vector<T> is a
     // base class of ParVector<T>
+
     if( AMG_ ) {
       const Vector<T>& vectorRhs = dynamic_cast<const Vector<T>&>(rhs);
       Vector<T>& vectorSol = dynamic_cast<Vector<T>&>(sol);
@@ -117,15 +91,22 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
       // AMG cycle
       AMG_->Cycle( vectorRhs, vectorSol );
     } else {
-      Error( "AMG preconditioner used in undefined "
-          "state. It is a bug that you could reach "
-          "this line.", __FILE__, __LINE__ );
+      EXCEPTION( "AMG preconditioner used in undefined "
+          "state. It is a bug that you could reach this line.");
     }
   } else {
-    Error( "AMG preconditioner used before setup",
-        __FILE__, __LINE__ );
+    EXCEPTION( "AMG preconditioner used before setup");
   }
+
+
     }
 
 /**********************************************************/
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template class MGPrecond<Double>;
+template class MGPrecond<Complex>;
+#endif
+
 } // namespace CoupledField
