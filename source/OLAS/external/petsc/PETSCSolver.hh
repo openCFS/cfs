@@ -6,6 +6,11 @@
 /*!
  *       \file     PETSCSolver.hh
  *       \brief    This implements the interface to the PETSC solver package
+ *        
+ *        The interface consist of  a solver class (ie master)  and a worker class. The sysmat and rhs
+ *        obtained is set into PetscMat only using the master class ,all other commands must be called
+ *        by all workers
+ *              
  *
  *       \date     oct 30, 2017
  *       \author   sri
@@ -90,7 +95,7 @@ namespace CoupledField
     * @param sysmat shall be the one Setup() is called with */
    void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
-   void worker_run();
+   void SendWorkerCommand(int TAG);
    
    BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
@@ -149,5 +154,61 @@ namespace CoupledField
    PetscMPIInt mpi_rank;
 
   };
+  
+  
+  class PETSCWorker
+  {
+  public:
+   
+    
+    void run();
+    PETSCWorker();
+    ~PETSCWorker();
+    
+  private:
+   
+    int InitPetscWorker();
+    void SetupPetscWorker(int);
+    void GetSol();
+
+    PC precond_;//ksp linear precond context
+
+    KSP solver_; //ksp linear solver context
+
+    //stores the system Matrix
+    Mat A_;
+    // this is our working copy we can safely delete without disturbing cfs
+    Mat A0_;
+
+    //stores the current solution
+    Vec x_;
+
+    ///stores the current RHS
+    Vec b_;
+
+    ///pointer to xml node
+    PtrParamNode xml_;
+
+    ///internal status flag for updated matrix computations
+    bool firstSetup_;
+
+    ///reset solution vector to zero if Setup is called
+    bool resetXZero_;
+
+    bool ownMatrixA_;
+
+    /** with throw exception when exceeded */
+    PetscInt maxIter_ = 10000;
+
+    /** not that PETSC has three ways to calculate the residuum */
+    PetscScalar tolerance_ = 1e-12;
+
+    /** throws only an exception on maxIter exceeded if also minTol_ is not met */
+    PetscScalar minTol_ =  1e-11;
+
+    /** activates a PETSC feature */
+    bool logging_ = false;
+  };
+  
 }
 #endif
