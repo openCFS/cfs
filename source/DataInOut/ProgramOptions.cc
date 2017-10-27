@@ -11,6 +11,7 @@
 #include <def_use_ilupack.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_lis.hh>
+#include <def_use_petsc.hh>
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>

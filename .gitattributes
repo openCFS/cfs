@@ -579,6 +579,7 @@ include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
+include/def_use_petsc.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_sgpp.hh.in -text
 include/def_use_snopt.hh.in -text
@@ -2085,6 +2086,9 @@ source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/petsc/CMakeLists.txt -text
+source/OLAS/external/petsc/PETSCSolver.cc -text
+source/OLAS/external/petsc/PETSCSolver.hh -text
 source/OLAS/external/superlu/CMakeLists.txt -text
 source/OLAS/external/superlu/SuperLUSolver.cc -text
 source/OLAS/external/superlu/SuperLUSolver.hh -text

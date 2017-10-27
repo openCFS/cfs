@@ -4,6 +4,7 @@
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
+#include<def_use_petsc.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -39,6 +40,9 @@
 #include "OLAS/external/lis/LISSolver.hh"
 #endif
 
+#ifdef USE_PETSC
+#include "OLAS/external/petsc/PETSCSolver.hh"
+#endif
 // include source code for templated solvers
 #include "BaseSolver.hh"
 #include "RichardsonSolver.hh"
@@ -392,6 +396,29 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
   break;
 
+  case BaseSolver::PETSC:
+
+ #ifdef USE_PETSC
+   {
+     // Check suitability of matrix
+     if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
+       EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+     const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
+         && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
+       EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+
+     retSolver = new PETSCSolver(solverNode, olasInfo, eType);
+     
+     LOG_DBG(genSolver) << " GenerateSolver: Generated PETSC solver";
+   }
+ #else
+   EXCEPTION("Compile with USE_PETSC to enable interface to PETSC.");
+ #endif
+   break;
+
+
+
   case BaseSolver::CHOLMOD:
 #ifdef USE_SUITESPARSE
   {
@@ -470,6 +497,11 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
+
+    case BaseSolver::PETSC:
+          ret.insert(BaseMatrix::SPARSE_SYM);
+          ret.insert(BaseMatrix::SPARSE_NONSYM);
+          break;
 
     case BaseSolver::SUPERLU:
       ret.insert(BaseMatrix::SPARSE_NONSYM);
