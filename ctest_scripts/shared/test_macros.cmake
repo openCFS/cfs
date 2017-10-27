@@ -481,10 +481,6 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CC} "/usr/bin/gcc")
     SET(ENV{CXX} "/usr/bin/g++")
     SET(ENV{FC} "/usr/bin/gfortran")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
 
   elseif(${COMPILER_TYPE} STREQUAL "GCC-6")
     # search for compilers from software collections
@@ -498,20 +494,22 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CXX} "${SCL_CXX}")
     SET(ENV{FC} "${SCL_FC}")
 
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
+  elseif(${COMPILER_TYPE} STREQUAL "GCC-7")
+    # search for compilers from software collections
+    execute_process(COMMAND scl enable devtoolset-7 -- which gcc
+                    OUTPUT_VARIABLE SCL_CC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-7 -- which g++
+                    OUTPUT_VARIABLE SCL_CXX OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-7 -- which gfortran
+                    OUTPUT_VARIABLE SCL_FC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    SET(ENV{CC} "${SCL_CC}")
+    SET(ENV{CXX} "${SCL_CXX}")
+    SET(ENV{FC} "${SCL_FC}")
 
   elseif(${COMPILER_TYPE} STREQUAL "CLANG")
     SET(ENV{CC} "clang")
     SET(ENV{CXX} "clang++")
     SET(ENV{FC} "gfortran")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
-
 
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
@@ -567,14 +565,15 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CC} "icc")
     SET(ENV{CXX} "icpc")
     SET(ENV{FC} "ifort")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
 
   else()
-    message("can only set compiler environment for GCC, GCC-6, CLANG or ICC, not for ${COMPILER}!")
+    message("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG or ICC, not for ${COMPILER}!")
   endif()
+
+  SET(ENV{LC_MESSAGES} "C")
+  SET(ENV{LC_ALL} "C")
+  SET(ENV{LANG} "C")
+  SET(ENV{LANGUAGE} "C")
 
   IDENTIFY_COMPILER()
 endmacro()
