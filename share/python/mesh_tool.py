@@ -12,6 +12,13 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
+import matviz_vtk  
+
+try:
+  import meshpy.triangle as triangle
+  from meshpy.tet import MeshInfo, build
+except:
+  print("Failed to load meshpy - need it for tetrahedralized mesh")
 
 
 # writes a dense two region mesh
@@ -1009,11 +1016,14 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   nx = x_res  
    
   if type == "bulk3d": 
-      ny = y_res if y_res != None else x_res 
-      nz = z_res if z_res != None else x_res 
-      width = scale
-      height = scale*float(ny)/nx 
-      depth = scale*float(nz)/nx 
+    ny = y_res if y_res != None else x_res 
+    nz = z_res if z_res != None else x_res 
+    width = scale
+    height = scale*float(ny)/nx 
+    depth = scale*float(nz)/nx
+    if inclusion == "top_panel":
+      height = 1.0
+      depth  = 0.5   
   elif type == "cantilever3d": 
     ny = int(nx * (2./3.))
     nz = int(nx * (2./3.)) 
@@ -1028,11 +1038,11 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     height = 30.0 
     depth = 30.0 
   elif type == "validation_test":
-    ny = nx 
-    nz = nx 
-    width = 1.
-    height = 1.
-    depth = 1. 
+    ny = y_res if y_res != None else x_res  
+    nz = z_res if z_res != None else x_res
+    width = scale
+    height = scale*float(ny)/nx 
+    depth = scale*float(nz)/nx  
     
      
   dx = width / nx 
@@ -1099,13 +1109,16 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
+        elif inclusion == "top_panel" and y == ny-1:
+          e.region = 'non-design'
+          second += 1  
         elif type == "validation_test" and (y < int(0.1*ny) or y >= int(0.9*ny)):
           second += 1
           e.region = "non-design" if not threshold or e.density > threshold else 'void'    
         elif type == "traegerblz" and (z < 2./30.0001*nz ):
           e.region = "aluminium"
         elif type == "traegerblz" and ((z >= 2./30.0001*nz) and (x*dx < 24.9999)):
-          e.region = "void"            
+          e.region = "void"
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
           mech_count = mech_count + 1
@@ -1116,7 +1129,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
         e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
         mesh.elements.append(e)
-    
+  
   if type == "traegerblz":
     side = (("top_mech", []))
     mesh.bc.append(side)
@@ -1147,7 +1160,29 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     for z in range(int(0.4*nnz), int(0.6*nnz)+1):
       for x in range(int(0.4*nnx), int(0.6*nnx)+1):
         side[1].append((z * nny + ny) * nnx + x)
-  
+        
+  if type == "bulk3d" and inclusion == "top_panel":
+    # width of support area 
+    sa = 0.05
+    # number of elements on each side
+    nsa_x = nx * sa
+    nsa_z = nz * sa
+    
+    # x == 0, y == 0
+    for i in range(int(nsa_x)):
+      mesh.bc.append(("support",list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))))
+    
+    # y == 0, z == 0
+    for i in range(int(nsa_z)):
+      mesh.bc.append(("support",list(range(i*nnx*nny,i*nnx*nny+nnx,1))))
+      mesh.bc.append(("support",list(range(2*nnx*nny,2*nnx*nny+nnx,1))))  
+    # loads are all nodes in x-z plane for y == nny
+    for i in range(0,nnz):
+      mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
+    name_bc_nodes(mesh)
+    
+  name_bc_nodes(mesh)    
+        
   mesh = name_bc_nodes(mesh)  
   msg =  "dense resolution: " + str(nx) + " x " + str(ny) + " x " + str(nz) + " elements "
   msg += " -> " + str(mech_count) + " mech elements out of " + str(nx * ny * nz) + " (" + str(float(mech_count) / (nx * ny *nz) * 100.0) + " %)"
@@ -1668,7 +1703,9 @@ def create_mesh_from_gmsh_special(meshfile,type):
 def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   #from two_scale_tools import create_mesh_for_aux_cells, create_mesh_for_apod6
   # read 3D tetrahedron gmsh mesh
-  inp = open(meshfile+".msh").readlines()
+  if not meshfile.endswith(".msh"):
+    meshfile = meshfile + ".msh"
+  inp = open(meshfile).readlines()
   nodes = []
   if regionnumbers != None:
     regions = [[] for nums in regionnumbers]
@@ -1729,35 +1766,84 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 
   # Create mesh  
   # add nodes    
-  mesh = mesh_tool.Mesh()
+  mesh = Mesh()
   mesh.nodes = nodes
   
-  if regionnumbers == None:
-    regionnumbers = 'mech'
-  for j in range(len(regionnumbers)):
-    for i in range(len(regions[j])):
-      e = mesh_tool.Element()
-      e.nodes = (regions[j][i][1:])
+#   if regionnumbers == None:
+#     regionnumbers = 'mech'
+  # seems not to work if no region was specified
+  if regionnumbers != None:
+    print("regionnumbers:",regionnumbers)
+    for j in range(len(regionnumbers)):
+      for i in range(len(regions[j])):
+        e = Element()
+        e.nodes = (regions[j][i][1:])
+        for k in range (len(e.nodes)):
+          e.nodes[k] -= 1
+        e.density = 1.
+        e.region = str(regionnumbers[j])
+        if len(e.nodes) == 4:
+          e.type = TET4
+        elif len(e.nodes) == 6:
+          e.type = WEDGE6
+        elif len(e.nodes) == 8:
+          e.type = HEXA8
+        mesh.elements.append(e)
+  else: # workaround
+    for i in range(len(regions)):
+      e = Element()
+      e.nodes = (regions[i][1:])
       for k in range (len(e.nodes)):
         e.nodes[k] -= 1
       e.density = 1.
-      e.region = str(regionnumbers[j])
+      e.region = "mech"
       if len(e.nodes) == 4:
         e.type = TET4
       elif len(e.nodes) == 6:
         e.type = WEDGE6
       elif len(e.nodes) == 8:
         e.type = HEXA8
-      mesh.elements.append(e)
-      
+      mesh.elements.append(e)    
   for bcnum in range(len(surfaceBCnumbers)):
     mesh.bc.append((str(surfaceBCnumbers[bcnum]), list(set(bcs[bcnum]))))
-  
+    
 ## Manually add simple boundary conditions 
-#  load = []
-#  support = []
+  load = []
+  support = []
+  np_nodes = numpy.asarray(nodes)
+  xmin = 999999
+  xmax = -999999
+  ymin = 999999
+  ymax = -999999
+  for i in range(len(nodes)):
+    # for all nodes on bottom, get xmin,xmax,ymin,ymax
+    if numpy.isclose(nodes[i][2],0.0,1e-12):
+      if nodes[i][0] < xmin:
+        xmin = nodes[i][0]
+      if nodes[i][0] > xmax:
+        xmax = nodes[i][0]       
+      if nodes[i][1] < ymin:
+        ymin = nodes[i][0]
+      if nodes[i][1] > ymax:
+        ymax = nodes[i][0]  
+  print("xmin,xmax,ymin,ymax:",xmin,xmax,ymin,ymax)
 #  symmetric = []
-#  for i in range(len(nodes)):
+  for i in range(len(nodes)):
+    # all nodes on top face are loads
+    if numpy.isclose(nodes[i][2],1.0,1e-12):
+      load.append(i)
+    # all nodes on left face are supports
+#     if numpy.isclose(nodes[i][0],0.0,1e-12):
+#       support.append(i)
+    # all edges of bb with z = 0 are supports
+    if numpy.isclose(nodes[i][2],0.0,1e-12):
+      if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
+        support.append(i)
+      # y is y_min or y_max
+      elif numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
+        support.append(i)
+      # x is x_min or x_max  
+         
 #    if nodes[i][1] < -2.9999999:
 #      support.append(i)
 #    elif nodes[i][1] > 31.9999999:
@@ -1765,9 +1851,10 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #    if nodes[i][2] < 0.0000001:
 #      symmetric.append(i)
 #  print(len(load))
-#  print(len(support))
-#  mesh.bc.append(("load", load))
-#  mesh.bc.append(("support", support))
+#   print(len(support))
+# 
+  mesh.bc.append(("load", load))
+  mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
   write_gid_mesh(mesh, meshfile+".mesh") 
@@ -2408,13 +2495,11 @@ def create_mesh_for_aux_cells(all_nodes = [], elements = [],offset = 0.):
   return mesh
 
 # @param array to be written out
-# @param singRegion do we want a mesh with only one region?
+# @param multRegion do we want a mesh with three regions?
 # @param minDim and maxDim contain for x,y,z direction the minimum/maximum coordinate
-def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
+def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,minDim=[0.0,0.0,0.0],maxDim=[1.0,1.0,1.0]):
   nx, ny, nz = array.shape
   mesh = Mesh(nx,ny,nz)
-  
-  count = 0
   
   dx = widthx / nx
   dy = widthy / ny
@@ -2434,12 +2519,10 @@ def create_3d_mesh_from_array(array,singRegion,widthx=1.0,widthy=1.0,widthz=1.0,
       for x in range(nx):
         e = Element()
         e.type = HEXA8
-        if (array[x][y][z] >= 0.0 and not singRegion):
+        if (array[x][y][z] >= 0.0 and multRegion):
           e.region = "mech" + str(int(array[x][y][z]))
-          count += 1
-        elif (array[x][y][z] >= 0.0 and singRegion):
+        elif (array[x][y][z] >= 0.0 and not multRegion):
           e.region = "mech"
-          count += 1
         else:
           e.region = "void"
           
@@ -2487,6 +2570,7 @@ def create_2d_mesh_from_array(array):
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
   return mesh
+
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position, valid_ring_position, type = "apod6",thres=0.0,csize = None,simp = None):
   centers, mi, ma = coords[0:3]  # design elements
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
@@ -2659,11 +2743,53 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print('volume = ' +str(float(number)/float(number + void3_count)))
   return mesh
 
+
+# @param viz: vtk polydata object
+# @param stlname: name of stl file
+def create_validation_mesh_for_box_varel(viz,stlName):
+  ## test pymesh stuff
+  vertices, faces = matviz_vtk.vtk_polydata_to_numpy(viz)
+  mesh_interp = pymesh.form_mesh(vertices,faces)
+  
+  if not os.path.exists("top_panel.stl"):
+    print("Error:Could not find non-design stl 'top_panel.stl'")
+    sys.exit()
+    
+  mesh_merge = pymesh.load_mesh("top_panel.stl")
+  mesh = pymesh.boolean(mesh_interp, mesh_merge, "union")
+  
+  pymesh.save_mesh("test_pymesh.stl",mesh)
+def create_validation_mesh_for_pp_box(stlName,diffName,unionName):
+  if not (diffName.endswith(".stl") and unionName.endswith(".stl")):
+    print("need stl files for non-design regions!")
+    sys.exit()
+  
+  baseName = stlName[:-4]
+  
+  import pymesh
+  baseMesh = pymesh.load_mesh(stlName)
+  diffMesh = pymesh.load_mesh(diffName)
+  unionMesh = pymesh.load_mesh(unionName)
+  
+  diff = pymesh.boolean(baseMesh, diffMesh, "difference")
+  union = pymesh.boolean(diff, unionMesh, "union")
+  
+  # some mesh post-processing
+  split, _ = pymesh.meshutils.split_long_edges(union,4)
+  collapse, _ = pymesh.meshutils.collapse_short_edges(split,2.0,preserve_feature=True)
+  mesh = pymesh.resolve_self_intersection(collapse, engine="auto")
+  pymesh.save_mesh(baseName + "_validation.stl", mesh)
+  
+  create_volume_mesh_with_gmsh("validation_ppbox.stl")
+  
+  return "Not implemented yet"
+
 def create_volume_mesh_from_stl(stlName,write_vtk=False):
   assert(stlName.endswith(".stl"))
   # -p Tetrahedralizes a piececwise linear complex
   # -k Outputs mesh to .vtk file for viewing by Paraview
-  command = "tetgen -pk" if write_vtk else "tetgen -p"
+  # -O3 optimization level 3
+  command = "tetgen -pk -O3" if write_vtk else "tetgen -p"
   cfs_utils.execute(command + " " + stlName)
   mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
   
@@ -2671,5 +2797,22 @@ def create_volume_mesh_from_stl(stlName,write_vtk=False):
   validate_periodicity(mesh)
   
   return mesh
+
+def create_volume_mesh_with_gmsh(stlName):
+  baseName = stlName[:-4]
+  # write .geo file for gmsh
+  geoName = baseName + ".geo"
+  out = open(geoName,"w")
+  out.write("Merge '" + stlName + "';\n")
+  out.write("// add a geometrical volume \n")
+  out.write("Surface Loop(1) = {1};\n")
+  out.write("Volume(1) = {1};\n")
+  out.flush()
+  out.close()
   
+  # -3: tetrahedralize (3D)
+  # -optimize: use netgen's mesh optimization tool
+  command = "gmsh -3 -optimize " + geoName
+  cfs_utils.execute(command)
+  create_mesh_from_gmsh(baseName)  
   

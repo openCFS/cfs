@@ -1,8 +1,10 @@
-import vtk
-#from vtk.util.colors import *
-from numpy import *
 from matviz_rot import *
+from numpy import *
 import scipy.interpolate as ip 
+import time
+import vtk
+
+#from vtk.util.colors import *
 
 # # creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
@@ -862,8 +864,6 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   scale_y = delta[1]/(ny*dy)
   scale_z = delta[2]/(nz*dz)
   
-  print("delta: " + str(delta))
-  print("dx,dy,dz: " + str(dx) + ", "+ str(dy) + ", " + str(dz)) 
   if ny == 0 or nz == 0 or nx == 0:
     print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
@@ -893,6 +893,41 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
+# @param (xmin,ymin,zmin,xmax,ymax,zmax)
+def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+  # we make our own regular element grid
+  centers, mi, ma = coords[0:3]  # skip elem
+ 
+  if ny == 0 or nz == 0 or nx == 0:
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
+    exit()
+    
+#   print("dx,dy,dz:",dx,dy,dz)    
+#   print("nx,ny,nz:",nx,ny,nz)  
+  out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
+  
+  for x in range(nx + 1):
+    for y in range(ny + 1):
+      for z in range(nz + 1):
+        out[x,y,z] = [bounds[0]+x*dx,bounds[1]+y*dy,bounds[2]+z*dz]
+
+  assert(s1 is not None and s2 is not None and s3 is not None)      
+  v = numpy.zeros((len(s1),3))
+  v[:, 0] = s1[:, 0]
+  v[:, 1] = s2[:, 0]
+  v[:, 2] = s3[:, 0]
+  
+#   test = [(0.8,0.95,0.025),(0.8,0.05,0.025)]
+#   test_data = ip.griddata(centers, v, test, grad, -1.0)
+#   print(test_data)
+#   sys.exit()
+  
+  ip_data = ip.griddata(centers, v, out, grad, -1.0)
+  # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
+  # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
+  
+  return ip_data, ip_near, out  
 
 # # litte helper
 # @param save filename or none
@@ -938,3 +973,53 @@ def write_stl(polydata,save=None):
   stlWriter.Write()
   
   print("saved polydata to file " + fName)  
+
+def fill_vtk_polydata(points,cells,center=None):
+  vtk_points = vtk.vtkPoints()
+  vtk_cells = vtk.vtkCellArray()
+  polydata = vtk.vtkPolyData()
+  
+  for p in points:
+    vtk_points.InsertNextPoint(p)
+    
+  for ce in cells:
+    add_triangle(points,ce[0],ce[1],ce[2],vtk_cells)
+  
+  polydata.SetPoints(vtk_points)
+  polydata.SetPolys(vtk_cells)
+  
+  return polydata
+
+def add_triangle(points,id1,id2,id3,cells):
+  assert(id1 != id2 and id2 != id3)
+    
+  i1 = id1
+  i2 = id2
+  i3 = id3
+
+  tri = vtk.vtkTriangle()
+  tri.GetPointIds().SetId(0, i1)
+  tri.GetPointIds().SetId(1, i2)
+  tri.GetPointIds().SetId(2, i3)
+  cells.InsertNextCell(tri)
+  
+def vtk_polydata_to_numpy(polydata):
+  from vtk.util.numpy_support import vtk_to_numpy
+  # get point data
+  point_data = vtk_to_numpy(polydata.GetPoints().GetData())
+  
+  polys = polydata.GetPolys()
+  ne = polys.GetNumberOfCells()
+  print("number of polys:",polydata.GetNumberOfPolys())
+  
+  cells = numpy.zeros((ne,3),dtype=int)
+  polys.InitTraversal()   
+
+  for i in range(ne):
+    ids = vtk.vtkIdList()
+    polys.GetNextCell(ids)
+    ni = ids.GetNumberOfIds()
+    for j in range(ni):
+      cells[i,j] = ids.GetId(j)
+      
+  return point_data, cells      
