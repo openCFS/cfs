@@ -288,6 +288,10 @@ template<typename T> class ElemStoreSol;
 
     T Avg() const;
 
+    /** Product of elements.
+     * @see Inner()  */
+    T Product() const;
+
     /** Extremal element. For Complex separate for real and imaginary part */
     T Min() const;
 
