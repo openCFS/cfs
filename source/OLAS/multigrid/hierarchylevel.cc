@@ -699,7 +699,7 @@ UInt HierarchyLevel<T>::SetupAgglomerates(){
   Agglomerate_->InsertNodeIndex(nodeNumIndex_);
 
   // setup agglomerates graphs
-  UInt sizeH = Agglomerate_->CreateAgglomerateGraphs(*AuxMatrix_);
+  Integer sizeH = Agglomerate_->CreateAgglomerateGraphs(*AuxMatrix_);
   if( 0 > sizeH ) {
     EXCEPTION(" AMG: agglomerate setup failed\n");
     return false;

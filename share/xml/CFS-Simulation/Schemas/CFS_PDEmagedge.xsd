@@ -252,6 +252,7 @@
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
@@ -261,7 +262,7 @@
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
-      <xsd:enumeration value="magJouleLossDensity"/>
+      <xsd:enumeration value="magJouleLossPowerDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

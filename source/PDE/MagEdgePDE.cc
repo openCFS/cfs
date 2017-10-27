@@ -989,6 +989,24 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       resultFunctors_[MAG_EDDY_POWER] = epFunctor;
       massFormFunctors_.insert(epFunctor);
 
+      // === ELECTRIC FIELD INTENSITY ===
+      shared_ptr<ResultInfo> elecIntens(new ResultInfo);
+      elecIntens->resultType = ELEC_FIELD_INTENSITY;
+      elecIntens->SetVectorDOFs(dim_, isaxi_);
+      elecIntens->dofNames = vecComponents;
+      elecIntens->unit = "V/m";
+      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->entryType = ResultInfo::VECTOR;
+
+      // assemble coefficient function E = - dA/dt
+      PtrCoefFct eIFuncTmp = CoefFunction::Generate( mp_, part,
+                             CoefXprBinOp(mp_,  aDotFct, aDotFct, CoefXpr::OP_MULT ) );
+      PtrCoefFct eIFunc = CoefFunction::Generate( mp_, part,
+                             CoefXprBinOp(mp_,  "-1.0", aDotFct, CoefXpr::OP_MULT ) );
+      DefineFieldResult( eIFunc, elecIntens);
+
+
+
       // === COIL LINKED FLUX - 1ST DERIVATIVE, CORRESPONDS TO INDUCED VOLTAGE ===
       shared_ptr<ResultInfo> psiDotRes(new ResultInfo());
       psiDotRes->resultType = COIL_INDUCED_VOLTAGE;
@@ -1174,36 +1192,15 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     fieldCoefs_[MAG_CORE_LOSS] = coreLossCoef;
 
 
-    // === JOULE LOSS DENSITY INTEGRATED OVER PERIOD	 ===
+    // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD	 ===
     shared_ptr<ResultInfo> jld(new ResultInfo);
-    jld->resultType = MAG_JOULE_LOSS_DENSITY;
+    jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
     jld->dofNames = "";
     jld->unit = "W/m^3";
     jld->definedOn = ResultInfo::ELEMENT;
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     DefineFieldResult( jldCoef, jld );
-
-    // === JOULE LOSS INTEGRATED OVER PERIOD	 ===
-//    shared_ptr<ResultInfo> jlRes(new ResultInfo);
-//    jlRes->resultType = MAG_JOULE_LOSS;
-//    jlRes->dofNames = "";
-//    jlRes->unit = "W";
-//    jlRes->definedOn = ResultInfo::NODE;
-//    jlRes->entryType = ResultInfo::SCALAR;
-//    //DefineFieldResult( jouleLossCoef, jld );
-//    availResults_.insert( jlRes );
-//    shared_ptr<ResultFunctor> jouleLossFunc;
-//    shared_ptr<CoefFunctionMulti> jouleLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
-//    if( isComplex_ ){
-//	 jouleLossFunc.reset( new ResultFunctorIntegrate<Complex>(jouleLossCoef, feFct, jlRes) );
-//    } else {
-// 	 jouleLossFunc.reset( new ResultFunctorIntegrate<Double>(jouleLossCoef, feFct, jlRes) );
-//    }
-//    resultFunctors_[MAG_JOULE_LOSS] = jouleLossFunc;
-//    // it is an integrated result but we need to save the coef function
-//    // somewhere for the finalization
-//    fieldCoefs_[MAG_JOULE_LOSS] = jouleLossCoef;
 
   }
 
@@ -1371,14 +1368,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
     // === EDDY CURRENT (JOULE) LOSS DENSITY INTEGRATED===
-    /*
-     * Already integrated over one period of excitation "signal"
+    /* Already integrated over one period of excitation "signal"
      * Q = \gamma \omega^2 ||\hat{A}||^2 + \omega Im{ \hat{J}_i \hat{\overbar{A}} }
      * \hat{\overbar{A}} is the conjugate complex of \hat{A}
      */
     if( analysistype_ == HARMONIC){
 		shared_ptr<CoefFunctionMulti> eddyLossCoef =
-				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_DENSITY]);
+				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
 		regIt = regions_.Begin();
 		for( ; regIt != regions_.End(); ++regIt ) {
 		  RegionIdType actRegion = *regIt;
@@ -1392,42 +1388,42 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 		  PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
 		                      CoefXprBinOp( mp_, conduc_, tmp, CoefXpr::OP_MULT ) );
 
-		  // second part : \omega Im{ \hat{J}_i \hat{\overbar{A}} }
-		  PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ ) );
-		  PtrCoefFct part2TmpIM = CoefFunction::Generate( mp_, part,
-				  CoefXprUnaryOp( mp_, part2Tmp, CoefXpr::OP_IM ) );
-		  PtrCoefFct part2 = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, part2TmpIM, "pi*f", CoefXpr::OP_MULT ) );
+		  PtrCoefFct  part2 = NULL;
+	      if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
+	          // region is a coil
+			  // second part : \omega Im{ \hat{J}_i \hat{\overbar{A}} }
+			  PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part,
+					  CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL), GetCoefFct(MAG_COIL_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ ) );
+			  PtrCoefFct part2TmpIM = CoefFunction::Generate( mp_, part,
+					  CoefXprUnaryOp( mp_, part2Tmp, CoefXpr::OP_IM ) );
+			  part2 = CoefFunction::Generate( mp_, part,
+					  CoefXprBinOp( mp_, part2TmpIM, "pi*f", CoefXpr::OP_MULT ) );
+
+	      }else{
+	    	  part2 = CoefFunction::Generate( mp_, part, "0.0");
+	      }
 
 		  // add both parts
-		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
+		  PtrCoefFct  partAddTmp =  CoefFunction::Generate( mp_, part,
 				  CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
-		  eddyLossCoef->AddRegion(actRegion, part2Tmp);
+		  // divide by period length
+  		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
+		  				  CoefXprBinOp( mp_, partAddTmp, "1.0/f", CoefXpr::OP_DIV) );
+		  eddyLossCoef->AddRegion(actRegion, partAdd);
 		}
     }
+
     if( analysistype_ == TRANSIENT){
-		shared_ptr<CoefFunctionMulti> eddyLossCoef =
-				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_DENSITY]);
+		shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
 		regIt = regions_.Begin();
 		for( ; regIt != regions_.End(); ++regIt ) {
 		  RegionIdType actRegion = *regIt;
-		  // first part : \gamma (dA/dt)^2
-		  PtrCoefFct square_dAdt = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL_DERIV1), GetCoefFct(MAG_POTENTIAL_DERIV1), CoefXpr::OP_MULT ) );
-		  PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
-		                      CoefXprBinOp( mp_, conduc_, square_dAdt, CoefXpr::OP_MULT ) );
+		  // J_total * E = J_total * dA/dt
+		  PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
+				  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
+		  //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
 
-		  // second part : J_i * dA/dt
-		  PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL_DERIV1), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
-		  PtrCoefFct part2 = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, part2Tmp, "-1.0", CoefXpr::OP_MULT ) );
-
-		  // add both parts
-		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
-		  eddyLossCoef->AddRegion(actRegion, partAdd);
+		  eddyLossCoef->AddRegion(actRegion, partTmp);
 		}
     }
 
