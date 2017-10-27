@@ -9,8 +9,6 @@
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/exception/diagnostic_information.hpp>
-#include "petsc.h"
-#include "OLAS/external/petsc/PETSCSolver.hh"
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineInOutFiles.hh"
@@ -30,11 +28,16 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <def_use_mesh.hh>
+#include <def_use_petsc.hh>
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
 
+#ifdef USE_PETSC
+#include "petsc.h"
+#include "OLAS/external/petsc/PETSCSolver.hh"
+#endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
@@ -73,26 +76,28 @@ PtrParamNode infoNode;
 
 int main(int argc, const char **argv){
   
- 
+  #ifdef USE_PETSC
   PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL); 
-
   int rank;
   int size;
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
-  
   if (rank==0){ 
+  #endif
     CFS cfs(argc, argv);   
     int ret = cfs.Run();
     
+  #ifdef USE_PETSC
     //Send a Kill Tag to all workers before exiting the code
     if (size>1){
       for (rank = 1; rank < size; ++rank) {
         MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
       }	
     }
+  #endif
     return ret; 
+  #ifdef USE_PETSC
   }
   else {
       PETSCWorker w;
@@ -100,7 +105,7 @@ int main(int argc, const char **argv){
   }
 
   PetscFinalize();
-   
+  #endif
  
   
 }
