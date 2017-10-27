@@ -91,6 +91,8 @@ LISSolver::LISSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryTy
   hdr->Get("maxIter")->SetValue(maxIter_);
   hdr->Get("tolerance")->SetValue(tolerance_);
   hdr->Get("minimalTolerance")->SetValue(minTol_);
+  if(minTol_ < tolerance_)
+    hdr->SetWarning("minimal tolerance " + lexical_cast<string>(minTol_) + " ignored as below tolerance " + lexical_cast<string>(tolerance_));
 
   // Solve() also sets solver and precond as attributes to xml_ but w/o arguments and also when the elements here are not given
   if(xml_->Has("solver"))
@@ -330,14 +332,19 @@ void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVect
   double norm = 0.0;
   lis_solver_get_residualnorm(solver_,&norm);
   curr->Get("residualNorm")->SetValue(norm);
-  if(norm > tolerance_)
-    infoNode_->Get(ParamNode::SUMMARY)->SetWarning("residual norm " + lexical_cast<string>(norm) + " exceeds target " + lexical_cast<string>(tolerance_) + " but within minimal tolerance " + lexical_cast<string>(minTol_));
 
   int iterations = 0;
   lis_solver_get_iter(solver_,&iterations);
   curr->Get("iterations")->SetValue(iterations);
-  if(norm > minTol_)
+
+  if(norm > tolerance_ && norm <= minTol_)
+    infoNode_->Get(ParamNode::SUMMARY)->SetWarning("residual norm " + lexical_cast<string>(norm) + " exceeds target "
+          + lexical_cast<string>(tolerance_) + " but within minimal tolerance " + lexical_cast<string>(minTol_) + " after " +  lexical_cast<string>(norm) + " iterations");
+
+  if(norm > tolerance_ && norm > minTol_ )
     EXCEPTION("after " << iterations << " iterations reached residual " << norm << " with target " << tolerance_ << " exceeding minminal tolerance " << minTol_); // CFS.cc will add it to info.xml
+
+# // case minTol < tolerance give warning in consructor
 }
 
 

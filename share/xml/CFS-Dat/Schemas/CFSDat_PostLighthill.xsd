@@ -48,6 +48,13 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="extractComponent" use="required" type="xsd:int">
+          <xsd:annotation>
+            <xsd:documentation> Gives you the possibility to extract a specific component:
+              x=0, y=1
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

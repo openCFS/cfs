@@ -398,7 +398,7 @@ namespace CoupledField
     return elems[0];
   }
 
-  void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
+  void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<Double> >& globCoords,
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
                                      const StdVector<shared_ptr<EntityList> >& srcEntities,

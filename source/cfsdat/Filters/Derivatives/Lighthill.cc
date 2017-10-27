@@ -127,7 +127,6 @@ bool Lighthill::Run(){
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   returnVec.Init();
 
-
   Vector<Double> tempRetVec;
   if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
   if(Form_ == "AeroacousticSource_LighthillSourceVector"){LighthillSourceVector(tempRetVec);}
@@ -195,12 +194,10 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
     // interpolate input-velocity to cell-centers, because the calculated curl is now defined on elements
     Vector<Double> velE;
     Node2Cell(velE, inVecVel, numEquPerEnt_, sourceMN2C, maxNumTrgEntities, gridDim);
-
     OmegaVectorProductU(velE, Omega, LambVec, numEquPerEnt_);
   }
   tempRetVec = LambVec;
 }
-
 
 
 
@@ -318,6 +315,7 @@ void Lighthill::PrepareCalculation(){
   scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
   trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+//TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   if(numEquPerEnt_ != inGrid_->GetDim()) EXCEPTION("Grid and Values don't have the same dimension!!");
   if(numEquPerEnt_ == 1) EXCEPTION("Input (velocity) is a scalar, it should be a vector!!");
@@ -349,7 +347,7 @@ void Lighthill::PrepareCalculation(){
 
   const CF::UInt maxNumTrgEntities = trgMap_->GetNumEntities();
   StdVector<CF::UInt> globTrgEntity;
-  GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, inGrid_);
+  GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, trgGrid_);
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Differentiator is dealing with " << numSrcNodeEntities <<
@@ -390,7 +388,7 @@ void Lighthill::PrepareCalculation(){
 
   std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
   for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
-    RegionIdType r = inGrid_->GetRegion().Parse(*destRegIt);
+    RegionIdType r = trgGrid_->GetRegion().Parse(*destRegIt);
     rId.Push_back(r);
   }
 
@@ -399,162 +397,150 @@ void Lighthill::PrepareCalculation(){
    ********** Prepare Differentiators and Node2Cell *******************
    ********************************************************************/
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    StdVector<CF::UInt> sM, nL, nodeList;
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
-      targetSourceNtE.Push_back(globEntityNumber);
+        targetSourceNtE.Push_back(globEntityNumber);
+        CF::Vector<Double> trgCoord;
+        // Result is defined on elements!
+        inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
 
-      CF::Vector<Double> trgCoord;
-      // Result is defined on elements!
-//#pragma omp critical
-//          {
-          inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
-//          }
 
-      StdVector<UInt> nodeList;
-      inGrid_->GetElemNodes(nodeList, globEntityNumber);
-      StdVector<UInt> nL = nodeList;
-      /*
-      StdVector<CF::Elem*> elemList;
-      inGrid_->GetElemsNextToNodes(elemList, nodeList, rId);
+        inGrid_->GetElemNodes(nodeList, globEntityNumber);
+        nL = nodeList;
 
-      StdVector<UInt> nList;
-      inGrid_->GetNodesOfElemList(nList, elemList, true);
-      for(UInt i = 0; i < nList.GetSize(); ++i){
-        nodeList.Push_back(nList[i]);
-      }
-   */
-      StdVector< CF::Vector<CF::Double> > neighbourCoords;
-      StdVector<CF::Double> srcDist;
-      CF::Vector<CF::Double> tmpCoords;
-
-      /****************** 1) Divergence ****************************************/
-      StdVector<CF::UInt> sM;
-      Double maxd = 0.0;
-      for(UInt i = 0; i < nodeList.GetSize(); ++i){
-        if(!sM.Contains(sEnt[nodeList[i]])){
-          sM.Push_back(sEnt[nodeList[i]]);
-          inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
-          neighbourCoords.Push_back(tmpCoords);
-          if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
-          CF::Double d = trgCoord.NormL2(tmpCoords);
-          srcDist.Push_back(d);
-          if(maxd < d) maxd = d;
-        }
-      }
-      UInt numSrcPoints = srcDist.GetSize();
-      CF::Matrix<CF::Double> tsFDiv;
-      while( !CalcLocDivergence(tsFDiv, trgCoord, maxd, srcDist, neighbourCoords,
-          numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
-        // find furthest point
-        Double d = 0.0;
-        UInt maxId = 0;
-        for(UInt i = 0; i < srcDist.GetSize(); ++i){
-          if(d < srcDist[i]){
-            maxId = i;
+        StdVector< CF::Vector<CF::Double> > neighbourCoords;
+        StdVector<CF::Double> srcDist;
+        CF::Vector<CF::Double> tmpCoords;
+        UInt numSrcPoints;
+        Double maxd;
+        if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
+        /****************** 1) Divergence ****************************************/
+        sM.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
           }
         }
-        sM.Erase(maxId);
-        srcDist.Erase(maxId);
-        numSrcPoints -= 1;
-        neighbourCoords.Erase(maxId);
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFDiv;
+        while( !CalcLocDivergence(tsFDiv, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
 
-        if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Divergence!");
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Divergence!");
 
-      }// while local deriv is false
-      targetSourceFactorDiv[trgEnt] = tsFDiv;
-      sourceMDiv[trgEnt] = sM;
+        }// while local deriv is false
+        targetSourceFactorDiv[trgEnt] = tsFDiv;
+        sourceMDiv[trgEnt] = sM;
 
-      /****************** 2) Gradient ****************************************/
-      sM.Clear(false);
-      neighbourCoords.Clear(false);
-      srcDist.Clear(false);
-      maxd = 0.0;
-      for(UInt i = 0; i < nodeList.GetSize(); ++i){
-        if(!sM.Contains(sEnt[nodeList[i]])){
-          sM.Push_back(sEnt[nodeList[i]]);
-          inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
-          neighbourCoords.Push_back(tmpCoords);
-          if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
-          CF::Double d = trgCoord.NormL2(tmpCoords);
-          srcDist.Push_back(d);
-          if(maxd < d) maxd = d;
-        }
-      }
-
-      numSrcPoints = srcDist.GetSize();
-      CF::Matrix<CF::Double> tsFGrad;
-      while( !CalcLocGradient(tsFGrad, trgCoord, maxd, srcDist, neighbourCoords,
-          numSrcPoints, 1, inGrid_, epsScal_)){
-        // find furthest point
-        Double d = 0.0;
-        UInt maxId = 0;
-        for(UInt i = 0; i < srcDist.GetSize(); ++i){
-          if(d < srcDist[i]){
-            maxId = i;
+        /****************** 2) Gradient ****************************************/
+        sM.Clear(false);
+        neighbourCoords.Clear(false);
+        srcDist.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
           }
         }
-        sM.Erase(maxId);
-        srcDist.Erase(maxId);
-        numSrcPoints -= 1;
-        neighbourCoords.Erase(maxId);
 
-        if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFGrad;
+        while( !CalcLocGradient(tsFGrad, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, 1, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
 
-      }// while local deriv is false
-      targetSourceFactorGrad[trgEnt] = tsFGrad;
-      sourceMGrad[trgEnt] = sM;
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
 
+        }// while local deriv is false
+        targetSourceFactorGrad[trgEnt] = tsFGrad;
+        sourceMGrad[trgEnt] = sM;
 
-
-      /***************** 3) Curl ******************************************/
-      sM.Clear(false);
-      neighbourCoords.Clear(false);
-      srcDist.Clear(false);
-      maxd = 0.0;
-      for(UInt i = 0; i < nodeList.GetSize(); ++i){
-        if(!sM.Contains(sEnt[nodeList[i]])){
-          sM.Push_back(sEnt[nodeList[i]]);
-          inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
-          neighbourCoords.Push_back(tmpCoords);
-          if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
-          CF::Double d = trgCoord.NormL2(tmpCoords);
-          srcDist.Push_back(d);
-          if(maxd < d) maxd = d;
         }
-      }
-      numSrcPoints = srcDist.GetSize();
-      CF::Matrix<CF::Double> tsFCurl;
-      while( !CalcLocCurl(tsFCurl, trgCoord, maxd, srcDist, neighbourCoords,
-          numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
-        // find furthest point
-        Double d = 0.0;
-        UInt maxId = 0;
-        for(UInt i = 0; i < srcDist.GetSize(); ++i){
-          if(d < srcDist[i]){
-            maxId = i;
+
+        /***************** 3) Curl ******************************************/
+        sM.Clear(false);
+        neighbourCoords.Clear(false);
+        srcDist.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
           }
         }
-        sM.Erase(maxId);
-        srcDist.Erase(maxId);
-        numSrcPoints -= 1;
-        neighbourCoords.Erase(maxId);
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFCurl;
+        while( !CalcLocCurl(tsFCurl, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
 
-        if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
 
-      }// while local deriv is false
-      targetSourceFactorCurl[trgEnt] = tsFCurl;
-      sourceMCurl[trgEnt] = sM;
+        }// while local deriv is false
+        targetSourceFactorCurl[trgEnt] = tsFCurl;
+        sourceMCurl[trgEnt] = sM;
 
 
-      /****************** 4) Node2Cell ***********************************/
-
-      sM.Clear(false);
-      for(UInt i = 0; i < nL.GetSize(); ++i){
-        sM.Push_back(nodeList[i]);
-      }
-      sourceMN2C[trgEnt] = sM;
+        /****************** 4) Node2Cell ***********************************/
+        sM.Clear(false);
+        for(UInt i = 0; i < nL.GetSize(); ++i){
+          sM.Push_back(sEnt[nodeList[i]]);
+        }
+        sourceMN2C[trgEnt] = sM;
 
     }
   }
@@ -567,6 +553,7 @@ void Lighthill::PrepareCalculation(){
    ********************************************************************/
   // unfortunately the Grid-class is not able to return all elements, which
   // share a common node, therefore we use a nn-search
+  if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 4/4 Creating interpolation matrices for interpolators " << std::endl;
 //#pragma omp parallel num_threads(NUM_CFS_THREADS)
 //  {
@@ -664,7 +651,7 @@ void Lighthill::PrepareCalculation(){
 //  }//omp parallel
 
 
-
+  }
   std::cout << "\t\t Lighthill prepared!" << std::endl;
 }
 
@@ -735,7 +722,7 @@ void Lighthill::AdaptFilterResults(){
 
 
 
-
+std::cout<<"AdaptFilterResults Form_ = "<<Form_<<std::endl;
   // choose if we have element or node-results
   if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
     resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);

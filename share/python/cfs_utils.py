@@ -77,7 +77,7 @@ def xpath(xml, path):
   try:
     res = xml.xpath(path, namespaces = namespace(path))  
     if  len(res) == 0:
-      raise RuntimeError(path + " not found")
+      raise RuntimeError(path + " not found with ns='" + str(namespace(path)) + "'")
     if len(res) > 1:
       str(res)
       raise RuntimeError(path + " has " + str(len(res)) + " hits")

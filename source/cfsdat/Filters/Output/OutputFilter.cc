@@ -70,7 +70,7 @@ bool OutputFilter::Run(){
         StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
         CF::StdVector<UInt> eqnVec;
 
-        outFile_->BeginStep(aStepIter_->first,aStepIter_->second);
+        outFile_->BeginStep(aStepIter_->first,aStepIter_->second); //Add step values and time line in output file
 
         if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
           Vector<Complex> & fullVec = resultManager_->GetResultVector<Complex>(*rIter,eqnVec);

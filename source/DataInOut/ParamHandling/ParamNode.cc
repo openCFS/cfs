@@ -138,6 +138,7 @@ void ParamNode::SetComment(const std::string& comment)
 void ParamNode::SetWarning(const std::string& msg, bool append)
 {
   PtrParamNode pn = Get(ParamNode::WARNING, append ? APPEND : DEFAULT);
+  pn->SetType(ELEMENT); // attributes would not be able to append
   pn->SetValue(msg);
 }
 
