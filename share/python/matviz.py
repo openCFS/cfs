@@ -19,7 +19,6 @@ try:
   from mpi4py import MPI
 except:
   print("WARNING:Could not load mpi4py!")
-import pymesh
 
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
@@ -338,12 +337,14 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 if (args.type == "box_varel" or args.type == "ppbox") and args.mesh:    
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
-                    viz = None # avoid showing or writing vtp file
                   
                   if args.type == "box_varel":  
                     me = mesh_tool.create_validation_mesh_for_box_varel(viz,name)
                   else:
                     me = mesh_tool.create_validation_mesh_for_pp_box(name, "nondes_diff.stl", "nondes_union.stl")
+                  
+                  if not args.save:
+                    viz = None # avoid showing or writing vtp file  
               else:
                 viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
