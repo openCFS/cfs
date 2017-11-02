@@ -306,11 +306,11 @@ namespace CoupledField
       handler_->FinishStep( );
 
       // write out re-start in case of aborted simulation or if all steps should be written
-      if(  abortSimulation_  || writeAllSteps_ ) {
-        if( writeRestart_ || writeAllSteps_ )
+      if(  actFreqStep_ == stopFreqStep_ || abortSimulation_  || writeAllSteps_ ) {
+        if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
          simState_->WriteStep( actFreqStep_, actFreq_);
       }
-      
+
       // leave loop, if simulation should be aborted
       if ( abortSimulation_ ) {
         break;

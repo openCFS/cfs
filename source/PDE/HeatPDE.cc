@@ -818,7 +818,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   // =====================
   LOG_DBG(heatcondpde) << "Reading heat source density";
 
-  ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+  ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
   for( UInt i = 0; i < ent.GetSize(); ++i ) {
     // check type of entitylist
     if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -828,9 +828,18 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     it.Begin();
 
     if(isComplex_) {
+      //pure complex case (harmonic simulation)
       lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coef[i], coefUpdateGeo);
     } else  {
-      lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coef[i], coefUpdateGeo);
+    	if(coef[i]->IsComplex()){
+    		// rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+    		lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coef[i], coefUpdateGeo, true,
+    		      	  	  	  	  	  	  	  	   coef[i]->IsComplex() );
+    	}else{
+    		lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coef[i], coefUpdateGeo, true,
+    		      	  	  	  	  	  	  	  	   coef[i]->IsComplex() );
+    	}
+
     }
     lin->SetName("HeatSourceDensityInt");
     LinearFormContext *ctx = new LinearFormContext( lin );
