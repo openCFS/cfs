@@ -35,12 +35,21 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   intStrategy.Add(FULL_OR_NOTHING, "full_or_nothing");
   intStrategy.Add(TAILORED, "tailored");
 
-  this->overlap.SetName("ShapeMapDesign::Overlap");
-  this->overlap.Add(MAX, "max");
-  this->overlap.Add(TANH_SUM, "tanh_sum");
+  overlap.SetName("ShapeMapDesign::Overlap");
+  overlap.Add(MAX, "max");
+  overlap.Add(TANH_SUM, "tanh_sum");
+
+  shapeFunc.SetName("ShapeMapDesign::ShapeFunc");
+  shapeFunc.Add(TANH, "tanh");
+  shapeFunc.Add(LINEAR, "linear");
 
   this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
-  this->beta_ = pn->Get("shapeMap/beta")->As<double>();
+  this->shapeFunc_ = shapeFunc.Parse(pn->Get("shapeMap/shape")->As<string>());
+  if(shapeFunc_ == TANH) {
+    if(!pn->Has("shapeMap/beta"))
+      throw Exception("'shapeMap' attribute 'beta' mandatory for 'shape' set to 'tanh'");
+    this->beta_ = pn->Get("shapeMap/beta")->As<double>();
+  }
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
@@ -1311,31 +1320,93 @@ Vector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const Re
 }
 
 
- inline double ShapeMapDesign::Item::SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int order)
+double ShapeMapDesign::Item::MaxDiffCornerValue() const
+{
+  assert(min_corner_value.GetSize() == max_corner_value.GetSize());
+  assert(min_corner_value.GetSize() > 0);
+
+  double diff = 0;
+
+  for(unsigned int i = 0; i < min_corner_value.GetSize(); i++)
+    diff = std::max(max_corner_value[i] - min_corner_value[i], diff);
+
+  return diff;
+}
+
+int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::NumInt& ni) const
+{
+  assert(order.GetSize() == min_corner_value.GetSize());
+  assert(order.GetSize() == max_corner_value.GetSize());
+  int max = 0;
+  for(unsigned int s = 0; s < order.GetSize(); s++)
+  {
+    double min_val = min_corner_value[s];
+    double max_val = max_corner_value[s];
+
+    assert(min_val >= 0);
+    assert(max_val >= min_val);
+    assert(max_val <= 1);
+
+    switch(ni.strategy)
+    {
+    case ShapeMapDesign::CONSTANT_FULL:
+      order[s] = ni.max_order;
+      break;
+    case ShapeMapDesign::FULL_OR_NOTHING:
+      order[s] = max_val < ni.sensitivity ? 0 : ni.max_order;
+      break;
+    case ShapeMapDesign::TAILORED:
+      if(max_val < ni.sensitivity)
+        order[s] = 0;
+      else if(min_val > 1-ni.sensitivity)
+        order[s] = 1;
+      else
+        order[s] = ni.GetTailoredOrder(max_val - min_val);
+      break;
+    }
+
+    max = std::max(max, order[s]);
+  }
+  return max;
+}
+
+
+ inline double ShapeMapDesign::Item::SetIPGetWeight(const ShapeMapDesign* smd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int order)
  {
    assert(ip.GetSize() == dim_);
    assert(ip_x >= 0 && ip_x < order);
    assert(ip_y >= 0 && ip_y < order);
    assert((dim_ == 2 && ip_z == 0) || (dim_ == 3 && ip_z >= 0 && ip_z < order));
 
-   assert(order >= 2  && order <= (int) ShapeMapDesign::newtonCotes.GetSize());
-   const Vector<double>& w = ShapeMapDesign::newtonCotes[order-1];
-   assert((int) w.GetSize() == order);
-
    ip[0] = (double) ip_x / (double) (order-1);
    ip[1] = (double) ip_y / (double) (order-1);
-
-   double weight = w[ip_x] * w[ip_y];
-
-   if(dim_ == 3) {
+   if(dim_ == 3)
      ip[2] = (double) ip_z / (double) (order-1);
-     weight *= w[ip_z];
-   }
 
    assert(ip[0] >= 0 && ip[0] <= 1);
    assert(ip[1] >= 0 && ip[1] <= 1);
    assert(dim_ == 2 || (ip[2] >= 0 && ip[2] <= 1));
-   return weight; // might be negative!
+
+   if(smd->GetShapeFunc() == TANH)
+   {
+     assert(order >= 2  && order <= (int) ShapeMapDesign::newtonCotes.GetSize());
+     const Vector<double>& w = ShapeMapDesign::newtonCotes[order-1];
+     assert((int) w.GetSize() == order);
+
+     return w[ip_x] * w[ip_y] * (dim_ == 3 ? w[ip_z] : 1.0); // might be negative
+   }
+   else
+   {
+     assert(smd->GetShapeFunc() == LINEAR);
+
+     double weight = 1.0;
+     weight *= 1./order * (ip_x == 0 || ip_x == order-1 ? 0.5 : 1.0);
+     weight *= 1./order * (ip_y == 0 || ip_y == order-1 ? 0.5 : 1.0);
+     if(dim_ == 3)
+       weight *= 1./order * (ip_z == 0 || ip_z == order-1 ? 0.5 : 1.0);
+
+     return weight;
+   }
  }
 
  void ShapeMapDesign::NumInt::Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info)
@@ -1494,55 +1565,6 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
   return limit+1;
 }
 
-double ShapeMapDesign::Item::MaxDiffCornerValue() const
-{
-  assert(min_corner_value.GetSize() == max_corner_value.GetSize());
-  assert(min_corner_value.GetSize() > 0);
-
-  double diff = 0;
-
-  for(unsigned int i = 0; i < min_corner_value.GetSize(); i++)
-    diff = std::max(max_corner_value[i] - min_corner_value[i], diff);
-
-  return diff;
-}
-
-int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::NumInt& ni) const
-{
-  assert(order.GetSize() == min_corner_value.GetSize());
-  assert(order.GetSize() == max_corner_value.GetSize());
-  int max = 0;
-  for(unsigned int s = 0; s < order.GetSize(); s++)
-  {
-    double min_val = min_corner_value[s];
-    double max_val = max_corner_value[s];
-
-    assert(min_val >= 0);
-    assert(max_val >= min_val);
-    assert(max_val <= 1);
-
-    switch(ni.strategy)
-    {
-    case ShapeMapDesign::CONSTANT_FULL:
-      order[s] = ni.max_order;
-      break;
-    case ShapeMapDesign::FULL_OR_NOTHING:
-      order[s] = max_val < ni.sensitivity ? 0 : ni.max_order;
-      break;
-    case ShapeMapDesign::TAILORED:
-      if(max_val < ni.sensitivity)
-        order[s] = 0;
-      else if(min_val > 1-ni.sensitivity)
-        order[s] = 1;
-      else
-        order[s] = ni.GetTailoredOrder(max_val - min_val);
-      break;
-    }
-
-    max = std::max(max, order[s]);
-  }
-  return max;
-}
 
  void ShapeMapDesign::MapShapeToDensity()
  {
@@ -1624,7 +1646,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
              for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : num_ip); ip_z++)
              {
                double ip_rho = 0.0; // the final value for one integration point. shall be not much larger one
-               double weight = Item::SetIP(ip, ip_x, ip_y, ip_z, num_ip);
+               double weight = Item::SetIPGetWeight(this, ip, ip_x, ip_y, ip_z, num_ip);
                switch(overlap_)
                {
                case MAX:
@@ -1635,7 +1657,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                    if(order[si] >= 2) // otherwise it is 0 as 1 is checked above
                    {
                      eval.Setup(item.nodes[si], idx, ip, beta_);
-                     double t = eval.Tanh();
+                     double t = eval.ShapeFunc();
                      if(t >= ip_rho)  // >= is important! > may result in ip_eval == -1
                        ip_rho = t;
                      LOG_DBG3(SMD) << "MSTD: de=" << de->elem->elemNum << " ip=" << ip.ToString() << " si=" << si << " t=" << t << " max=" << ip_rho;
@@ -1650,7 +1672,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                      ip_rho += 1.0;
                    if(order[si] >= 2){
                      eval.Setup(item.nodes[si], idx, ip, 0.5 * beta_); // half beta as it is applied to tanh_sum_.map()
-                     ip_rho += eval.Tanh();
+                     ip_rho += eval.ShapeFunc();
                    }
                  }
                  // correct ip_rho by mapping <= 1. This is not exact, it might be slightly larger 1. See TanhSum()
@@ -1739,7 +1761,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
        eval[i].Init(this);
 
 
-     #pragma omp for
+     #pragma omp for schedule(dynamic)
      for(unsigned int r = 0; r < map_.GetSize(); r++) // traverse all rho design elements
      {
        Item& item = map_[r];
@@ -1774,7 +1796,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
            {
              for(int ip_z = 0; ip_z < (dim_ == 2 ? 1 : num_ip); ip_z++)
              {
-               double weight = Item::SetIP(ip, ip_x, ip_y, ip_z, num_ip);
+               double weight = Item::SetIPGetWeight(this, ip, ip_x, ip_y, ip_z, num_ip);
 
                // find for MAX the idx of the shape with the maximal value
                // find for TANH_SUM the sum of all shape evals
@@ -1789,7 +1811,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
                  {
                    eval[s].Setup(item.nodes[s], idx, ip, beta);
-                   double t = eval[s].SmartTanh(order[s]);
+                   double t = eval[s].SmartShapeFunc(order[s]);
                    if(t > max) {
                      max = t;
                      max_idx = s;
@@ -1801,7 +1823,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  for(unsigned int s = 0; s < item.nodes.GetSize(); s++)
                  {
                    eval[s].Setup(item.nodes[s], idx, ip, beta);
-                   eval_sum += eval[s].SmartTanh(order[s]);
+                   eval_sum += eval[s].SmartShapeFunc(order[s]);
                  }
                  break;
                }
@@ -1820,11 +1842,11 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
                  if(node_grad)
                  {
-                   da = eval[si].SmartGradTanh(order[si], true, false, false); // dtanh_da
+                   da = eval[si].SmartGradShapeFunc(order[si], true, false, false); // dtanh_da
                    assert(!std::isnan(da) && !std::isinf(da));
                    LOG_DBG3(SMD) << "MSG: da d=" << de->GetIndex() << " p=" << de->GetLocation()->ToString() << " ip=" << ip.ToString() << " da=" << da;
                    if(dim_ == 3) // FIXME assumes center nodes!
-                     db = eval[si].SmartGradTanh(order[si], false, true, false); // dtanh_db
+                     db = eval[si].SmartGradShapeFunc(order[si], false, true, false); // dtanh_db
 
                    if(overlap_ == TANH_SUM) { // tanh_sum shapes the sum approx to 0...1. sum is ip_eval
                      da = tanh_sum_.d_map(eval_sum, da);
@@ -1834,7 +1856,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
                  }
                  if(profile_grad)
                  {
-                   dw = eval[si].SmartGradTanh(order[si], false, false, true); // dtanh_dw
+                   dw = eval[si].SmartGradShapeFunc(order[si], false, false, true); // dtanh_dw
                    if(overlap_ == TANH_SUM)
                      dw = tanh_sum_.d_map(eval_sum, dw);
                  }
@@ -1956,6 +1978,24 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    smd_ = smd;
    dim = domain->GetGrid()->GetDim();
    coord_.Resize(dim, -1.0);
+
+   // calc h which we need only for shapeFunc == LINEAR
+   if(smd->GetShapeFunc() == LINEAR)
+   {
+     Matrix<double> box = domain->GetGrid()->CalcGridBoundingBox(NULL, true); // force 3d (0 size for z)
+     Vector<unsigned int> n = smd->GetDiscretization();
+     assert(n.GetSize() == box.GetNumRows());
+     assert(box.GetNumCols() == 2); // min and max for every dim
+     assert(n.GetSize() == 3);
+     assert(n.Min() >= 1);
+
+     Vector<double> spacing(3);
+     for(unsigned int i = 0; i < 3; i++)
+       spacing[i] = (box[i][1] - box[i][0]) / n[i];
+
+     h = spacing.Max();
+     assert(h > 0);
+   }
  }
 
  inline double ShapeMapDesign::EvalAtIp::Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta)
@@ -1974,7 +2014,6 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    assert(dim == 2); // there is also a 3D version of Eval
    assert(nodes.GetSize() == 2);
    // this stuff is 3D stuff
-   this->beta = beta;
    const ShapeParamElement* s1 = nodes[0];
    const ShapeParamElement* s2 = nodes[1];
    assert(s1->dof_ == s2->dof_);
@@ -2006,8 +2045,12 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    a  = a1 + t * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
    w  = w1 + t * (w2-w1);
 
-   exapw = exp(beta*(x-a+w));
-   examw = exp(beta*(x-a-w));
+   if(smd_->shapeFunc_ == TANH) {
+     assert(beta > 0);
+     this->beta = beta;
+     exapw = exp(beta*(x-a+w));
+     examw = exp(beta*(x-a-w));
+   }
    assert(b == -1);
    assert(y == -1);
    assert(r == -1);
@@ -2078,9 +2121,23 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    return t;
  }
 
+ inline double ShapeMapDesign::EvalAtIp::ShapeFunc() const
+ {
+   if(smd_->GetShapeFunc() == TANH)
+     return dim == 2 ? EvalTanh2d() : EvalTanh3d();
+   else
+     return EvalLinear2d();
+ }
 
+ inline double ShapeMapDesign::EvalAtIp::GradShapeFunc(bool grad_a, bool grad_b, bool grad_w) const
+ {
+   if(smd_->GetShapeFunc() == TANH)
+     return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
+   else
+     return EvalLinearGrad2d(grad_a, grad_w);
+ }
 
- inline double ShapeMapDesign::EvalAtIp::SmartTanh(int order) const
+ inline double ShapeMapDesign::EvalAtIp::SmartShapeFunc(int order) const
  {
    assert(order >= 0);
 
@@ -2088,7 +2145,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
      return 0.0;
    if(order == 1)
      return 1.0;
-   return Tanh();
+   return ShapeFunc();
  }
 
 
@@ -2104,13 +2161,13 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
     return 1/(examw+1);
  }
 
- inline double ShapeMapDesign::EvalAtIp::SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const
+ inline double ShapeMapDesign::EvalAtIp::SmartGradShapeFunc(int order, bool grad_a, bool grad_b, bool grad_w) const
  {
    assert(order >= 0);
 
    if(order == 0 || order == 1)
      return 0.0;
-   return GradTanh(grad_a, grad_b, grad_w);
+   return GradShapeFunc(grad_a, grad_b, grad_w);
  }
 
  double ShapeMapDesign::EvalAtIp::EvalTanhGrad2d(bool grad_a, bool grad_w) const
@@ -2194,6 +2251,47 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
    return grad;
  }
 
+ inline double ShapeMapDesign::EvalAtIp::EvalLinear2d() const
+ {
+   //         __________
+   //        /          \
+   //       /            \
+   //  ____/              \_____
+   //     a0  a1       b1 b0
+
+   // a1 -> b1 = 2*w + h
+   // a0 -> a1 = h
+
+   double a0 = a - w - h/2;
+   double b1 = a + w - h/2;
+
+   if(x < a0)
+     return 0;
+   if(x < a0 + h)
+     return (x-a0)/h;
+   if(x < b1)
+     return 1;
+   if(x < b1+h)
+     return 1-(x-b1)/h;
+   return 0;
+ }
+
+ inline double ShapeMapDesign::EvalAtIp::EvalLinearGrad2d(bool grad_a, bool grad_w) const
+ {
+   double a0 = a - w - h/2;
+   double b1 = a + w - h/2;
+
+   if(x < a0)
+     return 0;
+   if(x < a0 + h)
+     return 1/h; // spacing h means for dx=h dy=h. Same value for grad_a and grad_w
+   if(x < b1)
+     return 0;
+   if(x < b1+h)
+     return grad_a ? -1/h : 1/h;
+
+   return 0;
+ }
 
 
  void ShapeMapDesign::EvalAllCornerValues()
@@ -2243,7 +2341,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
            assert(item.nodes[s].GetSize() >= 2);
 
            eval.Setup(item.nodes[s], idx, ip, 2 * beta_);
-           glob[s][z * zb + y * yb + x] = eval.Tanh();
+           glob[s][z * zb + y * yb + x] = eval.ShapeFunc();
          } // end shape loop
        } // x
      } // y
