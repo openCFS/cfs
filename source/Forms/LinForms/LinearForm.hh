@@ -9,8 +9,8 @@
 //                  Here, U can be a given quantity like the Lighthill sources for
 //                  aeroacoustics or the solution of the PDE e.g. for postprocessing
 //                  puposes. Right now we propose three derived classes
-//                  1. rhsBUInt.hh - For integrants without material dependency
-//                  2. rhsBDUInt.hh - For integrands with material dependency
+//                  1. BUInt.hh - For integrants without material dependency
+//                  2. BDUInt.hh - For integrands with material dependency
 //                  3. SingeEntryInt.hh - For the direct specificatin of the right hand
 //                                        side without any kind of integration
 //                  
@@ -96,6 +96,10 @@ namespace CoupledField{
       //! Set explicit that linearform is solution dependent
       virtual void SetSolDependent() {isSolDependent_ = true;}
 
+      bool IsExtractReal() const {
+    	  return extractReal_;
+      }
+
     protected:
       //! name of linearform
       std::string name_;
@@ -111,6 +115,11 @@ namespace CoupledField{
       
       //! point to integration scheme
       shared_ptr<IntScheme> intScheme_;
+
+      //! if true, only the real part of a complex quantity is considered,
+      //! needed e.g. when taking the result of a complex analysis (energy) as
+      //! input of a static simulation (source for example HeatPDE)
+      bool extractReal_;
   };
 }
 

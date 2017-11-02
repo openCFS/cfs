@@ -39,7 +39,8 @@ public:
                VEC_DATA_TYPE factor,
                shared_ptr<CoefFunction > rhsCoef,
                bool coordUpdate = false,
-               bool fullEvaluation = true);
+               bool fullEvaluation = true,
+			   bool extractReal = false);
 
   //! Constructor for surface integration
   BUIntegrator(BaseBOperator * bOp,
@@ -47,7 +48,8 @@ public:
                shared_ptr<CoefFunction > rhsCoef,
                const std::set<RegionIdType>& volRegions,
                bool coordUpdate = false,
-               bool fullEvaluation = true);
+               bool fullEvaluation = true,
+			   bool extractReal = false);
 
   //! Copy constructor
   BUIntegrator(const BUIntegrator& right )
@@ -108,8 +110,6 @@ protected:
 
   //! dimension of b-operator
   UInt Bdim_;
-  
-  
 
 
 };

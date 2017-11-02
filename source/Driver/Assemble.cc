@@ -1307,7 +1307,14 @@ namespace CoupledField
             }
 
             // Calculate real valued element vector
-            form->CalcElemVector(elemVec, entIt);
+            // check if only the real part of a complex value shall be considered
+            if( form->IsExtractReal()  ){
+            	Vector<Complex> tmp;
+            	form->CalcElemVector(tmp, entIt);
+            	elemVec = tmp.GetPart(Global::REAL);
+            }else{
+            	form->CalcElemVector(elemVec, entIt);
+            }
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
 
             // Map equation numbers

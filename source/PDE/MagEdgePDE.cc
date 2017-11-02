@@ -1199,7 +1199,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     jld->unit = "W/m^3";
     jld->definedOn = ResultInfo::ELEMENT;
     jld->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+    shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
 
   }
