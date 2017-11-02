@@ -1222,7 +1222,22 @@
                      </xsd:complexType>
                    </xsd:element>
                 </xsd:sequence>
-                <xsd:attribute name="beta" type="xsd:float" use="required"/>
+                
+                <!-- how to hande model the 1D shape profile.  -->
+                <xsd:attribute name="shape" use="optional" default="tanh">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!--  tanh is maximal smooth and required beta. Numerical integration is Newton-Cotest --> 
+                      <xsd:enumeration value="tanh"/>
+                      <!-- piecewise linear with size of one element for the slope. Numerical integration is 1st order with adjusted number of points -->
+                      <xsd:enumeration value="linear"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                
+                <!--  the beta for the tanh shape. Only required in that case. E.g. 40...400 --> 
+                <xsd:attribute name="beta" type="xsd:float" use="optional"/>
+                
                 <!-- how to hande the calculated rho for overlapping shapes at integration points -->
                 <xsd:attribute name="overlap" use="required">
                   <xsd:simpleType>

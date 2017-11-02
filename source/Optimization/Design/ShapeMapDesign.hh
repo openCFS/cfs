@@ -116,6 +116,15 @@ public:
 
   static Enum<IntStrategy> intStrategy;
 
+  /** this describes the continuation of a strucuture in 1D. Either tanh as in Wein, Stingl; 2017 or piecewise linear for cheaper numerical integration. */
+  typedef enum { TANH, LINEAR } ShapeFunc;
+
+  Enum<ShapeFunc> shapeFunc;
+
+  ShapeFunc GetShapeFunc() const { return shapeFunc_; }
+
+  const Vector<unsigned int>& GetDiscretization() const { return n_; }
+
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
@@ -508,7 +517,7 @@ private:
      * @param ip result: vector [0...1]^dim
      * @param ip_x, ip_y, ip_y index of integration < max_order
      * @return closed Newton-Cotes weight for the 2D/3D point */
-    static double SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
+    static double SetIPGetWeight(const ShapeMapDesign* smd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
 
     /** maximal diff max_corner_value and min_corner_value for all shapes */
     double MaxDiffCornerValue() const;
@@ -526,7 +535,8 @@ private:
     /** Empty constructor for vector reason. Call Init()! */
     EvalAtIp() { };
 
-    /** call Init() first in the object lifetime */
+    /** call Init() first in the object lifetime.
+     * @param n is ShapeMapDesign::n_ */
     void Init(ShapeMapDesign* smd);
 
     /** gives the coordinates for evaluation directly.
@@ -535,15 +545,14 @@ private:
     double Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 
     /** no gradient */
-    double Tanh() const { return dim == 2 ? EvalTanh2d() : EvalTanh3d(); }
+    double ShapeFunc() const;
     /** use order information! 0 = void, 1 = solid, 2 = eval */
-    double SmartTanh(int order) const;
+    double SmartShapeFunc(int order) const;
 
-    double GradTanh(bool grad_a, bool grad_b, bool grad_w) const {
-      return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
-    }
+    double GradShapeFunc(bool grad_a, bool grad_b, bool grad_w) const;
+
     /** user order information. See SmartTanh() */
-    double SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const;
+    double SmartGradShapeFunc(int order, bool grad_a, bool grad_b, bool grad_w) const;
 
   private:
     double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
@@ -554,6 +563,10 @@ private:
     double EvalTanhGrad2d(bool grad_a, bool grad_w) const;
     double EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
 
+    double EvalLinear2d() const;
+    double EvalLinearGrad2d(bool grad_a, bool grad_w) const;
+
+    // 2D and 3D common
     double a = -1;
     double w = -1;
     /** normalized. x is dof variable in 2D */
@@ -561,17 +574,23 @@ private:
     /** this is the interpolation variable a = (1-t) * a1 + t * a2 with t = 0 ... 1 */
     double t = -1;
 
-    double beta = -1;
-
+    // extension for 3D
     /** normalized. x is a dof in 3D center nodes and y is b dof */
     double b = -1; // 3D
     double y = -1;
     double r = -1; // 3D: distance (x,y) -> (a,b)
 
+    // shapeFunc == TANH
+    double beta = -1;
     double exapw = -1;
     double examw = -1;
     double erw = -1;
 
+    // shapeFunc == LINEAR
+    /** linear spacing = 1/element size. The maximal for all directions */
+    double h = -1;
+
+    // technical
     int dim = -1;
     ShapeMapDesign* smd_ = NULL;
     /** helper for Setup */
@@ -580,6 +599,8 @@ private:
 
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
+
+  ShapeFunc shapeFunc_;
 
   /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
   double beta_;
@@ -594,6 +615,10 @@ private:
 
   /** no need for static */
   Enum<Overlap> overlap;
+
+  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
+  Overlap overlap_;
+
 
   /** small helper for tanh_sum */
   struct TanhSum
@@ -618,8 +643,6 @@ private:
     double scale = -1.0;  // works with offset
   } tanh_sum_;
 
-  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
-  Overlap overlap_;
 
   /** number of elements of rho in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;

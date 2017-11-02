@@ -563,7 +563,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     virtual Double CalcVolumeOfRegion( const RegionIdType regionId,bool updated = false ) = 0;
     
-    /** calculates the bounding box of the entire grid. Is slow,
+    /** calculates the bounding box of the entire grid. Is slow but cached
      * CalcVolumeSpannedByNamedNodes() in legacy cfs is faster!
      * @param sys if NULL the the default one is used
      * @param force_3D third dimension is zero for 2D otherwise there is no third dimension in 2D
