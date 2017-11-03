@@ -554,19 +554,28 @@ namespace CoupledField {
     in->Get("meshFile")->SetValue(GetMeshFileStr());
     in->Get("logConfFile")->SetValue(GetLogConfFileStr());
     in->Get("detailed")->SetValue(DoDetailedInfo());
-    in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
-    in->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
 
     // cfs information
-    in = in->Get("cfs");
-    in->Get("version")->SetValue(CFS_VERSION);
-    in->Get("name")->SetValue(CFS_NAME);
-    in->Get("build")->SetValue(CMAKE_BUILD_TYPE);
-    in->Get("svn_revision")->SetValue(CFS_WC_REVISION);
+    PtrParamNode in_cfs = in->Get("cfs");
+    in_cfs->Get("version")->SetValue(CFS_VERSION);
+    in_cfs->Get("name")->SetValue(CFS_NAME);
+    in_cfs->Get("build")->SetValue(CMAKE_BUILD_TYPE);
+    in_cfs->Get("svn_revision")->SetValue(CFS_WC_REVISION);
     std::string url(CFS_WC_URL);
     if(url.size() > 0 && url.find_last_of("/") != string::npos)
-      in->Get("svn_branch")->SetValue(url.substr(url.find_last_of("/")+1));
-    in->Get("exe")->SetValue(exe_);
+      in_cfs->Get("svn_branch")->SetValue(url.substr(url.find_last_of("/")+1));
+    in_cfs->Get("exe")->SetValue(exe_);
+
+    // openmp information
+    PtrParamNode in_omp = in->Get("openmp");
+    #ifdef USE_OPENMP
+      in_omp->Get("CFS_threads")->SetValue(NUM_CFS_THREADS);
+      in_omp->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
+      in_omp->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
+    #endif
+    #ifndef USE_OPENMP
+      in_omp->SetValue("compiled without");
+    #endif
   }
 
   
@@ -1072,11 +1081,16 @@ namespace CoupledField {
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
   {  
+    string omp = getenv("OMP_NUM_THREADS") != NULL ? string(getenv("OMP_NUM_THREADS")) : "-";
+    string mkl = getenv("MKL_NUM_THREADS") != NULL ? string(getenv("MKL_NUM_THREADS")) : "-";
     if(IsQuiet())
     {
       out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
           << " Compiled: '" << __DATE__ << "'"
           << " Build: '" << CMAKE_BUILD_TYPE << "'" << endl;
+      #ifdef USE_OPENMP
+        out << ">> OpenMP Threads: CFS=" << NUM_CFS_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
+      #endif
     }
     else
     {
@@ -1089,7 +1103,8 @@ namespace CoupledField {
           << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
           << " as " << CMAKE_BUILD_TYPE << endl
-          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run" << endl;
+          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run."
+          << " OMP/ MKL threads: " << omp << "/ " << mkl << endl;
       out << "============================================================"
           << "==========="
           << endl << endl;
