@@ -173,10 +173,16 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     print("finished_workers ",finished_workers," commsize: ",commSize)
     sys.stdout.flush()
-      
+    
+    import time   
     flags = []
+    start = time.time()
     # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
     for i,obj in enumerate(basecells):
+      if (i%100==0):
+        end_vtk_iteration=time.time()
+        print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
+        
       cell = obj[0]
       flags.append(obj[2])
       vtk_points = vtk.vtkPoints()
@@ -484,87 +490,4 @@ def fill_boundary_loops(points,loops):
   
   print("closed ",len(loops), " holes")  
   return  appendPd.GetOutput()
-
-# master class
-class Master():
-    def __init__ (self, args_for_worker):
-      self.args_for_worker=args_for_worker
-      args,data_grid,data_grid_near,sample_coords,ndim,scale,min_thresh,max_thresh,id,nx,ny,nz,bounds = self.args_for_worker
-
-      # the master's ID
-      self.id = comm.Get_rank()
-      # ID should always be 0 due to the initialization in the main function
-      assert(self.id==0)
-     
-      self.number_of_jobs = nx*ny*nz
-      # a list where jobs will be put
-      # self.tasks = [None] * self.number_of_jobs
-      # a list where results will be put
-      self.basecells =list()
-      self.boundary_flags= list()
-     
-       
-    def run(self):
-        # put some jobs in the task list
-        # for ii in range(self.number_of_jobs):
-            # self.tasks[ii] = ii
-        print('The no of jobs is {}.'.format(self.number_of_jobs))
-
-        # a status object containing source, tag and size of a message
-        status = MPI.Status()
-        # the number of workers is the size of the communicator minus the master
-        number_of_workers = comm.Get_size() - 1
-        print('There are {} workers in this communicator.'.format(number_of_workers))
-        # at start we have no closed workers
-        closed_workers = 0
-
-        # index for the current job to process
-        job_index = 0
-        # as long as there are workers available do something
-        while closed_workers < number_of_workers:
-            # wait for a message from any source with any tag
-            data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            # get the source's ID / rank
-            source = status.Get_source()
-            # get the message tag
-            tag = status.Get_tag()
-           
-            # if the received tag is 'READY' the worker waits for data to process
-            if tag == tags.READY:
-                if job_index < (number_of_workers):
-                    # get a task from the list
-                    # job_data = self.tasks[job_index]
-                    # assemble the message to send to the worker
-                    args_for_worker = self.args_for_worker,job_index
-                    # send a message to the worker and tell it to process the
-                    # contained data ('args')
-                    comm.send(args_for_worker, dest=source, tag=tags.START)
-                    # increase the index such that the following job is picked next
-                    job_index += 1
-
-                # if we have no job left we send a poison pill to the worker
-                else:
-                    comm.send(None, dest=source, tag=tags.EXIT)
-
-            # if the received  tag is 'DONE' the worker finished computation
-            # and sent a result
-            elif tag == tags.DONE:
-                # we store the result
-                tmp_basecells, tmp_boundary_flags = data
-                self.basecells.extend(tmp_basecells)
-                self.boundary_flags.extend(tmp_boundary_flags)
-
-            # if the received  tag is 'EXIT' the worker performed a clean exit
-            elif tag == tags.EXIT:
-                # we print a short message...
-                print('Worker {} exited.'.format(source))
-                # ...and increase the number of unavailable workers
-                closed_workers += 1
-             
-        return self.basecells , self.boundary_flags
-      
-# enum typedef for convenience
-def enum(*sequential, **named):
-  enums = dict(zip(sequential, range(len(sequential))), **named)
-  return type('Enum', (), enums)
-
+    
