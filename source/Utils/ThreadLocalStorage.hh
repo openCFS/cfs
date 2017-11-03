@@ -47,12 +47,10 @@ public:
 //!  Base class for thread-safe containers in CFS.
 /*!
   Basic interface definition. The amount of available slots is
-  always the maximum number of OMP threads as epcified by the user.
+  always the maximum number of OMP threads as specified by the user.
 */
 class BaseTLS{
 public:
-  typedef enum { MAX_CFS_THREADS, MAX_OMP_THREADS } NumThreads;
-
   inline UInt GetNumSlots() const{
     return numSlots_;
   }
@@ -64,8 +62,8 @@ protected:
 };
 
 /*! This class stores and administrates thread local copies of
- *! the given type. Addessing the access is done via a Mine function
- *! in future releases, we might consider a Aqquire-Release functionality
+ *! the given type. Addressing the access is done via a Mine function
+ *! in future releases, we might consider a Acquire-Release functionality
  *! ASSUMPTION: T has a default and/or a copy constructor
  */
 template<class T>
@@ -76,16 +74,7 @@ public:
    *            MAX_OMP_THREADS set by environment variable
    *            WARNING: Make sure this matches "omp parallel num_threads(NUM_CFS_THREADS)" or "omp parallel" for implicit OMP_NUM_THREADS threads
    */
-  CfsTLS(NumThreads num = MAX_CFS_THREADS){
-    if (num == MAX_CFS_THREADS)
-      numSlots_ = NUM_CFS_THREADS;
-    else {
-      #ifdef USE_OPENMP
-        numSlots_ = omp_get_max_threads();
-      #else
-        numSlots_ = 1;
-      #endif
-    }
+  CfsTLS(){
     tlsContainer_.Resize(numSlots_);
   }
 
@@ -99,7 +88,9 @@ public:
 
    inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
+    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
     assert(omp_get_thread_num() < numSlots_);
+    assert(omp_get_thread_num() < tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
@@ -108,7 +99,9 @@ public:
 
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
+    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
     assert(omp_get_thread_num() < numSlots_);
+    assert(omp_get_thread_num() < tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];

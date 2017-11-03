@@ -223,12 +223,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
-  // make temporal storage thread local
-  // each entry is assigned to one thread
-  // each thread gets a vector to store the element neighborhood
-  // When this vector is reused and copied in the loop we have a sufficiently high capacity and Push_back() is cheap
-  CfsTLS< StdVector<Filter::NeighbourElement> > neighborhood(BaseTLS::MAX_OMP_THREADS);
-
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
@@ -256,7 +250,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
-    StdVector<Filter::NeighbourElement>& neighbors = neighborhood.Mine();
+    StdVector<Filter::NeighbourElement> neighbors;
     neighbors.Resize(0); // keeps capacity
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
@@ -622,7 +616,9 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
     case MAX_EDGE:
     {
       double max, tmp;
-      domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
+      LagrangeElemShapeMap sm(domain->GetGrid());
+      sm.SetElem(de->elem,false);
+      sm.GetMaxMinEdgeLength(max, tmp);
       double radius = value * max;
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
       return radius;
