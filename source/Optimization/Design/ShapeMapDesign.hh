@@ -125,6 +125,8 @@ public:
 
   const Vector<unsigned int>& GetDiscretization() const { return n_; }
 
+  double GetBeta() const { return beta_; }
+
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
@@ -251,7 +253,7 @@ public:
   struct NumInt
   {
     /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
-    void Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info);
+    void Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParamNode info);
 
     /** standard output, does not print warning here */
     void ToInfo(PtrParamNode info) const;
@@ -281,7 +283,12 @@ public:
     /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
      * based on the tanh(beta) max - min bounds per element
      * @param info will add warnings there when max_order is too small or the max newtwon-cotes order is not sufficient */
-    void SetTailored(const Vector<unsigned int>& n, PtrParamNode info);
+    void SetTailoredTanh(PtrParamNode info);
+
+    /** For LINEAR shape function we integrate first order. In the grayness we do full integration. The order is determined
+     * here based on sensitivity.
+     * @see linear_int_order_ */
+    void SetLinearIntOrder(PtrParamNode info);
 
     /** tanh function */
     double Func(double x, double pos) const;
@@ -302,6 +309,14 @@ public:
 
     /** product of n */
     unsigned int cells_;
+
+    ShapeMapDesign::ShapeFunc sf_;
+
+    /** what GetTailoredOrder() returns in the LINEAR case with 1st order integration */
+    int linear_int_order_ = -1;
+
+    /** the element spacing */
+    double h = -1.0;
   };
 
 private:
@@ -564,7 +579,9 @@ private:
     double EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
 
     double EvalLinear2d() const;
+    double EvalLinear3d() const;
     double EvalLinearGrad2d(bool grad_a, bool grad_w) const;
+    double EvalLinearGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
 
     // 2D and 3D common
     double a = -1;
