@@ -69,11 +69,6 @@ protected:
 template<class T>
 class CfsTLS : public BaseTLS{
 public:
-  /**
-   * @param num MAX_CFS_THREADS to use value specified by -t from command line;
-   *            MAX_OMP_THREADS set by environment variable
-   *            WARNING: Make sure this matches "omp parallel num_threads(NUM_CFS_THREADS)" or "omp parallel" for implicit OMP_NUM_THREADS threads
-   */
   CfsTLS(){
     tlsContainer_.Resize(numSlots_);
   }
