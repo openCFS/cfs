@@ -853,7 +853,7 @@ namespace CoupledField {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
       out = NLHEAT_CAPACITY;
-    } else if( in == "elecConductivity") {
+    } else if( (in == "elecConductivity") || (in == "electricConductivity") ) {
        out = NLELEC_CONDUCTIVITY;
     } else if( in == "elecBiPole") {
        out = NLELEC_BIPOLE;

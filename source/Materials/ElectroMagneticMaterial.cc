@@ -66,6 +66,7 @@ namespace CoupledField
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( CORE_LOSS );
+    isAllowed_.insert( NONLIN_DEPENDENCY );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
@@ -905,9 +906,10 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
     //             reluctivity(magFluxDensity) = nu(B)
     //
     //The core loss factor is also handled here because it needs to be approximated.
+	//Also the temperature-dependent conductivity is processed here via a call to the BaseMaterial
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
-    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS ) {
+    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS && matType != MAG_CONDUCTIVITY) {
       EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY and CORE_LOSS!"
           << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
     }
@@ -1140,6 +1142,8 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
         // checking for isSet_ in the PDE is not enough, which seems odd
         ret = CoefFunction::Generate( mp_, Global::REAL, "0.0" );
       }
+    } else if( matType == MAG_CONDUCTIVITY){
+    	ret = BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
     }
 
     return ret;
