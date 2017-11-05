@@ -1104,8 +1104,64 @@ namespace CoupledField {
     bool isTensor = false;
 
     // read electric conductivity
-    if(mag->Has("electricConductivity"))
-      material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
+    if(mag->Has("electricConductivity")){
+
+        if (mag->Get("electricConductivity")->Has("linear")) {
+          PtrParamNode lin = mag->Get("electricConductivity")->Get("linear");
+
+          // === ISOTROPIC ===
+          if (lin->Has("isotropic")) {
+            material->SetScalar(lin->Get("isotropic")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
+            material->SetSymmetryType(MAG_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
+          }
+          else if (lin->Has("tensor")){
+        	  EXCEPTION("For magnetic simulation, no tensor-valued el. conductivity allowed");          }
+        }
+
+        // we know only nonlinear isotropic material
+        if(mag->Get("electricConductivity")->Has("nonlinear") &&
+            mag->Get("electricConductivity")->Get("nonlinear")->Has("isotropic"))
+        {
+          PtrParamNode iso = mag->Get("electricConductivity")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info. approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 1000;
+          info.fileName = "";
+          info.factor = 1.;
+
+          // read dependency: can be temperature
+          if(iso->Has("dependency"))
+            material->SetScalar(iso->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
+
+          // read approximation type
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+          }
+
+          // read measurement accuracy
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read maximum value for approximation
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read name of function file
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+          // read factor
+          if(iso->Has("factor"))
+            info.factor = iso->Get("factor")->As<Double>();
+
+          //set info to material class
+          material->SetNonLinMatIso(MAG_CONDUCTIVITY, info);
+        } // nonlinear isotropic material
+
+    }
+
     
     // read nonlinear reluctivity for magnetostrictive strains
     if(mag->Has("magneticReluctivity_MagStrict"))

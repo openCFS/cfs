@@ -52,9 +52,9 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
-                      > </xsd:attribute>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -74,6 +74,19 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining nonlinear material dependency types -->
+          <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="electricConductivity" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Electric conductivity as function of temperature</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>

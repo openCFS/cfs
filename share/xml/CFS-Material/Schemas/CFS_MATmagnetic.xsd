@@ -19,7 +19,7 @@
 
   <xsd:complexType name="DT_MatMagnetic">
     <xsd:sequence>
-      <xsd:element name="electricConductivity" type="DT_NonNegFloat"/>
+      <xsd:element name="electricConductivity" type="DT_elecConductivity"/>
       <xsd:element name="magneticReluctivity_MagStrict" type="DT_MagstrictReluctivity" minOccurs="0"/>
       <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
       <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
@@ -30,7 +30,56 @@
   </xsd:complexType>
   
 
-
+<!--
+  <!-\- ******************************************************************* -\->
+  <!-\-   Definition of electric conductivity-\->
+  <!-\- ******************************************************************* -\->
+  <xsd:complexType name="DT_elecConductivity">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_LinElecConductivity"/>
+      <xsd:element name="nonlinear" type="DT_NonLinElecConductivity" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-\- ******************************************************************* -\->
+  <!-\-   Definition of electric conductivity -\->
+  <!-\- ******************************************************************* -\->
+  <xsd:complexType name="DT_LinElecConductivity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  
+  
+  <!-\- ******************************************************************* -\->
+  <!-\-   Definition of non linear electric conductivity-\->
+  <!-\- ******************************************************************* -\->
+  <xsd:complexType name="DT_NonLinElecConductivity">
+    <xsd:sequence>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinElecConductivity"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
+  <!-\- ******************************************************************* -\->
+  <!-\-   Definition of isotropic non linear electric conductivity-\->
+  <!-\- ******************************************************************* -\->
+  <xsd:complexType name="DT_IsotrNonLinElecConductivity">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+      <xsd:element name="factor" type="xsd:float" minOccurs="0" maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  -->
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of magstrict coupling -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MagStrictTensor_mag">
     <xsd:sequence>
       <xsd:element name="real">
