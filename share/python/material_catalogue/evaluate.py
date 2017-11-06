@@ -357,6 +357,9 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
+  start = 0.1
+  end = 0.8
+  d = (end-start)/steps
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:

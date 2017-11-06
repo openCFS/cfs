@@ -28,7 +28,7 @@ if args.output and len(args.input) > 1:
 for input in args.input:
   if not os.path.exists(input):
     print('error: file not found: ' + input)
-    sys.exit() 
+    sys.exit()
   
   if input.endswith(".h5") or input.endswith(".h5ref") or input.endswith(".cfs"):
      f = h5py.File(input, 'r')
@@ -40,7 +40,6 @@ for input in args.input:
   des = dens if args.attribute == 'design' else read_density(input, 'design', set=args.set)
   
   nr = read_density(input, "nr", set=args.set) if dens.ndim == 1 else None
-  
   if args.attribute != 'design':
     print("original 'design' min=" + str(numpy.amin(des)) + " max=" + str(numpy.amax(des)) + " vol=" + str(numpy.sum(des) / dens.size))
   print("original '" + args.attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)) + " vol=" + str(numpy.sum(dens) / dens.size))
@@ -52,7 +51,7 @@ for input in args.input:
   if args.threshold:
     out = threshold_filter(dens, args.threshold, lower, 1.0)    
   elif args.vol:
-    out, _ = auto_threshold_filter(dens, lower, args.vol, 1.0)    
+    out, _ = auto_threshold_filter(dens, lower, args.vol, 1.0)  
   elif args.lower:
     # is either an option for threshold or an action by itself 
     org_lower = numpy.amin(dens)

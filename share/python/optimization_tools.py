@@ -20,7 +20,6 @@ def print_design_info(filename, attribute, set = None, fill = None):
     #print  sys.exc_info()
 
 
-
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
@@ -43,7 +42,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
     x = len(vals)
     y = 1
     z = 1
-
+  
   assert(x > 0 and y > 0 and z > 0)  
   
   # density files where not the whole domain is design domain are read and re-written
@@ -288,7 +287,7 @@ def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setnam
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
-#               The data can be obtained from read_density(...,elemnr=True)
+#               The data can be obtained from read_density  (...,"nr")
 def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
@@ -311,7 +310,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
            if elemnr is not None:
-             nr = int(getNDArrayEntry(elemnr, i, j , k))            
+             nr = int(getNDArrayEntry(elemnr, i, j , k))
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
              string_list.append('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val ** param) + '"/>\n')
@@ -427,7 +426,7 @@ def physical_volume(data, penalty):
         for k in range(z):
           org = getNDArrayEntry(data, i, j, k)
           vol = vol + pow(org, penalty)
-        
+          
   return vol / data.size              
 
 
@@ -446,7 +445,6 @@ def threshold_filter(data, threshold, min, max):
     for i in range(len(data)):
       res[i] = max if data[i] >= barrier else min
   else:
-    
     dim = data.ndim
     x, y, z = getDim(data)
     res = numpy.copy(data)
@@ -1101,7 +1099,7 @@ def get_image(data, scale = None):
 
   img = Image.fromarray(ret)
   if scale:
-    img = img.resize((scale, y/x * scale), Image.NEAREST) # higher quality with ANTIALIAS
+    img = img.resize((scale, int(y/x * scale)), Image.NEAREST) # higher quality with ANTIALIAS
   return img
 
 
@@ -1119,7 +1117,6 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
 
   h1 = 1.0/n1
   h2 = 1.0/n2
-
    
   for j in range(0,n2): 
     for i in range(1,n1):
@@ -1168,7 +1165,6 @@ def perimeter(data, eps = 0.0, order = 2, normalize = True):
 def perimeter_3d(data, eps = 0.0, normalize = True):
   assert(data.ndim == 3)
   nx, ny, nz = data.shape
-  
   hx = 1.0/nx
   hy = 1.0/ny
   hz = 1.0/nz
@@ -1204,8 +1200,7 @@ def perimeter_3d(data, eps = 0.0, normalize = True):
           scale = hx/(nx-1)*hy/(ny-1) if normalize else hx*hy
           per += scale * (numpy.sqrt((this-next)**2 + eps**2) - eps)
           
-  return per
-  
+  return per            
 # add a save ghost cell around an array
 # @param reproduce shall the outer boundary be copied 
 def add_ghost_cells(data, reproduce = False):
@@ -1263,7 +1258,7 @@ def calc_grayness(filename):
   physGray = numpy.average(4*physDens*(1-physDens))
   
   return param, gray, physGray
-    
+      
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11
 # a[:,1] *= 0.11
