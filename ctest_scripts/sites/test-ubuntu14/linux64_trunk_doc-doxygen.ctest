@@ -21,25 +21,43 @@ INIT_TEST()
 ##############################################################################
 
 # set the compiler environment
-SET_COMPILER_ENV("ICC")
+SET_COMPILER_ENV("GCC")
 
 # set build name
-set(BUILDTYPE "DEBUG")
-set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+set(BUILDTYPE "RELEASE")
+set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} doc-doxygen")
 
 # set the default initial cache for nighly tests
 INIT_CACHE(CTEST_INITIAL_CACHE) 
 # set additional config options 
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
-   DEBUG:BOOL=ON
+   DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=${NIGHTLY_TESTSUITE_DIR}
-   CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=${NIGHTLY_CACHE_DIR}
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
 #-----------------------------------------------------------------------------
-# Update, Configure, Build & Test
+# Update, Configure, Build: usually DO_TESTING()
 #-----------------------------------------------------------------------------
-DO_TESTING()
+  message("Start dashboard...")
+  set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+  # see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
+  ctest_start(Nightly)
+
+  message("  Update")
+  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+
+  message("  Configure")
+  file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+  # some configurations require to repeat the same ctest_configure() command
+  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+  message("  Build")
+  ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" TARGET "doc-doxygen" RETURN_VALUE res)
+
+  message("  Submit as ${CTEST_BUILD_NAME}")
+  ctest_submit(RETURN_VALUE res)
+  message("  All done") 
