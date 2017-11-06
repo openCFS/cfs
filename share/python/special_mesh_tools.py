@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import mesh_tool 
-from hdf5_tools import num_nodes_by_type
+try:
+  from hdf5_tools import num_nodes_by_type
+except:
+  print("failed to import hdf5_tools in special_mesh_tools.py, hopefully we don't need it")    
 
 def add_robot_boundary_conditions(mesh):
   # add loads and support to robot arm mesh

@@ -6,7 +6,7 @@ from copy import deepcopy
 try:
   from hdf5_tools import *
 except:
-  print("failed to import hdf5_tools, hopefully we don't need it")    
+  print("failed to import hdf5_tools in mesh_tools_py, hopefully we don't need it")    
 import scipy.interpolate as ip
 from numpy import ceil
 import scipy.spatial
