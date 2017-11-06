@@ -637,15 +637,8 @@ share/doc/auxilliaries/Pics/titelseite_logos.svg -text
 share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
-share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config.in -text
-share/doc/developer/DoxygenConfig/extra.css -text
-share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/latexHeader.tex -text
 share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
-share/doc/developer/DoxygenConfig/markdownSyntax.md -text
 share/doc/developer/DoxygenConfig/schemaDoc.md -text
 share/doc/developer/DoxygenConfig/xmlRef.md -text
 share/doc/developer/develManual/Int.bib -text
@@ -813,6 +806,26 @@ share/doc/developer/develManual/sources/vagrant_box.sh -text
 share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/doc-develmanual.cmake.in -text
 share/doc/developer/doc-doxygen.cmake.in -text
+share/doc/developer/doxygen/README.md -text
+share/doc/developer/doxygen/config/bootstrap.min.css -text
+share/doc/developer/doxygen/config/bootstrap.min.js -text
+share/doc/developer/doxygen/config/cfsDoxygenLayout.xml.in -text
+share/doc/developer/doxygen/config/customdoxygen.css -text
+share/doc/developer/doxygen/config/doxy-boot.js -text
+share/doc/developer/doxygen/config/doxy-config.in -text
+share/doc/developer/doxygen/config/extra.css -text
+share/doc/developer/doxygen/config/footer.html.in -text
+share/doc/developer/doxygen/config/header.html.in -text
+share/doc/developer/doxygen/config/jquery-3.2.1.min.js -text
+share/doc/developer/doxygen/config/jquery.powertip.min.css -text
+share/doc/developer/doxygen/config/jquery.powertip.min.js -text
+share/doc/developer/doxygen/config/jquery.smartmenus.bootstrap.css -text
+share/doc/developer/doxygen/config/jquery.smartmenus.bootstrap.min.js -text
+share/doc/developer/doxygen/config/jquery.smartmenus.min.js -text
+share/doc/developer/doxygen/config/latexHeader.tex.in -text
+share/doc/developer/doxygen/config/sm-core-css.css -text
+share/doc/developer/doxygen/pages/main.md -text
+share/doc/developer/doxygen/pages/markdownSyntax.md -text
 share/doc/doc-common.cmake.in -text
 share/doc/tutorial/CFS++_NewPDE.pptx -text
 share/doc/tutorial/CFS++_OverviewAndSimulation.pptx -text
