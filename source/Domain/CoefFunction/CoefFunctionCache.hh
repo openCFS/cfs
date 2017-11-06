@@ -38,8 +38,6 @@ public:
   //! Destructor
   virtual ~CoefFunctionCache();
 
-  void EmptyCache();
-
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec, const LocPointMapped& lpm);
 
@@ -78,8 +76,6 @@ protected:
   //boost::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_boost_;
   //typename boost::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_boost_;
 
-  MathParser* mp_;
-  MathParser::HandleType mHandleTime_;
 
 };
 } //end of namespace

@@ -47,7 +47,7 @@ public:
   StdVector<Condition*> constr;
 
   /** volume of the structure */
-  double volume, volume_observe;
+  double volume, volume_observe, volume_cfs;
 
   /** volume constraint bound */
   double volume_bound;
@@ -74,6 +74,9 @@ public:
   /** lower asymptote */
   StdVector<Matrix<double> > L;
 
+  /** lower asymptote */
+  StdVector<Vector<double> > L_ev;
+
   /** upper asymptote */
   StdVector<Matrix<double> > U;
 
@@ -86,8 +89,8 @@ public:
   /** convergence tolerance for volume bisection */
   double volume_tolerance;
 
-  /** tau of model function in subsolve */
-  double tau;
+  /** max number of widening steps in globalization */
+  int upper_tau;
 
   /** turn of finite differences derivative check*/
   bool derivative_check;
@@ -157,7 +160,7 @@ private:
   void SolveSubProblem();
 
   /** updates the design and the outer function values and gradients */
-  void UpdateToCurrentStep(bool inner = false);
+  void UpdateToCurrentStep(bool inner = false, double ppeni = -1., bool widening = false);
 
   /** Performs a gradient check with central difference quotient for necessary derivatives */
   StdVector<double> GradientCheck(double & max_grad_error);
@@ -183,8 +186,16 @@ private:
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
-  /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
-  void DesignToOuter(bool inner = false, bool only_update_outer = false);
+  void Update_L(Vector<double> l_min,int tau);
+
+  /** Reset L to 0-matrix*/
+  void Reset_L();
+
+  /** writes design to rho_outer, theta_outer and E_outer, E_outer is not updated for inner = true */
+  void DesignToOuter(bool inner, bool initial);
+
+  /** calculates cost function without changing state of the variables, necessary for globalization reduction test */
+  double EvalCostFunction(void);
 
   /** writes rho_outer, theta_outer and E_outer back to design. If bool filter true only tensor entry designs are updated. */
   void OuterToDesign(bool filter = false);
@@ -235,13 +246,16 @@ public:
   double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
 
   /** evaluate function according to the SGP approximation, parameterization FOMO_Top*/
-  double SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+  double SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer, double & Vloc);
 
   /** evaluate function according to the SGP approximation, parameterization FOMO*/
-  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double Vloc);
+  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double & Vloc);
 
   /** evaluate function according to the SGP approximation, parameterization FMO*/
-  double SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc);
+  double SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double & Vloc);
+
+  /** calculates min eigenvalue for each Element of matrix E_in */
+  void CalcMinEigenvalue(StdVector<Matrix<double> > & E_in, Vector<double> & l_min);
 
   /** helper for logging
    * @param determinant @see GetCondition() */
@@ -274,9 +288,9 @@ public:
 private:
 
   double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
-  double CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
-  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, double Vloc);
-  double CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc);
+  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, double &rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, int index, double & Vloc);
+  double CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index, double & Vloc);
+  double CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, int index, double & Vloc);
   double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
   void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta,Matrix<double> & tmp);

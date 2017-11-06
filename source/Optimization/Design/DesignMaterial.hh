@@ -36,7 +36,7 @@ class TransferFunction;
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
 
     /* possibilities for the isotropic plane in transversal isotropy
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
@@ -147,6 +147,10 @@ class TransferFunction;
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
     void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
   protected:
 
@@ -394,6 +398,18 @@ class TransferFunction;
     Matrix<double> hom_rect_coeff55_;
     Matrix<double> hom_rect_coeff66_;
     Matrix<double> hom_rect_coeff13_;
+    Matrix<double> hom_rect_coeff14_;
+    Matrix<double> hom_rect_coeff15_;
+    Matrix<double> hom_rect_coeff16_;
+    Matrix<double> hom_rect_coeff24_;
+    Matrix<double> hom_rect_coeff25_;
+    Matrix<double> hom_rect_coeff26_;
+    Matrix<double> hom_rect_coeff34_;
+    Matrix<double> hom_rect_coeff35_;
+    Matrix<double> hom_rect_coeff36_;
+    Matrix<double> hom_rect_coeff45_;
+    Matrix<double> hom_rect_coeff46_;
+    Matrix<double> hom_rect_coeff56_;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;

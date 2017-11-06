@@ -515,7 +515,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
   height = scale*elem[1] * dy 
   length = scale*elem[0] * dx
   #print 'elem0 = ' +str(elem[0]) + ' dx = ' +str(dx) 
-  #print 'height = ' +str(height)+', lenght= '+str(length)
+  #print 'height = ' +str(height)+', length= '+str(length)
   #print 'dim = '+str(dim)
   eps = 1e-8
   warn = False
@@ -523,7 +523,8 @@ def show_frame(coords, s1, s2, directions, nx,scale):
     coord = centers[i]
     #print 'coord = '+str(coord)
     x_off = int(coord[0]*dx+min[0]-height/(2.)+eps)
-    y_off = int(dy-coord[1]*dy+min[1]-height/(2.)+eps)     
+    y_off = int(dy-coord[1]*dy+min[1]-height/(2.)+eps)
+         
     #x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
     #y_off = nx-1-(length/scale)/2.-(coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
     ver = s2[i, 0]/numpy.max((scale, 1.))
@@ -533,6 +534,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
     pix = im.load()
     for i in range(x_off, int(length+eps) + x_off):
        for j in range(y_off, int(height+eps) + y_off):
+          #print('index '+str(i)+ ', index '+str(j))
           pix[i,j] = (0,0,0)   
     offx = int((length / 2.) * (ver) + 0.5+eps)
     offy = int((height / 2.) * (hor) + 0.5+eps)
