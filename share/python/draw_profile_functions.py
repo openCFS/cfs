@@ -943,7 +943,7 @@ def generate_basecell(args,info,log,offset=0):
     
     # adding triangles connectivity from Marching Cube
     for f in faces:
-      matviz_vtk.add_triangle(new_surf_points,f[0], f[1], f[2], cells)
+      matviz_vtk.add_triangle(f[0], f[1], f[2], cells)
       
     polydata.SetPoints(vtk_points)
     polydata.SetPolys(cells)
@@ -1500,7 +1500,7 @@ def mesh_boundary_circles(surf_points,vtk_points,cells):
     
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)
+      matviz_vtk.add_triangle(lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)
 # for a given profile and point p, check if p lies inside (not on surface of) profile
 def point_inside_profile(p,profile):
   assert(p[0] >= 0.0 and p[0] <= 1.0)

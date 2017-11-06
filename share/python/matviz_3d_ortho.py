@@ -19,11 +19,206 @@ try:
   from mpi4py import MPI
 except:
   print("WARNING: Could not load mpi4py!")
+  
+def create_3d_interpretation_ortho_new(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
+  # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
+  # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
+  # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
+  # grad: type of interpolation ('linear', 'nearest')
+  # scale: parameter for scaling the cell size if necessary
+  # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  
+  # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
+  # use the standard communicator
+  comm = MPI.COMM_WORLD
+  rank = comm.Get_rank()
+  commSize = comm.Get_size()
+  
+  # point coordinates from h5 file
+  centers, _, _ = coords[0:3]
+  
+  # appending cells
+  appends = vtk.vtkAppendPolyData()
+  
+  if scale <= 0:
+    scale = 1.0
+
+  # assume we always start at (0,0,0)
+  # order: min_x,min_y,min_z,max_x,max_y,max_z
+  bounds = np.ones(6) * (-1)
+  bounds[0:3] = min_bb[0:3]
+  bounds[3:6] = max_bb[0:3]
+  
+  # 0:xmin,1:ymin,2:zmin,3:xmax,4:ymax,5:zmax  
+  delta = (abs(bounds[3] - bounds[0]), abs(bounds[4] - bounds[1]), abs(bounds[5] - bounds[2]))
+  
+  # set size dx/dy/dz of one cell
+  dx = delta[0] / samples[0]
+  dy = delta[1] / samples[1]
+  dz = delta[2] / samples[2]
+  
+  min_thresh = 0.1
+  max_thresh = 0.82
+    
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)
+
+#   print("samples:",samples)  
+#   print("delta:",delta)
+  print("bounds:",bounds)  
+  print("dx,dy,dz:",dx,dy,dz)
+#   print("nx,ny,nz:",nx,ny,nz) 
+  
+  data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
+  
+  basecells = list()
+  boundary_flags = list()
+  
+  nProblem = nx*ny*nz
+
+  # distribute loop evenly over number of processes and take care
+  # of remainder -> difference between work chunks can be 1
+  # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2] 
+  # number of loop runs per process:
+  nRuns = [int(nProblem/commSize) + (1 if p < nProblem%commSize else 0) for p in range(0,commSize)]
+  start = int(np.sum(nRuns[0:rank]))
+  end = int(start + nRuns[rank])
+  
+  for id in range(start,end):
+    i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
+    
+    this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+    east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+    top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+    front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+    
+    assert(this is not None and east is not None and top is not None and front is not None)
+    
+    # if one of the values is < min_thresh, set it to min_thresh        
+    # if one of the values is > max_thresh, set it to max_thresh
+    x1 = min(max(this[0],min_thresh),max_thresh)
+    x2 = min(max(east[0],min_thresh),max_thresh)
+    y1 = min(max(this[1],min_thresh),max_thresh)
+    y2 = min(max(top[1],min_thresh),max_thresh)
+    z1 = min(max(this[2],min_thresh),max_thresh)
+    z2 = min(max(front[2],min_thresh),max_thresh)
+    
+    # translate cell to correct position
+    left_front_corner  = np.asarray(sample_coords[i,j,k])
+    
+    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh")
+    bc_input.eta = 0.7
+    bc_input.stiffness_as_diameter = True
+    assert(bc_input.target == "volume_mesh")
+    cell_obj = basecell.Basecell(bc_input)
+    cell_obj.scale(dx, dy, dz)
+    cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
+    cell_obj.update()
+    if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+      continue
+    # flags for meshing circles on the boundary
+    flags = [None] * 6
+    grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
+    grid_coords = [i,j,k]
+#     flags[0] = True if i == 0 else False
+#     flags[1] = True if j == 0 else False
+#     flags[2] = True if k == 0 else False
+#     flags[3] = True if i == nx-1 else False
+#     flags[4] = True if j == ny-1 else False
+#     flags[5] = True if k == nz-1 else False
+    for c in range(len(flags)):      
+      flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
+    cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
+    cell_obj.center = cell_center
+    boundary_list = []
+    # at least one boundary circle needs to be triangulated
+#     if any(flags):
+#       boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
+
+    basecells.append((cell_obj,boundary_list,flags))
+    print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
+
+  # broadcast all data to master and exit script
+  if rank != 0:
+    sys.stdout.flush()
+    result = (basecells,boundary_flags)
+    comm.send(result,dest=0,tag=1)
+    status = MPI.Status()
+    tmp = comm.recv(source=0,status=status)
+    # make sure communication wors
+    if status.Get_tag() == 999:
+      print("\n             rank ",rank," exiting now")
+      sys.stdout.flush()
+      sys.exit()
+  else:
+    finished_workers = 0
+    # a status object containing source, tag and size of a message
+    status = MPI.Status()
+    while finished_workers != commSize-1:
+      data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+      # we store the result
+      tmp_bc, tmp_bf = data
+      basecells.extend(tmp_bc)
+      boundary_flags.extend(tmp_bf)
+      #get the message tag
+      tag = status.Get_tag()
+      source = status.Get_source()
+      comm.send(None,dest=source,tag=999)
+      finished_workers += 1
+    
+    print("finished_workers ",finished_workers," commsize: ",commSize)
+    sys.stdout.flush()
+    
+    import time   
+    flags = []
+    start = time.time()
+    # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
+    for i,obj in enumerate(basecells):
+      if (i%100==0):
+        end_vtk_iteration=time.time()
+        print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
+        
+      cell = obj[0]
+      flags.append(obj[2])
+      vtk_points = vtk.vtkPoints()
+      pd = matviz_vtk.fill_vtk_polydata(cell.points, cell.cells,cell.center)
+      
+      appends.AddInputData(pd)
+      # meshed boundary circles
+      circles = obj[1]
+  #     assert(len(circles) > 0)
+      # list with meshes on the boundaries
+      for l in circles:
+        points = np.asarray(l[0])
+        pd = matviz_vtk.fill_vtk_polydata(l[0], l[1])
+          
+        appends.AddInputData(pd)
+  
+    appends.Update() # not sure if we have to do this in each loop iteration
+    
+    # merge duplicated points etc.
+    cleanFilter = vtk.vtkCleanPolyData()
+    cleanFilter.SetInputConnection(appends.GetOutputPort())
+    cleanFilter.Update()
+    
+#     boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
+#     appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
+     
+    cleanFilter.Update()
+    pd = cleanFilter.GetOutput()
+    
+    normals = vtk.vtkPolyDataNormals()
+    normals.SetInputData(pd)
+    normals.SetConsistency(1)
+    normals.SetAutoOrientNormals(1)
+    normals.Update()
+  
+    return normals.GetOutput()  
 
 
 # similar to create_3d_cross_ip; # without rotation and shearing
-# returns
-
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
