@@ -259,23 +259,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // add also material to global, distributed reluctivity coefficient function
        reluc_->AddRegion(actRegion, curCoef);
 
-       // === Additional RHS integrator in case of Non-linearity ===
-       // not needed for StdSolveStep
-       /*if ( nonLin_ == true && analysistype_ == STATIC ) {
-         //REFACTOR;
-         // =================================
-         //  Nonlinear RHS-integrator
-         // =================================
-         LinearForm * rhsNlinForm =
-             new KXIntegrator<Double>(curlcurl, -1.0, feFunc );
-         rhsNlinForm->SetName("RHSNonLinForm-Lin");
-         LinearFormContext * rhsNlinContext =
-             new LinearFormContext( rhsNlinForm );
-         rhsNlinContext->SetEntities( actSDList );
-         rhsNlinContext->SetFeFunction( feFunc );
-         assemble_->AddLinearForm( rhsNlinContext );
-       }*/
-     } // END OF NONLIN / LIN PART
+     } // END OF NONLIN/LIN PART
 
 
       // ============================================================
@@ -296,7 +280,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                                   ent, coef, updatedGeo_ );
           //coef-Fnc for electric conductivity
           PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY, Global::REAL, coef);
-          bool scaleByEdgeSize = false;
           if ( analysistype_ == STATIC ) {
         	  EXCEPTION("No temperature-dependent conductivity implemented for static magnetic analysis");
           }
@@ -324,23 +307,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     	        // use gradient of shape functions?
     	        //bool useGrad = true;
     	        if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-    	          // do not use gradients for non-conductive regions (for regularization
-    	          // only the lowest order mass term is used)
-    	          //useGrad = false;
-
     	          Matrix<Double> reluc;
-
     	          // get tensor of permeability and determine max. value
     	          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
     	          conductivity =  regularizationFactor * reluc[0][0];
     	          scaleByEdgeSize = true;
-
     	          // add region to set of "regularized" regions
     	          regularizedRegions_.insert(actRegion);
     	        }
-    	  //      if(useGrad) {
-    	  //        dynamic_pointer_cast<FeSpaceHCurlHi>(feSpace)->SetUseGradients(actRegion);
-    	  //      }
 
     	        PtrCoefFct coeff =
     	            CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
@@ -378,7 +352,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     	        // insert mass integrator to list of defined mass integrators
     	        massInts_[actRegion] = massInt;
-      }// END OF NONLIN / LIN PART
+      }// End of nonlin/lin mass matrix part
 
       
 
