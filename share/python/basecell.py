@@ -54,7 +54,8 @@ def visualize_structure(array,show,save):
           else:
             centers.append([x,y,z]) 
   
-  create_centered_bars(cells,points,centers,[h,h,h])
+  # simple python lists
+  points_list, cells_list = create_centered_bars(cells,points,centers,[h,h,h])
   
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
@@ -65,6 +66,8 @@ def visualize_structure(array,show,save):
   if show: 
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
+  
+  return points_list, cells_list
     
 def give_radiusFunction():
   r = np.linspace(0.5, 0.5*np.sqrt(2),100)
@@ -161,9 +164,9 @@ def create_mesh_with_profiles(args,infoXml,log):
       save = "volume.vtp" if not args.save else args.save
       if not save.endswith('.vtp'):
         save += ".vtp"
-      visualize_structure(array,args.show,save)
+      _, _ = visualize_structure(array,args.show,save)
     elif args.show:
-      visualize_structure(array,args.show,False)
+      _, _ = visualize_structure(array,args.show,False)
   if infoXml != None:
     infoXml.write('</basecell>')  
   
@@ -309,7 +312,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="contour",res_surf_lines=None,tets=False):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -329,8 +332,8 @@ class Basecell_Data():
     self.beta = beta
     self.eta = eta  
     self.interpolation = interpolation
-#     self.target = target
-    self.target = "contour"
+    self.target = target
+    #self.target = "contour"
     
     # set debugging stuff 
     self.verbose = "off"
@@ -353,10 +356,14 @@ class Basecell():
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
-    dumm, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
+    voxels, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
-    self.update()
+    if data.target != "volume_mesh":
+      self.update()
+    else:
+      self.points, self.cells = visualize_structure(voxels, False, False)
+      
     self.center = np.asarray([0.5,0.5,0.5])
     
   def scale(self,scalex,scaley,scalez):
