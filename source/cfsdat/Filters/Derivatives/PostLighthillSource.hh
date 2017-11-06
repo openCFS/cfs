@@ -40,7 +40,6 @@ protected:
 
 private:
 
-  int component_;
 
 };
 

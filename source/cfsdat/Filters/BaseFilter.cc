@@ -99,14 +99,10 @@ BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
     PtrParamNode stNode = stepNode->Get("startStop");
     UInt start    = stNode->Get("startStep")->Get("value")->As<UInt>();
     UInt numSteps = stNode->Get("numSteps")->Get("value")->As<UInt>();
-    Double starttime    = stNode->Get("startTime")->Get("value")->As<Double>();
     Double delta    = stNode->Get("delta")->Get("value")->As<Double>();
-    string rOffset = stNode->Get("deleteOffset")->Get("value")->As<string>();
     //first step is always 1...
-    if(rOffset == "yes")
-      startTime_ = starttime - delta;
     for(UInt i=0;i<numSteps;++i){
-        globalStepValueMap_[start+i+1] = (starttime-startTime_) + (start+i)*delta;
+      globalStepValueMap_[start+i] = (start+i)*delta;
     }
   }
 }

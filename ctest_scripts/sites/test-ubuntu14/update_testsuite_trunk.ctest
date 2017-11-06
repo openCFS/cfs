@@ -7,9 +7,6 @@ set(CTEST_SOURCE_DIRECTORY "${NIGHTLY_TESTSUITE_DIR}")
 get_filename_component(FNAME "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
 set(CTEST_BINARY_DIRECTORY "${NIGHTLY_BUILD_DIR}/${FNAME}")
 
-# load data on development server
-include("${NIGHTLY_SOURCE_DIR}/cmake_modules/DevelopmentServer.cmake")
-
 # don't delete stuff in the bin dir 
 set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 

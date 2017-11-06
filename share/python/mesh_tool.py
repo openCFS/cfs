@@ -702,7 +702,7 @@ def validate_periodicity(mesh):
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper'))
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -713,7 +713,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   # buld2d case
   ny = y_res if y_res != None else x_res
-  width = 1.0
+  width = width if width != None else 1. 
   height = float(ny)/nx if opt_height is None else opt_height 
    
   offx = 0.
@@ -906,8 +906,11 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     mesh.bc.append(("support", list(range(nx,nx+1))))
     mesh.bc.append(("support", list(range((nx+1)*ny,(nx+1)*ny+1,nx+1))))
     mesh.bc.append(("support", list(range((nx+1)*(ny+1)-1,(nx+1)*(ny+1)))))
-
- 
+  elif type == 'mbb':
+    mid = int((nx+1.)/2.)
+    mesh.bc.append(("load", list(range((nx+1)*ny + mid, (nx+1)*ny + mid+1))))
+    mesh.bc.append(("left_lower", [0]))
+    mesh.bc.append(("right_lower", [nx]))
   elif type == 'msfem_two_load':
     # lower/upper loads
     mid = int((nx+1.)/2.)
@@ -1011,7 +1014,7 @@ def create_regular3d_mesh(type, resolution):
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
 def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
-  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz")
+  assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
 
   nx = x_res  
    
@@ -1043,6 +1046,13 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     width = scale
     height = scale*float(ny)/nx 
     depth = scale*float(nz)/nx  
+  elif type == "box_lufo":
+    width = 2.
+    height = 1.
+    depth = 1.
+    nx = x_res
+    ny = nx/2 if y_res == None else y_res
+    nz = nx/2 if z_res == None else z_res
     
      
   dx = width / nx 
@@ -2815,4 +2825,3 @@ def create_volume_mesh_with_gmsh(stlName):
   command = "gmsh -3 -optimize " + geoName
   cfs_utils.execute(command)
   create_mesh_from_gmsh(baseName)  
-  

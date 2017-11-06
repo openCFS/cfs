@@ -177,6 +177,15 @@ OPTION(USE_ANACONDA3
   "build anaconda3 from continuum analytics, not necessary for CFS++ itself"
   OFF)
 
+# exteranl anaconda
+OPTION(USE_ANACONDA3
+  "Use anaconda3 from continuum analytics"
+  OFF)
+
+IF(USE_PYTHON AND USE_ANACONDA3)
+  message(FATAL_ERROR "cannot use python and anaconda at the same time")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------

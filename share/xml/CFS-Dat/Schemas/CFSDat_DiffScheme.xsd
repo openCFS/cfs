@@ -3,15 +3,15 @@
   xmlns="http://www.cfs++.org"
   xmlns:cfs="http://www.cfs++.org"
   elementFormDefault="qualified">
-  
+ 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
       Parameter file schema for the Coupled Field Data processing
       project CFS-Dat
     </xsd:documentation>
   </xsd:annotation>
-  
-  
+ 
+ 
   <!-- ******************************************************************** -->
   <!-- Data type for defining additional parameters for neearest neighbour search -->
   <!-- ******************************************************************** -->
@@ -24,7 +24,7 @@
           becomes so ill-conditioned, which will either result in an exception or very bad
           results.
           Typical values 0.1
-          
+         
           localityScaling: divides the real epsilon (epsilonScaling / maxDistance) by the
           given number. This controls, how many points are used for building the differentation-
           matrix. The higher the number, the more points will be used. The "optimal" number of
@@ -34,5 +34,5 @@
     </xsd:attribute>
     <xsd:attribute name="localityScaling" type="xsd:double" use="required"/>
    </xsd:complexType>
-  
+ 
 </xsd:schema>

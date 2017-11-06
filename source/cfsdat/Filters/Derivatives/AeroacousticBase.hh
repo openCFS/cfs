@@ -59,7 +59,9 @@ protected:
   void Node2Cell(Vector<Double>& returnVec,
         const Vector<Double>& inVec,
         const UInt& numEquPerEnt,
-        const StdVector< StdVector<CF::UInt> >& targetSourceIndex,
+        const StdVector<CF::UInt>& targetSource,
+        const StdVector<CF::UInt>& targetSourceIndex,
+        const UInt& numNN,
         const UInt& maxNumTrgEntities,
         const UInt& gridDim);
 

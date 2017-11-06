@@ -555,6 +555,16 @@ if(USE_ANACONDA3)
   INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
 endif(USE_ANACONDA3)
 
+#-------------------------------------
+# External anaconda 3
+#-------------------------------------
+if(USE_ANACONDA3)
+  SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
+  SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
+  SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
+  INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
+endif(USE_ANACONDA3)
+
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.
 # external projects. Especially important for parallel builds!

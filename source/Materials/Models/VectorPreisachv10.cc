@@ -162,7 +162,7 @@ namespace CoupledField
        * If alpha (the angle between new and old state is  close to zero,
        * we do not have to rotate at all as the rotation states are nearly the same)
        */
-      // take much larger tolerance here (should we really go up to 1e-15?!)
+      // take much larger tolerance here (should we really go up to 1e-15°?!)
       Double angleTol = 1e-4;
       if(abs(alpha) < angleTol){
         /*
@@ -625,8 +625,8 @@ namespace CoupledField
       } else if(version == 2) {
        /*
         * New way of outputting matrix:
-        *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
-        *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
+        *   encode rotation state in color: 0° = red; 120° = blue; 240° = green; angles in between colored as a mix
+        *   encode switching state as sign and amplitude: negative switching -> angle + 180°; absvalue < 1 -> scale final colorcombination
         *
         *   -> only for 2D rotstates, as the z component is not considered
         */
@@ -974,8 +974,6 @@ namespace CoupledField
             wasWipedOut = false;
             startCnt = 0;
           }
-          else
-            EXCEPTION("undefined state for variable wasWipedOut");
           /*
            * new previous rotation state available; e_u_old = 0-vector
            */
@@ -1134,11 +1132,11 @@ namespace CoupledField
      *
      *                  -0.7                -0.7
      *               ____v____           ____v____
-     *              |\   !     |         |\   !    |
-     *              |__\_!_____|0.8      |  \_!    |-> note the step! it cannot recreated without 0.8
-     *              |    \     |      -> |   ^!    |
-     *              |    ! \   |         |    !    |
-     *              |____!____\|         |____!____|
+     *              |\   !  ¦ |         |\   !    |
+     *              |__\_!__¦_|0.8      |  \_!    |-> note the step! it cannot recreated without 0.8
+     *              |    \  ¦ |      -> |   ^!    |
+     *              |    ! \¦ |         |    !    |
+     *              |____!__¦\|         |____!____|
      *                     -0.6
      *
      *      Currently (v<8) we checked for cases as the one above and kept important maxima/minima if needed.
@@ -1208,11 +1206,11 @@ namespace CoupledField
      *            *
      *                  -0.7                -0.7
      *               ____v____           ____v____
-     *              |\   !     |         |\   !    |
-     *              |__\_!_____|0.8      |__\_!____|0.8
-     *              |    \     |      -> |   ^!    |       < state can now be recreated
-     *              |    ! \   |         |    !    |
-     *              |____!____\|         |____!____|
+     *              |\   !  ¦ |         |\   !    |
+     *              |__\_!__¦_|0.8      |__\_!____|0.8
+     *              |    \  ¦ |      -> |   ^!    |       < state can now be recreated
+     *              |    ! \¦ |         |    !    |
+     *              |____!__¦\|         |____!____|
      *                     -0.6
      *
      *      And regarding the evaluation scheme:
@@ -2447,13 +2445,13 @@ namespace CoupledField
      * and overlapping rectangle
      *   _____ _____ _____ _____ _____
      *  |    .|.....|.....|.....|.   /
-     *  | 1 xx | 2   | 3   | 4   |xx5/
-     *  |___xx_|_____|_____|_____|/
-     *  |   xx |     |     |    / xx
-     *  | 6 xx | 7   | 8   | 9/   xx
-     *  |___xx_|_____|_____|/     xx
-     *  |   xx |     |    /       xx
-     *  | a xx.|.b...|.c/.........xx
+     *  | 1 ¦ | 2   | 3   | 4   |¦5/
+     *  |___¦_|_____|_____|_____|/
+     *  |   ¦ |     |     |    / ¦
+     *  | 6 ¦ | 7   | 8   | 9/   ¦
+     *  |___¦_|_____|_____|/     ¦
+     *  |   ¦ |     |    /       ¦
+     *  | a ¦.|.b...|.c/.........¦
      *  |_____|_____|/
      *  |     |    /
      *  | d   | e/
@@ -3392,13 +3390,13 @@ namespace CoupledField
      * and overlapping rectangle
      *   _____ _____ _____ _____ _____
      *  |    .|.....|.....|.....|.   /
-     *  | 1 xx | 2   | 3   | 4   |xx5/
-     *  |___xx_|_____|_____|_____|/
-     *  |   xx |     |     |    / xx
-     *  | 6 xx | 7   | 8   | 9/   xx
-     *  |___xx_|_____|_____|/     xx
-     *  |   xx |     |    /       xx
-     *  | a xx.|.b...|.c/.........xx
+     *  | 1 ¦ | 2   | 3   | 4   |¦5/
+     *  |___¦_|_____|_____|_____|/
+     *  |   ¦ |     |     |    / ¦
+     *  | 6 ¦ | 7   | 8   | 9/   ¦
+     *  |___¦_|_____|_____|/     ¦
+     *  |   ¦ |     |    /       ¦
+     *  | a ¦.|.b...|.c/.........¦
      *  |_____|_____|/
      *  |     |    /
      *  | d   | e/
@@ -3869,7 +3867,7 @@ namespace CoupledField
           /*
            * only difference to evaluation algorithm: do this also, if list was already wiped
            */
-          if(isSymmetric_ == false){
+          if((isSymmetric_ == false)){
             /*
              * set flag upperSplitSquare to true -> get area 0 instead of area 1
              */
@@ -3983,8 +3981,8 @@ namespace CoupledField
       } else if(version == 2) {
        /*
         * New way of outputting matrix:
-        *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
-        *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
+        *   encode rotation state in color: 0° = red; 120° = blue; 240° = green; angles in between colored as a mix
+        *   encode switching state as sign and amplitude: negative switching -> angle + 180°; absvalue < 1 -> scale final colorcombination
         *
         *   -> only for 2D rotstates, as the z component is not considered
         */

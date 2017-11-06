@@ -135,8 +135,7 @@ bool InputFilter::Run(){
   activeResults = resultManager_->GetActiveResults();
   aIter = activeResults.begin();
   for(; aIter != activeResults.end(); ++aIter){
-
-    if(filterResIds.Find(*aIter) == -1) //TODO warum?
+    if(filterResIds.Find(*aIter) == -1)
       continue;
     ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
     ResultManager::ConstResPtr cRes = resultManager_->GetResultAdapter(*aIter);
@@ -159,8 +158,7 @@ bool InputFilter::Run(){
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
       Double reqValue = cRes->stepValue;
-//      std::cout<<startTime_+reqValue<<std::endl;
-      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
+      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(reqValue+*fileResult.timeLine->Begin(), 1E-6) );
 
       if(val == fileResult.timeLine->End()){
         if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
@@ -226,27 +224,22 @@ void InputFilter::AdaptFilterResults(){
       //apparently somebody downstream has already something defined
       //lets just check if we are compatible
       CF::StdVector<Double>::iterator timeIter = curResInfo->timeLine->Begin();
-
+      Double startTime = *fileResult.timeLine->Begin();
       bool allOK = true;
       for(;timeIter != curResInfo->timeLine->End();++timeIter){
-        allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
-//        std::cout<<*timeIter<<std::endl;
+        allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime+*timeIter, 1E-8) ) != fileResult.timeLine->End();
       }
-
       if(!allOK)
-        EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
-
-
+        EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results")
     }else{
+      //remove offset per default
       StdVector<Double>& curT = (*fileResult.timeLine.get());
-      //This was commented, since the dynamic tag should give a consistent timeline
-//      StdVector<Double> tfValuesOffset(curT.GetSize());
-//      for(UInt aTime =0;aTime<(*fileResult.timeLine.get()).GetSize();aTime++){
-//        tfValuesOffset[aTime] = curT[aTime] - curT[0];
-//      }
-      resultManager_->SetTimeLine(filterResIds[aRes],curT);
+      StdVector<Double> tfValuesOffset(curT.GetSize());
+      for(UInt aTime =0;aTime<(*fileResult.timeLine.get()).GetSize();aTime++){
+        tfValuesOffset[aTime] = curT[aTime] - curT[0];
+      }
+      resultManager_->SetTimeLine(filterResIds[aRes],tfValuesOffset);
     }
-
     resultManager_->SetDType(filterResIds[aRes],fileResult.dType);
     resultManager_->SetRegionNames(filterResIds[aRes],(*fileResult.regNames.get()));
     resultManager_->SetCFormat(filterResIds[aRes],fileResult.complexFormat);

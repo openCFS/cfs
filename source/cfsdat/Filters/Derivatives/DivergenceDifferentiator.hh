@@ -26,7 +26,7 @@ class DivergenceDifferentiator : public MeshFilter{
   //! struct containing an interpolation matrix, which may be applied to scalars and vector
   struct Matrix {
     CF::UInt numTargets;
-    StdVector< StdVector<CF::UInt> > targetSourceIndex;
+    StdVector<CF::UInt> targetSourceIndex;
     StdVector<CF::UInt> targetSource;
     StdVector< CF::Matrix<CF::Double> > targetSourceFactor;
   };
@@ -64,10 +64,13 @@ private:
   //! number of euqations per entity
   UInt numEquPerEnt_;
 
+  //! Number of neighbor points to include in interpolation.
+  UInt numNeighbors_;
+
   std::vector<QuantityStruct> derivData_;
 
-  //! Scaling of epsilon-parameter for RBF-basis function
-  Double epsScal_;
+  //! Exponent for calculation of interpolation weight function.
+  Double p_;
 
   //! index in the static matrices vector to use
   UInt matrixIndex_;
