@@ -277,7 +277,7 @@ namespace CoupledField {
     // bool     flagElastTensorImag=false;
 
     
-
+//! [Read PtrParamNode]
     //read material density
     if(mech->Has("density")) {
       PtrCoefFct densFct =
@@ -285,6 +285,7 @@ namespace CoupledField {
                                  mech->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
+//! [Read PtrParamNode]
 
     // quite a lot is elasitcity
     if(mech->Has("elasticity"))
