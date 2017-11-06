@@ -223,84 +223,73 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
-  unsigned int numOMPThreads = 1;
-  #ifdef USE_OPENMP
-    numOMPThreads = omp_get_max_threads();
-  #endif
-
-  // make temporal storage thread local
-  // each entry is assigned to one thread
-  // each thread gets a vector to store the element neighborhood
-  // When this vector is reused and copied in the loop we have a sufficiently high capacity and Push_back() is cheap
-  StdVector<StdVector<Filter::NeighbourElement> > neighborhood(numOMPThreads);
-
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-  #pragma omp parallel for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
-  for(unsigned int e = start; e < end; e++)
+  #pragma omp parallel shared(ref)
   {
-    DesignElement* de = &data[e];
+    // don't do it in for-loop, thread local vector
+    StdVector<Filter::NeighbourElement> neighbors;
 
-    // did we came across a new design or a new region? Then update ref
-    if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+    #pragma omp for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius)
+    for(unsigned int e = start; e < end; e++)
     {
-      ref.region = de->elem->regionId;
-      ref.SetNonLinCorrection(de,rex);
-      ref_design = de->GetType();
-    }
-    de->simp->filter.Push_back(ref); // copy the reference data
+      DesignElement* de = &data[e];
 
-    assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
+      // did we came across a new design or a new region? Then update ref
+      if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+      {
+        ref.region = de->elem->regionId;
+        ref.SetNonLinCorrection(de,rex);
+        ref_design = de->GetType();
+      }
+      de->simp->filter.Push_back(ref); // copy the reference data
 
-    // independent of the filter type, radius determines the neighborhood
-    // via barycenter distance.
-    if(!regular)  // save calling if possible
-      radius = FindFilterRadius(filter_space_, de, value);
+      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
-    unsigned int aThread = 0;
-    #ifdef USE_OPENMP
-      aThread = omp_get_thread_num();
-    #endif
+      // independent of the filter type, radius determines the neighborhood
+      // via barycenter distance.
+      if(!regular)  // save calling if possible
+        radius = FindFilterRadius(filter_space_, de, value);
 
-    // set the filter neighborhood which is determined by radius
-    // recursively via element neighbors.
-    StdVector<Filter::NeighbourElement>& neighbors = neighborhood[aThread];
-    neighbors.Resize(0); // keeps capacity
+      // set the filter neighborhood which is determined by radius
+      // recursively via element neighbors.
+      neighbors.Resize(0); // keeps capacity
 
-    LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
-    if(regular)
-      FindRegularNeighborhood(de, radius, edges, neighbors);
-    else
-      FindUnstructuredNeighborhood(de, radius, neighbors);
+      LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
+      if(regular)
+        FindRegularNeighborhood(de, radius, edges, neighbors);
+      else
+        FindUnstructuredNeighborhood(de, radius, neighbors);
 
-    // set own weight
-    assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-    de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
+      // set own weight
+      assert(contribution_ == LINEAR || contribution_ == CONSTANT);
+      de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
 
-    // this is actually the re-implementation of a bug as it appeared to be not bad :)
-    if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
-    {
-      // normalize with a 'bug'
-      double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
-      // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
-      de->simp->filter.Last().weight = 1.0 / weight_sum;
-      for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
-        neighbors[j].weight /= weight_sum;
-    }
+      // this is actually the re-implementation of a bug as it appeared to be not bad :)
+      if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
+      {
+        // normalize with a 'bug'
+        double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
+        // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
+        de->simp->filter.Last().weight = 1.0 / weight_sum;
+        for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
+          neighbors[j].weight /= weight_sum;
+      }
 
 
-    // save neighborhood by copy constructor
-    de->simp->filter.Last().neighborhood = neighbors;
+      // save neighborhood by copy constructor
+      de->simp->filter.Last().neighborhood = neighbors;
 
-    avg_radius += radius;
-    avg_neighbours += neighbors.GetSize();
-    if(done && neighbors.GetSize() > 1000) {
-      in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
-      done = false;
-    }
-    LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
+      avg_radius += radius;
+      avg_neighbours += neighbors.GetSize();
+      if(done && neighbors.GetSize() > 1000) {
+        in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
+        done = false;
+      }
+      LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
+    } // end for loop
   }
 
   WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
@@ -632,7 +621,9 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
     case MAX_EDGE:
     {
       double max, tmp;
-      domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
+      LagrangeElemShapeMap sm(domain->GetGrid());
+      sm.SetElem(de->elem,false);
+      sm.GetMaxMinEdgeLength(max, tmp);
       double radius = value * max;
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
       return radius;

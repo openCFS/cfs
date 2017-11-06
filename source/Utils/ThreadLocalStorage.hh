@@ -47,7 +47,7 @@ public:
 //!  Base class for thread-safe containers in CFS.
 /*!
   Basic interface definition. The amount of available slots is
-  always the maximum number of OMP threads as epcified by the user.
+  always the maximum number of OMP threads as specified by the user.
 */
 class BaseTLS{
 public:
@@ -62,8 +62,8 @@ protected:
 };
 
 /*! This class stores and administrates thread local copies of
- *! the given type. Addessing the access is done via a Mine function
- *! in future releases, we might consider a Aqquire-Release functionality
+ *! the given type. Addressing the access is done via a Mine function
+ *! in future releases, we might consider a Acquire-Release functionality
  *! ASSUMPTION: T has a default and/or a copy constructor
  */
 template<class T>
@@ -83,6 +83,9 @@ public:
 
    inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
+    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
+    assert(omp_get_thread_num() < numSlots_);
+    assert(omp_get_thread_num() < tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
@@ -91,6 +94,9 @@ public:
 
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
+    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
+    assert(omp_get_thread_num() < numSlots_);
+    assert(omp_get_thread_num() < tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];

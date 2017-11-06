@@ -250,6 +250,8 @@ OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
   ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
   ${USE_SUPERLU_DEFAULT})
+OPTION(USE_PETSC "Use (P)ortable, (E)xtensible (T)oolkit for (S)cientific (C)omputation"
+  ${USE_PETSC_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -698,6 +700,10 @@ ENDIF(USE_SUPERLU)
 IF(USE_LIS)
   ADD_SUBDIRECTORY(source/OLAS/external/lis)
 ENDIF(USE_LIS)
+
+IF(USE_PETSC)
+  ADD_SUBDIRECTORY(source/OLAS/external/petsc)
+ENDIF(USE_PETSC)
 
 ADD_SUBDIRECTORY(source/CoupledPDE)
 ADD_SUBDIRECTORY(source/DataInOut)

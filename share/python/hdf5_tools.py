@@ -122,6 +122,7 @@ def find_corners(centers):
         min[c] = test[c]
       if test[c] > max[c]:
         max[c] = test[c]
+        
   return min, max      
 
 def last_h5_step(hdf5_file,multistep=1):          
