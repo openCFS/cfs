@@ -14,6 +14,81 @@ import numpy as np
 from scipy import interpolate
 from matviz_vtk import *
 
+class Basecell_Surface_Mesh():
+  def __init__(self,points,triangles):
+    self.points = np.asarray(points)
+    self.cells = triangles     
+    
+  def setConnectivity(self):
+    # for each point ( id = array index), store tuple with all neighboring id nodes
+    self.connectivity = [set() for index in range(len(self.points))]  
+    for t in self.cells:
+      
+#       print("t:",t)
+      
+      self.connectivity[t[0]].add(t[1])
+      self.connectivity[t[0]].add(t[2])
+      
+#       print("connect p0:",self.connectivity[0])
+#       print("connect p1:",self.connectivity[1])
+#       print("connect p2:",self.connectivity[2])
+      
+      self.connectivity[t[1]].add(t[0])
+      self.connectivity[t[1]].add(t[2])
+      
+      self.connectivity[t[2]].add(t[0])
+      self.connectivity[t[2]].add(t[1])
+      
+#       print("connect p0:",self.connectivity[0])
+#       print("connect p1:",self.connectivity[1])
+#       print("connect p2:",self.connectivity[2])
+#     
+#     print("point 0  with coords ", self.points[0]," has neighbors ",self.connectivity[0])  
+#     
+#     sys.exit()   
+  def smooth(self,niter):
+    self.setConnectivity()
+    lamb = 0.6
+    for i in range(niter):
+      self.laplacian_smoothing(lamb)   
+      self.laplacian_smoothing(-lamb-0.03)
+      
+    print("Taubin smoothing with ", niter, " iterations")  
+  
+  # laplacian smoothing: p_i = p_i + \lambda * L(p_i)
+  # using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
+  def laplacian_smoothing(self,lamb):
+    new_points = [None] * len(self.points) 
+    for i,p in enumerate(self.points):
+      # calculate gradient   
+      if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
+        new_points[i] = p
+      else:
+        # calculate L(p_i)
+        # w_ij*p_j + w_ik*p_k
+        num = np.asarray([0,0,0])
+        denom = 0
+        L = 0
+        # nid is id of a neighbor node
+        neighborhood = self.connectivity[i] 
+        for nid in neighborhood:
+          # n are coords of neighbor with id nid
+          n = self.points[nid]
+          # distance between neighbor and this node
+          w = 1.0 / numpy.linalg.norm(len(neighborhood))
+          L = L + w * (n-p)
+          #w = numpy.linalg.norm(n - p)
+          #num = num + w * n
+          #denom  = denom + w
+            
+        
+        #L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i
+#         assert(not np.isclose(denom,0,1e-6))
+#         L = num / denom - p   
+        new_points[i] = p + lamb * L   
+    
+    self.points = new_points
+
 def calc_volume(array,infoXml=None):
   res, res, res = array.shape
   
@@ -130,7 +205,15 @@ def create_mesh_with_profiles(args,infoXml,log):
   
   print("radii: " + str(args.x1/2.0) + "," + str(args.x2/2.0) + "," + str(args.y1/2.0) + "," + str(args.y2/2.0) + "," + str(args.z1/2.0) + "," + str(args.z2/2.0))    
   
-  array, _, _, _ = draw_profile_functions.generate_basecell(args,infoXml,log)
+  array, surface_points, surface_cells, _ = draw_profile_functions.generate_basecell(args,infoXml,log)
+  
+  mesh = Basecell_Surface_Mesh(surface_points, surface_cells)
+  for i in range(50):
+    mesh.smooth(1)
+    pd = fill_vtk_polydata(mesh.points,mesh.cells)
+    show_write_vtk(pd,1000,"smoothed_"+str(i)+".vtp")
+  
+  sys.exit()
   
   if args.target.startswith("volume"):
     assert(array is not None)
@@ -141,24 +224,31 @@ def create_mesh_with_profiles(args,infoXml,log):
     else:
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
       
-      if args.save_mesh_data:
-        data_txt = open(meshName + "_data.txt","w")
-        data_txt.write("#number of nodes: " + str(len(mesh.nodes)) + "\n")
-        for n in mesh.nodes:
-          data_txt.write(str(n[0]) + " \t" + str(n[1]) + " \t" + str(n[2]) + "\n")
-        data_txt.write("#number of elements: " + str(len(mesh.elements)) + "\n")  
-        for e in mesh.elements:
-          data_txt.write(str(e.nodes[0]) + " \t" + str(e.nodes[1]) + " \t" + str(e.nodes[2]) + " \t" + str(e.nodes[3]) + " \t" + str(e.nodes[4]) + " \t" + str(e.nodes[5]) + " \t" + str(e.nodes[6]) + " \t" + str(e.nodes[7]) + "\n")
-        data_txt.close()
-        
     mesh_tool.validate_periodicity(mesh)
   elif args.target.startswith("surface") or args.target.startswith("contour"):
     stlName = args.save if args.save else "surface"
     if not stlName.endswith(".stl"):
       stlName += ".stl"
     if args.tets: # create tetrahedralized volume mesh from surface description
-      mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
+      mesh = mesh_tool.create_volume_mesh_with_gmsh(stlName)
+      #mesh = mesh_tool.create_volume_mesh_from_stl(stlName,args.save_vtp)
   
+  if args.save_mesh_data:
+    data_txt = open(meshName + "_data.txt","w")
+    data_txt.write("#number of nodes: " + str(len(mesh.nodes)) + "\n")
+    for n in mesh.nodes:
+      data_txt.write(str(n[0]) + " \t" + str(n[1]) + " \t" + str(n[2]) + "\n")
+    data_txt.write("#number of elements: " + str(len(mesh.elements)) + "\n")
+    if args.target == "volume_mesh":
+      # quads  
+      for e in mesh.elements:
+        data_txt.write(str(e.nodes[0]) + " \t" + str(e.nodes[1]) + " \t" + str(e.nodes[2]) + " \t" + str(e.nodes[3]) + " \t" + str(e.nodes[4]) + " \t" + str(e.nodes[5]) + " \t" + str(e.nodes[6]) + " \t" + str(e.nodes[7]) + "\n")
+    elif args.target == "contour":
+      # tets
+      for e in mesh.elements:
+        data_txt.write(str(e.nodes[0]) + " \t" + str(e.nodes[1]) + " \t" + str(e.nodes[2]) + " \t" + str(e.nodes[3]) + "\n")    
+    data_txt.close()
+        
   if (args.show or args.target.startswith("volume")) and not args.target.startswith("surface") and not args.target.startswith("3dlines"):
     if args.save_vtp:
       save = "volume.vtp" if not args.save else args.save
@@ -357,6 +447,7 @@ class Basecell():
     assert(type(data) is Basecell_Data)
     self.data = data
     voxels, self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
+    
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
     if data.target != "volume_mesh":
@@ -385,6 +476,8 @@ class Basecell():
     self.bounds[3] = np.max(np.asarray(self.points)[:,0])
     self.bounds[4] = np.max(np.asarray(self.points)[:,1])
     self.bounds[5] = np.max(np.asarray(self.points)[:,2])
+    
+  
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>

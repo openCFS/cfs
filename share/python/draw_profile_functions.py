@@ -935,6 +935,7 @@ def generate_basecell(args,info,log,offset=0):
     cells = vtk.vtkCellArray()
     polydata = vtk.vtkPolyData()
     
+#     if args.tets or args.target == "contour":
     if args.tets:
       mesh_boundary_circles(new_surf_points,vtk_points,cells)
     else:
