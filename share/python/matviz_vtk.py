@@ -994,7 +994,7 @@ def write_stl(polydata,save=None):
   
   print("saved polydata to file " + fName)  
 
-def fill_vtk_polydata(points,cells,center=None):
+def fill_vtk_polydata(points,cells):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
