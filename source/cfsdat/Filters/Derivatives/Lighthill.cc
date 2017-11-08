@@ -14,7 +14,6 @@
 
 
 #include "Lighthill.hh"
-//#include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include <algorithm>
 #include <vector>
@@ -53,7 +52,6 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
 
   numNeighbors_ = (trgGrid_->GetDim() == 2) ? 4 : 8;
 
-  p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
   if(config->Get("ResultList")->Get("vorticity")->Has("resultName") == false){
     std::cout<<"Vorticity is computed by CFSDat...Curl(u)"<<std::endl;
@@ -80,6 +78,9 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   if(config->Has("sourceSum")){
     checkSum_ = config->Get("sourceSum")->As<bool>();
   }
+
+  epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+
 }
 
 
@@ -125,7 +126,6 @@ bool Lighthill::Run(){
   /// this is the vector, which will be filled with the wanted quantity
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   returnVec.Init();
-
 
   Vector<Double> tempRetVec;
   if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
@@ -176,29 +176,28 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
   }else{
     /************* we compute the vorticity internally ***************/
     // result is defined on elements !!!
-    StdVector<CF::UInt>& targetSourceIndexNtE = matrix.targetSourceIndexNtE;
-    StdVector<CF::UInt>& targetSourceNtE = matrix.targetSourceNtE;
+    StdVector< StdVector<CF::UInt> >& sourceMCurl = matrix.targetSourceIndexCurl;
     StdVector< CF::Matrix<CF::Double> >& targetSourceFactorCurl = matrix.targetSourceFactorCurl;
-    UInt gridDim = Grid_->GetDim();
+    UInt gridDim = inGrid_->GetDim();
     Vector<Double> Omegatemp;
     Vector<Double> Omega;
+
     // Curl(u)
-    CalcCurl(Omegatemp, inVecVel, numEquPerEnt_, targetSourceNtE, targetSourceIndexNtE, numNeighbors_, targetSourceFactorCurl, maxNumTrgEntities, gridDim);
+    CalcCurl(Omegatemp, inVecVel, numEquPerEnt_, sourceMCurl, targetSourceFactorCurl, maxNumTrgEntities, gridDim);
     if(numEquPerEnt_ == 2){
       Omega = TwoDToScalar(Omegatemp);
     }else{
       Omega = Omegatemp;
     }
+    StdVector< StdVector<CF::UInt> >& sourceMN2C = matrix.targetSourceIndexNtE;
 
     // interpolate input-velocity to cell-centers, because the calculated curl is now defined on elements
     Vector<Double> velE;
-    Node2Cell(velE, inVecVel, numEquPerEnt_, targetSourceNtE, targetSourceIndexNtE, numNeighbors_, maxNumTrgEntities, gridDim);
-
+    Node2Cell(velE, inVecVel, numEquPerEnt_, sourceMN2C, maxNumTrgEntities, gridDim);
     OmegaVectorProductU(velE, Omega, LambVec, numEquPerEnt_);
   }
   tempRetVec = LambVec;
 }
-
 
 
 
@@ -208,17 +207,16 @@ void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
 
 
   Matrix& matrix = matrices_[matrixIndex_];
-  StdVector<CF::UInt>& targetSourceIndexNtE = matrix.targetSourceIndexNtE;
-  StdVector<CF::UInt>& targetSourceNtE = matrix.targetSourceNtE;
+  StdVector< StdVector<CF::UInt> >& sourceMN2C = matrix.targetSourceIndexNtE;
   StdVector< CF::Matrix<CF::Double> >& targetSourceFactorGrad = matrix.targetSourceFactorGrad;
-  UInt gridDim = Grid_->GetDim();
+  UInt gridDim = inGrid_->GetDim();
   Vector<Double> Omegatemp;
   Vector<Double> Omega;
   const UInt maxNumTrgEntities = matrix.numTargets;
 
   // interpolate input-velocity to cell-centers
   Vector<Double> velE;
-  Node2Cell(velE, inVecVel, numEquPerEnt_, targetSourceNtE, targetSourceIndexNtE, numNeighbors_, maxNumTrgEntities, gridDim);
+  Node2Cell(velE, inVecVel, numEquPerEnt_, sourceMN2C, maxNumTrgEntities, gridDim);
 
   /**************** Term 1: LambVector *****************************/
   Vector<Double> LambVec;
@@ -229,8 +227,11 @@ void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
   Vector<Double> uuN;
   ScalarProduct(uuN, inVecVel, inVecVel, numEquPerEnt_, 0.5);
 
+
+  StdVector< StdVector<CF::UInt> >& sourceM = matrix.targetSourceIndexGrad;
+
   Vector<Double> GraduuN;
-  CalcGradient(GraduuN, uuN, 1, targetSourceNtE, targetSourceIndexNtE, numNeighbors_, targetSourceFactorGrad, maxNumTrgEntities, numEquPerEnt_);
+  CalcGradient(GraduuN, uuN, 1, sourceM, targetSourceFactorGrad, maxNumTrgEntities, numEquPerEnt_);
 
   /**************** Term 1 + Term 2 *****************************/
   tempRetVec = GraduuN + LambVec;
@@ -242,11 +243,10 @@ void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec){
   CF::StdVector<UInt> eqnNums;
 
   Matrix& matrix = matrices_[matrixIndex_];
-  StdVector<CF::UInt>& targetSourceIndexNtE = matrix.targetSourceIndexNtE;
-  StdVector<CF::UInt>& targetSourceIndexEtN = matrix.targetSourceIndexEtN;
-  StdVector<CF::UInt>& targetSourceNtE = matrix.targetSourceNtE;
-  StdVector<CF::UInt>& targetSourceEtN = matrix.targetSourceEtN;
-  StdVector<CF::Double>& targetSourceNNFactor = matrix.targetSourceNNFactor;
+  StdVector< StdVector<CF::UInt> >& sourceMDiv = matrix.targetSourceIndexDiv;
+  StdVector< StdVector<CF::UInt> >& targetSourceIndexEtN = matrix.targetSourceIndexEtN;
+  //StdVector<CF::UInt>& targetSourceEtN = matrix.targetSourceEtN;
+  StdVector< CF::Matrix<CF::Double> >& targetSourceNNFactor = matrix.targetSourceNNFactor;
   StdVector< CF::Matrix<CF::Double> >& targetSourceFactorDiv = matrix.targetSourceFactorDiv;
   Vector<Double> Omegatemp;
   Vector<Double> Omega;
@@ -259,10 +259,11 @@ void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec){
 
   // interpolate from element-centroid to nodes
   Vector<Double> LightVecN;
-  NearestNeighbourInterpolation(LightVecN, LightVec, numEquPerEnt_, targetSourceEtN, targetSourceIndexEtN, numNeighbors_, targetSourceNNFactor, maxNumSrcEntities);
+  NearestNeighbourLight(LightVecN, LightVec, numEquPerEnt_, targetSourceIndexEtN, targetSourceNNFactor, maxNumSrcEntities);
+
 
   /**************** Div(Term 1 + Term 2) *****************************/
-  CalcDivergence(tempRetVec, LightVecN, numEquPerEnt_, targetSourceNtE, targetSourceIndexNtE, numNeighbors_, targetSourceFactorDiv, maxNumTrgEntities);
+  CalcDivergence(tempRetVec, LightVecN, numEquPerEnt_, sourceMDiv, targetSourceFactorDiv, maxNumTrgEntities);
 }
 
 
@@ -309,13 +310,14 @@ void Lighthill::PrepareCalculation(){
   //if(externVorticity_ == false || Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 1/4 Obtaining source entities (nodes) " << std::endl;
   uuids::uuid upRes = upResIds[0];
-  Grid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
+  inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
 
   scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
   trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+//TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
-  if(numEquPerEnt_ != trgGrid_->GetDim()) EXCEPTION("Grid and Values don't have the same dimension!!");
+  if(numEquPerEnt_ != inGrid_->GetDim()) EXCEPTION("Grid and Values don't have the same dimension!!");
   if(numEquPerEnt_ == 1) EXCEPTION("Input (velocity) is a scalar, it should be a vector!!");
 
 
@@ -324,10 +326,15 @@ void Lighthill::PrepareCalculation(){
 
   const CF::UInt maxNumSrcNodeEntities = scrMap_->GetNumEntities(); //velocity...upResIds[0]
   StdVector<CF::UInt> globSrcNodeEntity;
-  GetUsedMappedEntities(scrMap_, globSrcNodeEntity, srcRegions_, Grid_);
+  GetUsedMappedEntities(scrMap_, globSrcNodeEntity, srcRegions_, inGrid_);
   const CF::UInt numSrcNodeEntities = CountUsedEntities(globSrcNodeEntity);
-  if (numSrcNodeEntities < numNeighbors_) {
-    numNeighbors_ = numSrcNodeEntities;
+  // the following map is needed because the inVec in Run() doesn't know
+  // which nodeNumber belongs to which entry...we also can't hardcode it
+  // because we have dynamical storage of the neighbours, means we can not
+  // predict the size
+  boost::unordered_map<UInt, UInt> sEnt;
+  for(UInt i = 0; i < globSrcNodeEntity.GetSize(); ++i){
+    sEnt[globSrcNodeEntity[i]] = i + 1;
   }
 
   differentiators_.Push_back(this);
@@ -340,205 +347,311 @@ void Lighthill::PrepareCalculation(){
 
   const CF::UInt maxNumTrgEntities = trgMap_->GetNumEntities();
   StdVector<CF::UInt> globTrgEntity;
-  StdVector<CF::UInt> globTrgNodeEntity;
   GetUsedMappedEntities(trgMap_, globTrgEntity, trgRegions_, trgGrid_);
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Differentiator is dealing with " << numSrcNodeEntities <<
       " source " << ("nodes") << " and "<< numTrgEntities << " target elements" << std::endl;
 
-  std::cout << "\t\t 3/4 Creating search tree " << std::endl;
-  std::vector<Point_3> pointsNtE; //NtE...nodes to elements
-  std::vector<CF::UInt> indicesNtE;
-  StdVector< CF::Vector<Double> > sCoordNtE;
-  sCoordNtE.Resize(maxNumSrcNodeEntities);
-  for(CF::UInt srcEnt = 0; srcEnt < maxNumSrcNodeEntities; srcEnt++) {
-    CF::UInt globEntityNumber = globSrcNodeEntity[srcEnt];
+
+  std::cout << "\t\t 3/4 Creating interpolation matrices for derivatives " << std::endl;
+  matrix.numTargets = maxNumTrgEntities;
+  matrix.numSources = maxNumSrcNodeEntities;
+  StdVector< StdVector<CF::UInt> >& sourceMDiv = matrix.targetSourceIndexDiv;
+  StdVector< StdVector<CF::UInt> >& sourceMGrad = matrix.targetSourceIndexGrad;
+  StdVector< StdVector<CF::UInt> >& sourceMCurl = matrix.targetSourceIndexCurl;
+  StdVector< StdVector<CF::UInt> >& targetSourceIndexEtN = matrix.targetSourceIndexEtN;
+  StdVector< StdVector<CF::UInt> >& sourceMN2C = matrix.targetSourceIndexNtE;
+  StdVector<CF::UInt>& targetSourceEtN=matrix.targetSourceEtN;
+  StdVector<CF::UInt>& targetSourceNtE=matrix.targetSourceNtE;
+
+
+  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorDiv = matrix.targetSourceFactorDiv;
+  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorCurl = matrix.targetSourceFactorCurl;
+  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorGrad = matrix.targetSourceFactorGrad;
+  StdVector< CF::Matrix<CF::Double> >& targetSourceNNFactor = matrix.targetSourceNNFactor;
+
+
+  sourceMN2C.Resize(numTrgEntities);
+  targetSourceFactorDiv.Resize(numTrgEntities);
+  sourceMDiv.Resize(numTrgEntities);
+  targetSourceFactorCurl.Resize(numTrgEntities);
+  sourceMCurl.Resize(numTrgEntities);
+  targetSourceFactorGrad.Resize(numTrgEntities);
+  sourceMGrad.Resize(numTrgEntities);
+  targetSourceNNFactor.Resize(numSrcNodeEntities);
+  targetSourceIndexEtN.Resize(numSrcNodeEntities);
+
+
+
+  StdVector<RegionIdType> rId;
+
+  std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
+  for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
+    RegionIdType r = trgGrid_->GetRegion().Parse(*destRegIt);
+    rId.Push_back(r);
+  }
+
+
+  /********************************************************************
+   ********** Prepare Differentiators and Node2Cell *******************
+   ********************************************************************/
+
+  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
+    StdVector<CF::UInt> sM, nL, nodeList;
+    CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
-      CF::Vector<Double> pCoord;
-      Grid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
-      Point_3 point(pCoord[0],pCoord[1],pCoord[2]);
-      pointsNtE.push_back(point);
-      indicesNtE.push_back(srcEnt);
-      sCoordNtE[srcEnt] = pCoord;
+        targetSourceNtE.Push_back(globEntityNumber);
+        CF::Vector<Double> trgCoord;
+        // Result is defined on elements!
+        inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
+
+
+        inGrid_->GetElemNodes(nodeList, globEntityNumber);
+        nL = nodeList;
+
+        StdVector< CF::Vector<CF::Double> > neighbourCoords;
+        StdVector<CF::Double> srcDist;
+        CF::Vector<CF::Double> tmpCoords;
+        UInt numSrcPoints;
+        Double maxd;
+        if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
+        /****************** 1) Divergence ****************************************/
+        sM.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
+          }
+        }
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFDiv;
+        while( !CalcLocDivergence(tsFDiv, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
+
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Divergence!");
+
+        }// while local deriv is false
+        targetSourceFactorDiv[trgEnt] = tsFDiv;
+        sourceMDiv[trgEnt] = sM;
+
+        /****************** 2) Gradient ****************************************/
+        sM.Clear(false);
+        neighbourCoords.Clear(false);
+        srcDist.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
+          }
+        }
+
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFGrad;
+        while( !CalcLocGradient(tsFGrad, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, 1, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
+
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
+
+        }// while local deriv is false
+        targetSourceFactorGrad[trgEnt] = tsFGrad;
+        sourceMGrad[trgEnt] = sM;
+
+        }
+
+        /***************** 3) Curl ******************************************/
+        sM.Clear(false);
+        neighbourCoords.Clear(false);
+        srcDist.Clear(false);
+        maxd = 0.0;
+        for(UInt i = 0; i < nodeList.GetSize(); ++i){
+          if(!sM.Contains(sEnt[nodeList[i]])){
+            sM.Push_back(sEnt[nodeList[i]]);
+            inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+            neighbourCoords.Push_back(tmpCoords);
+            if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+            CF::Double d = trgCoord.NormL2(tmpCoords);
+            srcDist.Push_back(d);
+            if(maxd < d) maxd = d;
+          }
+        }
+        numSrcPoints = srcDist.GetSize();
+        CF::Matrix<CF::Double> tsFCurl;
+        while( !CalcLocCurl(tsFCurl, trgCoord, maxd, srcDist, neighbourCoords,
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+          // find furthest point
+          Double d = 0.0;
+          UInt maxId = 0;
+          for(UInt i = 0; i < srcDist.GetSize(); ++i){
+            if(d < srcDist[i]){
+              maxId = i;
+            }
+          }
+          sM.Erase(maxId);
+          srcDist.Erase(maxId);
+          numSrcPoints -= 1;
+          neighbourCoords.Erase(maxId);
+
+          if( sM.GetSize() < 3) EXCEPTION("Patch-Problem, modify epsilon Gradient!");
+
+        }// while local deriv is false
+        targetSourceFactorCurl[trgEnt] = tsFCurl;
+        sourceMCurl[trgEnt] = sM;
+
+
+        /****************** 4) Node2Cell ***********************************/
+        sM.Clear(false);
+        for(UInt i = 0; i < nL.GetSize(); ++i){
+          sM.Push_back(sEnt[nodeList[i]]);
+        }
+        sourceMN2C[trgEnt] = sM;
+
     }
   }
 
+
+
+
+  /********************************************************************
+   ********** Prepare NearestNeighbour ********************************
+   ********************************************************************/
+  // unfortunately the Grid-class is not able to return all elements, which
+  // share a common node, therefore we use a nn-search
+  if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
+  std::cout << "\t\t 4/4 Creating interpolation matrices for interpolators " << std::endl;
+//#pragma omp parallel num_threads(NUM_CFS_THREADS)
+//  {
   std::vector<Point_3> pointsEtN; //EtN...elements to nodes
   std::vector<CF::UInt> indicesEtN;
-  StdVector< CF::Vector<Double> > sCoordEtN;
-  sCoordEtN.Resize(maxNumTrgEntities);
   for(CF::UInt srcEnt = 0; srcEnt < maxNumTrgEntities; srcEnt++) {
     CF::UInt globEntityNumber = globTrgEntity[srcEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       CF::Vector<Double> pCoord;
-      Grid_->GetElemCentroid(pCoord, globEntityNumber, true);
+//#pragma omp critical
+//      {
+      inGrid_->GetElemCentroid(pCoord, globEntityNumber, true);
+//      }
       Point_3 point(pCoord[0],pCoord[1],pCoord[2]);
       pointsEtN.push_back(point);
       indicesEtN.push_back(srcEnt);
-      sCoordEtN[srcEnt] = pCoord;
     }
   }
-
-
-  Tree treeNtE(boost::make_zip_iterator(boost::make_tuple( pointsNtE.begin(),indicesNtE.begin() )),
-      boost::make_zip_iterator(boost::make_tuple( pointsNtE.end(),indicesNtE.end() ) ) );
 
   Tree treeEtN(boost::make_zip_iterator(boost::make_tuple( pointsEtN.begin(),indicesEtN.begin() )),
       boost::make_zip_iterator(boost::make_tuple( pointsEtN.end(),indicesEtN.end() ) ) );
 
 
-  std::cout << "\t\t 4/4 Creating differentiation and interpolation matrices ... can take a while " << std::endl;
-  matrix.numTargets = maxNumTrgEntities;
-  matrix.numSources = maxNumSrcNodeEntities;
-  StdVector<CF::UInt>& targetSourceIndexNtE = matrix.targetSourceIndexNtE;
-  StdVector<CF::UInt>& targetSourceIndexEtN = matrix.targetSourceIndexEtN;
-  StdVector<CF::UInt>& targetSourceNtE = matrix.targetSourceNtE;
-  StdVector<CF::UInt>& targetSourceEtN = matrix.targetSourceEtN;
-  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorDiv = matrix.targetSourceFactorDiv;
-  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorGrad = matrix.targetSourceFactorGrad;
-  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorCurl = matrix.targetSourceFactorCurl;
-  StdVector<CF::Double>& targetSourceNNFactor = matrix.targetSourceNNFactor;
-
-
-
-
-  // creating target -> source indices
-  targetSourceIndexNtE.Resize(maxNumTrgEntities + 1);
-  CF::UInt indexNtE = 0;
-  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
-    targetSourceIndexNtE[trgEnt] = indexNtE;
-    if (globTrgEntity[trgEnt] != UnusedEntityNumber) {
-      indexNtE += numNeighbors_;
-    }
-  }
-
-  targetSourceIndexEtN.Resize(maxNumSrcNodeEntities + 1);
-  CF::UInt indexEtN = 0;
   for(CF::UInt trgEnt = 0; trgEnt < maxNumSrcNodeEntities; trgEnt++) {
-    targetSourceIndexEtN[trgEnt] = indexEtN;
-    if (globSrcNodeEntity[trgEnt] != UnusedEntityNumber) {
-      indexEtN += numNeighbors_;
-    }
-  }
-
-
-  // creating target -> source factors and filling source indices
-  targetSourceNtE.Resize(indexNtE);
-  targetSourceEtN.Resize(indexEtN);
-  targetSourceNNFactor.Resize(indexEtN);
-  targetSourceNNFactor.Init();
-  targetSourceIndexNtE[maxNumTrgEntities] = indexNtE;
-  targetSourceIndexEtN[maxNumSrcNodeEntities] = indexEtN;
-  targetSourceFactorDiv.Resize(maxNumTrgEntities);
-  targetSourceFactorDiv.Init();
-  targetSourceFactorGrad.Resize(maxNumTrgEntities);
-  targetSourceFactorGrad.Init();
-  targetSourceFactorCurl.Resize(maxNumTrgEntities);
-  targetSourceFactorCurl.Init();
-
-
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
-    StdVector<CF::Double> srcDist;
-    srcDist.Resize(numNeighbors_);
-    srcDist.Init();
-    CF::UInt globEntityNumber = globTrgEntity[trgEnt];
+    CF::UInt globEntityNumber = globSrcNodeEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
-      CF::Vector<Double> pCoord;
-      // Result is defined on elements!
-      trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
-      Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
+      targetSourceEtN.Push_back(globEntityNumber);
+
+
+      CF::Vector<Double> trgCoord;
+      // Result is now defined on elements, since it's an interpolation
+      // from elements to nodes
+//#pragma omp critical
+//      {
+      inGrid_->GetNodeCoordinate(trgCoord, globEntityNumber, true);
+//      }
+      if(trgCoord.GetSize() == 2) trgCoord.Push_back(0.0);
+
+
+      Point_3 query(trgCoord[0],trgCoord[1],trgCoord[2]);
       Distance tr_dist;
 
-
-      //TODO do not know why but it calls the get(..) method from NearstNeighbourInterpolator, altough there is one defined here...
-      K_neighbor_search searchNtE(treeNtE, query, numNeighbors_);
-
-      const CF::UInt ITrgSrcIndex = targetSourceIndexNtE[trgEnt];
-      CF::UInt* srcIndices = &targetSourceNtE[ITrgSrcIndex];
+      UInt numNeighbors = (numEquPerEnt_ == 2)? 4 : 8;
+      //TODO do not know why but it calls the get(..) method from
+      // NearstNeighbourInterpolator, altough there is one defined here...
+      K_neighbor_search searchEtN(treeEtN, query, numNeighbors);
 
 
       StdVector< CF::Vector<CF::Double> > neighbourCoords;
-      neighbourCoords.Resize(numNeighbors_);
-      CF::UInt i = 0;
+      StdVector<CF::Double> srcDist;
+      CF::Vector<CF::Double> tmpCoords;
+
+      StdVector<CF::UInt> sM;
       CF::Double dmax = 0.0;
-      for(K_neighbor_search::iterator it = searchNtE.begin(); it != searchNtE.end(); it++, i++) {
-        srcIndices[i] = boost::get<1>(it->first);
+      for(K_neighbor_search::iterator it = searchEtN.begin(); it != searchEtN.end(); it++) {
+        // the following +1 is necessary because then it's the entity-number and not index
+        sM.Push_back(boost::get<1>(it->first) + 1 );
         CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
-        srcDist[i] = distance;
+        srcDist.Push_back(distance );
         if (distance > dmax) {
           dmax = distance;
         }
-        neighbourCoords[i] = sCoordNtE[srcIndices[i]];
+
       }
 
-      Double alpha = dmax * 1.5e+03;
-      CalcLocDivergence(targetSourceFactorDiv[trgEnt], pCoord, srcDist, neighbourCoords, alpha, numNeighbors_, numEquPerEnt_, Grid_);
-      CalcLocCurl(targetSourceFactorCurl[trgEnt], pCoord, srcDist, neighbourCoords, alpha, numNeighbors_, numEquPerEnt_, Grid_);
-      CalcLocGradient(targetSourceFactorGrad[trgEnt], pCoord, srcDist, neighbourCoords, alpha, numNeighbors_, 1, Grid_);
+      CF::Matrix<CF::Double> tsNN;
+      tsNN.Resize(numNeighbors, 1);
+      // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
+      // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
+      // /Inverse_Distance_Weighted/Shepards_Method.htm
+      const CF::Double R = 1.01 * dmax;
+      CF::Double weights = 0.0;
+      // The point which is farthest away, should at least have a non-zero
+      // weight of 0.01. If we would choose R = dmax, it would not contribute
+      // at all.
+
+      for (UInt i = 0; i < numNeighbors; i++) {
+        Double w;
+        if(srcDist[i] == 0){
+          w = 1.0;
+        } else {
+          w = std::pow((R-srcDist[i])/(R*srcDist[i]), 4);
+        }
+        tsNN[i][0] = w;
+        weights += w;
+      }
+      for (UInt i = 0; i < numNeighbors; i++) {
+        tsNN[i][0] /= weights;
+      }
+
+      targetSourceNNFactor[trgEnt] = tsNN;
+      targetSourceIndexEtN[trgEnt] = sM;
     }
   }
+//  }//omp parallel
 
-
-  // for the NN-Interpolation we need to interpolate from elements(trg) to nodes(src)
-  // this means we have to "switch" target- and source-meaning
-  // loop over nodes
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for(CF::UInt trgEnt = 0; trgEnt < maxNumSrcNodeEntities; trgEnt++) {
-    StdVector<CF::Double> srcDistNN;
-    srcDistNN.Resize(numNeighbors_);
-    srcDistNN.Init();
-    CF::UInt globEntityNumber = globSrcNodeEntity[trgEnt];
-    CF::Vector<Double> pCoord;
-    // Result is defined on nodes!
-    trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber,true);
-    Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
-    Distance tr_dist;
-
-    //TODO do not know why but it calls the get(..) method from NearstNeighbourInterpolator, altough there is one defined here...
-    K_neighbor_search searchEtN(treeEtN, query, numNeighbors_);
-    const CF::UInt ITrgSrcIndexNN = targetSourceIndexEtN[trgEnt];
-    CF::UInt* srcIndicesNN = &targetSourceEtN[ITrgSrcIndexNN];
-    CF::Double* srcNNFactors = &targetSourceNNFactor[ITrgSrcIndexNN];
-
-    StdVector< CF::Vector<CF::Double> > neighbourCoordsNN;
-    neighbourCoordsNN.Resize(numNeighbors_);
-    CF::UInt i = 0;
-    CF::Double dmax = 0.0;
-    for(K_neighbor_search::iterator it = searchEtN.begin(); it != searchEtN.end(); it++, i++) {
-      srcIndicesNN[i] = boost::get<1>(it->first);
-      CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
-      srcNNFactors[i] = distance;
-      if (distance > dmax) {
-        dmax = distance;
-      }
-    }
-
-    // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-    // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-    // /Inverse_Distance_Weighted/Shepards_Method.htm
-    const CF::Double R = 1.01 * dmax;
-    CF::Double weights = 0.0;
-    // The point which is farthest away, should at least have a non-zero
-    // weight of 0.01. If we would choose R = dmax, it would not contribute
-    // at all.
-    for (i = 0; i < numNeighbors_; i++) {
-      Double w;
-      if(srcNNFactors[i] == 0){
-        w = 1.0;
-      } else {
-        w = std::pow((R-srcNNFactors[i])/(R*srcNNFactors[i]), p_);
-      }
-      srcNNFactors[i] = w;
-      weights += w;
-    }
-    for (i = 0; i < numNeighbors_; i++) {
-      srcNNFactors[i] /= weights;
-    }
 
   }
-
   std::cout << "\t\t Lighthill prepared!" << std::endl;
 }
 
@@ -609,7 +722,7 @@ void Lighthill::AdaptFilterResults(){
 
 
 
-
+std::cout<<"AdaptFilterResults Form_ = "<<Form_<<std::endl;
   // choose if we have element or node-results
   if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
     resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);

@@ -19,28 +19,16 @@
 #include <algorithm>
 #include <vector>
 
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/basic.h>
-#include <CGAL/Search_traits_3.h>
-#include <CGAL/Search_traits_adapter.h>
-#include <CGAL/point_generators_3.h>
-#include <CGAL/Orthogonal_k_neighbor_search.h>
-#include <boost/iterator/zip_iterator.hpp>
-#include <utility>
-
-
 namespace CFSDat{
 
 DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
-#ifndef USE_CGAL
-    EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
-#endif
+
 
   this->filtStreamType_ = FIFO_FILTER;
 
-  numNeighbors_ = (trgGrid_->GetDim() == 2) ? 4 : 8;
+  epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
 
 }
 
@@ -80,19 +68,13 @@ bool DivergenceDifferentiator::Run(){
   // vector, containing the source data values
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
 
-
-
-
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
-  StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
-  StdVector<CF::UInt>& targetSource = matrix.targetSource;
   StdVector< CF::Matrix<CF::Double> >& targetSourceFactor = matrix.targetSourceFactor;
+  //StdVector< CF::UInt>& rowP = matrix.sourcePointer;
+  StdVector< StdVector<CF::UInt> >& sourceM = matrix.targetSourceIndex;
 
-
-  CalcDivergence(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, numNeighbors_, targetSourceFactor, maxNumTrgEntities);
-
-
+  CalcDivergence(returnVec, inVec, numEquPerEnt_, sourceM, targetSourceFactor, maxNumTrgEntities);
 
   resultManager_->ActivateResult(filterResIds[0]);
 
@@ -105,47 +87,15 @@ bool DivergenceDifferentiator::Run(){
 }
 
 
-// cgal copy and paste stuff for association of points to CF::UInt from
- // http://doc.cgal.org/Manual/4.2/doc_html/cgal_manual/Spatial_searching/Chapter_main.html#Subsection_61.3.1
- //
- // later on this should be refactored into KNNSearch.hh and KNNSearch.cc
- typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
- typedef Kernel::Point_3 Point_3;
- typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
-
- //definition of the property map
- struct My_point_property_map{
-   typedef Point_3 value_type;
-   typedef const value_type& reference;
-   typedef const Point_and_int& key_type;
-   typedef boost::readable_property_map_tag category;
- };
-
- //get function for the property map
- inline My_point_property_map::reference
- get(My_point_property_map,My_point_property_map::key_type p)
- {return boost::get<0>(p);}
-
- typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
- typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
- typedef CGAL::Search_traits_adapter<Point_and_int,My_point_property_map,Traits_base>    Traits;
-
-
- typedef CGAL::Orthogonal_k_neighbor_search<Traits>                      K_neighbor_search;
- typedef K_neighbor_search::Tree                                         Tree;
- typedef K_neighbor_search::Distance                                     Distance;
-
-
 CF::StdVector<DivergenceDifferentiator*> DivergenceDifferentiator::differentiators_;
 CF::StdVector<DivergenceDifferentiator::Matrix> DivergenceDifferentiator::matrices_;
-
 
 
 void DivergenceDifferentiator::PrepareCalculation(){
   std::cout << "\t ---> DivergenceDifferentiator preparing for interpolation" << std::endl;
 
 
-  std::cout << "\t\t 1/4 Obtaining source entities " << std::endl;
+  std::cout << "\t\t 1/3 Obtaining source entities " << std::endl;
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
@@ -156,29 +106,28 @@ void DivergenceDifferentiator::PrepareCalculation(){
   }
 
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
-  if(inElems){
-    // in this case, the nn search also finds the target-point...distance 0,
-    // so add one more neighbour
-    numNeighbors_ = numNeighbors_ + 1;
-  }
 
-  const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
+
   StdVector<CF::UInt> globSrcEntity;
   GetUsedMappedEntities(scrMap_, globSrcEntity, srcRegions_, inGrid_);
   const CF::UInt numSrcEntities = CountUsedEntities(globSrcEntity);
-  if (numSrcEntities < numNeighbors_) {
-    numNeighbors_ = numSrcEntities;
+  // the following map is needed because the inVec in Run() doesn't know
+  // which nodeNumber belongs to which entry...we also can't hardcode it
+  // because we have dynamical storage of the neighbours, means we can not
+  // predict the size
+  boost::unordered_map<UInt, UInt> sEnt;
+  for(UInt i = 0; i < globSrcEntity.GetSize(); ++i){
+    sEnt[globSrcEntity[i]] = i + 1;
   }
 
   trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
-
 
   differentiators_.Push_back(this);
   matrixIndex_ = matrices_.GetSize();
   matrices_.Resize(matrixIndex_ + 1);
   Matrix& matrix = matrices_[matrixIndex_];
 
-  std::cout << "\t\t 2/4 Obtaining target entities " << std::endl;
+  std::cout << "\t\t 2/3 Obtaining target entities " << std::endl;
 
   const CF::UInt maxNumTrgEntities = trgMap_->GetNumEntities();
   StdVector<CF::UInt> globTrgEntity;
@@ -188,101 +137,90 @@ void DivergenceDifferentiator::PrepareCalculation(){
   std::cout << "\t\t\t Differentiator is dealing with " << numSrcEntities <<
                " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
 
-  std::cout << "\t\t 3/4 Creating search tree " << std::endl;
-  std::vector<Point_3> points;
-  std::vector<CF::UInt> indices;
-  StdVector< CF::Vector<Double> > sCoord;
-  sCoord.Resize(maxNumSrcEntities);
-  for(CF::UInt srcEnt = 0; srcEnt < maxNumSrcEntities; srcEnt++) {
-    CF::UInt globEntityNumber = globSrcEntity[srcEnt];
-    if (globEntityNumber != UnusedEntityNumber) {
-      CF::Vector<Double> pCoord;
-      if (inElems) {
-        inGrid_->GetElemCentroid(pCoord,globEntityNumber,true);
-      } else {
-        inGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
-      }
-      Point_3 point(pCoord[0],pCoord[1],pCoord[2]);
-      points.push_back(point);
-      indices.push_back(srcEnt);
-      sCoord[srcEnt] = pCoord;
-    }
-  }
 
-  Tree tree(boost::make_zip_iterator(boost::make_tuple( points.begin(),indices.begin() )),
-            boost::make_zip_iterator(boost::make_tuple( points.end(),indices.end() ) ) );
-
-
-
-  std::cout << "\t\t 4/4 Creating interpolation matrix " << std::endl;
+  std::cout << "\t\t 3/3 Creating interpolation matrix ... this can take quite a while ...  " << std::endl;
   matrix.numTargets = maxNumTrgEntities;
-  StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
-  StdVector<CF::UInt>& targetSource = matrix.targetSource;
+  StdVector< StdVector<CF::UInt> >& sourceM = matrix.targetSourceIndex;
   StdVector< CF::Matrix<CF::Double> >& targetSourceFactor = matrix.targetSourceFactor;
 
-  // creating target -> source indices
-  targetSourceIndex.Resize(maxNumTrgEntities + 1);
-  CF::UInt index = 0;
-  for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
-    targetSourceIndex[trgEnt] = index;
-    if (globTrgEntity[trgEnt] != UnusedEntityNumber) {
-      index += numNeighbors_;
-    }
+  targetSourceFactor.Resize(numTrgEntities);
+  sourceM.Resize(numTrgEntities);
+
+  StdVector<RegionIdType> rId;
+  std::set<std::string>::const_iterator destRegIt = this->trgRegions_.begin();
+  for(; destRegIt != this->trgRegions_.end(); ++destRegIt ) {
+    RegionIdType r = inGrid_->GetRegion().Parse(*destRegIt);
+    rId.Push_back(r);
   }
-  targetSourceIndex[maxNumTrgEntities] = index;
-  targetSourceFactor.Resize(maxNumTrgEntities);
-
-
-  // creating target -> source factors and filling source indices
-  if (numNeighbors_ > 1) {
-    targetSource.Resize(index);
-  }
-
 
 //#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
-    StdVector<CF::Double> srcDist;
-    srcDist.Resize(numNeighbors_);
-    srcDist.Init();
-    CF::UInt globEntityNumber = globTrgEntity[trgEnt];
-    if (globEntityNumber != UnusedEntityNumber) {
-      CF::Vector<Double> pCoord;
-      // Result is defined on elements!
-      trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
-      Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
-      Distance tr_dist;
-//TODO do not know why but it calls the get(..) method from NearstNeighbourInterpolator, altough there is one defined here...
-      K_neighbor_search search(tree, query, numNeighbors_);
-      if (numNeighbors_ > 1) {
-        const CF::UInt ITrgSrcIndex = targetSourceIndex[trgEnt];
-        CF::UInt* srcIndices = &targetSource[ITrgSrcIndex];
-        //CF::Matrix<CF::Double>* srcFactors = &targetSourceFactor[ITrgSrcIndex];
-
-        StdVector< CF::Vector<CF::Double> > neighbourCoords;
-        neighbourCoords.Resize(numNeighbors_);
-        CF::UInt i = 0;
-        CF::Double dmax = 0.0;
-        for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++, i++) {
-          srcIndices[i] = boost::get<1>(it->first);
-          CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
-          srcDist[i] = distance;
-          if (distance > dmax) {
-            dmax = distance;
+    CF::UInt globEntityNumber;
+        globEntityNumber = globTrgEntity[trgEnt];
+        if (globEntityNumber != UnusedEntityNumber) {
+          CF::Vector<Double> trgCoord;
+          StdVector<UInt> nodeList;
+          StdVector<CF::Elem*> elemList;
+          StdVector<UInt> nList;
+//#pragma omp critical
+//          {
+          inGrid_->GetElemCentroid(trgCoord, globEntityNumber,true);
+//          }
+          inGrid_->GetElemNodes(nodeList, globEntityNumber);
+          if(rId.GetSize() == 0) EXCEPTION("REGION - OpenMP - Grid Problem")
+          //inGrid_->GetElemsNextToNodes(elemList, nodeList, rId);
+          //inGrid_->GetNodesOfElemList(nList, elemList, true);
+          //for(UInt i = 0; i < nList.GetSize(); ++i){
+          //  nodeList.Push_back(nList[i]);
+          //}
+          StdVector< CF::Vector<CF::Double> > neighbourCoords;
+          StdVector<CF::Double> srcDist;
+          CF::Vector<CF::Double> tmpCoords;
+          StdVector<CF::UInt> sM;
+          Double maxd = 0.0;
+          for(UInt i = 0; i < nodeList.GetSize(); ++i){
+            if(!sM.Contains(sEnt[nodeList[i]])){
+              sM.Push_back(sEnt[nodeList[i]]);
+              inGrid_->GetNodeCoordinate(tmpCoords, nodeList[i], false);
+              neighbourCoords.Push_back(tmpCoords);
+              if(tmpCoords.GetSize() == 2) tmpCoords.Push_back(0.0);
+              CF::Double d = trgCoord.NormL2(tmpCoords);
+              srcDist.Push_back(d);
+              if(maxd < d) maxd = d;
+            }
           }
-          neighbourCoords[i] = sCoord[srcIndices[i]];
-        }
-        Double alpha = dmax * 1.5e+03;
-        CalcLocDivergence(targetSourceFactor[trgEnt], pCoord, srcDist, neighbourCoords, alpha, numNeighbors_, numEquPerEnt_, inGrid_);
-      } else {
-        targetSourceIndex[trgEnt] = boost::get<1>(search.begin()->first);
-      }
-    } else {
-      if (numNeighbors_ == 1) {
-        targetSourceIndex[trgEnt] = UnusedEntityNumber;
-      }
-    }
-  }
 
+          UInt numSrcPoints = srcDist.GetSize();
+          CF::Matrix<CF::Double> tsF;
+          while( !CalcLocDivergence(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
+                               numEquPerEnt_, inGrid_, epsScal_)){
+            // find furthest point
+            Double d = 0.0;
+            UInt maxId = 0;
+            for(UInt i = 0; i < srcDist.GetSize(); ++i){
+              if(d < srcDist[i]){
+                maxId = i;
+              }
+            }
+            sM.Erase(maxId);
+            //rowP[trgEnt + 1] -= 1;
+            srcDist.Erase(maxId);
+            numSrcPoints -= 1;
+            neighbourCoords.Erase(maxId);
+            if( sM.GetSize() < 3){
+              std::cout<<"targetEntity:"<<globEntityNumber<<std::endl;
+              std::cout<<"targetCoord: \n"<<trgCoord<<std::endl;
+              std::cout<<"neighbourCoords: \n"<<neighbourCoords<<std::endl;
+              std::cout<<"distances: \n"<<srcDist<<std::endl;
+              std::cout<<"max distances:"<<maxd<<std::endl;
+              EXCEPTION("Patch-Problem, modify epsilon!");
+            }
+          }// while local deriv is false
+
+          targetSourceFactor[trgEnt] = tsF;
+          sourceM[trgEnt] = sM;
+        }
+  }
 
   std::cout << "\t\t Differentiation prepared!" << std::endl;
 }
