@@ -168,7 +168,6 @@ protected:
                         const UInt& numEquPerEnt,
                         const StdVector<CF::UInt>& targetSource,
                         const StdVector<CF::UInt>& targetSourceIndex,
-                        const UInt& numNN,
                         const StdVector< CF::Matrix<Double> >& targetRBFInv,
                         const StdVector<CF::Double>& targetSourceFactor,
                         const StdVector<CF::Double>& targetSourceFactor2,
@@ -181,82 +180,73 @@ protected:
                     const UInt numNN,
                     Grid* grid);
 
-
+  // Light- NearestNeighbour interpolation for the use in AeroSourceTerms
+  void NearestNeighbourLight(Vector<Double>& returnVec,
+                      const Vector<Double>& inVec,
+                      const UInt& numEquPerEnt,
+                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                      const UInt& maxNumTrgEntities);
 
 
   //***************************************************************************
   //***************** Spatial Derivative Section ******************************
   //***************************************************************************
 
-
-  //! \param derivCoefVec (out)
-  //! \param globPoint (in) coordinate of the point, where the curl shall be calculated
-  //! \param l2Distances (in) distances of the nearest neighbors of globPoint
-  //! \param neighbors (in) coordinates of nearest neighbour points
-  //! \param alpha (in) shape parameter for local radial basis functions, controls
-  //! the locality, the bigger alpha is, the more "global" the basis function becomes
-  //! \param numNeighbors (in) number of influence points for RBF evaluation
-  //! \param numEquPerEnt (in) dimension of the data (scalar=1, 2d=2, 3d=3)
-  //! \param grid (in) pointer to the target-grid
-  void CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
-                    const CF::Vector<CF::Double>& globPoint,
-                    const StdVector<CF::Double>& l2Distances,
-                    const StdVector< CF::Vector<CF::Double> >& neighbors,
-                    const Double& alpha,
-                    const UInt& numNeighbors,
-                    const UInt& numEquPerEnt,
-                    Grid* grid);
-
-
-  void CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
+  bool CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
                       const CF::Vector<CF::Double>& globPoint,
+                      const CF::Double& maxDist,
                       const StdVector<CF::Double>& l2Distances,
                       const StdVector< CF::Vector<CF::Double> >& neighbors,
-                      const Double& alpha,
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
-                      Grid* grid);
+                      Grid* grid,
+                      const Double epsScal);
 
 
-
-void CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
+  bool CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
                       const CF::Vector<CF::Double>& globPoint,
+                      const CF::Double& maxDist,
                       const StdVector<CF::Double>& l2Distances,
                       const StdVector< CF::Vector<CF::Double> >& neighbors,
-                      const Double& alpha,
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
-                      Grid* grid);
+                      Grid* grid,
+                      const Double epsScal);
 
 
-void CalcCurl(Vector<Double>& returnVec,
-              const Vector<Double>& inVec,
-              const UInt& numEquPerEnt,
-              const StdVector<CF::UInt>& targetSource,
-              const StdVector<CF::UInt>& targetSourceIndex,
-              const UInt& numNN,
-              const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
-              const UInt& maxNumTrgEntities,
-              const UInt& gridDim);
+  bool CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
+                      const CF::Vector<CF::Double>& globPoint,
+                      const CF::Double& maxDist,
+                      const StdVector<CF::Double>& l2Distances,
+                      const StdVector< CF::Vector<CF::Double> >& neighbors,
+                      const UInt& numNeighbors,
+                      const UInt& numEquPerEnt,
+                      Grid* grid,
+                      const Double epsScal);
 
-void CalcDivergence(Vector<Double>& returnVec,
-                    const Vector<Double>& inVec,
-                    const UInt& numEquPerEnt,
-                    const StdVector<CF::UInt>& targetSource,
-                    const StdVector<CF::UInt>& targetSourceIndex,
-                    const UInt& numNN,
-                    const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
-                    const UInt& maxNumTrgEntities);
 
-void CalcGradient(Vector<Double>& returnVec,
-                    const Vector<Double>& inVec,
-                    const UInt& numEquPerEnt,
-                    const StdVector<CF::UInt>& targetSource,
-                    const StdVector<CF::UInt>& targetSourceIndex,
-                    const UInt& numNN,
-                    const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
-                    const UInt& maxNumTrgEntities,
-                    const UInt& tDim);
+  void CalcCurl(Vector<Double>& returnVec,
+                const Vector<Double>& inVec,
+                const UInt& numEquPerEnt,
+                const StdVector< StdVector<CF::UInt> >& sourceM,
+                const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                const UInt& maxNumTrgEntities,
+                const UInt& gridDim);
 
+  void CalcDivergence(Vector<Double>& returnVec,
+                      const Vector<Double>& inVec,
+                      const UInt& numEquPerEnt,
+                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                      const UInt& maxNumTrgEntities);
+
+  void CalcGradient(Vector<Double>& returnVec,
+                      const Vector<Double>& inVec,
+                      const UInt& numEquPerEnt,
+                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                      const UInt& maxNumTrgEntities,
+                      const UInt& tDim);
 };
 }

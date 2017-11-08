@@ -34,14 +34,25 @@ template<class TYPE> CoefFunctionCache<TYPE>::CoefFunctionCache(
   dimType_ = cached_coefFct_->GetDimType();
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
+  mp_ = domain->GetMathParser();
+  mHandleTime_ = mp_->GetNewHandle(true);
+  mp_->SetExpr(mHandleTime_,"t"); // current step
+  //This is called automatically at the beginning of each step
+  mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionCache::EmptyCache, this ), mHandleTime_ );
 }
 
 template<class TYPE> UInt CoefFunctionCache<TYPE>::GetVecSize() const{
-    return cached_coefFct_->GetVecSize();
+  return cached_coefFct_->GetVecSize();
 }
 
 template<class TYPE> CoefFunctionCache<TYPE>::~CoefFunctionCache() {
+  mp_->ReleaseHandle(mHandleTime_);
+}
 
+template<class TYPE> void CoefFunctionCache<TYPE>::EmptyCache() {
+  cached_data_scal_.clear();
+  cached_data_vec_.clear();
+  cached_data_mat_.clear();
 }
 
 template<class TYPE> void CoefFunctionCache<TYPE>::GetVector(Vector<TYPE>& coefVec, const LocPointMapped& lpm) {

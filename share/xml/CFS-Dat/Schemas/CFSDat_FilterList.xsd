@@ -35,7 +35,7 @@
                 <xsd:sequence>
                   <xsd:element name="startStep">
                     <xsd:complexType>
-                      <xsd:attribute name="value" type="xsd:int" default="1"/>
+                      <xsd:attribute name="value" type="xsd:int" default="0"/>
                     </xsd:complexType>
                   </xsd:element>
                   <xsd:element name="numSteps">
@@ -43,9 +43,19 @@
                       <xsd:attribute name="value" type="xsd:int" use="required"/>
                     </xsd:complexType>
                   </xsd:element>
+                  <xsd:element name="startTime">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="xsd:double" default="0.0"/>
+                    </xsd:complexType>
+                  </xsd:element>
                   <xsd:element name="delta">
                     <xsd:complexType>
                       <xsd:attribute name="value" type="xsd:double" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="deleteOffset">
+                    <xsd:complexType>
+                      <xsd:attribute name="value" type="DT_CFSBool" default="no"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
