@@ -14,6 +14,7 @@ import numpy as np
 from scipy import interpolate
 import matviz_vtk
 import vtk
+import sys
 
 class Surface_Mesh():
   def __init__(self,points,triangles):
@@ -212,48 +213,6 @@ if __name__ == "__main__":
 
   print("stiffnesses: "  +str(args.x1) + "," + str(args.x2) + "," + str(args.y1) + "," + str(args.y2) + "," + str(args.z1) + "," + str(args.z2))  
     
-  infoStr = None
-  infoXml = None
-  
-  if args.to_info_xml:
-    # command line
-    cmd = sys.argv[0].split('/')[-1]
-    for i in range(1, len(sys.argv)):
-      cmd += ' ' + sys.argv[i] 
-    
-    infoXmlName = meshName + ".info.xml"
-    infoXml = open(infoXmlName,"w") 
-    infoXml.write('<?xml version="1.0"?>\n\n')
-    infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
-    infoXml.write('  <cmd value="' + cmd + '"/>\n')
-    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '" interpolation="' + args.interpolation + '"/>\n')
-      
-  if not args.stiffness_as_diameter:
-    # calculating radii in relation to given stiffnesses x1,x2,y1,...
-    args.x1 = calc_radius(args.x1)
-    infoStr = '  <radii rx1="' + str(args.x1) + '" '
-    args.x2 = calc_radius(args.x2)
-    infoStr += ' rx2="' + str(args.x2) + '" '
-    args.y1 = calc_radius(args.y1)
-    infoStr += ' ry1="' + str(args.y1) + '" '
-    args.y2 = calc_radius(args.y2)
-    infoStr += ' ry2="' + str(args.y2) + '" '
-    args.z1 = calc_radius(args.z1)
-    infoStr += ' rz1="' + str(args.z1) + '" '
-    args.z2 = calc_radius(args.z2)
-    infoStr += ' rz2="' + str(args.z2) + '"'
-  else:
-    infoStr = '  <radii rx1="' + str(args.x1/2.0) + '" '
-    infoStr += ' rx2="' + str(args.x2/2.0) + '" '
-    infoStr += ' ry1="' + str(args.y1/2.0) + '" '
-    infoStr += ' ry2="' + str(args.y2/2.0) + '" '
-    infoStr += ' rz1="' + str(args.z1/2.0) + '" '
-    infoStr += ' rz2="' + str(args.z2/2.0) + '"'  
-  
-  if infoXml is not None:
-    assert(infoStr)
-    infoXml.write(infoStr + "/>\n\n")  
-  
   # sanity checks
   if not (args.x1 and args.x2 and args.y1 and args.y2 and args.z1 and args.z2):
     raise Exception("error: need values for x1,x2 and y1,y2 and z1,z2!")  
@@ -292,7 +251,8 @@ if __name__ == "__main__":
     else:
       fileNameBase = args.save  
   
-  ########### stuff for logging with .info.xml ##########################
+  ########### stuff for logging with .info.xml #########################
+  infoStr = None
   infoXml = None
   
   if args.to_info_xml:
@@ -306,10 +266,37 @@ if __name__ == "__main__":
     infoXml.write('<?xml version="1.0"?>\n\n')
     infoXml.write('<basecell nx="' + str(args.res) + '" ny="' + str(args.res) + '" nz="' + str(args.res) +'">\n')
     infoXml.write('  <cmd value="' + cmd + '"/>\n')
-    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '" interpolation="' + args.interpolation + '"/>\n')  
+    infoXml.write('  <input x1="' + str(args.x1) + '" x2="' + str(args.x2) + '" y1="' + str(args.y1) + '" y2="' + str(args.y2) + '" z1="' + str(args.z1) + '" z2="' + str(args.z2) + '" interpolation="' + args.interpolation + '"/>\n')
+      
+  if not args.stiffness_as_diameter:
+    # calculating radii in relation to given stiffnesses x1,x2,y1,...
+    args.x1 = calc_radius(args.x1)
+    infoStr = '  <radii rx1="' + str(args.x1) + '" '
+    args.x2 = calc_radius(args.x2)
+    infoStr += ' rx2="' + str(args.x2) + '" '
+    args.y1 = calc_radius(args.y1)
+    infoStr += ' ry1="' + str(args.y1) + '" '
+    args.y2 = calc_radius(args.y2)
+    infoStr += ' ry2="' + str(args.y2) + '" '
+    args.z1 = calc_radius(args.z1)
+    infoStr += ' rz1="' + str(args.z1) + '" '
+    args.z2 = calc_radius(args.z2)
+    infoStr += ' rz2="' + str(args.z2) + '"'
+  else:
+    infoStr = '  <radii rx1="' + str(args.x1/2.0) + '" '
+    infoStr += ' rx2="' + str(args.x2/2.0) + '" '
+    infoStr += ' ry1="' + str(args.y1/2.0) + '" '
+    infoStr += ' ry2="' + str(args.y2/2.0) + '" '
+    infoStr += ' rz1="' + str(args.z1/2.0) + '" '
+    infoStr += ' rz2="' + str(args.z2/2.0) + '"'  
+  
+  if infoXml is not None:
+    assert(infoStr)
+    infoXml.write(infoStr + "/>\n\n")  
   
   ################### actual work starts here ##############################
-  points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml)
+  # we need voxel array for gid mesh writing 
+  array, points, cells, volume = draw_profile_functions.generate_basecell(args,infoXml)
   
   if args.target.startswith("surface"):
     smesh = Surface_Mesh(points, cells)
@@ -326,9 +313,6 @@ if __name__ == "__main__":
     show_vtk(polydata, 1000, [], True)
   ################### take care of gid mesh ##############
   if args.target.startswith("volume"):
-    assert(array is not None)
-    calc_volume(array,infoXml)
-  
     if args.z1 == 0.0 and args.z2 == 0.0:
       mesh = create_2d_mesh_from_array(array)
     else:
