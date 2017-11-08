@@ -320,7 +320,7 @@ class PrincipleSpline():
   # wrapper function
   # @param x: can be one argument value or list or aguments
   def eval(self,x):
-    if isinstance(x, (float,int)):
+    if isinstance(x, (np.float32,np.float64,float,int)):
       ret = self.eval_elem(x)
       return ret
     
@@ -914,8 +914,10 @@ def generate_basecell(args,info):
     fact = 1.0 / (1-h)
     for i in  range(len(verts)):
       verts[i] = verts[i] * np.asarray([fact,fact,fact])
-    
+
+    verts, faces = adjust_boundary_circles(verts,faces,profiles)    
     verts, faces = mesh_boundary_circles(verts,faces)
+    
     points = verts
     cells = faces
     
@@ -1440,3 +1442,26 @@ def voxels_to_points_and_cells(array):
   points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
   
   return points,cells
+
+# assume that all points lie in [0,1]^3
+def adjust_boundary_circles(points,cells,profiles):
+  # one list for one boundary circle: xleft, xright, yleft, ....
+  for i in range(len(points)):
+    # one point
+    p = points[i]
+    major_dir = -1
+    
+    if np.isclose(p[0],0,1e-6) or np.isclose(p[0],1,1e-6):
+      major_dir = 0
+    elif np.isclose(p[1],0,1e-6) or np.isclose(p[1],1,1e-6):
+      major_dir = 1
+    elif np.isclose(p[2],0,1e-6) or np.isclose(p[2],1,1e-6):
+      major_dir = 2
+    else: # not on a boundary circle
+      continue
+    
+    minor1, minor2 = give_normal_plane_axes(major_dir)
+    phi = angle_to_center((p[minor1],p[minor2]))
+    points[i] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
+    
+  return points, cells
