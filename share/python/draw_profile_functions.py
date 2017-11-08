@@ -912,35 +912,20 @@ def generate_basecell(args,info):
     
     # scale verts from [0,1-h] to [0,1] by factor 1/(1-h)
     fact = 1.0 / (1-h)
-    print("fact:",fact)
-    for v in verts:
-      v = v * np.asarray([fact,fact,fact])
-#     print("h:",h)
-#     for v in verts:
-#       for i in range(3):
-#         if np.isclose(v[i],1-h,1e-6):
-#           print(v[i])
-#           v[i] = 1.0
-#     for v in verts:
-#       v += (h/2.0,h/2.0,h/2.0)
+    for i in  range(len(verts)):
+      verts[i] = verts[i] * np.asarray([fact,fact,fact])
+    
+    matviz_vtk.show_write_vtk(matviz_vtk.fill_vtk_polydata(verts, faces), 1000, "before_mb.vtp")  
       
     mesh_boundary_circles(verts,faces)
+    matviz_vtk.show_write_vtk(matviz_vtk.fill_vtk_polydata(verts, faces), 1000, "after_mb.vtp")
     points = verts
     cells = faces
     
-#     polydata.SetPoints(vtk_points)
-#     polydata.SetPolys(cells)
-#     
-#     normals = vtk.vtkPolyDataNormals()
-#     normals.SetInputData(polydata)
-#     normals.SetConsistency(1)
-#     normals.SetAutoOrientNormals(1)
-#     normals.Update()
-        
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return points, cells, basecell.calc_volume(array)
+  return array, points, cells, basecell.calc_volume(array)
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
@@ -1079,11 +1064,6 @@ def write_profile_to_array(array,profile):
         # thus, check also if the projection of the voxel center  lies 
         # within the voxel bounds --> better: check for many point samples
         # inside the voxel, but this is too costly
-        center = np.zeros(3)
-        center[major] = x
-        center[minor_1] = y
-        center[minor_2] = z
-        
 #         projection = calc_projection(profile, center)
         if (valx-r <= 1e-6):
           array[idx[major],idx[minor_1],idx[minor_2]] = major

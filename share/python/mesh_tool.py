@@ -2508,7 +2508,7 @@ def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,
   nnx = nx + 1
   nny = ny + 1
   nnz = nz + 1
-
+  
   for k in range(nnz):
     for j in range(nny):
       for i in range(nnx):
