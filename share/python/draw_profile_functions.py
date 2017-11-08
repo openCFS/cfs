@@ -915,10 +915,7 @@ def generate_basecell(args,info):
     for i in  range(len(verts)):
       verts[i] = verts[i] * np.asarray([fact,fact,fact])
     
-    matviz_vtk.show_write_vtk(matviz_vtk.fill_vtk_polydata(verts, faces), 1000, "before_mb.vtp")  
-      
-    mesh_boundary_circles(verts,faces)
-    matviz_vtk.show_write_vtk(matviz_vtk.fill_vtk_polydata(verts, faces), 1000, "after_mb.vtp")
+    verts, faces = mesh_boundary_circles(verts,faces)
     points = verts
     cells = faces
     
@@ -1262,8 +1259,6 @@ def extract_boundary_points(points):
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
   
-  print("xmin,xmax,ymin,ymax,zmin,zmax:",xmin,xmax,ymin,ymax,zmin,zmax)
-  
   lists = [[] for i in range(6)]
   for id,p in enumerate(points):
     # x
@@ -1305,7 +1300,7 @@ def extract_plane_coordinates(list,dir):
     
   return new
 
-def mesh_boundary_circles(points,faces):
+def mesh_boundary_circles(points,cells):
   # extract points on the boundary circles
   # each entry contains a list representing one boundary face of the base cell
   lists = extract_boundary_points(points)
@@ -1313,7 +1308,7 @@ def mesh_boundary_circles(points,faces):
    
   lists_2d = []
   points = list(points)
-  faces = list(faces)
+  cells = list(cells)
    
   count = 0
   for dir in (0,1,2):
@@ -1348,13 +1343,13 @@ def mesh_boundary_circles(points,faces):
       major_dir = 2
     
     new_points = []  
+    next_id = len(points)
     minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
     # up to len(l), l and mesh_points have the same ordering of points
-    # map from local mesh_points point ids to global ones from points in vtk_points
+    # map from local mesh_points point ids to global ones
     lookup = np.ones(len(mesh_points),dtype=int) * (-1)
     for i in range(0,len(l)):
       lookup[i] = l[i][2]
-      new_points.append(points[l[i][2]])
     for i in range (len(l),len(mesh_points)):
       point = np.zeros(3)
       if count%2 == 0: # left side of profile
@@ -1365,14 +1360,16 @@ def mesh_boundary_circles(points,faces):
       point[minor_dir_2] = mesh_points[i][0]
       point[minor_dir_1] = mesh_points[i][1]
       # id of new point  
-      next_id = len(points)
       lookup[i] = next_id
+      next_id += 1
       new_points.append(point)
     
+    points += new_points
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      faces.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
-
+      cells.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
+  
+  return points, cells    
 # move points of boundary circle such that structure goes from [0,1]^3
 def move_boundary_points(verts):
   xmin = min(verts, key=lambda t: t[0])[0]

@@ -23,9 +23,11 @@ class Surface_Mesh():
     
   def setConnectivity(self):
     # for each point ( id = array index), store tuple with all neighboring id nodes
-    self.connectivity = [set() for index in range(len(self.points))]  
+    self.connectivity = [set() for index in range(len(self.points))]
     for t in self.cells:
-      
+      assert(t[0] < len(self.points))
+      assert(t[1] < len(self.points))
+      assert(t[2] < len(self.points))
       self.connectivity[t[0]].add(t[1])
       self.connectivity[t[0]].add(t[2])
       
