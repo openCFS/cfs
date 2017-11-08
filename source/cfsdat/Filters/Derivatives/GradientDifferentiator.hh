@@ -19,8 +19,6 @@
 #include "DataInOut/SimInput.hh"
 
 
-
-
 namespace CFSDat{
 
 class GradientDifferentiator : public MeshFilter{
@@ -28,7 +26,7 @@ class GradientDifferentiator : public MeshFilter{
   //! struct containing an interpolation matrix, which may be applied to scalars and vector
   struct Matrix {
     CF::UInt numTargets;
-    StdVector<CF::UInt> targetSourceIndex;
+    StdVector< StdVector<CF::UInt> > targetSourceIndex;
     StdVector<CF::UInt> targetSource;
     StdVector< CF::Matrix<CF::Double> > targetSourceFactor;
   };
@@ -66,13 +64,10 @@ private:
   //! number of euqations per entity
   UInt numEquPerEnt_;
 
-  //! Number of neighbor points to include in interpolation.
-  UInt numNeighbors_;
-
   std::vector<QuantityStruct> derivData_;
 
-  //! Exponent for calculation of interpolation weight function.
-  Double p_;
+  //! Scaling of epsilon-parameter for RBF-basis function
+  Double epsScal_;
 
   //! index in the static matrices vector to use
   UInt matrixIndex_;

@@ -3,8 +3,8 @@ Nightly builds & tests on test-ubuntu14
 
 Gerneral Layout
 ---------------
-Varaibles common to all tests are set in `site_specific_vars.cmake` which is incuded by every `*.ctest` file.
-Stuff common for all tests is defined in `site_macros.cmake`.
+Varaibles common to all tests are set in `init_test.cmake` which is incuded by every `*.ctest` file.
+Stuff common for all tests should be defined in `ctest_scripts/shared/test_macros.cmake`.
 The deploy is done by `deploy_draco.cmake`, which is included from `*_deploy.cmake`.
 
 Workfow for Testing
@@ -61,6 +61,15 @@ Run `crontab -e` and enter
 ```
 
 This runs nightly tests at 02:00 every night and deletes the build directory (including cache) once a week (on Sunday).
+
+### Set matplotlib default backend
+To make the `matviz` tests run for a headless (no gui) machine one needs to use the `Agg` bachend of `matplotlib` [1](http://stackoverflow.com/questions/33902941/import-matplotlib-without-a-display).
+Change the default backend by `/home/testuser/.config/matplotlib/matplotlibcr ` with
+```
+backend: Agg
+```
+or exporting the environment varaible `MPLBACKEND=Agg`.
+
 
 ### ssh keys for deploy
 To deploy the tests to draco we use ssh and key-based login.
