@@ -32,6 +32,9 @@
 // Acoustic Source Terms
 #include "Filters/Derivatives/Lighthill.hh"
 
+// Norms
+#include "Filters/Interpolators/L2norm.hh"
+
 
 
 namespace CFSDat{
@@ -56,6 +59,9 @@ FilterPtr BaseMeshFilterType::Generate(PtrParamNode ptrNode, PtrResultManager re
  }
  else if (ptrNode->Get("type")->As<std::string>() == "FieldInterpolation_Node2Cell"){
    newFilter = FilterPtr(new CFSDat::Node2CellInterpolator(0,ptrNode,resMana));
+ }
+ else if (ptrNode->Get("type")->As<std::string>() == "Norm_L2"){
+   newFilter = FilterPtr(new CFSDat::L2norm(0,ptrNode,resMana));
  }
  else if(ptrNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Gradient"){
    newFilter = FilterPtr(new CFSDat::GradientDifferentiator(0,ptrNode,resMana));

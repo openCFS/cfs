@@ -24,6 +24,7 @@ PostLighthillSource::PostLighthillSource(UInt numWorkers, CF::PtrParamNode confi
 
   std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
   std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
+  component_ = params_->Get("extractComponent")->As<int>();
   filtResNames.insert(outRes);
   upResNames.insert(inRes);
 }
@@ -116,7 +117,7 @@ bool PostLighthillSource::Run(){
   Vector<Double> r;
   r.Resize(inVec.GetSize() / 2);
   for(UInt i = 0; i < r.GetSize(); ++i){
-    r[i] = inVec[2 * i];
+    r[i] = inVec[2 * i + (component_)];
   }
 
   returnVec = r;
