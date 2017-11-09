@@ -167,7 +167,7 @@ if __name__ == "__main__":
   parser.add_argument('--interpolation', help="interpolation type between splines and bisecs", choices=['linear','heaviside'], default="linear")
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
-  parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=50)
+  parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=30)
   
   args = parser.parse_args()
   

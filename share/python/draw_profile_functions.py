@@ -29,6 +29,7 @@ except:
   print("Failed to load meshpy - need it for tetrahedralized mesh")
 
 import basecell
+import pymesh
 
 res = 1
 res_surf_lines = 1
@@ -910,16 +911,39 @@ def generate_basecell(args,info):
     # marching_cubes returns float values
     verts = np.asarray(verts)
     
+    verts += (h/2.0,h/2.0,h/2.0)
+    
     # scale verts from [0,1-h] to [0,1] by factor 1/(1-h)
-    fact = 1.0 / (1-h)
-    for i in  range(len(verts)):
-      verts[i] = verts[i] * np.asarray([fact,fact,fact])
-
-#     points, cells = adjust_boundary_circles(verts,faces,profiles)  
+#     fact = 1.0 / (1-h)
+#     for i in  range(len(verts)):
+#       verts[i] = verts[i] * np.asarray([fact,fact,fact])
+#     for i in  range(len(verts)):
+#       if np.isclose(verts[i][0],1-h/2.0,1e-6):
+#         verts[i][0] = 1.0
+#       elif np.isclose(verts[i][0],h/2.0,1e-6):
+#         verts[i][0] = 0.0  
+#       elif np.isclose(verts[i][1],1-h/2.0,1e-6):
+#         verts[i][1] = 1.0
+#       elif np.isclose(verts[i][1],h/2.0,1e-6):
+#         verts[i][1] = 0.0  
+#       elif np.isclose(verts[i][2],1-h/2.0,1e-6):  
+#         verts[i][2] = 1.0
+#       elif np.isclose(verts[i][2],h/2.0,1e-6):
+#         verts[i][2] = 0.0  
+        
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
     points, cells = mesh_boundary_circles(points, faces, bp_lists)
+    
+    ### testing pymesh stuff
+#     mesh = pymesh.form_mesh(np.asarray(points),np.asarray(cells))
+#     mesh, info = pymesh.collapse_short_edges(mesh, rel_threshold=1e-2)
+    
+#     points = mesh.vertices
+#     cells = mesh.faces
+#   points = verts
+#   cells = faces
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1262,36 +1286,49 @@ def adjust_and_extract_boundary_points(profiles,points):
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
   
-  assert(np.isclose(xmin,0.0,1e-6))
-  assert(np.isclose(ymin,0.0,1e-6))
-  assert(np.isclose(zmin,0.0,1e-6))
-  assert(np.isclose(xmax,1.0,1e-6))
-  assert(np.isclose(ymax,1.0,1e-6))
-  assert(np.isclose(zmax,1.0,1e-6))
+#   assert(np.isclose(xmin,0.0,1e-6))
+#   assert(np.isclose(ymin,0.0,1e-6))
+#   assert(np.isclose(zmin,0.0,1e-6))
+#   assert(np.isclose(xmax,1.0,1e-6))
+#   assert(np.isclose(ymax,1.0,1e-6))
+#   assert(np.isclose(zmax,1.0,1e-6))
   
   lists = [[] for i in range(6)]
   major_dir = -1
-  for id,p in enumerate(points):
+  for id in range(len(points)):
+    p = points[id]
     # x
     if np.isclose(p[0],xmin,1e-6):
-      lists[0].append((p,id))
+      # move x to 0
+      points[id][0] = 0
+      lists[0].append((points[id],id))
       major_dir = 0
     elif np.isclose(p[0],xmax,1e-6):
-      lists[1].append((p,id))
+      # move x to 1
+      points[id][0] = 1.0
+      lists[1].append((points[id],id))
       major_dir = 0
     # y
     elif np.isclose(p[1],ymin,1e-6):
-      lists[2].append((p,id))
+      # move y to 0
+      points[id][1] = 0
+      lists[2].append((points[id],id))
       major_dir = 1
     elif np.isclose(p[1],ymax,1e-6):
-      lists[3].append((p,id))
+      # move y to 1
+      points[id][1] = 1.0
+      lists[3].append((points[id],id))
       major_dir = 1  
     # z
     elif np.isclose(p[2],zmin,1e-6):
-      lists[4].append((p,id))
+      # move z to 0
+      points[id][2] = 0
+      lists[4].append((points[id],id))
       major_dir = 2
     elif np.isclose(p[2],zmax,1e-6):
-      lists[5].append((p,id))
+      # move z to 1
+      points[id][2] = 1.0
+      lists[5].append((points[id],id))
       major_dir = 2
     else:
       continue
