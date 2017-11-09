@@ -1,7 +1,6 @@
-#1/usr/bin/env python
+#!/usr/bin/env python
 
-import basecell
-import draw_profile_functions
+
 import numpy as np
 import matviz_vtk
 import vtk
@@ -17,6 +16,12 @@ try:
   from mpi4py import MPI
 except:
   print("Warning: Could not load mpi4py!")
+  
+try:
+  import basecell
+  import draw_profile_functions
+except:
+  print("Warning: Couldn not load basecell and draw_profile_functions!")  
   
 def create_3d_interpretation_ortho_new(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
