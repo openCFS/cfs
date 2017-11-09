@@ -915,11 +915,11 @@ def generate_basecell(args,info):
     for i in  range(len(verts)):
       verts[i] = verts[i] * np.asarray([fact,fact,fact])
 
-    verts, faces = adjust_boundary_circles(verts,faces,profiles)    
-    verts, faces = mesh_boundary_circles(verts,faces)
-    
-    points = verts
-    cells = faces
+#     points, cells = adjust_boundary_circles(verts,faces,profiles)  
+    # extract points on the boundary circles
+    # each entry contains a list representing one boundary face of the base cell
+    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
+    points, cells = mesh_boundary_circles(points, faces, bp_lists)
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1092,9 +1092,6 @@ def calc_radius_linear_symm(funcs,phi,x,rad):
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
     return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x)
 
-def close(x,ref,eps=1e-6):
-  return abs(x-ref) < eps
-
 # helper function for calc_radius_for_quadrant
 # return heaviside interpolation between principal spline and bisec
 # see calc_radius_linear for params
@@ -1119,26 +1116,26 @@ def get_splines_and_bisec(splines,bisecs,rad):
     s1_idx = 0
     s2_idx = 1
     offset = 0
-    assert(close(splines[s1_idx].angle,0,1e-6))
-    assert(close(splines[s2_idx].angle,np.pi/2.0,1e-6))
+    assert(np.isclose(splines[s1_idx].angle,0,1e-6))
+    assert(np.isclose(splines[s2_idx].angle,np.pi/2.0,1e-6))
   elif rad <= np.pi: # between 90 and 180 degree
     s1_idx = 1
     s2_idx = 2
     offset = np.pi/2.0
-    assert(close(splines[s1_idx].angle,np.pi/2.0,1e-6))
-    assert(close(splines[s2_idx].angle,np.pi,1e-6))
+    assert(np.isclose(splines[s1_idx].angle,np.pi/2.0,1e-6))
+    assert(np.isclose(splines[s2_idx].angle,np.pi,1e-6))
   elif rad <= 1.5*np.pi: # between 180 and 270 degree
     s1_idx = 2
     s2_idx = 3
     offset = np.pi
-    assert(close(splines[s1_idx].angle,np.pi,1e-6))
-    assert(close(splines[s2_idx].angle,1.5*np.pi,1e-6))
+    assert(np.isclose(splines[s1_idx].angle,np.pi,1e-6))
+    assert(np.isclose(splines[s2_idx].angle,1.5*np.pi,1e-6))
   else: # between 270 and 360 degree
     s1_idx = 3
     s2_idx = 0
     offset = 1.5*np.pi
-    assert(close(splines[s1_idx].angle,1.5*np.pi,1e-6))
-    assert(close(splines[s2_idx].angle,0,1e-6))
+    assert(np.isclose(splines[s1_idx].angle,1.5*np.pi,1e-6))
+    assert(np.isclose(splines[s2_idx].angle,0,1e-6))
     
   assert(s1_idx >= 0 and s1_idx < 4)
   assert(s2_idx >= 0 and s2_idx < 4)
@@ -1253,7 +1250,11 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1
 
-def extract_boundary_points(points):
+
+# adjust all points on boundary circles by using information from radius
+# extract these adjusted points into 6 lists (xleft,xright,yleft,yright,zleft,zright)
+# -> need this for meshing the circles
+def adjust_and_extract_boundary_points(profiles,points):
   xmin = min(points, key=lambda t: t[0])[0]
   xmax = max(points, key=lambda t: t[0])[0]
   ymin = min(points, key=lambda t: t[1])[1]
@@ -1261,28 +1262,49 @@ def extract_boundary_points(points):
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
   
+  assert(np.isclose(xmin,0.0,1e-6))
+  assert(np.isclose(ymin,0.0,1e-6))
+  assert(np.isclose(zmin,0.0,1e-6))
+  assert(np.isclose(xmax,1.0,1e-6))
+  assert(np.isclose(ymax,1.0,1e-6))
+  assert(np.isclose(zmax,1.0,1e-6))
+  
   lists = [[] for i in range(6)]
+  major_dir = -1
   for id,p in enumerate(points):
     # x
-    if close(p[0],xmin,1e-6):
+    if np.isclose(p[0],xmin,1e-6):
       lists[0].append((p,id))
-    if close(p[0],xmax,1e-6):
+      major_dir = 0
+    elif np.isclose(p[0],xmax,1e-6):
       lists[1].append((p,id))
+      major_dir = 0
     # y
-    if close(p[1],ymin,1e-6):
+    elif np.isclose(p[1],ymin,1e-6):
       lists[2].append((p,id))
-    if close(p[1],ymax,1e-6):
-      lists[3].append((p,id))  
+      major_dir = 1
+    elif np.isclose(p[1],ymax,1e-6):
+      lists[3].append((p,id))
+      major_dir = 1  
     # z
-    if close(p[2],zmin,1e-6):
+    elif np.isclose(p[2],zmin,1e-6):
       lists[4].append((p,id))
-    if close(p[2],zmax,1e-6):
+      major_dir = 2
+    elif np.isclose(p[2],zmax,1e-6):
       lists[5].append((p,id))
+      major_dir = 2
+    else:
+      continue
+    
+    assert(major_dir > -1 and major_dir < 3)
+    minor1, minor2 = give_normal_plane_axes(major_dir)
+    phi = angle_to_center((p[minor1],p[minor2]))
+    points[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
   
   for l in lists:
     assert(len(l) > 0)
       
-  return lists
+  return points, lists
  
 def round_trip_connect(start, end):
   result = []
@@ -1302,11 +1324,8 @@ def extract_plane_coordinates(list,dir):
     
   return new
 
-def mesh_boundary_circles(points,cells):
-  # extract points on the boundary circles
-  # each entry contains a list representing one boundary face of the base cell
-  lists = extract_boundary_points(points)
-  assert(len(lists) == 6)
+def mesh_boundary_circles(points,cells,bp_lists):
+  assert(len(bp_lists) == 6)
    
   lists_2d = []
   points = list(points)
@@ -1314,12 +1333,12 @@ def mesh_boundary_circles(points,cells):
    
   count = 0
   for dir in (0,1,2):
-    lists_2d.append(extract_plane_coordinates(lists[count], dir))
+    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
     count += 1
-    lists_2d.append(extract_plane_coordinates(lists[count], dir))
+    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
     count += 1
   
-  for count,l in enumerate(lists_2d):  
+  for count,l in enumerate(lists_2d):
     # component 0 and 1 store plane coordinates
     # component 2 store vtk point id
     assert(len(l) > 0)
@@ -1372,32 +1391,6 @@ def mesh_boundary_circles(points,cells):
       cells.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
   
   return points, cells    
-# move points of boundary circle such that structure goes from [0,1]^3
-def move_boundary_points(verts):
-  xmin = min(verts, key=lambda t: t[0])[0]
-  xmax = max(verts, key=lambda t: t[0])[0]
-  ymin = min(verts, key=lambda t: t[1])[1]
-  ymax = max(verts, key=lambda t: t[1])[1]
-  zmin = min(verts, key=lambda t: t[2])[2]
-  zmax = max(verts, key=lambda t: t[2])[2]
-  
-  for v in verts:
-    # move point on the boundaries of x/y/z axis to match [0,1]
-    # as we're shifted by h/2.0
-    if close(v[0], xmin, 1e-6):
-      v[0] = 0.0
-    if close(v[0], xmax, 1e-6):
-      v[0] = 1.0
-    if close(v[1], ymin, 1e-6):
-      v[1] = 0.0
-    if close(v[1], ymax, 1e-6):
-      v[1] = 1.0
-    if close(v[2], zmin, 1e-6):
-      v[2] = 0.0
-    if close(v[2], zmax, 1e-6):
-      v[2] = 1.0
-      
-  return verts
 
 # @returns 3d cartesian coordinates
 # @param profile of interest
@@ -1441,27 +1434,4 @@ def voxels_to_points_and_cells(array):
   # simple python lists
   points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
   
-  return points,cells
-
-# assume that all points lie in [0,1]^3
-def adjust_boundary_circles(points,cells,profiles):
-  # one list for one boundary circle: xleft, xright, yleft, ....
-  for i in range(len(points)):
-    # one point
-    p = points[i]
-    major_dir = -1
-    
-    if np.isclose(p[0],0,1e-6) or np.isclose(p[0],1,1e-6):
-      major_dir = 0
-    elif np.isclose(p[1],0,1e-6) or np.isclose(p[1],1,1e-6):
-      major_dir = 1
-    elif np.isclose(p[2],0,1e-6) or np.isclose(p[2],1,1e-6):
-      major_dir = 2
-    else: # not on a boundary circle
-      continue
-    
-    minor1, minor2 = give_normal_plane_axes(major_dir)
-    phi = angle_to_center((p[minor1],p[minor2]))
-    points[i] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
-    
   return points, cells
