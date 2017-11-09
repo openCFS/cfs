@@ -7,6 +7,7 @@ from matviz_2d  import *
 from matviz_streamline import *
 from hdf5_tools import *
 from mesh_tool import *
+from optimization_tools import *
 import argparse
 import sys
 import os
@@ -72,6 +73,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     res['s1'] = s1
     res['s2'] = s2
     res['s3'] = numpy.ones((len(centers),1)) * .1 # fix for 3D
+  elif args.parametrization == "hom_iso":
+    # isotropic homogenized basecell e.g. lufo fuller or V7 base cell
+    res['s1'] = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show != "rot" else numpy.ones((len(centers),1)) * .1 
+    res['s2'] = res['s1']
+    res['s3'] = res['s1']
   elif args.parametrization == 'simp':
     res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['angle'] = numpy.zeros(((len(s1), 3)))
@@ -183,7 +189,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
 
       if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect", "hom_ortho_3d"):
-        microparams = read_stiff_angle(f, dim_2D, args)
+        if h5_read:
+          microparams = read_stiff_angle(f, dim_2D, args)
         if args.show == "hom_sheared_rot_cross":
           s1 = microparams['s1']
           s2 = microparams['s2']
@@ -197,7 +204,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
           s2 = microparams['s2']
           s3 = microparams['s3']
           s4 = microparams['s4']
-        else:
+        elif h5_read:
           s1 = microparams['s1']
           s2 = microparams['s2']
           s3 = microparams['s3']
@@ -205,7 +212,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
             sh1 = microparams['sh1']
           except:
             pass
-        angle = microparams['angle']
+        if h5_read:
+          angle = microparams['angle']
+        else:
+          angle,s1,s2,coords = read_stiff_angle_matlab(args.input)
       else:
         if args.show == "simp":
           args.parametrization = 'simp'
@@ -278,6 +288,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
           elif args.type == "robot":
             valid_position = valid_position_robot
             print('Robot is calculated!')
+          elif args.type == "lufo":
+            valid_position = valid_position_lufo
+            print('Lufo bracket is calculated!')
           else:
             valid_position = None
             print('Warning: No type for valid_position was selected!')
@@ -301,6 +314,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   #TODO: not implemented yet for robot arm
                   valid_ring_position = None
                   print('Robot is validated!')
+                elif args.type == "lufo":
+                  valid_position = valid_position_lufo
+                  valid_ring_position = None
+                  print('Lufo bracket is calculated!')
 
                 if args.show == 'simp':
                   me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
@@ -311,7 +328,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
-                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)   
+                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
                 elif args.show == "hom_rect":
                   viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
@@ -432,7 +449,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file")
+parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
 parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
@@ -531,7 +548,7 @@ elem_dim = None
 min_bb = None
 max_bb = None
 # check if we read data from command line instead from an h5 file or a info.xml was given
-if args.input.startswith('[') or args.input.endswith(".info.xml"):
+if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
     
   h5_read = False
   dim_2D = None
@@ -545,8 +562,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
       sys.exit(1)
   
     dim_2D = len(input) != 21
-  else:
-    assert(args.input.endswith(".info.xml"))
+  elif args.input.endswith(".info.xml"):
     xml = open_xml(args.input)
     dim = xpath(xml, "//domain/@dimensions")
     matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
@@ -559,17 +575,22 @@ if args.input.startswith('[') or args.input.endswith(".info.xml"):
       assert(dim == '3')
       res = res.reshape(6,6)         # reshaping array
       input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
-
-  if args.tensor == 'mechTensor':  
+  else:
+    #data from matlab file
+    assert(args.input.endswith(".mat"))
+    dim_2D = '2D'
+    input = args.input
+    args.tensor = 'matlab'
+  if not args.tensor == 'matlab' and args.tensor == 'mechTensor':  
     tensor = to_mech_tensor(input)
     tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
     print("Voigt notation of input tensor:")
-  if args.tensor == 'piezoTensor':
+  if not args.tensor == 'matlab' and args.tensor == 'piezoTensor':
     tensor = to_piezo_tensor(input)
-  
-  dump_tensor(tensor)
+  if not args.tensor == 'matlab':
+    dump_tensor(tensor)
 
-  if len(tensor) == 3 or len(tensor) == 2:
+  if not args.tensor == 'matlab' and (len(tensor) == 3 or len(tensor) == 2):
     assert((len(tensor) == 3 and args.tensor == 'mechTensor') or (len(tensor) != 3 and args.tensor != 'mechTensor'))
     vec = None
     

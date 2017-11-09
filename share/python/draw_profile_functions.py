@@ -918,15 +918,6 @@ def generate_basecell(args,info):
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
     points, cells = mesh_boundary_circles(points, faces, bp_lists)
     
-    ### testing pymesh stuff
-#     mesh = pymesh.form_mesh(np.asarray(points),np.asarray(cells))
-#     mesh, info = pymesh.collapse_short_edges(mesh, rel_threshold=1e-2)
-    
-#     points = mesh.vertices
-#     cells = mesh.faces
-#   points = verts
-#   cells = faces
-    
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   

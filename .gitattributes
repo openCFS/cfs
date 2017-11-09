@@ -1216,6 +1216,7 @@ share/mkmesh/start.ans.in -text
 share/python/abaqus_reader.py -text
 share/python/adjustDesign.py -text
 share/python/analyze_opt.py -text
+share/python/analyze_springs.py -text
 share/python/angles-twoload.py -text
 share/python/base_structures_images.py -text
 share/python/basecell.py -text
@@ -1299,6 +1300,7 @@ share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/inv_tensor_3D_ortho_bc.xml -text
 share/python/material_catalogue/mat.xml -text
 share/python/material_catalogue/postprocess.py -text
+share/python/material_catalogue/postprocess_lufo.py -text
 share/python/material_catalogue/process_sparse.py -text
 share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
