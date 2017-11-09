@@ -12,7 +12,7 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
-import matviz_vtk  
+import matviz_vtk
 
 try:
   import meshpy.triangle as triangle
@@ -2518,7 +2518,7 @@ def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,
   nnx = nx + 1
   nny = ny + 1
   nnz = nz + 1
-
+  
   for k in range(nnz):
     for j in range(nny):
       for i in range(nnx):
