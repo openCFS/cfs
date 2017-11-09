@@ -227,11 +227,19 @@ def create_centered_bars(cells, points, coords, dim, angle=None, not_drawn = Non
   # @param center: center of current cell
   # @param dim: (length, width, height) of the current cell
   
+  # use normal list with tuples of coords/cell vertices as we cannot parallelize vtk objects
+  points_list = []
+  cells_list = []
+  
   #optional parameters: @param  not_drawn (faces which are not drawn)
   #                     @param angle list of angle_x, angle_y, angle_z or None
   for i in range(len(coords)):
-    create_centered_bar(cells, points, coords[i],dim, angle,not_drawn)
-
+    p, c = create_centered_bar(cells, points, coords[i],dim, angle,not_drawn)
+    points_list.extend(p)
+    cells_list.extend(c)
+    
+  return points_list, cells_list
+  
 def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None):
   # helper for create_cross and create_frame
   # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
@@ -245,11 +253,16 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
   #optional parameters: @param  not_drawn (faces which are not drawn)
   #                     @param angle list of angle_x, angle_y, angle_z or None
   
+  # use normal list with tuples of coords/cell vertices as we cannot parallelize vtk objects
+  points_list = []
+  cells_list = []
+  
   base = points.GetNumberOfPoints()
   # calculate corner points of quad and add them to global points list
   point_vec = create_point_vector_centered_bar(center, dim, angle)
   for i in range(len(point_vec)):
     points.InsertNextPoint(point_vec[i])  # 0 ... 7
+    points_list.append(point_vec[i])
   
   # Create a cell array to store the quad in
   # quads = vtk.vtkCellArray()
@@ -264,6 +277,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 2)
     quad.GetPointIds().SetId(3, base + 3)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 0,base + 1,base + 2,base + 3))
   
   if not_drawn is None or not_drawn[0] != 'right' or not_drawn[1] != 'right':
     # right face
@@ -273,6 +287,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 6)
     quad.GetPointIds().SetId(3, base + 2)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 1,base + 4,base + 6,base + 2))
   
   if not_drawn is None or not_drawn[0] != 'back' or not_drawn[1] != 'back':
     # back face
@@ -282,6 +297,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 7)
     quad.GetPointIds().SetId(3, base + 5)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 4,base + 6,base + 7,base + 5))
   
   if not_drawn is None or not_drawn[0] != 'top' or not_drawn[1] != 'top':
     # top face
@@ -291,6 +307,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 7)
     quad.GetPointIds().SetId(3, base + 3)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 2,base + 6,base + 7,base + 3))
   
   if not_drawn is None or not_drawn[0] != 'left' or not_drawn[1] != 'left':
     # left face
@@ -300,6 +317,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 7)
     quad.GetPointIds().SetId(3, base + 3)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 0,base + 5,base + 7,base + 3))
   
   if not_drawn is None or not_drawn[0] != 'bottom' or not_drawn[1] != 'bottom':
     # bottom face
@@ -309,7 +327,9 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     quad.GetPointIds().SetId(2, base + 4)
     quad.GetPointIds().SetId(3, base + 5)
     cells.InsertNextCell(quad)
+    cells_list.append((base + 0,base + 1,base + 4,base + 5))
 
+  return points_list, cells_list
 # # without rotation and shearing
 def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
 
@@ -1034,23 +1054,36 @@ def write_stl(polydata,save=None):
   
   print("saved polydata to file " + fName)  
 
-def fill_vtk_polydata(points,cells,center=None):
+def fill_vtk_polydata(points,cells):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
   
   for p in points:
     vtk_points.InsertNextPoint(p)
-    
-  for ce in cells:
-    add_triangle(points,ce[0],ce[1],ce[2],vtk_cells)
   
+  for ce in cells:
+    if len(ce) == 3: # triangle
+      add_triangle(ce[0],ce[1],ce[2],vtk_cells)
+    elif len(ce) == 4: # quad
+      add_triangle(ce[0],ce[1],ce[2],vtk_cells)
+      add_triangle(ce[2],ce[3],ce[0],vtk_cells)
+#       quad = vtk.vtkQuad()
+#       quad.GetPointIds().SetId(0, ce[0])
+#       quad.GetPointIds().SetId(1, ce[1])
+#       quad.GetPointIds().SetId(2, ce[2])
+#       quad.GetPointIds().SetId(3, ce[3])
+#       vtk_cells.InsertNextCell(quad)
+    else:
+      print("fill_vtk_polydata: Ohoh ERROR")
+      sys.exit()
+      
   polydata.SetPoints(vtk_points)
   polydata.SetPolys(vtk_cells)
   
   return polydata
 
-def add_triangle(points,id1,id2,id3,cells):
+def add_triangle(id1,id2,id3,cells):
   assert(id1 != id2 and id2 != id3)
     
   i1 = id1
@@ -1066,7 +1099,7 @@ def add_triangle(points,id1,id2,id3,cells):
 def vtk_polydata_to_numpy(polydata):
   from vtk.util.numpy_support import vtk_to_numpy
   # get point data
-  point_data = vtk_to_numpy(polydata.GetPoints().GetData())
+  points = vtk_to_numpy(polydata.GetPoints().GetData())
   
   polys = polydata.GetPolys()
   ne = polys.GetNumberOfCells()
@@ -1082,4 +1115,4 @@ def vtk_polydata_to_numpy(polydata):
     for j in range(ni):
       cells[i,j] = ids.GetId(j)
       
-  return point_data, cells      
+  return points, cells      
