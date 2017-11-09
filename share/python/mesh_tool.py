@@ -12,7 +12,7 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
-import matviz_vtk  
+import matviz_vtk
 
 try:
   import meshpy.triangle as triangle

@@ -5,31 +5,30 @@ import sympy.solvers
 from sympy import Symbol, symbols
 import sys
 import math
-try:
-  import vtk
-  from vtk.util.numpy_support import vtk_to_numpy
-  import matviz_vtk
-except:
-  print("WARNING: failed to load vtk!")
 
 import matplotlib
 #matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from scipy import interpolate, spatial
-from skimage import measure
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from itertools import  product
+from scipy import interpolate
 
-import matplotlib.tri as tri
 try:
   import meshpy.triangle as triangle
   from meshpy.tet import MeshInfo, build
 except:
   print("Failed to load meshpy - need it for tetrahedralized mesh")
-
-import basecell
-import pymesh
+  
+try:
+  from skimage import measure
+except:
+  print("Warning: Failed to load skimag - need it for Marching cubes.")
+  
+try:
+  import vtk
+  from vtk.util.numpy_support import vtk_to_numpy
+  import matviz_vtk
+except:
+  print("WARNING: failed to load vtk!")  
 
 res = 1
 res_surf_lines = 1
@@ -809,7 +808,7 @@ def get_surface_point_candidate(profile,alpha,x):
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
-# generates
+# returns points and cells describing basecell 
 def generate_basecell(args,info):
   global res, res_surf_lines, interpolation
   res = args.res
@@ -913,24 +912,7 @@ def generate_basecell(args,info):
     
     verts += (h/2.0,h/2.0,h/2.0)
     
-    # scale verts from [0,1-h] to [0,1] by factor 1/(1-h)
-#     fact = 1.0 / (1-h)
-#     for i in  range(len(verts)):
-#       verts[i] = verts[i] * np.asarray([fact,fact,fact])
-#     for i in  range(len(verts)):
-#       if np.isclose(verts[i][0],1-h/2.0,1e-6):
-#         verts[i][0] = 1.0
-#       elif np.isclose(verts[i][0],h/2.0,1e-6):
-#         verts[i][0] = 0.0  
-#       elif np.isclose(verts[i][1],1-h/2.0,1e-6):
-#         verts[i][1] = 1.0
-#       elif np.isclose(verts[i][1],h/2.0,1e-6):
-#         verts[i][1] = 0.0  
-#       elif np.isclose(verts[i][2],1-h/2.0,1e-6):  
-#         verts[i][2] = 1.0
-#       elif np.isclose(verts[i][2],h/2.0,1e-6):
-#         verts[i][2] = 0.0  
-        
+    # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
@@ -948,7 +930,7 @@ def generate_basecell(args,info):
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, points, cells, basecell.calc_volume(array)
+  return array, points, cells
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
