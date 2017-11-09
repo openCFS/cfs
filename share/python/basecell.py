@@ -16,72 +16,63 @@ import matviz_vtk
 import vtk
 import sys
 
-class Surface_Mesh():
-  def __init__(self,points,triangles):
-    self.points = np.asarray(points)
-    self.cells = triangles     
+# return list with length len(points)
+# for each point, this list gives the ids of its neighbors
+def getConnectivity(points,cells):
+  # for each point ( id = array index), store tuple with all neighboring id nodes
+  connectivity = [set() for index in range(len(points))]
+  for t in cells:
+    assert(t[0] < len(points))
+    assert(t[1] < len(points))
+    assert(t[2] < len(points))
+    connectivity[t[0]].add(t[1])
+    connectivity[t[0]].add(t[2])
     
-  def setConnectivity(self):
-    # for each point ( id = array index), store tuple with all neighboring id nodes
-    self.connectivity = [set() for index in range(len(self.points))]
-    for t in self.cells:
-      assert(t[0] < len(self.points))
-      assert(t[1] < len(self.points))
-      assert(t[2] < len(self.points))
-      self.connectivity[t[0]].add(t[1])
-      self.connectivity[t[0]].add(t[2])
-      
-      self.connectivity[t[1]].add(t[0])
-      self.connectivity[t[1]].add(t[2])
-      
-      self.connectivity[t[2]].add(t[0])
-      self.connectivity[t[2]].add(t[1])
-      
-#     print("point 0  with coords ", self.points[0]," has neighbors ",self.connectivity[0])  
-#     
-#     sys.exit()   
-  def smooth(self,niter):
-    self.setConnectivity()
-    lamb = 0.6
-    for i in range(niter):
-      self.laplacian_smoothing(lamb)   
-      self.laplacian_smoothing(-lamb-0.03)
-      
-    print("Taubin smoothing with ", niter, " iterations")  
+    connectivity[t[1]].add(t[0])
+    connectivity[t[1]].add(t[2])
+    
+    connectivity[t[2]].add(t[0])
+    connectivity[t[2]].add(t[1])
   
-  # laplacian smoothing: p_i = p_i + \lambda * L(p_i)
-  # using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
-  def laplacian_smoothing(self,lamb):
-    new_points = [None] * len(self.points) 
-    for i,p in enumerate(self.points):
-      # calculate gradient   
-      if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
-        new_points[i] = p
-      else:
-        # calculate L(p_i)
-        # w_ij*p_j + w_ik*p_k
-        num = np.asarray([0,0,0])
-        denom = 0
-        L = 0
-        # nid is id of a neighbor node
-        neighborhood = self.connectivity[i] 
-        for nid in neighborhood:
-          # n are coords of neighbor with id nid
-          n = self.points[nid]
-          # distance between neighbor and this node
-          w = 1.0 / np.linalg.norm(len(neighborhood))
-          L = L + w * (n-p)
-          #w = numpy.linalg.norm(n - p)
-          #num = num + w * n
-          #denom  = denom + w
-            
-        
-        #L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i
-#         assert(not np.isclose(denom,0,1e-6))
-#         L = num / denom - p   
-        new_points[i] = p + lamb * L   
+  return connectivity
+
+def taubin_smoothing(points,connectivity,niter):
+  assert(niter > 0)
+  # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
+  lamb = 0.6
+  new_points = points
+  for i in range(niter):
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.03)
     
-    self.points = new_points
+  print("Taubin smoothing with ", niter, " iterations")
+    
+  return new_points
+
+# laplacian smoothing: p_i = p_i + \lambda * L(p_i)
+# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
+def laplacian_smoothing(points,connectivity,lamb):
+  new_points = [None] * len(points) 
+  for i,p in enumerate(points):
+    # calculate gradient   
+    if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
+      new_points[i] = p
+    else:
+      # calculate L(p_i)
+      # w_ij*p_j + w_ik*p_k
+      num = np.asarray([0,0,0])
+      denom = 0
+      L = 0
+      # nid is id of a neighbor node
+      neighborhood = connectivity[i] 
+      for nid in neighborhood:
+        # n are coords of neighbor with id nid
+        n = points[nid]
+        # distance between neighbor and this node
+        w = 1.0 / np.linalg.norm(len(neighborhood))
+        L = L + w * (n-p)
+      new_points[i] = p + lamb * L   
+  
+  return new_points  
 
 def calc_volume(array,infoXml=None):
   res, res, res = array.shape
@@ -298,13 +289,16 @@ if __name__ == "__main__":
   
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
-  array, points, cells, volume = draw_profile_functions.generate_basecell(args,infoXml)
+  array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
+  volume = calc_volume(array, infoXml)
   
   if args.target.startswith("surface"):
-    smesh = Surface_Mesh(points, cells)
-    smesh.smooth(args.smooth_iter)
-    points = smesh.points
-    cells = smesh.cells
+    connectivity = getConnectivity(points,cells)
+    points = taubin_smoothing(points,connectivity,args.smooth_iter)
+#     smesh = Surface_Mesh(points, cells)
+#     smesh.smooth(args.smooth_iter)
+#     points = smesh.points
+#     cells = smesh.cells
   
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
@@ -402,7 +396,7 @@ class Basecell():
   def __init__(self,data):
     assert(type(data) is Basecell_Data)
     self.data = data
-    self.points, self.cells, self.volume = draw_profile_functions.generate_basecell(data,None,None)
+    _, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
     
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)

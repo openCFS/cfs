@@ -4,21 +4,19 @@ import basecell
 import draw_profile_functions
 import numpy as np
 import matviz_vtk
-import pymp
 import vtk
 import math
 import sys
 
 try:
   import meshpy.triangle as triangle
-#   import meshpy.tet as tet
 except:
-  print("Failed to load meshpy - need it for tetrahedralizing basecell mesh")
+  print("Warning: Failed to load meshpy - need it for basecell surface mesh")
 
 try:
   from mpi4py import MPI
 except:
-  print("WARNING: Could not load mpi4py!")
+  print("Warning: Could not load mpi4py!")
   
 def create_3d_interpretation_ortho_new(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
