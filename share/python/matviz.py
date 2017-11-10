@@ -397,8 +397,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         print("Input data is read as " + args.notation)
       if h5_read:
         tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
-      else:
-        print(tensor)
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot != None:
@@ -416,8 +414,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   # not from file and not 2D -> this is the single tensor with optional planes 
   else:
     angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
-  
-    print("largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data)))
+    angle_max = angle[numpy.argmax(numpy.abs(data))]
+    angle_min = angle[numpy.argmin(numpy.abs(data))]
+
+    print(" largest stiffness: {:>13.6e}".format(numpy.max(data)) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest stiffness: {:>13.6e}".format(numpy.min(data)) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
