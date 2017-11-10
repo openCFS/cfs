@@ -6,33 +6,35 @@ import sympy.solvers
 from sympy import Symbol, symbols
 import sys
 import math
-
-import matplotlib
-#matplotlib.use('tkagg')
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy import interpolate
-
-try:
-  import meshpy.triangle as triangle
-  from meshpy.tet import MeshInfo, build
-except:
-  print("Failed to load meshpy - need it for tetrahedralized mesh")
-  
-try:
-  from skimage import measure
-except:
-  print("Warning: Failed to load skimag - need it for Marching cubes.")
-  
 try:
   import vtk
   from vtk.util.numpy_support import vtk_to_numpy
   import matviz_vtk
 except:
-  print("WARNING: failed to load vtk!")  
+  print("WARNING: failed to load vtk!")
+
+import matplotlib
+#matplotlib.use('tkagg')
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import interpolate, spatial
+from skimage import measure
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from itertools import  product
+
+import matplotlib.tri as tri
+try:
+  import meshpy.triangle as triangle
+  from meshpy.tet import MeshInfo, build
+except:
+  print("Failed to load meshpy - need it for tetrahedralized mesh")
+
+import basecell
 
 res = 1
 res_surf_lines = 1
+# file object to log activities while fixing surface gaps
+logger = None
 # file object for info xml
 infoXml = None
 interpolation = None
@@ -158,6 +160,13 @@ def dirToString(dir):
     res = 'z'
    
   return res
+
+# checks if logging should be used and adds a line break
+def log(text,linebreak=True):
+  if logger:
+    lb = "\n" if linebreak else ""
+    logger.write(text + lb)
+    logger.flush()
 
 # returns the two directions of the plane whose normal shows in profile direction
 # e.g. we have x profile, then we live in the z-y plane -> return 2,1
@@ -321,7 +330,7 @@ class PrincipleSpline():
   # wrapper function
   # @param x: can be one argument value or list or aguments
   def eval(self,x):
-    if isinstance(x, (np.float32,np.float64,float,int)):
+    if isinstance(x, (float,int)):
       ret = self.eval_elem(x)
       return ret
     
@@ -809,17 +818,19 @@ def get_surface_point_candidate(profile,alpha,x):
 def calc_distance(p1,p2):
   return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
 
-# returns points and cells describing basecell 
-def generate_basecell(args,info):
-  global res, res_surf_lines, interpolation
+# generates
+def generate_basecell(args,info,log,offset=0):
+  global res, res_surf_lines, interpolation, logger
   res = args.res
   res_surf_lines = args.res_surf_lines
   interpolation = args.interpolation
   
+  logger = log
   global infoXml
   infoXml = info
   
   array = np.ones((res,res,res)) * (-1)
+  overlap = np.zeros(array.shape[0:3],dtype=object)
   
   profiles = create_profiles(args,infoXml)
   
@@ -839,8 +850,6 @@ def generate_basecell(args,info):
   
   id = 0 # assign an id to each surface point
   
-  points = None
-  cells = None
   for i in range(0,3):
     if profiles[i] == None:
       continue
@@ -865,15 +874,13 @@ def generate_basecell(args,info):
       
       plt.show()
       
-    if args.target == "volume_mesh" or args.target == "surface_mesh":
+    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "contour":
       global symmetric
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
-      write_profile_to_array(array, profiles[i])
-    
-    if args.target == "volume_mesh":
-      points, cells = voxels_to_points_and_cells(array)
+      # overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0
+      write_profile_to_array(array, profiles[i], overlap)
       
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
@@ -888,7 +895,7 @@ def generate_basecell(args,info):
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
 
-  if args.target == "surface_mesh":
+  if args.target == "surface_mesh" or args.target == "contour":
     ############################ new surface mesh approach ####################
     # binary helper array
     helper = np.zeros(array.shape[0:3],dtype=int)
@@ -903,26 +910,62 @@ def generate_basecell(args,info):
             helper[i,j,k] = 1
     
     # Use marching cubes to obtain the surface mesh of voxelized structure
-    # marching_cubes expect float values (not double)
-    h = np.float32(1.0/args.res)
-    # coords of vertices lie in [0,1-h]
-    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h),allow_degenerate=False)
+    h = 1.0/args.res
+    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h),allow_degenerate=True)
     
-    # marching_cubes returns float values
-    verts = np.asarray(verts)
+    verts = verts.astype(np.float64)
+
+    for v in verts:
+      v += (h/2.0,h/2.0,h/2.0)
+      
+    assert(overlap is not None)
+    new_surf_points = None
+    if args.target == "contour": 
+      new_surf_points = verts
+    else: 
+      # use info on connectivity in voxjel array and Profiles to move 
+      # surface points to correct position  
+      new_surf_points = adjust_surface_points(profiles,verts,normals,array,overlap)
     
-    verts += (h/2.0,h/2.0,h/2.0)
+    # move points of boundary circle such that basecell goes from [0,1]^3
+    new_surf_points = move_boundary_points(new_surf_points)  
     
-    # moves structure to [0,1]^3
-    # extract points on the boundary circles
-    # each entry contains a list representing one boundary face of the base cell
-    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
-    points, cells = mesh_boundary_circles(points, faces, bp_lists)
+    assert(new_surf_points is not None)
+    
+    vtk_points = vtk.vtkPoints()
+    cells = vtk.vtkCellArray()
+    polydata = vtk.vtkPolyData()
+    
+    if args.tets:
+      mesh_boundary_circles(new_surf_points,vtk_points,cells)
+    else:
+      for p in new_surf_points:
+        vtk_points.InsertNextPoint(p)
+    
+    # adding triangles connectivity from Marching Cube
+    for f in faces:
+      matviz_vtk.add_triangle(new_surf_points,f[0], f[1], f[2], cells)
+      
+    polydata.SetPoints(vtk_points)
+    polydata.SetPolys(cells)
+    
+    normals = vtk.vtkPolyDataNormals()
+    normals.SetInputData(polydata)
+    normals.SetConsistency(1)
+    normals.SetAutoOrientNormals(1)
+    normals.Update()
+        
+    if args.save:
+      stlName = args.save if args.save.endswith(".stl") else args.save + ".stl"
+      matviz_vtk.write_stl(normals.GetOutput(),stlName)
+    
+    if args.save_vtp:
+      matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, points, cells
+  return array, new_surf_points, faces, basecell.calc_volume(array)
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
@@ -1035,7 +1078,8 @@ def calc_radius(profile,x,rad):
 # and mirror the rest
 # @param array: stores voxelized info on profile
 # @param profile: profile of interest
-def write_profile_to_array(array,profile):
+# @param overlap: same size as array; elem has tuple with directions of profiles that overlap, else 0 
+def write_profile_to_array(array,profile,overlap):
   res = array.shape[0]
   
   bound = res if not symmetric else int(res/2)
@@ -1061,8 +1105,22 @@ def write_profile_to_array(array,profile):
         # thus, check also if the projection of the voxel center  lies 
         # within the voxel bounds --> better: check for many point samples
         # inside the voxel, but this is too costly
+        center = np.zeros(3)
+        center[major] = x
+        center[minor_1] = y
+        center[minor_2] = z
+        
 #         projection = calc_projection(profile, center)
+#         if point_inside_voxel(center, projection) or (valx-r <= 1e-6):
         if (valx-r <= 1e-6):
+          # detected overlap of profiles
+          if overlap[idx[major],idx[minor_1],idx[minor_2]] == 0:
+            point = radius_to_3d_coords(profile,x,phi)
+            overlap[idx[major],idx[minor_1],idx[minor_2]] = (point,) # set tuple if this is the first overlap
+          else:
+            point = radius_to_3d_coords(profile,x,phi)
+            overlap[idx[major],idx[minor_1],idx[minor_2]] += (point,) # add element to tuple
+
           array[idx[major],idx[minor_1],idx[minor_2]] = major
             
   if symmetric:
@@ -1075,6 +1133,8 @@ def write_profile_to_array(array,profile):
     array[bound:res,bound:res,0:bound] = array[0:bound,0:bound,0:bound][::-1,::-1,:]
     array[bound:res,bound:res,bound:res] = array[0:bound,0:bound,0:bound][::-1,::-1,::-1] 
   
+  return overlap
+
 # helper function for calc_radius_for_quadrant
 # return linear interpolation between principal spline and bisec
 # @param funcs: array with 3 entries: spline1, bisec, spline2
@@ -1089,6 +1149,9 @@ def calc_radius_linear_symm(funcs,phi,x,rad):
   else : # rad <= np.pi/2.0
     alpha = (rad-phi) / (np.pi/2.0-phi)  # scale section between 0 and 1
     return  (1-alpha) * funcs[1].eval(x) + alpha * funcs[2].eval(x)
+
+def close(x,ref,eps=1e-6):
+  return abs(x-ref) < eps
 
 # helper function for calc_radius_for_quadrant
 # return heaviside interpolation between principal spline and bisec
@@ -1114,26 +1177,26 @@ def get_splines_and_bisec(splines,bisecs,rad):
     s1_idx = 0
     s2_idx = 1
     offset = 0
-    assert(np.isclose(splines[s1_idx].angle,0,1e-6))
-    assert(np.isclose(splines[s2_idx].angle,np.pi/2.0,1e-6))
+    assert(close(splines[s1_idx].angle,0,1e-6))
+    assert(close(splines[s2_idx].angle,np.pi/2.0,1e-6))
   elif rad <= np.pi: # between 90 and 180 degree
     s1_idx = 1
     s2_idx = 2
     offset = np.pi/2.0
-    assert(np.isclose(splines[s1_idx].angle,np.pi/2.0,1e-6))
-    assert(np.isclose(splines[s2_idx].angle,np.pi,1e-6))
+    assert(close(splines[s1_idx].angle,np.pi/2.0,1e-6))
+    assert(close(splines[s2_idx].angle,np.pi,1e-6))
   elif rad <= 1.5*np.pi: # between 180 and 270 degree
     s1_idx = 2
     s2_idx = 3
     offset = np.pi
-    assert(np.isclose(splines[s1_idx].angle,np.pi,1e-6))
-    assert(np.isclose(splines[s2_idx].angle,1.5*np.pi,1e-6))
+    assert(close(splines[s1_idx].angle,np.pi,1e-6))
+    assert(close(splines[s2_idx].angle,1.5*np.pi,1e-6))
   else: # between 270 and 360 degree
     s1_idx = 3
     s2_idx = 0
     offset = 1.5*np.pi
-    assert(np.isclose(splines[s1_idx].angle,1.5*np.pi,1e-6))
-    assert(np.isclose(splines[s2_idx].angle,0,1e-6))
+    assert(close(splines[s1_idx].angle,1.5*np.pi,1e-6))
+    assert(close(splines[s2_idx].angle,0,1e-6))
     
   assert(s1_idx >= 0 and s1_idx < 4)
   assert(s2_idx >= 0 and s2_idx < 4)
@@ -1248,74 +1311,114 @@ def weighted_by_angle(angle,interpolation,y1,z1,beta=None):
   assert(w >= 0 and w <= 1)  
   return w*y1+(1-w)*z1
 
-
-# adjust all points on boundary circles by using information from radius
-# extract these adjusted points into 6 lists (xleft,xright,yleft,yright,zleft,zright)
-# -> need this for meshing the circles
-def adjust_and_extract_boundary_points(profiles,points):
-  xmin = min(points, key=lambda t: t[0])[0]
-  xmax = max(points, key=lambda t: t[0])[0]
-  ymin = min(points, key=lambda t: t[1])[1]
-  ymax = max(points, key=lambda t: t[1])[1]
-  zmin = min(points, key=lambda t: t[2])[2]
-  zmax = max(points, key=lambda t: t[2])[2]
+# use info on connectivity in voxel array and Profiles to move 
+# surface points to correct position
+# @param verts: list of vertices from scikit's Marching cube algorithm
+# @param voxels: array with info which voxel was created by which profile
+# @param overlap: same dimensions as array; stores info whether a voxel
+#        contains overlap of profiles
+def adjust_surface_points(profiles,verts,normals,voxels,overlap):
+  xmin = min(verts, key=lambda t: t[0])[0]
+  xmax = max(verts, key=lambda t: t[0])[0]
+  ymin = min(verts, key=lambda t: t[1])[1]
+  ymax = max(verts, key=lambda t: t[1])[1]
+  zmin = min(verts, key=lambda t: t[2])[2]
+  zmax = max(verts, key=lambda t: t[2])[2]
   
-#   assert(np.isclose(xmin,0.0,1e-6))
-#   assert(np.isclose(ymin,0.0,1e-6))
-#   assert(np.isclose(zmin,0.0,1e-6))
-#   assert(np.isclose(xmax,1.0,1e-6))
-#   assert(np.isclose(ymax,1.0,1e-6))
-#   assert(np.isclose(zmax,1.0,1e-6))
+  h = 1.0/res
   
-  lists = [[] for i in range(6)]
-  major_dir = -1
-  for id in range(len(points)):
-    p = points[id]
-    # x
-    if np.isclose(p[0],xmin,1e-6):
-      # move x to 0
-      points[id][0] = 0
-      lists[0].append((points[id],id))
-      major_dir = 0
-    elif np.isclose(p[0],xmax,1e-6):
-      # move x to 1
-      points[id][0] = 1.0
-      lists[1].append((points[id],id))
-      major_dir = 0
-    # y
-    elif np.isclose(p[1],ymin,1e-6):
-      # move y to 0
-      points[id][1] = 0
-      lists[2].append((points[id],id))
-      major_dir = 1
-    elif np.isclose(p[1],ymax,1e-6):
-      # move y to 1
-      points[id][1] = 1.0
-      lists[3].append((points[id],id))
-      major_dir = 1  
-    # z
-    elif np.isclose(p[2],zmin,1e-6):
-      # move z to 0
-      points[id][2] = 0
-      lists[4].append((points[id],id))
-      major_dir = 2
-    elif np.isclose(p[2],zmax,1e-6):
-      # move z to 1
-      points[id][2] = 1.0
-      lists[5].append((points[id],id))
-      major_dir = 2
-    else:
-      continue
-    
-    assert(major_dir > -1 and major_dir < 3)
-    minor1, minor2 = give_normal_plane_axes(major_dir)
-    phi = angle_to_center((p[minor1],p[minor2]))
-    points[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
-  
-  for l in lists:
-    assert(len(l) > 0)
+  new_verts = []
+  for count,v in enumerate(verts):
+    # for corner voxels, v may lie on interface between two (surface and invalid) voxels
+    # thus, consider both voxels and check which one to go for
+    for f,g,h in product([1e-6,-1e-6],[1e-6,-1e-6],[1e-6,-1e-6]):
+      i_cand = cartesian_to_grid_coords(v[0], res, f)
+      j_cand = cartesian_to_grid_coords(v[1], res, g)
+      k_cand = cartesian_to_grid_coords(v[2], res, h)
       
-  return points, lists
+      if voxels[i_cand,j_cand,k_cand] > -1:
+        i = i_cand
+        j = j_cand
+        k = k_cand
+        break
+       
+    assert(voxels[i,j,k] > -1)
+      
+    point = v
+    
+    overlaps = overlap[i,j,k]
+    points = []
+    for o in overlaps: 
+      points.append(o)
+    
+    b = give_average_point(points)
+    point = v + 0.4 * (b-v)   
+      
+    assert(point is not None) 
+    
+    # move point on the boundaries of x/y/z axis to match [0,1]
+    # as we're shifted by h/2.0
+    if close(point[0], xmin, 1e-6):
+      point[0] = 0.0
+    if close(point[0], xmax, 1e-6):
+      point[0] = 1.0
+    if close(point[1], ymin, 1e-6):
+      point[1] = 0.0
+    if close(point[1], ymax, 1e-6):
+      point[1] = 1.0
+    if close(point[2], zmin, 1e-6):
+      point[2] = 0.0
+    if close(point[2], zmax, 1e-6):
+      point[2] = 1.0    
+         
+    new_verts.append(point)
+  
+  return new_verts       
+
+def give_average_point(points):
+  assert(len(points) > 0)
+  new = np.zeros(3)
+  for p in points:
+    new += p
+    
+  return new / len(points)
+
+# calculates distance of a point from a plane defined by normal vector and 1 point in plane
+# normal: n = (a,b,c)
+# base: x=(x0,y0,z0)
+# plane equation: a*x + b*y + c*z + d = 0
+# with d = -a*x0 - b*y0 - c*z0
+# distance from point p = (px,py,pz) to plane: D = 1/sqrt(a**2+b**2+c**2) * (dot(n,p)+d)
+def calc_distance_plane_point(base,normal,point):
+  a = normal[0]
+  b = normal[1]
+  c = normal[2]
+  
+  d = -a*base[0] - b*base[1] - c*base[2]
+  
+  return 1.0/np.sqrt(a**2+b**2+c**2) * (np.dot(normal,point)+d)
+
+def extract_boundary_points(points,vtk_points):
+  lists = [[] for i in range(6)]
+  for p in points:
+    id = vtk_points.InsertNextPoint(p)
+    # x
+    if close(p[0],0,1e-6):
+      lists[0].append((p,id))
+    if close(p[0],1,1e-6):
+      lists[1].append((p,id))
+    # y
+    if close(p[1],0,1e-6):
+      lists[2].append((p,id))
+    if close(p[1],1,1e-6):
+      lists[3].append((p,id))  
+    # z
+    if close(p[2],0,1e-6):
+      lists[4].append((p,id))
+    if close(p[2],1,1e-6):
+      lists[5].append((p,id))
+      
+  return lists
  
 def round_trip_connect(start, end):
   result = []
@@ -1335,27 +1438,28 @@ def extract_plane_coordinates(list,dir):
     
   return new
 
-def mesh_boundary_circles(points,cells,bp_lists):
-  assert(len(bp_lists) == 6)
+def mesh_boundary_circles(surf_points,vtk_points,cells):
+  # extract points on the boundary circles
+  # each entry contains a list representing one boundary face of the base cell
+  lists = extract_boundary_points(surf_points,vtk_points)
+  assert(len(lists) == 6)
    
   lists_2d = []
-  points = list(points)
-  cells = list(cells)
+  surf_points = list(surf_points)
    
   count = 0
   for dir in (0,1,2):
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
+    lists_2d.append(extract_plane_coordinates(lists[count], dir))
     count += 1
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
+    lists_2d.append(extract_plane_coordinates(lists[count], dir))
     count += 1
-  
-  for count,l in enumerate(lists_2d):
+     
+  for count,l in enumerate(lists_2d):  
     # component 0 and 1 store plane coordinates
     # component 2 store vtk point id
-    assert(len(l) > 0)
     l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
     info = triangle.MeshInfo()
-    test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in l]
+    test = [ [elem[0],elem[1]] for elem in l]
     info.set_points(test)
     info.set_facets(round_trip_connect(0,len(l)-1))
     mesh = triangle.build(info,generate_faces=True) 
@@ -1375,13 +1479,13 @@ def mesh_boundary_circles(points,cells,bp_lists):
       major_dir = 2
     
     new_points = []  
-    next_id = len(points)
     minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
     # up to len(l), l and mesh_points have the same ordering of points
-    # map from local mesh_points point ids to global ones
+    # map from local mesh_points point ids to global ones from points in vtk_points
     lookup = np.ones(len(mesh_points),dtype=int) * (-1)
     for i in range(0,len(l)):
       lookup[i] = l[i][2]
+      new_points.append(surf_points[l[i][2]])
     for i in range (len(l),len(mesh_points)):
       point = np.zeros(3)
       if count%2 == 0: # left side of profile
@@ -1390,18 +1494,63 @@ def mesh_boundary_circles(points,cells,bp_lists):
         point[major_dir] = 1.0
            
       point[minor_dir_2] = mesh_points[i][0]
-      point[minor_dir_1] = mesh_points[i][1]
-      # id of new point  
-      lookup[i] = next_id
-      next_id += 1
+      point[minor_dir_1] = mesh_points[i][1] 
+      lookup[i] = vtk_points.InsertNextPoint(point)
       new_points.append(point)
+      surf_points.append(point)
     
-    points += new_points
     # use lookup table to set new triangles from meshed boundary circle
     for tri in mesh_tris:
-      cells.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
+      matviz_vtk.add_triangle(surf_points,lookup[tri[0]], lookup[tri[1]], lookup[tri[2]], cells)
+# for a given profile and point p, check if p lies inside (not on surface of) profile
+def point_inside_profile(p,profile):
+  assert(p[0] >= 0.0 and p[0] <= 1.0)
+  assert(p[1] >= 0.0 and p[1] <= 1.0)
+  assert(p[2] >= 0.0 and p[2] <= 1.0)
   
-  return points, cells    
+#   print("\np:",p)
+  
+  # depending on direction, estimate plane in which we perform check
+  major = profile.direction
+  minor_1, minor_2 = give_normal_plane_axes(major)
+  phi = angle_to_center((p[minor_1],p[minor_2]))
+  assert(phi >= 0 and phi <= 2*np.pi)
+  r = calc_radius(profile, p[major], phi)
+  val = cartesian_to_polar(p[minor_1], p[minor_2], (0.5,0.5))
+#   print("radii:",r,val)
+  assert(val**2 <= 0.5+1e-6)
+  if (val - r < 1e-6):
+#      print("point ",p, " inside ",major)
+    return True
+  
+  return False
+
+# move points of boundary circle such that structure goes from [0,1]^3
+def move_boundary_points(verts):
+  xmin = min(verts, key=lambda t: t[0])[0]
+  xmax = max(verts, key=lambda t: t[0])[0]
+  ymin = min(verts, key=lambda t: t[1])[1]
+  ymax = max(verts, key=lambda t: t[1])[1]
+  zmin = min(verts, key=lambda t: t[2])[2]
+  zmax = max(verts, key=lambda t: t[2])[2]
+  
+  for v in verts:
+    # move point on the boundaries of x/y/z axis to match [0,1]
+    # as we're shifted by h/2.0
+    if close(v[0], xmin, 1e-6):
+      v[0] = 0.0
+    if close(v[0], xmax, 1e-6):
+      v[0] = 1.0
+    if close(v[1], ymin, 1e-6):
+      v[1] = 0.0
+    if close(v[1], ymax, 1e-6):
+      v[1] = 1.0
+    if close(v[2], zmin, 1e-6):
+      v[2] = 0.0
+    if close(v[2], zmax, 1e-6):
+      v[2] = 1.0
+      
+  return verts
 
 # @returns 3d cartesian coordinates
 # @param profile of interest
@@ -1418,31 +1567,31 @@ def radius_to_3d_coords(profile,x,phi):
  
   return point
 
-def voxels_to_points_and_cells(array):
-  res, res, res = array.shape
+# returns orthorgonal projection of given point p onto given profile
+def calc_projection(profile,p):
+  # get directional info for mapping from 3d to polar coords and vice versa
+  major = profile.direction
+  assert(major == 0 or major == 1 or major == 2)
+  minor_1, minor_2 = give_normal_plane_axes(major)
+  # calculate angle
+  phi = angle_to_center((p[minor_1],p[minor_2]))
   
-  h = 1.0 / res
-  
-  centers = []
-  
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        x = i * h + h/2.0
-        y = j * h + h/2.0 
-        z = k * h + h/2.0
-        
-        if array[i,j,k] >= 0:
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              centers.append([x,y,z])
-          else:
-            centers.append([x,y,z]) 
-  
-  # dummy objects, create_centered_bars needs them
-  vtk_points = vtk.vtkPoints()
-  vtk_cells = vtk.vtkCellArray()
-  # simple python lists
-  points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
-  
-  return points, cells
+  return radius_to_3d_coords(profile, p[major], phi)
+
+# check if given point p lies in voxel with barycenter center
+def point_inside_voxel(center,p):
+  # find eight vertices of voxel using info on barycenter
+  # coordinate system is defined as in Paraview, see mesh_tool create_3d_mesh() for sketch
+  step = 1/res/2 # half of cubes side length
+  x_min = center[0]-step
+  x_max = center[0]+step
+  y_min = center[1]-step
+  y_max = center[1]+step
+  z_min = center[2]-step
+  z_max = center[2]+step
+  eps = 1e-6
+ 
+  if p[0] >= x_min-eps and p[0] <= x_max+eps and p[1] >= y_min-eps and p[1] <= y_max+eps and p[2] >= z_min-eps and p[2] <= z_max+eps:
+    return True
+  else:
+    return False
