@@ -6,6 +6,7 @@
 #include <intrin.h>
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
+#include <dirent.h>
 
 #include "PDE/SinglePDE.hh"
 
@@ -52,6 +53,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
+#include <cstdio>
 
 //feSpaces
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
@@ -84,6 +86,12 @@ using std::string;
 #include "MagEdgePDE.hh"
 #include "MagneticPDE.hh"
 
+#include <stdio.h>
+#include <iostream>
+#include <sstream>
+#include <stdlib.h>
+#include <cstdio>
+#include <sys/types.h>
 
 namespace CoupledField {
 
@@ -1423,23 +1431,24 @@ namespace CoupledField {
       
     }
   }
-  
-  
+
+
+
   void SinglePDE::ReadSensorArrayResults() {
     // check, if calculation of field variables is requested at all
-
+	//GetSolveStep()->GetNumTimeSteps();
     ParamNodeList sensorNodes;
     sensorNodes = myParam_->Get("storeResults")->GetList("sensorArray");
     std::string solTypeString;
     static std::map< SolutionType, bool> warningPrinted;
-
     sensors_.Resize(sensorNodes.GetSize());
     // loop over all parts
+    string filepath = "";
     for( UInt iPart = 0; iPart <sensorNodes.GetSize(); ++iPart ) {
       PtrParamNode  actNode = sensorNodes[iPart];
-      
       FieldAtPoints & actField = sensors_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
+      filepath = actField.fileName;
       actField.csv = actNode->Get("csv")->As<bool>();
       std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
       actField.coordSys = domain_->GetCoordSystem(coordSysId);
@@ -1673,6 +1682,89 @@ namespace CoupledField {
         WARN( sstr.str() );
       }
     } // loop over <field> entries
+
+    /*Check the directory for the files where they are getting stored
+     *Check the write protection of the existing files in the folder*/
+    string s2 = "/";
+    int b = filepath.length();
+    int a = filepath.find_last_of(s2);
+    if (a < 0){
+    	//Files are getting stored in the current directory
+        DIR *dirHandle;
+        struct dirent *dirEntry;
+        dirHandle = opendir(".");
+    	if ( dirHandle != NULL ){
+    	    //Files are getting stored in the directory
+    		std::string u = "";
+    		const char *Filepath = filepath.c_str();
+    	    while (0 != (dirEntry = readdir(dirHandle))){
+    	    	u = dirEntry->d_name;
+    	        if (u.find(Filepath)!= std::string::npos){
+    	        	std::ofstream myfile(u);
+    	            if (myfile.is_open()){
+    	            	// File doesn't have a write protection
+    	            	myfile << "Check write protection";
+    	            	myfile.close();
+    	            }
+    	            else{
+    	            	// File has a write protection
+    	            	WARN("File '" << u << "' has a write protection!");
+    	            }
+    	        }
+    	    }
+    	    closedir( dirHandle );
+    	}
+    }
+    else {
+    	//Files are getting stored in a subdirectory
+        int j = 0;
+        do{
+      	j++;
+      	b--;
+        }while (b != a);
+        std::string a1 = filepath.substr(0, filepath.length()-j);
+        const char *cstr = a1.c_str();
+        DIR* dir = opendir(cstr);
+        if (dir){
+        	// Directory exists
+        	std::string pfad1;
+        	pfad1 = filepath;
+        	std::string pfad2;
+        	pfad2 = "-";
+        	DIR *dir1;
+        	struct dirent *ent;
+        	int numsteps = 0;
+        	if ((dir1 = opendir(cstr)) != NULL){
+        		while ((ent = readdir (dir1)) != NULL){
+        			numsteps++;
+        		}
+        		closedir (dir1);
+        	}
+        	numsteps = numsteps - 2;
+        	int j = 1;
+        	while (j <= numsteps){
+        		std::stringstream sout;
+        		sout << pfad1 << pfad2 << j;
+        		std::string newString = sout.str();
+        		std::ofstream myfile(sout.str());
+        		if (myfile.is_open()){
+        			// File doesn't have a write protection
+        			myfile << "Check write protection";
+        			myfile.close();
+        		}
+        		else{
+        			// File has a write protection
+        			WARN("File '" << newString << "' has a write protection!");
+        		}
+        		j++;
+        	}
+        	closedir(dir);
+        }
+        else if (ENOENT == errno){
+        	// Directory does not exist
+        	WARN("Folder '" << a1 << "' doesn't exist!");
+        }
+    }
   }
 
 
