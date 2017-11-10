@@ -12,7 +12,7 @@ def load_matrix_from_file(f):
   f is a file object or a file path.
   """
 
-  if type(f) == types.StringType:
+  if type(f) == bytes:
     fo = open(f, 'r')
     matrix = load_matrix_from_file(fo)
     fo.close()
@@ -48,7 +48,7 @@ mesh = Mesh()
 
 args = parser.parse_args()
 if not os.path.exists(args.input):
-  print 'input file not found: ' + args.input
+  print('input file not found: ' + args.input)
   sys.exit() 
 # do it to generate statistical output of what would happen
 if args.multi_d == 3:
@@ -70,9 +70,9 @@ elif '.h5' in args.input:
 else:
   # read the png into a list
   img = Image.open(args.input).transpose(Image.FLIP_TOP_BOTTOM)
-  print "original image mode: " + img.mode
+  print("original image mode: " + img.mode)
   if img.mode == 'I':
-    print "Warning: mode is stupid, may give unusable results!"
+    print("Warning: mode is stupid, may give unusable results!")
   if not args.colorregion:
     img = img.convert("L")
   else:
@@ -95,15 +95,15 @@ if not '.h5' in args.input and not args.noshow:
   
 if args.densemesh:
   write_gid_mesh(mesh, args.densemesh)  
-  print "save dense mesh: " + args.densemesh
+  print("save dense mesh: " + args.densemesh)
 
 if args.sparsemesh:
   sparse = convert_to_sparse_mesh(mesh)
-  print "save sparse mesh: " + args.sparsemesh
+  print("save sparse mesh: " + args.sparsemesh)
   write_gid_mesh(sparse, args.sparsemesh)
   mesh = sparse
 
-if args.density <> None:
+if args.density != None:
   assert(mesh.nx * mesh.ny == len(mesh.elements))
   assert(args.multi_d == 1) # implement!
   data = numpy.zeros((mesh.ny, mesh.nx))
@@ -112,11 +112,11 @@ if args.density <> None:
     for y in range(mesh.ny):
       # the image was transposed    
       data[y,x] = mesh.elements[x * mesh.ny + y].density
-  print "save demse density file '" + args.density + "'"  
+  print("save demse density file '" + args.density + "'")  
   write_density_file(args.density, data)
    
 
-if args.sparsedensity <> None:
+if args.sparsedensity != None:
   if args.multi_d == 1:
     densities = []
     enr = []

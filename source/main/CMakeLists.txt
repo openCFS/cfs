@@ -1,4 +1,3 @@
-INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
 
 IF(USE_IPOPT)
   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
@@ -26,50 +25,29 @@ SET(TARGET_LL
   ${CFS_FORTRAN_DYNRT_LIBS}
   )
 
-LIST(APPEND TARGET_LL
-  ${XERCES_LIBRARY}
-)
+IF(USE_XERCES)
+  LIST(APPEND TARGET_LL ${XERCES_LIBRARY})
+ENDIF(USE_XERCES)
+
+IF(USE_LIBXML2)
+  LIST(APPEND TARGET_LL ${LIBXML2_LIBRARY})
+ENDIF(USE_LIBXML2)  
 
 IF(USE_LIBFBI)
-  LIST(APPEND TARGET_LL
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF(USE_LIBFBI)
+  LIST(APPEND TARGET_LL ${BOOST_THREAD_LIB} )
+ENDIF()
 
 IF(MINGW)
   LIST(APPEND TARGET_LL
     -lws2_32
-    -lwsock32
-    )
-ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
-  LIST(APPEND TARGET_LL
-    -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    -llapack
-    -lblas
-    -lquadmath
-    )
-ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
-  LIST(APPEND TARGET_LL
-    -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
-#    -llapack            
-#    -lblas
-    )
-ELSE()
-  LIST(APPEND TARGET_LL
-    -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    )
+    -lwsock32 )
 ENDIF()
 
-
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin 
-  ${TARGET_LL}
-  )
+TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL} )
 
+# lapack is in NETLIB, OPENBLAS and MKL
+# LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
 #IF(MINGW)
 #  IF(CFS_BLAS_LAPACK STREQUAL MKL)
@@ -85,6 +63,13 @@ SET(CFS_LINK_FLAGS "")
 IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
 ENDIF(UNIX AND USE_ANSYSRST)
+
+
+# This is dirty stuff and shall be removed! - Fabian 
+# copy & paste in cfstoolbin
+IF(USE_PHIST)
+  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -pthread -Wl,-rpath -Wl,/usr/lib64/mpi/gcc/openmpi/lib64 -Wl,--enable-new-dtags -L/usr/lib64/mpi/gcc/openmpi/lib64 -lmpi_cxx -lmpi")
+ENDIF()
 
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.

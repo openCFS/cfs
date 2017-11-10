@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <set>
 
@@ -366,6 +366,74 @@ namespace CoupledField {
     return integ;
   }
   
+  void ElecCurrentPDE::DefineRhsLoadIntegrators() {
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
+    LinearForm * lin = NULL;
+    StdVector<std::string> vecDofNames;
+    if(dim_ == 3) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if(dim_ == 2 && !isaxi_)
+        vecDofNames = "x", "y";
+      if(dim_ == 2 && isaxi_)
+        vecDofNames = "r", "z";
+    }
+
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    bool coefUpdateGeo;
+
+    //=======================================================
+    // NORMAL CURRENT DENSITY
+    // sign is negative if brought to the RHS because surface
+    // integral is negative on LHS but J = -grad(phi)*gamma
+    //=======================================================
+    ReadRhsExcitation( "normalCurrentDensity", vecDofNames,
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Normal current density must be defined on elements.")
+      }
+
+      // determine dimension
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim == (dim_-1) ) {
+        // === SURFACE ===
+        if( dim_ == 2 ) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                   Complex(-1.0), coef[i], volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                  -1.0, coef[i], volRegions, coefUpdateGeo);
+          }
+        } else {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                   Complex(-1.0), coef[i], volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                  -1.0, coef[i], volRegions, coefUpdateGeo);
+          }
+        }
+        lin->SetName("NormalCurrentDensityInt");
+      } else {
+        // === VOLUME ===
+        EXCEPTION("Specifying current density in a volume is not supported.");
+      }
+
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    }
+  }
+
 
   void ElecCurrentPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);

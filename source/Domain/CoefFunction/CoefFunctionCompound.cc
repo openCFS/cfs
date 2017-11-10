@@ -9,7 +9,7 @@ namespace CoupledField {
 // ===========================================================================
 
 CoefFunctionCompound<Double>::CoefFunctionCompound(MathParser * mp) {
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isAnalytic_ = false;
   isComplex_ = false;
   numRows_ = 0;
@@ -46,21 +46,51 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
 
   // Rotate material, if coordinate system is not the global one
   if( this->coordSys_ ) {
-    // Obtain rotation matrix
-    Matrix<Double> rotMatrix;
-    coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
+    if( coordSys_->GetName() != "default" ) {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
 
-    EXCEPTION("The rotation is not fully finished ':-(\n" << 
-              "Here we have to add a call to the method BaseMaterial::PerformRotation "
-              "This method should be moved to the base class of the CoefFunction"
-              "In addition the initial rotation of the material must be incorporated"
-              "somewhere in string-notation, as we are generally dealing with string"
-              "parameters."
-              "Thus we should treat the case, where rotation angles are multiples of "
-              "90 degree separately, where the entries are just interchanged");
-  } else {
-    coefMat = locMatrix;
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewhere in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      coefMat = locMatrix;
+    }
+  }else{
+    if( this->coordSys_ ) {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
+
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewhere in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      coefMat = locMatrix;
+    }
   }
+
+//#pragma omp critical
+//  {
+//#ifdef USE_OPENMP
+//    std::cout << omp_get_thread_num() << " "<< lpm.ptEl->elemNum << std::endl;
+//#else
+//    std::cout << lpm.ptEl->elemNum << std::endl;
+//#endif
+//  std::cout << lpm.lp.coord << std::endl;
+//  std::cout << coefMat << std::endl  << std::endl;
+//  }
 }
 
 void CoefFunctionCompound<Double>::
@@ -96,9 +126,22 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
-  // update internal variables 
+  // update internal variables
+
   UpdateXpr( lpm );
   coefScalar = parser_->Eval( handle_ );
+/*  if(lpm.ptEl->elemNum == 113){
+#pragma omp critical
+  {
+#ifdef USE_OPENMP
+    std::cout << omp_get_thread_num() << " "<< lpm.ptEl->elemNum << std::endl;
+#else
+    std::cout << lpm.ptEl->elemNum << std::endl;
+#endif
+  std::cout << lpm.lp.coord << std::endl;
+  std::cout << coefScalar << std::endl  << std::endl;
+  }
+  }*/
 }
 
 void CoefFunctionCompound<Double>::
@@ -189,6 +232,12 @@ std::string CoefFunctionCompound<Double>::ToString() const {
 void CoefFunctionCompound<Double>::
 RegisterCoefFct( const std::string& name,
                  PtrCoefFct& coef ) {
+#ifdef USE_OPENMP
+  if(omp_get_num_threads() > 1 ){
+    EXCEPTION("Calling from parallel region. Not allowed.")
+  }
+#endif
+
   // make sure, that coefficient function with the same name is not already
   // registered
   if( coefs_.find( name ) != coefs_.end() ) {
@@ -210,30 +259,45 @@ RegisterCoefFct( const std::string& name,
     // query variables names
     std::string real, imag;
     CoefFunction::GenScalCompNames( real, imag, name, coef );
-    
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     // insert value 
     parser_->RegisterExternalVar(handle_, real,  &(scalVars_[name]) );
+      }
+    }
     
   } else if( dim == VECTOR ) {
   
     StdVector<std::string> real, imag;
     CoefFunction::GenVecCompNames( real, imag, name, coef );
-
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     vecVars_[name].Resize(real.GetSize());
     for( UInt i = 0; i < real.GetSize(); ++ i ) {
       parser_->RegisterExternalVar(handle_, real[i],  &(vecVars_[name][i]) );
+    }
+      }
     }
     
   } else if( dim == TENSOR ) {
     StdVector<std::string> real, imag;
     CoefFunction::GenTensorCompNames( real, imag, name, coef );
-
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     tensorVars_[name].Resize(numRows_, numCols_);
     UInt pos = 0;
     for( UInt i = 0; i < numRows_; ++i ) {
       for( UInt j = 0; j < numCols_; ++j ) {
         parser_->RegisterExternalVar(handle_, real[pos],  &(tensorVars_[name][i][j]) );
         pos++;
+      }
+    }
       }
     }
   } else {
@@ -243,7 +307,7 @@ RegisterCoefFct( const std::string& name,
 
 void CoefFunctionCompound<Double>::
 UpdateXpr( const LocPointMapped& lpm ) {
-
+  //should be fine if parallel or not...
   
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
@@ -260,17 +324,40 @@ UpdateXpr( const LocPointMapped& lpm ) {
     } else {
       EXCEPTION( "Unknown dimension type of coefficient function '" << name << "'")
     }
-    
   }
 }
 
 
 // ===========================================================================
+//  Complex/Double VALUED COEFFICIENT FUNCTION
+// ===========================================================================
+void CoefFunctionCompound<Double>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+  if(spaceDim != dofDim)
+    EXCEPTION("CoefFunctionCompound<Double>: Divergence need vectorial data!");
+
+  if(spaceDim == 2)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,Double>());
+  else if(spaceDim == 3)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,Double>());
+}
+
+void CoefFunctionCompound<Complex>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+  if(spaceDim != dofDim)
+    EXCEPTION("CoefFunctionCompound<Complex>: Divergence need vectorial data!");
+
+  if(spaceDim == 2)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,Complex>());
+  else if(spaceDim == 3)
+    this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,Complex>());
+}
+// ===========================================================================
 //  Complex VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 
 CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
-  dependType_ = GENERAL;
+  dependType_ = CoefFunction::GENERAL;
   isAnalytic_ = false;
   isComplex_ = true;
   
@@ -479,6 +566,12 @@ std::string CoefFunctionCompound<Complex>::ToString() const {
 void CoefFunctionCompound<Complex>::
 RegisterCoefFct( const std::string& name,
                  PtrCoefFct& coef ) {
+#ifdef USE_OPENMP
+  if(omp_get_num_threads() > 1 ){
+    EXCEPTION("Calling from parallel region. Not allowed.")
+  }
+#endif
+
   // make sure, that coefficient function with the same name is not already
   // registered
   if( coefs_.find( name ) != coefs_.end() ) {
@@ -496,18 +589,25 @@ RegisterCoefFct( const std::string& name,
     // query variables names
     std::string real, imag;
     CoefFunction::GenScalCompNames( real, imag, name, coef );
-    
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     parser_->RegisterExternalVar(handleReal_, real,  &(scalVarsReal_[name]) );
     parser_->RegisterExternalVar(handleReal_, imag,  &(scalVarsImag_[name]) );
     parser_->RegisterExternalVar(handleImag_, real,  &(scalVarsReal_[name]) );
     parser_->RegisterExternalVar(handleImag_, imag,  &(scalVarsImag_[name]) );
-    
+      }
+    }
     
   } else if( dim == VECTOR ) {
   
     StdVector<std::string> real, imag;
     CoefFunction::GenVecCompNames( real, imag, name, coef );
-
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     vecVarsReal_[name].Resize(real.GetSize());
     vecVarsImag_[name].Resize(imag.GetSize());
     
@@ -516,24 +616,32 @@ RegisterCoefFct( const std::string& name,
       parser_->RegisterExternalVar(handleImag_, real[i],  &(vecVarsReal_[name][i]) );
     }
     for( UInt i = 0; i < imag.GetSize(); ++ i ) {
+
       parser_->RegisterExternalVar(handleReal_, imag[i],  &(vecVarsImag_[name][i]) );
       parser_->RegisterExternalVar(handleImag_, imag[i],  &(vecVarsImag_[name][i]) );
+
     }
-    
+      }
+    }
   } else if( dim == TENSOR ) {
     StdVector<std::string> real, imag;
     CoefFunction::GenTensorCompNames( real, imag, name, coef );
-
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+#pragma omp critical (CoefFunctionCompound_Double)
+      {
     tensorVarsReal_[name].Resize(numRows_, numCols_);
     tensorVarsImag_[name].Resize(numRows_, numCols_);
     
     UInt pos = 0;
     for( UInt i = 0; i < numRows_; ++i ) {
       for( UInt j = 0; j < numCols_; ++j ) {
+
         parser_->RegisterExternalVar(handleReal_, real[pos],  
                                      &(tensorVarsReal_[name][i][j]) );
         parser_->RegisterExternalVar(handleImag_, real[pos],  
                                      &(tensorVarsReal_[name][i][j]) );
+
         pos++;
       }
     }
@@ -547,6 +655,8 @@ RegisterCoefFct( const std::string& name,
         pos++;
       }
     }
+      }
+    }
   } else {
     EXCEPTION( "Unknown dimension type of coefficient function '" << name << "'")
   }
@@ -555,6 +665,12 @@ RegisterCoefFct( const std::string& name,
 void CoefFunctionCompound<Complex>::
 UpdateXpr( const LocPointMapped& lpm ) {
   
+//#ifdef USE_OPENMP
+//  if(omp_get_num_threads() == 1 && NUM_CFS_THREADS>1){
+//    WARN("Calling from serial region. May be dangerous")
+//  }
+//#endif
+
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
@@ -588,7 +704,6 @@ UpdateXpr( const LocPointMapped& lpm ) {
     
   }
 }
-
 
 } // end of namespace
 

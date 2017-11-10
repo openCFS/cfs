@@ -49,43 +49,13 @@ namespace CoupledField
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
-    numOMPThreads_ = 1;
-
-#ifdef _OPENMP
-    numOMPThreads_ = omp_get_max_threads();
-#endif
-
-    elemShapeMapOrig_.Resize(numOMPThreads_);
-    lastShapeElemNumOrig_.Resize(numOMPThreads_);
-
-    elemShapeMapUpdated_.Resize(numOMPThreads_);
-    lastShapeElemNumUpdated_.Resize(numOMPThreads_);
-
-    //elemShapeMapOrig2nd_.Resize(numOMPThreads_);
-    //lastShapeElemNumOrig2nd_.Resize(numOMPThreads_);
-    //
-    //elemShapeMapUpdated2nd_.Resize(numOMPThreads_);
-    //lastShapeElemNumUpdated2nd_.Resize(numOMPThreads_);
-
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < numOMPThreads_; aT++){
-      lastShapeElemNumOrig_[aT].Reserve(slotsToReserve);
-      lastShapeElemNumUpdated_[aT].Reserve(slotsToReserve);
-      elemShapeMapOrig_[aT].Reserve(slotsToReserve);
-      elemShapeMapUpdated_[aT].Reserve(slotsToReserve);
+    for(UInt aT = 0; aT < NUM_CFS_THREADS; aT++){
+      lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
+      lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
+      elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
+      elemShapeMapUpdated_.Mine(aT).Reserve(slotsToReserve);
     }
-    //  this->elemShapeMapOrig_[aT].reset(new LagrangeElemShapeMap(this));
-    //  this->elemShapeMapUpdated_[aT].reset(new LagrangeElemShapeMap(this));
-    //  this->elemShapeMapOrig2nd_[aT].reset(new LagrangeElemShapeMap(this));
-    //  this->elemShapeMapUpdated2nd_[aT].reset(new LagrangeElemShapeMap(this));
-    //
-    //  this->lastShapeElemNumOrig_[aT] = 0;
-    //  this->lastShapeElemNumUpdated_[aT] = 0;
-    //
-    //  this->lastShapeElemNumOrig2nd_[aT] = 0;
-    //  this->lastShapeElemNumUpdated2nd_[aT] = 0;
-    //}
-
   }
 
   Grid::~Grid()
@@ -152,34 +122,32 @@ namespace CoupledField
    //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
    //  ret->SetElem(ptElem, isUpdated );
    //  return ret;
-    UInt aThread = 0;
-#ifdef OPENMP
-    int at = omp_get_thread_num();
-    if(at<0){
-      EXCEPTION("Current thread number is negative, this may not happen!")
-    }
-    //do we need to check anything?
-    aThread = (UInt)at;
-#endif
-    if(elemShapeMapUpdated_[aThread].GetSize() > 10){
+
+   StdVector<UInt>& lastShapeElemNumOrig                      = lastShapeElemNumOrig_.Mine();
+   StdVector<UInt>& lastShapeElemNumUpdated                   = lastShapeElemNumUpdated_.Mine();
+   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapOrig    = elemShapeMapOrig_.Mine();
+   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapUpdated = elemShapeMapUpdated_.Mine();
+
+
+    if(elemShapeMapUpdated.GetSize() > 10){
       WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
     }
 
     if(isUpdated)
     {
-      Integer idx = lastShapeElemNumUpdated_[aThread].Find(ptElem->elemNum);
+      Integer idx = lastShapeElemNumUpdated.Find(ptElem->elemNum);
       if(idx>=0){
         ////check for special element number 0 in case of mortar interface elements
         if(ptElem->elemNum==0){
           //still, there may be situations in which some object still holds references
           //this is just due to the incosistent element numbering of mortarNcElems, as well as
           //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapUpdated_[aThread][(UInt)idx].use_count()>1){
+          if(elemShapeMapUpdated[(UInt)idx].use_count()>1){
             shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
             ret->SetElem(ptElem, isUpdated );
             return ret;
           }else{
-            elemShapeMapUpdated_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+            elemShapeMapUpdated[(UInt)idx]->SetElem(ptElem, isUpdated );
           }
         }
         //even if we found it, we can only return it, if we really have reference count==1
@@ -188,56 +156,58 @@ namespace CoupledField
         // inside the shape map class becomes outdated which is dangerous
         // decision by element number is a piece of crap. we can cache some shape maps
         // to avoid memory reallocation but otherwise, it just does not work out
-        return elemShapeMapUpdated_[aThread][(UInt)idx];
-      }else{
-        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapUpdated_[aThread].GetSize();aIdx++){
-         if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
-            elemShapeMapUpdated_[aThread][aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumUpdated_[aThread][aIdx] = ptElem->elemNum;
-            return elemShapeMapUpdated_[aThread][aIdx];
+        return elemShapeMapUpdated[(UInt)idx];
+      }
+      else
+      {
+        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
+        for(UInt aIdx =0;aIdx<elemShapeMapUpdated.GetSize();aIdx++){
+         if(elemShapeMapUpdated[aIdx].use_count()==1){
+            elemShapeMapUpdated[aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumUpdated[aIdx] = ptElem->elemNum;
+            return elemShapeMapUpdated[aIdx];
           }
         }
         shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
         newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapUpdated_[aThread].Push_back(newMap);
-        lastShapeElemNumUpdated_[aThread].Push_back(ptElem->elemNum);
+        elemShapeMapUpdated.Push_back(newMap);
+        lastShapeElemNumUpdated.Push_back(ptElem->elemNum);
         return newMap;
       }
     }
     else // the not updated version
     {
-      Integer idx = lastShapeElemNumOrig_[aThread].Find(ptElem->elemNum);
+      Integer idx = lastShapeElemNumOrig.Find(ptElem->elemNum);
       if(idx>=0){
         ////check for special element number 0 in case of mortar interface elements
         if(ptElem->elemNum==0){
           //still, there may be situations in which some object still holds references
           //this is just due to the incosistent element numbering of mortarNcElems, as well as
           //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapOrig_[aThread][(UInt)idx].use_count()>1){
+          if(elemShapeMapOrig[(UInt)idx].use_count()>1){
             shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
             ret->SetElem(ptElem, isUpdated );
             return ret;
           }else{
-            elemShapeMapOrig_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+            elemShapeMapOrig[(UInt)idx]->SetElem(ptElem, isUpdated );
           }
         }
-        return elemShapeMapOrig_[aThread][(UInt)idx];
+        return elemShapeMapOrig[(UInt)idx];
       }
       else // idx is zero
       {
         //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapOrig_[aThread].GetSize();aIdx++){
-         if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
-            elemShapeMapOrig_[aThread][aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumOrig_[aThread][aIdx] = ptElem->elemNum;
-            return elemShapeMapOrig_[aThread][aIdx];
+        for(UInt aIdx =0;aIdx<elemShapeMapOrig.GetSize();aIdx++){
+         if(elemShapeMapOrig[aIdx].use_count()==1){
+            elemShapeMapOrig[aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumOrig[aIdx] = ptElem->elemNum;
+            return elemShapeMapOrig[aIdx];
           }
         }
         shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
         newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapOrig_[aThread].Push_back(newMap);
-        lastShapeElemNumOrig_[aThread].Push_back(ptElem->elemNum);
+        elemShapeMapOrig.Push_back(newMap);
+        lastShapeElemNumOrig.Push_back(ptElem->elemNum);
         return newMap;
       }
     }
@@ -371,6 +341,17 @@ namespace CoupledField
     return true;
   }
 
+  std::string Grid::GetRegionName( RegionIdType& id )
+  {
+    for(UInt i = 0; i < regionData.GetSize(); i++) {
+      if(regionData[i].id == id) {
+        return regionData[i].name;
+      }
+    }
+    EXCEPTION( "No Region name found for id " << id ) ;
+    return std::string("");
+  }
+
   void Grid::GetRegionNames( StdVector<std::string>& regionNames )
   {
     regionNames.Resize(regionData.GetSize());
@@ -379,6 +360,15 @@ namespace CoupledField
       regionNames[i] = regionData[i].name;
   }
 
+  RegionIdType Grid::GetRegionId(const std::string name ){
+      for(UInt i = 0; i < regionData.GetSize(); i++) {
+          if(regionData[i].name == name) {
+              return regionData[i].id;
+          }
+      }
+      EXCEPTION( "No Region found with name '" << name << "'" ) ;
+      return -1;
+  }
 
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
     volRegions = volRegionIds_;
@@ -408,7 +398,7 @@ namespace CoupledField
     return elems[0];
   }
 
-  void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
+  void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<Double> >& globCoords,
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
                                      const StdVector<shared_ptr<EntityList> >& srcEntities,
@@ -472,17 +462,17 @@ namespace CoupledField
   {
     RegionData& rd = regionData[reg];
 
-    if(rd.barycenters) return 0;
+    if(rd.barycenters)
+      return 0;
 
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
     for(UInt i = 0;  i < elems.GetSize(); i++)
-      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->barycenter);
+      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->extended->barycenter);
 
     rd.barycenters = true; // don't do it again!
 
     return elems.GetSize();
-    return 0;
   }
 
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
@@ -622,8 +612,18 @@ namespace CoupledField
     UInt numNCIs = nciList.GetSize();
     ncInterfaces_.Reserve(numNCIs);
 
+    //loop twice to ensure that moving interfaces get added last
     for ( UInt i=0; i<numNCIs; ++i ) {
-      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      if(!nciList[i]->Has("rotation") &&
+         !nciList[i]->Has("generalMotion")){
+        AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      }
+    }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      if(nciList[i]->Has("rotation") ||
+         nciList[i]->Has("generalMotion")){
+        AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      }
     }
   }
 
@@ -656,6 +656,8 @@ namespace CoupledField
   void Grid::MoveNcInterfaces() {
     StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
         itEnd = ncInterfaces_.End();
+
+	//std::cout << "MoveNcInterfaces - Grid.cc 662" << std::endl;
 
     //Here some special things need to be done
     //basically this code is very experimental and may fail in many
@@ -852,6 +854,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numCorners];
         surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
 
         switch(el->type) {
         case Elem::ET_TRIA6:
@@ -893,14 +896,14 @@ namespace CoupledField
 
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
-
     this->SetElementBarycenters(region,false);
+
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
-        if (elems[i]->barycenter[j] > max[j])
-          max[j] = elems[i]->barycenter[j];
-        if (elems[i]->barycenter[j] < min[j])
-          min[j] = elems[i]->barycenter[j];
+        if (elems[i]->extended->barycenter[j] > max[j])
+          max[j] = elems[i]->extended->barycenter[j];
+        if (elems[i]->extended->barycenter[j] < min[j])
+          min[j] = elems[i]->extended->barycenter[j];
       }
     }
 
@@ -946,7 +949,7 @@ namespace CoupledField
       // get number of edges
       numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
-        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
         edgeCounts[edgeNum]++;
       }
     }
@@ -956,7 +959,7 @@ namespace CoupledField
       // get number of edges
       numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
-        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
         if(edgeCounts[edgeNum] != 1)
         {
           n++;
@@ -1003,6 +1006,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numEdges];
         surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
 
         switch(el->type) {
           case Elem::ET_TRIA6:
@@ -1062,7 +1066,7 @@ namespace CoupledField
 
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
-#pragma omp parallel for
+#pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for( UInt iM = 0; iM < numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
@@ -1076,6 +1080,7 @@ namespace CoupledField
 
         // check, if global point can be mapped to the element
         shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
+
         esm->Global2Local(locCoord, matches[iM].globCoord );
         if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
           candidateElem.Push_back( *it );
@@ -1119,6 +1124,7 @@ namespace CoupledField
     GetNodeCoordinate(p, elem->connect[0],updated);
     UInt globalDim = p.GetSize();
 
+
     xmin = xmax = p[0];
     ymin = ymax = p[1];
     if(globalDim == 2) {
@@ -1135,7 +1141,7 @@ namespace CoupledField
       xmax = (p[0] > xmax) ? p[0] : xmax;
       ymin = (p[1] < ymin) ? p[1] : ymin;
       ymax = (p[1] > ymax) ? p[1] : ymax;
-      if (globalDim == 3) {
+      if (p.GetSize() == 3) {  // TODO: Linienelemente NC interface probleme, coordinaten probleme // Fr[her statt p.GetSize(), globalDim
         zmin = (p[2] < zmin) ? p[2] : zmin;
         zmax = (p[2] > zmax) ? p[2] : zmax;
       }
@@ -1194,11 +1200,11 @@ namespace CoupledField
     // We write the id-number of box a to the output iterator assuming
     // that box b (the query box) is not interesting in the result.
     void operator()( const HandleBox& a, const HandleBox& b) {
-      UInt elemNum = *a.handle();
-      UInt pointIndex = *b.handle();
+      UInt elemNum1 = *a.handle();
+      UInt elemNum2 = *b.handle();
       std::pair<UInt, UInt > pair;
-      pair.first = pointIndex;
-      pair.second = elemNum;
+      pair.first = elemNum2;
+      pair.second = elemNum1;
       *it++ = pair;
     }
   };

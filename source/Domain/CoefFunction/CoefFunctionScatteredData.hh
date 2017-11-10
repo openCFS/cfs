@@ -32,6 +32,7 @@ namespace CGAL
   struct Point {
     double vec[3];
     double vel[3];
+    Complex velZ[3];
 
     Point() {
       vec[0]= vec[1] = vec[2] = 0;
@@ -43,13 +44,23 @@ namespace CGAL
       vel[0]=vx; vel[1]=vy; vel[2]=vz;
     }
 
+    Point (double x, double y, double z,
+        Complex vx, Complex vy, Complex vz) {
+      vec[0]=x; vec[1]=y; vec[2]=z;
+      velZ[0]=vx; velZ[1]=vy; velZ[2]=vz;
+    }
+
     double x() const { return vec[ 0 ]; }
     double y() const { return vec[ 1 ]; }
     double z() const { return vec[ 2 ]; }
 
-    double vx() const { return vel[ 0 ]; }
-    double vy() const { return vel[ 1 ]; }
-    double vz() const { return vel[ 2 ]; }
+    void vx(double& ret) const { ret = vel[ 0 ]; }
+    void vy(double& ret) const { ret = vel[ 1 ]; }
+    void vz(double& ret) const { ret = vel[ 2 ]; }
+
+    void vx(Complex& ret) const { ret = velZ[ 0 ]; }
+    void vy(Complex& ret) const { ret = velZ[ 1 ]; }
+    void vz(Complex& ret) const { ret = velZ[ 2 ]; }
 
     double& x() { return vec[ 0 ]; }
     double& y() { return vec[ 1 ]; }
@@ -160,6 +171,7 @@ namespace CoupledField {
       SHEPARD, NEAREST_NEIGHBOR
     };
 
+
     enum KNNLibary
     {
       CGAL, FLANN
@@ -220,17 +232,20 @@ namespace CoupledField {
 
     void InterpolateVector(Vector<Double> globPoint, Vector<T> & vec);
 
-    void Read();
-    void GetQuantityData();
+    void Read(bool updateMode);
+    void GetQuantityData(bool updateMode);
     void DumpData();
     
     std::vector< std::vector<double> > coordinates_;
-    std::vector< std::vector<double> > scatteredData_;
+    std::vector< std::vector<T> > scatteredData_;  // CHANGED
 
     std::string qid_;
           
     // Scale factor for values.
     Double factor_;
+
+    // Search radius for values.
+    Double searchRadius_;
 
     //! Type of interpolation algorithm.
     InterpolationAlgorithm interpolAlgo_;
@@ -245,7 +260,8 @@ namespace CoupledField {
     KNNLibary knnLib_;
 
     PtrParamNode quantityNode_;
-    
+
+
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 

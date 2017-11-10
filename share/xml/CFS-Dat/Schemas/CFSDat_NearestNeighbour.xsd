@@ -1,0 +1,33 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for nearest neighbour search -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_NNScheme">
+    <xsd:attribute name="interpolationExponent" type="xsd:integer" default="2" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Controls the "locality" of the interpolation, the higher the exponent is, the more
+          local the interpolation becomes, this means, points further away are weighted less
+          than closer points
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
+    <xsd:attribute name="density" type="xsd:double" default="1.0" use="optional"/>
+    <xsd:attribute name="useCGAL4RBF" type="xsd:boolean" default="true" use="optional"/>
+  </xsd:complexType>
+  
+</xsd:schema>

@@ -185,6 +185,9 @@ public:
     return constraints_;
   }
 
+  /** searches for constraint */
+  bool HasConstraint(std::string& name, unsigned int dof) const;
+
   //! Get Load CoefFunctions
   const LoadCoefList GetLoadCoefFunctions(){
     return loadCoefs_;
@@ -236,14 +239,14 @@ public:
   virtual SingleVector* GetSingleVector() = 0;
   
   //! Compute the BC values and hand them over to the Algebraic System
-   virtual void ApplyBC() = 0;
+  virtual void ApplyBC() = 0;
 
-   //! Incorporate load conditions, the characteristic here is that the values will be
-   //! added, not set as in ApplyBCs
-   virtual void ApplyLoads() = 0;
+  //! Incorporate load conditions, the characteristic here is that the values will be
+  //! added, not set as in ApplyBCs
+  virtual void ApplyLoads() = 0;
    
-   //! Set the feFunction to values obtained by external data sources
-   virtual void ApplyExternalData() = 0;
+  //! Set the feFunction to values obtained by external data sources
+  virtual void ApplyExternalData() = 0;
   //@}
   
   //! generates an interpolation operator by determining the space used
@@ -264,6 +267,22 @@ public:
   //! a simple equation mapping and copy operation. If the spaces have different
   //! approximation types, the general mapping mechanism will be utilized.
   virtual void InitFromFeFunction( shared_ptr<BaseFeFunction> feFct ) = 0;
+
+  struct EqNodeGeom{
+    UInt indexNum; //index number in OLAS
+    UInt nodeNum; //one nodeNum can contain several eqNum's, e.g. 2D, 3D vector values
+    Vector<Double> coord; //coordinate of the node with nodeNum
+    //node-coordinates of both nodes of one edge, must be stored in positive direction
+    StdVector< Vector<Double> > eCoords;
+    StdVector<Integer> eNodes; // edge nodes
+
+  };
+
+  //! Create a connection between OLAS-equations and geometry
+
+  //! Checks if nodal- (Lagrangian-) FE or edge- (Nédéléc-) is used
+  //! and fills the appropriate info into the algebraic system
+  virtual void ApplyGeomInfo() = 0;
 
 protected:
 
@@ -398,6 +417,13 @@ public:
 
   //! Set the feFunction to values obtained by external data sources
   virtual void ApplyExternalData();
+
+
+  //! Create a connection between OLAS-equations and geometry
+
+  //! Checks if nodal- (Lagrangian-) FE or edge- (Nédéléc-) is used
+  //! and fills the appropriate info into the algebraic system
+  virtual void ApplyGeomInfo();
 
   // ========================================================================
    //  Coefficient Function Interface

@@ -3,6 +3,7 @@
 #include "OLAS/algsys/IDBC_Handler.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <boost/type_traits/is_complex.hpp>
 
 DECLARE_LOG(idbcElim)
 DEFINE_LOG(idbcElim, "idbcElim")
@@ -80,16 +81,7 @@ namespace CoupledField {
     // ----------------------------------------------------
 
     // Determine entry type from template parameter
-    BaseMatrix::EntryType eType = BaseMatrix::NOENTRYTYPE;
-    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
-      eType = BaseMatrix::DOUBLE;
-    }
-    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
-      eType = BaseMatrix::COMPLEX;
-    }
-    else {
-      EXCEPTION( "Internal template error! No swearing please!" );
-    }
+    BaseMatrix::EntryType eType = boost::is_complex<T>() ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE;
 
     // SBMMATRIX case:
     SBM_Matrix *sbmMat = NULL;
@@ -144,6 +136,10 @@ namespace CoupledField {
         GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] ));
     vecIDBC_->Init();
 
+    vecOldIDBC_ = dynamic_cast<SBM_Vector*>(
+        GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] ));
+    vecOldIDBC_->Init();
+
     // ------------------------------------------------------------------
     // Generate vector for storing temporary values for AddFixedToFreeRHS
     // ------------------------------------------------------------------
@@ -168,6 +164,9 @@ namespace CoupledField {
     delete vecIDBC_;
     vecIDBC_ = NULL;
     
+    delete vecOldIDBC_;
+    vecOldIDBC_ = NULL;
+
     delete auxVec_;
     auxVec_ = NULL;
 
@@ -210,7 +209,7 @@ namespace CoupledField {
   //   AddIDBCToRHS
   // ****************
   template <typename T> void IDBC_Handler<T>::
-  AddIDBCToRHS( SBM_Vector *rhs ) {
+  AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC ) {
     
     if ( addIDBCPossible_ == false ) {
       EXCEPTION( "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
@@ -219,14 +218,32 @@ namespace CoupledField {
     }
     
     auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );
+    if(deltaIDBC){
+      auxMat_[SYSTEM]->MultAdd( *vecOldIDBC_, *rhs );
+    }
     remIDBCPossible_ = true;
+  }
+
+  template <typename T> void IDBC_Handler<T>::
+  SetOldDirichletValues() {
+    /*
+     * Copy entries of vecIDBC to vecOldIDBC
+     */
+    vecOldIDBC_->Init();
+    vecOldIDBC_->Add(dynamic_cast<const SBM_Vector&>(*vecIDBC_));
+  }
+
+  template <typename T> void IDBC_Handler<T>::
+  ToString() {
+    std::cout <<"Old IDBC Values: " << vecOldIDBC_->ToString() << std::endl;
+    std::cout <<"New IDBC Values: " << vecIDBC_->ToString() << std::endl;
   }
 
   // **********************
   //   RemoveIDBCFromRHS
   // **********************
   template <typename T> void IDBC_Handler<T>::
-  RemoveIDBCFromRHS( SBM_Vector *rhs ) {
+  RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC ) {
     
     if ( remIDBCPossible_ == false ) {
       EXCEPTION( "IDBCHandler::RemoveIDBCFromRHS: Internal error! "
@@ -236,6 +253,9 @@ namespace CoupledField {
           << "since last call to AddIDBCToRHS()!");
     }
     auxMat_[SYSTEM]->MultAdd( *vecIDBC_, *rhs );
+    if(deltaIDBC){
+      auxMat_[SYSTEM]->MultSub( *vecOldIDBC_, *rhs );
+    }
   }
 
 
@@ -256,10 +276,17 @@ namespace CoupledField {
   //   GetIDBC
   // ***********
   template <typename T>
-  void IDBC_Handler<T>::GetIDBC( UInt blockNum, UInt index, T &val ) {
+  void IDBC_Handler<T>::GetIDBC( UInt blockNum, UInt index, T &val, bool deltaIDBC ) {
 
     vecIDBC_->GetPointer(blockNum)->
         GetEntry( index - numFreeDofs_[blockNum] - 1, val);
+
+    if(deltaIDBC){
+      T aux;
+      vecOldIDBC_->GetPointer(blockNum)->
+          GetEntry( index - numFreeDofs_[blockNum] - 1, aux);
+      val -= aux;
+    }
   }
 
  // ************************
@@ -342,21 +369,41 @@ namespace CoupledField {
   //   SetDofsToIDBC
   // *****************
   template <typename T>
-  void IDBC_Handler<T>::SetDofsToIDBC( SBM_Vector *vec ) {
+  void IDBC_Handler<T>::SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC ) {
 
     // Loop over all sub-vectors
     SingleVector *stdVec = NULL;
     SingleVector *stdVal = NULL;
-    for ( UInt i = 0; i < vec->GetSize(); i++ ) {
 
-      stdVec = vec->GetPointer( i );
-      stdVal = vecIDBC_->GetPointer( i );
+    if(!deltaIDBC){
+      for ( UInt i = 0; i < vec->GetSize(); i++ ) {
 
-      // Insert values
-      for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
-        T aux;
-        stdVal->GetEntry( j, aux );
-        stdVec->SetEntry( j + numFreeDofs_[i], aux );
+        stdVec = vec->GetPointer( i );
+        stdVal = vecIDBC_->GetPointer( i );
+
+        // Insert values
+        for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
+          T aux;
+          stdVal->GetEntry( j, aux );
+          stdVec->SetEntry( j + numFreeDofs_[i], aux );
+        }
+      }
+    } else {
+      SingleVector *stdVal2 = NULL;
+
+      for ( UInt i = 0; i < vec->GetSize(); i++ ) {
+
+        stdVec = vec->GetPointer( i );
+        stdVal = vecIDBC_->GetPointer( i );
+        stdVal2 = vecOldIDBC_->GetPointer( i );
+
+        // Insert values
+        for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
+          T aux, aux2;
+          stdVal->GetEntry( j, aux );
+          stdVal2->GetEntry( j, aux2 );
+          stdVec->SetEntry( j + numFreeDofs_[i], aux-aux2 );
+        }
       }
     }
    

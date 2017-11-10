@@ -15,13 +15,14 @@ namespace CoupledField {
   template<class T>
   class AssocType{
   public:
-    typedef T T_Mtype;        // matrix type 
+    typedef T T_Mtype;        // matrix type
     typedef T T_Vtype;        // vector type
     typedef T T_Stype;        // scalar type
     static std::string tagM;  // symbolic name for humans (matrix type)
     static std::string tagV;  // symbolic name for humans (vector type)
     static std::string tagS;  // symbolic name for humans (scalar type)
-  };                                              
+  };
+
 
   //! Class for determining matrix/vector block size
 

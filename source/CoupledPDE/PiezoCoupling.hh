@@ -9,6 +9,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField {
 class BaseResult;
@@ -54,6 +55,16 @@ class BiLinearForm;
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
 
+    void DefinePBCIntegrators(shared_ptr<BaseFeFunction>& fe1, shared_ptr<BaseFeFunction>& fe2);
+
+    template<typename DATA_TYPE>
+    BiLinearForm* GetNormalPiezoFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
+                                               BiLinearForm::CouplingDirection cplDir, bool fluxOpA);
+
+    template<typename DATA_TYPE>
+    BiLinearForm* GetNormalPiezoStrainIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
+                                                 BiLinearForm::CouplingDirection cplDir, bool fluxOpA);
+
     //! Define available results
     void DefineAvailResults();
     
@@ -64,6 +75,9 @@ class BiLinearForm;
     BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex );
+
+    //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D) with the material tensor scaled by a given factor
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
 
 
     //! Subtype of related mechanical PDE

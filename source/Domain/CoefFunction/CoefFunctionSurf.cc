@@ -1,4 +1,4 @@
-	#include "CoefFunctionSurf.hh"
+#include "CoefFunctionSurf.hh"
 
 #include <boost/tr1/type_traits.hpp>
 
@@ -145,11 +145,15 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
   if( mapNormal_ ) {
     Vector<Double> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    coefScalar = coefVec * surfLpm.normal;
+    if (coefVec.GetSize() == surfLpm.normal.GetSize())
+      coefScalar = coefVec * surfLpm.normal;
+    else // this happens in 2.5D case where 'coefVec' and 'normal' have 3 and 2 components, respectively
+      coefScalar = coefVec[0]*surfLpm.normal[0] + coefVec[1]*surfLpm.normal[1];
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
   coefScalar *= factor_;
+  //std::cout << "Value: " << coefScalar << std::endl;
 }
 
 void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
@@ -163,7 +167,10 @@ void CoefFunctionSurf::GetScalar(Complex& coefScalar,
   if( mapNormal_ ) {
     Vector<Complex> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    coefScalar = coefVec * surfLpm.normal;
+    if (coefVec.GetSize() == surfLpm.normal.GetSize())
+      coefScalar = coefVec * surfLpm.normal;
+    else // this happens in 2.5D case where 'coefVec' and 'normal' have 3 and 2 components, respectively
+      coefScalar = coefVec[0]*surfLpm.normal[0] + coefVec[1]*surfLpm.normal[1];
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
@@ -216,5 +223,106 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
   }
 }
   
+//============= Maxwell's stress tensor =======================================================
+CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
+		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+									Grid* ptGrid,
+									Double factor,
+									shared_ptr<ResultInfo> surfInfo)
+: CoefFunctionSurf(mapNormal, factor, surfInfo) {
+
+
+  // not sure about the following one
+  matCoef_ = matCoefs;
+  ptGrid_ = ptGrid;
+
+}
+
+void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
+                                 const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  surfLpm.SetSurfInfo( regions_, neighborRegionId_);
+
+//  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+//  std::string regionName = ptGrid_->GetRegion().ToString(region);
+//  std::cout << "RegName: " << regionName << std::endl;
+
+  //get magnetic flux density
+  Vector<Double> Bvec;
+  coefs_[neighborRegionId_]->GetVector(Bvec, *surfLpm.lpmVol );
+  //std::cout << "Bvec:  " << Bvec << std::endl;
+
+  //get permeability
+  Double permeability, matFactor;
+  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
+  permFncs[neighborRegionId_]->GetScalar(permeability, *surfLpm.lpmVol );
+  matFactor = 1.0 / permeability;
+
+  //compute: factors * ( (B*n)*B - 1/2*B^2*n )
+  Double Bn = Bvec * surfLpm.normal; // normal component of B
+  Double B2 = Bvec.Inner(); // square of B
+  Vector<Double> BnB = Bvec; BnB.ScalarMult(Bn); // B * normal component
+  Vector<Double> B2n = surfLpm.normal; B2n.ScalarMult(0.5*B2); // n * B^2/2
+  coefVec = BnB - B2n;
+  coefVec.ScalarMult(factor_ * matFactor); // don't forget factors
+}
+
+void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
+                               const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  EXCEPTION("SurfMaxwell for Harmonic Analysis not implemented");
+
+}
+
+CoefFunctionSurfMaxwell::~CoefFunctionSurfMaxwell() {
+
+}
+
+
+//===================Virtual Work Principle =================================================
+CoefFunctionSurfVWP::CoefFunctionSurfVWP( bool mapNormal,
+		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
+									Double factor,
+									shared_ptr<ResultInfo> surfInfo)
+: CoefFunctionSurf(mapNormal, factor, surfInfo) {
+
+
+  // not sure about the following one
+  matCoef_ = matCoefs;
+}
+
+void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
+                                    const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  // create local point for surface
+  LocPointMapped lpmVol(lpm);
+
+  //get magnetic flux density
+  Vector<Double> Bvec;
+  coefs_[neighborRegionId_]->GetVector(Bvec, lpmVol );
+
+  //get permeability
+  Double permeability;
+  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
+  permFncs[neighborRegionId_]->GetScalar(permeability, lpmVol );
+
+  coefVec = Bvec / std::sqrt( permeability );
+}
+
+void CoefFunctionSurfVWP::GetVector(Vector<Complex>& coefVec,
+                               const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+
+  EXCEPTION("CoefFunctionSurfVWP for Harmonic Analysis not implemented");
+
+}
+
+CoefFunctionSurfVWP::~CoefFunctionSurfVWP() {
+}
 
 }

@@ -47,7 +47,13 @@ Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
+
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
+Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
+
+
+
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -101,6 +107,9 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case POISSONISO:
     case EMODUL:
     case EMODULISO:
+    case I_1:
+    case I_2:
+    case I_3:
       return true;
     default:
       return false;
@@ -215,6 +224,8 @@ double BaseDesignElement::GetPlainGradient(const Function* f) const
   assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
   assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
+  LOG_DBG3(desel) << "GPG idx=" << this->index_ << " v=" << design << " f=" << f->ToString() << " dcost=" << costGradient.ToString() << " dconst=" << constraintGradient.ToString();
+
   return f->IsObjective() ? costGradient[f->GetIndex()] : constraintGradient[f->GetIndex()];
 }
 
@@ -244,6 +255,8 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
 {
+  assert(!std::isnan(value));
+  assert(!std::isinf(value));
   assert(( f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL)
       || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
@@ -309,15 +322,25 @@ ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement()
 ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesignElement(type)
 {
   index_ = index;
-  dof = -1;
+  opt_index_ = std::numeric_limits<unsigned int>::max();
+  dof_ = NOT_SET;
   coord.Resize(domain->GetGrid()->GetDim(), -1.0);
   idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
+
+std::string ShapeParamElement::ToString() const
+{
+  std::stringstream ss;
+  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
+  return ss.str();
+}
+
 
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
   Init();
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 /** The default constructor for StdVector and ghost elements*/
@@ -325,6 +348,10 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
 {
   Init();
   this->elem = elem;
+
+  if(!elem->extended)
+    this->elem->extended = new ExtendedElementInfo;
+
   this->type_ = type;
   this->index_ = index;
   this->pseudoElementIndex_ = pseudoElementIndex;
@@ -332,7 +359,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->lower_ = 1.0;
   this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
-  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 }
 
 
@@ -340,10 +367,14 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
 {
   Init();
   this->elem = elem;
+
+  if(!elem->extended)
+    this->elem->extended = new ExtendedElementInfo;
+
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
-  this->interfaceDrivenLoadGrad_.Resize(4,0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
 
   type_ = dt;
   upper_ = upper;
@@ -486,7 +517,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PROJECTION
       || rd.value == TRANSFO_MATRIX
       || rd.value == SHAPE_MAP_GRAD
-      || rd.value == SHAPE_MAP_RELEVANT)
+      || rd.value == SHAPE_MAP_ORDER
+      || rd.value == SHAPE_MAP_CORNER)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -662,7 +694,7 @@ std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
   {
     ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
     if(barycenter)
-      ss << " bc=" << de->elem->barycenter.ToString();
+      ss << " bc=" << de->elem->extended->barycenter.ToString();
     else
       ss << " t=" << type.ToString(de->type_);
   }
@@ -723,13 +755,26 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
+  ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
+
+  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
+  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
+
+
+  ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
+  ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
+  ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
+  ShapeParamElement::dof.Add(ShapeParamElement::Y, "y");
+  ShapeParamElement::dof.Add(ShapeParamElement::Z, "z");
 
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
+  type.Add(SHAPE_MAP, "shape_map");
   type.Add(MECH_TRACE, "mech_trace");
   type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
@@ -799,6 +844,9 @@ void DesignElement::SetEnums()
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
   type.Add(ALL_DESIGNS, "allDesigns");
+  type.Add(I_1, "I_1");
+  type.Add(I_2, "I_2");
+  type.Add(I_3, "I_3");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -825,7 +873,8 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
   valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
   valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
-  valueSpecifier.Add(SHAPE_MAP_RELEVANT, "shapeMapRelevant");
+  valueSpecifier.Add(SHAPE_MAP_ORDER, "shapeMapIntOrder");
+  valueSpecifier.Add(SHAPE_MAP_CORNER, "shapeMapMinMaxCorner");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
@@ -869,6 +918,8 @@ void DesignElement::SetEnums()
   detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
   detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
   detail.Add(SM_NODE, "node");
+  detail.Add(SM_NODE_A, "node_a");
+  detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
 }
 
@@ -1173,7 +1224,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     return;
 
   Grid* grid = domain->GetGrid();
-  
+
   // we only hope the elements are aligned and rectangular, the size might vary
   // if(!space->IsRegular())
   //  throw Exception("A regular design domain is required to use VicinityElements");
@@ -1216,8 +1267,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     // here we store the neighbors in a sorted way
     StdVector<DesignElement*>& ve_data = de->vicinity->design; // has proper size of NULLs
 
-    // reference case
-    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->neighborhood);
+    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->extended->neighborhood);
     // reuse the enlarged_data element for the periodic case only
     if(periodic)
     {
@@ -1228,8 +1278,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       }
     }
 
-    // FIXME LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
-
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
       // we consider only direct (edge/face) neighbors
@@ -1238,9 +1286,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       Elem* candidate = neighbors[n].first;
 
 
-      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
+      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->extended->barycenter.ToString() << " e.dim="
                     << de->elem->GetShape().dim << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
-                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId;
+                    << " o.bc=" << candidate->extended->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId
+                    << " e.c=" << de->elem->connect.ToString() << " o.c=" << candidate->connect.ToString();
+
 
       // if the neighbor is a surface element we don't want to play with it
       if(de->elem->GetShape().dim != candidate->GetShape().dim)
@@ -1250,7 +1300,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
         continue;
 
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(de->elem->barycenter, candidate->barycenter, spacing);
+      int idx = FindRelativeNeighborLocation(de->elem->extended->barycenter, candidate->extended->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de->GetType(), false, space->DoNonDesignVicinity());
       LOG_DBG2(desel) << "VE:Init elem=" << de->elem->elemNum << " idx=" << idx << " val=" << ve_data[idx]->ToString() << " neigh=" << DesignElement::ToString(ve_data);
     }
@@ -1392,6 +1442,8 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
+  detail = DesignElement::NONE;
+  solutionType = NO_SOLUTION_TYPE;
   excitation = -1;
 }
 
@@ -1399,9 +1451,7 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 {
   solutionType = SolutionTypeEnum.Parse(pn->Get("id")->As<std::string>());
 
-  design = DesignElement::DEFAULT;
-  if(pn->Has("design"))
-    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+  design = pn->Has("design") ? DesignElement::type.Parse(pn->Get("design")->As<std::string>()) : DesignElement::DEFAULT;
 
   access = DesignElement::access.Parse(pn->Get("access")->As<std::string>());
 

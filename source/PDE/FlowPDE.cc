@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <set>
 
@@ -358,7 +358,7 @@ namespace CoupledField {
       PtrCoefFct velCoef = this->GetCoefFct(FLUIDMECH_VELOCITY);
 
       convectiveVv->SetBCoefFunctionOpB(velCoef);
-      convectiveVv->SetSolDependent();
+      convectiveVv->SetSolDependent(true);
 
       convectiveVv->SetName("FlowStiffIntConvectiveVv");
       BiLinFormContext *convectiveContextVv = NULL;
@@ -514,7 +514,7 @@ namespace CoupledField {
         }
 
         convecStiffVVstab->SetBCoefFunctionOpB(velCoef);
-        convecStiffVVstab->SetSolDependent();
+        convecStiffVVstab->SetSolDependent(true);
         convecStiffVVstab->SetName("FlowStiffIntVVConvectiveStab");
 
         BiLinFormContext *stiffContextVVStab = NULL;

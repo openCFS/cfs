@@ -2,22 +2,22 @@
 #include "Vector.hh"
 #include "opdefs.hh"
 
+#include <fstream>
 #include <string>
-#include <cmath>
 #include <def_build_type_options.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
 
 #include "BLASLAPACKInterface.hh"
 
-using namespace std;
-
 using boost::tokenizer;
+
 namespace CoupledField
 {      
 
@@ -112,7 +112,7 @@ namespace CoupledField
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
-    std::string offset(n_offset, ' ');
+    std::string offset(std::max(n_offset,0), ' ');
 
     std::ostringstream os;
 
@@ -145,14 +145,25 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
-
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= sqrt(2);
-      data_[size_row_-1][i] *= sqrt(2);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= sqrt(2);
+        data_[size_row_-1][i] *= sqrt(2);
+      }
+      data_[size_row_-1][ size_row_-1] *= 2.0;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= sqrt(2);
+            data_[j][i] *= sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 2.0;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][ size_row_-1] *= 2.0;
   }
 
     /** Convert from Hill-Mandel to Voigt Notation */
@@ -162,14 +173,26 @@ namespace CoupledField
     // based on mativ_rot.py
     assert(IsQuadratic());
     assert(size_row_ == 3 || size_row_ == 6);
+    if (size_row_ == 3) {
+      for(unsigned int i = 0; i < size_row_-1; i++)
+      {
+        data_[i][size_row_-1] *= 1/sqrt(2);
+        data_[size_row_-1][i] *= 1/sqrt(2);
+      }
 
-    for(unsigned int i = 0; i < size_row_-1; i++)
-    {
-      data_[i][size_row_-1] *= 1/sqrt(2);
-      data_[size_row_-1][i] *= 1/sqrt(2);
+      data_[size_row_-1][size_row_-1] *= 0.5;
+    } else {
+      for(unsigned int i = 0; i < size_row_; i++) {
+        for (unsigned int j = i; j < size_col_; j++) {
+          if (i > 2 || j > 2) {
+            data_[i][j] *= 1/sqrt(2);
+            data_[j][i] *= 1/sqrt(2);
+          } else if (i == j && i > 2) {
+            data_[i][ j] *= 0.5;
+          }
+        }
+      }
     }
-
-    data_[size_row_-1][size_row_-1] *= 0.5;
   }
 
   template<class TYPE>
@@ -261,6 +284,551 @@ namespace CoupledField
     return os.str();
   }
 
+  /*
+    * NOTE: everything (more or less) taken from
+    * http://stackoverflow.com/questions/2654480/writing-bmp-image-in-pure-c-c-without-other-libraries
+    * (3.6.2016)
+    * Use upscale to output a 10x10 matrix as an (10*upscale)x(10*upscale) matrix
+    *
+    * Addition: reference to second matrix which deliveres information for the green channel
+    *
+    */
+    template<class TYPE>
+    void Matrix<TYPE>::matrix2Bmp(UInt upscale, std::string filename,Matrix<TYPE>* greenChannel) {
+      EXCEPTION("Only implemented for matrices of type double");
+    }
+
+    /*
+     * Coloring of BMP:
+     *  negative values from -1 to 0 are mapped to red color with values from 255 to 0
+     *  positive values from 0 to 1 are mapped to blue color with values from 0 to 255
+     *
+     *  greenChannel > 0: set green channel to 255
+     *  greenChallen <= 0 or undefined: set green channel to 0
+     */
+   template<>
+   void Matrix<Double>::matrix2Bmp(UInt upscale, std::string filename,Matrix<Double>* greenChannel)
+   {
+     if(upscale == 0){
+       WARN("Upscaling has to be larger 0");
+       return;
+     }
+
+     /*
+      * Get width and height of matrix and upscale it to image size
+      */
+     //get dimension of matrix
+     UInt height = size_row_*upscale;
+     UInt width = size_col_*upscale;
+
+     bool setGreenChannel = false;
+     if(greenChannel != NULL){
+       if((size_row_ == greenChannel->GetNumRows())&&(size_col_ == greenChannel->GetNumCols())){
+         setGreenChannel = true;
+       }
+     }
+
+     /*
+      * Image lines in BMP have to be multiples of 4
+      * (*3 because of r g b values)
+      */
+     UInt padsize = (4-(width*3)%4)%4;
+     UInt datasize = (width*3 + padsize) * height;
+
+     /*
+      * header and info to be included in BMP files
+      */
+     unsigned char file[14] = {
+         'B','M', // magic
+         0,0,0,0, // size in bytes
+         0,0, // app data
+         0,0, // app data
+         40+14,0,0,0 // start of data offset
+     };
+     unsigned char info[40] = {
+         40,0,0,0, // info hd size
+         0,0,0,0, // width
+         0,0,0,0, // heigth
+         1,0, // number color planes
+         24,0, // bits per pixel
+         0,0,0,0, // compression is none
+         0,0,0,0, // image bits size
+         0x13,0x0B,0,0, // horz resoluition in pixel / m
+         0x13,0x0B,0,0, // vert resolutions (0x03C3 = 96 dpi, 0x0B13 = 72 dpi)
+         0,0,0,0, // #colors in pallete
+         0,0,0,0, // #important colors
+         };
+
+     UInt totalsize = datasize + sizeof(file) + sizeof(info);
+
+     /*
+      * split all informations into chunks of 1 byte
+      */
+     file[ 2] = (unsigned char)( totalsize    );
+     file[ 3] = (unsigned char)( totalsize>> 8);
+     file[ 4] = (unsigned char)( totalsize>>16);
+     file[ 5] = (unsigned char)( totalsize>>24);
+
+     info[ 4] = (unsigned char)( width   );
+     info[ 5] = (unsigned char)( width>> 8);
+     info[ 6] = (unsigned char)( width>>16);
+     info[ 7] = (unsigned char)( width>>24);
+
+     info[ 8] = (unsigned char)( height    );
+     info[ 9] = (unsigned char)( height>> 8);
+     info[10] = (unsigned char)( height>>16);
+     info[11] = (unsigned char)( height>>24);
+
+     info[20] = (unsigned char)( datasize    );
+     info[21] = (unsigned char)( datasize>> 8);
+     info[22] = (unsigned char)( datasize>>16);
+     info[23] = (unsigned char)( datasize>>24);
+
+     /*
+      * get output stream
+      */
+     std::ofstream outfile;
+     outfile.open(filename.c_str(),std::ofstream::binary);
+
+     if(!outfile.is_open()){
+       WARN("Could not open output file!")
+       return;
+     }
+
+     outfile.write( (char*)file, sizeof(file));
+     outfile.write( (char*)info, sizeof(info));
+
+     unsigned char pad[3] = {0,0,0};
+
+     UInt idx, idy;
+
+     /*
+      * BMP is stored upside down from right to left
+      */
+     //for ( UInt y=height-1; y>0; y-- )
+     for ( UInt y=0; y<height; y++ )
+     {
+       //idy = height/upscale-1 - ceil(y/upscale);
+       idy = ceil(y/upscale);
+       for ( UInt x=0; x<width; x++ )
+       {
+         //idx = width/upscale-1 - ceil(x/upscale);
+         idx = ceil(x/upscale);
+
+         //std::cout << "x, idx: " << x << ", " << idx << std::endl;
+         //std::cout << "y, idy: " << y << ", " << idy << std::endl;
+
+         /*
+          * Positive values -> blue
+          * Negative values -> red
+          */
+         long red, green, blue;
+//         red = lround( -255.0 * data_[idx][idy] );
+//         if ( red < 0 ) red=0;
+//         if ( red > 255 ) red=255;
+//         green = 0;
+//         blue = lround( 255.0 * data_[idx][idy] );
+//         if ( blue < 0 ) blue=0;
+//         if ( blue > 255 ) blue=255;
+//         red = 0;
+//         green = 0;
+
+
+         if(data_[idy][idx]<= 0){
+           red = lround( -255.0 * data_[idy][idx] );
+           if ( red < 0 ) red=0;
+           if ( red > 255 ) red=255;
+           green = 0;
+           blue = 0;
+         } else {
+           blue = lround( 255.0 * data_[idy][idx] );
+           if ( blue < 0 ) blue=0;
+           if ( blue > 255 ) blue=255;
+           red = 0;
+           green = 0;
+         }
+
+         if(setGreenChannel){
+           /*
+            * color only every second pixel (otherwise the figures will have
+            * eye-aching colors)
+            */
+           if((x+y)%2 == 0){
+             if((*greenChannel)[idy][idx] > 0){
+               /*
+                * if we have a positive value of green channel, set green to max of blue and red
+                * (otherwise poorly red/blue regions will be only green)
+                */
+               green = std::max(blue,red);
+             } else {
+               green = 0;
+             }
+           } else {
+             green = 0;
+           }
+           //if ( green > 0 ) green=255;
+           //if ( green < 0 ) green=0;
+         }
+
+         unsigned char pixel[3];
+         pixel[0] = blue;
+         pixel[1] = green;
+         pixel[2] = red;
+
+         outfile.write( (char*)pixel, 3 );
+       }
+       outfile.write( (char*)pad, padsize );
+     }
+
+     outfile.close();
+   }
+
+   /*
+    * New (29.6.2016)
+    *   Outputfunction used for writing out the evaluated state of the vector Preisach model, i.e.
+    *   the multiplied rotation and switching state.
+    *   Matrix: stores switching state between -1 and 1
+    *   RotX: stores x-component of rotation state (between -1 and 1)
+    *   RotY: stores y-component of rotation state (between -1 and 1)
+    *
+    *   Coloring:
+    *     - angle between rotation state and x-axis defines color
+    *       0 -> red
+    *       120 -> blue
+    *       240 -> green
+    *       0-120 -> red decreases linearly, blue increases linearly, green = 0
+    *       120 - 240 -> red = 0, blue decreases linearly, green increases linearly
+    *       240 - 360 -> red increases linearly, blue = 0, green decreases linearly
+    *     - switching state gives a scaling to the values and a possible offset to the angle
+    *       -> switching state < 0 -> 190 offset
+    *       -> abs(switching state) < 0 -> scale all colors with that value
+    *
+    *
+   * NOTE: everything (more or less) taken from
+   * http://stackoverflow.com/questions/2654480/writing-bmp-image-in-pure-c-c-without-other-libraries
+   * (3.6.2016)
+   * Use upscale to output a 10x10 matrix as an (10*upscale)x(10*upscale) matrix
+   *
+   * Addition: reference to second matrix which deliveres information for the green channel
+   *
+   */
+   template<class TYPE>
+   void Matrix<TYPE>::matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<TYPE>* rotX, Matrix<TYPE>* rotY) {
+     EXCEPTION("Only implemented for matrices of type double");
+   }
+
+  template<>
+  void Matrix<Double>::matrix2Bmp_v2(UInt upscale, std::string filename,Matrix<Double>* rotX, Matrix<Double>* rotY)
+  {
+    if(upscale == 0){
+      WARN("Upscaling has to be larger 0");
+      return;
+    }
+
+    /*
+     * Get width and height of matrix and upscale it to image size
+     */
+    //get dimension of matrix
+    UInt height = size_row_*upscale;
+    UInt width = size_col_*upscale;
+
+    if(rotX == NULL || rotY == NULL){
+      EXCEPTION("Rotation states are not initialized!");
+    }
+
+    /*
+     * Image lines in BMP have to be multiples of 4
+     * (*3 because of r g b values)
+     */
+    UInt padsize = (4-(width*3)%4)%4;
+    UInt datasize = (width*3 + padsize) * height;
+
+    /*
+     * header and info to be included in BMP files
+     */
+    unsigned char file[14] = {
+        'B','M', // magic
+        0,0,0,0, // size in bytes
+        0,0, // app data
+        0,0, // app data
+        40+14,0,0,0 // start of data offset
+    };
+    unsigned char info[40] = {
+        40,0,0,0, // info hd size
+        0,0,0,0, // width
+        0,0,0,0, // heigth
+        1,0, // number color planes
+        24,0, // bits per pixel
+        0,0,0,0, // compression is none
+        0,0,0,0, // image bits size
+        0x13,0x0B,0,0, // horz resoluition in pixel / m
+        0x13,0x0B,0,0, // vert resolutions (0x03C3 = 96 dpi, 0x0B13 = 72 dpi)
+        0,0,0,0, // #colors in pallete
+        0,0,0,0, // #important colors
+        };
+
+    UInt totalsize = datasize + sizeof(file) + sizeof(info);
+
+    /*
+     * split all informations into chunks of 1 byte
+     */
+    file[ 2] = (unsigned char)( totalsize    );
+    file[ 3] = (unsigned char)( totalsize>> 8);
+    file[ 4] = (unsigned char)( totalsize>>16);
+    file[ 5] = (unsigned char)( totalsize>>24);
+
+    info[ 4] = (unsigned char)( width   );
+    info[ 5] = (unsigned char)( width>> 8);
+    info[ 6] = (unsigned char)( width>>16);
+    info[ 7] = (unsigned char)( width>>24);
+
+    info[ 8] = (unsigned char)( height    );
+    info[ 9] = (unsigned char)( height>> 8);
+    info[10] = (unsigned char)( height>>16);
+    info[11] = (unsigned char)( height>>24);
+
+    info[20] = (unsigned char)( datasize    );
+    info[21] = (unsigned char)( datasize>> 8);
+    info[22] = (unsigned char)( datasize>>16);
+    info[23] = (unsigned char)( datasize>>24);
+
+    /*
+     * get output stream
+     */
+    std::ofstream outfile;
+    outfile.open(filename.c_str(),std::ofstream::binary);
+
+    if(!outfile.is_open()){
+      WARN("Could not open output file!")
+      return;
+    }
+
+    outfile.write( (char*)file, sizeof(file));
+    outfile.write( (char*)info, sizeof(info));
+
+    unsigned char pad[3] = {0,0,0};
+
+    UInt idx, idy;
+    /*
+     * BMP is stored upside down from right to left
+     */
+    //for ( UInt y=height-1; y>0; y-- )
+    for ( UInt y=0; y<height; y++ )
+    {
+      //idy = height/upscale-1 - ceil(y/upscale);
+      idy = ceil(y/upscale);
+      for ( UInt x=0; x<width; x++ )
+      {
+        //idx = width/upscale-1 - ceil(x/upscale);
+        idx = ceil(x/upscale);
+
+        long red, green, blue;
+
+        Double scaling = std::abs(data_[idy][idx]);
+
+        /*
+         * OLD
+         *  On diagonal idx = idy we have half value
+         *    -> color magnitude halved
+         *
+         * NEW (22.8.16)
+         *  On diagonal idx = idy, double value but color only the pixels y>=x
+         *
+         */
+
+        if(idx == idy){
+          if(y >= x){
+            scaling = 2.0*scaling;
+          }
+//          else {
+//            /*
+//             * make pixel white
+//             */
+//            red = 255;
+//            blue = 255;
+//            green = 255;
+//          }
+        }
+
+        /*
+         * calculate angle for determination of coloring
+         */
+        Double tmp = (*rotX)[idy][idx];
+        if(tmp > 1.0){
+          tmp = 1.0;
+        } else if(tmp < -1.0){
+          tmp = -1.0;
+        }
+        Double angle = std::acos(tmp)/M_PI * 180;
+        if((*rotY)[idy][idx] < 0){
+          angle = 360-angle;
+        }
+        if(data_[idy][idx] < 0){
+          angle = 180+angle;
+        }
+        if(angle >= 360){
+          angle = angle - 360;
+        }
+
+//        if(x == 1 && y == height-3){
+//          std::cout << "x,y: " << x << ", " << y << std::endl;
+//          std::cout << "rotX,rotY: " << (*rotX)[idy][idx] << ", " << (*rotY)[idy][idx] << std::endl;
+//          std::cout << "scaling,angle: " << scaling << ", " << angle << std::endl;
+//        }
+//
+//        if(x == width-3 && y == height-3){
+//          std::cout << "x,y: " << x << ", " << y << std::endl;
+//          std::cout << "rotX,rotY: " << (*rotX)[idy][idx] << ", " << (*rotY)[idy][idx] << std::endl;
+//          std::cout << "scaling,angle: " << scaling << ", " << angle << std::endl;
+//        }
+//
+
+        if(angle >= 0 && angle < 60){
+          red = lround(scaling*255.0);
+        } else if(angle >= 60 && angle < 120){
+          red = lround(scaling*255.0*(120-angle)/60.0);
+        } else if(angle >= 240 && angle < 300){
+          red = lround(scaling*255.0*(angle-240)/60.0);
+        } else if(angle >= 300 && angle < 360){
+          red = lround(scaling*255.0);
+        } else {
+          red = 0;
+        }
+
+        if(angle >= 60 && angle < 180){
+          blue = lround(scaling*255.0);
+        } else if(angle >= 180 && angle < 240){
+          blue = lround(scaling*255.0*(240-angle)/60.0);
+        } else if(angle >= 0 && angle < 60){
+          blue = lround(scaling*255.0*angle/60.0);
+        } else {
+          blue = 0;
+        }
+
+        if(angle >= 180 && angle < 300){
+          green = lround(scaling*255.0);
+        } else if(angle >= 120 && angle < 180){
+          green = lround(scaling*255.0*(angle-120)/60.0);
+        } else if(angle >= 300 && angle < 360){
+          green = lround(scaling*255.0*(360-angle)/60.0);
+        } else {
+          green = 0;
+        }
+
+
+//        if(x == lround(width/4.0) && y == lround(0.6*height)){
+//          std::cout << "x,y: " << x << ", " << y << std::endl;
+//          std::cout << "rotX,rotY: " << (*rotX)[idy][idx] << ", " << (*rotY)[idy][idx] << std::endl;
+//          std::cout << "scaling,angle: " << scaling << ", " << angle << std::endl;
+//          std::cout << "rgb: " << red << "," << green << "," << blue << std::endl;
+//        }
+//        if(x == 1){
+//          std::cout << "rotX, rotY: " << (*rotX)[idy][idx] << "," << (*rotY)[idy][idx] << std::endl;
+//          std::cout << "rgb: " << red << "," << green << "," << blue << std::endl;
+//        }
+
+        if((*rotX)[idy][idx] == 0 && (*rotY)[idy][idx] == 0){
+//          /*
+//           * no rotation state -> make every second pixel white!
+//           */
+//          if((x+y)%2 == 0){
+//            red = 255;
+//            blue = 255;
+//            green = 255;
+//          }
+          /*
+           * no rotation state -> make every pixel white, but only for point below the diagonal!
+           */
+          if(y >= x){
+            /*
+             * -> above alpha = beta
+             */
+            // every pixel gray
+            red = 100;
+            blue = 100;
+            green = 100;
+
+            if(x+y+1 > height){
+              /*
+               * above diagonal alpha = -beta
+               */
+              // every second pixel black
+              if((x+y)%2 == 0){
+                red = 0;
+                blue = 0;
+                green = 0;
+              }
+            }
+          } else {
+            /*
+             * every pixel white
+             */
+            red = 255;
+            blue = 255;
+            green = 255;
+          }
+        }
+
+//
+//        if(angle >= 0 && angle < 120){
+//          red = lround(scaling*255.0*(120-angle)/120.0);
+//          blue = lround(scaling*255.0*angle/120.0);
+//          green = 0;
+//        } else if(angle >= 120 && angle < 240){
+//          red = 0;
+//          blue = lround(scaling*255.0*(240-angle)/120.0);
+//          green = lround(scaling*255.0*(angle-120)/120.0);
+//        } else if(angle >= 240 && angle < 360){
+//          red = lround(scaling*255.0*(360-angle)/120.0);
+//          blue = 0;
+//          green = lround(scaling*255.0*(angle-240)/120.0);l
+//        } else {
+//          WARN("This angle should not occur!");
+//        }
+
+        if ((*rotX)[idy][idx] != 0 || (*rotY)[idy][idx] != 0){
+          if(data_[idy][idx] < 0){
+            /*
+             * new coloring: angles > 180 have same color as angle-180 but only every second pixel is colored
+             */
+            // every second pixel white
+            if((x+y)%2 == 0){
+              red = 0;
+              blue = 0;
+              green = 0;
+            } else {
+              // every other pixel flips color
+              red = 255-red;
+              blue = 255-blue;
+              green = 255-green;
+            }
+          }
+        }
+
+        if(idx == idy){
+          if(y < x){
+            /*
+             * make pixel white in lower half of main diagonal to form triangles
+             */
+            red = 255;
+            blue = 255;
+            green = 255;
+          }
+        }
+
+        unsigned char pixel[3];
+        pixel[0] = blue;
+        pixel[1] = green;
+        pixel[2] = red;
+
+        outfile.write( (char*)pixel, 3 );
+      }
+      outfile.write( (char*)pad, padsize );
+    }
+
+    outfile.close();
+  }
+
   template<>
   void Matrix<Integer>::PerformRotation( const Matrix<Double>& R,  Matrix<Integer>& retMat ) const {
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");
@@ -271,6 +839,26 @@ namespace CoupledField
     EXCEPTION("Rotation only defined for double- and complex valued matrixes");
   }
   
+  template<>
+  void Matrix<Double>::PerformHMRotation(Double a,  Matrix<Double>& retMat, std::string notation ) const {
+    if (notation == "HILL_MANDEL") {
+      Matrix<Double> theta(3,3);
+      Matrix<Double> help(3,3);
+      theta[0][0] = pow(cos(a),2);
+      theta[0][1] = pow(sin(a),2);
+      theta[0][2] = -sqrt(2)/2*sin(2.*a);
+      theta[1][0] = theta[0][1];
+      theta[1][1] = theta[0][0];
+      theta[1][2] = -theta[0][2];
+      theta[2][0] = theta[1][2];
+      theta[2][1] = theta[0][2];
+      theta[2][2] = cos(2.*a);
+      this->Mult(theta, help);
+      theta.MultT(help, retMat);
+    } else {
+      EXCEPTION("Material tensor should be Hill-Mandel!")
+    }
+  }
   
   template<class TYPE>
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
@@ -279,23 +867,43 @@ namespace CoupledField
     // However, we should generalize the rotation also for 2x2, 2x4 and 4x4 matrices for the
     // 2D and axi case for mechanics.
 
-    // get memory for transposed rotation matrix
-    Matrix<Double> RT;
-    RT.Resize(3,3);
-    R.Transpose(RT);
-
     //get dimension of matrix
     UInt rowSize = size_row_;
     UInt colSize = size_col_;
 
     Matrix<TYPE> helpMat;
 
-    if ( rowSize == 3 && colSize == 3) {
+    if ( rowSize == 3 && colSize == 3 && R.GetNumCols() == 3 and R.GetNumRows() == 3) {
+      // get memory for transposed rotation matrix
+      Matrix<Double> RT;
+      RT.Resize(3,3);
+      R.Transpose(RT);
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    }
-    else if( (rowSize == 3 && colSize == 6) ||
+    } else if (R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+      // 2D tensor rotation
+
+      Matrix<Double> Q;
+      Q.Resize(3,3);
+      Q[0][0] = R[0][0]*R[0][0];
+      Q[0][1] = R[0][1]*R[0][1];
+      Q[0][2] = 2.0*R[0][0]*R[0][1];
+      Q[1][0] = R[1][0]*R[1][0];
+      Q[1][1] = R[1][1]*R[1][1];
+      Q[1][2] = 2.0*R[1][0]*R[1][1];
+      Q[2][0] = R[0][0]*R[1][0];
+      Q[2][1] = R[0][1]*R[1][1];
+      Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+
+      Matrix<Double> QT;
+      QT.Resize(3,3);
+      Q.Transpose(QT);
+      helpMat   = (*this) * QT;
+      retMat = Q * helpMat;
+      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+
+    } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
       // we also need Q;
       Matrix<Double> Q;
@@ -598,8 +1206,8 @@ namespace CoupledField
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
 #endif
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+    UInt size = size_row_ * size_col_;
+    for(UInt k = 0, s = size; k < s; ++k)
       data_[0][k] *= x;
 
     return *this;
@@ -746,7 +1354,6 @@ namespace CoupledField
                                 bool trans_a, bool trans_b,
                                 TYPE alpha, TYPE beta, bool conjugate ) const {
 
-#ifdef USE_BLAS
 #ifdef CHECK_INDEX
     if((trans_a == true) && (trans_b == true)){
       if (size_row_ != mMat1.GetNumCols())
@@ -805,9 +1412,6 @@ namespace CoupledField
     int ldb = trans_b ? k : m;
     int ldc = m;
     CallGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
-#else
-    EXCEPTION("Compile with USE_BLAS = yes ");
-#endif
    }
   
 
@@ -1070,10 +1674,10 @@ namespace CoupledField
 
     Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
     const Vector<TYPE> & b = dynamic_cast<const Vector<TYPE>& >(b1);
-    
+
     Integer nmat = size_row_-1;
     Integer i, j, k, k1;
-    
+
     //  the Gauss elimination 
     for(k = 0; k < nmat; ++k)
     {
@@ -1096,8 +1700,6 @@ namespace CoupledField
     }
 
     // solve Ly = b by forward substitution 
-
-   
     Vector<TYPE> y(b.GetSize());
 
     for (i=0; i<=nmat; ++i)
@@ -1119,8 +1721,6 @@ namespace CoupledField
   }
 
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
   template<>
   void Matrix<Complex>::solveWithLapack(Matrix<Complex> & b1,
                                         lapackSysMatType & LAPACK_MATRIX_TYPE)
@@ -1249,12 +1849,10 @@ namespace CoupledField
     delete[] lp_workf77;
     
   }
-#endif
 
-#ifdef USE_LAPACK
-  // Compile OLAS and CFS++ with USE_LAPACK
-  template<>
-  void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
+
+  template <class T>
+  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
     // computes all eigenvalues of a complex hermitian matrix
 
@@ -1267,6 +1865,9 @@ namespace CoupledField
     //    Vector<Double> lp_w;
     lp_w.Resize(size_row_);
     lp_w.Init();
+    if (ev_vec != NULL) {
+      (*ev_vec).Resize(size_row_,size_row_);
+    }
     Integer lp_lworkf77=99;
       
     // workspace array - complex 16 array
@@ -1274,7 +1875,7 @@ namespace CoupledField
     lp_work.Resize(lp_lworkf77);
     lp_work.Init();
       
-    // workspace array - double precission
+    // workspace array - double precision
     Vector<Double> lp_rwork;
     lp_rwork.Resize(3*size_row_-2);
     lp_rwork.Init();
@@ -1311,6 +1912,19 @@ namespace CoupledField
     for ( UInt count = 0; count < size_row_; count++ ) 
       lp_w[count] = lp_wf77[count];
     
+    UInt c=0;
+    if (ev_vec != NULL) {
+      for ( UInt count = 0; count < size_row_; count++ ) {
+        for (UInt count2 = 0; count2 < size_row_;count2++) {
+          (*ev_vec)[count][count2] = lp_af77[c].real();
+          if (std::abs(lp_af77[c].imag()) > std::numeric_limits<float>::epsilon() ) {
+            EXCEPTION("Eigenvector is non real! ")
+          }
+          c++;
+        }
+      }
+    }
+
     delete[] lp_workf77;
     delete[] lp_rworkf77;
     delete[] lp_af77;
@@ -1318,7 +1932,6 @@ namespace CoupledField
     
   }
 
-#endif
 
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const SingleVector & v1, const SingleVector & v2)
@@ -1351,6 +1964,7 @@ namespace CoupledField
 #endif
 
     TYPE det;
+    TYPE invDet;
     switch (size_row_)
       {
       case 1: 
@@ -1376,20 +1990,20 @@ namespace CoupledField
         //for(UInt i=0; i<3; i++)
         //  for(UInt j=0; j<3; j++)
         //    inv[j][i] = Adjunct(i,j);      
-
-        // === New, explicit version (from Wikipedia) ===
-        inv[0][0] = data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1];
-        inv[0][1] = data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2];
-        inv[0][2] = data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1];
-        inv[1][0] = data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2];
-        inv[1][1] = data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0];
-        inv[1][2] = data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2];
-        inv[2][0] = data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0];
-        inv[2][1] = data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1];
-        inv[2][2] = data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0];
-
         this->Determinant(det);
-        inv *= 1/det;      
+        invDet = 1.0 / det;
+        // === New, explicit version (from Wikipedia) ===
+        inv[2][2] = (data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0])*invDet;
+        inv[0][2] = (data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1])*invDet;
+        inv[1][2] = (data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2])*invDet;
+
+        inv[2][0] = (data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0])*invDet;
+        inv[0][0] = (data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1])*invDet;
+        inv[1][0] = (data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2])*invDet;
+
+        inv[2][1] = (data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1])*invDet;
+        inv[1][1] = (data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0])*invDet;
+        inv[0][1] = (data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2])*invDet;
         break;
       
       default: 
@@ -1441,18 +2055,48 @@ namespace CoupledField
     EXCEPTION("General case not implemented");
   }
   
-  template<> void Matrix<Double>::Invert_Lapack() {
+  template<> void Matrix<Complex>::Invert_Lapack() {
 #ifdef CHECK_INDEX
-    if( size_row_ != size_col_) {
+    if( size_row_ != size_col_)
       EXCEPTION("Can only invert square matrices");
-    }
 #endif
 
-#ifndef USE_LAPACK
-    EXCEPTIO("Compile with LAPACK support for matrix inversion");
-#else
-    
-    
+//TODO make sure this inversion is correct
+    //std::cout<<"---------------------------------------------------\n"
+    //		 <<"PLEASE TAKE CARE, THE INVERSION OF A COMPLEX MATRIX\n"
+    //		 <<"USING LAPACK IS NOT THOROUGHLY TESTED!!!!!!!!!!!!!!\n"
+    //		 <<"---------------------------------------------------"
+	//		 <<std::endl;
+
+    int *ipiv = new int[size_row_];
+    int n = size_row_;
+    int lwork = size_row_ * size_row_;
+    std::complex<double> *work = new  std::complex<double>[lwork];
+    int info;
+
+    // calculate LU-factorization of block
+    zgetrf(&n,&n,data_[0],&n,ipiv,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during LU-factorization of matrix. "
+                << "Error value is " << info );
+    }
+    // invert matrix using previous LU factorization
+    zgetri(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during inversion of matrix. "
+                << "Error value is " << info );
+    }
+
+    delete[] ipiv;
+    delete[] work;
+  }
+
+  template<> void Matrix<Double>::Invert_Lapack() {
+#ifdef CHECK_INDEX
+    if( size_row_ != size_col_)
+      EXCEPTION("Can only invert square matrices");
+#endif
+
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
@@ -1474,7 +2118,6 @@ namespace CoupledField
 
     delete[] ipiv;
     delete[] work;
-#endif
   }
 
   
@@ -1860,6 +2503,51 @@ namespace CoupledField
       vec[i] = (*this)[i][col]; // do it faster if you like
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetColMin(Vector<TYPE>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++)
+        vec[r] = std::min(vec[r], (*this)[r][c]); // do it faster if you like
+  }
+
+  template<>
+  void Matrix<Complex>::GetColMin(Vector<Complex>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++) {
+        vec[r].real(std::min(vec[r].real(), (*this)[r][c].real()));
+        vec[r].imag(std::min(vec[r].imag(), (*this)[r][c].imag()));
+      }
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetColMax(Vector<TYPE>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++)
+        vec[r] = std::max(vec[r], (*this)[r][c]); // do it faster if you like
+  }
+
+  template<>
+  void Matrix<Complex>::GetColMax(Vector<Complex>& vec) const
+  {
+    GetCol(vec, 0);
+
+    for(unsigned int r = 0; r < size_row_; r++)
+      for(unsigned int c = 1; c < size_col_; c++) {
+        vec[r].real(std::max(vec[r].real(), (*this)[r][c].real()));
+        vec[r].imag(std::max(vec[r].imag(), (*this)[r][c].imag()));
+      }
+  }
+
+
 
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
@@ -1935,19 +2623,21 @@ namespace CoupledField
     return true;
   }
 
-  template<class TYPE>
-  bool Matrix<TYPE>::IsSymmetric(double eps) const
-  {
-    if(!IsQuadratic())
-      return false;
-
-    for(UInt i = 1; i < size_row_; ++i)
-      for(UInt j = i+1; j < size_col_; ++j)
-        if(!close(data_[i][j], data_[j][i]))
-          return false;
-
-    return true;
-  }
+  // Putted into header
+//
+//  template<class TYPE>
+//  bool Matrix<TYPE>::IsSymmetric(double eps) const
+//  {
+//    if(!IsQuadratic())
+//      return false;
+//
+//    for(UInt i = 1; i < size_row_; ++i)
+//      for(UInt j = i+1; j < size_col_; ++j)
+//        if(!close(data_[i][j], data_[j][i]))
+//          return false;
+//
+//    return true;
+//  }
 
   template<class TYPE>
   TYPE Matrix<TYPE>::NormL2() const
@@ -2011,7 +2701,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isnan(data_[0][k])) return true;
+      if((boost::math::isnan)(data_[0][k])) return true;
 
     return false;
   }
@@ -2021,8 +2711,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isnan(data_[0][k].real())) return true;
-      if(std::isnan(data_[0][k].imag())) return true;
+      if((boost::math::isnan)(data_[0][k].real())) return true;
+      if((boost::math::isnan)(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -2032,7 +2722,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isinf(data_[0][k])) return true;
+      if((boost::math::isinf)(data_[0][k])) return true;
 
     return false;
   }
@@ -2042,8 +2732,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isinf(data_[0][k].real())) return true;
-      if(std::isinf(data_[0][k].imag())) return true;
+      if((boost::math::isinf)(data_[0][k].real())) return true;
+      if((boost::math::isinf)(data_[0][k].imag())) return true;
     }
     return false;
   }

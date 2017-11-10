@@ -30,19 +30,31 @@
     </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
-        <xsd:sequence>
+        <xsd:all>
 
           <!-- Regions the PDE lives on -->
           <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
+                  <xsd:complexType mixed="false">
+                    <xsd:choice>
+                      <xsd:element minOccurs="0" name="transforms">
+                        <xsd:complexType>
+                          <xsd:sequence maxOccurs="1">
+                            <xsd:element maxOccurs="unbounded" name="id">
+                              <xsd:complexType>
+                                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                              </xsd:complexType>
+                            </xsd:element>
+                          </xsd:sequence>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:choice>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
                       > </xsd:attribute>
-                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
                     />
@@ -70,12 +82,33 @@
                     <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
 
           <!-- Initial conditions (optional) -->
+          <xsd:element name="transformList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
@@ -120,11 +153,6 @@
 			  <xsd:documentation>Substitutes dp/dn by -(1/g)d^2p/dt^2</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                <xsd:element name="pml4FreeSurfaceCondition" type="DT_WWPMLsurface">
-                  <xsd:annotation>
-                    <xsd:documentation>Perfectly Matched Layer along free surface</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1">
                   <xsd:annotation>
                     <xsd:documentation>Specifies nodal loads</xsd:documentation>
@@ -141,7 +169,7 @@
           <xsd:element name="storeResults" type="DT_WaterWaveStoreResults" minOccurs="0"
             maxOccurs="1"/>
 
-        </xsd:sequence>
+        </xsd:all>
 
         <xsd:attribute name="timeStepAlpha" use="optional" default="0.0" type="xsd:double"/>
 

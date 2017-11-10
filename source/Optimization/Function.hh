@@ -63,10 +63,12 @@ class Function
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+      SLACK_FNCT,                /*!< Indicates a formula of alpha and slack given in the attribute "function" and type of SlackFunciton */
       BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
 
       // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
+      SQUARED_OUTPUT,            /*!< Re(u,l)^2 maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
@@ -107,6 +109,7 @@ class Function
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
+      FILTERING_GAP,             /* !< sum of the difference between filtered and non-filtered design */
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOM_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
@@ -118,6 +121,8 @@ class Function
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala'). Multiplies slope with prev and with next */
       CURVATURE,                 /*!< Second derivative (prev, this, next) timing h=1 */
       PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
+      OVERHANG_VERT,             /*!< Overhang constraint for vertical (dof=x) shape mapping structures for additive manufacturing.  */
+      OVERHANG_HOR,              /*!< Overhang constraint for horizontal (dof=y) shape mapping structures for additive manufacturing */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -152,6 +157,19 @@ class Function
     /** See ToString() for string conversion! */
     Type GetType() const { return type_; }
 
+    void SetType(Type type) {type_ = type;}
+
+    typedef enum {
+      NO_FUNCTION,               /*!< indicates we have not SLACK_FNCT function Type */
+      ALPHA_SLACK_QUOTIENT,      /*!< quotient of the two slack variables alpha and slack: a/s */
+      REL_BANDGAP,               /*!< relative band gap formulation 2*s/(a-s) based on 'alpha+/-slack' eigenfrequency bounds */
+      NORM_BANDGAP,              /*!< normalized band gap (2*s/a) */
+      ALPHA_MINUS_SLACK          /*!< slack variable distance a-s */
+    } SlackFnct;
+
+    static Enum<SlackFnct> slackFnct;
+
+    SlackFnct GetSlackFnct() const { return slackFnct_; }
 
     /** The real label might be an extended type string. E.g. by "access_".
      * Check if better use this than type.ToString(GetType()).
@@ -179,7 +197,7 @@ class Function
      * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
      * DEFAULT: as given in usual implementation
      * FIXME: This is not used consistently. Current state: local constraints in Function use PLAIN, FILTERED/PHYSICAL is the same and DEFAULT is set in ForDensityFiltering(), ErsatzMaterial::CalcVolume uses PHYSICAL or FILTERED  */
-    typedef enum { PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
+    typedef enum { NO_ACCESS = -1, PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
 
     /** to convert string/enum for this type */
     static Enum<Access> access;
@@ -253,6 +271,17 @@ class Function
 
     /** Is this a linear function? E.g. SnOpt can handle them more efficiently */
     bool IsLinear() const { return linear_; }
+
+    /** Snopt allows to set lower and upper bounds for functions. We make use of it for linear sparse abs() functions like SLOPE or CURVATURE.
+     * Then we also need a NEXT or PREV_NEXT locality. When we do not make use of the double bounds (as for scpip or evaluate) we need a
+     * NEXT_REVERSE or PREV_NEXT_REVERSE locality. Here we indicate if the function is meant for double bound. This is not the case for
+     * vertical OVERHANG constraints (but for horizontal). Technically this is not restricted to local sparse functions but we do not consider it
+     * for general functions.
+     * True means, that the function is meant for double bounds AND there is no reverse locality. false if not local, other function, ... */
+    bool IsDoubleBounded() const;
+
+    /** is the local function intended for double bounded when the optimizer (snopt) supports it. Use with Local::IsReverse() */
+    static bool CouldDoubleBounded(Type type);
 
     /** Is this a local function type */
     static bool IsLocal(Type t);
@@ -352,6 +381,11 @@ class Function
 
       Locality GetLocality() const { return locality_; }
 
+      static bool IsReverse(Locality loc);
+
+      static bool RequiresEps(Function::Type type);
+      static bool RequiresBeta(Function::Type type);
+
       /** The phase for oscillation constraint only to define two constraints with different
        * feature sizes for material and void */
       typedef enum {
@@ -447,13 +481,17 @@ class Function
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
         double CalcSlope() const;
+        /** calculate the slope gradient for a given element
+         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
+        double CalcSlopeGradient(int neigh_idx) const;
+
+        /** calculate the overhang constraint for shape mapping variables for use in additive manufacturing */
+        double CalcOverhang(Function::Type ft, double eps) const;
+        double CalcOverhangGradient(int neigh_idx, Function::Type ft, double eps) const;
 
         /** calculates the design bound as constraint. */
         double CalcDesignBound(Function* f, const Local* l, bool derivative) const;
 
-        /** calculate the slope gradient for a given element
-         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
-        double CalcSlopeGradient(int neigh_idx) const;
 
         /** the perimeter is similar to the slope constraint but always globalized (sum) */
         double CalcPerimeter(double eps, double l_k) const;
@@ -588,10 +626,6 @@ class Function
 
       /** Store the local values. */
       Vector<double> values;
-
-      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of infeasible element functions and prints the
-       * value in Optimization::LogFileLine() -> just a service */
-      int infeasible;
 
     private:
       /** Service method for the constructor
@@ -729,6 +763,9 @@ class Function
 
     /** The actual kind of cost function. */
     Type type_;
+
+    /** The slack function type */
+    SlackFnct slackFnct_ = NO_FUNCTION;
 
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;

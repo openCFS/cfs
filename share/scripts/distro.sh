@@ -252,7 +252,8 @@ elif [ "${OS}" = "Linux" ] ; then
 elif [ ${OS} = "Darwin" ]; then
     MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
     if [ $? -eq 0 ]; then
-        MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'(' -f1)
+        # up to 10.11 "OS X 10.11.6 (15G1004)" from 10.12 "macOS 10.12 (16A323"
+        MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'S' -f2 | cut -d'(' -f1)
         OS="Mac OS X"
         DIST="MACOSX"
         DIST_FAMILY="MACOSX"
@@ -274,7 +275,8 @@ elif [ ${OS} = "Darwin" ]; then
             "10.8") PSEUDONAME="Mountain Lion (Zinfandel)"; ARCH="X86_64";;
             "10.9") PSEUDONAME="Mavericks (Cabernet)"; ARCH="X86_64";;
             "10.10") PSEUDONAME="Yosemite (Sirah)"; ARCH="X86_64";;
-            "10.11") PSEUDONAME="(Gala)"; ARCH="X86_64";;
+            "10.11") PSEUDONAME="El Capitan"; ARCH="X86_64";;
+            "10.12") PSEUDONAME="Sierra"; ARCH="X86_64";;
         esac
 
         OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
@@ -285,10 +287,10 @@ elif [ ${OS} = "Darwin" ]; then
 fi
 
 case "$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')" in
-    "SCIENTIFIC") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "CENTOS") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "ORACLE") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
-    "RHEL") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9]$//') ;;
+    "SCIENTIFIC") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
+    "CENTOS") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//');;
+    "ORACLE") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
+    "RHEL") DIST_FAMILY="RHEL"; MAJOR_REV=$(echo ${REV} | sed -e 's/\.[0-9.]*$//') ;;
     "SLE") DIST_FAMILY="SLE"; MAJOR_REV=${REV} ;;
     *) break ;;
 esac

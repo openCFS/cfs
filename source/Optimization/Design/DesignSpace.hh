@@ -54,10 +54,20 @@ namespace CoupledField
      virtual void PostInit(int objectives, int constraints);
 
      /** Consist all regions of the design of a regular grid?.
-      * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
+      * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT
+      * Regular means: All elements have same size but not filled cube*/
      virtual bool IsRegular() const
      {
        return all_regions_regular_;
+     }
+
+     /**
+      * Is the design the whole mesh consisting of regular elements and completely filled by elements?
+      * Is not true for a sparse mesh?
+      */
+     bool IsCubic() const
+     {
+       return is_cubic_;
      }
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
@@ -92,6 +102,10 @@ namespace CoupledField
       * @return true if design and retScal is set */
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
+
+     /** Checks if tensor is positive definite. */
+     template <class T>
+     bool TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
 
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
@@ -211,10 +225,15 @@ namespace CoupledField
       * @param out if it has a window writes to the window of the vector! */
      virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
+       // this contains the density filtered gradient or the shape mapping gradient calculation
+       write_gradient_timer_->Start();
+
        if(f == NULL || f->HasDenseJacobian())
          WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
        else
          WriteSparseGradientToExtern(out, vs, access, f, scaling);
+
+       write_gradient_timer_->Stop();
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
@@ -373,6 +392,9 @@ namespace CoupledField
      /** returns the current design id */
      int GetCurrentDesignId() const { return design_id; }
 
+     /** Currently only used by SGP::OuterToDesign() */
+     void IncrementDesignId() { design_id++; }
+
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />
       * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>
@@ -404,16 +426,16 @@ namespace CoupledField
        /** Default constructor as C++ has no defaults :( */
        DesignRegion();
 
-       DesignElement::Type design;
-       RegionIdType regionId;
-       unsigned int base;
-       unsigned int elements;
-       DesignConstant constant;
-       double scale_design;
-       double translate_design;
+       DesignElement::Type design = DesignElement::NO_TYPE;
+       RegionIdType regionId = -1;
+       unsigned int base = 0;
+       unsigned int elements = 0;
+       DesignConstant constant = VARIABLE;
+       double scale_design = 0.0;
+       double translate_design = 0.0;
 
        /** points to the multimaterial array or is NULL */
-       MultiMaterial* multimaterial;
+       MultiMaterial* multimaterial = NULL;
 
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 
@@ -555,6 +577,8 @@ namespace CoupledField
       * Note, that in the derived design space a irregular grid is assumed! */
      bool all_regions_regular_;
 
+     bool is_cubic_;
+
      /** just a cache from regions */
      StdVector<RegionIdType> regionIds_;
 
@@ -582,6 +606,8 @@ namespace CoupledField
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
 
+     /** this contains applying density filtered gradient or chain rule for shape mapping */
+     boost::shared_ptr<Timer> write_gradient_timer_;
 
      ErsatzMaterial::Method method_;
   };

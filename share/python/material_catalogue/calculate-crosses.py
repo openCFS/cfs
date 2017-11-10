@@ -1,10 +1,7 @@
 #!/usr/bin/python
 import platform
-if platform.system() == 'Darwin':
-  from PIL import Image, ImageDraw
-else:
-  import Image, ImageDraw
-import libxml2
+from PIL import Image, ImageDraw
+import lxml
 import sys, bz2, os
 from scipy import ndimage
 import numpy as np
@@ -237,7 +234,7 @@ parser.add_argument("--point", help="point list", type=np.array, default=np.zero
 parser.add_argument("--msfem", help="name of msfem grid file on the fine scale")
 parser.add_argument("--hom", help="name of grid file for homogenization cell problem")
 parser.add_argument("--sparse_msfem", help="sparse msfem option true or false")
-parser.add_argument("--shape", help="choose between frame or cross", choices=['frame', 'cross', 'frame_modified', 'frame_w_triangles', 'auxetic'])
+parser.add_argument("--shape", help="choose between frame or cross", choices=['frame', 'cross', 'frame_modified', 'frame_w_triangles', 'auxetic','ortho_bc'])
 parser.add_argument("--triangle_msfem", help="true or false")
 parser.add_argument("--filter", help="filtered densities on or off")
 parser.add_argument("--void_material", help="set value for void material", type=float, default=1e-9)
@@ -261,35 +258,37 @@ folder = args.folder
 void = args.void_material
 
 if args.shape == "auxetic" and not args.gmsh:
-  print "Error: --gmsh option is necessary for auxetic structures!"
+  print("Error: --gmsh option is necessary for auxetic structures!")
 
 if dim == 2:
   #setup calculation directory
   if args.msfem:
     if args.triangle_msfem:
       outfile = str(folder) + '_/jobs' 
-      print "computing with " + str(steps) + " steps!"
+      print("computing with " + str(steps) + " steps!")
       if not os.path.exists(str(folder)):
         os.mkdir(str(folder))
       os.system('cp mat.xml ' + str(folder))
     else:
       outfile = str(folder) + '/jobs' 
-      print "computing with " + str(steps) + " steps!"
+      print("computing with " + str(steps) + " steps!")
       if not os.path.exists(str(folder) + "/"):
         os.mkdir(str(folder))
       os.system('cp mat.xml ' + str(folder) + '/')
   else:
     outfile = str(folder) + '/jobs'
-    print "computing with " + str(steps) + " steps!"
-    os.mkdir(str(folder) + "/")
+    print("computing with " + str(steps) + " steps!")
+    if not os.path.exists(str(folder) + ''):
+      os.mkdir(str(folder) + "/")
     os.system('cp mat.xml ' + str(folder) + '/')
 if dim == 3:
   outfile = str(folder) + '/jobs'
-  print "computing with " + str(steps) + " steps!"
-  os.mkdir(str(folder) + '')
+  print("computing with " + str(steps) + " steps!")
+  if not os.path.exists(str(folder) + ''):
+    os.mkdir(str(folder) + '')
   os.system('cp mat.xml ' + str(folder) + '/')
   
-print outfile
+print(outfile)
 jobfile = open(outfile, "w")
 if dim == 2:
   if args.msfem:
@@ -325,7 +324,7 @@ if dim == 2:
         elif args.shape == 'frame_w_triangles':
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, modify=False, triangle = True)
         else:
-          print 'Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]'
+          print('Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]')
         
         densfilename = str(x) + "-" + str(y) + "_msfem.dens.xml"
         
@@ -336,7 +335,7 @@ if dim == 2:
           if args.shape == 'frame':
             overarray = insert_modified_frame(overarray, int(minres/args.epsilon+0.5+1e-6), y, x, steps, void, 1, 0, False)
           else:
-            print 'Warning: other shapes not implemented yet for oversampling.'
+            print('Warning: other shapes not implemented yet for oversampling.')
           overdensfilename = str(x) + "-" + str(y) + "_msfem_oversample.dens.xml"
           if args.filter == 'on':
             #filtering of the data due to the theory of homogenization
@@ -350,7 +349,7 @@ if dim == 2:
           if not args.sparse_msfem:
             write_density_file(str(folder) + "/" + overdensfilename, overarray_filter, "set")
           else:
-            print 'Warning: Sparse meshes not implemented for oversampling yet.'
+            print('Warning: Sparse meshes not implemented for oversampling yet.')
           overarray = void * np.ones((int(minres/args.epsilon+0.5+1e-6), int(minres/args.epsilon+0.5+1e-6)))   
         
         # filter for smoothing the frame/cross, necessary for homogenization theory  
@@ -371,9 +370,8 @@ if dim == 2:
         # creating cfs .xml files for msfem cell problems using triangle 2D elements
         if args.triangle_msfem:
           # create xml file for cfs
-          doc = libxml2.parseFile("triangle_msfem.xml")
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+          doc = lxml.etree.parse("triangle_msfem.xml", lxml.etree.XMLParser(remove_comments=True))
+          #err  = doc.xpath("//orthotropy/@err")[0] 
           val = []
           for i in range(6):
             val.append("0.")
@@ -392,20 +390,20 @@ if dim == 2:
             val[index2] = func[index]
             if i % 2 == 0:
               # degree of freedom x
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
             else:
               # degree of fredom y
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
             val[index1] = "0."
             val[index2] = "0."
             if i % 2 != 0:
@@ -418,7 +416,7 @@ if dim == 2:
             if i % 2 == 0:         
               doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
-	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
@@ -428,13 +426,11 @@ if dim == 2:
               jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
               os.system('cp triangle_msfem.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
-          print str(x) + ' ' + str(y) + ' is done'
+          print(str(x) + ' ' + str(y) + ' is done')
         else:
           # MSFEM for 2D quadrileteral elements 
           # create xml file for cfs solving MSFEM cell problems
-          doc = libxml2.parseFile("compliance_plain.xml")
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+          doc = lxml.etree.parse("compliance_plain.xml", lxml.etree.XMLParser(remove_comments=True))
           val = []
           for i in range(8):
             val.append("0.")
@@ -454,24 +450,24 @@ if dim == 2:
             val[index2] = func[index]
             if i % 2 == 0:
               # degree of freedom x
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', val[3])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', val[3])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', str(0.))
             else:
               # degree of fredom y
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', val[3])
-              replace(xml, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
-              replace(xml, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="y"]/@value', val[0])
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="y"]/@value', val[1])
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="y"]/@value', val[2])
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="y"]/@value', val[3])
+              replace(doc, '//cfs:dirichletInhom[@name="left"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="bottom"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="right"][@dof="x"]/@value', str(0.))
+              replace(doc, '//cfs:dirichletInhom[@name="top"][@dof="x"]/@value', str(0.))
             val[index1] = "0."
             val[index2] = "0."
             if i % 2 != 0:
@@ -484,7 +480,7 @@ if dim == 2:
             if i % 2 == 0:         
               doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
-	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             # sparse is not working currently
             if args.sparse_msfem:
               mesh = str(x) + "-" + str(y) + '.mesh'
@@ -504,7 +500,7 @@ if dim == 2:
             jobfile.write('cfs.rel -m ' + str(args.oversampling) + ' -x ' + overdensfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
           else:
             jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
-          print str(x) + ' ' + str(y) + ' is done'
+          print(str(x) + ' ' + str(y) + ' is done')
         if args.design:
             # stop calculations if only one point is needed (debug)
             x = steps + 1
@@ -532,7 +528,7 @@ if dim == 2:
           x = float(x) / steps_p if steps_p > 0 else 0
           y = float(y) / steps_p if steps_p > 0 else 0
           if steps_p <= 0:
-            print "ERROR: steps_p is 0 or smaller"
+            print("ERROR: steps_p is 0 or smaller")
           if args.design:
             tmp = args.design.split(',')
             x = float(steps * float(tmp[0]))
@@ -551,8 +547,11 @@ if dim == 2:
         if args.shape == "frame_modified":
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, True)
         elif args.shape == "auxetic":
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system("gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
           create_mesh_from_gmsh(str(args.gmsh)+"/" + problem,"aux_cells")
           os.system('cp ' +str(args.gmsh)+"/" + problem +".mesh " + str(folder) + '/' + problem + '.mesh')
         else:
@@ -572,7 +571,7 @@ if dim == 2:
         else:
           os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
           jobfile.write('cfs.rel ' + problem + ' \n')  
-        print problem  + ' is done'
+        print(problem  + ' is done')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -599,7 +598,7 @@ if dim == 2:
           x = float(x) / steps_p if steps_p > 0 else 0
           y = float(y) / steps_p if steps_p > 0 else 0
           if steps_p <= 0:
-            print "ERROR: steps_p is 0 or smaller"
+            print("ERROR: steps_p is 0 or smaller")
           if args.design:
             tmp = args.design.split(',')
             x = float(steps * float(tmp[0]))
@@ -637,7 +636,7 @@ if dim == 2:
         jobfile.write('cfs.rel -m ' + str(args.hom) + ' -x ' + densfilename + ' ' + problem + ' \n')
         # create xml file for cfs
         os.system('cp inv_tensor.xml ' + str(folder) + '/' + problem + '.xml')
-        print problem + ' is done'
+        print(problem + ' is done')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -650,7 +649,7 @@ if dim == 2:
       if not args.design:
         x+=1
   else:
-    print 'option not defined'
+    print('option not defined')
 elif dim == 3:
   # Homogenization for 3D cross structures
   joblist = ()
@@ -669,7 +668,7 @@ elif dim == 3:
           y = float(y) / steps_p if steps_p > 0 else 0
           z = float(z) / steps_p if steps_p > 0 else 0
           if steps_p <= 0:
-            print "ERROR: steps_p is 0 or smaller"
+            print("ERROR: steps_p is 0 or smaller")
           if args.design:
             tmp = args.design.split(',')
             x = float(steps * float(tmp[0]))
@@ -687,7 +686,7 @@ elif dim == 3:
           densfilename = str(x) + "-" + str(y) +"-" + str(z) + ".dens.xml"
           problem = str(x)+ "-" +str(y) + "-" + str(z) 
          
-        if not args.gmsh:  
+        if not args.gmsh and not args.shape == "ortho_bc":  
           array = void * np.ones((minres, minres, minres))
           if args.penalization:
             offx = int((minres / 2.) * (1. - ((float(x) * steps_p / steps)**3./steps_p)) + 0.5)
@@ -697,7 +696,7 @@ elif dim == 3:
             offx = int((minres / 2.) * (1. - float(x) / (steps)) + 0.5)
             offy = int((minres / 2.) * (1. - float(y) / (steps)) + 0.5)
             offz = int((minres / 2.) * (1. - float(z) / (steps)) + 0.5)
-          print "test: offx " + str(offx) + " test: offy " + str(offy) + " test: offz " + str(offz)
+          print("test: offx " + str(offx) + " test: offy " + str(offy) + " test: offz " + str(offz))
           for i in range(0, minres):
             for j in range(offx, minres - offx):
               for k in range(offx, minres - offx):
@@ -722,19 +721,34 @@ elif dim == 3:
           os.system('cp inv_tensor_3D.xml ' + str(folder) + '/' + problem + '.xml')
           file = str(folder) + '/' + problem + '.xml'
           if os.path.isfile(file):      
-            doc = libxml2.parseFile(file)
-            xml = doc.xpathNewContext()
-            xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
-            replace(xml, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
+            doc = lxml.etree.parse(file, lxml.etree.XMLParser(remove_comments=True))
+            replace(doc, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
             doc.saveFile(file)
-        else:          
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
-          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
-          os.system('cp ' +str(args.gmsh)+"/" + problem +".msh " + str(folder) + '/' + problem + '.mesh')
-          os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
-          jobfile.write('cfs.rel ' + problem + ' \n')
-          
-        print problem + ' is done'
+        else:
+          if args.gmsh:             
+            #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+            #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+            os.system("gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+            os.system("gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+            os.system('cp ' +str(args.gmsh)+"/" + problem +".msh " + str(folder) + '/' + problem + '.mesh')
+            os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
+            jobfile.write('cfs.rel ' + problem + ' \n')
+          elif args.shape == "ortho_bc":
+            os.system('cp inv_tensor_3D_ortho_bc.xml ' + str(folder) + '/' + problem + '.xml')
+            # basecell script can only handle values 0< x < 1, therefore change x,y,z appropriately
+            x1 = x
+            y1 = y
+            z1 = z
+            x1 = 1e-5*steps if x == 0 else x1
+            y1 = 1e-5*steps if y == 0 else y1
+            z1 = 1e-5*steps if z == 0 else z1
+            x1 = 0.9999*steps if x == steps else x1
+            y1 = 0.9999*steps if y == steps else y1
+            z1 = 0.9999*steps if z == steps else z1 
+            #print("x1 = "+str(x1) + ", x1_cell = "+ str(float(x1)/float(steps)))
+            os.system("../basecell.py --res "+str(args.res)+" --x1 "+str(float(x1)/float(steps))+" --y1 " +str(float(y1)/float(steps))+ " --z1 "+str(float(z1)/float(steps))+" --target volume_mesh --beta 7 --eta 0.6  --interpolation heaviside --bend 0.5 --save "+str(folder) + "/"+problem)
+            jobfile.write('cfs.rel ' + problem + ' \n')
+        print(problem + ' is done')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1

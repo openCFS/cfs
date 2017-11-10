@@ -6,6 +6,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 
 
 namespace CoupledField
@@ -33,13 +34,26 @@ CoefFunctionFormBased::~CoefFunctionFormBased() {
 
 void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,  
                                            RegionIdType region ) {
-  
+#ifdef USE_OPENMP
+  if(omp_get_num_threads()!=1){
+    EXCEPTION("Call from parallel region which is not safe!")
+  }
+#endif
+  std::map<RegionIdType, BaseBDBInt* >& forms = forms_.Mine(0);
+
   // check if region has already an integrator assigned
-  if( forms_.find(region) != forms_.end() ) {
+  if( forms.find(region) != forms.end() ) {
     EXCEPTION( "Multiply defined region");
   }
-  
-  forms_[region] = form;
+  //here we check if we are from a single threaded region.
+  //if so, we fill all slots. If not, we just fill the current thread
+#ifdef USE_OPENMP
+  for(UInt i=0;i<forms_.GetNumSlots();++i){
+    forms_.Mine(i)[region] = form->Clone();
+  }
+#else
+  forms_.Mine()[region] = form;
+#endif
 }    
 
 
@@ -140,11 +154,14 @@ void CoefFunctionBOp<TYPE>::GetTensor(Matrix<TYPE>& coefMat,
 template<class TYPE>
 void CoefFunctionBOp<TYPE>::GetVector(Vector<TYPE>& coefVec,
                                       const LocPointMapped& lpm ) {
-  this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
+  Vector<TYPE>& elemSol = elemSol_.Mine();
+  Matrix<TYPE>& bMat = bMat_.Mine();
+
+  this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
   BaseFE* ptFe = feSpace_->GetFe( lpm.ptEl->elemNum );
   if(this->bOps_.find(lpm.ptEl->regionId) != this->bOps_.end()){
-    this->bOps_[lpm.ptEl->regionId]->CalcOpMat(bMat_, lpm, ptFe);
-    coefVec = bMat_* (elemSol_);
+    this->bOps_[lpm.ptEl->regionId]->CalcOpMat(bMat, lpm, ptFe);
+    coefVec = bMat* (elemSol);
     coefVec *= factor_;
   } else{
     coefVec.Resize(this->res_->dofNames.GetSize());
@@ -205,9 +222,15 @@ template<class TYPE, bool TRANS> CoefFunctionFlux<TYPE,TRANS>::
 template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::
 AddIntegrator( BaseBDBInt* form,  
                RegionIdType region ) {
+#ifdef USE_OPENMP
+  if(omp_get_num_threads()!=1){
+    EXCEPTION("Call from parallel region which is not safe.")
+  }
+#endif
+  std::map<RegionIdType, BaseBDBInt* >& forms = forms_.Mine(0);
 
   // check if region has already an integrator assigned
-  if( forms_.find(region) != forms_.end() ) {
+  if( forms.find(region) != forms.end() ) {
     EXCEPTION( "Multiply defined region");
   }
 
@@ -223,8 +246,14 @@ AddIntegrator( BaseBDBInt* form,
       EXCEPTION( "All B-operators must have the same vector size");
     } 
   }
-  forms_[region] = form;
-
+  //now we clone each integrator and we already checked if we are in single thread region
+#ifdef USE_OPENMP
+  for(UInt i=0;i<forms_.GetNumSlots();++i){
+    forms_.Mine(i)[region] = form->Clone();
+  }
+#else
+  forms_.Mine()[region] = form;
+#endif
 }
 
 template<class TYPE, bool TRANS>
@@ -263,9 +292,12 @@ void CoefFunctionFlux<TYPE,TRANS>::GetTensor(Matrix<TYPE>& coefMat,
 template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::
 GetVector(Vector<TYPE>& coefVec,
           const LocPointMapped& lpm ) {
-  
+
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  Vector<TYPE>& elemSol = elemSol_.Mine();
+
   this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-  BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId];
+  BaseBDBInt* bdb = forms[lpm.ptEl->regionId];
   if( !bdb) {
     coefVec.Resize(res_->dofNames.GetSize());
     coefVec.Init();
@@ -310,6 +342,131 @@ template class CoefFunctionFlux<Double,true>;
 template class CoefFunctionFlux<Complex,true>;
 
 // ==========================================================================
+//  COEFFICIENT FUNCTION FOR EIGENSTRESSES
+// ==========================================================================
+// Example for using CoefFunctionEigen: See MechPDE::DefinePostProcResults()
+// Principal Stresses and Strains
+CoefFunctionEigen::CoefFunctionEigen( shared_ptr<BaseFeFunction> feFct,
+                  shared_ptr<ResultInfo> info,
+				  PtrCoefFct stressCoef,
+                  Double factor )
+                  :CoefFunctionFormBased() {
+  feFct_ = dynamic_pointer_cast<FeFunction<Double> >(feFct);
+  res_ = info;
+  factor_ = factor;
+  isComplex_ = false; //this eigenvalue solver can only handle real values!
+
+  // set inherited attributes
+  dimType_ = CoefFunction::VECTOR;
+  stressCoef_ = stressCoef;
+}
+
+CoefFunctionEigen::~CoefFunctionEigen() {
+
+}
+
+void CoefFunctionEigen::GetVector(
+		  Vector<Double>& coefVec,
+          const LocPointMapped& lpm
+		  ) {
+
+  //Gets the stress/strain values from the CoefFunction class which is passed through stressCoef
+  stressCoef_->GetVector(coefVec, lpm);
+
+  GetEigenFromCoefVec(coefVec);
+}
+
+UInt CoefFunctionEigen::GetVecSize() const{
+     return this->res_->dofNames.GetSize();
+}
+
+void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
+  {
+  //This function calculates the principal stresses and principal strains from a given
+  //stress or strain state in coefVec and return it to solVec.
+  //Generic result, so it must be "sliced" in MechPDE with MathParser
+  //
+  //Returns principal stresses/strains in the following order:
+  //-minimum principal stress vector
+  //-medium principal stress vector (for 3D)
+  //-maximum principal stress vector
+  //-minimim principal stress scalar
+  //-medium principal stress scalar (for 3D)
+  //-maximum principal stress scalar
+
+  //Step 1: Conversion of this (coefVec) to a std::vector a in the correct order
+
+  std::vector<double> lp_a, lp_w, lp_work;
+
+  // throwing otherwise "Not a valid Voigt stress/strain tensor for eigenvalue calculation"
+  // is expensive as exception throwing has a slight overhead
+  assert(solVec.GetSize() == 3 || solVec.GetSize() == 6);
+
+  int lp_n = solVec.GetSize() == 3 ? 2 : 3;
+
+  char lp_uplo = 'L';
+  char lp_jobz = 'V'; //Documentation in LAPACK: dsyev
+  int lp_lda = lp_n;
+  int lp_info;
+  int lp_lwork;
+
+  assert(lp_n == 2 || lp_n == 3);
+
+  if (lp_n == 2){                             //2D-case
+    lp_lwork = 68;                            //68 is the optimum value for a 2x2 matrix
+    lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
+    lp_a.push_back(solVec.GetDoubleEntry(2)); //style in FORTRAN
+    lp_a.push_back(solVec.GetDoubleEntry(2));
+    lp_a.push_back(solVec.GetDoubleEntry(1));
+  }
+  else {                                      //3D-case
+    lp_lwork = 102;                           //102 is the optimum value for a 3x3 matrix
+    lp_a.push_back(solVec.GetDoubleEntry(0)); //Reordering from Voigt notation to column-major matrix
+    lp_a.push_back(solVec.GetDoubleEntry(5)); //style in FORTRAN
+    lp_a.push_back(solVec.GetDoubleEntry(4));
+    lp_a.push_back(solVec.GetDoubleEntry(5));
+    lp_a.push_back(solVec.GetDoubleEntry(1));
+    lp_a.push_back(solVec.GetDoubleEntry(3));
+    lp_a.push_back(solVec.GetDoubleEntry(4));
+    lp_a.push_back(solVec.GetDoubleEntry(5));
+    lp_a.push_back(solVec.GetDoubleEntry(2));
+  }
+
+  lp_w.resize(lp_n);
+  lp_work.resize(lp_lwork);
+
+  //Step 2: Eigensolver
+
+  solVec.Resize(lp_n * (lp_n+1));
+  dsyev(&lp_jobz, &lp_uplo, &lp_n, &*lp_a.begin(), &lp_lda, &*lp_w.begin(), &*lp_work.begin(), &lp_lwork, &lp_info);
+
+  //Step 3: Back-conversion of a to solVec
+  for(int i = 0; i < lp_n; ++i) {
+    for (int j = 0; j < lp_n; ++j){
+      solVec[i*lp_n + j] = lp_w[i] * lp_a[i*lp_n + j]; //Stacking the eigenvectors in a 4x1 (2D) or 9x1(3D) vector
+    }
+  }
+  for(int i = 0; i < lp_n; ++i) {
+    solVec[lp_n * lp_n + i] = lp_w[i];
+  }
+
+  //lp_w: vector of eigenvalues
+  //lp_a: vector of normalized eigenvectors
+  //solVec before dsyev: "stacked" stress or strain tensor
+  //solVec after dsyev: eigenvectors and eigenvalues in order as mentioned above.
+
+}
+
+std::string CoefFunctionEigen::ToString() const {
+  std::stringstream out;
+  out << "CoefFunctionEigen\n";
+  out << "ApplyTransposed: false. No such implementation in CoefFunctionEigen" << std::endl;
+  out << "Result: " <<
+      SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+// ==========================================================================
 //  COEFFICIENT FUNCTION BASED ON KERNEL OF BDB-INTEGRATOR
 // ==========================================================================
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::
@@ -334,17 +491,21 @@ template<class TYPE> CoefFunctionBdBKernel<TYPE>::
 template<class TYPE> void CoefFunctionBdBKernel<TYPE>::GetScalar( TYPE& coefScal, const LocPointMapped& lpm )
 {
   // energy density is factor * elemSol^T * kernel * elemSol
-  this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
+  Vector<TYPE>& elemSol = elemSol_.Mine();
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
   
   Vector<TYPE> temp;
-  if( !this->forms_[lpm.ptEl->regionId]->IsComplex() ) {
-    this->forms_[lpm.ptEl->regionId]->CalcKernel(kernelR_, lpm);
-    temp = kernelR_ * elemSol_;
+  if( !forms[lpm.ptEl->regionId]->IsComplex() ) {
+    Matrix<Double>& kernelR = kernelR_.Mine();
+    forms[lpm.ptEl->regionId]->CalcKernel(kernelR, lpm);
+    temp = kernelR * elemSol;
   } else {
-    this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
-    temp = kernel_ * elemSol_;
+    Matrix<TYPE>& kernel = kernel_.Mine();
+    forms[lpm.ptEl->regionId]->CalcKernel(kernel, lpm);
+    temp = kernel * elemSol;
   }
-  coefScal = temp.Inner(elemSol_) * factor_;
+  coefScal = temp.Inner(elemSol) * factor_;
 }
 template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 {
@@ -357,7 +518,8 @@ template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 
 template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
 {
-  LOG_DBG2(cff) << "CFDS:CFDS #forms=" << this->forms_.size();
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  LOG_DBG2(cff) << "CFDS:CFDS #forms=" << forms.size();
 
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
@@ -371,15 +533,18 @@ template<class TYPE> CoefFunctionDyadicStrain<TYPE>::~CoefFunctionDyadicStrain()
 
 template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
 {
-  LOG_DBG2(cff) << "CFDS:GTS #forms=" << this->forms_.size();
+  const std::map<RegionIdType, BaseBDBInt* > & forms = this->forms_.ConstMine();
+  LOG_DBG2(cff) << "CFDS:GTS #forms=" << forms.size();
   numRows = domain->GetGrid()->GetDim() == 2 ? 3 : 6;
   numCols = numRows;
 }
 
 template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
 {
-  LOG_DBG2(cff) << "CFDS:GT #forms=" << this->forms_.size();
-  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+
+  LOG_DBG2(cff) << "CFDS:GT #forms=" << forms.size();
+  BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
   // LOG_DBG2(cff) << "CFDS:GT lpm=" << lpm.ptEl->elemNum << " form=" << form->GetName() << " B=" << form->GetBOp()->GetName();
 
@@ -391,15 +556,16 @@ template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>
 
 
   // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
-  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
-  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol_.ToString(2);
+  Vector<TYPE>& elemSol = elemSol_.Mine();
+  this->feFct_->GetElemSolution(elemSol, lpm.ptEl);
+  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol.ToString(2);
 
   Vector<TYPE> tmp;
-  form->ApplyBMat(tmp, elemSol_, lpm);
+  form->ApplyBMat(tmp, elemSol, lpm);
   // LOG_DBG2(cff) << "CFDS:GT B*u=" << tmp.ToString(2);
 
   // Vector<TYPE> manual;
-  // manual = B * elemSol_;
+  // manual = B * ;
   // LOG_DBG2(cff) << "CFDS:GT manual=" << manual.ToString(2);
 
   tensor.DyadicMult(tmp, tmp.Conj());
@@ -430,11 +596,12 @@ template<class TYPE> CoefFunctionQuadSol<TYPE>::~CoefFunctionQuadSol() { }
 
 template<class TYPE> void CoefFunctionQuadSol<TYPE>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
 {
+  Vector<TYPE>& elemSol = elemSol_.Mine();
   // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
-  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
-  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol_.ToString(2);
+  this->feFct_->GetElemSolution(elemSol, lpm.ptEl);
+  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol.ToString(2);
 
-  coefScal = elemSol_.Inner();
+  coefScal = elemSol.Inner();
   LOG_DBG2(cff) << "CFSQ:GS -> " << coefScal;
 }
 
@@ -518,7 +685,9 @@ template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
 
 template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
 {
-  LOG_DBG2(cff) << "CFS:CFS #forms=" << this->forms_.size();
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+
+  LOG_DBG2(cff) << "CFS:CFS #forms=" << forms.size();
 
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
@@ -534,12 +703,13 @@ template<class TYPE> CoefFunctionStiffness<TYPE>::~CoefFunctionStiffness() { }
 
 template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() const
 {
-  LOG_DBG2(cff) << "CFS:GVS #forms=" << this->forms_.size();
+  const std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.ConstMine();
+  LOG_DBG2(cff) << "CFS:GVS #forms=" << forms.size();
 
   unsigned int numRows = 0;
   unsigned int numCols = 0;
 
-  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+  forms.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
 
   assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
   assert(numCols == numRows);
@@ -552,9 +722,10 @@ template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() cons
 
 template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
 {
-  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
-  LOG_DBG(cff) << "CFS:GTV #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+  LOG_DBG(cff) << "CFS:GTV #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   Matrix<TYPE> tensor;
@@ -577,9 +748,10 @@ template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
 
 template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
 {
-  LOG_DBG2(cff) << "CFS:GTS #forms=" << this->forms_.size();
+  const std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.ConstMine();
+  LOG_DBG2(cff) << "CFS:GTS #forms=" << forms.size();
 
-  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+  forms.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
 
   assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
   assert(numCols == numRows);
@@ -587,9 +759,10 @@ template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned in
 
 template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
 {
-  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+  std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  BaseBDBInt* form = forms[lpm.ptEl->regionId];
 
-  LOG_DBG(cff) << "CFS:GT #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+  LOG_DBG(cff) << "CFS:GT #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   form->GetCoef()->GetTensor(tensor, lpm);

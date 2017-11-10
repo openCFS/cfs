@@ -17,6 +17,20 @@ namespace CoupledField {
     //! destructor: nothing to do
     virtual ~ApproxData() {;};
 
+    //! Copy Constructor
+    ApproxData(const ApproxData& right){
+      //here we would also need to create a new operator
+      this->factor_ = right.factor_;
+      this->matType_ = right.matType_;
+      this->nlFileName_ = right.nlFileName_;
+      this->numIndepend_ = right.numIndepend_;
+      this->numMeas_ = right.numMeas_;
+      this->x1_ = right.x1_;
+      this->x_ = right.x_;
+      this->y_ = right.y_;
+      this->z_ = right.z_;
+    }
+
     //! reads in the sampled data form file with name fncName
     void ReadNlinFunc( std::string fncName );
     void ReadNlinFuncTwoIndep( std::string fncName );

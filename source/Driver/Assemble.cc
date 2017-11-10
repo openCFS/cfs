@@ -43,7 +43,7 @@ namespace CoupledField
                       BasePDE::AnalysisType analysis,
                       MathParser* mp,
                       PtrParamNode infoNode) 
-  : timer_(new Timer()) {
+  {
 
     // init general params
     algsys_ = algsys;
@@ -53,8 +53,9 @@ namespace CoupledField
     matrixUpdated_ = false;
     printProgressBar_ = false;
     info_ = infoNode;
-    
     lin_forms_given_ = false;
+
+    timer_ = boost::shared_ptr<Timer>(new Timer());
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones
@@ -97,6 +98,9 @@ namespace CoupledField
     matReassemble_[STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
     matReassemble_[MASS] = true;
+    matReassemble_[STIFFNESS_UPDATE] = true;
+    matReassemble_[DAMPING_UPDATE] = true;
+    matReassemble_[MASS_UPDATE] = true;
     matReassemble_[AUXILIARY] = true;
 
     // reset also flag for "firstTime"
@@ -344,14 +348,14 @@ namespace CoupledField
 
             NcBiLinFormContext* ncContext = dynamic_cast<NcBiLinFormContext*>(forms[iForm]);
 
-            bool moving = false;
+            bool full = false;
             if(ncContext){
-              if(ncContext->GetMotion())
-                moving = true;
+              if(ncContext->NeedsFullMatrix())
+                full = true;
             }
 
 
-            if (ncContext && moving) {
+            if (ncContext && full) {
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
 
@@ -441,10 +445,6 @@ namespace CoupledField
   }
   
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
-    Matrix<Double> elemMatrix;
-    Matrix<Complex> elemMatrixC;
-    StdVector<Integer> eqnVec1, eqnVec2;
-    FeFctIdType fctId1, fctId2;
 
     LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
 
@@ -456,7 +456,6 @@ namespace CoupledField
     // Temporary: Check each time for non-linearities
     // On first Assembly, assemble all matrices for each BilinearForm
     CheckNonLinearities(isFirstTime_);
-
 
     // Init all matrices, which have to be reassembled
     // Just to be done, when isNewtonPart is false!
@@ -518,6 +517,33 @@ namespace CoupledField
         }
       }
 
+
+#ifdef USE_OPENMP
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+
+
+      UInt numT = NUM_CFS_THREADS;
+      UInt aThread = omp_get_thread_num();
+      StdVector<BiLinearForm *> biLinForms(forms.GetSize());
+
+      UInt chunksize = std::floor(size/numT);
+      UInt start = chunksize * aThread;
+      UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
+
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+        //copy bilinear forms
+        biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
+      }
+//     #pragma omp critical
+//         {
+//             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
+//         }
+#else
+      UInt start = 0;
+      UInt end = size;
+#endif
+
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
@@ -525,8 +551,20 @@ namespace CoupledField
 
       it1.Begin();
       it2.Begin();
+      //take account for const space
+      if( firstEntities.GetSize() != 1 ) {
+        it1+=start;
+      }
+      if( secondEntities.GetSize() != 1 ) {
+        it2+=start;
+      }
 
-      for( UInt i = 0; i < size; ++i  ) {
+
+      Matrix<Double> elemMatrix;
+      Matrix<Complex> elemMatrixC;
+      StdVector<Integer> eqnVec1, eqnVec2;
+      FeFctIdType fctId1, fctId2;
+      for( UInt i = start; i < end; ++i  ) {
 
         LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() << " and " << it2.GetIdString();
 
@@ -565,8 +603,11 @@ namespace CoupledField
           }
           // Update flag
           matrixUpdated_ = true;
-
+#ifdef USE_OPENMP
+          BiLinearForm * form = biLinForms[iForm];
+#else
           BiLinearForm * form = actContext.GetIntegrator();
+#endif
 
           LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
 
@@ -596,6 +637,11 @@ namespace CoupledField
             if(i == 0 && progOpts->DoDetailedInfo())
             {
               PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+
+              // works only for element integrators
+              if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
+                continue; // no element, no region id
+
               // make sure to have only one output for non-static case (e.g. optimization)
               std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
               bool found = false;
@@ -677,6 +723,14 @@ namespace CoupledField
         }
 
       } // loop over entities
+#ifdef USE_OPENMP
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+        //delete copied bilinear forms
+        delete biLinForms[iForm];
+      }
+    }//OMP END
+#endif
+
     }// loop over entitylist pairs
     // Change flag
     isFirstTime_ = false;
@@ -1196,8 +1250,8 @@ namespace CoupledField
       LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if(actContext.IsNonLin() != nonLin)
-        continue;
+      if( actContext.IsNonLin() != nonLin )
+        continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();
 
@@ -1507,11 +1561,23 @@ namespace CoupledField
         derivOrder = 0;
         factor = 1;
         break;
+      case STIFFNESS_UPDATE:
+        derivOrder = 0;
+        factor = 1;
+        break;
       case DAMPING:
         derivOrder = 1;
         factor = omega;
         break;
+      case DAMPING_UPDATE:
+        derivOrder = 1;
+        factor = omega;
+        break;
       case MASS:
+        derivOrder = 2;
+        factor = -omega*omega;
+        break;
+      case MASS_UPDATE:
         derivOrder = 2;
         factor = -omega*omega;
         break;
@@ -1553,10 +1619,20 @@ namespace CoupledField
     case STIFFNESS:
       factor = Complex(1.0, 0.0);
       break;
+    case STIFFNESS_UPDATE:
+      factor = Complex(1.0, 0.0);
+      break;
     case DAMPING:
       factor = Complex(0.0, omega);
       break;
+    case DAMPING_UPDATE:
+      factor = Complex(0.0, omega);
+      break;
     case MASS:
+      // BLOCH CHECK for 1st time derivative order!
+      factor = Complex(-omega*omega, 0.0);
+      break;
+    case MASS_UPDATE:
       // BLOCH CHECK for 1st time derivative order!
       factor = Complex(-omega*omega, 0.0);
       break;
@@ -1583,6 +1659,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = NOTYPE;
       matrixMap_[MASS]      = NOTYPE;
       matrixMap_[AUXILIARY] = NOTYPE;
+      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+      matrixMap_[DAMPING_UPDATE]   = NOTYPE;
+      matrixMap_[MASS_UPDATE]      = NOTYPE;
       break;
 
     case BasePDE::TRANSIENT:
@@ -1591,6 +1670,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
       matrixMap_[AUXILIARY] = AUXILIARY;
+      matrixMap_[STIFFNESS_UPDATE] = STIFFNESS_UPDATE;
+      matrixMap_[DAMPING_UPDATE]   = DAMPING_UPDATE;
+      matrixMap_[MASS_UPDATE]      = MASS_UPDATE;
       break;
 
     case BasePDE::HARMONIC:
@@ -1599,6 +1681,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = SYSTEM;
       matrixMap_[MASS]      = SYSTEM;
       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+      matrixMap_[DAMPING_UPDATE]   = SYSTEM;
+      matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
     case BasePDE::EIGENFREQUENCY:
@@ -1607,6 +1692,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
       matrixMap_[AUXILIARY] = NOTYPE;
+      matrixMap_[STIFFNESS_UPDATE] = STIFFNESS;
+      matrixMap_[DAMPING_UPDATE]   = DAMPING;
+      matrixMap_[MASS_UPDATE]      = MASS;
       break;
 
     default: 
@@ -1680,6 +1768,15 @@ namespace CoupledField
       isComplex = true;
     }
     return isComplex;
+  }
+
+  bool Assemble::IsRhsSolDependent() {
+    bool ret = false;
+    UInt size = linForms_.GetSize();
+    for( UInt i = 0; i < size; ++i ) {
+      ret |= linForms_[i]->IsNonLin();
+    }
+    return ret;
   }
 
 

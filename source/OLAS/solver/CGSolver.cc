@@ -65,11 +65,11 @@ namespace CoupledField {
     q_->Init();
 
     // We need some scalar variables
-    T_Stype delta_new = 0;
-    T_Stype delta_old = 0;
-    T_Stype alpha = 0;
-    T_Stype beta = 0;
-    T_Stype aux = 0;
+    T delta_new = 0;
+    T delta_old = 0;
+    T alpha = 0;
+    T beta = 0;
+    T aux = 0;
 
     // Variables for loop control and related stuff
     bool loop = true;
@@ -81,6 +81,7 @@ namespace CoupledField {
     int    maxiter = 50;
     double eps     = 1e-6;
     int    tmp     = 50; // resDirectly
+    bool consoleConvergence = false;
 
     // overwrite if set in xml
     if(xml_ != NULL)
@@ -88,6 +89,7 @@ namespace CoupledField {
       xml_->GetValue("maxIter", maxiter, ParamNode::INSERT);
       xml_->GetValue("tol", eps, ParamNode::INSERT);
       xml_->GetValue("resDirectly", tmp, ParamNode::INSERT);
+      xml_->GetValue("consoleConvergence", consoleConvergence, ParamNode::INSERT);
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "
@@ -97,16 +99,6 @@ namespace CoupledField {
     else {
       resDirectly_ = (UInt)tmp;
     }
-
-#ifdef DEBUG_CGSOLVER
-    (*debug) << " ### Starting CG" << std::endl;
-    (*debug) << " System matrix:" << std::endl;
-    sysmat.Print(*debug);
-    (*debug) << " Right-hand-side:" << std::endl;
-    rhs.Print(*debug);
-    (*debug) << " Initial guess:" << std::endl;
-    sol.Print(*debug);
-#endif
 
     // =====================
     //   Setup phase of CG
@@ -124,14 +116,9 @@ namespace CoupledField {
     // Compute new delta as inner product of r and d
     r_->Inner( *d_, delta_new );
 
+
     // Compute Euclidean norm of preconditioned initial residual
 
-#ifdef DEBUG_CGSOLVER
-    (*debug) << " Initial residual:" << std::endl;
-    r_->Print(*debug);
-    (*debug) << " Initial preconditioned residual:" << std::endl;
-    d_->Print(*debug);
-#endif
 
     // If Euclidean norm of initial preconditioned residual is too small
     // do not start CG loop
@@ -151,9 +138,6 @@ namespace CoupledField {
       // Determine new q <- A*d
       
       sysmat.Mult( *d_, *q_ );
-//      std::cerr << "in loop " << niter << std::endl;
-//      std::cerr << "\nd_ is " << d_->ToString() << std::endl;
-//      std::cerr << "\nq_ is " << q_->ToString() << std::endl;
 
       // Compute the new parameter alpha <- delta_new / (d^T * q)
       d_->Inner( *q_, aux );
@@ -177,6 +161,10 @@ namespace CoupledField {
       // and log progress, if required
       resNorm = r_->NormL2();
 
+      if(consoleConvergence == true){
+        std::cout<<"Residual of iteration "<<niter<<" = "<<resNorm<<std::endl;
+      }
+
       // Compute s = M^-1*r by applying preconditioner
       ptPrecond_->Apply( sysmat, *r_, *s_ );
 
@@ -195,11 +183,6 @@ namespace CoupledField {
         loop = false;
       }
     }
-
-#ifdef DEBUG_CGSOLVER
-    (*debug) << "cgsolver -> result: " << std::endl;
-    sol.Print(*debug);
-#endif
 
     // ============================
     //   Generate solution report

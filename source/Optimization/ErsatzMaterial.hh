@@ -306,6 +306,9 @@ protected:
    * It would make sense to have a generic gap function between two independent functions */
   double CalcBandGap(Excitation& excite, Function* f, bool derivative);
 
+  /** calculates the variants of slack functions */
+  double CalcSlackFunction(Function* f, bool derivative);
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
@@ -495,6 +498,12 @@ private:
    * @return invalid in derivative case*/
   double CalcGreyness(Condition* g, bool derivative);
 
+  /** Calculates the difference between filtered and non-filtered stiffness tensor.
+   * @param derivative if false the return value is calculated. Otherwise the value in
+   *        the design element is set.
+   * */
+  double CalcFilteringGap(Condition* g, bool derivative);
+
   /** Evaluates virtually blown up local constraints based on the Function::Local neighborhood.
    * E.g. slope and mole. Note, that there are also the globalized variants.
    * @see CalcGlobalFunction() */
@@ -527,6 +536,9 @@ private:
   bool interfaceDrivenGradCalc_;
 
   Function* trackingFunc_;
+
+  boost::shared_ptr<Timer> calc_u1ku2_timer_;
+
 };
 
 } // namespace

@@ -37,11 +37,23 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
 
 void EvaluateOnly::SolveProblem()
 {
+  optimizer_timer_->Stop(); // we don't need this time
+
   // solve the state problem with the initial guess.
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
 
-  // there is no time within this optimizer spent
-  timer_->Stop();
+  StdVector<double> xl(optimization->GetDesign()->GetNumberOfVariables());
+  StdVector<double> xu(xl.GetSize());
+  StdVector<double> gl(optimization->constraints.view->GetNumberOfActiveConstraints());
+  StdVector<double> gu(gl.GetSize());
+  GetBounds(xl.GetSize(), xl.GetPointer(), xu.GetPointer(), gl.GetSize(), gl.GetPointer(), gu.GetPointer());
+
+  for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
+  {
+    Condition* g = optimization->constraints.view->Get(i);
+    LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
+  }
+  optimization->constraints.view->Done();
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = Optimization::context->GetHarmonicDriver();
@@ -71,13 +83,17 @@ void EvaluateOnly::SolveProblem()
     // special case only in harmonic case with more frequencies but not multiple_loads optimization
     optimization->SolveStateProblem();
 
+    eval_obj_timer_->Start();
     double v = optimization->CalcObjective();
+    eval_obj_timer_->Stop();
     LOG_DBG(eval) << "SP: obj=" << v;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     if(eval_grad){
       optimization->SolveAdjointProblems();
+      eval_grad_obj_timer_->Start();
       optimization->CalcObjectiveGradient(&grad);
+      eval_grad_obj_timer_->Stop();
       for(unsigned int i = 0; i < grad.GetSize(); i++) {
         BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
         LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
@@ -87,17 +103,25 @@ void EvaluateOnly::SolveProblem()
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
-      v = EvalConstraint(g, false, false);
-      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v; // snopt index in brackets
+      optimizer_timer_->Start(); // only for the assert
+      v = EvalConstraint(g, false, false); // sets the timer itself
+      optimizer_timer_->Stop();
+
+      double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+
+      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v * scaling; // snopt index in brackets
+
       if(!g->IsObservation()) // not for observation stuff
       {
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
         grad.window.Set(0, pattern.GetSize()); // necessary for a local condition assert
+        eval_grad_const_timer_->Start();
         optimization->CalcConstraintGradient(g, &grad);
+        eval_grad_const_timer_->Stop();
         for(unsigned int i = 0; i < pattern.GetSize(); i++) {
           BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
           LOG_DBG2(eval) << "SP: grad g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " i=" << i
-                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
+                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i] * scaling;
         }
       }
     }

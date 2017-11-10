@@ -3,7 +3,7 @@
 #include <string>
 #include <stdio.h>
 #include <list>
-#include <math.h>
+#include <cmath>
 
 // signal handling for catching Ctrl-C
 #include <signal.h>
@@ -127,7 +127,9 @@ namespace CoupledField {
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        EXCEPTION( "Could not assign default signal action");
+        std::cerr << "Could not assign default signal action" << std::endl; // to exceptions is destructors with gcc 6
+        domain->GetInfoRoot()->ToFile();
+        exit(-1);
       }
       
       // set global pointer to zero
@@ -181,6 +183,9 @@ namespace CoupledField {
     
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
     
+    //only used if AMG is set
+    ptPDE_->GetSolveStep()->SetAuxMat(false);
+
     // Outer loop over all timesteps
     UInt count = 0;
     for (actTimeStep_ = startStep; 
@@ -210,6 +215,15 @@ namespace CoupledField {
         log = true;
         percentCounter += timeStepPercent;
       }
+
+      /*
+       * for debugging -> remove later one
+       * TODO: remove!
+       */
+      if(true){
+        log = true;
+      }
+
 
       if(log)
       {
@@ -260,11 +274,11 @@ namespace CoupledField {
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
         
-        //analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = info_->GetRoot()->
             Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
+        envNode->Get("timePerStep")->SetValue(timePerStep_);
       }
       
     }

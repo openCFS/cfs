@@ -135,14 +135,13 @@ typedef std::multimap<int, std::string> EnumMap;
         // }
 
         /** converts the string representation to the type.
-         * You can use isValid() first to avoid the exceptzion  
+         * You can use isValid() first to avoid the exception
          * @throw an exception if the string is not found. */
         T Parse(const std::string& value) const
         {
           EnumMap::const_iterator it, end;
           it = map.begin();
           end = map.end();
-
             
           for( ; it != end; it++)
           {

@@ -98,13 +98,15 @@ namespace CoupledField {
     isDirectCoupled_(false),
     isInitialized_(false),
     iterCplPde_(NULL),
-    updatedGeo_(false)
+    updatedGeo_(false),
+	isMaterialComplex_( false )
   {
     
     // get id for linear system
     std::string systemId = myParam_->Get("systemId")->As<std::string>();
     
-    PtrParamNode ls = myParam_->GetParent()->GetParent()->Get("linearSystems",ParamNode::INSERT);
+    PtrParamNode ls = myParam_->GetParent()
+        ->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
     
   }
@@ -164,8 +166,8 @@ namespace CoupledField {
       inputIt->first->Finalize();
       delete inputIt->second;
     }
-
   }
+
 
   std::string SinglePDE::ToString() const
   {
@@ -173,7 +175,6 @@ namespace CoupledField {
     ss << pdename_ << " s=" << sequenceStep_ << " at=" << BasePDE::analysisType.ToString(analysistype_);
     return ss.str();
   }
-
 
   // ********
   //   Init
@@ -513,7 +514,7 @@ namespace CoupledField {
       //     }
       
       for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        //take cae: one region can have more then one nonlinearity!!
+        //take care: one region can have more then one nonlinearity!!
         
         // get data
         regionNodes[i]->GetValue( "name", actRegionName );
@@ -548,6 +549,9 @@ namespace CoupledField {
           
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
+
+          if ( nonLinTypes_[nonLinId] == HYSTERESIS or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )
+        	  isHysteresis_ = true;
         }
       }
 
@@ -750,7 +754,7 @@ namespace CoupledField {
   {
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
-    StdVector<std::string> postProcNames, outDestNames, neighborRegions;
+    StdVector<std::string> postProcNames, outDestNames, neighborRegions, writeAsHistResult;
     UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
@@ -890,8 +894,9 @@ namespace CoupledField {
 
             // fetch entry with neighboring regions
             for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-              neighborRegions.Push_back( regionNodes[i]->
-                                         Get("neighborRegion")->As<std::string>() );
+            	std::string str = regionNodes[i]->Get("neighborRegion")->As<std::string>();
+            	if ( str != "" )
+            		neighborRegions.Push_back( str );
             }
           }
 
@@ -948,22 +953,28 @@ namespace CoupledField {
               // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
 
             fnc = resultFunctors_[candidate->resultType];
-            
+
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[iRegion];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
             // pass result to resulthandler
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[iRegion], writeResult,
-                                        isHistory[candidate->definedOn] );
+										isHistory[candidate->definedOn] );
           }
         }
-
 
         // ========== Look for defineType node/elemList/coilList (history) ==========
 
         std::string entityTypeName;
         StdVector<std::string> histNames;
         neighborRegions.Clear();
+        writeAsHistResult.Clear();
 
         PtrParamNode histNode;
         ParamNodeList histEntities;
@@ -988,8 +999,9 @@ namespace CoupledField {
 
           // fetch entry with neighboring regions
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-            neighborRegions.Push_back( histEntities[i]->
-                                       Get("neighborRegion")->As<std::string>() );
+          	std::string str = histEntities[i]->Get("neighborRegion")->As<std::string>();
+          	if ( str != "" )
+          		neighborRegions.Push_back( str );
           }
         } else if(candidate->definedOn == ResultInfo::COIL ) {
           histNode = actResultNode->Get("coilList", ParamNode::PASS);
@@ -1018,6 +1030,7 @@ namespace CoupledField {
             postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
+            writeAsHistResult.Push_back( histEntities[i]->Get("writeAsHistResult")->As<std::string>() );
           }
         }
 
@@ -1061,6 +1074,7 @@ namespace CoupledField {
             // extract all output destinations and determine bool flag for writeResult
             SplitStringList( outDestNames[i], actOutDest, ',' );
             bool writeResult = (writeResults[i] == "yes"  ? true : false );
+            bool writeAsHistoryResult = ( writeAsHistResult[i] == "yes"  ? true : false );
 
             // try to get result functor
             shared_ptr<ResultFunctor> fnc;
@@ -1069,12 +1083,18 @@ namespace CoupledField {
               EXCEPTION( "No result functor defined for results of type '"
                   << quantity << "'");
             }
+
             fnc = resultFunctors_[candidate->resultType];
-            
+            if ( neighborRegions.GetSize() != 0 ) {
+            	std::string neighborReg =  neighborRegions[i];
+            	RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+            	fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
+            }
+
             resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
-                                        actOutDest,
-                                        postProcNames[i], writeResult, true );
+                                        actOutDest, postProcNames[i],
+										writeResult, writeAsHistoryResult);
 
           }
         }
@@ -1717,8 +1737,7 @@ namespace CoupledField {
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           boost::shared_ptr<SimInputHDF5> in;
           in.reset(new SimInputHDF5(fileName, node, infoNode));
           inState->SetInputHdf5Reader(in);
@@ -1957,10 +1976,26 @@ namespace CoupledField {
     //=====================================================================
     // inhomogeneous Dirichlet BC
     // =====================================================================
-    // iterate over all available result tyes
+    // iterate over all available result types
+    
+    // loop over timederivative
     std::map<SolutionType,std::string>::const_iterator idbcIt;
-    idbcIt = idbcSolNameMap_.begin();
-    for( ; idbcIt != idbcSolNameMap_.end(); ++idbcIt ) {
+    std::map<SolutionType,std::string>::const_iterator idbcIt_end;
+    
+    for(UInt timeDeriv = 0; timeDeriv < 3; timeDeriv++){
+	    if(timeDeriv == 0){
+		idbcIt = idbcSolNameMap_.begin();
+		idbcIt_end = idbcSolNameMap_.end();
+	    }else if(timeDeriv == 1){
+		idbcIt = idbcSolNameMapD1_.begin();
+		idbcIt_end = idbcSolNameMapD1_.end();
+	    }else if(timeDeriv == 2){
+		idbcIt = idbcSolNameMapD2_.begin();
+		idbcIt_end = idbcSolNameMapD2_.end();    
+	    } else {
+		 EXCEPTION("Max timederiv = 2");
+	    }
+		for( ; idbcIt != idbcIt_end; ++idbcIt ) {
 
       // get for each solutiontype the corresponding element name for the
       // homogeneous Dirichlet Bc
@@ -2014,21 +2049,24 @@ namespace CoupledField {
           }
         }
 
-        actBc->entities = actList;
-        actBc->result = actFeFunction->GetResultInfo();
-        if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
-          actBc->dofs.insert(0);
-        } else {
-          actBc->dofs = definedDofs;        
-        }
-        
-        actBc->value = coef;
-        actBc->updatedGeo = updatedGeo;
+		  actBc->entities = actList;
+		  actBc->result = actFeFunction->GetResultInfo();
+		  if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+		    actBc->dofs.insert(0);
+		  } else {
+		    actBc->dofs = definedDofs;        
+		  }
+		  
+		  actBc->value = coef;
+		  actBc->updatedGeo = updatedGeo;
+		  actBc->timeDerivOrder = timeDeriv;
 
-        // add definition to feFunction
-        actFeFunction->AddInhomDirichletBc(actBc);
-      } // loop: idbcs
-    } // loop: solutiontypes
+		  // add definition to feFunction
+		  actFeFunction->AddInhomDirichletBc(actBc);
+		} // loop: idbcs
+	    } // loop: solutiontypes
+    } // loop: timederiv
+    
     
     // =====================================================================
     // Constraint Conditions
@@ -2067,6 +2105,7 @@ namespace CoupledField {
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
+        actBc->name = name;
         if( masterDof.empty() ) {
           actBc->masterDof = 0;
         } else {
@@ -2345,7 +2384,6 @@ namespace CoupledField {
     if(!input && !myParam_->Has("bcsAndLoads") )
       return;
 
-
     ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
 
     // necessary for constraints on displacements
@@ -2361,18 +2399,50 @@ namespace CoupledField {
 
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
+
     for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
-      // get entity list, depending on type
-      std::string entName = xml->Get("name")->As<std::string>();
+      bool hasName = xml->Has("name");
+      bool hasRegionList = xml->Has("regionList");
+      
+      if (hasName && hasRegionList) {
+        EXCEPTION(elemName << " element contains name attribute and regionList element, both are not allowed together");
+      } else if (!hasName && !hasRegionList) {
+        EXCEPTION(elemName << " element contains neither name attribute nor regionList element, exactly one these is required");
+      }
+      
+      std::string entName;
+      if (hasRegionList) {
+        StdVector<PtrParamNode> regs = xml->Get("regionList")->GetList("region");
+        if (regs.GetSize() > 1) {
+          StdVector<RegionIdType> regionTypes;
+          for(UInt r=0;r<regs.GetSize();++r) {
+            std::string regName = regs[r]->Get("name")->As<std::string>();
+            regionTypes.Push_back(ptGrid_->GetRegion().Parse(regName));
+          }
+          RegionList* regionList = new RegionList(ptGrid_);
+          regionList->SetRegions(regionTypes);
+          shared_ptr<EntityList> entList(regionList);
+          entities[i] = entList;
+        } else if (regs.GetSize() == 1) {
+          entName = regs[0]->Get("name")->As<std::string>();
+          ptGrid_->GetRegion().Parse(entName);
+          hasName = true;
+        } else {
+          EXCEPTION(elemName << " element contains regionList without any regions");
+        }
+      }
+      if (hasName) {
+        // get entity list, depending on type
+        entName = xml->Get("name")->As<std::string>();
         try {
           // determine list type: In case we have have surface elements, generate explicitly
           // a surface element list
-          EntityList::ListType listType = EntityList::ELEM_LIST;
+          EntityList::ListType listType = EntityList::ELEM_LIST; 
           if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
             listType = EntityList::SURF_ELEM_LIST;
           }
-
+  
           switch( ptGrid_->GetEntityType(entName) ) {
             case EntityList::NAMED_NODES:
               entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
@@ -2385,17 +2455,38 @@ namespace CoupledField {
               EXCEPTION("No entities with name '" << entName << "' known");
               break;
           }
-
-          std::set<UInt> definedDofs;
-          ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                              definedDofs, updateGeo );
-
         } catch (Exception& e) {
           RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
                             << "' on entities '" << entName <<"'");
         }
+      }
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                          definedDofs, updateGeo );
     } // loop: elements
+  }
 
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName,
+                                  const StdVector<std::string>& compNames,
+                                  ResultInfo::EntryType type,
+                                  bool isComplex,
+                                  StdVector<shared_ptr<EntityList> >& entities,
+                                  StdVector<PtrCoefFct>& coef,
+                                  bool& updateGeo,
+                                  StdVector<std::string>& volumeRegions){
+      // get nodes
+      ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+
+      // read the Volume Region from each node
+      volumeRegions.Resize(elems.GetSize());
+      for( UInt i = 0; i < elems.GetSize(); ++i ) {
+          PtrParamNode xml = elems[i];
+          std::string volRegName;
+          xml->GetValue( "volumeRegion", volRegName, ParamNode::PASS );
+          volumeRegions[i] = volRegName;
+      }
+      // read the rest
+      ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -2418,15 +2509,23 @@ namespace CoupledField {
       // ====================
       //  EXTERNAL GRID DATA 
       // ====================
+      shared_ptr<RegionList> regions;
+      if (list->GetType() == EntityList::REGION_LIST) {
+        regions = boost::static_pointer_cast<RegionList>(list);
+      } else {
+        RegionList* regionList = new RegionList(ptGrid_);
+        regionList->SetRegion(list->GetRegion());
+        regions = shared_ptr<RegionList>(regionList);
+      }
       if(!isComplex) {
         coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
         coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          list);
+                                          regions);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs
@@ -2494,12 +2593,17 @@ namespace CoupledField {
           
           sequenceStep = esNode->Get("index")->As<UInt>();
           // create new simState from current hdf file
+          if( !simState_->GetOutputWriter() ){
+            // Sometimes the writer is not yet set if using initial values and external data.
+            // Therefore the SimState is instructed to create it now.
+            shared_ptr<SimOutputHDF5> writer;
+            simState_->SetOutputHdf5Writer( writer );
+          }
           std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
           // create new param and info node (without logging to console) for the
           // newly created Domain object
           PtrParamNode node(new ParamNode());
-          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
-                                              false));
+          PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
           in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
 
@@ -2607,33 +2711,50 @@ namespace CoupledField {
       
     } else if( valueNode->Has("scatteredData") ) {
       PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
-      
-      if( dim_ == 2 ) {
+      if(type == ResultInfo::SCALAR){
         if(isComplex)
         {
           coef.reset(
-            new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
-            );
+            new CoefFunctionScatteredData<Complex, 1>(scatteredDataNode) );
         }
         else
         {
           coef.reset(
-            new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+            new CoefFunctionScatteredData<Double, 1>(scatteredDataNode)
             );
         }
-      } else {
-        if(isComplex) 
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
-            );
+      }
+      else if(type == ResultInfo::VECTOR){
+        if( dim_ == 2 ) {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+              );
+          }
+        } else {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
+              );
+          }
         }
-        else
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
-            );
-        } 
+      }
+      else{
+        EXCEPTION("TENSOR not implemented yet!");
       }
     }else{
       // ======================================
@@ -3130,7 +3251,7 @@ namespace CoupledField {
 
   void SinglePDE::DefineFeFunctions(){
     //This is the default creation of spaces
-    //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
+    //idee: die PDE gibt zum attribute formulation die passenden space zurueck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
@@ -3407,8 +3528,7 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface,
-                                         bool icModes)
+                                         NcInterfaceInfo &iface )
   {
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
@@ -3452,14 +3572,15 @@ namespace CoupledField {
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
-      PtrCoefFct nu1, nu2;
-      PtrCoefFct oneHalf = CoefFunction::Generate( mp_, Global::REAL, "0.5");
-      factor = materials_[nitscheIf->GetMasterVolRegion()]
-                             ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+      PtrCoefFct permability;
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+      permability = materials_[nitscheIf->GetMasterVolRegion()]
+                             ->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
 //      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
 //                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
-//      factor = CoefFunction::Generate( mp_, Global::REAL,
-//                         CoefXprBinOp(mp_, nu1, nu2, CoefXpr::OP_ADD));
+      factor = CoefFunction::Generate( mp_, Global::REAL,
+                             CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
 //      factor = nu2;
 //      factor = CoefFunction::Generate( mp_, Global::REAL,
 //                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
@@ -3474,6 +3595,15 @@ namespace CoupledField {
 //      std::cout << "Nu1: " << values[0] << std::endl;
 //      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
 //      std::cout << "Nu2: " << values[0] << std::endl;
+    }
+    else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
+       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+       if ( isMaterialComplex_ ) {
+    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]
+    	                                ->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	   factor = CoefFunction::Generate( mp_, Global::COMPLEX,
+ 				                  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
+       }
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -3536,9 +3666,10 @@ namespace CoupledField {
       }
     }
 
-    if ( analysistype_ == HARMONIC ) {
-      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
-    }
+//    Who wrote this????? It is tested!!
+//    if ( analysistype_ == HARMONIC ) {
+//      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
+//    }
 
     curcpl = BiLinearForm::MASTER_MASTER;
 
@@ -3549,67 +3680,124 @@ namespace CoupledField {
     // not symmetric. Nitsche formulation is basically sym due to the
     // set counterpart directive for the context.
 
-    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else  {
+    	penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+    }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, -1.0, curcpl, updatedGeo_, true);
         flux_du1_v1->SetBCoefFunctionOpA(coefMech);
     }
     else {
-      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-      ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+    		             ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+    		               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+    		               factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+                         ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            factor, -1.0, curcpl, updatedGeo_, true);
       flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
-        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-          (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              factor, -1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                           factor, -1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
-    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+    }
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            factor, 1.0, curcpl, updatedGeo_, true);
       flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
-        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-           (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, 1.0, curcpl, updatedGeo_, true);
+    	if ( isMaterialComplex_) {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
+    	else {
+    		flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                          factor, 1.0, curcpl, updatedGeo_, true);
+    	}
     }
 
     //curcpl = BiLinearForm::SLAVE_MASTER;
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true, true);
+    if ( isMaterialComplex_) {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
+    else {
+    	penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                        factor, beta, curcpl, updatedGeo_, true, true);
+    }
+
+//    if ( nonLin_ ) {
+//    	penalty_u2_v2->SetSolDependent(true);
+//    	penalty_u1_v2->SetSolDependent(true);
+//    	penalty_u1_v1->SetSolDependent(true);
+//    	flux_du1_v1->SetSolDependent(true);
+//    	flux_u1_dv1->SetSolDependent(true);
+//    	flux_du1_v2->SetSolDependent(true);
+//    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
@@ -3618,15 +3806,20 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
 
+    FEMatrixType targetMatrix = STIFFNESS;
+    if(isMoving){
+    	targetMatrix = STIFFNESS_UPDATE;
+    }
+
     curcpl = BiLinearForm::MASTER_MASTER;
-    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
-    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
+    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
+    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);
+    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
     curcpl = BiLinearForm::MASTER_SLAVE;
-    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
+    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
+    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
@@ -3743,10 +3936,10 @@ namespace CoupledField {
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,3>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
 #endif
 
 } // end of namespace

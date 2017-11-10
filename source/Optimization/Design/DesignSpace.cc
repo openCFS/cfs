@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -42,6 +42,9 @@ using namespace CoupledField;
 template <class TYPE> class Vector;
 
 using std::complex;
+using std::string;
+using boost::lexical_cast;
+
 // declare class specific logging stream
 DECLARE_LOG(designSpace)
 DEFINE_LOG(designSpace, "designSpace")
@@ -54,9 +57,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
 
+
   method_ = method;
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace");
+
+  write_gradient_timer_ = boost::shared_ptr<Timer>(new Timer("gradient_chain_rule", true)); // sub-timer
+  info_->Get("gradient_chain_rule/timer")->SetValue(write_gradient_timer_);
 
   // make sure we have a context, even when we have no optimization
   if(!Optimization::manager.IsInitialized())
@@ -127,6 +134,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // tolerate non unique designs - e.g. for different regions
   }
 
+  is_cubic_ = all_regions_regular_ && design.GetSize() == Product(domain->GetGrid()->CalcRegulardGridDiscretization());
+
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
   if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
@@ -154,7 +163,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     for(unsigned int i = 0; i < tr_in.GetSize(); i++) {
       transform.Push_back(Transform(tr_in[i], this));
       transform.Last().index = i;
-      if(boost::lexical_cast<std::string>(i) != transform.Last().excitation_str)
+      if(lexical_cast<string>(i) != transform.Last().excitation_str)
         EXCEPTION("The " << (i+1) << ".transformation has excitation '" << transform.Last().excitation_str << "' but should have '" << i << "'");
     }
   }
@@ -253,14 +262,40 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.translate_design = lower;
             }
             bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
-            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+            double initial = -1;
 
-            if(!random && (initial < lower || initial > upper))
+            MathParser* mp = domain->GetMathParser();
+            MathParser::HandleType mHandle = -1;
+            std::string expr = curr_design_pn->Get("initial")->As<std::string>();
+            bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
+            if (initDependsOnSpace) {
+              mHandle = mp->GetNewHandle(true);
+              mp->SetExpr(mHandle,expr);
+              domain->GetGrid()->SetElementBarycenters(reg_data[r], true);
+            }
+            else
+              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper)) {
               info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              if (initDependsOnSpace)
+                info_->Get(ParamNode::HEADER)->SetWarning("Set initial value for design " + DesignElement::type.ToString(dt) + " to next valid value");
+            }
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
+
+              if (initDependsOnSpace) {
+                mp->SetCoordinates(mHandle, *(domain->GetCoordSystem()), de.elem->extended->barycenter.GetCoordVector());
+                initial = mp->Eval(mHandle);
+                if (initial < lower || initial > upper) {
+                  if (initial < lower)
+                    initial = lower;
+                  if (initial > upper)
+                    initial = upper;
+                }
+              }
 
               de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
@@ -401,12 +436,11 @@ void DesignSpace::PostInit(int objectives, int constraints)
     {
       Context& ctxt = Optimization::manager.context[i];
       // FIXME there might be an multi sequence issue
-      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0)
+      {
         TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
-        if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
-          PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-          in->SetValue("no transfer function 'mass' given for harmonic model");
-        }
+        if(tf == NULL && ctxt.pde->GetName() != "electrostatic")
+          info_->Get(ParamNode::HEADER)->Get("transferFunctions")->SetWarning("no transfer function 'mass' given for harmonic model");
       }
     }
   }
@@ -518,6 +552,9 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
   double dens = CalcAverageDensityAtNode(nodeId,false);
+  // with shape mapping density might be slightly larger one for tanh_sum or much larger with sum
+  assert(dens < 1.01);
+  dens = std::min(1.0, dens); // not very smooth but otherwise we open hell :(
 
   if (derivative)
     return 4.0 * CalcAverageDensityAtNode(nodeId,true) * (1.0 - 2.0 * dens);
@@ -615,7 +652,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + "_"
                    + DesignElement::access.ToString(rd.access)
-                   + (rd.excitation >= 0 ? ("_ex_" + boost::lexical_cast<std::string>(rd.excitation)) : "");
+                   + (rd.excitation >= 0 ? ("_ex_" + lexical_cast<string>(rd.excitation)) : "");
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
@@ -647,13 +684,21 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                        DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
+  assert(design != DesignElement::NO_TYPE); // this cannot be set in xml. DEFAULT can also only be set by omitting the attribute
+
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
-    // two step check
-    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
-    // second check
-    if(rd.excitation >= 0 && boost::lexical_cast<std::string>(rd.excitation) != excitation) continue;
+    // if either rd.desgin from xml or the given design is DEFAULT, we do NOT compare both
+    if(rd.design != DesignElement::DEFAULT && design != DesignElement::DEFAULT && rd.design != design)
+      continue;
+
+    if(rd.value != value || rd.detail != detail || rd.access != access)
+      continue;
+
+    if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation)
+      continue;
+
     // we are right.
     switch(rd.solutionType)
     {
@@ -728,12 +773,13 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   */
 
-
-
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) { // easy to extend to piezo and other stuff!
-    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1) {
-      if (this->IsRegular()) {
+  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  {
+    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1)
+    {
+      if (this->IsRegular())
+      {
         /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
         double dx = ptCoord_[0][0]-ptCoord_[0][1];
         double dy = ptCoord_[1][0]-ptCoord_[1][1];
@@ -742,8 +788,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
       } else {
         EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
       }
+      //if (retMat.GetNumCols() > 0) {
+      //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+      //}
       return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
+    //if (retMat.GetNumCols() > 0) {
+    //  assert(TestTensorPosDef(retMat , lpm, coef->GetMaterialDerivative()));
+    //}
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
@@ -767,6 +819,9 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
+  //if (retMat.GetNumCols() > 0) {
+  //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
+  //}
   return true;
 }
 
@@ -807,9 +862,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
     retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
   }
-
   LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " f=" << factor;
-
   return true;
 }
 
@@ -829,6 +882,24 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
   return true;
 }
 
+template <class T>
+bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm, DesignElement::Type direction) {
+  Vector<Double> lp_w;
+  assert(retMat.GetNumRows() == retMat.GetNumCols());
+  lp_w.Resize(retMat.GetNumRows());
+
+  //lp_w.Init();
+  retMat.eigenvaluesWithLapack(lp_w);
+  if (direction == BaseDesignElement::NO_DERIVATIVE) {
+    for (unsigned int i = 0; i < lp_w.GetSize();i++) {
+      if (lp_w[i] < EPS) {
+        throw Exception("The material tensor of element '" + lexical_cast<string>(lpm->ptEl->elemNum) + "' is not positive definite! '" + "'The tensor is given by '" + retMat.ToString());
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
@@ -1067,36 +1138,42 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
-  for(unsigned int des = 0; des < nd; des++){
+  for(unsigned int des = 0; des < nd; des++)
+  {
     StdVector<DesignRegion>& cur_des = regions[des];
     const unsigned int nr = regions[des].GetSize();
-    for(unsigned int r = 0; r < nr; r++){
+    for(unsigned int r = 0; r < nr; r++)
+    {
       DesignRegion& cur_reg = cur_des[r];
       const double scaling = cur_reg.scale_design;
       const double translation = cur_reg.translate_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
-      if(cur_reg.constant == VARIABLE) {
-        for(unsigned int d = cur_reg.base; d < u; d++){
+      if(cur_reg.constant == VARIABLE)
+      {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
           const double v = space[s] * scaling + translation;
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
-      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
+      }
+      else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS)
+      { // in FIXED case, nothing is done
         const double v = space[s] * scaling + translation;
-        for(unsigned int d = cur_reg.base; d < u; d++){
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+        for(unsigned int d = cur_reg.base; d < u; d++)
+        {
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
-          }
+
           LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
         } // for d
-        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) ){
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
           s++; // only advance after having set all element of this region (or even all regions) to the corresponding value
-        }
       } // if/else constant
     } // for r
   } // for des
@@ -1306,8 +1383,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 }
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
+  unsigned int end   = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
 
@@ -1835,4 +1912,7 @@ template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOp
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+
 #endif

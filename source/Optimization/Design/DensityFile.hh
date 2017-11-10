@@ -46,7 +46,7 @@ public:
   /** this actually stores the data which is exported as pseudo density file */
   PtrParamNode data;
 
-  private:
+private:
 
   /** Creates the pseudo density node and stores the header */
   PtrParamNode Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize, bool non_desig_vicinity);
@@ -63,6 +63,9 @@ public:
    * The difference is superfluous file writing .*/
   bool finally_only_;
   
+  /** write density. This is the "density" attribute in export. For 3D ShapeMapping one might want to skip it. */
+  bool write_density_;
+
   /** we don't own this data, therefore we also don't delete it! */
   DesignSpace* space_;
 
@@ -71,6 +74,8 @@ public:
 
   /** the last set iteration */
   int last_set_iter;
+
+  bool compress_ = false;
 };
 
 }

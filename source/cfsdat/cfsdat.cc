@@ -14,6 +14,7 @@
 
 //System includes
 #include <iostream>
+#include <stdio.h>
 
 //boost parameter handling and command line
 #include <boost/program_options/cmdline.hpp>
@@ -32,94 +33,196 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-
 //CFS includes
 #include <def_cfs_stats.hh>
-
+#include <def_use_openmp.hh>
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ProgramOptions.hh"
-#include "DataInOut/SimInput.hh"
-#include "DataInOut/SimOutput.hh"
-
-
-#include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+#include "PDE/BasePDE.hh"
+#include "Utils/Timer.hh"
+#include <boost/date_time/posix_time/posix_time.hpp>
+//#include <boost/date_time/posix_time/time_formatters.hpp>
+#include <boost/version.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
-//#include <mpi.h>
-#include <stdio.h>
 
-using namespace CoupledField;
-namespace CoupledField
-{
-  class SimInput;
-  class SimOutput;
-}
-//! Global parameter node and info node instance
-PtrParamNode param;
-PtrParamNode info;
+
+//CFSDatIncludes
+#include "cfsdat/Filters/BaseFilter.hh"
+#include "cfsdat/Utils/CFSDatProgramOptions.hh"
+#include "cfsdat/Utils/ResultManager.hh"
+#include "cfsdat/Utils/DataStructs.hh"
+#include "cfsdat/Utils/Defines.hh"
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 namespace CFSDat {
 
   namespace po = boost::program_options;
 
   void GenerateParamNode(int argc, char** argv, PtrParamNode param){
-    //lets test with some options
 
-    po::options_description desc("Supported Modes");
-    desc.add_options()
-            ("help,h", "Produce help message")
-            ("version,v", "Print version information");
-
-    po::variables_map vm;
-
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-
-    po::notify(vm);
-
-    //1. check for config files
-    //   - try to validate. But how?
-    //2.
   }
 
 }
 
-int main(int argc, char** argv)
+
+
+int main(int argc, const char** argv)
 {
 
-  //int rank, size;
+  CFSDat::CFSDatProgramOptions * options = new CFSDat::CFSDatProgramOptions(argc,argv);
 
+  options->ParseData();
 
-//MPI_Init (&argc, &argv);      /* starts MPI */
-//MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
-//MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
-//printf( "Hello world from process %d of %d\Sn", rank, size );
-//MPI_Finalize();
-return 0;
-
-  /*
-  std::string infoFileName;
   SetEnvironmentEnums();
+
+
+#ifdef USE_OPENMP
+  //now set the number of threads from the commandline
+  SetNumberOfThreads(options->GetNumThreads());
+  ////SetNumberOfThreads(omp_get_max_threads());
+#else
+  SetNumberOfThreads(1);
+#endif
   BasePDE::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
 
-  domain = NULL;
+  // Log program startup
+  options->GetHeaderString( std::cout );
 
-  try
-   {
-     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
-     CFSDat::GenerateParamNode(argc, argv, param);
+  // this is our hostname. Empty if it cannot be determined */
+  std::string hostname = boost::asio::ip::host_name();
 
-   } catch(std::exception& ex) {
-     std::cerr << "The following error occured during cfsdat execution:\n\n" << ex.what();
-     if (info != NULL)
-     {
-       info->Get(ParamNode::FAIL)->SetValue(ex.what());
-       info->ToFile(infoFileName);
-     }
-     return -1;
-   }
-   //info->ToFile(infoFileName);
-*/
+  // This is a string for output with the start time */
+  std::string start_time;
+
+  // Print information about program start time and host
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+
+  start_time = to_simple_string( second_clock::local_time() );
+
+  std::cout << "Simulation run started at " << start_time << std::endl;
+  if(!hostname.empty()) std::cout<< "on " << hostname << std::endl;
+
+
+
+
+
+  // this is the new param stuff which replaces the old params - delete this comment finally
+  std::string schema = options->GetSchemaPathStr();
+  schema += "/CFS-Dat/CFS_Dat.xsd";
+
+  //start the timer
+  CoupledField::shared_ptr<CoupledField::Timer> datTimer(new CoupledField::Timer);
+  datTimer->Start();
+
+  // Initialize our xerces dom parser to handle the cfs xml file
+  Xerces xerces(schema);
+
+  // Write information to command line
+  std::cout << "--- Reading parameter file " << std::endl;
+  xerces.SetFile(options->GetParamFileStr());
+
+  CoupledField::PtrParamNode configNode = xerces.CreateParamNodeInstance();
+
+  CFSDat::PtrResultManager resMan(new CFSDat::ResultManager());
+
+  PtrParamNode pipelineNode = configNode->Get("pipeline");
+
+  //loop over all elements, create filters
+  ParamNodeList filters = pipelineNode->GetChildren();
+
+  //create filters
+  std::cout << "--- Creating Filters" << std::endl;
+  std::map<std::string,CFSDat::FilterPtr> allFilters;
+  std::set<CFSDat::FilterPtr> outputs;
+  for(UInt i=0;i<filters.GetSize();++i){
+    CFSDat::FilterPtr newFilt = CFSDat::BaseFilter::Generate(filters[i],resMan);
+    if(newFilt){
+      std::cout << "\t---> Adding Filter type \"" << filters[i]->GetName() << "\" with ID \"" << newFilt->GetId() << "\"" << std::endl;
+      allFilters[newFilt->GetId()] = newFilt;
+      if(newFilt->IsOutput()){
+        outputs.insert(newFilt);
+      }
+    }
+  }
+
+  std::cout << "--- Creating filter connections" << std::endl;
+  //create connections
+  std::map<std::string,CFSDat::FilterPtr>::iterator fIter = allFilters.begin();
+  for(;fIter != allFilters.end();++fIter){
+    std::set<std::string>::iterator inIter = fIter->second->GetInputIds().begin();
+    for(;inIter != fIter->second->GetInputIds().end();++inIter){
+      if(*inIter != "none"){
+        std::cout << "\t---> Adding filter \"" << allFilters[*inIter]->GetId() << "\" as source for filter \"" <<  fIter->second->GetId() << "\"" << std::endl;
+        CFSDat::BaseFilter::Connect(allFilters[*inIter],fIter->second);
+      }
+    }
+  }
+
+  std::cout << "--- Initializing filters" << std::endl;
+  //for now we just loop over output filters
+  std::set<CFSDat::FilterPtr>::iterator outIter =  outputs.begin();
+  for(;outIter != outputs.end();++outIter){
+    (*outIter)->InitResults();
+  }
+
+  std::cout << "--- Finalizing filters" << std::endl;
+  resMan->Finalize();
+
+  outIter =  outputs.begin();
+  for(;outIter != outputs.end();++outIter){
+    (*outIter)->FinishInit();
+  }
+
+  //after that no invalid result definition should be remaining
+  std::set<boost::uuids::uuid> list = resMan->GetActiveResults();
+  if(list.size() != 0){
+    CoupledField::Exception("there are still Active results! This may not happen!");
+  }
+
+
+  UInt counter = 1;
+  bool allFinished = true;
+  std::cout << "--- Initiating filter traversal" << std::endl;
+  do{
+    std::cout << "\t---> Processing output filters for step #" << counter++ << std::endl;
+    allFinished = true;
+    outIter =  outputs.begin();
+    for(;outIter != outputs.end();++outIter){
+      //std::cout << "\t     Filter ID: " << (*outIter)->GetId() << std::endl;
+      allFinished &= (*outIter)->Run();
+    }
+  } while(!allFinished);
+
+  datTimer->Stop();
+  std::stringstream elapsed;
+  const int walltime((int) datTimer->GetWallTime());
+
+
+  if(walltime > 120) {
+    const int wallmin((int) (walltime / 60.0));
+    if(wallmin > 60){
+      elapsed << wallmin/60 << "h";
+    }else{
+      elapsed << wallmin << "min";
+    }
+  }else{
+    elapsed << walltime << "s";
+  }
+
+
+  std::cout << std::endl << "---> COMPUTATION DONE. Time elapsed: " << elapsed.str() << std::endl << std::endl;
+
+  delete options;
+
+  return 0;
 }

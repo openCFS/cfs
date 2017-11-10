@@ -123,7 +123,7 @@
           </xsd:element>
 
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
@@ -137,13 +137,17 @@
                     <xsd:documentation>Fixes electric potential to a prescribed value</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-
+                <xsd:element name="normalCurrentDensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Specify a current density on a surface to indirectly specify a current.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
-          <!-- Section for specifying initial conditions (optional) -->
-          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
+          <!-- Section for specifying initial conditions (optional) >
+          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/-->
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_ElecConductionStoreResults" minOccurs="0"

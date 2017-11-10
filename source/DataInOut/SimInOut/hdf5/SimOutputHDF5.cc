@@ -84,7 +84,10 @@ namespace CoupledField {
 
     H5::Exception::dontPrint();
     
-    std::string fName = fileName_ + ".h5";
+    std::string extString = "cfs";
+    inputNode->GetValue("extension", extString, ParamNode::PASS );
+
+    std::string fName = fileName_ + "." + extString;
     currFileName_ = fs::path(dirName_ / fName).string();
   }
 
@@ -561,13 +564,12 @@ namespace CoupledField {
 
     LockFile();
     
-    if(externalFiles_)
+    if(externalFiles_ && myInfo_)
     {
       PtrParamNode in = myInfo_->Get("analysis/output/externalFile");
       try {
         in->Get("name")->SetValue(currStepFile_.getFileName());
         in->Get("size")->SetValue((int) currStepFile_.getFileSize());
-        myInfo_->GetRoot()->ToFile();
       } catch (H5::FileIException &h5ex) {}
     }
 

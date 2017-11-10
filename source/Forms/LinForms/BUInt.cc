@@ -32,6 +32,7 @@ BUIntegrator(BaseBOperator * bOp,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
+
 //  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 //#ifndef NDEBUG
 //  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
@@ -84,7 +85,14 @@ BUIntegrator(BaseBOperator * bOp,
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
      UInt nrFncs = 0;
-     VEC_DATA_TYPE fac;
+     VEC_DATA_TYPE fac(0.0);
+
+     //Surface: inverse of jacobian
+     Vector<VEC_DATA_TYPE> pt1;
+     Vector<VEC_DATA_TYPE> pt2;
+     Matrix<Double> JacT;
+     Matrix<Double> TF;
+     Matrix<Double> TFinv;
 
      // Obtain FE element from feSpace and integration scheme
      IntegOrder order;
@@ -141,9 +149,25 @@ BUIntegrator(BaseBOperator * bOp,
            rhsCoefs_->GetScalar(cVec[0],lp);
          } else {
            rhsCoefs_->GetVector(cVec,lp);
+           if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL)) {
+
+             //uxn
+             pt1 = lp.normal;
+             cVec.CrossProduct(pt1,pt2);
+
+             // Jacobian of surface element
+             lp.jac.Transpose(JacT);
+
+             //Metric and its inverse
+             TF = JacT * lp.jac;
+             TF.Invert(TFinv);
+
+             cVec = (TFinv * JacT) * pt2;
+           }
          }
        }
        elemVec += bMat * cVec * fac;
+
      }
 
   }

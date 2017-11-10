@@ -2,8 +2,9 @@
 #include "coeff.h"
 #include <cstdlib>
 #include <stdio.h>      /* printf */
-#include <math.h>
+#include <cmath>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <boost/tokenizer.hpp>
 #include <fstream>
@@ -44,7 +45,7 @@ void tricubic_coeff(vector<double> & a, vector<double> f, vector<double> dfdx, v
 
 void tricubic_partialderiv(vector<vector<vector<double> > > & dEda,vector<vector<vector<double> > > & dEdb,vector<vector<vector<double> > > & dEdc,
     vector<vector<vector<double> > > & dEdadb,vector<vector<vector<double> > > & dEdadc,vector<vector<vector<double> > > & dEdbdc,
-    vector<vector<vector<double> > > & dEdadbdc,vector<double>a,vector<double>b,vector<double>c,vector<vector<vector<double> > >E,int E_number){
+    vector<vector<vector<double> > > & dEdadbdc,vector<double>a,vector<double>b,vector<double>c,vector<vector<vector<double> > >E){
   //Approximation of the derivatives with finite differences at the grid points
 
 
@@ -72,15 +73,14 @@ void tricubic_partialderiv(vector<vector<vector<double> > > & dEda,vector<vector
 
 }
 
-void tricubic_offline(vector<vector<double> > & Coeff,vector<double> a, vector<double> b, vector<double> c, vector<vector<vector<double> > > & E, int m, int n, int o,
-    int E_number, double dx,double dy,double dz) {
+void tricubic_offline(vector<vector<double> > & Coeff,vector<double> a, vector<double> b, vector<double> c, vector<vector<vector<double> > > & E, int m, int n, int o, double dx,double dy,double dz) {
 // Calculation of the coefficients of the interpolation polynomial for all possible intervals
   vector<double> res(64);
   vector<vector<vector <double > > > dEda(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdb(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdc(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdadb(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdadc(m,vector<vector<double> >(n,vector<double>(o,0.))),dEdbdc(m,vector<vector<double> >(n,vector<double>(o,0.))),
       dEdadbdc(m,vector<vector<double> >(n,vector<double>(o,0.)));
-  tricubic_partialderiv(dEda,dEdb,dEdc,dEdadb,dEdadc,dEdbdc,dEdadbdc,a,b,c,E,E_number);
+  tricubic_partialderiv(dEda,dEdb,dEdc,dEdadb,dEdadc,dEdbdc,dEdadbdc,a,b,c,E);
   vector<double> f(8,0);
   vector<double> Eda(8,0);
   vector<double> Edb(8,0);
@@ -220,10 +220,8 @@ double tricubic_eval(vector<double> a, double x, double y, double z) {
   return ret;
 }
 
-void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, int mode) {
-  fstream f;
-  f.open(file.c_str(), ios::out);
-  f<<"<homRectC1>"<<endl;
+void write_to_xml(fstream & f, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, int mode) {
+  f<<"<homRectC1 notation=\"voigt\">"<<endl;
   f<<"<a>"<<endl;
   f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
   f<<"<real>"<<endl;
@@ -302,7 +300,6 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
     f<<endl;
   }
   f<<"</real>\n</matrix>\n</coeff44>\n";
-  if (mode == 3) {
     f<<"<coeff55>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n<real>\n";
     for (int i=0;i<ende;i++) {
       for (int j=0;j<64;j++) {
@@ -319,43 +316,40 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
       f<<endl;
     }
     f<<"</real>\n</matrix>\n</coeff66>\n";
-  }
-  f<<"</homRectC1>";
-  f.close();
 }
 
-void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double> aa, vector<double> bb, vector<double> cc) {
-  fstream f;
-  f.open(file.c_str(), ios::out);
-  f<<"<vol3D>"<<endl;
-  f<<"<a>"<<endl;
-  f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
-  f<<"<real>"<<endl;
-  for (int i = 0;i<aa.size();i++) {
-    f<<aa[i]<<" ";
-  }
-  f<<endl;
-  f<<"</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</a>"<<endl;
+void write_to_xml_vol(fstream & f, vector<vector<double>  > Coeff, vector<double> aa, vector<double> bb, vector<double> cc, bool combined = true) {
+  if (!combined) {
+    f<<"<vol3D>"<<endl;
+    f<<"<a>"<<endl;
+    f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
+    f<<"<real>"<<endl;
+    for (int i = 0;i<aa.size();i++) {
+      f<<aa[i]<<" ";
+    }
+    f<<endl;
+    f<<"</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</a>"<<endl;
 
-  f<<"<b>"<<endl;
-  f<<"<matrix dim1=\""<<bb.size()<<"\" dim2=\"1\">"<<endl;
-  f<<"<real>"<<endl;
-  for (int i = 0;i<bb.size();i++) {
-    f<<bb[i]<<" ";
+    f<<"<b>"<<endl;
+    f<<"<matrix dim1=\""<<bb.size()<<"\" dim2=\"1\">"<<endl;
+    f<<"<real>"<<endl;
+    for (int i = 0;i<bb.size();i++) {
+      f<<bb[i]<<" ";
+    }
+    f<<"\n</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</b>"<<endl;
+    f<<"<c> \n<matrix dim1=\""<<cc.size()<<"\" dim2=\"1\">\n<real>\n";
+    for (int i = 0;i<cc.size();i++) {
+      f<<cc[i]<<" ";
+    }
+    f<<endl;
+    f<<"</real>"<<endl;
+    f<<"</matrix>"<<endl;
+    f<<"</c>"<<endl;
   }
-  f<<"\n</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</b>"<<endl;
-  f<<"<c> \n<matrix dim1=\""<<cc.size()<<"\" dim2=\"1\">\n<real>\n";
-  for (int i = 0;i<cc.size();i++) {
-    f<<cc[i]<<" ";
-  }
-  f<<endl;
-  f<<"</real>"<<endl;
-  f<<"</matrix>"<<endl;
-  f<<"</c>"<<endl;
   int ende = (aa.size()-1)*(bb.size()-1)*(cc.size()-1);
   f<<"<volcoeff>"<<endl;
   f<<"<matrix dim1=\""<<ende<<"\" dim2=\"64\">"<<endl;
@@ -369,8 +363,9 @@ void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double
   f<<"</real>"<<endl;
   f<<"</matrix>"<<endl;
   f<<"</volcoeff>"<<endl;
-  f<<"</vol3D>"<<endl;
-  f.close();
+  if (!combined)
+    f<<"</vol3D>"<<endl;
+  //f.close();
 }
 
 
@@ -381,10 +376,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff1*stiff3*stiff3 - stiff1*stiff2*stiff2;
     } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff2*stiff3*stiff3 - stiff2*stiff1*stiff1;
-    } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+    } else { 
+     // case: (stiff3 >= stiff1 && stiff3 >= stiff2)
       vol = stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff3*stiff2*stiff2 - stiff3*stiff1*stiff1;
-    } else {
-      vol = 0.;
     }
     return vol;
   } else {
@@ -395,10 +389,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff1 - stiff3*stiff3 - stiff2*stiff2;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff1 - 2* stiff2*stiff1;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else {  
+        //case: (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff1 - 2* stiff3*stiff1;
-      } else {
-        vol = 0.;
       }
       return vol;
     case 2:
@@ -406,10 +399,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff2 - 2*stiff1*stiff2;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff2 - stiff3*stiff3 - stiff1*stiff1;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else { 
+        //case: (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff2 - 2*stiff3*stiff2;
-      } else {
-        vol = 0.;
       }
       return vol;
     case 3:
@@ -417,10 +409,9 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
         vol = 2*stiff3 - 2*stiff1*stiff3;
       } else if (stiff2 >= stiff1 && stiff2 >= stiff3) {
         vol = 2*stiff3 - 2*stiff2*stiff3;
-      } else if (stiff3 >= stiff2 && stiff3 >= stiff2) {
+      } else { 
+        // (stiff3 >= stiff1 && stiff3 >= stiff2) {
         vol = 2*stiff3 - stiff2*stiff2 - stiff1*stiff1;
-      } else {
-        vol = 0.;
       }
       return vol;
     default:
@@ -430,7 +421,7 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
 }
 int main(int argc, char * argv[]) {
   int mode;
-  cout<<"Select number of interpolation goal: 3D cross shaped volume 1 or homogenized tensor 2 or debug mode 3 or homogenized tensor with volume 4"<<endl;
+  cout<<"Select number of interpolation goal: 3D cross shaped volume 1 or homogenized tensor 2 or debug mode 3 or homogenized tensor with volume 4 or mode 5 create plot data for volume."<<endl;
   cin>>mode;
   /*if (argc !=2 ) {
     cout <<"Error number of input parameter wrong"<<endl;
@@ -482,18 +473,27 @@ int main(int argc, char * argv[]) {
     }*/
 
     cout<<"Volume table calculated."<<endl;
-    tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,1,da,db,dc);
+    tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,da,db,dc);
     cout<<"Insert output xml file name:"<<endl;
     string name;
     cin>>name;
     string file(name);
+    fstream f;
+    f.open(file.c_str(), ios::out);
     //Write interpolation coefficients in the xml file above
-    write_to_xml_vol(file,Coeff,aa,bb,cc);
+    write_to_xml_vol(f,Coeff,aa,bb,cc,false);
+    f.close();
 
-  } else if (mode == 2 || mode == 3 || mode == 4) {
+  } else if (mode == 2 || mode == 3 || mode == 4 || mode == 5) {
     cout<<"Enter name of the homogenized data file:"<<endl;
     string input;
+    string input_vol = "none";
     cin>>input;
+    if (mode == 4 || mode == 5) {
+      cout<<"Enter name of the homogenized volume data file:"<<endl;
+      cin>>input_vol;
+      cout<<"Read "<<input_vol<<endl;
+    }
     double result;
     double x1 = -1;
     double x2 = -1;
@@ -507,7 +507,14 @@ int main(int argc, char * argv[]) {
     cout<<"Read "<<input<<endl;
     string zeile;
     const char *inp = input.c_str();
+    const char *inp_vol = input_vol.c_str();
     ifstream fin(inp);
+    ifstream fin_vol;
+    if (inp_vol != "none") {
+      fin_vol.open(inp_vol);
+      //Read header of the input file from homogenization volume
+      getline(fin_vol, zeile, '\n');
+    }
     //Read header of the input file from homogenization
     getline(fin, zeile, '\n');
     typedef tokenizer<char_separator<char> > tokenizer;
@@ -519,7 +526,7 @@ int main(int argc, char * argv[]) {
 
     //Read data of the material catalogue into a data structure
     int ncol;
-    if (mode == 2 || mode == 3) {
+    if (mode == 2 || mode == 3 || mode == 4) {
       ncol = 3 + 9;
     } else {
       ncol = 2 + 6 + 1;
@@ -527,18 +534,32 @@ int main(int argc, char * argv[]) {
     vector<vector<double> > data(m*n*o,vector<double>(ncol,0.));
     int count1 = 0;
     int count2 = 0;
-    char_separator<char> sep("\t");
     while(!(fin.eof())) {
       getline(fin, zeile, '\n');
-      tokenizer tok(zeile,sep);
-      count2 = 0;
-      for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
-        data[count1][count2] = atof((*beg).c_str());
+      istringstream ss(zeile);
+      count2=0;
+      for (double d; ss >> d; ) {
+        data[count1][count2] = d;
         count2++;
       }
       count1++;
     }
-    cout<<"File read."<<endl;
+    vector<vector<double> > data_vol(m*n*o,vector<double>(4,0.));
+    if (fin_vol.is_open()) {
+      int count1 = 0;
+      int count2 = 0;
+      while(!(fin_vol.eof())) {
+        getline(fin_vol, zeile, '\n');
+        istringstream ss(zeile);
+        count2=0;
+        for (double d; ss >> d; ) {
+          data_vol[count1][count2] = d;
+          count2++;
+        }
+        count1++;
+      }
+    }
+    cout<<"Files read."<<endl;
     //Create vector with the different sizes
     vector<double> aa(m,0.);
     vector<double> bb(n,0.);
@@ -560,21 +581,28 @@ int main(int argc, char * argv[]) {
     /*aa.assign(taa,taa+m);
     bb.assign(tbb,tbb+n);
     cc.assign(tcc,tcc+o);*/
-    int E_number = 1;
     //Calculate coefficient matrix for the interpolation of the different entries in E
     int nrow;
-    if (mode == 2 || mode == 3) {
+    if (mode == 2 || mode == 3 || mode == 4 || mode == 5) {
       nrow = 9;
     } else {
       nrow = 6 + 1;
     }
     vector<vector<vector<double > > > Coeff(nrow, vector<vector<double> >((m-1)*(n-1)*(o-1),vector<double>(64,0.)));
     vector<vector<vector <double > > > E(m,vector<vector<double> >(n,vector<double>(o,0.)));
+    vector<vector<double > > Coeff_vol((m-1)*(n-1)*(o-1),vector<double>(64,0.));
+    if (fin_vol.is_open()) {
+      vector<vector<vector <double > > > E_vol(m,vector<vector<double> >(n,vector<double>(o,0.)));
+      for (int i=0;i<m*n*o;i++) {
+            E_vol[data_vol[i][0]][data_vol[i][1]][data_vol[i][2]] = data_vol[i][3];
+      }
+      tricubic_offline(Coeff_vol, aa, bb, cc, E_vol, m, n, o, da, db, dc);
+    }
     for (int ll = 0;ll<nrow;ll++) {
       for (int i=0;i<m*n*o;i++) {
             E[data[i][0]][data[i][1]][data[i][2]] = data[i][3+ll];
       }
-      tricubic_offline(Coeff[ll], aa, bb, cc, E, m, n, o, E_number, da, db, dc);
+      tricubic_offline(Coeff[ll], aa, bb, cc, E, m, n, o, da, db, dc);
     }
     /*for (int i=0;i<o;i++) {
         cout<<"E("<<i<<") = "<<endl;
@@ -595,9 +623,18 @@ int main(int argc, char * argv[]) {
     cout<<"Insert output xml file name:"<<endl;
     string name;
     cin>>name;
+
+    // open output xml
     string file(name);
+    fstream f;
+    f.open(file.c_str(), ios::out);
     //Write interpolation coefficients in the xml file above
-    write_to_xml(file,Coeff,aa,bb,cc, mode);
+    if (mode != 5) {
+      write_to_xml(f,Coeff,aa,bb,cc, mode);
+      write_to_xml_vol(f, Coeff_vol, aa,bb, cc);
+      f<<"</homRectC1>";
+    }
+    f.close();
     /*for (int i=0;i<m-1;i++) {
       for (int j=0;j<n-1;j++) {
         for (int k=0;k<o-1;k++) {
@@ -648,24 +685,11 @@ int main(int argc, char * argv[]) {
           break;
         }
       }
-      // Map x1,x2,x3 into the chosen intervall
+      // Map x1,x2,x3 into the chosen interval
       double coeff1=(x1-aa[a1])/da;
       double coeff2=(x2-bb[b1])/db;
       double coeff3=(x3-cc[c1])/dc;
 
-      /*cout<<"c1: "<<coeff1<<endl;
-      cout<<"c2: "<<coeff2<<endl;
-      cout<<"c3: "<<coeff3<<endl;
-      cout<<" i:"<<a1<<endl;
-      cout<<" j:"<<b1<<endl;
-      cout<<" k:"<<c1<<endl;*/
-
-      /*for (int i=0;i<(m-1)*(n-1)*(o-1);i++) {
-        for (int j=0;j<64;j++) {
-          cout<<" "<<Coeff[i][j];
-        }
-        cout<<endl;
-      }*/
       vector<double> a(64,0.);
       vector<double> b(64,0.);
       vector<double> c(64,0.);
@@ -687,7 +711,7 @@ int main(int argc, char * argv[]) {
         x[i] = Coeff[8][(n-1)*(o-1)*a1+(o-1)*b1+c1][i];
       }
 
-      //Evaluate the interpolation intervall at point x1,x2,x3
+      //Evaluate the interpolation interval at point x1,x2,x3
       result= tricubic_eval(a, coeff1, coeff2, coeff3);
       cout<<"e11: "<<result<<endl;
       cout<<"e12: "<<tricubic_eval(b, coeff1, coeff2, coeff3)<<endl;
@@ -700,6 +724,67 @@ int main(int argc, char * argv[]) {
       cout<<"e66: "<<tricubic_eval(x, coeff1, coeff2, coeff3)<<endl;
       return 0;
     }
+    if (mode == 5) {
+      //vector<vector<double > > vol_values(101*101,vector<double>(3,0.));
+      fstream f,f2;
+      f.open("output_vol.dat", ios::out);
+      f2.open("output_kreuze_vol.dat", ios::out);
+      for (int ii = 0;ii <= 100;ii++) {
+        for (int jj = 0;jj <= 100;jj++) {
+            x1 = ii/100.;
+            x2 = jj/100.;
+            x3 = 0.;
+            //Select the correct interval for x1, x2 and x3
+            int a1=-1;
+            int b1=-1;
+            int c1 =-1;
+            for (int i=0;i<m;i++) {
+              if (aa[i] <= x1 && x1 < aa[i+1]) {
+                a1=i;
+              } else if( x1 == aa[m-1]) {
+                a1=m-2;
+                break;
+              } else if (x1 > aa[m-1]) {
+                cout<<"x1 out of bounds"<<endl;
+                break;
+                }
+            }
+
+            for (int i=0;i<n;i++) {
+              if (bb[i] <= x2 && x2 < bb[i+1]) {
+                b1=i;
+              } else if( x2 == bb[n-1]) {
+                b1=n-2;
+                break;
+              } else if (x2 > bb[n-1]) {
+                cout<<"x2 out of bounds"<<endl;
+                break;
+              }
+            }
+            for (int i=0;i<o;i++) {
+              if (cc[i] <= x3 && x3 < cc[i+1]) {
+                c1=i;
+              } else if( x3 == cc[o-1]) {
+                c1=o-2;
+                break;
+              } else if (x3 > cc[o-1]) {
+                cout<<"x3 out of bounds"<<endl;
+                break;
+              }
+            }
+            // Map x1,x2,x3 into the chosen intervall
+            double coeff1=(x1-aa[a1])/da;
+            double coeff2=(x2-bb[b1])/db;
+            double coeff3=(x3-cc[c1])/dc;
+            f<<x1<<" "<<x2<< " " <<x3<<" "<<tricubic_eval(Coeff_vol[(n-1)*(o-1)*a1+(o-1)*b1+c1], coeff1, coeff2, coeff3)<<endl;
+            f2<<x1<<" "<<x2<< " " <<x3<<" "<<Calc3DCrossVolume(x1,x2,x3,false,1)<<endl;
+        }
+      }
+      f.close();
+      f2.close();
+      return 0;
+    }
+    return 0;
   } else {
     cout<<"wrong interpolation goal number chosen."<<endl;
     return -1;

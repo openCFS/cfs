@@ -14,10 +14,12 @@ SET(MATERIALS_SRCS
   Models/Jiles.cc
   Models/PiezoMicroModelBK.cc
   Models/PiezoMicroModelHF.cc
+  Models/VectorPreisachv10.cc
+  #Models/VectorPreisachv7.cc
+  #Models/VectorPreisach.cc
   Models/Preisach.cc
   Models/SimplePreisachInv.cc 
   )
-
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
 

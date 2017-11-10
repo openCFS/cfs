@@ -1,3 +1,4 @@
+
 #include <string>
 #include <cmath>
 #include <complex>
@@ -43,8 +44,6 @@ namespace CoupledField {
 
     case LAPACK:
 
-#ifdef USE_LAPACK
-
       // single precision case
       if ( sizeof(Double) == sizeof(float) ) {
         EXCEPTION("Interface for Double = float no longer supported!");
@@ -61,16 +60,8 @@ namespace CoupledField {
       }
 
       // something else
-      else {
+      else
         EXCEPTION("Double is neither float nor double! Don't know what to do!");
-      }
-
-#else
-
-      EXCEPTION( "Compile with USE_LAPACK to enable support for "
-               << "LAPACK's Givens rotation" );
-
-#endif
 
       break;
 
@@ -92,20 +83,15 @@ namespace CoupledField {
 
 
     // Determine which approach to use for the Givens rotation
-    switch( interface_ ) {
-
+    switch( interface_ )
+    {
     case LAPACK:
-
-#ifdef USE_LAPACK
-
       // single precision case
-      if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
-        EXCEPTION("Interface for Complex = std::complex<float> no longer "
-               "supported!");
-      }
+      if(sizeof(Complex) == sizeof(std::complex<float>))
+        EXCEPTION("Interface for Complex = std::complex<float> no longer supported!");
 
       // double precision case
-      else if ( sizeof(Complex) == sizeof(std::complex<double>) ) {
+      if ( sizeof(Complex) == sizeof(std::complex<double>) ) {
         std::complex<double> myF = f;
         std::complex<double> myG = g;
         double     myC = c;
@@ -118,21 +104,10 @@ namespace CoupledField {
         s = myS;
         r = myR;
       }
-
       // something else
-      else {
-        EXCEPTION("Complex is neither complex<float> nor complex<double>! "
-                 << "Don't know what to do!");
-      }
-
-#else
-
-      EXCEPTION("Compile with USE_LAPACK to enable support for LAPACK's "
-               << "Givens rotation");
-
-#endif
-
-      break;
+      else
+        EXCEPTION("Complex is neither complex<float> nor complex<double>! Don't know what to do!");
+    break;
 
     case OLAS:
       CompRot( f, g, c, s, r );

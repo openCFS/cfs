@@ -31,6 +31,12 @@ namespace CoupledField {
       std::cout << resultList[i]->ToString() << std::endl;
   }
 
+  void BaseResult::CloneMembers(BaseResult* target) {
+    target->SetResultInfo(GetResultInfo());
+    target->SetEntityList(GetEntityList());
+    target->SetInfoNode(GetInfoNode());
+  }
+  
   template<class TYPE>
   Result<TYPE>::Result() {
   }
@@ -40,11 +46,19 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void Result<TYPE>::Init()
-  {
+  void Result<TYPE>::Init() {
     values_.Resize(entities_->GetSize());
     values_.Init(0);
   }
+  
+  template<class TYPE>
+  shared_ptr<BaseResult> Result<TYPE>::Clone() {
+    Result<TYPE>* cloneResult = new Result<TYPE>();
+    CloneMembers(cloneResult);
+    cloneResult->values_ = values_;
+    return shared_ptr<BaseResult>(cloneResult);
+  }
+    
 
  // explicit template instantiation for GCC compiler
 #if defined(__GNUC__)

@@ -1,9 +1,8 @@
 import vtk
-from vtk.util.colors import *
+#from vtk.util.colors import *
 from numpy import *
 from matviz_rot import *
 from matviz_vtk import *
-from mesh_tool import *
 # polyhedron lib from: http://cens.ioc.ee/projects/polyhedron/
 #from polyhedron import Vrep, Hrep
 import scipy.interpolate as ip
@@ -68,7 +67,7 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
       st3_full[i, 0] = 1.
   
   # add pseudo angles for non-design region
-  if angles <> None:
+  if angles != None:
     ang_full = zeros((len(centers_full), 3))
     for i in range((ang_full.shape)[0]):
       if i < (angles.shape)[0]: 
@@ -139,10 +138,10 @@ def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_suppor
   mesh = map_bc_to_node(mesh, nodes_force, min_mod, max_mod, 'load', dx, dy, dz, nnx + 1, nny + 1, nnz + 1, -1)
   mesh = map_bc_to_node(mesh, nodes_support, min_mod, max_mod, 'support', dx, dy, dz, nnx + 1, nny + 1, nnz + 1, 1)
     
-  if grad <> 'nearest':  
-    print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
+  if grad != 'nearest':  
+    print(str(within) + ' elements out of ' + str(len(out)) + ' in convex hull')  
   if invalid > 0:  
-    print str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)'
+    print(str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)')
   return mesh
   
 
@@ -193,12 +192,12 @@ def map_bc_to_node(mesh, nodes, min, max, name, dx, dy, dz, nnx, nny, nnz, flag)
 
 def get_interpolation_unstructured(coords, grad, s1, s2, s3, lx, ly, lz, ux, uy, uz, dx, dy, dz, mi=None, ma=None, angle=None):
   # we make our own elem
-  if mi <> None and max <> None:
+  if mi != None and max != None:
     centers = coords[0]  # skip elem
   else:
     centers, mi, ma = coords[0:3] 
   if ux - lx == 0 or uy - ly == 0 or uz - lz == 0:
-    print 'chose a higher hom_samples such that also the smallest side gets discretized'
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
 
   out = numpy.zeros(((ux - lx) * (uy - ly) * (uz - lz), 3))
@@ -215,20 +214,20 @@ def get_interpolation_unstructured(coords, grad, s1, s2, s3, lx, ly, lz, ux, uy,
   v[:, 1] = s2[:, 0]
   v[:, 2] = s3[:, 0]
   v[:, 3:6] = angle[:, :]
-  print 'interpolation start'
+  print('interpolation start')
   ip_data = ip.griddata(centers, v, out, grad, -500.)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
-  ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
   
-  print 'interpolation end'
+  print('interpolation end')
   
   return ip_data, ip_near, out, (ux - lx, uy - ly, uz - lz)                             
 def get_interpolation_unstructured_2(coords, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz, angle=None):
   # we make our own elem
   centers, mi, ma = coords[0:3]  # skip elem 
   if ny == 0 or nz == 0 or nx == 0:
-    print 'chose a higher hom_samples such that also the smallest side gets discretized'
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
     exit()
 
   out = numpy.zeros(((nx) * (ny) * (nz), 3))
@@ -243,15 +242,15 @@ def get_interpolation_unstructured_2(coords, grad, s1, s2, s3, nx, ny, nz, dx, d
   v[:, 0] = s1[:, 0]
   v[:, 1] = s2[:, 0]
   v[:, 2] = s3[:, 0]
-  if angle <> None:
+  if angle != None:
     v[:, 3:6] = angle[:, :]
-  print 'interpolation start'
+  print('interpolation start')
   ip_data = ip.griddata(centers, v, out, grad, -500.)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
-  ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
   
-  print 'interpolation end'
+  print('interpolation end')
   
   return ip_data, ip_near, out, (nx, ny, nz)
 
@@ -299,7 +298,7 @@ def write_node_design(name, mesh, coords, st1, st2, st3, angles):
   nodes_st1 = zeros((len(mesh.nodes), 1))
   nodes_st2 = zeros((len(mesh.nodes), 1))
   nodes_st3 = zeros((len(mesh.nodes), 1))
-  if angles <> None:
+  if angles != None:
     nodes_angles = zeros((len(mesh.nodes), 3))
   else:
     nodes_angles = None
@@ -313,7 +312,7 @@ def write_node_design(name, mesh, coords, st1, st2, st3, angles):
         nodes_st1[mesh.elements[i].nodes[j]] += st1[count]
         nodes_st2[mesh.elements[i].nodes[j]] += st2[count]
         nodes_st3[mesh.elements[i].nodes[j]] += st3[count]
-        if nodes_angles <> None:
+        if nodes_angles != None:
           nodes_angles[mesh.elements[i].nodes[j], :] += angles[count, :]
         nb_des_count[mesh.elements[i].nodes[j]] += 1
       count += 1
@@ -321,9 +320,9 @@ def write_node_design(name, mesh, coords, st1, st2, st3, angles):
       for j in range(len(mesh.elements[i].nodes)):
         nb_ndes_count[mesh.elements[i].nodes[j]] += 1
   output_file = open(name, "w")    
-  output_file.write(str(len(nodes_st1)) + '  ' + str(6 if angles <> None else 3) + ' \n')
+  output_file.write(str(len(nodes_st1)) + '  ' + str(6 if angles != None else 3) + ' \n')
   for i in range(len(mesh.nodes)):
-    if nb_des_count[i] <> 0:
+    if nb_des_count[i] != 0:
       nodes_st1[i] /= nb_des_count[i]
       nodes_st2[i] /= nb_des_count[i]
       nodes_st3[i] /= nb_des_count[i]
@@ -338,7 +337,7 @@ def write_node_design(name, mesh, coords, st1, st2, st3, angles):
       nodes_st1[i] = -1
       nodes_st2[i] = -1
       nodes_st3[i] = -1
-    if angles <> None:
+    if angles != None:
       output_file.write(str(nodes_st1[i]) + '\t ' + str(nodes_st2[i]) + '\t ' + str(nodes_st3[i]) + '\t ' + str(nodes_angles[i, :]) + ' \n')
     else:
       output_file.write(str(nodes_st1[i]) + '\t ' + str(nodes_st2[i]) + '\t ' + str(nodes_st3[i]) + ' \n')
@@ -384,11 +383,11 @@ def post_process_mesh(mesh, coords, nondes_coords, ip_nx, ip_ny, ip_nz):
   nnz = nz + overhead_z_u + overhead_z_l 
   idx = 0
   i = 0
-  print 'mesh.elements = ' + repr(len(mesh.elements))
-  print 'nnx = ' + repr(nnx)
-  print 'nny = ' + repr(nny)
-  print 'nnz = ' + repr(nnz)
-  yrange = range(-overhead_x_l, nx + overhead_y_u)
+  print('mesh.elements = ' + repr(len(mesh.elements)))
+  print('nnx = ' + repr(nnx))
+  print('nny = ' + repr(nny))
+  print('nnz = ' + repr(nnz))
+  yrange = list(range(-overhead_x_l, nx + overhead_y_u))
   for z in range(nnz):
     for x in range(nnx):
       idx = z * (nnx) * (nny) + x

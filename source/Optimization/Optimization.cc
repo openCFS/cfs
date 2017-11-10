@@ -48,6 +48,7 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
+#include "Optimization/Optimizer/SGP.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
@@ -180,7 +181,7 @@ void Optimization::PostInitSecond()
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetName());
+    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->GetName());
     if(f->GetType() == Function::BANDGAP) {
       log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
@@ -191,12 +192,22 @@ void Optimization::PostInitSecond()
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
 
+  if(design->HasSlackVariable() &&  !objectives.Has(Function::SLACK))
+    log.AddToHeader("slack");
+
+  log.Init(this, optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
+
+  // add the bandgap stuff in front of the constraints
+  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++) // might be emtpy!
+    log.AddToHeader(boost::get<0>(log.bloch_info[i]));
+
   // constraints.ToInfo() is called in PostInitSecond()
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i];
     if(!g->IsLocalCondition())  {
-      log.AddToHeader(g->ToString());
+      if(g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)
+        log.AddToHeader(g->ToString());
       if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch())
         log.AddToHeader("ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv");
     }
@@ -204,11 +215,11 @@ void Optimization::PostInitSecond()
       if(progOpts->DoDetailedInfo()) {
         log.AddToHeader("max_" + g->ToString());
         log.AddToHeader("mean_" + g->ToString());
+        log.AddToHeader("infeas_" + g->ToString());
       }
     }
     LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
-  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
 
   PtrParamNode opt = optParamNode->Get("optimizer");
 
@@ -253,6 +264,10 @@ void Optimization::PostInitSecond()
            throw Exception("CFS++ was compiled w/o KNITRO");
          #endif
       break;
+
+    case SGP_SOLVER:
+         baseOptimizer_ = new SGP(this, opt);
+         break;
 
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
@@ -307,6 +322,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::MULTI_OBJECTIVE, "multiObjective");
   Function::type.Add(Function::COMPLIANCE, "compliance");
   Function::type.Add(Function::OUTPUT, "output");
+  Function::type.Add(Function::SQUARED_OUTPUT, "squaredOutput");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
   Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
@@ -329,6 +345,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::FILTERING_GAP, "filteringGap");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");
@@ -346,6 +363,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::CURVATURE, "curvature");
   Function::type.Add(Function::GLOBAL_CURVATURE, "globalCurvature");
+  Function::type.Add(Function::OVERHANG_VERT, "overhang_vert");
+  Function::type.Add(Function::OVERHANG_HOR, "overhang_hor");
   Function::type.Add(Function::DESIGN, "design");
   Function::type.Add(Function::GLOBAL_DESIGN, "globalDesign");
   Function::type.Add(Function::PERIODIC, "periodic");
@@ -374,11 +393,19 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
+  Function::type.Add(Function::SLACK_FNCT, "slackFunction");
   Function::type.Add(Function::BANDGAP, "bandgap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+
+  Function::slackFnct.SetName("Function::SlackFnct");
+  Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
+  Function::slackFnct.Add(Function::ALPHA_SLACK_QUOTIENT, "a/s");
+  Function::slackFnct.Add(Function::REL_BANDGAP, "(2*s)/(a-s)");
+  Function::slackFnct.Add(Function::NORM_BANDGAP, "(2*s)/a");
+  Function::slackFnct.Add(Function::ALPHA_MINUS_SLACK, "a-s");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");
@@ -435,6 +462,7 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
+  optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
@@ -497,8 +525,6 @@ bool Optimization::IsTransient() {
 }
 
 double Optimization::GetStepWeight(unsigned int ts) const{
-  // FIXME
-  assert(!context->DoMultiSequence());
   unsigned int nts = context->GetDriver()->GetNumSteps();
   if(IsFirstTransientStepStatic()){
     if(ts == 0){
@@ -707,6 +733,12 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
+  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning());
+  // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+  if(eval_timer)
+    eval_timer->Stop();
+
   AnalysisID& id = context->driver->GetAnalysisId();
   id.iteration = currentIteration;
 
@@ -746,6 +778,9 @@ void Optimization::SolveStateProblem(Excitation* excite)
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
 
+  if(eval_timer)
+    eval_timer->Start();
+
   problemSolvedCounter++;
   problemWithinIteration++;
 }
@@ -753,60 +788,46 @@ void Optimization::SolveStateProblem(Excitation* excite)
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
   // solve for objectives and constraints
-  StdVector<Function*> ff = GetActiveFunctions();
+  // solve also for observe
+  StdVector<Function*> ff = GetFunctions(false);
 
   for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
     Function* f = ff[i];
+    assert(f != NULL);
     if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }
 
-// only for transient and tracking
-void Optimization::SolveAdjointProblem(Excitation* excite, Function* f)
-{
-  // is obviously not called?!
-  // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
-  assert(false); // gcc debug needs this for linking but not icc and clang
-  /*
-  // FIXME BaseDriver* driver = domain->GetDriver();
 
-  AdjointParameters adjointParams(f, excite);
-
-  if(IsTransient()){
-    assert(false);
-   //    SinglePDE* mech = domain->GetSinglePDE("mechanic");
-    //mech->GetSolveStep()->ReInit();
-  }
-
-  // Do not store the results. This is adjoint.
-  if(!context->IsComplex())
-    assert(false);
-    // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
-  else
-    EXCEPTION("Harmonic adjoint not implemented!");
-    */
-}
-
-StdVector<Function*> Optimization::GetActiveFunctions() const
+StdVector<Function*> Optimization::GetFunctions(bool only_active) const
 {
   StdVector<Function*> result;
 
   const unsigned int cn = objectives.data.GetSize();
   const unsigned int gn = constraints.active.GetSize();
+  const unsigned int on = only_active ? 0 : constraints.observe.GetSize();
 
-  result.Resize(cn + gn);
+  result.Reserve(cn + gn + on);
+  result.Resize(0); // To allow push back
+
 
   for(unsigned int i = 0; i < cn; i++)
   {
-    result[i] = objectives.data[i];
-    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+    result.Push_back(objectives.data[i]);
+    LOG_DBG2(opt) << "GAF: o=" << result.Last()->ToString();
   }
   for(unsigned int i = 0; i < gn; i++)
   {
-    result[cn + i] = constraints.active[i];
-    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+    result.Push_back(constraints.active[i]);
+    LOG_DBG2(opt) << "GAF: g=" << result.Last()->ToString();
+  }
+
+  for(unsigned int i = 0; i < on; i++)
+  {
+    result.Push_back(constraints.observe[i]);
+    LOG_DBG2(opt) << "GAF: g_observe=" << result.Last()->ToString();
   }
 
   return result;
@@ -855,6 +876,10 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
 double Optimization::CalcObjective()
 {
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 
@@ -895,11 +920,19 @@ double Optimization::CalcObjective()
     }
   }
 
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
+
   return result;
 }
 
 void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
 {
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
+
   // reset the cost gradients in the design elements and sum them up in a weighted way
   // to perform multiple loads
   design->Reset(DesignElement::COST_GRADIENT);
@@ -925,12 +958,19 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   {
     design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART,  objectives.data[0]); // use the first such that we know about the robust index
     if(progOpts->DoDetailedInfo())
-      design->WriteGradientFile(); // if constraints are not calculated yet whill be overwitten later with the good data for this iterations
+      design->WriteGradientFile(); // if constraints are not calculated yet will be overwritten later with the good data for this iterations
   }
+
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
 }
 
 double Optimization::CalcConstraint(Condition* g)
 {
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
 
@@ -950,12 +990,20 @@ double Optimization::CalcConstraint(Condition* g)
     LOG_DBG2(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
   }
 
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
+
   g->SetValue(result);
   return result;
+
 }
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Stop();
+
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
@@ -988,6 +1036,9 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(g);
   }
+
+  if(pause_timer)
+    baseOptimizer_->GetOptimierTimer()->Start();
 }
 
 void Optimization::EvaluateSpecialResults()
@@ -1111,6 +1162,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     *out << " \t" << duration;
     if(design->HasAlphaVariable())
       *out << " \t" << design->GetAlphaVariable();
+    if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
+      *out << " \t" << design->GetSlackVariable();
   }
 
   iteration->Get("number")->SetValue(currentIteration);
@@ -1123,20 +1176,25 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(design->HasAlphaVariable()) // needs to be written to the plot.dat file in ErsatzMaterial as Optimization::Optimization() knows no design yet
     iteration->Get("alpha")->SetValue(design->GetAlphaVariable());
 
+  if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
+    iteration->Get("slack")->SetValue(design->GetSlackVariable());
+
+
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    iteration->Get(f->ToString())->SetValue(f->GetValue());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum
       iteration->Get("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv")->SetValue(f->bandgap.lower.col);
       iteration->Get("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv")->SetValue(f->bandgap.upper.col);
     }
-
-    if(f->GetLocal() != NULL)
-      iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
   }
+
+  // we might have bloch information calculated int ErsatzMaterial::CommitIteration()
+  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
+    *out << " \t" << boost::get<1>(log.bloch_info[i]);
 
   // For iteration 0 we want also the constraint values but they were not evaluated.
   // For any iteration we need to evaluate the observe constraints
@@ -1157,35 +1215,35 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       continue; //TODO: MaxValue does not correctly set indexes in view
 
     // Calculate the max value of multiple displacement constraints
-    if(g->GetType() == Function::OUTPUT && g->output_multiple_nodes > 0) {
+    if((g->GetType() == Function::OUTPUT || g->GetType() == Function::SQUARED_OUTPUT) && g->output_multiple_nodes > 0) {
       max = std::max(max,std::abs(g->GetValue()));
       std::cout<<"max "<<max<<std::endl;
     }
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
-      double max  = local->CalcMaxValue();
-      double mean = local->CalcMeanValue();
+      double max     = local->CalcMaxValue();
+      int    inf_cnt = local->CountInfeasibles();
+      double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanValue() : -1.0;
       if(progOpts->DoDetailedInfo() && out)
-        *out << " \t" << max << " \t" << mean;
+        *out << " \t" << max << " \t" << mean << " \t" << inf_cnt;
+
       iteration->Get("max_" + g->ToString())->SetValue(max);
-      iteration->Get("mean_" + g->ToString())->SetValue(mean);
+      if(progOpts->DoDetailedInfo())
+        iteration->Get("mean_" + g->ToString())->SetValue(mean);
+      iteration->Get("infeas_" + g->ToString())->SetValue(inf_cnt);
     }
+
     else
     {
       double value = g->GetValue();
       if(g->delta_logging)
         value = value - g->GetBoundValue();
-      if(out)
+      if(out && (g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)) // don't spoil
         *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one (ErsatzMaterial::CommitIteration())
       if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
-      {
         iteration->Get(g->ToString())->SetValue(value);
-        // don't report for local, they should be almost always feasible for MMA, ...
-        if(g->GetLocal() != NULL )
-          iteration->Get("infeasible_" + g->ToString())->SetValue(g->GetLocal()->infeasible);
-      }
     }
   }
   // max output_constraint value
@@ -1269,11 +1327,12 @@ Optimization::Log::Log()
   this->designGradient = false;
   this->designConstraintGradients = false;
   this->gradNorm = progOpts->DoDetailedInfo();
+  this->plot_ev = true;
   this->file = NULL;
   this->fileHeader = "";
 }
 
-void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
+void Optimization::Log::Init(Optimization* opt, const string& log_name, PtrParamNode pn_log)
 {
   if(log_name != "false")
   {
@@ -1287,6 +1346,25 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
       design = pn_log->Get("design")->As<bool>();
       designGradient = pn_log->Get("designGradient")->As<bool>();
       designConstraintGradients = pn_log->Get("designConstraintGradients")->As<bool>();
+    }
+  }
+
+  StdVector<Condition*> ev = opt->constraints.GetList(Condition::EIGENFREQUENCY);
+  if(!ev.IsEmpty() && ev.First()->GetExcitation()->DoBloch() && ev.First()->DoFullBloch())
+  {
+    plot_ev = progOpts->DoDetailedInfo();
+
+    // see ErsatzMaterial::CommitInteration()
+    bloch_info.Push_back(boost::make_tuple("bandgap", -1.0));
+
+    StdVector<string> found;
+    for(unsigned int i = 0; i < ev.GetSize(); i++) {
+      std::string key = "ev_" + lexical_cast<string>(ev[i]->GetEigenValueID()) + (ev[i]->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max");
+      // we have wave vector times each ev, add only one!
+      if(!found.Contains(key)) {
+        bloch_info.Push_back(boost::make_tuple(key, -1.0));
+        found.Push_back(key);
+      }
     }
   }
 }

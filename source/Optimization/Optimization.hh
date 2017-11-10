@@ -86,7 +86,7 @@ namespace CoupledField
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
-                        FEAS_PP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
+                        FEAS_PP_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
@@ -149,9 +149,10 @@ namespace CoupledField
         
         /** Solves the Adjoint problem, for given excite and objective
          * This does the real work
+         * Only Bastian had an implementation for transient and tracking in Optimization.cc
          * @param excite multi-excitation
          * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f) { assert(false); }
         
         /** Sets the rhs for the adjoint, called by assemle */
         // only for transient and tracking
@@ -198,9 +199,10 @@ namespace CoupledField
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
-        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
-         * Always creates the list, so use only rarely. */
-        StdVector<Function*> GetActiveFunctions() const;
+        /** Returns all functions. Does not blow up local constraints. Combines objective and constraints.
+         * Always creates the list, so use only rarely.
+         * @param only_active use only active constraints */
+        StdVector<Function*> GetFunctions(bool only_active) const;
 
         /** Our base ParamNode pointer, pointing to input <optimization> */
         PtrParamNode optParamNode;
@@ -253,7 +255,7 @@ namespace CoupledField
 
           /** @param log_name is interpreted. If allows a file, the logFile is created.
            * @param pn_log pointer to the 'log' element. Might be NULL */
-          void Init(const std::string& log_name, PtrParamNode pn_log);
+          void Init(Optimization* opt, const std::string& log_name, PtrParamNode pn_log);
 
           /** append an item to the fileHeader and adds the index to the label */
           void AddToHeader(const std::string& label);
@@ -265,6 +267,13 @@ namespace CoupledField
 
            /** if set write the design to the logfile */
            bool design;
+
+           /** shall the ev constraints be written to plot.dat? Not in full bloch case when not in detail mode */
+           bool plot_ev;
+
+           /** here ErsatzMaterial::CommitIteration() stores bloch information for plot.dat writing.
+            * First entry is bandgap then the ev_min or ev_max info for each ev constraint. First label then the value */
+           StdVector<boost::tuple<std::string, double> > bloch_info;
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;
@@ -378,6 +387,9 @@ namespace CoupledField
         /** shortcut to domain->GetGrid() */
         Grid* grid;
 
+        /** This holds our optimizer instance. */
+        BaseOptimizer* baseOptimizer_;
+
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
          * set in the <commit> element. In case this method makes a StoreResults (not commit)
@@ -389,9 +401,6 @@ namespace CoupledField
 
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
-
-        /** This holds our optimer instance. */
-        BaseOptimizer* baseOptimizer_;
 
         /** checks the time of the iterations to be written and used as stopping criteria.
          * This is a shortcut the the main cfs timer, taken from infoNode */

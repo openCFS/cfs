@@ -40,7 +40,7 @@ class CoefFunctionGridNodalDefault : public CoefFunctionGridNodal<DATA_TYPE>{
 public:
   
   CoefFunctionGridNodalDefault(Domain* ptDomain,
-                               PtrParamNode configNode,PtrParamNode curInfo);
+                               PtrParamNode configNode,PtrParamNode curInfo, shared_ptr<RegionList> regions);
 
   virtual ~CoefFunctionGridNodalDefault(){
   };
@@ -68,10 +68,6 @@ public:
     return "";
   };
 
-  //! adds entities to the coeffunction
-  virtual void AddEntityList(shared_ptr<EntityList> ent);
-  
-
   // COLLECTION ACCESS
   virtual void GetScalarValuesAtPoints( const StdVector<Vector<Double> >  & points,
                                              StdVector<DATA_TYPE >  & vals);
@@ -86,21 +82,28 @@ public:
                                     Vector<DATA_TYPE>& feFncVec);
 
   //! Determine if coefFunction has conservative mapping
-    virtual bool IsConservative(){
-      return (this->curInterpType_==CoefFunctionGrid::CONSERVATIVE);
-    }
+  virtual bool IsConservative(){
+    return (this->curInterpType_==CoefFunctionGrid::CONSERVATIVE);
+  }
+  
 protected:
+  
+  //! sets the source region and destination regions
+  virtual void SetRegions(shared_ptr<RegionList> regions);
 
 private:
   ///method searching for elements for given global points
   void GetElemsForPoints(const StdVector<Vector<Double> >  & points, StdVector< const Elem* > & elements, StdVector<LocPoint> & locals);
 
-  //! build associative array for conservative
+  //! build associative arrays for conservative mapping
   void BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace);
-
-  //! for conservative mapping, we store just the pair of own
-  //! solution vector to coeffunction vector
-  StdVector< std::pair<UInt,UInt> > fctSolAssoc_;
+  
+  //! stores if a value from the solution vector has to be copied to target space vector
+  std::vector<bool> copyValueIndex_;
+  
+  //! stores if to which index of the target space vector a value from 
+  // the solution vector has to copied to
+  StdVector<UInt> valueTargetIndex_;
 
   //!Flag indicating if Conservative is ready yet
   bool conservativeReady_;

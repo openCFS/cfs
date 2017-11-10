@@ -62,13 +62,16 @@ class AuxDesign : public DesignSpace
     /** @see DesignSpace::HasSlackVariable() */
     bool HasSlackVariable() const { return slack_ != NULL; }
 
-    bool HasAlphaVariable() const { return alpha_ != NULL; }
+    bool HasAlphaVariable() const { assert(!(slack_ == NULL && alpha_ != NULL)); return alpha_ != NULL; }
+
+    BaseDesignElement* GetSlackDesign() { return &(aux_design_[0]); }
+
+    BaseDesignElement* GetAlphaDesign() { return &(aux_design_[1]); }
 
     /** @see DesignSpace::GetSlackVariable() */
     double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
 
     double GetAlphaVariable() const { assert(alpha_ != NULL); return aux_design_[1].GetDesign(); }
-
 
     /** see DesignSpace::ToInfo() */
     virtual void ToInfo(ErsatzMaterial* em);

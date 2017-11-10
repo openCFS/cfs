@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "/opt/pckg", "/opt/pckg"
   config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/oracle/Documents/dev/NIGHTLY"
-  config.vm.synced_folder "/media/CFD_Data", "/media/CFD_Data"
+#  config.vm.synced_folder "/media/CFD_Data", "/media/CFD_Data"
 
   config.vm.provision :shell do |shell|
     shell.path = "../../shared/provision_nightly_tests_linux.sh"

@@ -65,14 +65,14 @@ namespace CoupledField
        /** The bound value for inhomogeneous constraints.
         * In slack bound case it returns 0 as the constraints g <= slack is transformed to g - slack <= 0
         * @see IsSlackBound() */
-       double GetBoundValue() const { return HasSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
+       double GetBoundValue() const { return HasGeneralSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
 
        /** allows to compare with a special bound value as GetBoundValue() woul return 0
-        * @param compare SLACK_VALUE, ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
-       double IsSlackBound(double compare) const { return boundValue_ == compare; }
+        * @param compare SLACK_VALUE, ALPHA_VALUE ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
+       double IsGeneralSlackBound(double compare) const { return boundValue_ == compare; }
 
-       /** is the bound value one of the three special slack cases? */
-       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
+       /** is the bound value one of the four special slack cases? includes alpha only */
+       bool HasGeneralSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
 
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
@@ -156,6 +156,7 @@ namespace CoupledField
        EigenInfo bloch;
 
        static double SLACK_VALUE;
+       static double ALPHA_VALUE;
        static double ALPHA_MINUS_SLACK_VALUE;
        static double ALPHA_PLUS_SLACK_VALUE;
 
@@ -321,6 +322,9 @@ namespace CoupledField
      /** Calculates the max |value| */
      double CalcMaxValue() const;
 
+     /** count the infeasible elements where the value is out of bound. This can be problematic for linear functions! */
+     int CountInfeasibles() const;
+
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
      double GetValue() const;
@@ -424,10 +428,14 @@ namespace CoupledField
      }
      Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
-     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
+     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true, Function::Access access = Function::NO_ACCESS);
 
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
+
+     /** if so we need to add the bound to the name */
+     bool RequiresBoundForUniqueness(const Condition* g);
+
 
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */
@@ -447,6 +455,9 @@ namespace CoupledField
    private:
 
      Condition* Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception);
+
+     /* has unique bounds */
+     bool HasUniqueBounds(const StdVector<Condition*>&);
 
      /** save for maxSlope output */
      DesignSpace* space_;

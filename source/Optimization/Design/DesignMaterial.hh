@@ -36,7 +36,7 @@ class TransferFunction;
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
 
     /* possibilities for the isotropic plane in transversal isotropy
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
@@ -52,6 +52,9 @@ class TransferFunction;
     
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+
+    /** Rotation  direction. Clockwise (CW) or Counter-clockwise (CCW) */
+    typedef enum { CW, CCW } Clock;
 
     /** Method used for interpolation of material tensor and volume */
     typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
@@ -111,7 +114,11 @@ class TransferFunction;
 
     void static SetEnums();
 
-    Type GetType() const { return type_; }
+    Type GetType() const { return type_; };
+
+    void SetType(Type type) {type_ = type;};
+
+    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -122,6 +129,28 @@ class TransferFunction;
     double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
 
     Interpolation GetInterpolationMethod() const { return interpolation_; };
+
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order or rz,ry,rx
+     *  in 2d: rotates the material by ROTANGLE or rx
+     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+     * @param notation can be HILL_MANDEL or VOIGT notation
+     * @param clock can be CCW (counter-clockwise) or CW (clockwise)
+     * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
+     */
+    void RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles = false, double rx = 0., double ry = 0., double rz = 0.);
+
+    /** Calculate the Isotropic tensor */
+    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
   protected:
 
@@ -172,8 +201,6 @@ class TransferFunction;
   private:
     /* note that most of these functions are called really often, so inlining is used */
 
-    /** Calculate the Isotropic tensor */
-    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Lame Tensor */
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -196,10 +223,6 @@ class TransferFunction;
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
-
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
@@ -231,6 +254,9 @@ class TransferFunction;
     /** put values from Voigt vector to correct positions in tensor */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
     
+    /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
+    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
+
     /** put the entries of the orthotropic tensor at the right places */
     inline void SetOrthotropicTensor(Matrix<double>& t, SubTensorType subTensor, double e11, double e12, double e13, double e22,
         double e23, double e33, double e44, double e55, double e66);
@@ -240,17 +266,8 @@ class TransferFunction;
     
     /** put the entries of the isotropic tensor at the right places */
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
-    
-    /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
-    
-    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
-     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
-     *  in 2d: rotates the material by ROTANGLE
-     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-     */
-    void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+
+    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = HILL_MANDEL);
 
     /** helper function to set a rotation matrix of size 3x3
      * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
@@ -381,6 +398,18 @@ class TransferFunction;
     Matrix<double> hom_rect_coeff55_;
     Matrix<double> hom_rect_coeff66_;
     Matrix<double> hom_rect_coeff13_;
+    Matrix<double> hom_rect_coeff14_;
+    Matrix<double> hom_rect_coeff15_;
+    Matrix<double> hom_rect_coeff16_;
+    Matrix<double> hom_rect_coeff24_;
+    Matrix<double> hom_rect_coeff25_;
+    Matrix<double> hom_rect_coeff26_;
+    Matrix<double> hom_rect_coeff34_;
+    Matrix<double> hom_rect_coeff35_;
+    Matrix<double> hom_rect_coeff36_;
+    Matrix<double> hom_rect_coeff45_;
+    Matrix<double> hom_rect_coeff46_;
+    Matrix<double> hom_rect_coeff56_;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;

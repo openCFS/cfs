@@ -94,6 +94,15 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     NO_CMAKE_SYSTEM_PATH 
   )
 
+  # For some strange reason GFORTRAN_LIBRARY needs to be explicitly set to /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a
+  # either via set or -D cmake option with opensuse tumbleweed original packaged crosscompiler
+  IF(GFORTRAN_LIBRARY MATCHES "NOTFOUND")
+    MESSAGE("GFORTRAN_LIBRARY not found: ${GFORTRAN_LIBRARY}")
+    MESSAGE("GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+    MESSAGE("Try /usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
+    SET(GFORTRAN_LIBRARY "/usr/lib64/gcc/x86_64-w64-mingw32/6.2.0/libgfortran.a")
+  ENDIF()
+
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY)
 
   #---------------------------------------------------------------------------
@@ -134,10 +143,12 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
     LIST(APPEND CFS_FORTRAN_LIBS
       "${GFORTRANBEGIN_LIBRARY_STATIC}"
       "${GFORTRAN_LIBRARY_STATIC}"
+      "-lquadmath"
     )
   ELSE()
     LIST(APPEND CFS_FORTRAN_LIBS
       "${GFORTRAN_LIBRARY}"
+      "-lquadmath"
     )
   ENDIF()
 
@@ -261,17 +272,27 @@ IF(CMAKE_CROSSCOMPILING)
       NO_CMAKE_SYSTEM_PATH 
     )
     
-    LIST(APPEND GFORTRAN_LIBRARY "${QUADMATH_LIBRARY}")
-
+    IF(QUADMATH_LIBRARY MATCHES "NOTFOUND")
+      MESSAGE("WARNING quadmath not found! But this might be harmless?! ${QUADMATH_LIBRARY}")
+    ELSE()
+      LIST(APPEND GFORTRAN_LIBRARY "${QUADMATH_LIBRARY}")
+    ENDIF()
+    
   ENDIF()
 ENDIF()
 
 include(FortranCInterface)
 
+# This stuff is important such that the linker finds the functions if the names
+# are different (uppercase, tailing underline, ...).
+# Each fortran function which are used in CFS have to be listed here else one
+# will get an undefined reference to 'symbol' error.
+# Also make sure the function is defined in MatVec/BLASLAPACKInterface.hh
 FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS
   # BLAS and LAPACK
+  dgecon
   dgemm
   zgemm
   dgemv
@@ -301,6 +322,9 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   zpbtrf
   dpbtrs
   zpbtrs
+  dsyev
+  zgetrf
+  zgetri
   ilaver
   # ARPACK
   dsaupd

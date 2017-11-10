@@ -57,8 +57,16 @@ public:
     forms_[region] = integrator;
   }
   
+  //! perform some finial steps
+  virtual void Finalize() {;}
+
   //! Obtain derivType
   ResultDerivType GetDerivType() {return derivType_;}
+
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    EXCEPTION("Base Class ResultFunctor has no Coef-Function");
+  }
 
 protected:
     
@@ -73,6 +81,9 @@ protected:
   
   //! List of integrators
   std::map<RegionIdType, BaseBDBInt*> forms_;
+
+  //! Store coefficient function
+  PtrCoefFct coef_;
 };
 
 // --------------------------------------------------------------------------
@@ -91,7 +102,7 @@ public:
   virtual ~FieldCoefFunctor();
 
   //! Return Coefficient function
-  PtrCoefFct GetCoefFct() {
+  virtual PtrCoefFct GetCoefFct() {
     return coef_;
   }
 
@@ -101,10 +112,6 @@ public:
   //! Evaluate field at local point
   void GetVector(Vector<TYPE>& vec, 
                  const LocPointMapped& lpm);
-protected:
-
-  //! Store coefficient function
-  PtrCoefFct coef_;
 };
 
 // --------------------------------------------------------------------------
@@ -134,14 +141,65 @@ public:
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res );
 
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    return coef_;
+  }
 
 private:
 
-  //! Pointer to coefficient function to be integrated
-  PtrCoefFct coef_;
+  //! Pointer to FeFunction
+  shared_ptr<BaseFeFunction> feFct_;
+};
+
+
+// --------------------------------------------------------------------------
+//  Calculate the result by integration and sums up to total force
+// --------------------------------------------------------------------------
+
+template<class TYPE>
+class ResultFunctorVWP : public ResultFunctor {
+public:
+
+  //! Constructor
+  ResultFunctorVWP( PtrCoefFct coef,
+                    shared_ptr<BaseFeFunction> feFct,
+                    shared_ptr<ResultInfo> inf,
+					Grid* ptGrid);
+
+  //! Destructor
+  virtual ~ResultFunctorVWP();
+
+  //! Evaluate result for complete entity list
+  virtual void EvalResult(shared_ptr<BaseResult> res );
+
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    return coef_;
+  }
+
+private:
+
+  //! Calculate element force
+  //! \param F              (output) Array containing nodal forces
+  //!                                (dim x nodes) of each element
+  //! \param ptElem         (input)  Pointer to element
+  //! \param dim            (input)  number of dofs = dim
+  //! \param IsBoundaryNode (input)  contains 1, if corresponding node is a
+  //!                                boundary node, otherwise 0
+  void CalcElemElecForce(Matrix<Double>& Force, const EntityIterator nameIt,
+		                 const Elem * ptElement, const StdVector<ShortInt> & IsBoundaryNode);
+
+  //! Calculates the expression \f[ \frac{\delta \vert J \vert}{\delta r} /f]
+  //! \param J (input) Jacobian matrix
+  //! \param J_dr (input) derivative of Jacobian matrix in r-direction
+  Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr);
 
   //! Pointer to FeFunction
   shared_ptr<BaseFeFunction> feFct_;
+
+  //! Pointer to grid
+  Grid* ptGrid_;
 };
 
 // --------------------------------------------------------------------------
@@ -174,6 +232,7 @@ public:
 
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res );
+
 
 protected:
 

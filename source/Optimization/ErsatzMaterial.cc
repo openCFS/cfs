@@ -48,6 +48,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/StressConstraint.hh"
@@ -94,12 +95,16 @@ ErsatzMaterial::ErsatzMaterial() :
   structure_ = NULL;
   densityFile = NULL;
   bitensor_ = false;
+  trackingFunc_ = NULL;
 
   interfaceDrivenGradCalc_ = false;
 
   pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
+
+  // we set the calc_u1ku2_timer_ only for non-regular meshes but then as sub-timer
+  calc_u1ku2_timer_ = grid->IsGridRegular() ? boost::shared_ptr<Timer>() : boost::shared_ptr<Timer>(new Timer("calc_U1KU2", true));
 
   // region stuff - we might have the attribute region or a list in region but not both or none
   if(!pn->Has("region") && !pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
@@ -142,7 +147,7 @@ ErsatzMaterial::ErsatzMaterial() :
   LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
                      << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
-  // optionally write the densities to an xml file
+  // optionally write the densities to a density.xml file
   if(pn->Has("export"))
   {
     ParamNodeList design_list = pn->GetList("design");
@@ -165,7 +170,7 @@ ErsatzMaterial::ErsatzMaterial() :
       continue;
 
     if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
-      throw Exception("constraint " + g->ToString() + " operates on invalid design variable");
+      throw Exception("constraint '" + Function::type.ToString(g->GetType()) + "' operates on invalid design variable"); // ToString() may trigger too much within constructor
 
   }
 
@@ -227,11 +232,11 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize();
+  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize() + constraints.observe.GetSize();
 
   for(unsigned int i = 0; i < total; i++)
   {
-    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.active[i - objectives.data.GetSize()]);
+    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.all[i - objectives.data.GetSize()]);
 
     std::string func = "'" + f->type.ToString(f->GetType()) + "'";
 
@@ -240,6 +245,7 @@ void ErsatzMaterial::PostInit()
     {
     case Function::COMPLIANCE:
     case Function::OUTPUT: // it would work but is saver not to allow
+    case Function::SQUARED_OUTPUT:
     case Function::TRACKING:
     case Function::HOM_TENSOR:
     case Function::HOM_TRACKING:
@@ -272,6 +278,7 @@ void ErsatzMaterial::PostInit()
     switch(f->GetType())
     {
     case Function::OUTPUT:
+    case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
     case Function::ABS_OUTPUT:
     {
@@ -375,10 +382,11 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-
-
   // make basic logging
   design->ToInfo(this);
+
+  if(calc_u1ku2_timer_)
+    optInfoNode->Get(ParamNode::SUMMARY)->Get("calcUKU/timer")->SetValue(calc_u1ku2_timer_);
 }
 
 
@@ -440,9 +448,8 @@ void ErsatzMaterial::StoreResults(double step_val)
 
 PtrParamNode ErsatzMaterial::CommitIteration()
 {
-  // will write the cfs results and the log file
-  PtrParamNode iter = Optimization::CommitIteration();
 
+  // to this before CommitIteration such that we can store the info in log.bloch_info. Later we use it to add it to the ParamNode
   // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
   StdVector<Condition*> ev = constraints.GetList(Condition::EIGENFREQUENCY);
   for(int c = 0; c < (int) ev.GetSize()-1; c++) // allow always a next
@@ -460,7 +467,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, false, &lower);
       SearchMinMax(mat, (unsigned int) n->GetEigenValueID()-1, true, &upper);
 
-      iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
+      // replace the key, we have only "bandgap" in log
+      //iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
+      boost::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
+      boost::get<1>(log.bloch_info.First()) = upper - lower;
 
       LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
       break; // assume only one lower/upper constraint gap
@@ -482,13 +492,20 @@ PtrParamNode ErsatzMaterial::CommitIteration()
          double freq; // see ErsatzMaterial::CalcEigenFrequency()
          SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
 
-         iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())
-                   + (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         //iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())+ (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         boost::get<1>(log.bloch_info[c+1]) = freq; // first entry is gap
          ev_done[g->GetEigenValueID()] = true;
          LOG_DBG(em) << "CI g=" << g->ToString() << " evid=" << g->GetEigenValueID() << " b=" << g->GetBound() << " mm=" << freq;
       }
     }
   }
+
+  // will write the cfs results and the log file using possibly set log.bloch_info
+  PtrParamNode iter = Optimization::CommitIteration();
+
+  // in case of bloch_info
+  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
+    iter->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
 
   // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
   if(me->IsEnabled())
@@ -559,8 +576,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   if(densityFile != NULL)
     densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()
 
-    return iter;
-  }
+  return iter;
+}
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
   {
@@ -766,8 +783,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, App::Type app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
-//    LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
-//                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
+    if(calc_u1ku2_timer_)
+      calc_u1ku2_timer_->Start();
+    // LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+    //              << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
     // Note to perform "<f',u>" from <f',u> + <l,K'*u-f'> manually
     assert(u1.GetSize() != 0);
@@ -874,6 +893,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         if(res_idx != -1) de->specialResult[res_idx] = this_value;
       }
     }
+    if(calc_u1ku2_timer_)
+      calc_u1ku2_timer_->Stop();
     return sum;
   }
 
@@ -1478,9 +1499,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
-    shared_ptr<Timer> timer = optInfoNode->Get("eval/timer")->AsTimer();
-    timer->Start();
-
     interfaceDrivenGradCalc_ = false;
 
     assert(f != NULL);
@@ -1524,6 +1542,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       result = CalcGreyness(g, derivative);
       break;
 
+      case Function::FILTERING_GAP:
+      result = CalcFilteringGap(g,derivative);
+      break;
+
       case Objective::STRESS:
       case Objective::STRESS_DENSITY:
       {
@@ -1563,6 +1585,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::JUMP:
       case Function::BUMP:
       case Function::CURVATURE:
+      case Function::OVERHANG_VERT:
+      case Function::OVERHANG_HOR:
       case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:
@@ -1629,10 +1653,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       break;
 
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       case Function::DYNAMIC_OUTPUT:
       case Function::CONJUGATE_COMPLIANCE:
       case Function::ABS_OUTPUT:
       if(f->ctxt->IsComplex())
+      {
         if (derivative)
         {
           App::Type app = Context::ToApp(f->ctxt->pde);
@@ -1644,9 +1670,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
           return 0.0;
         }
-        else {
-        result = CalcOutput<complex<double> >(excite, f);
-        }
+        else
+          result = CalcOutput<complex<double> >(excite, f);
+      }
       else
         result = CalcOutput<double>(excite, f);
       break;
@@ -1669,24 +1695,27 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       case Function::PRESSURE_DROP:
         if (!derivative)
-          result = context->GetLatticeBoltzmannPDE()->CalcPressureDrop();
+          result = f->ctxt->GetLatticeBoltzmannPDE()->CalcPressureDrop();
         else
-          context->GetLatticeBoltzmannPDE()->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+          f->ctxt->GetLatticeBoltzmannPDE()->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
 
       case Function::SLACK:
         if(!derivative)
           result = design->GetSlackVariable();
         else
-          dynamic_cast<AuxDesign*>(design)->AddAuxDerivative(f, 0, 1.0);
+          dynamic_cast<AuxDesign*>(design)->GetSlackDesign()->AddGradient(f, 1.0);
         break;
-
       case Function::EIGENFREQUENCY:
         result = CalcEigenfrequency(excite, f, derivative);
         break;
 
       case Function::BANDGAP:
         result = CalcBandGap(excite, f, derivative);
+        break;
+
+      case Function::SLACK_FNCT:
+        result = CalcSlackFunction(f, derivative);
         break;
 
       case Function::EXPRESSION:
@@ -1701,7 +1730,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       // no default, gcc warns
     }
-    timer->Stop();
     LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
     return result;
   }
@@ -1710,9 +1738,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   {
     // this replaces and enhances calculation of volume, it is used by regularization
     // when not assuming a regular grid, computation of Volume is not as simple
-    // we also consider working only on a given region, when used as constrain
+    // we also consider working only on a given region, when used as constraint
     // use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
-    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
+    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physical value!
     Grid* grid = domain->GetGrid();
     Function* f = Function::GetFunction(c, g);
     SubTensorType stt = f->ctxt->stt;
@@ -1824,6 +1852,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
                     design->designMaterial->GetTensor(material, dtype, stt, de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                     double des = material.Trace();
                     val *= exponent * std::pow(des, exponent - 1.0);
+                    LOG_DBG(em) << " material = "<< material.ToString();
+                    LOG_DBG(em) << " trace = "<< des;
                   }
                 }
                 else
@@ -2187,17 +2217,34 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // forward simulation!
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(StateSolution::RAW_VECTOR)));
     Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)));
+
+    // temporary vector for displacement used for squared_output
+    Vector<T> u_square(u.GetSize());
+
     assert(u.GetSize() == l.GetSize());
     LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
     LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
     double result = 0.0;
     switch(f->GetType())
     {
-      case Objective::OUTPUT:
+      case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       {
-        // this is <l, u> which is for complex not really defined as it might be non-real
-        T inner = u.Inner(l);
+        T inner;
+        if (f->GetType() == Objective::SQUARED_OUTPUT) {
+          // this is <l, u o u>
+          for(unsigned int i = 0;i<u.GetSize();i++) {
+            u_square[i] = u[i] * u[i];
+            //l[i] *= l[i];
+          }
+          inner = u_square.Inner(l);
+        } else {
+          // this is <l, u> which is for complex not really defined as it might be non-real
+          inner = u.Inner(l);
+        }
         result = ((complex<double>) inner).real();
+        //if (f->GetType() == Objective::SQUARED_OUTPUT)
+        //  result *= result;
         result *= excite.GetFactor(f);
         LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
@@ -2601,6 +2648,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return upper_freq - lower_freq;
   }
 
+
   double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal)
   {
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
@@ -2658,6 +2706,93 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return res;
   }
 
+  double ErsatzMaterial::CalcSlackFunction(Function* f, bool derivative)
+  {
+    assert(f->GetType() == Function::SLACK_FNCT);
+    assert(f->GetSlackFnct() != Function::NO_FUNCTION);
+    assert(design->HasAlphaVariable() && design->HasSlackVariable()); // shall be checked already
+
+    double a = design->GetAlphaVariable();
+    double s = design->GetSlackVariable();
+
+    double result = 0.0;
+
+    if(!derivative)
+    {
+      switch(f->GetSlackFnct())
+      {
+      case Function::ALPHA_SLACK_QUOTIENT:
+        if(IsNoise(a) && IsNoise(s))
+          optInfoNode->SetWarning("'alpha' and 'slack' are both close to zero. Best adjust your bounds to avoid division by zero.");
+        result = a / s;
+        break;
+
+      case Function::REL_BANDGAP:
+        if(IsNoise(a-s))
+          optInfoNode->SetWarning("denominator of '" + Function::slackFnct.ToString(Function::REL_BANDGAP) + "' is close to zero. Adjust bounds or use " + Function::slackFnct.ToString(Function::NORM_BANDGAP));
+        assert(std::abs(a-s) > 1e-8);
+        result = (2*s)/(a-s);
+        break;
+
+      case Function::NORM_BANDGAP:
+        if(IsNoise(a))
+          optInfoNode->SetWarning("'alpha' is close to zero for function " + Function::slackFnct.ToString(Function::NORM_BANDGAP));
+        assert(std::abs(a) > 1e-8);
+        result = (2*s)/a;
+        break;
+
+      case Function::ALPHA_MINUS_SLACK:
+        result = a-s;
+        break;
+
+      case Function::NO_FUNCTION:
+        assert(false);
+        break;
+      }
+    }
+    else // derivative case
+    {
+      AuxDesign* ad = dynamic_cast<AuxDesign*>(design);
+      assert(ad != NULL);
+
+      double da = 0;
+      double ds = 0;
+
+      switch(f->GetSlackFnct())
+      {
+      case Function::ALPHA_SLACK_QUOTIENT:
+        da = 1/s ;
+        ds = -a/(s*s);
+        break;
+
+      case Function::REL_BANDGAP:
+        da = -2*s / ((a-s)*(a-s));
+        ds = 2*s / ((a-s)*(a-s)) + 2/(a-s);
+        break;
+
+      case Function::NORM_BANDGAP:
+        da = -2*s / (a*a);
+        ds = 2/a;
+        break;
+
+      case Function::ALPHA_MINUS_SLACK:
+        da = 1;
+        ds = -1;
+        break;
+
+      case Function::NO_FUNCTION:
+        assert(false);
+        break;
+      }
+
+      ad->GetAlphaDesign()->AddGradient(f, da);
+      ad->GetSlackDesign()->AddGradient(f, ds);
+    }
+
+    return result;
+  }
+
+
   double ErsatzMaterial::CalcStateTrackingAtNode(int node)
   {
     assert(node > 0);
@@ -2677,12 +2812,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     fe->GetEntitySolution(stateSol,nodeList.GetIterator()); // state solution at node 'node'
 
     shared_ptr<BaseFeFunction> rhsFe = trackingFunc_->ctxt->pde->GetRhsFeFunctions()[HEAT_TEMPERATURE];
-    Vector<double> load(1);
+    Vector<double> load(1); // scalar
     rhsFe->GetEntitySolution(load,nodeList.GetIterator()); // load at node 'node'
 
     double trackVal = trackingFunc_->GetParameter();
     double factor = 0.0;
     trackingFunc_->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
+
+    LOG_DBG3(em) << "CSTAN node=" << node << " u=" << stateSol[0];
+    assert(stateSol[0] > -1e15);
+    // assert((stateSol[0] - trackVal) * (stateSol[0] - trackVal));
+    assert(factor > 0);
 
     return load[0] * (stateSol[0] - trackVal) * (stateSol[0] - trackVal) * design->data.GetSize() / factor;
   }
@@ -2935,7 +3075,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor(Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     unsigned int ex_size = me->GetNumberHomogenization(); // also ok when we do transform or robust
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
@@ -3004,7 +3144,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
     Context* ctxt = f->ctxt;
 
     Matrix<double> diff_tensor;
@@ -3131,7 +3271,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
-    const double cube_vol = grid->CalcGridVolume();
+    const double cube_vol = grid->CalcHullVolume();
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -3253,6 +3393,66 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
+  double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
+    /* Calculates squared difference between filtered and non-filtered tensor E*/
+    //TODO: asserts
+    //assert(g->GetDesignType() != )
+
+    double result = 0, grad = 0;
+    unsigned int n_elem = design->GetNumberOfElements();
+    unsigned int dtype = design->FindDesign(g->GetDesignType());
+    for(unsigned int i = 0; i < n_elem; i++)
+    {
+      DesignElement* de = dynamic_cast<DesignElement*>(design->GetDesignElement(dtype*n_elem+i));
+      if (!derivative) {
+        // (E_(ij) - filtered(E_ij))^2
+        double error = de->GetDesign(DesignElement::PLAIN)- de->GetDesign(DesignElement::SMART) ;
+        result += error * error;
+      } else {
+        // calculate derivative
+        // We filter over this element and the neighbors.
+        assert(de->simp != NULL);
+        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+        const Filter& f = de->simp->filter[fix];
+
+        assert(f.GetType() == Filter::DENSITY);
+        //assert(de == DesignElement::COST_GRADIENT || de == DesignElement::CONSTRAINT_GRADIENT);
+        //assert((g == NULL || (g->IsObjective() && de == DesignElement::COST_GRADIENT)) || (g == NULL || (!g->IsObjective() && de == DesignElement::CONSTRAINT_GRADIENT)) || (g == NULL || (g->IsObjective())));
+        // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
+        //assert(g == NULL || g->ForDensityFiltering());
+
+        // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
+        // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
+        // note, that the stored value is already v = d f/d P_i
+        grad = 0.0;
+        if(f.density_ == Filter::STANDARD)
+        {
+          for(int j = -1, nj = (int) f.neighborhood.GetSize(); j < nj; j++)
+          {
+            const Filter::NeighbourElement* ne = j == -1 ? NULL : &f.neighborhood[j];
+            const DesignElement* de_iter = j == -1 ? de : ne->neighbour;
+            double v = 2 * (de_iter->GetDesign(DesignElement::PLAIN)- de_iter->GetDesign(DesignElement::SMART));
+            double w = j == -1 ? f.weight : ne->weight;
+            double var = j == -1 ? 1.:0.;
+
+            if (de_iter->simp->filter[fix].weight_sum < 0.0)
+                de_iter->simp->filter[fix].weight_sum = de_iter->simp->filter[fix].CalcWeightSum(true);
+
+            double summand = v * (var -(w / de_iter->simp->filter[fix].weight_sum));
+            grad += summand;
+
+            // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+            //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+            //                << " summand=" << summand << " sum=" << sum;
+          }
+        }
+        design->data[dtype*n_elem+i].AddGradient(NULL, g, grad);
+      }
+      LOG_DBG2(em) << "GDFG: el=" << de->elem->elemNum << " de = "<< de->ToString() << " filtering_gap = "<< result <<" derivative ="<<derivative << " grad = "<< grad;
+    }
+    return result;
+  }
+
 
   double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   {
@@ -3365,7 +3565,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // evaluate the function values, which is
       // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
       double res = 0.0;
-      local->infeasible = 0;
 
       assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
       for(unsigned int i = 0; i < vem.GetSize(); i++)
@@ -3373,9 +3572,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
         res += fv;
-        if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign
+                     << " fv=" << fv << " -> " << res;
       }
 
       return res;
@@ -3408,7 +3607,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // We traverse all excitations and conditionally perform a context switch. Because of the context switch
     // we need to solve the adjoints within the same context
 
-    StdVector<Function*> funcs = GetActiveFunctions();
+    StdVector<Function*> funcs = GetFunctions(false);
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
@@ -3420,9 +3619,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
       if(context->DoLBM()) {
+        // in autoscale case we are still in the BaseOptimizer constructor
+        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+        if(eval_timer)
+          eval_timer->Stop();
+
         LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
         assert(lbmPde != NULL);
         lbmPde->Solve();
+
+        if(eval_timer)
+          eval_timer->Start();
       }
       else
         Optimization::SolveStateProblem(&excite); // this is true for all problem types
@@ -3441,6 +3648,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
       {
         Function* f = funcs[fi];
+        assert(f != NULL);
         // some functions need the selection vector for function evaluation, e.g. output
         if(f->NeedsSelectionVector())
           ConstructSelection(excite, f, false);// don't change the rhs of the system but restore
@@ -3639,6 +3847,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
+    assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
+    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+    if(eval_timer)
+      eval_timer->Stop();
+
     excite->Apply(); // the context shall be already switched
     assert(excite->sequence == context->sequence);
     assert(context->pde != NULL);
@@ -3667,6 +3880,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       break;
 
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       case Function::CONJUGATE_COMPLIANCE:
       case Function::ABS_OUTPUT:
       case Function::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -3698,6 +3912,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       default:
       assert(false);
     }
+    if(eval_timer)
+      eval_timer->Start();
   }
 
   template<class T>
@@ -3787,6 +4003,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     switch(f->GetType())
     {
       case Function::OUTPUT:
+      case Function::SQUARED_OUTPUT:
       {
         Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(StateSolution::SEL_VECTOR);
         rhs.Resize(l.GetSize());

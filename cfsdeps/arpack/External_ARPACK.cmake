@@ -13,6 +13,11 @@ set(ARPACK_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/arpack")
 set(ARPACK_source  "${ARPACK_prefix}/src/arpack")
 set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+#MESSAGE("CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS_RELEASE}")
+#MESSAGE("CMAKE_Fortran_FLAGS_RELEASE=${CMAKE_Fortran_FLAGS_RELEASE}")
+#MESSAGE("CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+#MESSAGE("CMAKE_CXX_FLAGS_INITIAL=${CMAKE_CXX_FLAGS__INITIAL}")
+
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
@@ -78,8 +83,16 @@ SET(ZIPTOCACHE "${ARPACK_prefix}/arpack-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
+# Determine paths of ARPACK libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
+MARK_AS_ADVANCED(ARPACK_LIBRARY)
+
+#-------------------------------------------------------------------------------
 # The ARPACK external project
 #-------------------------------------------------------------------------------
+
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
@@ -103,6 +116,7 @@ ELSE()
     URL_MD5 ${ARPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS ${CMAKE_ARGS}
+    BUILD_BYPRODUCTS ${ARPACK_LIBRARY}
   )
 
   #-------------------------------------------------------------------------------
@@ -134,10 +148,3 @@ ENDIF()
 #-------------------------------------------------------------------------------
 SET(CFSDEPS ${CFSDEPS} arpack)
 
-#-------------------------------------------------------------------------------
-# Determine paths of ARPACK libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
-
-MARK_AS_ADVANCED(ARPACK_LIBRARY)

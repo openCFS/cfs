@@ -14,11 +14,17 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_lis.hh")
+  
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")
@@ -81,6 +87,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_fftw.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libxml2.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_libxml2.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
 
@@ -89,6 +98,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gidpost.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ensight.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ensight.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
@@ -131,3 +143,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
   @ONLY )
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
+  "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")
+  

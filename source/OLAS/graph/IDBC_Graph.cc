@@ -5,6 +5,7 @@ namespace CoupledField {
 
   void IDBC_Graph::FinaliseAssembly( StdVector<UInt>* newEqn ) {
 
+    MapSetToVector();
 
     // Re-ordering strategy should be not to re-order
     if ( newOrder_ != BaseOrdering::NOREORDERING ) {

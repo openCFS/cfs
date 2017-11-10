@@ -85,7 +85,9 @@ namespace CoupledField
       // unregister signal handler and use default action
       // register signal handler
       if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-        EXCEPTION( "Could not assign default signal action");
+        std::cerr << "Could not assign default signal action" << std::endl; // no exceptions in destructors!
+        domain->GetInfoRoot()->ToFile();
+        exit(-1);
       }
 
       // set global pointer to zero
@@ -269,6 +271,8 @@ namespace CoupledField
     numFreq_ = numFreq_ - restartStep_;
     stopFreqStep_ = numFreq_ + restartStep_;
     
+    //only used if AMG is set
+    ptPDE_->GetSolveStep()->SetAuxMat(false);
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
     {
@@ -322,6 +326,7 @@ namespace CoupledField
       PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
+      envNode->Get("timePerStep")->SetValue(timePerStep_);
     } // loop: frequencies
 
     handler_->FinishMultiSequenceStep();

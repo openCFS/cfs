@@ -11,77 +11,36 @@
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_intel_release")
 
-SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
-#-----------------------------------------------------------------------------
-# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
-#-----------------------------------------------------------------------------
-INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+# set e.g. HOSTNAME
+SET_GLOBAL_VARS()
 
-#-----------------------------------------------------------------------------
-# Use CMake (cmake) executable corresponding to CTest executable used to run
-# this script.
-#-----------------------------------------------------------------------------
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+IDENTIFY_DISTRO()
+# empty binary directory
+file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(ENV{CC} "icc")
-SET(ENV{CXX} "icpc")
-SET(ENV{FC} "ifort")
-SET(ENV{LC_MESSAGES} "C")
-SET(ENV{LC_ALL} "C")
-SET(ENV{LANG} "C")
-SET(ENV{LANGUAGE} "C")
-
-SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
-SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-
-#-----------------------------------------------------------------------------
-# Let's first find out some infos about the system GNU compiler first.
-#-----------------------------------------------------------------------------
-SET(COMPILER "$ENV{CXX}")
-
-SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
-
-# create build/tmp directory
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
-
-# read ID_CXX 
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
-  ARGS
-  OUTPUT_VARIABLE DISTRO_OUT
-  RETURN_VALUE RETVAL)
-
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
-INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
-
-# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
-# MESSAGE("${DIST} ${REV} ${ARCH}")
+# set the compiler environment
+set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries/linux")
+message("INTEL_COMPILER_PATH = ${INTEL_COMPILER_PATH}")
+if(NOT INTEL_COMPILER_PATH)
+   message("INTEL_COMPILER_PATH not defined")
+else()
+   message("INTEL_COMPILER_PATH is defined")
+endif()
+SET_COMPILER_ENV("ICC")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
-
+SET(CTEST_BUILD_NAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
 #SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
-set(CTEST_BUILD_NAME "${BUILDNAME}")
 
-#-----------------------------------------------------------------------------
-# Start out with an empty binary directory.
-#-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+# will generate CTestConfig.cmake using our sites variant
+WRITE_CTEST_CONFIG()
 
 #-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
@@ -96,42 +55,23 @@ SET(CTEST_INITIAL_CACHE
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
    CFS_DEPS_PRECOMPILED:BOOL=ON 
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
-   PERF_TESTS:BOOL=ON
+   CFSDAT:BOOL=OFF
+   USE_OPENMP:BOOL=ON
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
    USE_FLANN:BOOL=ON
+   USE_LIBFBI:BOOL=ON
+   USE_ILUPACK:BOOL=ON
+   USE_LIS:BOOL=ON
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
-   USE_ILUPACK:BOOL=ON
-   USE_LIS:BOOL=ON
-   USE_LIBFBI:BOOL=ON
-   USE_OPENMP:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
-   BUILDNAME:STRING=${BUILDNAME}")
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+find_program(CTEST_SVN_COMMAND NAMES svn) 
+set(CTEST_UPDATE_TYPE "svn")
 
-message("Start dashboard...")
-# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-ctest_start(Nightly)
-
-message("  Update")
-find_program(CTEST_SVN_COMMAND NAMES svn)
-ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-
-message("  Configure")
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
-# some configurations require to repeat the same ctest_configure() command
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-message("  Build")
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
+DO_TESTING()

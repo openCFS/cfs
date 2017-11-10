@@ -1,10 +1,9 @@
 from matviz_rot import *
-from hdf5_tools import *
 import platform
 from PIL import Image, ImageDraw
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -22,21 +21,21 @@ def create_figure(min, max, res, for_save):
   # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
   
   # the dirty solution is to create the figure twice scaled by the error
-  dpi_x = (res / 100) * (max[0] - min[0]) 
+  dpi_x = (res / 100) * (max[0] - min[0])
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_y))
   ax = fig.add_subplot(111)
-#  if for_save:
-#    # we need to correct the ratio
-#    wrong = ax.get_window_extent().size
-#    ratio = dpi_x / dpi_y 
-#    dpi_x *= res / wrong[0]  
-#    dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
-#    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_y))
-#    matplotlib.pyplot.axis('off')
-#    ax = fig.add_subplot(111)
-#    # the second figure would make problems with matplotlib.pyplot.show()
+  if for_save:
+    # we need to correct the ratio
+    wrong = ax.get_window_extent().size
+    ratio = dpi_x / dpi_y 
+    dpi_x *= res / wrong[0]  
+    dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_y))
+    matplotlib.pyplot.axis('off')
+    ax = fig.add_subplot(111)
+    # the second figure would make problems with matplotlib.pyplot.show()
   
   ax.set_xlim(min[0], max[0])
   ax.set_ylim(min[1], max[1])
@@ -260,7 +259,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation
-  ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
+  ip_near = ip.griddata(c, v, out, 'nearest') if grad != 'nearest' else None
   
   return ip_data, ip_near, out, nx, ny 
 
@@ -420,7 +419,7 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
   return im 
 # visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
 def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, do_save):
-  print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently'
+  print('image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently')
   s1 /= 2.
   s2 /= 2.
   centers, min, max, elem = coords
@@ -516,7 +515,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
   height = scale*elem[1] * dy 
   length = scale*elem[0] * dx
   #print 'elem0 = ' +str(elem[0]) + ' dx = ' +str(dx) 
-  #print 'height = ' +str(height)+', lenght= '+str(length)
+  #print 'height = ' +str(height)+', length= '+str(length)
   #print 'dim = '+str(dim)
   eps = 1e-8
   warn = False
@@ -524,7 +523,8 @@ def show_frame(coords, s1, s2, directions, nx,scale):
     coord = centers[i]
     #print 'coord = '+str(coord)
     x_off = int(coord[0]*dx+min[0]-height/(2.)+eps)
-    y_off = int(dy-coord[1]*dy+min[1]-height/(2.)+eps)     
+    y_off = int(dy-coord[1]*dy+min[1]-height/(2.)+eps)
+         
     #x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
     #y_off = nx-1-(length/scale)/2.-(coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
     ver = s2[i, 0]/numpy.max((scale, 1.))
@@ -534,6 +534,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
     pix = im.load()
     for i in range(x_off, int(length+eps) + x_off):
        for j in range(y_off, int(height+eps) + y_off):
+          #print('index '+str(i)+ ', index '+str(j))
           pix[i,j] = (0,0,0)   
     offx = int((length / 2.) * (ver) + 0.5+eps)
     offy = int((height / 2.) * (hor) + 0.5+eps)
@@ -550,7 +551,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
        for j in range(offy, int(height+eps) - offy):
           pix[x_off+i,y_off+j] = (255,255,255)
   if warn:
-    print 'Warning: minimal thickness scaled to 1 Pixel.'
+    print('Warning: minimal thickness scaled to 1 Pixel.')
   return im  
 
 
@@ -861,10 +862,10 @@ def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
   data_offset = -2 * min_val if min_val < 0 else 0
-     
+  
   im, draw, dim, dx, dy = create_image(min, max, nx)   
    
-  print "max=" + str(max_val) + " min=" + str(min_val)
+  print("max=" + str(max_val) + " min=" + str(min_val))
    
   if scale == -1.0:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]

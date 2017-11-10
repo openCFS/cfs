@@ -7,9 +7,8 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
@@ -183,7 +182,7 @@ namespace CoupledField {
     InitRegions(pn, grid);
 
     // for 2D n_z_=1
-    StdVector<unsigned int> n = ShapeMapDesign::SetupLexicographicMesh(grid, boundary_reg_, elem_to_idx, idx_to_elem);
+    Vector<unsigned int> n = ShapeMapDesign::SetupLexicographicMesh(grid, boundary_reg_, elem_to_idx, idx_to_elem);
     n_x_ = n[0];
     n_y_ = n[1];
     n_z_ = n[2];
@@ -240,10 +239,11 @@ namespace CoupledField {
       double u_mean_x = u_max_x_;
       double u_mean_y = u_max_y_;
       double u_mean_z = u_max_z_;
-      if (parabolicInflow_)
+      if (parabolicInflow_) {
         u_mean_x = 2.0/3.0 * u_max_x_;
         u_mean_y = 2.0/3.0 * u_max_y_;
         u_mean_z = 2.0/3.0 * u_max_z_;
+      }
 
       Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }
@@ -261,10 +261,11 @@ namespace CoupledField {
       double u_mean_x = u_max_x_;
       double u_mean_y = u_max_y_;
       double u_mean_z = u_max_z_;
-      if (parabolicInflow_)
+      if (parabolicInflow_) {
         u_mean_x = 2.0/3.0 * u_max_x_;
         u_mean_y = 2.0/3.0 * u_max_y_;
         u_mean_z = 2.0/3.0 * u_max_z_;
+      }
 
       Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }
@@ -1090,6 +1091,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
+//      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
       d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
     d_pdrop_d_f[index] = d_PD_d_f;
@@ -1102,6 +1104,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
+//      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0) * 1e4;
       d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
     d_pdrop_d_f[index] = d_PD_d_f;
@@ -1109,7 +1112,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 
   Vector<double> rhs(n_elems * n_q_);
 
-  dPD *= 1e4;
+//  dPD *= 1e4;
 
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
   d_propagate_d_f(dFdf,dPD);
@@ -1161,7 +1164,8 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   }
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
-  return (in / inlet.GetSize() - out / outlet.GetSize())*1e4;
+//  return (in / inlet.GetSize() - out / outlet.GetSize()) * 1e4;
+  return (in / inlet.GetSize() - out / outlet.GetSize());
 }
 
 Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){

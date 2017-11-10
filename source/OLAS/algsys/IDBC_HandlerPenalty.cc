@@ -5,7 +5,7 @@
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-
+#include <boost/type_traits/is_complex.hpp>
 
 
 DECLARE_LOG(idbcPenalty)
@@ -20,16 +20,7 @@ namespace CoupledField {
     penaltyTerm_ = 0.0;
 
     // Determine entry type from template parameter
-    eType_ = BaseMatrix::NOENTRYTYPE;
-    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
-      eType_ = BaseMatrix::DOUBLE;
-    }
-    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
-      eType_ = BaseMatrix::COMPLEX;
-    }
-    else {
-      EXCEPTION( "Internal template error! No swearing please!" );
-    }
+    eType_ = boost::is_complex<T>() ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE;
 
     // Generate vector for storing Dirchlet values
     SingleVector *stdVec = NULL;
@@ -49,6 +40,22 @@ namespace CoupledField {
     }
     dirichletValue_ = sbmVec;
 
+    // repeat to get storage for old dbc Values (for computation of delta IDBC = dirichletValue_ - oldDirichletValue_
+    SBM_Vector *sbmVec2 = new SBM_Vector( numIDBC.GetSize() );
+    for ( UInt i = 0; i < numIDBC.GetSize(); i++ ) {
+
+      // If there are IDBCs generate and insert sub-vector
+      //
+      // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
+      //       obtain a Vector<T> object
+      if ( numIDBC[i] > 0 ) {
+        bVec = GenerateSingleVectorObject( eType_, numIDBC[i]);
+        stdVec = dynamic_cast<SingleVector*>(bVec);
+        sbmVec2->SetSubVector( stdVec, i );
+      }
+    }
+    oldDirichletValue_ = sbmVec2;
+
   }
 
 
@@ -60,6 +67,7 @@ namespace CoupledField {
 
     // Delete vector of Dirichlet values
     delete dirichletValue_;
+    delete oldDirichletValue_;
   }
 
 
@@ -69,8 +77,17 @@ namespace CoupledField {
   template <typename T>
   void IDBC_HandlerPenalty<T>::InitDirichletValues() {
     dirichletValue_->Init();
+    oldDirichletValue_->Init();
   }
 
+  // ***********************
+  //   SetOldDirichletValues
+  // ***********************
+  template <typename T>
+  void IDBC_HandlerPenalty<T>::SetOldDirichletValues() {
+    oldDirichletValue_->Init();
+    oldDirichletValue_->Add(dynamic_cast<const SBM_Vector&>(*dirichletValue_));
+  }
 
   // *********************
   //   AdaptSystemMatrix
@@ -100,32 +117,63 @@ namespace CoupledField {
   //   AddIDBCToRHS
   // ****************
   template <typename T>
-  void IDBC_HandlerPenalty<T>::AddIDBCToRHS( SBM_Vector *rhs ) {
+  void IDBC_HandlerPenalty<T>::AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC ) {
     
 
     // We need pointers to sub-vectors
     SingleVector *stdVec = NULL;
     SingleVector *stdVal = NULL;
 
-    // Now loop over all blocks / sub-vectors and
-    // set the Dirichlet values
-    T entry;
-    for ( UInt i = 0; i < rhs->GetSize() ; i++ ) {
+    if(!deltaIDBC){
 
-      // obtain sub-vectors
-      stdVec = rhs->GetPointer( i );
-      stdVal = dirichletValue_->GetPointer( i );
+      // Now loop over all blocks / sub-vectors and
+      // set the Dirichlet values
+      T entry;
+      for ( UInt i = 0; i < rhs->GetSize() ; i++ ) {
 
-      // Now adapt the sub-vector
-      if ( dirichletEqns_[i].GetSize() > 0 
-          && stdVec != NULL && stdVal != NULL ) {
-        StdVector<UInt> & myEqns = dirichletEqns_[i];
-        UInt numIDBC = myEqns.GetSize();
+        // obtain sub-vectors
+        stdVec = rhs->GetPointer( i );
+        stdVal = dirichletValue_->GetPointer( i );
 
-        for( UInt j = 0; j < numIDBC; j++ ) {
-          stdVal->GetEntry(j, entry);
-          entry *=  penaltyTerm_;
-          stdVec->SetEntry( myEqns[j] - 1, entry );
+        // Now adapt the sub-vector
+        if ( dirichletEqns_[i].GetSize() > 0
+            && stdVec != NULL && stdVal != NULL ) {
+          StdVector<UInt> & myEqns = dirichletEqns_[i];
+          UInt numIDBC = myEqns.GetSize();
+
+          for( UInt j = 0; j < numIDBC; j++ ) {
+            stdVal->GetEntry(j, entry);
+            entry *=  penaltyTerm_;
+            stdVec->SetEntry( myEqns[j] - 1, entry );
+          }
+        }
+      }
+    } else {
+      SingleVector *oldStdVal = NULL;
+
+      // Now loop over all blocks / sub-vectors and
+      // set the Dirichlet values
+      T entry, oldEntry;
+      for ( UInt i = 0; i < rhs->GetSize() ; i++ ) {
+
+        // obtain sub-vectors
+        stdVec = rhs->GetPointer( i );
+        stdVal = dirichletValue_->GetPointer( i );
+        oldStdVal = oldDirichletValue_->GetPointer( i );
+
+        // Now adapt the sub-vector
+        if ( dirichletEqns_[i].GetSize() > 0
+            && stdVec != NULL && stdVal != NULL ) {
+          StdVector<UInt> & myEqns = dirichletEqns_[i];
+          UInt numIDBC = myEqns.GetSize();
+
+          for( UInt j = 0; j < numIDBC; j++ ) {
+            stdVal->GetEntry(j, entry);
+            oldStdVal->GetEntry(j, oldEntry);
+            entry -= oldEntry;
+            entry *=  penaltyTerm_;
+            stdVec->SetEntry( myEqns[j] - 1, entry );
+          }
         }
       }
     }
@@ -162,7 +210,7 @@ namespace CoupledField {
    // ***********
    template <typename T>
    void IDBC_HandlerPenalty<T>::GetIDBC( UInt rowBlock, UInt rowNum,
-                                         T &val ) {
+                                         T &val, bool deltaIDBC ) {
      
      // get hold of block specific data
      std::map<Integer, UInt> & myIndices = bcIndices_[rowBlock];
@@ -178,6 +226,13 @@ namespace CoupledField {
                 <<  rowBlock << " is no Dirichlet entry"); 
      }
      stdVec->GetEntry(index,val);
+
+     if(deltaIDBC){
+       T aux;
+       stdVec = oldDirichletValue_->GetPointer( rowBlock );
+       stdVec->GetEntry(index,aux);
+       val -= aux;
+     }
    }
 
 
@@ -185,27 +240,52 @@ namespace CoupledField {
   //   SetDofsToIDBC
   // *****************
   template <typename T>
-  void IDBC_HandlerPenalty<T>::SetDofsToIDBC( SBM_Vector *vec ) {
+  void IDBC_HandlerPenalty<T>::SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC ) {
 
     // Loop over all sub-vectors
     SingleVector *stdVec = NULL;
     SingleVector *stdVal = NULL;
     T aux;
 
-    for ( UInt i = 0; i < vec->GetSize(); i++ ) {
-      stdVec = vec->GetPointer( i );
-      stdVal = dirichletValue_->GetPointer( i );
+    if(!deltaIDBC){
 
-      // leave, if no Dirichlet values are defined for this block
-      if( stdVal == NULL ) 
-        continue;
+      for ( UInt i = 0; i < vec->GetSize(); i++ ) {
+        stdVec = vec->GetPointer( i );
+        stdVal = dirichletValue_->GetPointer( i );
 
-      StdVector<UInt> & myEqns = dirichletEqns_[i];
+        // leave, if no Dirichlet values are defined for this block
+        if( stdVal == NULL )
+          continue;
 
-      // Insert values
-      for ( UInt j = 0; j < stdVal->GetSize(); j++ ) {
-        stdVal->GetEntry( j, aux );
-        stdVec->SetEntry( myEqns[j]-1, aux );
+        StdVector<UInt> & myEqns = dirichletEqns_[i];
+
+        // Insert values
+        for ( UInt j = 0; j < stdVal->GetSize(); j++ ) {
+          stdVal->GetEntry( j, aux );
+          stdVec->SetEntry( myEqns[j]-1, aux );
+        }
+      }
+    } else {
+      SingleVector *stdVal2 = NULL;
+      T aux2;
+
+      for ( UInt i = 0; i < vec->GetSize(); i++ ) {
+        stdVec = vec->GetPointer( i );
+        stdVal = dirichletValue_->GetPointer( i );
+        stdVal2 = oldDirichletValue_->GetPointer( i );
+
+        // leave, if no Dirichlet values are defined for this block
+        if( stdVal == NULL )
+          continue;
+
+        StdVector<UInt> & myEqns = dirichletEqns_[i];
+
+        // Insert values
+        for ( UInt j = 0; j < stdVal->GetSize(); j++ ) {
+          stdVal->GetEntry( j, aux );
+          stdVal2->GetEntry( j, aux2 );
+          stdVec->SetEntry( myEqns[j]-1, aux - aux2 );
+        }
       }
     }
   }

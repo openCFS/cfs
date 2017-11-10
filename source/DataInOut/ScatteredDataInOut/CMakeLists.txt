@@ -1,6 +1,7 @@
 SET(SCATTEREDDATAINOUT_SRCS
   ScatteredDataReader.cc
   ScatteredDataReaderCSV.cc
+  ScatteredDataReaderCSVT.cc
 )
 
 SET(TARGET_LL

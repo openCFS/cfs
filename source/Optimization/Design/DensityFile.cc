@@ -4,7 +4,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -42,16 +42,19 @@ DensityFile::DensityFile(DesignSpace* designSpace,
 {
   this->space_ = designSpace;
   this->last_set_iter = -2;
+  this->compress_ = export_pn->Get("compress")->As<bool>();
 
   name_ = export_pn->Get("file")->As<string>();
-  if(name_ == "[problem]") name_ = progOpts->GetSimName() + ".density.xml";
+  if(name_ == "[problem]")
+    name_ = progOpts->GetSimName() + ".density.xml";
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
-  // append .bz2 if compress=true and not already file ends with it
-  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2")){
-    name_ = name_ + ".bz2";
-  }
+  write_density_  = export_pn->Get("density")->As<bool>();
+  // append .gz if compress=true and not already file ends with it
+  // note that gz is much faster than the better compressing bz2. ParamNode::ToFile() automatically compresses on .gz name
+  if(compress_ && !boost::algorithm::ends_with(name_, ".gz"))
+    name_ = name_ + ".gz";
 }
 
 
@@ -213,12 +216,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-  // Initialize our xerces dom parser to handle the external xml file
-  Xerces x;
-  x.SetFile(file);
+  // Initialize our xml parser to handle the external xml file
   // set the global ParamNode tree pointer
-  PtrParamNode xml = x.CreateParamNodeInstance();
-  // release the xerces resources, param is not affected
+  PtrParamNode xml = XmlReader::ParseFile(file);
+
   // check this file
   if (xml->Count("set") == 0)
     throw Exception("There are no design sets in the ersatz material file");
@@ -326,44 +327,86 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   // we use the fast (dirty) bulk block to be (measurable) faster
   StdVector<std::string>& block = in->GetFastBulkBlock();
 
-  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
-  // for shape ma we also want to export DesignSpace::data even if this are no design variables
-  unsigned int size = space_->data.GetSize();
-  if(smd != NULL)
-    size += smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters();
-  block.Resize(size);
 
-  for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
+  // for shape map we also want to export DesignSpace::data even if this are no design variables
+  assert((dynamic_cast<ShapeMapDesign*>(space_) != NULL && space_->GetNumberOfShapeMappingVariables() > 0) ||
+         (dynamic_cast<ShapeMapDesign*>(space_) == NULL && space_->GetNumberOfShapeMappingVariables() == 0));
+
+  unsigned int size = (write_density_ ? space_->data.GetSize() : 0) + space_->GetNumberOfShapeMappingVariables();
+  if(space_->HasSlackVariable())
+    size++;
+  if(space_->HasAlphaVariable())
+    size++;
+
+  block.Resize(size);
+  unsigned int base = 0;
+
+  // exporting densities can be switched off in "export"
+  if(write_density_)
   {
-    DesignElement* de = &space_->data[i];
-    std::stringstream ss;
-    ss << "<element nr=\"" << de->elem->elemNum;
-    ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
-    if(de->GetType() == DesignElement::MULTIMATERIAL)
-      ss << "\" index=\"" << de->multimaterial->index;
-    ss << "\" design=\"";
-    ss.precision(11);
-    ss << de->GetDesign(DesignElement::PLAIN) << "\"";
-    if(de->HasPhysicalDesign())
-      ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
-    ss << "/>";
-    block[i] = ss.str();
+    for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
+    {
+      DesignElement* de = &space_->data[i];
+      std::stringstream ss;
+      ss << "<element nr=\"" << de->elem->elemNum;
+      ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
+      if(de->GetType() == DesignElement::MULTIMATERIAL)
+        ss << "\" index=\"" << de->multimaterial->index;
+      ss << "\" design=\"";
+      ss.precision(11);
+      ss << de->GetDesign(DesignElement::PLAIN) << "\"";
+      if(de->HasPhysicalDesign())
+        ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
+      ss << "/>";
+      block[i] = ss.str();
+    }
+    base += space_->data.GetSize();
   }
 
-  if(smd != NULL)
+  if(space_->HasSlackVariable())
   {
+    std::stringstream ss;
+    ss << "<slack nr=\"0\" type=\"slack\" design=\"" << space_->GetSlackVariable() << "\"/>";
+    block[base] = ss.str();
+    base += 1;
+  }
+
+  if(space_->HasAlphaVariable())
+  {
+    assert(space_->HasSlackVariable());
+    std::stringstream ss;
+    ss << "<slack nr=\"1\" type=\"alpha\" design=\"" << space_->GetAlphaVariable() << "\"/>";
+    block[base] = ss.str();
+    base += 1;
+  }
+
+  // add shape map design if we have it. Can be visualized by shape_map.py.
+  // Also in the SMD case the above design is of interest!
+  if(space_->GetNumberOfShapeMappingVariables() > 0)
+  {
+    ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
     // skip the aux variables slack and alpha -> they are written to the info.xml
-    for(unsigned int i = 0, n = smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters(); i < n; i++)
+    for(unsigned int i = 0, n = space_->GetNumberOfShapeMappingVariables(); i < n; i++)
     {
-      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetDesignElement(i));
+      ShapeParamElement* spe = smd->GetShapeMapDesignElement(i);
       assert(spe != NULL);
+
+      ShapeMapDesign::ShapeParam* shape = smd->GetShape(spe);
+
+      // first assume we are a shape
+      int ref = shape->IsCenterNode() ? shape->GetFirstCenterNode()->idx : shape->idx;
+      if(shape->type == ShapeMapDesign::PROFILE)
+        ref = shape->partner->idx;
+
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
-      ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");
+      ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
+      ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
+      ss << "\" ref=\"" << ref; // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
-      block[space_->data.GetSize() + i] = ss.str();
+      block[base + i] = ss.str();
     }
   }
 

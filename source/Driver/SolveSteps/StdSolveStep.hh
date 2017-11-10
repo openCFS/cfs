@@ -87,10 +87,6 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
     void StepTransNonLinMaterial();
-
-    //! solves for one nonlinear transient step 
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -112,7 +108,6 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-
     //----------------------- HARMONIC ---------------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
@@ -127,6 +122,31 @@ namespace CoupledField
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     void GetEigenMode( UInt numMode );
     
+    //----------------------- HYSTERESIS -------------------------------------
+    //! solves for one nonlinear transient step
+    //! consideres hystreresis nonlinearities in direct coupled PDEs
+    virtual void StepTransNonLinHysteresis();
+    virtual void StepTransNonLinHysteresisTotal();
+    /*!
+     * Helper funciton for setting up the equation system during
+     *            StepTransNonLinHysteresis()
+     * Background: During the solve step, the matrices and the rhs have to be
+     *  assembled multiple times during linesearch, for the calculation of the
+     *  residual error and of course to get a system to be solved;
+     *  for simplification, encapsulate that sequence of function calls
+     *  in a separate function
+     */
+    /*
+     * for residual computation we need a slightly different version -> see .cc file
+     */
+    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta, UInt stage, UInt callingCnt, UInt evalVersion, bool trans);
+
+    virtual void ConfigureSystemForHysteresisResidual(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta,UInt stage, bool trans);
+
+    virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
+    //! does a line search and returns the optimal residual norm
+    Double LineSearchHyst(SBM_Vector& solIncrement, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
+                      bool trans=false, bool performLineSearch=true);
     
     //----------------------- helpfull methods--------------------------------------
 
@@ -137,7 +157,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
@@ -212,6 +232,7 @@ namespace CoupledField
     AlgebraicSys* algsys_;             //!< pointer to algsys object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object
+
     
     //! Pointer to solution strategy object
     shared_ptr<SolStrategy> solStrat_;
@@ -231,15 +252,16 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
-	Double minValidValue_;     //! stopping if any value in the region exceeds value
-	Double maxValidValue_;     //! stopping if any value in the region exceeds value
-	SolutionType solutionLimit_; //! solution type for which a limit is set
-	RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+    Double minValidValue_;     //! stopping if any value in the region exceeds value
+    Double maxValidValue_;     //! stopping if any value in the region exceeds value
+    SolutionType solutionLimit_; //! solution type for which a limit is set
+    RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
 
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
+    bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
@@ -250,8 +272,14 @@ namespace CoupledField
     //! Vector containing all solution vectors of the FE-functions
     SBM_Vector solVec_;
     
-    //! Vector containing all solution vectors of the FE-functions
+    //! Vector containing rhs
     SBM_Vector rhsVec_;
+
+    //! Vector containing residual
+    SBM_Vector resVec_;
+
+    //! nonLinRHS
+    SBM_Vector nonLinRHS_;
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

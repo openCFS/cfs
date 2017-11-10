@@ -20,16 +20,6 @@ namespace CoupledField {
   class DiagSolver : public BaseIterativeSolver {
 
   public:
-
-    //!typename of matrix entries (=T)
-    typedef typename AssocType<T>::T_Mtype T_Mtype;	
-
-    //!tiny vector of the same dimension as matrix block
-    typedef typename AssocType<T>::T_Vtype T_Vtype;	
-
-    //scalar of the same primitive data type as matrix
-    typedef typename AssocType<T>::T_Stype T_Stype;	
-
     //! Constructor
 
     //! This constructor does nothing but initialise the internal array

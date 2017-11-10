@@ -44,213 +44,250 @@ IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_icc")
   FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/trunk_icc")
 ENDIF()
 
-
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_fespace_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/sl7_linux64_trunk_gcc_release.tgz
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
-# Move documentation into place
-SET(DOXY_DIR "${CFS_DOCU_DIR}/doxygen")
-SET(XSD_SIM_DIR "${CFS_DOCU_DIR}/schema_sim")
-SET(XSD_MAT_DIR "${CFS_DOCU_DIR}/schema_mat")
-
-SET(DOCU_DIRS "${DOXY_DIR};${XSD_SIM_DIR};${XSD_MAT_DIR}")
-
-FOREACH(DIR IN ITEMS ${DOCU_DIRS})
-  IF(EXISTS "${DIR}")
-    FILE(REMOVE_RECURSE "${DIR}")
-  ENDIF()
-  FILE(MAKE_DIRECTORY "${DIR}")
-ENDFOREACH()
-
-# Copy Doxygen documentation
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc/developer/html"
-    "${DOXY_DIR}"
-)
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/sl7_linux64_trunk_icc_release.tgz
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
 
-# Copy simulation schema documentation
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Simulation"
-    "${XSD_SIM_DIR}"
-)
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_icc
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
 
-# Copy material schema documentation
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Material"
-    "${XSD_MAT_DIR}"
-)
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/centos6_linux64_trunk_gcc_release.tgz
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
 
-# Copy other manuals
-SET(MANUALS
-  share/doc/user/advPrePostManual/advPrePostManual.pdf
-  share/doc/user/xmlFile/xmlReference.pdf
-  share/doc/user/matFile/matRef.pdf
-  share/doc/developer/develManual/develManual.pdf
-  MODELLING_MANUAL_NIGHTLY/cfsManual.pdf
-)
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
 
-FOREACH(MAN IN ITEMS ${MANUALS})
-  EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E copy
-      "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/${MAN}"
-      "${CFS_DOCU_DIR}"
-  )
-ENDFOREACH()
-
+# TODO: REENABLE
+# # EXECUTE_PROCESS(
+# #   COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_fespace_gcc_release.zip
+# #   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+# #   RESULT_VARIABLE RETVAL)
+# # 
+# # EXECUTE_PROCESS(
+# #   COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+# #   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+# #   RESULT_VARIABLE RETVAL)
+# 
+# # Move documentation into place
+# SET(DOXY_DIR "${CFS_DOCU_DIR}/doxygen")
+# SET(XSD_SIM_DIR "${CFS_DOCU_DIR}/schema_sim")
+# SET(XSD_MAT_DIR "${CFS_DOCU_DIR}/schema_mat")
+# 
+# SET(DOCU_DIRS "${DOXY_DIR};${XSD_SIM_DIR};${XSD_MAT_DIR}")
+# 
+# FOREACH(DIR IN ITEMS ${DOCU_DIRS})
+#   IF(EXISTS "${DIR}")
+#     FILE(REMOVE_RECURSE "${DIR}")
+#   ENDIF()
+#   FILE(MAKE_DIRECTORY "${DIR}")
+# ENDFOREACH()
+# 
+# # Copy Doxygen documentation
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc/developer/html"
+#     "${DOXY_DIR}"
+# )
+# 
+# # Copy simulation schema documentation
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Simulation"
+#     "${XSD_SIM_DIR}"
+# )
+# 
+# # Copy material schema documentation
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Material"
+#     "${XSD_MAT_DIR}"
+# )
+# 
+# # Copy other manuals
+# SET(MANUALS
+#   share/doc/user/advPrePostManual/advPrePostManual.pdf
+#   share/doc/user/xmlFile/xmlReference.pdf
+#   share/doc/user/matFile/matRef.pdf
+#   share/doc/developer/develManual/develManual.pdf
+#   MODELLING_MANUAL_NIGHTLY/cfsManual.pdf
+# )
+# 
+# FOREACH(MAN IN ITEMS ${MANUALS})
+#   EXECUTE_PROCESS(
+#     COMMAND ${CMAKE_COMMAND} -E copy
+#       "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/${MAN}"
+#       "${CFS_DOCU_DIR}"
+#   )
+# ENDFOREACH()
+ 
 MESSAGE("Submitting documentation to development server...")
-file(GLOB CFS_DOCU_FILES
-  RELATIVE "${CFS_DOCU_DIR}"
-  "${CFS_DOCU_DIR}/*.pdf"
-  "${CFS_DOCU_DIR}/doxygen"
-  "${CFS_DOCU_DIR}/schema_*")
-
 EXECUTE_PROCESS(
-  COMMAND zip -yr cfs_docu_nightly.zip ${CFS_DOCU_FILES}
-  WORKING_DIRECTORY "${CFS_DOCU_DIR}"
+  COMMAND scp -i /home/testuser/.ssh/id_rsa -r "${CTEST_BINARY_DIRECTORY}/share/doc/developer/html/"
+          #"${CFS_TESTUSER}@cfs.mdmt.tuwien.ac.at:/srv/www/docu/doxygen"
+          "testuser@cfs.mdmt.tuwien.ac.at:/srv/www/docu/doxygen"
   RESULT_VARIABLE RETVAL
 )
 
-EXECUTE_PROCESS(
-  COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
-               -k -T cfs_docu_nightly.zip
-               ${CFS_DS_WEBDAV}/doc/cfs_docu_nightly.zip
-  WORKING_DIRECTORY "${CFS_DOCU_DIR}"
-  RESULT_VARIABLE RETVAL
-)
-FILE(REMOVE "${CFS_DOCU_DIR}/cfs_docu_nightly.zip")
-
-# Remove documentation and repack archive
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc")
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/MODELLING_MANUAL_NIGHTLY")
-FILE(REMOVE "${CFS_NIGHTLY_DIR}/archives/oracle6_linux64_fespace_gcc_release.zip")
-
-EXECUTE_PROCESS(
-  COMMAND zip -yr archives/oracle6_linux64_fespace_gcc_release.zip CFS_BUILD_NIGHTLY
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
-
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_fespace_gcc_release.zip
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
-
-# The Intel binaries for general Linux distributions get only compiled every third day.
-# Therefore, we check for the existence of the corresponding archive first.
-IF(EXISTS "${CFS_NIGHTLY_DIR}/archives/oracle5_linux64_fespace_icc14_release.zip")
-  EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc14_release.zip
-    WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-    RESULT_VARIABLE RETVAL)
-
-  EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_icc
-    WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-    RESULT_VARIABLE RETVAL)
-
-  FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
-ENDIF()
-
-# Unpack Trunk binaries
-IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_gcc")
-  FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/trunk_gcc")
-ENDIF()
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_trunk_gcc_release.zip
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-# Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
-# will return an error.
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/RHEL_6_X86_64"
-  RESULT_VARIABLE RETVAL)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
-
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_trunk_gcc_release.zip
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-# Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
-# will return an error.
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/UBUNTU_12.04_X86_64"
-  RESULT_VARIABLE RETVAL)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
+# file(GLOB CFS_DOCU_FILES
+#   RELATIVE "${CFS_DOCU_DIR}"
+#   "${CFS_DOCU_DIR}/*.pdf"
+#   "${CFS_DOCU_DIR}/doxygen"
+#   "${CFS_DOCU_DIR}/schema_*")
+# 
+# EXECUTE_PROCESS(
+#   COMMAND zip -yr cfs_docu_nightly.zip ${CFS_DOCU_FILES}
+#   WORKING_DIRECTORY "${CFS_DOCU_DIR}"
+#   RESULT_VARIABLE RETVAL
+# )
+# 
+# EXECUTE_PROCESS(
+#   COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
+#                -k -T cfs_docu_nightly.zip
+#                ${CFS_DS_WEBDAV}/doc/cfs_docu_nightly.zip
+#   WORKING_DIRECTORY "${CFS_DOCU_DIR}"
+#   RESULT_VARIABLE RETVAL
+# )
+# FILE(REMOVE "${CFS_DOCU_DIR}/cfs_docu_nightly.zip")
+# 
+# # Remove documentation and repack archive
+# FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc")
+# FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/MODELLING_MANUAL_NIGHTLY")
+# FILE(REMOVE "${CFS_NIGHTLY_DIR}/archives/oracle6_linux64_fespace_gcc_release.zip")
+# 
+# EXECUTE_PROCESS(
+#   COMMAND zip -yr archives/oracle6_linux64_fespace_gcc_release.zip CFS_BUILD_NIGHTLY
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
+# 
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_fespace_gcc_release.zip
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
+# 
+# # The Intel binaries for general Linux distributions get only compiled every third day.
+# # Therefore, we check for the existence of the corresponding archive first.
+# IF(EXISTS "${CFS_NIGHTLY_DIR}/archives/oracle5_linux64_fespace_icc14_release.zip")
+#   EXECUTE_PROCESS(
+#     COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc14_release.zip
+#     WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#     RESULT_VARIABLE RETVAL)
+# 
+#   EXECUTE_PROCESS(
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_icc
+#     WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#     RESULT_VARIABLE RETVAL)
+# 
+#   FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
+# ENDIF()
+# 
+# # Unpack Trunk binaries
+# IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_gcc")
+#   FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/trunk_gcc")
+# ENDIF()
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_trunk_gcc_release.zip
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# # Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
+# # will return an error.
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/RHEL_6_X86_64"
+#   RESULT_VARIABLE RETVAL)
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
 
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
-# Convert CFS++ XSD schema from FeSpace to RelaxNG and Vim syntax for
-# auto-completion in Emacs, Vim and oXygen XML editors.
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -P cfs_xsd2rng.cmake
-  WORKING_DIRECTORY "/home/testuser/Documents/dev/NIGHTLY/CFS_XSD2RNG"
-  RESULT_VARIABLE RETVAL)
 
-# ===========================================================================
-#  Make nightly binaries available via Apache server.
-# ===========================================================================
-COPY_ZIPS_TO_APACHE()
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_trunk_gcc_release.zip
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# # Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
+# # will return an error.
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/UBUNTU_12.04_X86_64"
+#   RESULT_VARIABLE RETVAL)
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY trunk_gcc
+#   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#   RESULT_VARIABLE RETVAL)
+# 
+# FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
+# 
+# # Convert CFS++ XSD schema from FeSpace to RelaxNG and Vim syntax for
+# # auto-completion in Emacs, Vim and oXygen XML editors.
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -P cfs_xsd2rng.cmake
+#   WORKING_DIRECTORY "/home/testuser/Documents/dev/NIGHTLY/CFS_XSD2RNG"
+#   RESULT_VARIABLE RETVAL)
+# 
+# # ===========================================================================
+# #  Make nightly binaries available via Apache server.
+# # ===========================================================================
+# COPY_ZIPS_TO_APACHE()
+# 
+# # ===========================================================================
+# #  Copy over CFSDEPS and CFSDEPSCACHE to /opt/pckg.
+# # ===========================================================================
+# 
+# FILE(GLOB CFSDEPSCACHE_FILES "/opt/pckg/CFSDEPSCACHE/*")
+# IF(NOT CFSDEPSCACHE_FILES STREQUAL "")
+#   FILE(REMOVE_RECURSE ${CFSDEPSCACHE_FILES})
+# ENDIF()
+# 
+# FILE(GLOB CFSDEPS_FILES "/opt/pckg/CFSDEPS/*")
+# IF(NOT CFSDEPS_FILES STREQUAL "")
+#   FILE(REMOVE_RECURSE ${CFSDEPS_FILES})
+# ENDIF()
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPS_TRUNK_NIGHTLY /opt/pckg/CFSDEPS
+#   WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
+#   RESULT_VARIABLE RETVAL)
+# 
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPSCACHE /opt/pckg/CFSDEPSCACHE
+#   WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
+#   RESULT_VARIABLE RETVAL)
 
-# ===========================================================================
-#  Copy over CFSDEPS and CFSDEPSCACHE to /opt/pckg.
-# ===========================================================================
-
-FILE(GLOB CFSDEPSCACHE_FILES "/opt/pckg/CFSDEPSCACHE/*")
-IF(NOT CFSDEPSCACHE_FILES STREQUAL "")
-  FILE(REMOVE_RECURSE ${CFSDEPSCACHE_FILES})
-ENDIF()
-
-FILE(GLOB CFSDEPS_FILES "/opt/pckg/CFSDEPS/*")
-IF(NOT CFSDEPS_FILES STREQUAL "")
-  FILE(REMOVE_RECURSE ${CFSDEPS_FILES})
-ENDIF()
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPS_TRUNK_NIGHTLY /opt/pckg/CFSDEPS
-  WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
-  RESULT_VARIABLE RETVAL)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPSCACHE /opt/pckg/CFSDEPSCACHE
-  WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
-  RESULT_VARIABLE RETVAL)
-
-
+ 
 # ===========================================================================
 #  Clean up local nightly build directory
 # ===========================================================================
@@ -262,19 +299,19 @@ FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 #  Since we are low on hdd space, we don't start N boxes at the same time
 #  but we just start one box at a time and then wait for 4h.
 # ===========================================================================
-SET(VBOXES "winxp32")
-
-MATH(EXPR DAY "${DAYOFWEEK} % 3")
-
-IF(DAY EQUAL 0)
-  LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
-ENDIF()
-IF(DAY EQUAL 1)
-  LIST(APPEND VBOXES "oracle5" "fedora18")
-ENDIF()
-IF(DAY EQUAL 2)
-  LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
-ENDIF()
+# SET(VBOXES "winxp32")
+# 
+# MATH(EXPR DAY "${DAYOFWEEK} % 3")
+# 
+# IF(DAY EQUAL 0)
+#   LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
+# ENDIF()
+# IF(DAY EQUAL 1)
+#   LIST(APPEND VBOXES "oracle5" "fedora18")
+# ENDIF()
+# IF(DAY EQUAL 2)
+#   LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
+# ENDIF()
 
 FOREACH(VBOX IN ITEMS ${VBOXES})
   # =========================================================================

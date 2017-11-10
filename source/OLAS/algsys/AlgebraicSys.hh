@@ -10,6 +10,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Exception.hh"
 #include "OLAS/graph/GraphManager.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -31,7 +32,7 @@ namespace CoupledField {
   template <class TYPE> class Vector;
 
 
-  //! Class responsible for solving a linear system of the form \f$\mathbf{A}x=b\f$
+  //! Class responsible for solving a linear system of the form \f$\mathbf{A}x=b\f$l
   
   //! The purpose of this class is to administrate and assemble a linear
   //! algebraic matrix-vector system for FE simulation. Thus, it offers methods
@@ -193,7 +194,10 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.*/
-    void Solve(bool setIDBC = true );
+    //! if deltaIDBC = true, instead of the current IDBC values idbc_cur,
+    //!                         the delta between current and old values idbc_old
+    //!                         is set
+    void Solve(bool setIDBC = true, bool deltaIDBC = false );
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -703,8 +707,9 @@ namespace CoupledField {
     void BuildInDirichlet();
 
     //! correct RHS according to inhomogeneous Dirichlet bcs
-    void AddIDBCToRHS();
+    void AddIDBCToRHS(bool deltaIDBC = false);
 
+    void SetOldDirichletValues();
 
     //! Return complete solution vector
 
@@ -716,7 +721,7 @@ namespace CoupledField {
     //!                  as SBM-index)
     //! \param setIDBC true: considers inhomog. Dirichlet b.c. (standard)
     //!                false: is needed in case of nonlinear PDE, incremental formulation!
-    void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true );
+    void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
     
     //! Return solution vector for one single FeFct
 
@@ -727,7 +732,27 @@ namespace CoupledField {
     //! \param fctId identifier for function related to sub-graph
     void GetSolutionVal( SingleVector& solVec,
                          const FeFctIdType fctId,
-                         bool setIDBC  );
+                         bool setIDBC, bool deltaIDBC=false  );
+
+    //! Helper function introduced for non-linear-transient stepping
+    //! Background:
+    //!   During transient, non-linear stepping, the first solution step
+    //!   always should call GetSolutionVal with setIDBC=true in
+    //!   order to obtain the current IDBC values in the solution vector.
+    //!   As long as we obtain a full solution of the system, where we
+    //!   can completely overwrite the previous solution, this is no problem.
+    //!   In case that we only want to compute and update to the solution of
+    //!   the previous time step, we cannot simply add the returned solution
+    //!   vector from GetSolutionVal, as this would also add up the IDBC nodes
+    //!   instead of replacing them.
+    //! Idea:
+    //!   Before adding the updated solution that features the correct IDBC value of
+    //!   the current time step, we clear the old IDBC values from the solution of
+    //!   the last time step.
+    //!   -> Function goes over solVec and sets all entries which correspond to
+    //!       to IDBC nodes to 0.
+    void ClearIDBCFromSolutionVal( SBM_Vector& solVec );
+    void ClearIDBCFromSolutionVal( SingleVector& solVec,const FeFctIdType fctId);
 
     //! Return complete right-hand-side (RHS) vector
 
@@ -798,6 +823,64 @@ namespace CoupledField {
     }
     //@}
 
+
+
+    // ***********************************************************************
+    //   Methods for Algebraic Multigrid (AMG)
+    // ***********************************************************************
+
+    //@{
+    //! \name Geometry Inclusion Routines
+
+    //! Struct for one edge, it contains the edge-nodes (correct order)
+    //! and its length
+    struct EdgeGeom{
+      StdVector<Integer> eNodes; // edge nodes
+      Double length;  // length of edge
+    };
+
+    //! Set geometry information - nodal version
+
+    //! Create a mapping between indices in the system matrix and
+    //! coordinates of dof-positions (nodes)
+    //! \note Fills geomInd_ variable
+    //! \param indGeomMap Vector of coordinates of the specific points
+    //! \param dim Dimension of the problem
+    void SetGeomIndexMap(const StdVector< Vector<Double> >& indGeomMap,
+                         const UInt& dim);
+
+    //! Set geometry information - edge version
+
+    //! Create a mapping between indices in the system matrix and
+    //! edge-nodes respectively edge-lengths
+    //! \note Fills geomIndEdge_ variable
+    //! \param lengths Map where system matrix-index is the key and the length of the
+    //!                corresponding edge is the value
+    //! \param eNodes  Map where system matrix-index is the key and the node-numbers
+    //!                of the corresponding edge are the values
+    void SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
+                         boost::unordered_map< Integer, StdVector<Integer> >& eNodes);
+
+    //! Build auxiliary matrix for algebraic multigrid solver/preconditioner
+
+    //! In this method, we only differentiate between nodal- (Lagrangian-)
+    //! and edge- (Nédéléc-) version
+    void BuildAMGAuxMatrix();
+
+    //! Build the auxiliary matrix for the nodal- (Lagrangian-) version of AMG
+    void BuildAMGLagrangeAuxMatrix();
+
+    //! Build the auxiliary matrix for the edge- (Nédéléc-) version of AMG
+    void BuildAMGEdgeAuxMatrix();
+
+    AMGType GetAMGType(){ return amgType_;}
+
+    //! Return if AMG is even used
+    bool UseAMG(){
+      return useAMG_;
+    }
+
+    //@}
 
 
     // ***********************************************************************
@@ -1040,9 +1123,6 @@ namespace CoupledField {
     //! Pointer to information ParamNode
     PtrParamNode myInfo_;
     
-    //! Timer object for measuring the time of matrix graph setup
-    shared_ptr<Timer> graphTimer_;
-    
     //! Flag indicating use of idbc elimination via Penalty approach
     bool usingPenalty_;
     
@@ -1123,23 +1203,66 @@ namespace CoupledField {
   //! Flag if we have distinct matrix graphs for different matric types
   bool distinctMatGraphs_;
   //@}
+
+  // =======================================================================
+  // AMG SECTION
+  // =======================================================================
+
+  //@{ \name Algebraic Multigrid variables
+
+  //! Flag indicating use of multigrid methods
+  bool useAMG_;
+
+  //! Auxiliary matrix, needed for special (geometric-)algebraic multigrid methods
+  StdMatrix *auxMatAMG_;
+
+  //! Store coordinate of each index geomInd_[i] = coordinate of index i
+  StdVector< Vector<Double> > geomInd_;
+
+  //! Special structure for edge-AMG geomIndEdge_[i] contains
+  //! the coordinates of the two nodes of edge i (already in correct
+  //! orientation)
+  boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
+
+  //! Special structure for edge-AMG geomIndEdge_[i] contains
+  //! the indices in the auxiliary-matrix of the two nodes
+  // of edge i (already in correct orientation)
+  StdVector< StdVector< Integer> > edgeIndNode_;
+
+  //! Map for nodeNum <-> index in auxiliary matrix
+  boost::unordered_map< Integer, UInt> indexNodeNum_;
+
+  //! vector for index <-> nodeNum in auxiliary matrix
+  StdVector<Integer> nodeNumIndex_;
+
+  //! only valid for AMG: dimension of singlefield-problem
+  UInt dim_;
+
+  //! Flag, needed for the specialized AMG-methods
+  AMGType  amgType_;
+
+  //! Switch if edge element discretization is used
+  bool edge_;
+  //@}
+
+
   // =======================================================================
   // CACHE SECTION
   // =======================================================================
 
   //@{ \name Cached vectors / matrices for fast access
   //! Index vectors for element matrix assembly
-  StdVector<UInt>* rowIndList1_;
-  StdVector<UInt>* rowList1_;
-  StdVector<UInt>* rowIndList2_;
-  StdVector<UInt>* rowList2_;
-  StdVector<UInt>* colIndList1_;
-  StdVector<UInt>* colList1_;
-  StdVector<UInt>* colIndList2_;
-  StdVector<UInt>* colList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > colList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > colList2_;
 
   //! Index vector for element position
-  StdVector<UInt> rowBlocks_, colBlocks_, rowNums_, colNums_;
+  CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
   //@}
   
   };

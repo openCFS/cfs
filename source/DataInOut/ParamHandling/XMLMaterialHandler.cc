@@ -1,11 +1,10 @@
-#include <def_use_xerces.hh>
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ProgramOptions.hh"
 
 // header for materials
@@ -43,14 +42,7 @@ namespace CoupledField {
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Material/CFS_Material.xsd";
 
-    // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces( schema);
-    xerces->SetFile(fileName);
-
-    parser_ = xerces->CreateParamNodeInstance();
-
-    // release the xerces ressources, the parser_ is not affected
-    delete xerces; 
+    parser_ = XmlReader::ParseFile(fileName, schema);
   }
 
   void XMLMaterialHandler::LoadFromString( const std::string& str ) {
@@ -58,14 +50,7 @@ namespace CoupledField {
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Material/CFS_Material.xsd";
 
-    // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces(schema);
-    xerces->SetString(str);
-
-    parser_ = xerces->CreateParamNodeInstance();
-
-    // release the xerces ressources, the parser_ is not affected
-    delete xerces; 
+    parser_ = XmlReader::ParseString(str, schema);
   }
   
   BaseMaterial * XMLMaterialHandler::LoadMaterial( const std::string matName,
@@ -153,9 +138,6 @@ namespace CoupledField {
       RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
                         << "' of class '" << matClass << "'" );
     }
-    
-   
-
     return material;
   }
 
@@ -562,53 +544,73 @@ namespace CoupledField {
 
     // check and read thermal expansion coefficients (TECs)
     if (mech->Has("thermalExpanison")) {
-      PtrParamNode tec = mech->Get("thermalExpanison");
+        PtrParamNode tec = mech->Get("thermalExpanison");
 
-      // check values for isotropic
-      if (tec->Has("isotropic"))  {
-        // read the real part
-        if (tec->Get("isotropic")->Has("real")) {
-          PtrParamNode real = tec->Get("isotropic")->Get("real");
-          // read reference temperature
-           if (real->Has("refTemperature")) {
-             material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
-           }
-          // read thermal expansion coefficient (TEC)
-          if (real->Has("TEC")) {
-            material->SetScalar(real->Get("TEC")->As<std::string>(), MECH_TEC, Global::REAL );
-          }
+        // read reference temperature
+        PtrCoefFct tRef;// = CoefFunction::Generate( mp_, Global::IMAG,tecR,tecI);
+        if (tec->Has("refTemperature")) {
+            PtrParamNode refT = tec->Get("refTemperature");
+            tRef = ParamTools::AsScalarCoefFct(mp_,refT);
         }
-        // read the imaginary part
-        if (tec->Get("isotropic")->Has("imag")) {
-          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        else { // set ref temperature to zero
+            tRef = CoefFunction::Generate( mp_, Global::REAL, "0.0");
         }
-      } // end of isotropic
-      // check values for isotropic
-      if (tec->Has("orthotropic"))  {
-        // read the real part
-        if (tec->Get("orthotropic")->Has("real")) {
-          PtrParamNode real = tec->Get("orthotropic")->Get("real");
-          // read real reference temperature
+        material->SetCoefFct(MECH_TE_REFTEMPERATURE,tRef);
 
-          if (real->Has("refTemperature")) {
-            material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
-          }
-          // read real thermal expansion coefficients (TEC)
-          if (real->Has("TEC1")) {
-            material->SetScalar(real->Get("TEC1")->As<std::string>(), MECH_TEC1, Global::REAL );
-          }
-          if (real->Has("TEC2")) {
-            material->SetScalar(real->Get("TEC2")->As<std::string>(), MECH_TEC2, Global::REAL );
-          }
-          if (real->Has("TEC3")) {
-            material->SetScalar(real->Get("TEC3")->As<std::string>(), MECH_TEC3, Global::REAL );
-          }
+        // read thermal expansion coefficient to create a vector valued coef function (in Voigt notation)
+        StdVector<std::string> tecR(6), tecI(6);
+        tecR.Init("0.0");
+        tecI.Init("0.0");
+        if (tec->Has("isotropic")) {
+            if (tec->Get("isotropic")->Has("real")) {
+                std::string coef = tec->Get("isotropic")->Get("real")->As<std::string>();
+                tecR[0] = coef;
+                tecR[1] = coef;
+                tecR[2] = coef;
+            }
+            if (tec->Get("isotropic")->Has("imag")) {
+                std::string coef = tec->Get("isotropic")->Get("imag")->As<std::string>();
+                tecI[0] = coef;
+                tecI[1] = coef;
+                tecI[2] = coef;
+            }
         }
-        // read the imaginary part
-        if (tec->Get("orthotropic")->Has("imag")) {
-          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        else if (tec->Has("orthotropic")) {
+            PtrParamNode node = tec->Get("orthotropic");
+            StdVector<std::string> vals(3);
+            vals.Init("0.0");
+            if (node->Has("real")) {
+                ParamTools::AsStringTensor( node->Get("real"), 3, vals );
+                for (UInt i = 0; i < 3; ++i) {
+                    tecR[i] = vals[i];
+                }
+            }
+            if (node->Has("imag")) {
+                ParamTools::AsStringTensor( node->Get("imag"), 3, vals );
+                for (UInt i = 0; i < 3; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
         }
-      }
+        else if(tec->Has("anisotropic")) {
+            PtrParamNode node = tec->Get("anisotropic");
+            StdVector<std::string> vals(6);
+            vals.Init("0.0");
+            if (node->Has("real")) {
+                ParamTools::AsStringTensor( node->Get("real"), 6, vals );
+                for (UInt i = 0; i < 6; ++i) {
+                    tecR[i] = vals[i];
+                }
+            }
+            if (node->Has("imag")) {
+                ParamTools::AsStringTensor( node->Get("imag"), 6, vals );
+                for (UInt i = 0; i < 6; ++i) {
+                    tecI[i] = vals[i];
+                }
+            }
+        }
+        PtrCoefFct tecVect = CoefFunction::Generate( mp_, Global::COMPLEX,tecR,tecI);
+        material->SetCoefFct(MECH_TE_TENSOR,tecVect);
     }
 
     // read mechanical damping
@@ -645,6 +647,41 @@ namespace CoupledField {
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
+    
+     //read real magmech coupling tensor
+    if(mech->Has("magnetoStrictionTensor_h_mech"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = mech->Get("magnetoStrictionTensor_h_mech");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h_mech, pctCoef);
+    }
+  /* old style
+    if(mech->Has("magnetoStrictionTensor_h_mech")) {
+      Matrix<Double> couplingTensor(3,6);
+
+      PtrParamNode mst = mech->Get("magnetoStrictionTensor_h_mech");
+      if(mst->Has("real")) {
+        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mech, Global::REAL );
+      }
+      if(mst->Has("imag")) {
+        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mech, Global::IMAG );
+      }
+    }
+    */
   }
 
 
@@ -657,18 +694,59 @@ namespace CoupledField {
     //read density
     if(acou->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(mp_, Global::REAL, 
-                                 acou->Get("density")->As<std::string>() );
+    		  CoefFunction::Generate(mp_, Global::REAL,
+          		                     acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
+
+    //check for complex valued density
+    if ( acou->Has("densityComplex") ) {
+    	PtrParamNode densNode = acou->Get("densityComplex");
+
+    	// read the real part
+    	std::string realStr = densNode->Get("real")->As<std::string>();
+
+    	// read the imaginary part
+    	std::string imagStr = densNode->Get("imag")->As<std::string>();
+
+    	PtrCoefFct densFct = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	                                          realStr, imagStr );
+
+    	 material->SetCoefFct( ACOU_DENSITY_COMPLEX, densFct );
+    }
       
+    //read dauabatic exponent
+    if(acou->Has("adiabaticExponent")) {
+      PtrCoefFct fct =
+    		  CoefFunction::Generate(mp_, Global::REAL,
+          		                     acou->Get("adiabaticExponent")->As<std::string>() );
+      material->SetCoefFct( ADIABATIC_EXPONENT, fct );
+    }
+
     //read compression modulus
     if(acou->Has("compressionModulus")) { 
-      PtrCoefFct blkFct =
+    	PtrCoefFct blkFct =
                 CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
-      material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+    	material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
+
+    //check for complex valued density
+    if ( acou->Has("compressionModulusComplex") ) {
+    	PtrParamNode compNode = acou->Get("compressionModulusComplex");
+
+    	// read the real part
+    	std::string realStr = compNode->Get("real")->As<std::string>();
+
+    	// read the imaginary part
+    	std::string imagStr = compNode->Get("imag")->As<std::string>();
+
+    	PtrCoefFct compFct = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	                                          realStr, imagStr );
+
+    	 material->SetCoefFct( ACOU_BULK_MODULUS_COMPLEX, compFct );
+    }
+
     //read kinematic viscosity
     if(acou->Has("kinematicViscosity")) {
       PtrCoefFct kinVisc =
@@ -726,6 +804,7 @@ namespace CoupledField {
         material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->As<Double>(), BOVERA, Global::REAL );
     }  
   }
+
 
 //**********************************************************************
 //*************  READ ELECTROSTATICS ************************************
@@ -807,9 +886,10 @@ namespace CoupledField {
         if(p->Has("pSat"))
           material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
 
-        // read P saturation of Preisach hysterese model
-        if(p->Has("Pr"))
-          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL ); 
+        // never used
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
 
         // read direction of polarization
         if(p->Has("dirP"))
@@ -824,10 +904,42 @@ namespace CoupledField {
             EXCEPTION(dir << " is valid coordinate direction for electric preisach "
                       << " hysteresis model polarization");
         }
-        
+        // not needed anymore -> preisach is always scalar; vector model has its own name now
+        material->SetScalar("SCALAR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        // only relevant for vector model
+//        if(p->Has("rotRes")){
+//          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+//        } else {
+//          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+//        }
+//
+//        if(p->Has("evalVersion")){
+//          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+//        } else {
+//          material->SetScalar(4, EVAL_VERSION);
+//        }
+
+        // was only needed for vector model
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
-        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
     
         // read real permittivity tensor    
         if(p->Has("weights"))
@@ -835,6 +947,113 @@ namespace CoupledField {
           Matrix<Double> preisachWeightTensor(dim,dim);
           ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+      }
+      else if (elec->Get("hystModel")->Has("vectorPreisach"))
+      {
+        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach");
+
+        // force name
+        material->SetScalar("vectorPreisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("eSat"))
+          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read P saturation of Preisach hysterese model
+        if(p->Has("pSat"))
+          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        /*
+         * new numbering: 1 -> classical vector model (sutor2012)
+         *                2 -> revised model (sutor2015)
+         *                10 -> classical vector model, matrix based
+         *                20 -> revised model, matrix based
+         */
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(2, EVAL_VERSION);
+        }
+
+        // never used so far
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // only relevant for scalar model
+//        // read direction of polarization
+//        if(p->Has("dirP"))
+//        {
+//          int dir = p->Get("dirP")->As<Integer>();
+//
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                      << " hysteresis model polarization");
+//        }
+
+        //not needed anymore as vectorPreisach always is vectorial
+        material->SetScalar("VECTOR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        if(p->Has("rotResistance")){
+          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("angularDistance")){
+          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
+        }
+
+        // not used anymore
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+        /*
+         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+         * written to a bmp file of resolution bmpResolution
+         */
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
         }
       }
     }
@@ -854,6 +1073,46 @@ namespace CoupledField {
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
     
+    // read nonlinear reluctivity for magnetostrictive strains
+    if(mag->Has("magneticReluctivity_MagStrict"))
+    {
+      
+      // we know only nonlinear isotropic material
+      if(mag->Get("magneticReluctivity_MagStrict")->Has("nonlinear") ) {
+        if (mag->Get("magneticReluctivity_MagStrict")->Get("nonlinear")->Has("isotropic")) {
+          PtrParamNode iso = mag->Get("magneticReluctivity_MagStrict")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info.approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
+
+          // read approximation type  
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+          }
+          
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read nonlinear dataName of magnetic permeability
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>();
+
+          // pass info to material class
+          material->SetNonLinMatIso( MAGSTRICT_RELUCTIVITY, info);
+        } // nonlinear isotropic material   
+        
+      } // end of nonlinear section
+    } // end of magneticReluctivity_MagStrict  
+
+ 
     // read magnetic permeability
     if(mag->Has("magneticPermeability"))
     {
@@ -1062,7 +1321,294 @@ namespace CoupledField {
       } // end of nonlinear section
     } // end of magneticPermeability  
 
+    //read Preisach hysterese model
+    if(mag->Has("hystModel"))
+    {
+      if(mag->Get("hystModel")->Has("preisach"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
 
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read P saturation of Preisach hysterese model
+        if(p->Has("mSat"))
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        // never used
+//        // read M saturation of Preisach hysterese model
+//        if(p->Has("Mr"))
+//          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // read direction of polarization
+        if(p->Has("dirM"))
+        {
+          int dir = p->Get("dirM")->As<Integer>();
+
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+                      << " hysteresis model polarization");
+        }
+        // not needed anymore -> preisach is always scalar; vector model has its own name now
+        material->SetScalar("SCALAR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        // only relevant for vector model
+//        if(p->Has("rotRes")){
+//          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+//        } else {
+//          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+//        }
+//
+//        if(p->Has("evalVersion")){
+//          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+//        } else {
+//          material->SetScalar(4, EVAL_VERSION);
+//        }
+
+        // was only needed for vector model
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+      }
+      else if (mag->Get("hystModel")->Has("vectorPreisach"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
+
+        // force name
+        material->SetScalar("vectorPreisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("hSat")){
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        }
+
+        Double tmp;
+        material->GetScalar(tmp, X_SATURATION, Global::REAL);
+
+        // read P saturation of Preisach hysterese model
+        if(p->Has("mSat")){
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+        }
+        /*
+         * new numbering: 1 -> classical vector model (sutor2012)
+         *                2 -> revised model (sutor2015)
+         *                10 -> classical vector model, matrix based
+         *                20 -> revised model, matrix based
+         */
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(2, EVAL_VERSION);
+        }
+
+        // never used so far
+//        // read P saturation of Preisach hysterese model
+//        if(p->Has("Pr"))
+//          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // only relevant for scalar model
+//        // read direction of polarization
+//        if(p->Has("dirP"))
+//        {
+//          int dir = p->Get("dirP")->As<Integer>();
+//
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                      << " hysteresis model polarization");
+//        }
+
+        //not needed anymore as vectorPreisach always is vectorial
+        material->SetScalar("VECTOR", PREISACH_DIM);
+//        if(p->Has("preisachDim"))
+//        {
+//          int dim = p->Get("preisachDim")->As<Integer>();
+//
+//          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+//          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+//          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+//        } else {
+//          material->SetScalar("SCALAR", PREISACH_DIM);
+//        }
+
+        if(p->Has("rotResistance")){
+          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("angularDistance")){
+          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
+        }
+
+        // not used anymore
+//        if(p->Has("isTesting")){
+//          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+//        } else {
+//          material->SetScalar(0, IS_TESTING);
+//        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+
+        /*
+         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+         * written to a bmp file of resolution bmpResolution
+         */
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
+        }
+      }
+    }
+
+ /*
+  *
+    if(mag->Has("hystModel"))
+    {
+      if(mag->Get("hystModel")->Has("preisach"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
+
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
+
+        // read H saturation of Preisach hysterese model
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read M saturation of Preisach hysterese model
+        if(p->Has("mSat"))
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        // read M saturation of Preisach hysterese model
+        if(p->Has("Mr"))
+          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // read direction of magnetization
+        if(p->Has("dirM"))
+        {
+          int dir = p->Get("dirM")->As<Integer>();
+          // normally we would have M_DIRECTION but for case of simplicity we just leave P_DIRECTION
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for magnetic preisach "
+                      << " hysteresis model magnetziation");
+        }
+
+        if(p->Has("preisachDim"))
+        {
+          int dim = p->Get("preisachDim")->As<Integer>();
+
+          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+        } else {
+          material->SetScalar("SCALAR", PREISACH_DIM);
+        }
+
+        if(p->Has("rotRes")){
+          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+        } else {
+          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
+        }
+
+        if(p->Has("evalVersion")){
+          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+        } else {
+          material->SetScalar(4, EVAL_VERSION);
+        }
+
+        if(p->Has("printOut")){
+          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+        } else {
+          material->SetScalar(0, PRINT_PREISACH);
+        }
+
+        if(p->Has("bmpResolution")){
+          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+        } else {
+          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
+        }
+
+        if(p->Has("isTesting")){
+          material->SetScalar(p->Get("isTesting")->As<Integer>(), IS_TESTING);
+        } else {
+          material->SetScalar(0, IS_TESTING);
+        }
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+      }
+    }
+  *
+  */
+
+/* old
+ *
     //read Preisach hysterese model
     if(mag->Has("hystModel"))
     {
@@ -1094,7 +1640,41 @@ namespace CoupledField {
         }
       }
     }
+  */
+     //read real magmech coupling tensor
+    if(mag->Has("magnetoStrictionTensor_h_mag"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = mag->Get("magnetoStrictionTensor_h_mag");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h_mag, pctCoef);
+    }
+    /* old style
+    if(mag->Has("magnetoStrictionTensor_h_mag")) {
+      Matrix<Double> couplingTensor(3,6);
 
+      PtrParamNode mst = mag->Get("magnetoStrictionTensor_h_mag");
+      if(mst->Has("real")) {
+        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mag, Global::REAL );
+      }
+      if(mst->Has("imag")) {
+        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h_mag, Global::IMAG );
+      }
+    }
+   */
     // read core loss
     if(mag->Has("coreLoss")){
       PtrParamNode clParam = mag->Get("coreLoss");
@@ -1359,6 +1939,26 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadMagStrict(BaseMaterial *material,
                                          PtrParamNode pn) {
     //read real magmech coupling tensor
+    if(pn->Has("magnetoStrictionTensor_h"))
+    {
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
+      PtrParamNode pct = pn->Get("magnetoStrictionTensor_h");
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
+      }
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( MAGNETOSTRICTION_TENSOR_h, pctCoef);
+    }
+
+    /* old way
     if(pn->Has("magnetoStrictionTensor_h")) {
       Matrix<Double> couplingTensor(3,6);
 
@@ -1372,6 +1972,7 @@ namespace CoupledField {
         material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::IMAG );
       }
     }
+    */
   }
 
   //**********************************************************************

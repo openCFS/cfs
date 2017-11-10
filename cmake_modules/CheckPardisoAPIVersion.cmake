@@ -12,8 +12,13 @@ IF(CFS_PARDISO STREQUAL MKL)
   ELSE()
     IF(UNIX)
       IF(NOT CMAKE_CROSSCOMPILING)
-        MESSAGE(STATUS
-	  "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
+        IF(DEFINED MKL_UPDATE)
+          MESSAGE(STATUS
+	    "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
+        ELSE()
+          MESSAGE(STATUS
+            "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
+        ENDIF()
       ELSE()
         IF(APPLE)
           MESSAGE(STATUS

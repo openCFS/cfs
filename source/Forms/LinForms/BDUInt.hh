@@ -48,6 +48,22 @@ public:
                 const std::set<RegionIdType>& volRegions,
                 bool coordUpdate = false );
 
+  //! Copy constructor
+  BDUIntegrator(const BDUIntegrator& right )
+    : LinearForm(right) {
+    this->operator_ = right.operator_;
+    this->factor_ = right.factor_;
+    this->dCoef_ = right.dCoef_;
+    this->rhsCoefs_ = right.rhsCoefs_;
+    this->volRegions_ = right.volRegions_;
+    this->Bdim_ = right.Bdim_;
+  }
+
+  //! \copydoc LinearForm::Clone
+  virtual BDUIntegrator* Clone(){
+    return new BDUIntegrator( *this );
+  }
+
   virtual ~BDUIntegrator(){
 
   }

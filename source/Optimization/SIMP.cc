@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stddef.h>
 #include <map>
 #include <ostream>
@@ -196,14 +196,23 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
   case Function::GLOBAL_DYNAMIC_COMPLIANCE:
   case Function::OUTPUT:
+  case Function::SQUARED_OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:
   case Function::ABS_OUTPUT:
   {
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // excpetion and use_single
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // exception and use_single
     double weight = excite.GetWeightedFactor(f);
+
+    // squared output gradient 2 * <u,l> * <u,l>'
+    if (f->GetType() == Function::SQUARED_OUTPUT)
+    {
+      f->SetType(Function::OUTPUT);
+      weight *= 2. * SIMP::CalcFunction(excite, f, false);
+      f->SetType(Function::SQUARED_OUTPUT);
+    }
     LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
     break;
@@ -211,7 +220,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
   case Function::PRESSURE_DROP:
   {
-    LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
+    LatticeBoltzmannPDE* lbmPde = f->ctxt->GetLatticeBoltzmannPDE();
     assert(lbmPde != NULL);
     lbmPde->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
     break;

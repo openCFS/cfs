@@ -61,8 +61,8 @@ DesignElement* Transform::FindSource(const DesignElement* de) const
   assert(domain->GetGrid()->GetDim() == 2); // nothing else implemented yet
 
   // calculate source coordinates
-  double x = de->elem->barycenter[0];
-  double y = de->elem->barycenter[1];
+  double x = de->elem->extended->barycenter[0];
+  double y = de->elem->extended->barycenter[1];
 
   double cx = center_[0];
   double cy = center_[1];
@@ -105,7 +105,7 @@ DesignElement* Transform::SearchDesignSpace(const DesignElement* start, Vicinity
   int axis = VicinityElement::ToMainAxis(dir);
 
   const DesignElement* cand = start; // the start might be what we look for (e.g. if we rotate the center around the center)
-  double closest = std::abs(val - start->elem->barycenter[axis]); // let's hope negative coordinates make no problems :(
+  double closest = std::abs(val - start->elem->extended->barycenter[axis]); // let's hope negative coordinates make no problems :(
 
   bool stop = false;
   while(!(stop || closest < 1e-15))
@@ -117,7 +117,7 @@ DesignElement* Transform::SearchDesignSpace(const DesignElement* start, Vicinity
       continue;
     }
 
-    double dist = std::abs(test->elem->barycenter[axis] - val);
+    double dist = std::abs(test->elem->extended->barycenter[axis] - val);
 
     LOG_DBG3(transform) << "SDS start=" << start->ToString(true) << " dir=" << dir << " << val=" << val << " cand=" << cand->ToString(true) << " test=" << test->ToString(true) << " c=" << closest << " d=" << dist;
 

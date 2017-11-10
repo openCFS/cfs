@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include <sys/types.h>
-#include <math.h>
+#include <cmath>
 
 #include <General/Exception.hh>
 #include <DataInOut/SimInput.hh>

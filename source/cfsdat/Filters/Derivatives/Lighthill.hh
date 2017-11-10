@@ -1,0 +1,123 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     Lighthill.hh
+ *       \brief    <Description>
+ *
+ *       \date     Oct 4, 2016
+ *       \author   kroppert
+ */
+//================================================================================================
+
+#pragma once
+
+
+#include <Filters/Derivatives/AeroacousticBase.hh>
+#include "DataInOut/SimInput.hh"
+
+
+namespace CFSDat{
+
+//! Class which provides methods to compute the Lamb- and LighthillSource-vector as well as
+//! the whole LighthillSource-term
+class Lighthill : public AeroacousticBase{
+
+  //! struct containing an interpolation matrix, which may be applied to scalars and vector
+  struct Matrix {
+    CF::UInt numTargets;
+    CF::UInt numSources;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexNtE;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexDiv;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexGrad;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexCurl;
+    StdVector< StdVector<CF::UInt> > targetSourceIndexEtN; // EtN...element to node
+    StdVector<CF::UInt> targetSourceNtE;
+    StdVector<CF::UInt> targetSourceEtN;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorDiv;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorGrad;
+    StdVector< CF::Matrix<CF::Double> > targetSourceFactorCurl;
+    StdVector< CF::Matrix<CF::Double> > targetSourceNNFactor;
+  };
+
+
+public:
+
+  Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+
+  virtual ~Lighthill();
+
+  virtual bool Run();
+
+
+
+protected:
+
+  virtual void PrepareCalculation();
+
+  virtual ResultIdList SetUpstreamResults();
+
+  virtual void AdaptFilterResults();
+
+  std::string res1Name;
+  uuids::uuid res1Id;
+
+  std::string res2Name;
+  uuids::uuid res2Id;
+
+
+private:
+
+  void LambVector(Vector<Double>& tempRetVec);
+
+  void LighthillSourceVector(Vector<Double>& tempRetVec);
+
+  void LighthillSourceTerm(Vector<Double>& tempRetVec);
+
+
+  Grid* inGrid_;
+
+  //! Entity map used for source values
+  str1::shared_ptr<EqnMapSimple> scrMap_;
+
+  //! Entity map used for target values
+  str1::shared_ptr<EqnMapSimple> trgMap_;
+
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
+
+  //! Number of neighbor points to include in differentiation.
+  UInt numNeighbors_;
+
+  std::vector<QuantityStruct> derivData_;
+
+  //! Scaling of epsilon-parameter for RBF-basis function
+  Double epsScal_;
+
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
+
+  //! contains pointers to every interpolator which created a matrix
+  static CF::StdVector<Lighthill*> differentiators_;
+
+  //! contains the matrices created by the Interpolators from interpolators_
+  static CF::StdVector<Matrix> matrices_;
+
+  //! Density, if not specified in xml-scheme it is automatically set to one
+  Double density_;
+
+  //! String if the full Lighthill or only the Lamb-vector is computed
+  std::string Form_;
+
+  //! Boolean if an extern vorticity-input is provided of if we have to compute it
+  bool externVorticity_;
+
+  bool checkSum_;
+
+};
+
+
+
+}

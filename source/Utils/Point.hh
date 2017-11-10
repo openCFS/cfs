@@ -2,7 +2,7 @@
 #define POINT_HH_
 
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <string>
 
 #include "General/defs.hh"
@@ -50,6 +50,9 @@ public:
    * @param vec assumed to be of size 3 - pointer because of circular inclusion :(
    * @return 0-based index of (firt) non-zero index. */
   static int GetCartesianOrientation(const Vector<double>* vec);
+
+  /** Returns data vector */
+  inline const Vector<double>& GetCoordVector() { return data;}
 
   //!
   Point & operator=(const Point & t);
@@ -99,6 +102,11 @@ public:
     for(UInt i=0; i<3; i++)
       preSqrt+= (a.data[i]-b.data[i]) * (a.data[i]-b.data[i]);
     return sqrt(preSqrt);
+  }
+
+  /** calculate the distance of two 2D points (x,y) and (a,b)*/
+  inline static double Dist(double x, double y, double a, double b) {
+    return sqrt((a-x)*(a-x)+(b-y)*(b-y));
   }
 
   //! calculate distance to another point

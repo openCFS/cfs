@@ -9,7 +9,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -38,6 +38,7 @@ DECLARE_LOG(conditions)
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
 double Condition::SLACK_VALUE = -45217861;
+double Condition::ALPHA_VALUE = -45217858;
 double Condition::ALPHA_MINUS_SLACK_VALUE = -45217860;
 double Condition::ALPHA_PLUS_SLACK_VALUE = -45217859;
 
@@ -96,6 +97,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     string v = pn->Get("value")->As<string>();
     if(v == "slack")
       this->boundValue_ = SLACK_VALUE;
+    else if (v == "alpha")
+      this->boundValue_ = ALPHA_VALUE;
     else if (v == "alpha+slack")
       this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
     else if (v == "alpha-slack")
@@ -106,6 +109,10 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
       // local function performance
       this->boundValue_ = pn->Get("value")->MathParse<double>();
+      LOG_DBG(conditions) << "C: " << type.ToString(type_) << " p=" << penalty << " os=" << objective_scaling_ << " msv=" << manual_scaling_value
+                          << " bv=" << boundValue_ << " -> " << (boundValue_ * manual_scaling_value);
+      if(!objective_scaling_)
+        this->boundValue_ *= manual_scaling_value;
     }
 
     if((boundValue_ == ALPHA_PLUS_SLACK_VALUE && bound_ == UPPER_BOUND) || (boundValue_ == ALPHA_MINUS_SLACK_VALUE && bound_ == LOWER_BOUND)) {
@@ -178,9 +185,12 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
 
-  if(boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE)
+  if(boundValue_ == ALPHA_VALUE|| boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE) {
     if(!space->HasAlphaVariable())
       throw Exception("design variable 'alpha' is missing.");
+    if(!space->HasSlackVariable())
+      throw Exception("design variable 'alpha' requires also design variable 'slack'.");
+  }
 
 
   // shall not be necessary when we register all pdes!
@@ -652,9 +662,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
   string file = pn->Get("designTarget")->As<string>();
-  Xerces xerces;
-  xerces.SetFile(file);
-  PtrParamNode xml = xerces.CreateParamNodeInstance();
+  PtrParamNode xml = XmlReader::ParseFile(file);
 
   // check this file
   if (xml->Count("set") == 0)
@@ -742,7 +750,7 @@ string Condition::ToString() const
     os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
-  if(type_ == OUTPUT && !output_forms.IsEmpty())
+  if((type_ == OUTPUT || type_ == SQUARED_OUTPUT) && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
@@ -763,6 +771,9 @@ string Condition::ToString() const
     else
       os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
   }
+  // add bound type if multiple unique conditions exist
+  if(domain->GetOptimization()->constraints.RequiresBoundForUniqueness(this))
+    os << "_" << bound.ToString(bound_);
 
   return os.str();  
 }
@@ -802,24 +813,28 @@ void Condition::ToInfo(PtrParamNode in)
 {
   Function::ToInfo(in);
 
-  in->Get("name")->SetValue(ToString());
-
-
   if(IsActive())
   {
     if(type_ != HOM_TRACKING)
     {
       if(boundValue_ == SLACK_VALUE)
         in->Get("bound_value")->SetValue("slack");
+      else if (boundValue_ == ALPHA_VALUE)
+        in->Get("bound_value")->SetValue("alpha");
       else if(boundValue_ == ALPHA_MINUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha-slack");
       else if(boundValue_ == ALPHA_PLUS_SLACK_VALUE)
         in->Get("bound_value")->SetValue("alpha+slack");
       else
-        in->Get("bound_value")->SetValue(boundValue_);
+        // FIXME: does not handle objective_scaling. Also the scaling shall not be encoded in the bound value :(
+        in->Get("bound_value")->SetValue(boundValue_ / manual_scaling_value);
     }
     in->Get("bound")->SetValue(bound.ToString(bound_));
 
+    if(objective_scaling_)
+      in->Get("scaling")->SetValue("objective");
+    else if(manual_scaling_value != 1.0)
+      in->Get("scaling")->SetValue(manual_scaling_value);
   }
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
@@ -869,6 +884,12 @@ void Condition::ToInfo(PtrParamNode in)
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
     info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
+  // the bounds are essential as we have to flip sign!
+  if(type_ == OVERHANG_HOR && bound_ != LOWER_BOUND)
+    throw Exception("overhang constraints for horizontal structures restrict the lower boundary only and this boundary shall be steep enough -> 'lower_bound'");
+
+  if(type_ == OVERHANG_VERT && bound_ != UPPER_BOUND)
+    throw Exception("overhang constraints for vertical structures restrict the left boundary for left overhangs and vice versa. -> 'upper_bound'");
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -913,7 +934,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     BaseDesignElement* bde = id.GetElement(i);
     assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = bde->GetIndex();
+    int other_idx = bde->GetOptIndex();
     indices.push_back(other_idx);
 
     if(this->ForDensityFiltering())
@@ -923,7 +944,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
       {
         const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
         for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
-          indices.push_back(neighborhood[j].neighbour->GetIndex());
+          indices.push_back(neighborhood[j].neighbour->GetOptIndex());
       }
     }
   }
@@ -956,11 +977,11 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetOptIndex();
 
     break;
   }
@@ -968,41 +989,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
 
-    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::MECH_11)->GetOptIndex();
+    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
 
-    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::MECH_12)->GetOptIndex();
+    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::MECH_22)->GetOptIndex();
+    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::MECH_33)->GetOptIndex();
 
-    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
 
-    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::MECH_13)->GetOptIndex();
+    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
-    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
+    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
     break;
   default:
@@ -1094,6 +1115,31 @@ double LocalCondition::CalcMaxValue() const
 }
 
 
+int LocalCondition::CountInfeasibles() const
+{
+  int cnt = 0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = local->virtual_elem_map[i].EvalFunction(local);
+    double d = v - GetBoundValue();
+    LOG_DBG2(conditions) << "LC:CI check f=" << ToString() << " i=" << i << " b=" << Condition::bound.ToString(bound_) << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+
+    // upper_bound: 0 < 3 -> -3 < 0 (ok)   4 < 3 -> 1 < 0 (false)
+    // lower_bound: 3 > 2 ->  1 > 0 (ok)   3 > 4 -> -1 > 0 (false)
+
+
+    if((bound_ == Condition::EQUAL && std::abs(d) > 1e-5) ||
+       (bound_ == Condition::LOWER_BOUND && d <= 1e-6) ||
+       (bound_ == Condition::UPPER_BOUND && d >= -1e-6))
+    {
+      cnt++;
+      LOG_DBG(conditions) << "LC:CI -> count f=" << ToString() << " i=" << i << " v=" << v << " bv=" << GetBoundValue() << " d=" << d << " cnt=" << cnt;
+    }
+  }
+
+  return cnt;
+}
+
 double LocalCondition::GetValue() const
 {
   if(IsLocal())
@@ -1182,7 +1228,6 @@ void ConditionContainer::Read(ParamNodeList pn_list)
         }
       }
     }
-
     // General constraint (Non displacement constraint case)
     if (!displacement_constr)
       Condition::AddCondition(pn, act ? active : observe);
@@ -1304,20 +1349,69 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   return NULL;
 }
 
-StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
+StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active, Function::Access access)
 {
   StdVector<Condition*> result;
 
-  for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
-      result.Push_back(active[i]);
+  for(unsigned int i = 0, n = active.GetSize() + (only_active ? 0 : observe.GetSize()); i < n; i++)
+  {
+    assert(!(only_active && i >= active.GetSize()));
+    Condition* g = i < active.GetSize() ? active[i] : observe[i-active.GetSize()];
 
-  for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
-      result.Push_back(observe[i]);
+    if(g->GetType() != type)
+      continue;
 
+    if(design != DesignElement::NO_TYPE && g->design_ != design)
+      continue;
+
+    if(access != Function::NO_ACCESS && g->GetAccess() != access)
+      continue;
+
+      result.Push_back(g);
+  }
   return result;
 }
+
+
+bool ConditionContainer::HasUniqueBounds(const StdVector<Condition*>& list)
+{
+  bool lower = false;
+  bool upper = false;
+  bool equal = false;
+
+  for(unsigned int i = 0;i < list.GetSize();i++) {
+    switch (list[i]->GetBound()) {
+     case Condition::LOWER_BOUND:
+       if (lower) {
+         return false;
+       } else {
+         lower = true;
+       }
+       break;
+     case Condition::UPPER_BOUND:
+       if (upper) {
+         return false;
+       } else {
+         upper = true;
+       }
+       break;
+     case Condition::EQUAL:
+       if (equal) {
+         return false;
+       } else {
+         equal = true;
+       }
+       break;
+    }
+  }
+  return true;
+}
+
+bool ConditionContainer::RequiresBoundForUniqueness(const Condition* g) {
+  const StdVector<Condition*> list = GetList(g->GetType(),g->GetDesignType(),false, g->GetAccess());
+  return list.GetSize() > 1 && HasUniqueBounds(list);
+}
+
 
 bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
@@ -1341,7 +1435,7 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
       return NULL;
   }
 
-  if(list.GetSize() > 1 && throw_exception)
+  if(list.GetSize() > 1 && !HasUniqueBounds(list) && throw_exception)
     throw Exception("constraint " + Condition::type.ToString(type) + " is not unique");
 
   return list[0];
@@ -1409,7 +1503,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:R g=" << Condition::type.ToString(g->GetType()) << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }

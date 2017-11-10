@@ -7,7 +7,12 @@
 #define COEFFUNCTION_COMPOUND_HH
 
 #include "CoefFunction.hh"
+#include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/DivOperator.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/ThreadLocalStorage.hh"
+//#include "FeBasis/FeFunctions.hh"
+#include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 namespace CoupledField {
 
@@ -109,7 +114,42 @@ void SetTensor( StdVector<std::string>& expr,
      
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
-  
+
+      //! \copydoc CoefFunction::SetDerivativeOperation
+    virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
+      this->derivType_ = type;
+
+      //make some checks here!
+      switch(dimType_){
+      case SCALAR:
+        //only NONE is valid right now
+        //if extended to gradient, this would be fine too
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+        }
+        break;
+      case VECTOR:
+        //this is fine in all cases right now
+        if(type==VECTOR_DIVERGENCE){
+          //change dim type to scalar
+          this->dimType_ = SCALAR;
+//          UInt gDim = this->domain_->GetGrid()->GetDim();
+//          UInt dDim = this->resultInfo_->dofNames.GetSize();
+          this->CreateDivOperator(gDim,dDim);
+        }
+        break;
+      case TENSOR:
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+        }
+        break;
+      default:
+        break;
+      }
+      return;
+    }
+
+
 protected:
   
   //! Register coefficient function
@@ -118,6 +158,14 @@ protected:
   
   //! Update expressions
   void UpdateXpr( const LocPointMapped& lpm );
+
+  //!Creates a divergence operator in case we want the divergence of an
+  //! external vector field
+  void CreateDivOperator(UInt spaceDim, UInt dofDim);
+
+  //! BOperator to map solutions to arbitrary points
+  //! Right now, hardcoded identity operator
+  shared_ptr<BaseBOperator > myOperator_;
 
   //! Number of rows of tensor
   UInt numRows_;
@@ -144,13 +192,13 @@ protected:
   std::map<std::string, CoefDimType > coefDimTypes_;
   
   //! Map variable names to scalar valued variables
-  std::map<std::string, Double> scalVars_;
+  TLMap<std::string, Double> scalVars_;
 
   //! Map variable names to vector valued variables
-  std::map<std::string, Vector<Double> > vecVars_;
+  TLMap<std::string, Vector<Double> > vecVars_;
 
   //! Map variable names to tensor valued variables
-  std::map<std::string, Matrix<Double> > tensorVars_;
+  TLMap<std::string, Matrix<Double> > tensorVars_;
 };
 
 // ===========================================================================
@@ -201,6 +249,40 @@ public:
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
   
+        //! \copydoc CoefFunction::SetDerivativeOperation
+    virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
+      this->derivType_ = type;
+
+      //make some checks here!
+      switch(dimType_){
+      case SCALAR:
+        //only NONE is valid right now
+        //if extended to gradient, this would be fine too
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+        }
+        break;
+      case VECTOR:
+        //this is fine in all cases right now
+        if(type==VECTOR_DIVERGENCE){
+          //change dim type to scalar
+          this->dimType_ = SCALAR;
+//          UInt gDim = this->domain_->GetGrid()->GetDim();
+//          UInt dDim = this->resultInfo_->dofNames.GetSize();
+          this->CreateDivOperator(gDim,dDim);
+        }
+        break;
+      case TENSOR:
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+        }
+        break;
+      default:
+        break;
+      }
+      return;
+    }
+
 protected:
   
   //! Register coefficient function
@@ -209,6 +291,15 @@ protected:
   
   //! Update expressions
   void UpdateXpr( const LocPointMapped& lpm );
+
+
+  //!Creates a divergence operator in case we want the divergence of an
+  //! external vector field
+  void CreateDivOperator(UInt spaceDim, UInt dofDim);
+
+  //! BOperator to map solutions to arbitrary points
+  //! Right now, hardcoded identity operator
+  shared_ptr<BaseBOperator > myOperator_;
 
   //! Number of rows of tensor
   UInt numRows_;
@@ -240,23 +331,27 @@ protected:
   //! Map variable names to dimensionality types
   std::map<std::string, CoefDimType > coefDimTypes_;
   
+  //=================================================
+  // Make this thread safe as we relate to the address
+  //=================================================
+
   //! Map variable names to scalar valued variables (real part)
-  std::map<std::string, Double> scalVarsReal_;
+  TLMap<std::string, Double> scalVarsReal_;
   
   //! Map variable names to scalar valued variables (imag part)
-  std::map<std::string, Double> scalVarsImag_;
+  TLMap<std::string, Double> scalVarsImag_;
 
   //! Map variable names to vector valued variables (real part)
-  std::map<std::string, Vector<Double> > vecVarsReal_;
+  TLMap<std::string, Vector<Double> > vecVarsReal_;
   
   //! Map variable names to vector valued variables (imag part)
-  std::map<std::string, Vector<Double> > vecVarsImag_;
+  TLMap<std::string, Vector<Double> > vecVarsImag_;
 
   //! Map variable names to tensor valued variables (real part)
-  std::map<std::string, Matrix<Double> > tensorVarsReal_;
+  TLMap<std::string, Matrix<Double> > tensorVarsReal_;
   
   //! Map variable names to tensor valued variables (imag part )
-  std::map<std::string, Matrix<Double> > tensorVarsImag_;
+  TLMap<std::string, Matrix<Double> > tensorVarsImag_;
 };
 
 

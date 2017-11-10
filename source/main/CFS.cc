@@ -6,10 +6,9 @@
 
 #include <iomanip>
 #include <fstream>
-#include <def_use_xerces.hh>
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
-
+#include <boost/exception/diagnostic_information.hpp>
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineInOutFiles.hh"
@@ -22,25 +21,31 @@
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-
 #include <def_use_mesh.hh>
+#include <def_use_petsc.hh>
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
 
+#ifdef USE_PETSC
+#include "petsc.h"
+#include "OLAS/external/petsc/PETSCSolver.hh"
+#endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
 
 using namespace CoupledField;
 using namespace std;
+using namespace boost::posix_time;
+using namespace boost::gregorian;
 
 
 #ifdef __MINGW32__
@@ -66,11 +71,43 @@ extern "C" void _allmul() {
 // Create global info node
 PtrParamNode infoNode;
 
-int main(int argc, const char **argv)
-{
-  CFS cfs(argc, argv);
-  int ret = cfs.Run();
-  return ret;
+
+#define DIETAG 0
+
+int main(int argc, const char **argv){
+  
+  #ifdef USE_PETSC
+  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL); 
+  int rank;
+  int size;
+  //find which is my rank
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&size);
+  if (rank==0){ 
+  #endif
+    CFS cfs(argc, argv);   
+    int ret = cfs.Run();
+    
+  #ifdef USE_PETSC
+    //Send a Kill Tag to all workers before exiting the code
+    if (size>1){
+      for (rank = 1; rank < size; ++rank) {
+        MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
+      }	
+    }
+  #endif
+    return ret; 
+  #ifdef USE_PETSC
+  }
+  else {
+      PETSCWorker w;
+      w.run();
+  }
+
+  PetscFinalize();
+  #endif
+ 
+  
 }
 
 void PrintWarning(CoupledField::Exception& ex ) {
@@ -113,9 +150,12 @@ CFS::CFS(int argc, const char **argv) :
   // Parse command line
   progOpts->ParseData();
 
+  //now set the number of threads from the commandline
+  SetNumberOfThreads(progOpts->GetNumThreads());
+
   // Log program startup
   progOpts->GetHeaderString( cout );
-  
+
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
   logConf_ = new LogConfigurator(confFile);
@@ -128,9 +168,7 @@ CFS::CFS(int argc, const char **argv) :
   SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-      //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
-  infoNode->SetName("cfsInfo");
+  infoNode = ParamNode::GenerateWriteNode("cfsInfo", progOpts->GetSimName() + ".info.xml", ParamNode::INSERT, true, true); // lazy write and add counters
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
   infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
@@ -223,14 +261,15 @@ int CFS::Run()
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else{
-      SolveProblem();
+        SolveProblem();
     }
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
+    if(!progOpts->IsQuiet())
+      cout << endl; // conditional empty line
     
     cout << ">> Total time: wall clock: '";
     
@@ -250,15 +289,24 @@ int CFS::Run()
     {
       cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
+    if(progOpts->IsQuiet())
+      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
+
     
     cout << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
-    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    infoNode->Get(ParamNode::SUMMARY)->SetComment("memory in MB");
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)/1024.);
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true)/1024.);
 
     return 0;
+  }
+  catch(const mu::ParserError& e)
+  {
+    cerr << endl << "mu::ParserError: " << e.GetMsg() << endl;
+    return 1;
   }
   catch(exception& ex)
   {
@@ -288,6 +336,12 @@ int CFS::Run()
 
     return 1;
   }
+  catch (...)
+  {
+    cerr << "leftover exception caught:" << endl;
+    cerr << boost::current_exception_diagnostic_information() << endl;
+    return 1;
+  }
 }
 
 void CFS::SetGlobalEnums()
@@ -312,9 +366,8 @@ void CFS::SolveProblem()
  // Solves the driver or optimization problem
  domain->SolveProblem();
  
- using namespace boost::posix_time;
- using namespace boost::gregorian;
- cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
+ if(!progOpts->IsQuiet())
+   cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
 
 
@@ -346,21 +399,17 @@ void CFS::ReadXMLFile()
   // Generate parameter handler and pass address to global pointer
   string xmlFile = progOpts->GetParamFileStr();
 
-  // Write information to command line
-  cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
+  // Conditionally write information to command line
+  if(!progOpts->IsQuiet())
+    cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces xerces(schema);
-  xerces.SetFile(xmlFile);
-
-  // set the global ParamNode tree pointer
-  paramNode_ = xerces.CreateParamNodeInstance();
-  // save us in the info stuff, with defaults but no comments
-  // release the xerces ressources, param is not affected
+  // parse the problem xml file, validate and fill with defaults from schema
+  // continue to work only with the ParamNode tree
+  paramNode_ = XmlReader::ParseFile(xmlFile, schema);
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )

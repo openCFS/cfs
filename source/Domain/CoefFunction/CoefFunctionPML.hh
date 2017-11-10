@@ -16,7 +16,7 @@
 #define COEFFUNCTIONPML_HH_
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include "CoefFunction.hh"
 #include <boost/tr1/type_traits.hpp>
@@ -28,7 +28,7 @@ namespace CoupledField{
 class DampFunction{
 
 public:
-  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH } DampingType;
+  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS, RATIONAL, EXPONENTIAL, POLY_DIRECT, POLY_INVERSE } DampingType;
   static Enum<DampingType> DampingTypeEnum;
 
   DampFunction(){
@@ -116,35 +116,124 @@ public:
 
 };
 
+class DampFunctionTangens : public DampFunction{
+public:
+  DampFunctionTangens( ) : DampFunction(){
+    constFactor = 2.0/M_PI;
+    functionType = TANGENS;
+  }
+  // The factor is the derivative of the mapping function
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness;
+    //Double x = DampFactor*tan(z*M_PI/2.0);
+    //return 2.0*DampFactor/(M_PI*(DampFactor*DampFactor+x*x));
+    Double L = DampFactor*sos;
+    Double c = cos(z/constFactor);
+    return constFactor*c*c/L; // same but possibly faster
+  }
 
+};
+
+class DampFunctionRational : public DampFunction{
+public:
+  DampFunctionRational( ) : DampFunction(){
+    constFactor = 1.0;
+    functionType = RATIONAL;
+  }
+
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness; // coordinate in layer
+    Double L = DampFactor*sos;
+    Double x = z*L/(1.0 - z); // x-coordinate
+    return L/((x+L)*(x+L)); // dz/dx=eta(x)=eta(x(z))
+  }
+
+};
+
+class DampFunctionExponential : public DampFunction{
+public:
+  DampFunctionExponential( ) : DampFunction(){
+    constFactor = 1.0;
+    functionType = EXPONENTIAL;
+  }
+
+  Double ComputeFactor(Double z, Double sos){
+    //Double z = pos/thickness; // local coordinate in layer [0,1]
+    Double L = DampFactor*sos;
+    return (1-z)/L;
+  }
+
+};
+
+class DampFunctionPolyDirect : public DampFunction
+{
+private:
+  UInt power_;
+
+public:
+  DampFunctionPolyDirect(UInt power) : DampFunction()
+  {
+    power_ = power;
+    constFactor = -0.5*(power_ + 1)*log(ReflectionCoefficient);
+    functionType = POLY_DIRECT;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness)
+  {
+    Double value = pow(pos/thickness, power_);
+    return DampFactor*value;
+  }
+};
+
+class DampFunctionPolyInverse : public DampFunction
+{
+private:
+  UInt power_;
+
+public:
+  DampFunctionPolyInverse(UInt power) : DampFunction()
+  {
+    power_ = power;
+    constFactor = -0.5*(power_ + 1)*log(ReflectionCoefficient);
+    functionType = POLY_INVERSE;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness)
+  {
+    Double value = pow(1.0 - pos/thickness, power_);
+    return DampFactor*value;
+  }
+};
 
 template<typename T>
 class CoefFunctionPML : public CoefFunction{
 
 public:
 
+  //! Enumeration data type describing formulations of PML
+  typedef enum{ CLASSIC, SHIFTED } PMLFormulType;
 
   CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
                   StdVector<RegionIdType> pdeDomains,
                   bool isVector );
 
-  ~CoefFunctionPML();
+  virtual ~CoefFunctionPML();
 
   //! Return real-valued tensor at integration point
-  void GetTensor(Matrix<Complex>& tensor,
+  virtual void GetTensor(Matrix<Complex>& tensor,
                  const LocPointMapped& lpm );
 
   //! Return real-valued tensor at integration point
-  void GetTensor(Matrix<Double>& tensor,
+  virtual void GetTensor(Matrix<Double>& tensor,
                  const LocPointMapped& lpm );
 
   //! Return real-valued vector at integration point
-  void GetVector(Vector<Complex>& vec,
+  virtual void GetVector(Vector<Complex>& vec,
                  const LocPointMapped& lpm ) ;
 
   //! Return real-valued vector at integration point
-  void GetVector(Vector<Double>& vec,
+  virtual void GetVector(Vector<Double>& vec,
                  const LocPointMapped& lpm ) ;
 
 
@@ -153,11 +242,11 @@ public:
   // seeing that the jacobian is transformed according to the changed
   // derivatives, we pass this function as a scalar function to the bilinearform
   // an transform the jacobian with it....
- void GetScalar(Double& val,
+  virtual void GetScalar(Double& val,
                 const LocPointMapped& lpm ) ;
 
  //! Return cpmplex-valued scalar at integration point
- void GetScalar(Complex& val,
+  virtual void GetScalar(Complex& val,
                 const LocPointMapped& lpm ) ;
 
  //! \copydoc CoefFunction::GetVecSize
@@ -189,7 +278,6 @@ protected:
       omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
     }
 
-private:
     void SetPosPML(Matrix<Double> & inner,
                    Matrix<Double> & outer);
 
@@ -201,6 +289,7 @@ private:
 
     void GetThicknessAtPoint(Double& thickness,Double& position, LocPointMapped lpm,UInt dir);
 
+    PMLFormulType formulationType_;
 
     Matrix<Double> innerMinMaxComp_;
     Matrix<Double> outerMinMaxComp_;
@@ -230,6 +319,39 @@ private:
     //! flag, if PML coefficient functions describes the vector 
     bool isVector_;
 
+};
+
+template<typename T>
+class CoefFunctionShiftedPML : public CoefFunctionPML<T>
+{
+
+public:
+
+  CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                         StdVector<RegionIdType> pdeDomains, bool isVector);
+
+  virtual ~CoefFunctionShiftedPML();
+
+  //! \copydoc CoeffFunctionPML::GetTensor
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoeffFunctionPML::GetVector
+  virtual void GetVector(Vector<Complex>& vector, const LocPointMapped& lpm);
+
+  //! \copydoc CoeffFunctionPML::GetScalar
+  virtual void GetScalar(Complex& scalar, const LocPointMapped& lpm);
+
+  using CoefFunctionPML<T>::GetTensor;
+
+  using CoefFunctionPML<T>::GetVector;
+
+  using CoefFunctionPML<T>::GetScalar;
+
+protected:
+
+  PtrCoefFct scalingCoef_, shiftCoef_;
+
+  shared_ptr<DampFunction> scalingFunc_, shiftFunc_;
 };
 
 }

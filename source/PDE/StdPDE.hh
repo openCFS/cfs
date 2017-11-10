@@ -9,6 +9,7 @@
 #include "Materials/Composite.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 namespace CoupledField {
 
@@ -92,6 +93,9 @@ namespace CoupledField {
       return isaxi_;
     }
     
+    //! Set geometry information
+    virtual void SetGeomInfo();
+
     //! Set special RHS values
     virtual void SetRhsValues();
 
@@ -162,6 +166,9 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
+    bool IsHysteresis_Fixpoint()
+    { return isHysteresisFixPoint_;};
+
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
@@ -175,6 +182,52 @@ namespace CoupledField {
     /** Shortcut for the DOF names */
     StdVector<std::string>& GetDofNames(SolutionType st) {
       return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
+    /*
+     *
+     */
+    void SetFlagInCoefFncHyst(std::string flagName,bool newState);
+
+    /*
+     * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of
+     * the underlying CoefFunctionHyst
+     * However, stdSolveStep cannot directtly access these CoefFunctions but has to go
+     * over the PDEs.
+     * As basically a PDEs that use Hysteresis will need the same set of functions, it
+     * makes sense to directly include them in the base class.
+     */
+    /*!
+     * SetPreviousHystVals -> store input and output values from last iteration
+     */
+    void SetPreviousHystVals(bool setNextToLastTS = false);
+    /*!
+     * LockUnlockHystMemory -> if locked, all changes to the Hysteresis operator are only
+     *                           done on temporary storage
+     */
+    void LockUnlockHystMemory(bool locked);
+
+    void UseNextToLastTSForDeltaMat(bool useNextToLastTS);
+
+    void LockUnlockHystDirection(bool locked);
+    /*!
+     * ActivateDeactivateDeltaMat -> if active, the getTensor function of CoefFunctionHyst
+     *                                 returns deltaOutput/deltaInput + std. mat tensor
+     *                                 as approximation of the material tensor
+     *                            -> if not active, getTensor returns only std. mat tensor
+     * Example electrostatics:
+     *  active: deltaMat = deltaP / deltaE + eps0
+     *  not active: deltaMat = eps0
+     *
+     */
+    void ActivateDeactivateDeltaMat(bool active);
+
+    virtual void FinalizeAfterTimeStep() {
+    	EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
+    }
+
+    virtual void FinilizeBeforTimeStep() {
+      ;
     }
 
   protected:
@@ -274,6 +327,12 @@ namespace CoupledField {
     
     //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType
     std::map<SolutionType, std::string> idbcSolNameMap_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 1 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD1_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType - 2 timederivative
+    std::map<SolutionType, std::string> idbcSolNameMapD2_;
         
     //@}
 
@@ -287,6 +346,7 @@ namespace CoupledField {
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool isHysteresis_;     //!< flag for hysteresis
+    bool isHysteresisFixPoint_;
     bool matDepend_;        //!< flag for material dependencies
 
     //! map for each region the type of nonlinearity
@@ -409,6 +469,9 @@ namespace CoupledField {
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
+    //! This map stores the hysteresis coefFunctions
+    shared_ptr<CoefFunctionMulti> hysteresisCoefs_;
+
   }; // class StdPDE
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -416,7 +479,7 @@ namespace CoupledField {
   // =========================================================================
   //     Detailed description of the class 
   // =========================================================================
-
+  StdPDE
   //! \class StdPDE
   //! 
   //! \purpose 

@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <algorithm>
 #include <iostream>
@@ -14,6 +14,7 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "FeBasis/BaseFE.hh"
 #include "General/defs.hh"
 #include "General/Exception.hh"
@@ -28,6 +29,11 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
+#include <def_use_openmp.hh>
+
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
 
 using std::string;
 using std::map;
@@ -43,7 +49,6 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
   this->space = space;
   this->regions = regions;
   this->em = NULL;
-  this->grid = domain->GetGrid();
   Constructor();
 }
 
@@ -52,7 +57,6 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->space = em->GetDesign();
   this->regions = em->GetDesign()->GetRegionIds();
   this->em = em;
-  this->grid = domain->GetGrid();
 
   Constructor();
 }
@@ -61,6 +65,10 @@ void DesignStructure::Constructor()
 {
   initialized_ = false;
   num_robust_  = 0;
+
+  this->grid = domain->GetGrid();
+  this->gridcfs = dynamic_cast<GridCFS*>(domain->GetGrid());
+  assert(this->gridcfs != NULL);
 
   this->dim  = grid->GetDim();
 
@@ -195,9 +203,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   double avg_radius = 0;
   double avg_neighbours = 0;
 
-  // find simp neighbors for all our elements
-  double radius = -1.0; // for each element, set only once for regular.
-  StdVector<Filter::NeighbourElement> neighbors; // will become element neighborhood
+  // avoids multiple filter radius warning
+  bool done = true;
 
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
@@ -216,61 +223,76 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   DesignElement::Type ref_design = data[start].GetType();
 
-  for(unsigned int e = start; e < end; e++)
+  // calculate radius for for first element
+  // in case grid is regular, set only once and not in loop
+  double radius = FindFilterRadius(filter_space_, &data[start], value);
+
+  #pragma omp parallel shared(ref)
   {
-    DesignElement* de = &data[e];
+    // don't do it in for-loop, thread local vector
+    StdVector<Filter::NeighbourElement> neighbors;
 
-    // did we came across a new design or a new region? Then update ref
-    if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+    #pragma omp for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius)
+    for(unsigned int e = start; e < end; e++)
     {
-      ref.region = de->elem->regionId;
-      ref.SetNonLinCorrection(de,rex);
-      ref_design = de->GetType();
-    }
+      DesignElement* de = &data[e];
 
-    de->simp->filter.Push_back(ref); // copy the reference data
-    assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
+      // did we came across a new design or a new region? Then update ref
+      if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+      {
+        ref.region = de->elem->regionId;
+        ref.SetNonLinCorrection(de,rex);
+        ref_design = de->GetType();
+      }
+      de->simp->filter.Push_back(ref); // copy the reference data
 
-    // independent of the filter type, radius determines the neighborhood
-    // via barycenter distance.
-    if(!regular || e == start)  // save calling if possible
-      radius = FindFilterRadius(filter_space_, de, value);
+      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
-    // set the filter neighborhood which is determined by radius
-    // recursively via element neighbors.
-    neighbors.Resize(0);
-    too_far.Resize(0);
+      // independent of the filter type, radius determines the neighborhood
+      // via barycenter distance.
+      if(!regular)  // save calling if possible
+        radius = FindFilterRadius(filter_space_, de, value);
 
-    LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
-    if(regular)
-      FindRegularNeighborhood(de, radius, edges, neighbors);
-    else
-      FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
-    // save neighborhood by copy constructor
-    de->simp->filter.Last().neighborhood = neighbors;
+      // set the filter neighborhood which is determined by radius
+      // recursively via element neighbors.
+      neighbors.Resize(0); // keeps capacity
 
-    // set own weight
-    assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-    de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
+      LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
+      if(regular)
+        FindRegularNeighborhood(de, radius, edges, neighbors);
+      else
+        FindUnstructuredNeighborhood(de, radius, neighbors);
 
-    // this is actually the re-implementation of a bug as it appeared to be not bad :)
-    if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
-    {
-      // normalize with a 'bug'
-      double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
-      // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
-      de->simp->filter.Last().weight = 1.0 / weight_sum;
-      for(unsigned int j = 0, n = de->simp->filter.Last().neighborhood.GetSize(); j < n; j++)
-        de->simp->filter.Last().neighborhood[j].weight /= weight_sum;
-    }
+      // set own weight
+      assert(contribution_ == LINEAR || contribution_ == CONSTANT);
+      de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
 
-    avg_radius += radius;
-    avg_neighbours += de->simp->filter.Last().neighborhood.GetSize();
-    LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
+      // this is actually the re-implementation of a bug as it appeared to be not bad :)
+      if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
+      {
+        // normalize with a 'bug'
+        double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
+        // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
+        de->simp->filter.Last().weight = 1.0 / weight_sum;
+        for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
+          neighbors[j].weight /= weight_sum;
+      }
+
+
+      // save neighborhood by copy constructor
+      de->simp->filter.Last().neighborhood = neighbors;
+
+      avg_radius += radius;
+      avg_neighbours += neighbors.GetSize();
+      if(done && neighbors.GetSize() > 1000) {
+        in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
+        done = false;
+      }
+      LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
+    } // end for loop
   }
 
   WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
-
 
   timer->Stop();
 }
@@ -413,10 +435,12 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
 
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
-                                      StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<Filter::NeighbourElement>& neighbors,
-                                      StdVector<unsigned int>& too_far)
+                                                   StdVector<Filter::NeighbourElement>& neighbors)
 {
+  // for 3D ist shall be significantly faster (O(N)) to make a discrete grid (e.g. of size radius) and sort
+  // the elements to this grid. Then we can linearly test all relevant grid cells for an element. It will help for
+  // large meshes where the filter setup is otherwise hours and magnitudes slower than solving the system!
+
   // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
@@ -428,40 +452,58 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
   assert(!periodic_); // only regular may be periodic!!
 
-    // the idea is as follows:
+  // the idea is as follows:
   // * We assume non regular grid.
   // * For an element t we check for all neighbors the distance to center
   // * If a neighbor is close enough we check also the neighbors recursively
   // * check means only, that the neighbors of check are checked!
   // * Hence buddies might grow (appending only) while traversing
-  for(unsigned int e = 0, en = initial.GetSize(); e < en; e++)
+  std::set<unsigned int> checked;
+
+  int dim = (int) grid->GetDim();
+
+  // base is not a neighbor of itself and does not need to be checked
+  checked.insert(base->elem->elemNum);
+
+  // we start with the base neighborhood to be checked
+  assert(base->elem->extended->neighborhood != NULL);
+  std::set<unsigned int> to_check;
+
+  const StdVector<std::pair<Elem*, int> >& initial = *(base->elem->extended->neighborhood);
+  for(unsigned int j = 0; j < initial.GetSize(); j++) {
+    // we reduce to surface neighbors. second is the number of sharing nodes
+    // for 2d the surface is = 2 (edge) for 3D the surface is >= 3 (triangle)
+    if(initial[j].second >= dim)
+      to_check.insert(initial[j].first->elemNum);
+    assert(initial[j].first->elemNum != base->elem->elemNum);
+  }
+
+  // The idea is as follows. We start with the Elem* neighbors of the base element. All these elements are candidate for the
+  // filter (will be stored in neighbors) if they are not too far away. Then in principle we recursively check for all candidates
+  // all Elem* neighbors up to all is either a neighbor or too_far. A direct recursive implementation of this is for large meshed
+  // prohibitive expensive (> 33h for 3e6 element!). Revision 15237 of shared_opt still has this implementation
+  // Therefore we have the life loop below which is more efficient than the recursive implementation
+  while(to_check.size() > 0)
   {
-    // we ignore the grade of neighborhood (the int in the pair)
-    const Elem* test_elem = initial[e].first;
-    unsigned int test = test_elem->elemNum;
+    // note that his loop run my add several new items to to_check
+    unsigned int test_num = *(to_check.begin());
+    const Elem*  test     = gridcfs->GetElem(test_num); // shall be sped up!!
+    // remove test, it will be added to checked in 1e-10 seconds
+    to_check.erase(to_check.begin());
 
-    if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
+    // we can assume, that we were not checked before we were put in to_check
+    assert(test_num != base->elem->elemNum);
 
-    // are we already a neighbor
-    bool already = false;
-    for(unsigned int n = 0; !already && n < neighbors.GetSize(); n++)
-      if(neighbors[n].neighbour->elem->elemNum == test) already = true; // continue e loop!
-    if(already) continue;
-
-    // has it already been found that we are too far?
-    if(too_far.Contains(test)) continue;
+    // test can already be considered as checked
+    checked.insert(test_num);
 
     // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
-    DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent
+    DesignElement* test_de = space->Find(test_num, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
     // no need (and not possible!) to evaluate the distance for non-design elements
-    double distance = test_de != NULL ? RelaxedDistance(base->elem, test_elem) : std::numeric_limits<double>::max();
+    double distance = test_de != NULL ? RelaxedDistance(base->elem, test) : std::numeric_limits<double>::max();
 
-    if(distance > radius || test_de == NULL)
-    {
-      too_far.Push_back(test);
-    }
-    else
+    if(test_de != NULL && distance <= radius)
     {
       // value is here a double radius
       // this is the implementation from Bendsoe/ Sigmund
@@ -469,26 +511,48 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // map from element number to design
       ne.neighbour = test_de;
-      assert(ne.neighbour->elem->elemNum == test);
+      assert(ne.neighbour->elem->elemNum == test->elemNum);
 
       // linear or constant weighting. will be normalized in the calling method!
       assert(contribution_ == LINEAR || contribution_ == CONSTANT);
       ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
       ne.distance  = distance;
+
+      #ifndef NDEBUG
+        for(unsigned int k=0; k < neighbors.GetSize(); k++)
+          assert(neighbors[k].neighbour->elem->elemNum != test_num);
+      #endif
+
       neighbors.Push_back(ne); // cheap
 
-      // now do the recursive call!!
-      // test is in neighbors or too_far, hence the recursive call does't bounce back
-      FindUnstructuredNeighborhood(base, radius, *test_elem->neighborhood, neighbors, too_far);
+      // as test was a successful element we have to process the Elem* neighbors
+      const StdVector<std::pair<Elem*, int> >& test_ne = *(test->extended->neighborhood);
+      for(unsigned e = 0; e < test_ne.GetSize(); e++)
+      {
+        // see above!
+        if(test_ne[e].second >= dim)
+        {
+          Elem* cand = test_ne[e].first;
+
+          // only if the candidate is not already checked and also not already queued it will be processed
+          // the sets are sorted and unique. insert() returns if insertion was necessary due to uniqueness or not
+          assert(checked.find(base->elem->elemNum) != checked.end());
+          if(checked.find(cand->elemNum) == checked.end())
+          {
+            assert(cand->elemNum != base->elem->elemNum);
+            to_check.insert(cand->elemNum); // it it was already there it's no problem
+          }
+        }
+      }
     }
   }
 }
 
-double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
+inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
-  const Point& bb = base->barycenter;
-  const Point& tb = test->barycenter;
+  const Point& bb = base->extended->barycenter;
+  const Point& tb = test->extended->barycenter;
 
   assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0)/* && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0)*/);
 
@@ -523,8 +587,8 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
     }
   }
 
-  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->barycenter.ToString()
-               << " test=" << test->elemNum << " " << test->barycenter.ToString()
+  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->extended->barycenter.ToString()
+               << " test=" << test->elemNum << " " << test->extended->barycenter.ToString()
                << " direct=" << dist << " relaxed=" << std::sqrt(preSqrt);
 
   return std::sqrt(preSqrt);
@@ -557,7 +621,9 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
     case MAX_EDGE:
     {
       double max, tmp;
-      domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
+      LagrangeElemShapeMap sm(domain->GetGrid());
+      sm.SetElem(de->elem,false);
+      sm.GetMaxMinEdgeLength(max, tmp);
       double radius = value * max;
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
       return radius;
@@ -707,7 +773,7 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
 
   // add the original neighborhood if there is a periodic case
   if(neighbors.GetSize() > 0)
-    AppendNeighbors(*elem->neighborhood, neighbors);
+    AppendNeighbors(*elem->extended->neighborhood, neighbors);
 
   LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << ToString(neighbors);
 
@@ -736,7 +802,7 @@ void DesignStructure::AppendNeighbors(Elem* check,
 {
   if(check == NULL) return;
   
-  StdVector<std::pair<Elem*, int> >& source = *(check->neighborhood);
+  StdVector<std::pair<Elem*, int> >& source = *(check->extended->neighborhood);
 
   // check all elements
   for(int s = -1, sn = (int) source.GetSize(); s < sn; s++)

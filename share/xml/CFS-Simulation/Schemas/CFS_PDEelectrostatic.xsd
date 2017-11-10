@@ -46,9 +46,9 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
                       > </xsd:attribute>
-                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional"
-                      default="no"/>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -63,7 +63,38 @@
           </xsd:element>
 
           <!-- List defining nonlinear types -->
-
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+               <xsd:element name="hysteresis_fixpoint" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density; uses simple fixpoint iteration for solution</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain! The only application of PML in electrostatics 
+                    that seems to be reasonable is within piezo coupling</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -103,6 +134,12 @@
                   </xsd:annotation>
                 </xsd:element>
                 <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->
+
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for electric potential</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -111,7 +148,14 @@
           <xsd:element name="storeResults" type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1"/>
 
         </xsd:sequence>
-        <xsd:attribute name="subType" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="subType" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="2.5d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -124,7 +168,8 @@
   <!-- Definition of hysteresis nonlinearity type -->
   <xsd:complexType name="DT_ElecNonLinHyst">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> 
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -231,6 +276,7 @@
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecFluxDensity"/>
       <xsd:enumeration value="elecEnergyDensity"/>
+      <xsd:enumeration value="elecPolarization"/>
     </xsd:restriction>
   </xsd:simpleType>
 

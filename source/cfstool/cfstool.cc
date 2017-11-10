@@ -1055,17 +1055,16 @@ int main(int argc, char** argv)
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide 'reference_file' and 'file_under_test'" );
+        EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
+                    << " file1='" << file1 << "' file2='" << file2 << "'");
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
         << "==========================\n";
-      maxDiffMesh = CFSTool::Diff( file1, file2, "", \
-                                  true, false, maxDiffResultName);
+      maxDiffMesh = CFSTool::Diff( file1, file2, "", true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
         << "=============================\n";
-      maxDiffHist = CFSTool::Diff( file1, file2, "", \
-                                  true, true, maxDiffResultName );
+      maxDiffHist = CFSTool::Diff( file1, file2, "", true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
         std::cout << "error: maximum difference " << maxDiff << " for '" << maxDiffResultName << "' > " << tolerance

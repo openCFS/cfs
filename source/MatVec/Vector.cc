@@ -1,11 +1,13 @@
-#include <cstdio>
-#include <cmath>
 
 #include "Vector.hh"
 #include "opdefs.hh"
 #include <boost/type_traits/is_complex.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
 
-using namespace std;
+#include <cstdio>
+#include <cmath>
+#include <cfloat>
+
 
 namespace CoupledField {
 
@@ -106,7 +108,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += idvec[i];
   }
@@ -122,7 +124,7 @@ namespace CoupledField {
     const Vector<T>& idvec1 = dynamic_cast<const Vector<T>&>(vec1);
     const Vector<T>& idvec2 = dynamic_cast<const Vector<T>&>(vec2);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = a * idvec1[i] + b * idvec2[i];	
   }
@@ -157,7 +159,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += a * idvec[i];
   }
@@ -313,6 +315,7 @@ namespace CoupledField {
     return s;
   }
 
+
   template <typename T>
   inline T Vector<T>::Avg() const
   {
@@ -322,12 +325,140 @@ namespace CoupledField {
   }
 
 
+  template <typename T>
+  inline T Vector<T>::Min() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+    //unsigned int max_size = *(std::max_element(&n_.First(), &n_.Last()));
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::min(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Min() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() < m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() < m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Max() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::max(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Max() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() > m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() > m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline void Vector<T>::MinMax(T& min, T& max) const
+  {
+    assert(size_ > 0);
+
+    min = data_[0];
+    max = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      min = std::min(min, data_[i]);
+      max = std::max(max, data_[i]);
+    }
+  }
+
+  template <>
+  void Vector<Complex>::MinMax(Complex& min, Complex& max) const
+  {
+    min = Min();
+    max = Max();
+  }
+
 
   template<class TYPE> 
   Double Vector<TYPE>::NormMax() const 
   { 
     EXCEPTION( "Vector<TPYE>::NormMax only defined for TYPE=Complex/Double" ); 
     return TYPE(); 
+  } 
+
+  // this functions localized the maximal component (absolute value) and returns it with its original sign
+  // example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1
+  template<class TYPE> 
+  Double Vector<TYPE>::SignedMax() const 
+  { 
+    EXCEPTION( "Vector<TPYE>::SignedMax only defined for TYPE=/Double" ); 
+    return TYPE(); 
+  } 
+
+
+  template<> 
+  double Vector<Double>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i){
+      ret_new = std::max(ret, std::abs(data_[i]));
+      if(ret != ret_new){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	}
+	ret = ret_new;
+	}
+		
+    return data_[idx]; 
+  }
+
+  template<> 
+  double Vector<Complex>::SignedMax() const 
+  { 
+    double ret(0.0),ret_new(0.0); 
+    int idx = 0;
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(unsigned int i = 0; i < size_; ++i) {
+      ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
+      if(std::abs(ret) != std::abs(ret_new)){
+		// std::abs(data_[i]) > ret -> save index
+		idx = i;
+	ret = ret_new;
+	}
+    }		
+    return data_[idx].real(); 
   } 
 
   template<> 
@@ -449,7 +580,7 @@ namespace CoupledField {
   {
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
-      EXCEPTION( "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
+      EXCEPTION( "Vector<>::SetVectorEntry: "
                << "Detected index error:"
                << "\n index = " << i
                << "\n size  = " << size_ );
@@ -479,6 +610,21 @@ namespace CoupledField {
     val = data_[i];
   }
   
+
+  // ********************
+  //   Get several entries
+  // ********************
+  template<typename T>
+  const Vector<T> Vector<T>::GetEntries( const StdVector<UInt>& in) const
+  {
+    Vector<T> vals;
+    vals.Resize(in.GetSize());
+    for(UInt i = 0; i < in.GetSize(); ++i){
+      vals[i] = data_[in[i]];
+    }
+    return vals;
+  }
+
   template<typename T>
   void  Vector<T>::Push_back(const T & y)
   {
@@ -879,7 +1025,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isnan(data_[k])) return true;
+      if((boost::math::isnan)(data_[k])) return true;
 
     return false;
   }
@@ -889,8 +1035,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isnan(data_[k].real())) return true;
-      if(std::isnan(data_[k].imag())) return true;
+      if((boost::math::isnan)(data_[k].real())) return true;
+      if((boost::math::isnan)(data_[k].imag())) return true;
     }
     return false;
   }
@@ -900,7 +1046,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isinf(data_[k])) return true;
+      if((boost::math::isinf)(data_[k])) return true;
 
     return false;
   }
@@ -910,8 +1056,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isinf(data_[k].real())) return true;
-      if(std::isinf(data_[k].imag())) return true;
+      if((boost::math::isinf)(data_[k].real())) return true;
+      if((boost::math::isinf)(data_[k].imag())) return true;
     }
     return false;
   }
@@ -956,7 +1102,7 @@ namespace CoupledField {
   //   Cross Product Calculation for vector in 3D
   // **********************************************  
   template <typename T> 
-  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v)
+  void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v) const
   {
     if( size_ != 3 || b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
@@ -974,6 +1120,7 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
+  
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  

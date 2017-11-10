@@ -1,15 +1,17 @@
 #ifndef OLAS_CRS_MATRIX_HH
 #define OLAS_CRS_MATRIX_HH
-
 #include <iostream>
 
 #include <def_expl_templ_inst.hh>
+#include <def_use_lapack.hh>
+#include <def_use_blas.hh>
 
 #include "SparseOLASMatrix.hh"
 #include "Vector.hh"
 #include "CoordFormat.hh"
 #include "PatternPool.hh"
 #include "SCRS_Matrix.hh"
+
 
 
 namespace CoupledField {
@@ -133,7 +135,7 @@ namespace CoupledField {
       this->nnz_        = 0;
       this->ncols_      = 0;
       this->nrows_      = 0;
-      
+      this->currentLayout_ = UNSORTED;
       // We do not know a pool or pattern id yet
       patternPool_ = NULL;
       patternID_ = NO_PATTERN_ID;
@@ -162,6 +164,7 @@ namespace CoupledField {
     //! \note  The constructed matrix is a copy and thus has the same layout
     //!        as the original matrix it is copied from.
     CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr );
+    CRS_Matrix(UInt nr, UInt nc, UInt nnz, const UInt* row_ptr, const UInt* col_ptr, T* data_ptr );
 
 #ifdef USE_MULTIGRID
    
@@ -271,6 +274,17 @@ namespace CoupledField {
     //! ordering, i.e. in increasing number of node indices. Thus, the
     //! resulting %CRS_Matrix is in LEX sub-format.
     void SetSparsityPattern( BaseGraph &graph );
+
+    //! The sparsity-pattern with data, which was already set outside this class
+
+    //! We provide the three CRS-vectors externally as StdVectors and
+    //! convert them to arrays in this method
+    //! \param rowP  row-pointer
+    //! \param colI  column-index
+    //! \param data  data-pointer
+    void SetSparsityPatternData( const StdVector<UInt>& rowP,
+                                 const StdVector<UInt>& colI,
+                                 const StdVector<T>& data);
 
     //! Setup the sparsity pattern of the matrix
   
@@ -419,6 +433,13 @@ namespace CoupledField {
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
 
+    //! Check if matrix has a certain entry
+
+    //! This function returns a reference to the Matrix entry in
+    //!  row i and column j. Depending on the entry type of the matrix,
+    //!  v might be a Double, Complex or a tiny Matrix of either type
+    bool HasMatrixEntry( UInt i, UInt j, T& v) const;
+
     //! Return the diagonal entry of row i
     inline
     T& GetDiag( UInt i ) {
@@ -462,6 +483,16 @@ namespace CoupledField {
     UInt GetRowSize(UInt i) const {
       return rowPtr_[i+1] - rowPtr_[i];
     }
+
+    /** Return the maximal row size.
+     * @see GetRowSize() */
+    unsigned int GetMaxRowSize() const {
+      unsigned int max = 0;
+      for(unsigned int i = 0; i < this->nrows_; i++)
+        max = std::max(GetRowSize(i), max);
+      return max;
+    }
+
 
     //! Set the length (i.e. number of non-zero entries) of i-th row
 
@@ -512,6 +543,9 @@ namespace CoupledField {
     //! corresponding linear system of equations.
     void CompRes( Vector<T>& r, const Vector<T>& x, const Vector<T>& b) const;
 
+    void Mult_type(const Vector<Complex> &mvec, Vector<Complex> &rvec);
+    void MultAdd_type( const Vector<Complex> &mvec, Vector<Complex> &rvec );
+
     //@}
 
 
@@ -550,8 +584,39 @@ namespace CoupledField {
     void Scale( Double factor, 
                 const std::set<UInt>& rowIndices,
                 const std::set<UInt>& colIndices ); 
+
+
+    void MultT_type(const Vector<Complex> &mvec, Vector<Complex> &rvec)const;
+    void MultTAdd_type( const Vector<Complex> &mvec, Vector<Complex> &rvec )const;
+
     //@}
 
+
+    // =======================================================================
+    // MATRIX^T-MATRIX-MATRIX PRODUCT
+    // =======================================================================
+
+    //! \name sparse Matrix-Matrix-Matrix multiplication using sparse BLAS fromMKL
+
+    //! The following methods perform arithmetic operations of the form
+    //! C = A^T B A, where B is square
+
+    //@{
+
+    //! This method performs a sparse matrix-matrix-matrix multiplication
+    //! transpose: if true then A is transposed C = (A^T)^T B A^T
+    //! version:
+    //!     1: A is given C = A^T B A
+    //!     2: A^T is given C = (A^T)^T B A^T
+    //! setSparsity: if true the sparsity pattern of the matrix is set too, otherwise
+    //! just the CRS row, column and datavectors are returned
+    void MultTriple_MKL(CRS_Matrix<T> B,
+                  CRS_Matrix<Double>& A,
+                  StdVector<UInt>& rPC,
+                  StdVector<UInt>& cPC,
+                  StdVector<T>& dPC,
+                  UInt version,
+                  bool setSparsity);
 
     // =======================================================================
     // MISCELLANEOUS ARITHMETIC OPERATIONS
@@ -671,6 +736,8 @@ namespace CoupledField {
     T* GetDataPointer(){
       return data_;
     }
+
+    //double* GetDataPointerReal();
 
     //! Get array of matrix entries (read only)
     const T* GetDataPointer() const {

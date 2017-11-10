@@ -227,8 +227,8 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
     FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
     STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
 
-    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
-    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+    # MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+    # MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
 
     STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
 
@@ -258,7 +258,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         STATUS DL_STATUS
         LOG DL_LOG
         SHOW_PROGRESS
-        TSL_VERIFY OFF)
+        TLS_VERIFY OFF)
 
       LIST(GET DL_STATUS 0 DL_FAIL)
       LIST(GET DL_STATUS 1 DL_MSG)
@@ -310,18 +310,17 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
   ELSE()
     MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}.")
   ENDIF()
-  
 ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files
-# listed in there else we zip TMP_INSTALL_DIR.
+# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
+# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
   STRING(REGEX REPLACE "${ZIP_NAME}$" "" TARGET_DIR ${ZIP_FILE})
-  
+  MESSAGE("ZIP_TO_CACHE ZF=${ZIP_FILE}")
   IF(NOT EXISTS "${TARGET_DIR}")
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
@@ -329,11 +328,27 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
   IF("${MANIFESTS}" STREQUAL "")
     # No manifests exists -> zip TMP_DIR
+
+    # standard make or configure does not known about lib64/CFS_ARCH_STR
+    IF(NOT EXISTS "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+      FILE(MAKE_DIRECTORY "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+    ENDIF()
+
+    # move any lib to lib64/CFS_ARCH_STR. Extend to lib64/files if necessary
+    IF(EXISTS "${TMP_DIR}/lib")
+      FILE(COPY "${TMP_DIR}/lib/" DESTINATION "${TMP_DIR}/lib64/${CFS_ARCH_STR}")
+      FILE(REMOVE_RECURSE "${TMP_DIR}/lib")
+    ENDIF()
+   
+    # create the zip
     EXECUTE_PROCESS(
       COMMAND zip -g -r ${ZIP_FILE} "."
       WORKING_DIRECTORY "${TMP_DIR}"
-      RESULT_VARIABLE rv
-    )
+      RESULT_VARIABLE rv)
+      
+    # copy data from TMP_DIR install dir to the target where cfs needs it and where the zip would be extracted.
+    FILE(COPY "${TMP_DIR}/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
+    
   ELSE()
     # Manifests exists -> zip files listed therein
     FOREACH(manifest ${MANIFESTS})
@@ -356,18 +371,25 @@ ENDMACRO()
 # lead to issues with clang which needs either gfortran or ifort as companion
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
   # there is complex issue with ifort. On Thumbeweed we have
   # FC_VERSION=16.0 20150815, CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-  # With ubuntu CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
+  # With Ubuntu it seems to depend on the version. E.g. CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
+  # anyway we make sure we have no spaces
   # with gfortran both variables have the same value (e.g. 5.2.0) 
   # use our own variable
+
   IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
   ENDIF()
+  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})
 
+  # MESSAGE("PCZ: CFS_ARCH_STR = ${CFS_ARCH_STR}")
+  # MESSAGE("PCZ: CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
+  # MESSAGE("PCZ: CMAKE_CXX_COMPILER_VERSION = ${CMAKE_CXX_COMPILER_VERSION}")
+  # MESSAGE("PCZ: CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
+  
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
   ELSE()
@@ -382,6 +404,7 @@ MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
   ENDIF()
+  STRING(REPLACE " " "." Fortran_COMPILER_VERSION ${Fortran_COMPILER_VERSION})  
 
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")

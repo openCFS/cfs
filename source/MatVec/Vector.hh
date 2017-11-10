@@ -276,12 +276,26 @@ template<typename T> class ElemStoreSol;
     //! Compute Euclidean norm of this vector object
     double NormL2() const;
 
+    /**  this functions localized the maximal component (absolute value) and returns it with its original sign
+		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
+    Double SignedMax() const; 
+
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    /** Sum of all the vector's elements */
     T Sum() const;
 
     T Avg() const;
+
+    /** Extremal element. For Complex separate for real and imaginary part */
+    T Min() const;
+
+    T Max() const;
+
+    /** return the minimal and maximal element concurrently.
+     * @see Min() for complex */
+    void MinMax(T& min, T& max) const;
 
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
@@ -324,7 +338,7 @@ template<typename T> class ElemStoreSol;
     void ScalarMult( const Complex factor );
 
     //! Calc cross product of two vectors v = this x b
-    void CrossProduct( const Vector<T>& b, Vector<T>& v );
+    void CrossProduct( const Vector<T>& b, Vector<T>& v ) const;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);
@@ -513,6 +527,9 @@ template<typename T> class ElemStoreSol;
     //! This method sets val to the value of vector entry i
     void GetEntry( UInt i, T &val ) const;
 
+    //! Get entries at specified indices from in
+    const Vector<T> GetEntries( const StdVector<UInt>& in) const;
+
     //! Add val to the value of a vector entry
 
     //! This method adds to the entry of the vector at position i the
@@ -563,28 +580,6 @@ template<typename T> class ElemStoreSol;
     bool ContainsInf() const;
 
     //@}
-
-    // =======================================================================
-    // MISCELLANEOUS METHODS
-    // =======================================================================
-
-    //! \name Miscellaneous methods
-    //@{
-
-    //! Query tag for matrix entries compatible with vector
-    std::string GetTagM() {
-      return AssocType<T>::tagM;
-    }
-
-    //! Query tag for vector entries compatible with vector
-    std::string GetTagV() {
-      return AssocType<T>::tagV;
-    }
-
-    //! Query tag for scalar entries compatible with vector
-    std::string GetTagS() {
-      return AssocType<T>::tagS;
-    }
 
   protected:
 

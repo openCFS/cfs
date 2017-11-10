@@ -28,8 +28,8 @@ def submit_job_max_len(job_list, max_processes):
   FNULL = open(os.devnull, 'w')
   processes = list()
   for command in job_list:
-    print 'running {n} processes. Submitting {proc}'.format(n=len(processes),
-        proc=str(command))
+    print('running {n} processes. Submitting {proc}'.format(n=len(processes),
+        proc=str(command)))
     processes.append(subprocess.Popen(command, shell=False, stdout=FNULL,
       stdin=PIPE,close_fds=True))
     while len(processes) >= max_processes:
@@ -84,7 +84,7 @@ def get_R(h5file,i,R,dof,dim,l,over = False,rep=None,C=None):
   # matrix C necessary for MSFEM oversampling
   
   f = h5py.File(h5file, 'r')
-  tmp = read_displacement(f,1)
+  tmp = read_displacement(f)
   count = 0
   for j in range((l+1)**2):
     R[i, count] = tmp[j][0]
@@ -94,7 +94,7 @@ def get_R(h5file,i,R,dof,dim,l,over = False,rep=None,C=None):
   if over:
     # oversampling: matrix C needs to be created by the values of the interior corner nodes 
     if l % rep  != 0:
-      print "Warning: Res divided by eps should be an integer. Otherwise rounding errors could occur."
+      print("Warning: Res divided by eps should be an integer. Otherwise rounding errors could occur.")
     if not args.triangle:
       #0-based node numbers of the corners of the center element
       coord = [int((l) / rep * (l+1.) + l/rep + 0.5 + 1e-6),int((l) / rep * (l+1.) + l/rep + 0.5 + 1e-6) + int(l/rep + 0.5 + 1e-6),int(2.*l/rep *(l+1) + 2.*l/rep + 0.5 + 1e-6),int(2.*l/rep *(l+1) + 1.*l/rep + 0.5 + 1e-6)]
@@ -104,7 +104,7 @@ def get_R(h5file,i,R,dof,dim,l,over = False,rep=None,C=None):
         C[i,count+1] = tmp[coord[j]][1]
         count += 2
     else:
-      print "Warning: Oversampling is not implemented for triangles, yet."     
+      print("Warning: Oversampling is not implemented for triangles, yet.")     
   return R
 parser = argparse.ArgumentParser()
 parser.add_argument("stp", help="number of grid points in one direction", type=int)
@@ -179,6 +179,9 @@ elif dim == 3:
   filename = "detailed_stats_" + str(folder)
   out = open(filename, "w")
   out.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00    0.000000e+00 0.000000e+00 0.000000e+00\n')
+  filename = "detailed_stats_vol" + str(folder)
+  out_vol = open(filename, "w")
+  out_vol.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00\n')
   if args.big:
     joblist = ()
     # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
@@ -218,7 +221,7 @@ if dim == 2:
           pwd = os.path.dirname(os.path.abspath(__file__))
           os.chdir(str(pwd)+'/'+str(folder))
           joblist = ()
-          print os.path.dirname(os.path.abspath(__file__))
+          print(os.path.dirname(os.path.abspath(__file__)))
           # loop for all MSFEM cell problems
           for i in range(dof):
             if i % 2 == 0:
@@ -262,14 +265,14 @@ if dim == 2:
             index += 1    
                
         if args.force_msfem:
-          print 'WARNING: force has to be set manually in the code'
+          print('WARNING: force has to be set manually in the code')
           f = force(dim,mesh,R,'bottom')
           out.write(str(x) + ' ' + str(y) + ' ')
           for i in range(dof):
             out.write(str(f[i]) + ' ')
           out.write('\n')
           #scipy.io.savemat('R.mat', mdict={'R': R})
-          print 'Calculation of force for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
+          print('Calculation of force for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n')          
         else:
           if args.oversampling:
             #print "matrix "
@@ -299,7 +302,7 @@ if dim == 2:
           # for i in range(dof):
           #    print '  ' + str(A[i, :])
           # scipy.io.savemat('R.mat', mdict={'R': R})
-          print 'Calculation of element matrix for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
+          print('Calculation of element matrix for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n')          
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -330,18 +333,18 @@ if dim == 2:
         infoxml = str(folder) + "/" + problem + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
-          doc = libxml2.parseFile(infoxml)
-          xml = doc.xpathNewContext()
+          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+          #xml = doc.xpathNewContext()
           # complex values!  
-          print infoxml + ' -> '
-          tensortext = xpath(xml, "//homogenizedTensor/tensor/real")	
-          print infoxml + ' -> ' + tensortext	
-          ts = tensortext.split()
+          print(infoxml + ' -> ')
+          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")	
+          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements	
+          ts = np.asarray(res)            # convert list to array
           out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + ts[0] + ' ' + ts[1] + ' ' + ts[4] + ' ' + ts[8] + '\n')
           if x != y:
             out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
         else:
-          print 'file ' + infoxml + ' not found'
+          print('file ' + infoxml + ' not found')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -354,6 +357,9 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
+  start = 0.1
+  end = 0.8
+  d = (end-start)/steps
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:
@@ -382,18 +388,24 @@ elif dim == 3:
         infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
-          doc = libxml2.parseFile(infoxml)
-          xml = doc.xpathNewContext()
+          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+          #xml = doc.xpathNewContext()
           # complex values!  
-          print infoxml + ' -> '
-          tensortext = xpath(xml, "//homogenizedTensor/tensor/real")  
-          print infoxml + ' -> ' + tensortext  
-          ts = tensortext.split()
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ts[0] + ' ' + ts[1] + ' ' + ts[2] + ' ' + ts[7] + ' ' + ts[8] + ' ' + ts[14] + ' ' + ts[21] + ' ' + ts[28] + ' ' + ts[35] + '\n')
+          print(infoxml + ' -> ')
+          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
+          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
+          ts = np.asarray(res)
+          print(infoxml + ' -> '+ str(ts))
+          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
+          vol = xpath(doc, "//domain/@structure_volume")
+          if vol != "cannot_determine":
+            vol = float(vol)
+            out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
+          
           # if x != y:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
         else:
-          print 'file ' + infoxml + ' not found'
+          print('file ' + infoxml + ' not found')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
@@ -410,6 +422,7 @@ elif dim == 3:
     if not args.design:
       x += 1
 out.close()
+out_vol.close()
 
 
 
@@ -511,7 +524,7 @@ def CalcBMat(x, y, dx, dy, dof, points=None):
     B = (1. / detJ) * np.matrix([[y23, 0., y31, 0., y12, 0.], [0., x32, 0., x13, 0., x21], [x32, y23, x13, y31, x21, y12]])
     # print 'B= ' + str(B)
   else:
-    print 'error: degree of freedom not defined'
+    print('error: degree of freedom not defined')
   return (B, detJ)
 
 def Kglob(E, nu, dx, dy, dim, dof, mesh):

@@ -19,6 +19,10 @@
 #include "FeSpaceH1Nodal.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 DECLARE_LOG(feSpaceH1Nodal)
 DEFINE_LOG(feSpaceH1Nodal, "feSpaceH1Nodal")
@@ -49,6 +53,13 @@ namespace CoupledField{
         delete elemIt->second;
       }
     }
+#ifdef USE_OPENMP
+    std::map< RegionIdType, TLMap<Elem::FEType, FeH1* > >::iterator regIt = TL_RefElems_.begin();
+    while(regIt != TL_RefElems_.end()){
+      regIt->second.Clear();
+      ++regIt;
+    }
+#endif
   }
 
   void FeSpaceH1Nodal::Init( shared_ptr<SolStrategy> solStrat ) {
@@ -98,7 +109,15 @@ namespace CoupledField{
       EXCEPTION(__PRETTY_FUNCTION__
                 << ": requested fetype which is not supported by space");
     }
+#ifdef USE_OPENMP
+    BaseFE * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ent.GetElem()->type];
+    else
+      myFe = refElems_[eRegion][ent.GetElem()->type];
+#else
     BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
+#endif
 
     /* No need to set the order here, as this is already done once and for all
      * in the SetMapType() method. For higher order spaces with non-uniform
@@ -125,8 +144,15 @@ namespace CoupledField{
       EXCEPTION(__PRETTY_FUNCTION__
                 << ": requested FEType is not supported by space");
     }
+#ifdef USE_OPENMP
+    BaseFE * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ptElem->type];
+    else
+      myFe = refElems_[eRegion][ptElem->type];
+#else
     BaseFE * myFe = refElems_[eRegion][ptElem->type];
-
+#endif
     return myFe;
 
   }
@@ -185,10 +211,17 @@ namespace CoupledField{
     MapNodalBCs();
     MapNodalEqns(1);
     MapNodalEqns(2);
-
+    
     // TEMPORARY: print information
     //PrintEqnMap();
     CheckConsistency();
+#ifdef USE_OPENMP
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
+    while(regIt != refElems_.end()){
+      TL_RefElems_[regIt->first] = regIt->second;
+      ++regIt;
+    }
+#endif
     isFinalized_ = true;
   }
 
