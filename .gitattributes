@@ -1388,6 +1388,7 @@ share/xml/CFS-Dat/Schemas/CFSDat_BinOpFilt.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DatMeshInput.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DatMeshOutput.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DefOn.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_DiffScheme.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_Differentiation.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DifferentiationType.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_FftFilter.xsd svneol=native#text/xml
