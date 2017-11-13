@@ -1098,33 +1098,13 @@
     substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        PETSC, a Library of Iterative Solvers for linear systems, is a parallel
-        numerical library for solving the linear equations Ax = b
-        and the standard eigenvalue problems Ax = lambda x with real sparse matrices
+        PETSC, a Library of Iterative Solvers for linear systems, is a mpi parallel
+        numerical library for solving the linear equations Ax = b for real sparse matrices
         using iterative methods.
-        
-        http://www.ssisc.org/
       </xsd:documentation>
     </xsd:annotation>
   </xsd:element>
   
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for OLAS_GMRES Solver -->
-  <!-- ******************************************************************* -->
-  <!--xsd:complexType name="DT_SolverOLASPETSC">
-    <xsd:complexContent>
-      <xsd:extension base="DT_SolverBasic">
-        <xsd:sequence>
-          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
-          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType-->
   
   <xsd:complexType name="DT_PETSCSpec">
     <xsd:complexContent>
@@ -1153,52 +1133,13 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
-          <xsd:element name="CG"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="BiCG"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="CGS"/>
-          <xsd:element name="BiCGSTAB"/>
-          <xsd:element name="BiCGSTABL">
-            <xsd:complexType>
-              <xsd:attribute name="degree" type="xsd:int" default="2"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="CPBiCG"/>
-          <xsd:element name="TFQMR"/>
-          <xsd:element name="Orthomin">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40"></xsd:attribute>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="GMRES">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="Jacobi"/>
-          <xsd:element name="GaussSeidel"/>
-          <xsd:element name="SOR">
-            <xsd:complexType>
-              <xsd:attribute name="omega" default="1.9" type="xsd:double"></xsd:attribute>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="BiCGSave"/>
-          <xsd:element name="CR"/>
-          <xsd:element name="BiCR"/>
-          <xsd:element name="CRS"/>
-          <xsd:element name="BiCRSTAB"/>
-          <xsd:element name="GPBiCR"/>
-          <xsd:element name="minres"/>
-          <xsd:element name="BiCRSAFE"/>
-          <xsd:element name="FGMRES">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="IDRs">
-            <xsd:complexType>
-              <xsd:attribute name="irestart" type="xsd:int" default="2"/>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="cg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="fcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="gmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="fgmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="bcgs"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="cr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="chebyshev"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1208,80 +1149,10 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
-          <xsd:element name="none"/>
           <xsd:element name="jacobi"/>
-          <xsd:element name="iluk">
-            <xsd:complexType>
-              <!-- even when given as float, it will be interpretet as int by PETSC -->
-              <xsd:attribute name="fill" type="xsd:int" default="0" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="ssor">
-            <xsd:complexType>
-              <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <!--xsd:element name="hybrid">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="solver" minOccurs="0" maxOccurs="1" default="SOR">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="CG"/>
-                      <xsd:enumeration value="BiCG"/>
-                      <xsd:enumeration value="CGS"/>
-                      <xsd:enumeration value="BiCGSTAB"/>
-                      <xsd:enumeration value="BiCGSTABL"/>
-                      <xsd:enumeration value="CPBiCG"/>
-                      <xsd:enumeration value="TFQMR"/>
-                      <xsd:enumeration value="Orthomin"/>
-                      <xsd:enumeration value="GMRES"/>
-                      <xsd:enumeration value="Jacobi"/>
-                      <xsd:enumeration value="GaussSeidel"/>
-                      <xsd:enumeration value="SOR"/>
-                      <xsd:enumeration value="BiCGSave"/>
-                      <xsd:enumeration value="CR"/>
-                      <xsd:enumeration value="BiCR"/>
-                      <xsd:enumeration value="BiCRSTAB"/>
-                      <xsd:enumeration value="GPBiCR"/>
-                      <xsd:enumeration value="FGMRES"/>
-                      <xsd:enumeration value="IDRs"/>
-                      <xsd:enumeration value="minres"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element-->
-          <xsd:element name="is">
-            <xsd:complexType>
-              <xsd:attribute name="alpha" type="xsd:double" use="optional" default="1.0"/>
-              <xsd:attribute name="m" type="xsd:int" use="optional" default="3"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="sainv">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.5" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="saamg">
-            <xsd:complexType>
-              <xsd:attribute name="unsym" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="theta" type="xsd:double" use="optional" default="0.05"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="iluc">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
-              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="ilut">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
-              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="sor"/>
+          <xsd:element name="gamg"/>
+          <xsd:element name="bjacobi"/>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
