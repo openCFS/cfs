@@ -862,7 +862,7 @@ def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
   data_offset = -2 * min_val if min_val < 0 else 0
-  
+
   im, draw, dim, dx, dy = create_image(min, max, nx)   
    
   print("max=" + str(max_val) + " min=" + str(min_val))
