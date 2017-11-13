@@ -344,7 +344,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                viz = matviz_3d_ortho.create_3d_interpretation_ortho_new(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
+                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
 
                 me = None                
                 if args.save:

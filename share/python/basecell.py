@@ -351,7 +351,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface",res_surf_lines=None,tets=False):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -398,6 +398,8 @@ class Basecell():
     self.data = data
     _, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
     
+#     print("self.points:",self.points,"\n")
+    
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
     if data.target != "volume_mesh":
@@ -418,7 +420,8 @@ class Basecell():
     
   # recalculate bounds after rescaling and translating
   def update(self):
-    self.bounds[0] = np.min(np.asarray(self.points)[:,0])
+#     print(np.asarray(self.points))
+    self.bounds[0] = np.min(np.asarray(self.points)[:][0])
     self.bounds[1] = np.min(np.asarray(self.points)[:,1])
     self.bounds[2] = np.min(np.asarray(self.points)[:,2])
     self.bounds[3] = np.max(np.asarray(self.points)[:,0])
