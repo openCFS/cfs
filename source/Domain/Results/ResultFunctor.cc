@@ -213,8 +213,7 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
         // ==================
         //  FULL INTEGRATION
         // ==================
-        forms_[el->regionId]->CalcElementMatrix(elemMatR, 
-                                                elemIt, elemIt);
+        forms_[el->regionId]->CalcElementMatrix(elemMatR, elemIt, elemIt);
         temp = elemMatR * elemSol;
 
         tempEnergy += (temp * elemSol) * factor_;

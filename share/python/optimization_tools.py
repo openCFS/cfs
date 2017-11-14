@@ -185,13 +185,21 @@ def read_mesh_info(filename, silent = True):
     else:
       raise RuntimeError("cannot find '" + filename + "'")
   
-  tree = etree.parse(filename)
-  root = tree.getroot()
-  mesh = root.xpath('//cfsErsatzMaterial/header/mesh')
+  xml = open_xml(filename)
+  
+  nx, ny, nz = read_mesh_info_xml(xml)
+  
+  if not nx and not silent:
+    raise RuntimeError("file '" + filename + "' has no mesh information")
+
+  return nx, ny, nz    
+       
+
+def read_mesh_info_xml(xml):
+
+  mesh = xml.xpath('//cfsErsatzMaterial/header/mesh')
   
   if len(mesh) == 0:
-    if not silent:
-      raise RuntimeError("file '" + filename + "' has no mesh information")
     return None, None, None
   
   else:
@@ -202,6 +210,7 @@ def read_mesh_info(filename, silent = True):
     # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
     return nx, ny, nz    
        
+
   
 # # Reads a density.xml file as vector. 
 # @param filename from which the last 'set' is used
