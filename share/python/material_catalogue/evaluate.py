@@ -84,7 +84,7 @@ def get_R(h5file,i,R,dof,dim,l,over = False,rep=None,C=None):
   # matrix C necessary for MSFEM oversampling
   
   f = h5py.File(h5file, 'r')
-  tmp = read_displacement(f,1)
+  tmp = read_displacement(f)
   count = 0
   for j in range((l+1)**2):
     R[i, count] = tmp[j][0]
@@ -357,6 +357,9 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
+  start = 0.1
+  end = 0.8
+  d = (end-start)/steps
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:

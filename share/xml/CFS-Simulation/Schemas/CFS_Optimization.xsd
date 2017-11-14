@@ -752,7 +752,7 @@
                 <xsd:attribute name="volume_tolerance" default="1e-3" type="xsd:float" use="optional"/>
                 <xsd:attribute name="lower_bound" default="1e-5" type="xsd:float" use="optional"/> 
                 <xsd:attribute name="upper_bound" default="1100" type="xsd:float" use="optional"/>    
-                <xsd:attribute name="tau" default="0." type="xsd:float" use="optional"/>    
+                <xsd:attribute name="upper_tau" default="0." type="xsd:float" use="optional"/>    
                 <xsd:attribute name="bisect_iter" default="10" type="xsd:int" use="optional"/>  
                 <xsd:attribute name="derivative_check" default="false" type="xsd:boolean" use="optional"/>           
                            
@@ -2019,11 +2019,7 @@
     <xsd:attribute name="normalize" type="xsd:boolean" default="false"/>
     
     <!-- global functions are actually sum( max(0, g_i(x) - c)^p) where c is the parameter and p is a "norm" -->
-    <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>
-    
-    <!-- for the globalLatticeVol constraint in 3D we need an external coefficient file for the interpolation of the function and gradient
-         as the function is only C0 -->
-    <xsd:attribute name="lattice_vol_coeff_file" type="xsd:token" use="optional" />      
+    <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>   
     
     <!-- only for the oscillation constraint, defines if applied on void and/or material phase.
     Requires locality without _AND_REVERSE -->
@@ -2337,7 +2333,24 @@
       <xsd:enumeration value="5" />
       <xsd:enumeration value="6" />
       <xsd:enumeration value="7" />
-      <xsd:enumeration value="8" />      
+      <xsd:enumeration value="8" />    
+      <xsd:enumeration value="9" />      
+      <xsd:enumeration value="10" />
+      <xsd:enumeration value="11" />
+      <xsd:enumeration value="12" />
+      <xsd:enumeration value="13" />
+      <xsd:enumeration value="14" />
+      <xsd:enumeration value="15" />
+      <xsd:enumeration value="16" />
+      <xsd:enumeration value="17" />
+      <xsd:enumeration value="18" />
+      <xsd:enumeration value="19" />
+      <xsd:enumeration value="20" />
+      <xsd:enumeration value="21" />
+      <xsd:enumeration value="22" />
+      <xsd:enumeration value="23" />
+      <xsd:enumeration value="24" />
+      <xsd:enumeration value="25" />  
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -2453,6 +2466,26 @@
             default="3" use="optional" />
         </xsd:complexType>
       </xsd:element>
+      
+      <xsd:element name="homIsoC1" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <!-- documents in with notation the tensor data is given. Internal 
+            storrage is Hill-Mandel -->
+          <xsd:attribute name="file" default="coeff.xml"
+            type="xsd:token" use="optional" />
+          <!-- sparse grid interpolation method -->
+          <xsd:attribute name="interpolation" use="optional"
+            default="c1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="c1" />
+                <xsd:enumeration value="c1_text_2d" />
+                <xsd:enumeration value="c1_text_3d" />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
 
       <xsd:element name="MSFEMC1" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -2502,6 +2535,7 @@
           <xsd:enumeration value="density-times-hom-rect" />
           <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
           <xsd:enumeration value="hom-rect-C1" />
+          <xsd:enumeration value="hom-iso-C1" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
           <!-- model reduction -->

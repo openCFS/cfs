@@ -714,7 +714,6 @@ bool Function::ForDensityFiltering() const {
     case ORTHOTROPIC_TENSOR_TRACE:
     case DESIGN: // design checks access and knows plain and filtered, physical tbd.
     case GLOBAL_DESIGN:
-//    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
     case EXPRESSION:
     case FILTERING_GAP:
@@ -1040,10 +1039,18 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is default
   this->periodic = enable & domain->HasPerdiodicBC();
-
-  if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
+  int dim = domain->GetGrid()->GetDim();
+  if (dim == 3 && (domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homRectC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1"))) {
     //read interpolation data for volume calculation in 3D
-    std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
+    //std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
+    string p_node = "";
+    if (space->getDesignMaterialType() == DesignMaterial::HOM_RECT_C1) {
+      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homRectC1";
+    } else {
+      p_node = "optimization/ersatzMaterial/paramMat/designMaterial/homIsoC1";
+    }
+    PtrParamNode hr = domain->GetParamRoot()->Get(p_node);
+    string file = hr->Get("file")->As<string>();
     PtrParamNode root = XmlReader::ParseFile(file);
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
@@ -1082,8 +1089,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
-      // FIXME
       domain->GetInfoRoot()->Get("optimization/header")->SetWarning("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
+    if (!normalize_)
+      domain->GetInfoRoot()->Get("optimization/header")->SetWarning("function '" + fname + "' should be normalized");
+    if (!this->func_->IsObjective()) {
+      double parameter = dynamic_cast<Condition*>(this->func_)->GetParameter();
+      if (parameter > 0)
+        domain->GetInfoRoot()->Get("optimization/header")->SetWarning("'" + fname + "' computes as sum(max(f_i-" + lexical_cast<string>(parameter) + ",0). Are you sure about parameter=" + lexical_cast<string>(parameter) + "?");
+    }
     this->globalized_ = true;
     break;
 
@@ -1984,6 +1997,20 @@ void Function::Local::ToInfo(PtrParamNode in) {
 
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
+
+  // create volume output data for material catalog in info.xml file
+  int dim = domain->GetGrid()->GetDim();
+  if (func_->type_ == GLOBAL_TWO_SCALE_VOL && dim == 3) {
+    Vector<double> p(3,0);
+    double v0 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    p[0] = 1.;
+    p[1] = 1.;
+    p[2] = 1.;
+    double v1 = this->virtual_elem_map.First().Interpolate_Volume3D(p, this->vol_a_, this->vol_b_, this->vol_c_, this->vol_coeff_, 0.);
+    PtrParamNode info_matCatalog = domain->GetInfoRoot()->Get("optimization/header/designSpace/materialCatalog",ParamNode::APPEND);
+    info_matCatalog->Get("vol_0")->SetValue(v0);
+    info_matCatalog->Get("vol_1")->SetValue(v1);
+  }
 }
 
 bool Function::Local::IsReverse(Locality loc)
@@ -3303,9 +3330,15 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   // temporary data structure
   Vector<double> p(3);
-  p[0] = GetDesign(DesignElement::STIFF1, local, access, true);;
-  p[1] = GetDesign(DesignElement::STIFF2, local, access, true);;
-  p[2] = GetDesign(DesignElement::STIFF3, local, access, true);;
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1) {
+    p[0] = GetDesign(DesignElement::STIFF1, local, access, true);
+    p[1] = p[0];
+    p[2] = p[0];
+  } else {
+    p[0] = GetDesign(DesignElement::STIFF1, local, access, true);
+    p[1] = GetDesign(DesignElement::STIFF2, local, access, true);
+    p[2] = GetDesign(DesignElement::STIFF3, local, access, true);
+  }
   double direction;
   if (!derivative) {
     direction = 0.;
@@ -3332,10 +3365,11 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
 
 double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
-  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
-  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
-  double vol;
   int dim = domain->GetGrid()->GetDim();
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
+    throw Exception("CalcTwoScaleVolume is not implemented for dim = 2 and HOM_ISO_C1.");
+  }
+  double vol;
   bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
   if (!regular) {
@@ -3344,6 +3378,12 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   /**svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
+  if (local->space->designMaterial->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 3) {
+    return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+  }
+
+  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
+  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
 
   if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
     Vector<double> p(3);

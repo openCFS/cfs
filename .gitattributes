@@ -531,6 +531,7 @@ include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
+include/def_use_petsc.hh.in -text
 include/def_use_phist.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_sgpp.hh.in -text
@@ -1215,6 +1216,7 @@ share/mkmesh/start.ans.in -text
 share/python/abaqus_reader.py -text
 share/python/adjustDesign.py -text
 share/python/analyze_opt.py -text
+share/python/analyze_springs.py -text
 share/python/angles-twoload.py -text
 share/python/base_structures_images.py -text
 share/python/basecell.py -text
@@ -1230,6 +1232,7 @@ share/python/continuation.py -text
 share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/copy_ref_files.py -text
+share/python/create_binary_archive.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
 share/python/diff_ref.py -text
@@ -1297,10 +1300,12 @@ share/python/material_catalogue/inv_tensor_3D_gmsh.xml -text
 share/python/material_catalogue/inv_tensor_3D_ortho_bc.xml -text
 share/python/material_catalogue/mat.xml -text
 share/python/material_catalogue/postprocess.py -text
+share/python/material_catalogue/postprocess_lufo.py -text
 share/python/material_catalogue/process_sparse.py -text
 share/python/material_catalogue/qsub_template.sh -text
 share/python/matviz.py -text
 share/python/matviz_2d.py -text
+share/python/matviz_3d_ortho.py -text
 share/python/matviz_rot.py -text
 share/python/matviz_streamline.py -text
 share/python/matviz_unstructured_mesh.py -text
@@ -2041,6 +2046,9 @@ source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/pardiso/PardisoSolverPrimitive.cc -text
 source/OLAS/external/pardiso/PardisoSolverPrimitive.hh -text
+source/OLAS/external/petsc/CMakeLists.txt -text
+source/OLAS/external/petsc/PETSCSolver.cc -text
+source/OLAS/external/petsc/PETSCSolver.hh -text
 source/OLAS/external/phist/CMakeLists.txt -text
 source/OLAS/external/phist/PhistEigenSolver.cc -text
 source/OLAS/external/phist/PhistEigenSolver.hh -text
