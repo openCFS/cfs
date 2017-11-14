@@ -1481,6 +1481,7 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 
   in->Get("pamping")->SetValue(pamping_);
+  in->Get("structured")->SetValue(em->IsDomainStructured());
 
   if(regions.GetSize() > 0)
   {

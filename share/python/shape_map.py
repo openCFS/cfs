@@ -83,7 +83,7 @@ def flip_dof(dof1, dof2):
 def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
-  
+
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
   ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
@@ -111,9 +111,11 @@ def find_shape_by_dof(shapes, dof):
 
   
 class Shape: 
-  def __init__(self, id, dof):
+  def __init__(self, id, dof, scale = [1.0,1.0,1.0]):
     self.id = id
     self.dof = dof
+
+    self.scale = scale
     self.el = []
     # node variable a. For 3D there is also b
     self.a = []
@@ -148,6 +150,8 @@ class Shape:
   #@return x, y for center point a
   def get_center(self, idx):   
     free = idx * float(1./(len(self.el)-1))
+    # fails for 3D!!!
+    free *= self.scale[1-self.dof]
     val  = self.a[idx]
     # this is the a middle line
     x = free if self.dof == 1 else val
@@ -350,15 +354,18 @@ def read_legacy_xml(filename, set, profile):
 
 # reads 2D and 3D s
 def read_xml(xml, set, profile):
+  # find scaling assuming equal mesh sizing
+  nx, ny, nz = read_mesh_info_xml(xml)
+  scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
+  
   shapes = []
-
   sq = 'last()' if not set else '@id="' + str(set) + '"'
   list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="0"]')
   while list:
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
-    shape = Shape(id = len(shapes), dof = first_dof)
+    shape = Shape(id = len(shapes), dof = first_dof, scale = scale)
     for el in list:
       nr = int(el.get('nr'))
       v =  float(el.get('design'))

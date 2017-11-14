@@ -100,7 +100,7 @@ namespace CoupledField{
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
-      assert(dMat_.IsSymmetric(1e-8) > 0);
+      assert(dMat_.IsSymmetric(1e-8));
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
