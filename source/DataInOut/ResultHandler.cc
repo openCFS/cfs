@@ -937,7 +937,7 @@ namespace CoupledField {
   }
   
   
-
+  
   void ResultHandler::InterpolateRes( ResultContext& actContext,
                                       Grid* destGrid,
                                       shared_ptr<BaseResult>& res ) {

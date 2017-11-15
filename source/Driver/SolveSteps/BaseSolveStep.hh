@@ -144,10 +144,6 @@ namespace CoupledField
       numTimeStep_ = numTimeStep;
     };
     
-    virtual int GetNumTimeSteps() {
-      return numTimeStep_;
-    }
-
     //! Set value for coupling counter
     void SetCouplingIter( UInt count ) {
       couplingIter_ = count;
