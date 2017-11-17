@@ -1836,7 +1836,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         ymin = nodes[i][0]
       if nodes[i][1] > ymax:
         ymax = nodes[i][0]  
-  print("xmin,xmax,ymin,ymax:",xmin,xmax,ymin,ymax)
+  
 #  symmetric = []
   for i in range(len(nodes)):
     # all nodes on top face are loads

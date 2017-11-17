@@ -345,7 +345,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
-
                 me = None                
                 if args.save:
                   if args.save.endswith(".vtp"):
@@ -505,7 +504,6 @@ parser.add_argument("--bc_volume_thresh", help="lower bound threshold (default 0
 # print sys.argv
 
 args = parser.parse_args()
-
 # check ans postproc arguments
 if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
   print("'show' and 'symmetries' do not match")
@@ -539,7 +537,6 @@ if args.info is not None:
     cmd += ' ' + sys.argv[i]
   doc = xml.etree.ElementTree.SubElement(info, "commandLine")
   doc.text = cmd  
-    
 # check for tensor input
 tensor = []  # becomes a single tensor or a tensor array
 centers = []
@@ -622,7 +619,7 @@ else:
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
-    
+  
   centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
   
   if args.mesh:

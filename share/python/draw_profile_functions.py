@@ -916,8 +916,11 @@ def generate_basecell(args,info):
     # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
-    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts) 
-    points, cells = mesh_boundary_circles(points, faces, bp_lists)
+    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
+    if args.tets: 
+      points, cells = mesh_boundary_circles(points, faces, bp_lists)
+    else:
+      cells = faces
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1177,7 +1180,7 @@ def calc_heaviside_interpolation(alpha,beta,eta):
   a = -c * calc_tanh(beta, eta, 0)
   
   if abs(a+c*calc_tanh(beta, eta, 0)) > eps:
-    print(a+c*calc_tanh(beta, eta, 0))
+    print("CHI:",a+c*calc_tanh(beta, eta, 0))
   assert(abs(a+c*calc_tanh(beta, eta, 0)) < eps) 
   assert(abs(a+c*calc_tanh(beta, eta, 1)) >= 1-eps)
   

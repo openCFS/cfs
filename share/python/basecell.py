@@ -39,10 +39,10 @@ def getConnectivity(points,cells):
 def taubin_smoothing(points,connectivity,niter):
   assert(niter > 0)
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  lamb = 0.6
+  lamb = 0.8
   new_points = points
   for i in range(niter):
-    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.03)
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04)
     
   print("Taubin smoothing with ", niter, " iterations")
     
@@ -89,7 +89,7 @@ def calc_volume(array,infoXml=None):
   return vol
 
 def visualize_structure(points,cells,show,save):
-  polydata = matviz_vtk.fill_vtk_polydata(points,cells)
+  polydata, _ = matviz_vtk.fill_vtk_polydata(points,cells)
   
   if save:
     show_write_vtk(polydata,1000,save)
@@ -159,6 +159,7 @@ if __name__ == "__main__":
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
   parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=30)
+  
   
   args = parser.parse_args()
   
@@ -303,7 +304,7 @@ if __name__ == "__main__":
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
-  polydata = matviz_vtk.fill_vtk_polydata(points,cells)
+  polydata, _ = matviz_vtk.fill_vtk_polydata(points,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
@@ -397,13 +398,17 @@ class Basecell():
     assert(type(data) is Basecell_Data)
     self.data = data
     _, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
-    
+    assert(self.points is not None)
+    assert(self.cells is not None)
 #     print("self.points:",self.points,"\n")
     
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
     if data.target != "volume_mesh":
       self.update()
+    if data.target == "surface_mesh":
+      connectivity = getConnectivity(self.points,self.cells)
+      self.points = taubin_smoothing(self.points,connectivity,20)  
       
     self.center = np.asarray([0.5,0.5,0.5])
     
