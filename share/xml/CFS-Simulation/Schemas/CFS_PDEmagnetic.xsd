@@ -305,6 +305,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
@@ -315,6 +316,7 @@
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magMagnetization"/>
       <xsd:enumeration value="magElemPermeability"/>
+      <xsd:enumeration value="magJouleLossPowerDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
