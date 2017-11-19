@@ -3811,6 +3811,11 @@ namespace CoupledField {
                                              sizeB,
                                              sizeB,
                                              cI.GetSize());
+
+
+
+        crsMat.ChangeLayout(CRS_Matrix<Double>::LEX);
+
         break;
 
     }// switch dimension

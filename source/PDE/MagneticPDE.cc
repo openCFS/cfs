@@ -61,7 +61,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   isMagnetoStrictCoupled_ = false;
   mechanicPDE_ = NULL;
   
-  reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
+  // can the reluctivity be complex? before the change it had the same type as the PDE
+  reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, false));
 
   // determine if there are coils excited by voltage
   hasVoltCoils_ = false;
@@ -171,8 +172,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 		  // ====================================================================
 		  if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
 			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY,
-					                                          Global::REAL, magFluxCoef);
+			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
 
 			  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 			  PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
@@ -324,11 +324,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
-				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
-						                              Global::REAL );
+				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType, Global::REAL );
 				  // for postprocessing
-				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY,
-						                                                           Global::REAL );
+				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
 				  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 			  }
 
@@ -1279,8 +1277,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     permeability->unit = "Vs/Am";
     permeability->definedOn = ResultInfo::ELEMENT;
     permeability->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
-    		                              isComplex_));
+    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
   }
@@ -1711,7 +1708,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     cldRes->unit = "W/kg";
     cldRes->definedOn = ResultInfo::ELEMENT;
     cldRes->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> coreLossDensCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    shared_ptr<CoefFunctionMulti> coreLossDensCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
     DefineFieldResult( coreLossDensCoef, cldRes );
 
     // === CORE LOSS ===
@@ -1724,7 +1721,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     //DefineFieldResult( coreLossCoef, clRes );
     availResults_.insert( clRes );
     shared_ptr<ResultFunctor> coreLossFunc;
-    shared_ptr<CoefFunctionMulti> coreLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    shared_ptr<CoefFunctionMulti> coreLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
     if( isComplex_ ){
       coreLossFunc.reset( new ResultFunctorIntegrate<Complex>(coreLossCoef, feFct, clRes) );
     } else {
@@ -1785,8 +1782,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     for( ; regIt != regions_.End(); ++regIt ) {
       RegionIdType actRegion = *regIt;
       actMat = materials_[actRegion];
-      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
-          GetCoefFct(MAG_FLUX_DENSITY) );
+      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
       cldCoef->AddRegion(actRegion, coreLossFct);
     }
 
@@ -1805,7 +1801,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           GetCoefFct(MAG_FLUX_DENSITY) );
       // core loss density in W/m^3, which deserves to be called density
       PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part,
+      PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, Global::REAL,
           CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
       clCoef->AddRegion( actRegion, coreLossDensCoef );
     }
