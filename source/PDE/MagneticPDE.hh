@@ -102,7 +102,7 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> reluc_;
     
     //! Coefficient function, containing the overall conductivity
-    shared_ptr<CoefFunctionMulti> conduc_;
+    //shared_ptr<CoefFunctionMulti> conduc_;
 
     //! Map containing the remanence (B excitation on RHS)
     //! needed for calculating H field
