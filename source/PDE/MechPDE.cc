@@ -360,8 +360,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       // Take account of pml in frequency domain
       // 'coeffPMLScal' is the function, the material tensor is to be scaled by. if PML isn't defined, it's unity
-      PtrCoefFct coefPMLScal, coeffMass;
-      PtrCoefFct coefPMLVec, speedOfSnd;
+      PtrCoefFct coefPMLScalPos, coefPMLScalNeg, coeffMass; // "ngeative" version for stiffness integrator
+      PtrCoefFct coefPMLVec;
+      PtrCoefFct posOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+      PtrCoefFct negOne = CoefFunction::Generate(mp_, Global::REAL, "-1.0");
       PtrParamNode pmlNode;
       std::string pmlFormul;
       
@@ -377,20 +379,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
             pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", dampId.c_str());
             pmlFormul = pmlNode->Get("formulation")->As<std::string>();
 
-            // speed of sound is set to equal '1.0'
-            speedOfSnd = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            // speed of sound is set to equal '-1.0' or '1.0' depending on stiffness or mass integrator
             if (pmlFormul == "classic")
             {
-              coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+              coefPMLScalPos.reset(new CoefFunctionPML<Complex>(pmlNode, posOne,
                                 ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
-              coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+              coefPMLScalNeg.reset(new CoefFunctionPML<Complex>(pmlNode, negOne,
+                                              ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, posOne,
                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
             }
             else if (pmlFormul == "shifted")
             {
-              coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+              coefPMLScalPos.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne,
                                 ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
-              coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+              coefPMLScalNeg.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne, // leave "Negative" version equal to original positive one
+                                              ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne,
                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
             }
             else
@@ -435,7 +440,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         }
         else if (harmonicPML)
         {
-          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, harmonicPML, coefPMLScal);
+          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, harmonicPML, coefPMLScalNeg);
           stiffInt->SetBCoefFunctionOpA(coefPMLVec);
         }
         else
@@ -578,7 +583,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         BaseBDBInt *preStressInt = NULL;
         if (harmonicPML)
         {
-          preStressInt = GetPreStressIntegrator(preStressFct, actRegion, harmonicPML, coefPMLScal);
+          preStressInt = GetPreStressIntegrator(preStressFct, actRegion, harmonicPML, coefPMLScalNeg);
           preStressInt->SetBCoefFunctionOpA(coefPMLVec);
         }
         else
@@ -611,7 +616,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       if ( harmonicPML ) {
         // mass integrator in a PML region: density coefficient function is scaled by sx*sy*sz
-        densCoeffScaled = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, densCoeff, coefPMLScal, CoefXpr::OP_MULT));
+        densCoeffScaled = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, densCoeff, coefPMLScalPos, CoefXpr::OP_MULT));
         if (dim_ == 2 && subType_ != "2.5d")
           massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 2>(), densCoeffScaled, 1.0, updatedGeo_);
         else
