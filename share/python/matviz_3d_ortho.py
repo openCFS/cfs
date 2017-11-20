@@ -23,6 +23,11 @@ try:
 except:
   print("Warning: Couldn not load basecell and draw_profile_functions!")
   
+class Vertex():
+  def __init__(self,coords,id):
+    self.coords = coords
+    self.id = id
+    
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
@@ -575,12 +580,6 @@ def get_interface_points(points,cells,dx,nx):
   from scipy import spatial
   # kd tree for efficient neighbor search
   tree = spatial.KDTree(points)
-  # convert cells list to list with edges
-  edges = [None] * 3 * len(cells)
-  for c in cells:
-    edges.append((c[0],c[1]))
-    edges.append((c[1],c[2]))
-    edges.append((c[2],c[0]))
 
   r = np.max([dx[0],dx[1],dx[2]])
   tol = 3 * [0.0]
@@ -592,6 +591,7 @@ def get_interface_points(points,cells,dx,nx):
   
   lists = []
   # store a point list for each cell interface
+  # each list entry is a tuple with (id,coords)
   check_lists = [] 
   for i in range(1,nx[0]+1):
     for j in range(1,nx[1]+1):
@@ -620,9 +620,10 @@ def get_interface_points(points,cells,dx,nx):
           assert(len(ids) > 0)
           cands = [points[id] for id in ids]
           
-          for c in cands:
-            if midpoint[count]-tol[count] <= c[count] <= midpoint[count]+tol[count]:
-              new_points.append(c)   
+          for idx,cand in enumerate(cands):
+            if midpoint[count]-tol[count] <= cand[count] <= midpoint[count]+tol[count]:
+              # store id and coords of vertex
+              new_points.append(Vertex(cand,ids[idx]))   
           
           assert(new_points is not None)
           assert(len(new_points) > 0)    
@@ -646,8 +647,49 @@ def resolve_hanging_nodes(points,cells,dx,nx):
   assert(dx[1] > 0)
   assert(dx[2] > 0)
   
+  # each entry is a list
+  # each list has entries of type Vertes()
   lists = get_interface_points(points,cells,dx,nx)
+  # store all neighbors for all points
+  connectivity = basecell.getConnectivity(points, cells)
+#   print("connectivity of node 4871=",points[4871],": ")
+#   for id in connectivity[4871]:
+#     print(id,points[id])
+#   print("connectivity of node 2420=",points[2420],": ")
+#   for id in connectivity[2420]:
+#     print(id,points[id])
+#   sys.exit()
+  assert(len(connectivity) == len(points))
   
+  count = 0
+  for list in lists:
+    for vertex in list:
+      p1 = np.asarray(vertex.coords)
+      # get all connected neighbors
+      neighbors = connectivity[vertex.id]
+      # for each neighbor, form an edge and compare
+      # if any vertex in the surroundings has distance 0 (hanging node)
+      for neighbor in neighbors:
+#         print("\nneighbor of ",p1," is ",neighbor,points[neighbor])
+        # edge is defined by p1 and p2
+        p2 = np.asarray(points[neighbor])
+        for other in list:
+          # prevent self-comparison
+          if other.id == neighbor or other.id == vertex.id:
+            continue
+          p = np.asarray(other.coords)
+          # vertices p1 and p2, point to test p
+          # distance between P and edge v1v2
+          # d = 2 * triangle area ABC / length of vector AB
+          d = np.linalg.norm(np.cross(p-p1, p-p2))
+          d /= np.linalg.norm(p2-p1)
+          
+          if np.isclose(d,0,1e-6):
+            print("\ndetect hanging node: edge=",p1,p2," point:",p)
+            print("ids:",vertex.id,neighbor,other.id)
+            count += 1
+  
+  print("found ",count," hanging nodes")
 #   # detect hanging nodes
 #   for list in lists:
 #     # each list contains triangle vertices for one cell interface
