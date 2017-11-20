@@ -393,7 +393,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
             {
               coefPMLScalPos.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne,
                                 ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
-              coefPMLScalNeg.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne, // leave "Negative" version equal to original positive one
+              coefPMLScalNeg.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, negOne, // this used to be posOne, no idea what is correct, like this it works in the uniaxial case ... //ftoth
                                               ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
               coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, posOne,
                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
