@@ -21,8 +21,8 @@ try:
   import basecell
   import draw_profile_functions
 except:
-  print("Warning: Couldn not load basecell and draw_profile_functions!")  
-
+  print("Warning: Couldn not load basecell and draw_profile_functions!")
+  
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
@@ -214,6 +214,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     points, cells = matviz_vtk.vtk_polydata_to_numpy(appends.GetOutput())
     points, cells = merge_duplicated_points(points,cells,short)
     
+    points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
     
 #     boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
 #     appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
@@ -522,8 +523,7 @@ def merge_duplicated_points(points,cells,short):
   
   
   return rearrange_points_cells(points,cells,replace)
-  
-  
+
 # @param replace: list with 2-element-tuples storing info which id should be replaced with which one
 # returns points and cells list with 0-based and consecutive ids 
 def rearrange_points_cells(points,cells,replace):   
@@ -531,6 +531,7 @@ def rearrange_points_cells(points,cells,replace):
   # store old valid ids                                    
   old_ids = set()
   
+  print("found ", len(replace), " duplicates")
   # for each cell
   for i in range(len(cells)):
     cell = cells[i]
@@ -568,4 +569,88 @@ def rearrange_points_cells(points,cells,replace):
   for i in range(len(cells)):
     newcells.append((map[cells[i][0]],map[cells[i][1]],map[cells[i][2]]))
     
-  return newpoints, newcells   
+  return newpoints, newcells
+
+def get_interface_points(points,cells,dx,nx):
+  from scipy import spatial
+  # kd tree for efficient neighbor search
+  tree = spatial.KDTree(points)
+  # convert cells list to list with edges
+  edges = [None] * 3 * len(cells)
+  for c in cells:
+    edges.append((c[0],c[1]))
+    edges.append((c[1],c[2]))
+    edges.append((c[2],c[0]))
+
+  r = np.max([dx[0],dx[1],dx[2]])
+  tol = 3 * [0.0]
+  tol[0] = dx[0] /20.0
+  tol[1] = dx[1] /20.0
+  tol[2] = dx[2] /20.0
+  
+#   print("tol x,y,z", tol)  
+  
+  lists = []
+  # store a point list for each cell interface
+  check_lists = [] 
+  for i in range(1,nx[0]+1):
+    for j in range(1,nx[1]+1):
+      for k in range(1,nx[2]+1):
+        
+        # midpoint of an interface
+        midpoint = None
+        new_points = []
+        for count in range(0,3):
+          if count == 0: #x
+            major = i
+            midpoint = [i*dx[0],j*dx[1]/2,k*dx[2]/2]
+          elif count == 1: #y
+            major = j
+            midpoint = [i*dx[0]/2,j*dx[1],k*dx[2]/2]
+          else: #z
+            major = k
+            midpoint = [i*dx[0]/2,j*dx[1]/2,k*dx[2]]
+            
+          # neglect boundary circles  
+          if major >= nx[count]:
+            continue
+          
+          assert(midpoint is not None)
+          ids = tree.query_ball_point(midpoint,r)
+          assert(len(ids) > 0)
+          cands = [points[id] for id in ids]
+          
+          for c in cands:
+            if midpoint[count]-tol[count] <= c[count] <= midpoint[count]+tol[count]:
+              new_points.append(c)   
+          
+          assert(new_points is not None)
+          assert(len(new_points) > 0)    
+          lists.append(new_points)    
+
+#   print("number of interfaces:",len(lists))
+#   for l in lists:
+#     print("\nnew_points:\n",l)
+#   sys.exit()
+    
+  return lists      
+# detect hanging node and resolve them by adding additional triangles;
+# look only at points and triangles at interfaces between two base cells:
+# a hanging node is a vertex with distance ~0 to another triangle edge
+# distance from a vertex P to edge AB:
+# d = 2 * triangle area ABC / length of vector AB
+# @param dx: three lattice spacings dx,dy,dz in a tuple/list
+# @param nx: number of cells in 3 directions nx,ny,nz in a tuple/list
+def resolve_hanging_nodes(points,cells,dx,nx):
+  assert(dx[0] > 0)
+  assert(dx[1] > 0)
+  assert(dx[2] > 0)
+  
+  lists = get_interface_points(points,cells,dx,nx)
+  
+#   # detect hanging nodes
+#   for list in lists:
+#     # each list contains triangle vertices for one cell interface
+  
+            
+  return points, cells

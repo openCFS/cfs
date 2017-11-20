@@ -44,7 +44,7 @@ def taubin_smoothing(points,connectivity,niter):
   for i in range(niter):
     new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04)
     
-  print("Taubin smoothing with ", niter, " iterations")
+#   print("Taubin smoothing with ", niter, " iterations")
     
   return new_points
 
