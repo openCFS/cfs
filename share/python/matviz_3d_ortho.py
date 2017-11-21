@@ -16,17 +16,15 @@ try:
   from mpi4py import MPI
 except:
   print("Warning: Could not load mpi4py!")
+
+import basecell
   
 try:
   import basecell
   import draw_profile_functions
 except:
-  print("Warning: Couldn not load basecell and draw_profile_functions!")
+  print("Warning: Could not load basecell and draw_profile_functions!")
   
-class Vertex():
-  def __init__(self,coords,id):
-    self.coords = coords
-    self.id = id
     
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
@@ -84,8 +82,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   # thread local data, each entry is a tuple with Basecell object and its boundary circle meshes
   tl_data = list()
-  basecells = np.empty((nx,ny,nz),dtype=Basecell)
-  
+  basecells = []
   nProblem = nx*ny*nz
 
   # distribute loop evenly over number of processes and take care
@@ -132,7 +129,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     for c in range(len(flags)):      
       flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
     
-    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",flags)
+    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
     cell_obj = basecell.Basecell(bc_input,id,(i,j,k))
@@ -144,11 +141,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
     cell_obj.center = cell_center
     
-    meshed_boundaries = []
-    # at least one boundary circle needs to be triangulated
-    if any(flags):
-      meshed_boundaries = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
-    local_basecells.append((cell_obj,meshed_boundaries))
+    basecells.append(cell_obj)
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
 
   # broadcast all data to master and exit script
@@ -167,12 +160,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     finished_workers = 0
     # a status object containing source, tag and size of a message
     status = MPI.Status()
-    basecells = [None] * nx*ny*nz
+#     basecells = [None] * nx*ny*nz
     while finished_workers != commSize-1:
       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+      print("data:",data)
       # we store the result
-      tmp_bc, tmp_bf = data
-      basecells.extend(tmp_bc)
+      basecells.extend(data)
       #get the message tag
       tag = status.Get_tag()
       source = status.Get_source()
@@ -183,33 +176,24 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     sys.stdout.flush()
     
     import time   
-    flags = []
     start = time.time()
     # length of shortest edge
     short = 99999 
     short_e = 99999   
+    print(basecells)
     # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
-    for i,obj in enumerate(basecells):
+    for i,cell in enumerate(basecells):
       if (i%100==0):
         end_vtk_iteration=time.time()
         print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
         
-      cell = obj[0]
-      flags.append(obj[2])
       vtk_points = vtk.vtkPoints()
-      pd, short_e = matviz_vtk.fill_vtk_polydata(cell.points, cell.cells)
+      coords = [p.coords for p in cell.points]
+      pd, short_e = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
       if short_e < short:
         short = short_e
       appends.AddInputData(pd)
       # meshed boundary circles
-      circles = obj[1]
-  #     assert(len(circles) > 0)
-      # list with meshes on the boundaries
-      for l in circles:
-        points = np.asarray(l[0])
-        pd, _ = matviz_vtk.fill_vtk_polydata(l[0], l[1])
-          
-        appends.AddInputData(pd)
   
     appends.Update() # not sure if we have to do this in each loop iteration
     
@@ -223,7 +207,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     points, cells = matviz_vtk.vtk_polydata_to_numpy(appends.GetOutput())
     points, cells = merge_duplicated_points(points,cells,short)
     
-    points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
+#     points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
     
 #     boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
 #     appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
@@ -542,7 +526,7 @@ def get_interface_points(points,cells,dx,nx):
           for idx,cand in enumerate(cands):
             if midpoint[count]-tol[count] <= cand[count] <= midpoint[count]+tol[count]:
               # store id and coords of vertex
-              new_points.append(Vertex(cand,ids[idx]))   
+              new_points.append(draw_profile_functions.Vertex(cand,ids[idx]))   
           
           assert(new_points is not None)
           assert(len(new_points) > 0)    

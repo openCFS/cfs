@@ -10,16 +10,12 @@ import mesh_tool
 import cfs_utils
 import argparse
 import draw_profile_functions
+from draw_profile_functions import Vertex
 import numpy as np
 from scipy import interpolate
 import matviz_vtk
 import vtk
 import sys
-
-class Vertex():
-  def __init__(self,coords,id):
-    self.coords = np.asarray(coords)
-    self.id = id
 
 # return list with length len(points)
 # for each point, this list gives the ids of its neighbors
@@ -413,9 +409,11 @@ class Basecell():
     _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None)
     assert(self.points is not None)
     assert(self.cells is not None)
-    # convert all points to numpy arrays for vector operations later on
-    self.points = [np.asarray(p) for p in self.points]
-    self.boundary_points = [np.asarray(p) for p in self.boundary_points]
+    for p in self.points:
+      assert(type(p) is Vertex)
+    for list in self.boundary_points:
+      for p in list:
+        assert(type(p) is Vertex)  
 #     print("self.points:",self.points,"\n")
     
     # xmin, ymin, zmin, xmax, ymax, zmax
@@ -430,25 +428,34 @@ class Basecell():
     
   def scale(self,scalex,scaley,scalez):
     scale = np.asarray([scalex,scaley,scalez])
-    self.points = [p*scale for p in points]
-    self.boundary_points = [p*scale for p in boundary_points]  
-    
+    self.points = [Vertex(p.coords*scale,p.id) for p in self.points]
+    new_bp = []
+    for list in self.boundary_points:
+      new_list = [Vertex(p.coords*scale,p.id) for p in list]
+      new_bp.append(new_list)
+      
+    self.boundary_points = new_bp 
     self.center = self.center * np.asarray([scalex,scaley,scalez])
   def translate(self,x,y,z):
-    shift = np.asanyarray([x,y,z])
-    self.points = [p+shift for p in points]
-    self.boundary_points = [p+shift for p in boundary_points]
+    shift = np.asarray([x,y,z])
+    self.points = [Vertex(p.coords+shift,p.id) for p in self.points]
+    new_bp = []
+    for list in self.boundary_points:
+      new_list = [Vertex(p.coords+shift,p.id) for p in list]
+      new_bp.append(new_list)
+      
+    self.boundary_points = new_bp 
     self.center += shift
     
   # recalculate bounds after rescaling and translating
   def update(self):
-#     print(np.asarray(self.points))
-    self.bounds[0] = np.min(np.asarray(self.points)[:][0])
-    self.bounds[1] = np.min(np.asarray(self.points)[:,1])
-    self.bounds[2] = np.min(np.asarray(self.points)[:,2])
-    self.bounds[3] = np.max(np.asarray(self.points)[:,0])
-    self.bounds[4] = np.max(np.asarray(self.points)[:,1])
-    self.bounds[5] = np.max(np.asarray(self.points)[:,2])
+    coords = np.asarray([p.coords for p in self.points])
+    self.bounds[0] = np.min(coords[:,0])
+    self.bounds[1] = np.min(coords[:,1])
+    self.bounds[2] = np.min(coords[:,2])
+    self.bounds[3] = np.max(coords[:,0])
+    self.bounds[4] = np.max(coords[:,1])
+    self.bounds[5] = np.max(coords[:,2])
     
   
 ############## info xml scheme #####################

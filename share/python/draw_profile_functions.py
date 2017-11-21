@@ -13,7 +13,6 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
 from enum import Enum
-from basecell import Vertex
 
 try:
   import meshpy.triangle as triangle
@@ -40,6 +39,11 @@ infoXml = None
 interpolation = None
 symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 
+class Vertex():
+  def __init__(self,coords,id):
+    self.coords = coords
+    self.id = id
+    
 # the 6 faces of a bounding box, need it for identifying boundary circles
 class Face_Name(Enum):
   XMIN = 0
@@ -1375,9 +1379,6 @@ def mesh_boundary_circles(points,cells,bpoints,flags=None):
   # if not set, mesh everything
   if flags is None:
     flags = [True] * 6
-  flags[1] = False  
-  flags[2] = False  
-  flags[5] = False
   # give basecell boundary circles to be meshed
   bounds_to_mesh = np.where(flags)[0]
   
