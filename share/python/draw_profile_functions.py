@@ -12,6 +12,8 @@ import matplotlib
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
+from enum import Enum
+from basecell import Vertex
 
 try:
   import meshpy.triangle as triangle
@@ -38,6 +40,15 @@ infoXml = None
 interpolation = None
 symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 
+# the 6 faces of a bounding box, need it for identifying boundary circles
+class Face_Name(Enum):
+  XMIN = 0
+  YMIN = 1
+  ZMIN = 2
+  XMAX = 3
+  YMAX = 4
+  ZMAX = 5
+  
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=13
   # a cubic spline is defined by its base functions and control polygon
@@ -916,16 +927,14 @@ def generate_basecell(args,info):
     # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
+    # points: list with objects of type Vertex
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
-    if args.tets: 
-      points, cells = mesh_boundary_circles(points, faces, bp_lists)
-    else:
-      cells = faces
+    points, cells = mesh_boundary_circles(points, faces, bp_lists)
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, points, cells
+  return array, points, cells, bp_lists
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
@@ -1270,6 +1279,7 @@ def adjust_and_extract_boundary_points(profiles,points):
 #   assert(np.isclose(ymax,1.0,1e-6))
 #   assert(np.isclose(zmax,1.0,1e-6))
   
+  vertices = [None] * len(points)
   lists = [[] for i in range(6)]
   major_dir = -1
   for id in range(len(points)):
@@ -1278,47 +1288,51 @@ def adjust_and_extract_boundary_points(profiles,points):
     if np.isclose(p[0],xmin,1e-6):
       # move x to 0
       points[id][0] = 0
-      lists[0].append((points[id],id))
+      lists[Face_Name.XMIN.value].append(Vertex(points[id],id))
       major_dir = 0
     elif np.isclose(p[0],xmax,1e-6):
       # move x to 1
       points[id][0] = 1.0
-      lists[1].append((points[id],id))
+      lists[Face_Name.XMAX.value].append(Vertex(points[id],id))
       major_dir = 0
     # y
     elif np.isclose(p[1],ymin,1e-6):
       # move y to 0
       points[id][1] = 0
-      lists[2].append((points[id],id))
+      lists[Face_Name.YMIN.value].append(Vertex(points[id],id))
       major_dir = 1
     elif np.isclose(p[1],ymax,1e-6):
       # move y to 1
       points[id][1] = 1.0
-      lists[3].append((points[id],id))
+      lists[Face_Name.YMAX.value].append(Vertex(points[id],id))
       major_dir = 1  
     # z
     elif np.isclose(p[2],zmin,1e-6):
       # move z to 0
       points[id][2] = 0
-      lists[4].append((points[id],id))
+      lists[Face_Name.ZMIN.value].append(Vertex(points[id],id))
       major_dir = 2
     elif np.isclose(p[2],zmax,1e-6):
       # move z to 1
       points[id][2] = 1.0
-      lists[5].append((points[id],id))
+      lists[Face_Name.ZMAX.value].append(Vertex(points[id],id))
       major_dir = 2
     else:
+      vertices[id] = Vertex(points[id],id)
       continue
     
     assert(major_dir > -1 and major_dir < 3)
     minor1, minor2 = give_normal_plane_axes(major_dir)
     phi = angle_to_center((p[minor1],p[minor2]))
-    points[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
+    vertices[id] = Vertex(radius_to_3d_coords(profiles[major_dir], p[major_dir], phi) ,id)
   
   for l in lists:
     assert(len(l) > 0)
+    
+  for v in vertices:
+    assert(type(v) is Vertex)
       
-  return points, lists
+  return vertices, lists
  
 def round_trip_connect(start, end):
   result = []
@@ -1327,83 +1341,53 @@ def round_trip_connect(start, end):
   result.append((end, start))
   return result
 
-# for a given list with 3d points, return a list with 2d points
-# omitting the coordinate component 'dir'
-def extract_plane_coordinates(list,dir):
-  new = []
+# returns list of coordinates for given boundary 'bound'
+# using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
+# @param bpoints: six lists with boundary points for each face of the bounding box
+# order: min_x,min_y,min_z,max_x,max_y,max_z
+# @param cc_3d: basecell center, has also to be projected onto right plane
+def extract_2d_bc_boundary_coords(bpoints,bound):
+  result = []
+  # depending on boundary flag, determine which coordinate component to compare
+  # order: xmin, ymin, zmin, ymax, ymax, zmax
+  # bound -> major_dir: 0->0, 1->1, 2->2, 3->0, 4->1, 5->2 
+  major_dir = bound%3
+  minor_1, minor_2 = give_normal_plane_axes(major_dir)
   
-  for e in list:
-    # get components except that one equals 'dir'
-    new.append([ e[0][(dir+1)%3],e[0][(dir+2)%3],e[1] ])
-    
-  return new
+  for p in bpoints[bound]:
+    assert(type(p) is Vertex)
+#     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
+    result.append( ((p.coords[minor_1],p.coords[minor_2]),p.id) )
+  
+  return result  
 
-def mesh_boundary_circles(points,cells,bp_lists):
-  assert(len(bp_lists) == 6)
+# @param flags: 6 flags indicating which boundary circle to mesh and which not
+# order of flags: xmin,xmax,ymin,ymax,zmin,zmax
+# @param bp_lists: 6 lists with boundary points for each bounding box face
+# @param points: list with objects of type Vertex
+def mesh_boundary_circles(points,cells,bpoints,flags=None):
+  assert(len(bpoints) == 6)
    
   lists_2d = []
   points = list(points)
   cells = list(cells)
-   
-  count = 0
-  for dir in (0,1,2):
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
-    count += 1
-    lists_2d.append(extract_plane_coordinates(bp_lists[count], dir))
-    count += 1
   
-  for count,l in enumerate(lists_2d):
-    # component 0 and 1 store plane coordinates
-    # component 2 store vtk point id
-    assert(len(l) > 0)
-    l.sort(key=lambda c:math.atan2(c[0]-0.5, c[1]-0.5))
-    info = triangle.MeshInfo()
-    test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in l]
-    info.set_points(test)
-    info.set_facets(round_trip_connect(0,len(l)-1))
-    mesh = triangle.build(info,generate_faces=True) 
-   
-    mesh_points = np.array(mesh.points)
-    mesh_tris = np.array(mesh.elements)
-     
-#     plt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
-#     plt.show()
-     
-    major_dir = -1
-    if count == 0 or count == 1:
-      major_dir = 0
-    elif count == 2 or count == 3:  
-      major_dir = 1
-    else:
-      major_dir = 2
-    
-    new_points = []  
-    next_id = len(points)
-    minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)    
-    # up to len(l), l and mesh_points have the same ordering of points
-    # map from local mesh_points point ids to global ones
-    lookup = np.ones(len(mesh_points),dtype=int) * (-1)
-    for i in range(0,len(l)):
-      lookup[i] = l[i][2]
-    for i in range (len(l),len(mesh_points)):
-      point = np.zeros(3)
-      if count%2 == 0: # left side of profile
-        point[major_dir] = 0.0
-      else:
-        point[major_dir] = 1.0
-           
-      point[minor_dir_2] = mesh_points[i][0]
-      point[minor_dir_1] = mesh_points[i][1]
-      # id of new point  
-      lookup[i] = next_id
-      next_id += 1
-      new_points.append(point)
-    
-    points += new_points
-    # use lookup table to set new triangles from meshed boundary circle
-    for tri in mesh_tris:
-      cells.append((lookup[tri[0]], lookup[tri[1]], lookup[tri[2]]))
+  # if not set, mesh everything
+  if flags is None:
+    flags = [True] * 6
+  flags[1] = False  
+  flags[2] = False  
+  flags[5] = False
+  # give basecell boundary circles to be meshed
+  bounds_to_mesh = np.where(flags)[0]
   
+  for b in bounds_to_mesh:
+    bcoords_2d = extract_2d_bc_boundary_coords(bpoints,b)
+    points, cells = mesh_basecell_boundary(points,cells,bcoords_2d,b)
+  
+  for p in points:
+    assert(type(p) is Vertex)
+    
   return points, cells    
 
 # @returns 3d cartesian coordinates
@@ -1449,3 +1433,79 @@ def voxels_to_points_and_cells(array):
   points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
   
   return points, cells
+
+# here we only deal with 3 dimensions
+# @param points: list of all created points of type Vertex
+# @param bound: which of the 6 boundary faces to mesh
+# order: xmin,xmax,ymin,ymax,zmin,zmax
+def mesh_basecell_boundary(points,cells,coords_2d,bound):
+  # here we live in [0,1]^3
+  cell_center = np.asarray([0.5,0.5,0.5])
+  # need this for mapping between planar and space coordinate
+  major_dir = bound%3
+  minor_dir_1, minor_dir_2 = give_normal_plane_axes(major_dir)
+  # sort points in circle order
+  coords_2d.sort(key=lambda c:math.atan2(np.asarray(c[0][0])-cell_center[0], np.asarray(c[0][1])-cell_center[1]))
+
+  info = triangle.MeshInfo()
+#   import matplotlib
+#   from matplotlib import pyplot as plt
+#   coords_2d = np.asarray(coords_2d)
+#   plot_coords_x = [p[0][0] for p in coords_2d]
+#   plot_coords_y = [p[0][1] for p in coords_2d]
+#   plt.plot(plot_coords_x,plot_coords_y,'o')
+#   plt.show()
+  # elem[0] is tuple of 2d coords, elem[1] is id
+  test = [ [np.float64(elem[0][0]),np.float64(elem[0][1])] for elem in coords_2d]
+  info.set_points(test)
+  info.set_facets(round_trip_connect(0,len(coords_2d)-1))
+  
+  mesh = triangle.build(info,generate_faces=True)
+  mesh_points = np.array(mesh.points)
+  mesh_tris = np.array(mesh.elements)
+  
+  assert (len(mesh_points) > len(coords_2d))
+  # up to len(l), l and mesh_points have the same ordering of points
+  # map from local mesh_points point ids to global ones
+  map = np.ones(len(mesh_points),dtype=int) * (-1)
+  assert(len(mesh_points) > 0)
+  for i in range(0,len(coords_2d)):
+#     print(coords_2d[i][1])
+#     print(map[i])
+    map[i] = coords_2d[i][1]
+  ######### mapping back to 3d ########################
+  # 0,1,2 -> 0.0  3,4,5 -> 1.0
+  comp = 0.0 if 0 <= bound <= 2 else 1.0
+  new_points = []
+  next_id = len(points)
+  # map from 2d point to 3d point
+  for i in range (len(coords_2d),len(mesh_points)):
+    new_p = np.zeros(3)
+    new_p[major_dir] = comp
+    new_p[minor_dir_1] = mesh_points[i][0]
+    new_p[minor_dir_2] = mesh_points[i][1]
+    # id of new pointcoords_2d
+    new_points.append(Vertex(new_p,next_id))
+    map[i] = next_id
+    next_id +=1
+  
+  points.extend(new_points)
+  # use lookup table to set new triangles from meshed boundary circle  
+  for tri in mesh_tris:
+    cells.append((map[tri[0]], map[tri[1]], map[tri[2]])) 
+  
+#   import matplotlib
+#   matplotlib.use('tkagg')
+#   from matplotlib import pyplot as plt
+#   plt.gcf()
+#   labels = []
+#   for i in range(len(points)):
+#     labels.append(i)
+#   points = np.asanyarray(points)
+#   plt.plot(points[:,minor_dir_1],points[:,minor_dir_2],'o')
+#   for i, label in enumerate(labels):
+#     plt.text(points[i,minor_dir_1],points[i,minor_dir_2],labels[i])
+#   plt.triplot(points[:,minor_dir_1],points[:,minor_dir_2],cells)
+#   plt.show()
+    
+  return points,cells

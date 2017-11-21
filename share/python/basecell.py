@@ -16,12 +16,17 @@ import matviz_vtk
 import vtk
 import sys
 
+class Vertex():
+  def __init__(self,coords,id):
+    self.coords = np.asarray(coords)
+    self.id = id
+
 # return list with length len(points)
 # for each point, this list gives the ids of its neighbors
 def getConnectivity(points,cells):
   # for each point ( id = array index), store tuple with all neighboring id nodes
   connectivity = [set() for index in range(len(points))]
-  for t in cells:
+  for i,t in enumerate(cells):
     assert(t[0] < len(points))
     assert(t[1] < len(points))
     assert(t[2] < len(points))
@@ -52,10 +57,11 @@ def taubin_smoothing(points,connectivity,niter):
 # using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
 def laplacian_smoothing(points,connectivity,lamb):
   new_points = [None] * len(points) 
-  for i,p in enumerate(points):
+  for i,vertex in enumerate(points):
+    p = vertex.coords
     # calculate gradient   
     if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
-      new_points[i] = p
+      new_points[i] = Vertex(p,id)
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
@@ -66,12 +72,14 @@ def laplacian_smoothing(points,connectivity,lamb):
       neighborhood = connectivity[i] 
       for nid in neighborhood:
         # n are coords of neighbor with id nid
-        n = points[nid]
+        n = points[nid].coords
         # distance between neighbor and this node
         w = 1.0 / np.linalg.norm(len(neighborhood))
         L = L + w * (n-p)
-      new_points[i] = p + lamb * L   
+      new_points[i] = Vertex(p + lamb * L,vertex.id)   
   
+  for p in new_points:
+    assert(type(p) is Vertex)
   return new_points  
 
 def calc_volume(array,infoXml=None):
@@ -290,7 +298,7 @@ if __name__ == "__main__":
   
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
-  array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
+  array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml)
   volume = calc_volume(array, infoXml)
   
   if args.target.startswith("surface"):
@@ -304,7 +312,8 @@ if __name__ == "__main__":
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
-  polydata, _ = matviz_vtk.fill_vtk_polydata(points,cells)
+  coords = [p.coords for p in points]
+  polydata, _ = matviz_vtk.fill_vtk_polydata(coords,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
@@ -352,7 +361,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False,bc_flags=None):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -362,6 +371,8 @@ class Basecell_Data():
     self.z2 = z2
     self.bend = bend
     self.tets = tets
+    # flags = [0,nx-1,0,ny-1,0,nz-1]
+    self.bc_flags = bc_flags
     assert(interpolation == "linear" or interpolation == "heaviside")
     if interpolation == "heaviside":
       assert(beta is not None and eta is not None)
@@ -394,12 +405,17 @@ class Basecell_Data():
     
 class Basecell():
   # data is an object of type Basecell_Data()
-  def __init__(self,data):
+  # idx = (i,j,k)
+  def __init__(self,data,id=None,idx=None):
     assert(type(data) is Basecell_Data)
     self.data = data
-    _, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
+    self.id = id
+    _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None)
     assert(self.points is not None)
     assert(self.cells is not None)
+    # convert all points to numpy arrays for vector operations later on
+    self.points = [np.asarray(p) for p in self.points]
+    self.boundary_points = [np.asarray(p) for p in self.boundary_points]
 #     print("self.points:",self.points,"\n")
     
     # xmin, ymin, zmin, xmax, ymax, zmax
@@ -413,15 +429,16 @@ class Basecell():
     self.center = np.asarray([0.5,0.5,0.5])
     
   def scale(self,scalex,scaley,scalez):
-    for i in range(len(self.points)):
-      self.points[i] = np.asanyarray(self.points[i]) * np.asarray([scalex,scaley,scalez])
+    scale = np.asarray([scalex,scaley,scalez])
+    self.points = [p*scale for p in points]
+    self.boundary_points = [p*scale for p in boundary_points]  
     
     self.center = self.center * np.asarray([scalex,scaley,scalez])
   def translate(self,x,y,z):
-    for i in range(len(self.points)):
-      self.points[i] = np.asanyarray(self.points[i]) + np.asanyarray([x,y,z])
-    
-    self.center = self.center + np.asanyarray([x,y,z])
+    shift = np.asanyarray([x,y,z])
+    self.points = [p+shift for p in points]
+    self.boundary_points = [p+shift for p in boundary_points]
+    self.center += shift
     
   # recalculate bounds after rescaling and translating
   def update(self):

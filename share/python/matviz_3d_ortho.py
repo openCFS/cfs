@@ -82,8 +82,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
   
-  basecells = list()
-  boundary_flags = list()
+  # thread local data, each entry is a tuple with Basecell object and its boundary circle meshes
+  tl_data = list()
+  basecells = np.empty((nx,ny,nz),dtype=Basecell)
   
   nProblem = nx*ny*nz
 
@@ -117,18 +118,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     # translate cell to correct position
     left_front_corner  = np.asarray(sample_coords[i,j,k])
     
-    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh")
-    bc_input.eta = 0.7
-    bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input)
-    cell_obj.scale(dx, dy, dz)
-    cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
-    cell_obj.update()
-    if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-      continue
     # flags for meshing circles on the boundary
     flags = [None] * 6
-    grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
+#     grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
+    grid_bounds = [0,nx-1,0,ny-1,0,nz-1]
     grid_coords = [i,j,k]
 #     flags[0] = True if i == 0 else False
 #     flags[1] = True if j == 0 else False
@@ -138,19 +131,30 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #     flags[5] = True if k == nz-1 else False
     for c in range(len(flags)):      
       flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
+    
+    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",flags)
+    bc_input.eta = 0.7
+    bc_input.stiffness_as_diameter = True
+    cell_obj = basecell.Basecell(bc_input,id,(i,j,k))
+    cell_obj.scale(dx, dy, dz)
+    cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
+    cell_obj.update()
+    if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+      continue
     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
     cell_obj.center = cell_center
-    boundary_list = []
+    
+    meshed_boundaries = []
     # at least one boundary circle needs to be triangulated
     if any(flags):
-      boundary_list = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
-    basecells.append((cell_obj,boundary_list,flags))
+      meshed_boundaries = mesh_basecell_boundaries(flags,cell_obj,bounds,cell_center)
+    local_basecells.append((cell_obj,meshed_boundaries))
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
 
   # broadcast all data to master and exit script
   if rank != 0:
     sys.stdout.flush()
-    result = (basecells,boundary_flags)
+    result = local_basecells
     comm.send(result,dest=0,tag=1)
     status = MPI.Status()
     tmp = comm.recv(source=0,status=status)
@@ -163,12 +167,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     finished_workers = 0
     # a status object containing source, tag and size of a message
     status = MPI.Status()
+    basecells = [None] * nx*ny*nz
     while finished_workers != commSize-1:
       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
       # we store the result
       tmp_bc, tmp_bf = data
       basecells.extend(tmp_bc)
-      boundary_flags.extend(tmp_bf)
       #get the message tag
       tag = status.Get_tag()
       source = status.Get_source()
@@ -264,93 +268,6 @@ def get_3d_grid_coords(index,nx,ny,nz):
   k = ((index - i)/nx-j)/ny
   
   return int(i),int(j),int(k)
-
-# returns list of coordinates for given boundary 'bound'
-# using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
-# @param bc_bounds: minimum/maximum coordinate value of interpretation domain
-# order: min_x,min_y,min_z,max_x,max_y,max_z
-# @param cc_3d: basecell center; has also to be projected onto right plane
-def extract_2d_bc_boundary_coords(coords,bound,bc_bounds,cc_3d):
-  result = []
-  # depending on boundary flag, determine which coordinate component to compare
-  # 0 -> 0; 1 -> 1; 2 -> 2; 3 -> 0; 4 -> 2; 5 -> 3
-  major_dir = bound%3
-  minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
-  cc_2d = (cc_3d[minor_1],cc_3d[minor_2])
-  for p in coords:
-#     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
-    if np.isclose(p[major_dir],bc_bounds[bound],1e-6):
-      result.append((p[minor_1],p[minor_2]))
-  
-  return result, cc_2d      
-
-# mesh boundary circles of given basecell
-# flages is a list with 6 entries, each indicating whether a basecell face should be meshed or not
-# bounds order: min_x,min_y,min_z,max_x,max_y,max_z
-# @param: basecell center, need this for sorting points in circle order
-def mesh_basecell_boundaries(flags,basecell,bounds,cell_center):
-  list = []
-  # order: {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
-  # save which boundaries we are going to mesh
-  mesh_bound = np.where(flags)[0]
-  for b in mesh_bound:
-    bound_coords, cc_2d = extract_2d_bc_boundary_coords(basecell.points,b,bounds,cell_center)
-    points, cells = mesh_basecell_boundary(bound_coords,b,bounds,cc_2d)
-    list.append((points,cells))
-    
-  return list
-
-# here we only deal with 3 dimensions
-def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
-  assert(len(cell_center) == 2)
-  # need this for mapping between planar and space coordinate
-  major_dir = bound%3
-  minor_dir_1, minor_dir_2 = draw_profile_functions.give_normal_plane_axes(major_dir)
-  # sort points in circle order
-  coords_2d.sort(key=lambda c:math.atan2(c[0]-cell_center[0], c[1]-cell_center[1]))
-
-  info = triangle.MeshInfo()
-  import matplotlib
-  from matplotlib import pyplot as plt
-  coords_2d = np.asarray(coords_2d)
-#   plt.plot(coords_2d[:,0],coords_2d[:,1],'o')
-#   plt.show()
-  test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in coords_2d]
-  info.set_points(test)
-  info.set_facets(draw_profile_functions.round_trip_connect(0,len(coords_2d)-1))
-  
-  mesh = triangle.build(info,generate_faces=True)
-  mesh_points = np.array(mesh.points)
-  mesh_tris = np.array(mesh.elements)
-  # check whether we're on the left or right side
-  comp = bc_bounds[bound]
-  points = []
-  cells = []
-  # map from 2d point to 3d point
-  for p in mesh_points:
-    new_p = np.zeros(3)
-    new_p[major_dir] = comp
-    new_p[minor_dir_1] = p[0]
-    new_p[minor_dir_2] = p[1]
-    points.append(new_p)
-  for tri in mesh_tris:
-    cells.append((tri[0], tri[1], tri[2])) 
-  
-#   import matplotlib
-#   matplotlib.use('tkagg')
-#   from matplotlib import pyplot as plt
-#   plt.gcf()
-#   labels = []
-#   for i in range(len(points)):
-#     labels.append(i)
-#   points = np.asanyarray(points)
-#   plt.plot(points[:,minor_dir_1],points[:,minor_dir_2],'o')
-#   for i, label in enumerate(labels):
-#     plt.text(points[i,minor_dir_1],points[i,minor_dir_2],labels[i])
-#   plt.triplot(points[:,minor_dir_1],points[:,minor_dir_2],cells)
-#   plt.show()
-    
-  return points,cells
 
 def detect_boundary_edges(polydata):
   featureEdges = vtk.vtkFeatureEdges()
@@ -596,6 +513,8 @@ def get_interface_points(points,cells,dx,nx):
   for i in range(1,nx[0]+1):
     for j in range(1,nx[1]+1):
       for k in range(1,nx[2]+1):
+
+        print("i,j,k:",i,j,k)
         
         # midpoint of an interface
         midpoint = None
@@ -629,7 +548,7 @@ def get_interface_points(points,cells,dx,nx):
           assert(len(new_points) > 0)    
           lists.append(new_points)    
 
-#   print("number of interfaces:",len(lists))
+  print("number of interfaces:",len(lists))
 #   for l in lists:
 #     print("\nnew_points:\n",l)
 #   sys.exit()
@@ -662,7 +581,8 @@ def resolve_hanging_nodes(points,cells,dx,nx):
   assert(len(connectivity) == len(points))
   
   count = 0
-  for list in lists:
+  for l,list in enumerate(lists):
+    print("interface ",l)
     for vertex in list:
       p1 = np.asarray(vertex.coords)
       # get all connected neighbors
@@ -677,7 +597,10 @@ def resolve_hanging_nodes(points,cells,dx,nx):
           # prevent self-comparison
           if other.id == neighbor or other.id == vertex.id:
             continue
+          
           p = np.asarray(other.coords)
+          if np.linalg.norm(p2-p) > np.max(dx):
+            continue
           # vertices p1 and p2, point to test p
           # distance between P and edge v1v2
           # d = 2 * triangle area ABC / length of vector AB
@@ -693,6 +616,5 @@ def resolve_hanging_nodes(points,cells,dx,nx):
 #   # detect hanging nodes
 #   for list in lists:
 #     # each list contains triangle vertices for one cell interface
-  
             
   return points, cells
