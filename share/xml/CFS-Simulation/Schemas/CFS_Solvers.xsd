@@ -1091,15 +1091,13 @@
   <!-- ******************************************************************* -->
   <!--xsd:element name="petsc" type="DT_PETSCSpec"
     substitutionGroup="SolverBasic"/-->
-  <!-- ******************************************************************* -->
-  <!-- Definition of element for OLAS_MINRES Solver -->
-  <!-- ******************************************************************* -->
+  
   <xsd:element name="petsc" type="DT_PETSCSpec"
     substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         PETSC, a Library of Iterative Solvers for linear systems, is a mpi parallel
-        numerical library for solving the linear equations Ax = b for real sparse matrices
+        numerical library for solving the linear equations Ax = b (implemented)for real sparse matrices
         using iterative methods.
       </xsd:documentation>
     </xsd:annotation>
@@ -1110,8 +1108,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="precond" type="DT_PreCondPETSC" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="solver" type="DT_SolverPETSC" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="precond" type="DT_PreCondPETSC" minOccurs="1" maxOccurs="1" />
+          <xsd:element name="solver" type="DT_SolverPETSC" minOccurs="1" maxOccurs="1" />
           <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
           <!-- This is the target residual given to PETSC. Note, that PETSC knows three norms -->
           <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
@@ -1138,8 +1136,15 @@
           <xsd:element name="gmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="fgmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="bcgs"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="cr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="chebyshev"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="groppcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="pipecg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="pipecgrr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="nash"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="stcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="minres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="bicg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="symmlq"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="cr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>   
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1150,9 +1155,24 @@
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
           <xsd:element name="jacobi"/>
-          <xsd:element name="sor"/>
-          <xsd:element name="gamg"/>
+          <xsd:element name="sor">
+            <xsd:complexType>
+                <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
+             </xsd:complexType>
+          </xsd:element>
+          <!--    <xsd:element name="gamg"/> --> <!-- causes seg fault have to mail petsc mailing list with the input matrix and find why -->
+          <xsd:element name="mg"/>
+          <xsd:element name="asm"/>
           <xsd:element name="bjacobi"/>
+          <xsd:element name="icc"> 
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                "Only Works for serial case"
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>

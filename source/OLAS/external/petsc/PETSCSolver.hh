@@ -35,7 +35,17 @@
 
 #include "petsc.h"
 
- 
+
+#define DIETAG 0
+#define INIT_MAT_STRUCT 1
+#define ASSEMBLE_MAT 2
+#define ASSEMBLE_VEC_RHS  3
+#define SETUP_MATRIX 4
+#define SOLVE 5
+#define DATA 6
+#define GET_SOL 7
+#define SOLVER_STRING 8
+
 namespace CoupledField
 {
   class BaseMatrix;
@@ -101,7 +111,8 @@ namespace CoupledField
 
     //To find the rank of the processor its currently in
     int rank_;
-		int size_;
+    int size_;
+    
 		//find which is my rank
     
 
@@ -117,8 +128,8 @@ namespace CoupledField
 		std::string precondstring_;
 		
 
-    std::string CreateSolverString();
-    std::string CreatePrecondString();
+    std::string CreateSolverString(PtrParamNode);
+    std::string CreatePrecondString(PtrParamNode);
     
 
   };
@@ -130,7 +141,7 @@ namespace CoupledField
    
     
     void run();
-    PETSCWorker();
+    PETSCWorker(int argc,const char **argv);
     ~PETSCWorker();
     
   private:
@@ -139,6 +150,7 @@ namespace CoupledField
     void SetupPetscWorker();
     void GetSol();
 
+    
     //PETSC Error Code
     PetscErrorCode ierr=0;
 
@@ -173,11 +185,16 @@ namespace CoupledField
     
     PetscInt coarse_maxits = 30;
    
+    ///pointer to xml node
+    PtrParamNode xml_;
 
     //Strings for setting Solver and Preconditioner
-    char *  precondstring_=NULL;
-    char * solverstring_=NULL;
+    std::string solverstring_;
+		std::string precondstring_;
 
+
+    std::string CreateSolverString(PtrParamNode);
+    std::string CreatePrecondString(PtrParamNode);
   };
   
 }

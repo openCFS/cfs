@@ -5,19 +5,12 @@
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include <sstream>
 #include <stdio.h>
 #include<mpi.h>
 
-#define DIETAG 0
-#define INIT_MAT_STRUCT 1
-#define ASSEMBLE_MAT 2
-#define ASSEMBLE_VEC_RHS  3
-#define SETUP_MATRIX 4
-#define SOLVE 5
-#define DATA 6
-#define GET_SOL 7
-#define SOLVER_STRING 8
+
 
 //Checks Petsc error code, if non-zero it calls the C++ error handler which throws an exception
 #define CHKERRXX(ierr)  do {if (PetscUnlikely(ierr)) {PetscError(PETSC_COMM_SELF,__LINE__,PETSC_FUNCTION_NAME,__FILE__,ierr,PETSC_ERROR_IN_CXX,0);}} while(0)
@@ -26,40 +19,6 @@ using std::string;
 
 namespace CoupledField{
 
-
-	std::string PETSCSolver::CreateSolverString(){
-		
-		string output;
-		PtrParamNode sNode = xml_->Get("solver",ParamNode::PASS);
-		ParamNodeList sol = sNode->GetChildren();
-	
-		UInt numChilds = sol.GetSize();
-		if(numChilds==2){
-			output = sol[1]->GetName();
-		}
-		else{
-			output="cg";
-		}
-		return output;
-	}
-	
-	
-	std::string PETSCSolver::CreatePrecondString(){
-		
-		string output;
-		PtrParamNode sNode = xml_->Get("precond",ParamNode::PASS);
-		ParamNodeList sol = sNode->GetChildren();
-	
-		UInt numChilds = sol.GetSize();
-		if(numChilds==2){
-			output = sol[1]->GetName();
-		}
-		else{
-			output="jacobi";
-		}
-		return output;
-	}
-		
 	//initialize PETSCSolver class 	
 	PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
 
@@ -69,13 +28,16 @@ namespace CoupledField{
 		solver_=NULL;
 
 		
+		// petsc is mandatory
 		infoNode_ =  olasInfo->Get("petsc");
 		
 		xml_ = pn;
 		firstSetup_ = true;
-	
 		
+		
+
 		maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
+		// maxIter_    = pn->Get("maxIter")->As<int>();
 		tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
 		minTol_     = pn->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
 		logging_    = pn->Has("logging") ? pn->Get("logging")->As<bool>() : false;
@@ -94,9 +56,9 @@ namespace CoupledField{
 		MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 		MPI_Comm_size(MPI_COMM_WORLD,&size_);	
 
-		solverstring_=CreateSolverString();
-		precondstring_=CreatePrecondString();
-	
+		solverstring_=CreateSolverString(xml_);
+		precondstring_=CreatePrecondString(xml_);
+		
 		
 	}
 
@@ -116,25 +78,24 @@ namespace CoupledField{
 
 		//create petsc matrix form the sysmatrix
 		// const StdMatrix& stdmat = static_cast<const StdMatrix&>(sysmat);
-		
+
 		// BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
 		// BaseMatrix::StorageType stype = stdmat.GetStorageType();
 
 		
 
-		const CRS_Matrix<Double>& crs = static_cast<const CRS_Matrix<Double>&>(sysmat);
+		const SCRS_Matrix<Double>& crs = static_cast<const SCRS_Matrix<Double>&>(sysmat);
+		
 		if(crs.GetNumCols() != crs.GetNumRows()){
       EXCEPTION("PETSC solver only tested for quadratic matrices");
     }
 		//gather info
     UInt dim = crs.GetNumRows();
 
-		PetscInt * rowPtr = (PetscInt *)crs.GetRowPointer();
-    PetscInt * colPtr = (PetscInt *)crs.GetColPointer();
+		PetscInt* rowPtr = (PetscInt*) crs.GetRowPointer();
+    PetscInt* colPtr = (PetscInt*) crs.GetColPointer();
 		PetscScalar * dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
-		
-
-		
+			
 		UInt * nnzr = new UInt[dim];
 		for (UInt ii=0;ii<dim;ii++){
 			//100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel 
@@ -148,22 +109,18 @@ namespace CoupledField{
 			//only time where data is sent using mpi(can be implemented better)
 			for (int rank=1;rank<size_;rank++){	
 				ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-				ierr=MPI_Send(&minTol_,sizeof(double),MPI_DOUBLE,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-				ierr=MPI_Send(&tolerance_,sizeof(double),MPI_DOUBLE,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-				ierr=MPI_Send(&maxIter_,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-				ierr=MPI_Send(solverstring_.c_str(),solverstring_.size()+1,MPI_CHAR,rank,SOLVER_STRING,PETSC_COMM_WORLD);CHKERRXX(ierr);
-				ierr=MPI_Send(precondstring_.c_str(),precondstring_.size()+1,MPI_CHAR,rank,SOLVER_STRING,PETSC_COMM_WORLD);CHKERRXX(ierr);
 			}
 			
 			//Create PETSC matrix structure
-			
-			ierr=MatCreate(PETSC_COMM_WORLD,&A_); CHKERRXX(ierr);
-			ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));CHKERRXX(ierr);
-			ierr=MatSetFromOptions(A_);CHKERRXX(ierr);
-			ierr=MatSetUp(A_);CHKERRXX(ierr);
-			ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-			ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-			ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+
+			  ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+			  ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+//			ierr=MatCreate(PETSC_COMM_WORLD,&A_); CHKERRXX(ierr);
+//			ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));CHKERRXX(ierr);
+//			ierr=MatSetFromOptions(A_);CHKERRXX(ierr);
+//			ierr=MatSetUp(A_);CHKERRXX(ierr);
+//			ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+//			ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
 		}
 			
 		//setting values only using the proc 0 while others wait and then asemble is called in all procs so the matix can be distributed
@@ -192,13 +149,9 @@ namespace CoupledField{
 			
 			//create rhs and sol vector and allocate size in setup step
 			//Allocate size for rhs vec assuming the size is equal to dim of sysmat
-			ierr=VecCreate(PETSC_COMM_WORLD,&b_);CHKERRXX(ierr);
-			ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));CHKERRXX(ierr);
-			ierr=VecSetFromOptions(b_);CHKERRXX(ierr);
-			
-			
-			//Allocate sol vec 
-			ierr=VecDuplicate(b_,&x_);CHKERRXX(ierr);
+
+			//creates rhs and lhs vector from Matrix with appropriate size
+			ierr=MatCreateVecs(A_,&b_,&x_);CHKERRXX(ierr);
 			
 			//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
 			ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));CHKERRXX(ierr);
@@ -308,14 +261,37 @@ namespace CoupledField{
 		}		
 	}
 
-
 	//Methods for PETSCWorker class
-	PETSCWorker::PETSCWorker(){
+	PETSCWorker::PETSCWorker(int argc,const char **argv){
 		//init petsc objects
 		A_ =NULL;
 		b_=NULL;
 		solver_=NULL;
-		x_=NULL;		
+		x_=NULL;	
+
+		progOpts = new ProgramOptions(argc, argv);
+		
+		// Parse command line
+		progOpts->ParseData();
+
+		string xmlFile = progOpts->GetParamFileStr();
+		string schema = progOpts->GetSchemaPathStr();
+
+		schema += "/CFS-Simulation/CFS.xsd";
+		xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList")->Get("petsc");
+		
+		
+
+		maxIter_    = xml_->Has("maxIter") ? xml_->Get("maxIter")->As<int>() : 10000;		
+		tolerance_  = xml_->Has("tolerance") ? xml_->Get("tolerance")->As<double>() : 1e-12;
+		minTol_     = xml_->Has("minimalTolerance") ? xml_->Get("minimalTolerance")->As<double>() : 1e-11;
+		
+
+		solverstring_=CreateSolverString(xml_);
+		precondstring_=CreatePrecondString(xml_);
+		
+
+	
 	}
 
 
@@ -326,11 +302,12 @@ namespace CoupledField{
 		
 		MatDestroy(&A_);
 	
-		
 		KSPDestroy(&solver_);
 
-		delete [] solverstring_;
-		delete [] precondstring_;
+		//delete the PtrParamNode  and progOpts of worker 
+		delete progOpts;
+		progOpts = NULL;
+		xml_.reset();
 		
 	}
 
@@ -391,39 +368,23 @@ namespace CoupledField{
 		MPI_Get_count(&status,MPI_INT,&size);
 		dim=size/sizeof(int);
 		UInt *nnzr = new UInt[dim];
-		
-		//Receive the nnzr array and all other global parameters for solver
+		//Receive the nnzr array 
 		MPI_Recv(nnzr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-		MPI_Recv(&minTol_,1,MPI_DOUBLE,0,DATA,PETSC_COMM_WORLD,&status);
-		MPI_Recv(&tolerance_,1,MPI_DOUBLE,0,DATA,PETSC_COMM_WORLD,&status);
-		MPI_Recv(&maxIter_,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-		
-		//Receive the solver type data from master
-		int solverStringSize;
-		MPI_Probe(0,SOLVER_STRING,PETSC_COMM_WORLD,&status);
-		MPI_Get_count(&status,MPI_CHAR,&solverStringSize);
-		solverstring_=new char[solverStringSize];
-		ierr=MPI_Recv(solverstring_,solverStringSize,MPI_CHAR,0,SOLVER_STRING,PETSC_COMM_WORLD,&status);
 	
 		
-
-		//Receive the preconditioner type data from  master
-		int precondStringSize;
-		MPI_Probe(0,SOLVER_STRING,PETSC_COMM_WORLD,&status);
-		MPI_Get_count(&status,MPI_CHAR,&precondStringSize);
-		precondstring_=new char[precondStringSize];
-		ierr=MPI_Recv(precondstring_,precondStringSize,MPI_CHAR,0,SOLVER_STRING,PETSC_COMM_WORLD,&status);
-		
-		
+	
 		
 		//Same as master class but all workers also needs to call the petsc commands since most petsc commands are collective
-		ierr=MatCreate(PETSC_COMM_WORLD,&A_); 
-		ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));
-		ierr=MatSetFromOptions(A_);
-		ierr=MatSetUp(A_);
-		ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);
-		ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
-		ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+
+		  ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+		  ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+
+//		ierr=MatCreate(PETSC_COMM_WORLD,&A_);
+//		ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));
+//		ierr=MatSetFromOptions(A_);
+//		ierr=MatSetUp(A_);
+//		ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);
+//		ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
 
 	}
 
@@ -434,19 +395,20 @@ namespace CoupledField{
 		
 		//create rhs and sol vector and allocate size in setup step
 		//Allocate size for rhs vec assuming the size is equal to dim of sysmat
-		ierr=VecCreate(PETSC_COMM_WORLD,&b_);
-		ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));
-		ierr=VecSetFromOptions(b_);
+		ierr=MatCreateVecs(A_,&b_,&x_);CHKERRXX(ierr);
+		// ierr=VecCreate(PETSC_COMM_WORLD,&b_);
+		// ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));
+		// ierr=VecSetFromOptions(b_);
 		
 		
-		//Allocate sol vec 
-		ierr=VecDuplicate(b_,&x_);
+		// //Allocate sol vec 
+		// ierr=VecDuplicate(b_,&x_);
 		
 		//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
 		ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));
 		
 		// Set up the solver
-		ierr = KSPSetType(solver_,string(solverstring_).c_str()); // KSPCG - CG SOLVER 
+		ierr = KSPSetType(solver_,solverstring_.c_str()); // KSPCG - CG SOLVER 
 
 		ierr = KSPSetTolerances(solver_,tolerance_,minTol_,PETSC_DEFAULT,maxIter_);
 
@@ -457,7 +419,7 @@ namespace CoupledField{
 		// The preconditinoer
 		KSPGetPC(solver_,&precond_);CHKERRXX(ierr);
 		// Make jacobi the default preconditioner
-		PCSetType(precond_,string(precondstring_).c_str());CHKERRXX(ierr);
+		PCSetType(precond_,precondstring_.c_str());CHKERRXX(ierr);
 		
 		PetscOptionsInsert(NULL,NULL,NULL,NULL);
 		
@@ -481,7 +443,74 @@ namespace CoupledField{
 
 	}
 
+
+	std::string PETSCSolver::CreateSolverString(PtrParamNode xml_){
+		
+		string output;
+		PtrParamNode sNode = xml_->Get("solver",ParamNode::PASS);
+		ParamNodeList sol = sNode->GetChildren();
+	
+		UInt numChilds = sol.GetSize();
+		if(numChilds==2){
+			output = sol[1]->GetName();
+		}
+		else{
+			output="cg";
+		}
+		return output;
+	}
+	
+	
+	std::string PETSCSolver::CreatePrecondString(PtrParamNode xml_){
+		
+		string output;
+		PtrParamNode sNode = xml_->Get("precond",ParamNode::PASS);
+		ParamNodeList sol = sNode->GetChildren();
+	
+		UInt numChilds = sol.GetSize();
+		if(numChilds==2){
+			output = sol[1]->GetName();
+		}
+		else{
+			output="jacobi";
+		}
+		return output;
+	}
+
+
+	std::string PETSCWorker::CreateSolverString(PtrParamNode xml_){
+		
+		string output;
+		PtrParamNode sNode = xml_->Get("solver",ParamNode::PASS);
+		ParamNodeList sol = sNode->GetChildren();
+	
+		UInt numChilds = sol.GetSize();
+		if(numChilds==2){
+			output = sol[1]->GetName();
+		}
+		else{
+			output="cg";
+		}
+		return output;
+	}
+	
+	
+	std::string PETSCWorker::CreatePrecondString(PtrParamNode xml_){
+		
+		string output;
+		PtrParamNode sNode = xml_->Get("precond",ParamNode::PASS);
+		ParamNodeList sol = sNode->GetChildren();
+	
+		UInt numChilds = sol.GetSize();
+		if(numChilds==2){
+			output = sol[1]->GetName();
+		}
+		else{
+			output="jacobi";
+		}
+		return output;
+	}
+
 }	
 
 
-	

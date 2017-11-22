@@ -72,7 +72,6 @@ extern "C" void _allmul() {
 PtrParamNode infoNode;
 
 
-#define DIETAG 0
 
 int main(int argc, const char **argv){
   
@@ -100,7 +99,7 @@ int main(int argc, const char **argv){
   #ifdef USE_PETSC
   }
   else {
-      PETSCWorker w;
+      PETSCWorker w(argc, argv);
       w.run();
   }
 
@@ -410,6 +409,8 @@ void CFS::ReadXMLFile()
   // parse the problem xml file, validate and fill with defaults from schema
   // continue to work only with the ParamNode tree
   paramNode_ = XmlReader::ParseFile(xmlFile, schema);
+
+  // paramNode_->Dump();
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )
