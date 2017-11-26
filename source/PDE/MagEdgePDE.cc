@@ -1400,9 +1400,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 		  PtrCoefFct squareNormA = CoefFunction::Generate( mp_, part,
 				  CoefXprBinOp( mp_, normA, normA, CoefXpr::OP_MULT ) );
 		  PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, squareNormA, "0.5*(pi*f)^2", CoefXpr::OP_MULT ) );
+				  CoefXprBinOp( mp_, squareNormA, "0.5*2*pi*f*2*pi*f", CoefXpr::OP_MULT ) );
 		  PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
-		                      CoefXprBinOp( mp_, conduc_, tmp, CoefXpr::OP_MULT ) );
+		                      CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL),
+		                    		  tmp, CoefXpr::OP_MULT ) );
 
 		  PtrCoefFct  part2 = NULL;
 	      if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
@@ -1420,11 +1421,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 	      }
 
 		  // add both parts
-		  PtrCoefFct  partAddTmp =  CoefFunction::Generate( mp_, part,
+		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
 				  CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
-		  // divide by period length
-  		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
-		  				  CoefXprBinOp( mp_, partAddTmp, "1.0/f", CoefXpr::OP_DIV) );
+		  // the division by the period length is already incorporated
+  		  //PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
+		  //				  CoefXprBinOp( mp_, partAddTmp, "1.0", CoefXpr::OP_DIV) );
 		  eddyLossCoef->AddRegion(actRegion, partAdd);
 		}
     }
