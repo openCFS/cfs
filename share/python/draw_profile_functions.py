@@ -42,7 +42,8 @@ symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 class Vertex():
   def __init__(self,coords,id):
     self.coords = coords
-    self.id = id
+    assert(type(id) is int)
+    self.idx = id
     
 # the 6 faces of a bounding box, need it for identifying boundary circles
 class Face_Name(Enum):
@@ -927,7 +928,6 @@ def generate_basecell(args,info):
     verts = np.asarray(verts)
     
     verts += (h/2.0,h/2.0,h/2.0)
-    
     # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
@@ -1361,7 +1361,7 @@ def extract_2d_bc_boundary_coords(bpoints,bound):
   for p in bpoints[bound]:
     assert(type(p) is Vertex)
 #     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
-    result.append( ((p.coords[minor_1],p.coords[minor_2]),p.id) )
+    result.append( ((p.coords[minor_1],p.coords[minor_2]),p.idx) )
   
   return result  
 
@@ -1388,6 +1388,11 @@ def mesh_boundary_circles(points,cells,bpoints,flags=None):
   
   for p in points:
     assert(type(p) is Vertex)
+#   for c in cells:
+#     print("type(c[0]):",type(c[0]))
+#     assert(type(c[0]) is int)
+#     assert(type(c[1]) is int)
+#     assert(type(c[2]) is int)  
     
   return points, cells    
 
@@ -1468,12 +1473,13 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
   assert (len(mesh_points) > len(coords_2d))
   # up to len(l), l and mesh_points have the same ordering of points
   # map from local mesh_points point ids to global ones
-  map = np.ones(len(mesh_points),dtype=int) * (-1)
+  map = [-1] * len(mesh_points)
   assert(len(mesh_points) > 0)
   for i in range(0,len(coords_2d)):
 #     print(coords_2d[i][1])
 #     print(map[i])
-    map[i] = coords_2d[i][1]
+    map[i] = int(coords_2d[i][1])
+    assert(type(coords_2d[i][1]) is int)
   ######### mapping back to 3d ########################
   # 0,1,2 -> 0.0  3,4,5 -> 1.0
   comp = 0.0 if 0 <= bound <= 2 else 1.0
@@ -1487,14 +1493,17 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
     new_p[minor_dir_2] = mesh_points[i][1]
     # id of new pointcoords_2d
     new_points.append(Vertex(new_p,next_id))
+    assert(type(next_id) is int)
     map[i] = next_id
     next_id +=1
   
   points.extend(new_points)
   # use lookup table to set new triangles from meshed boundary circle  
   for tri in mesh_tris:
-    cells.append((map[tri[0]], map[tri[1]], map[tri[2]])) 
-  
+    cells.append((map[tri[0]], map[tri[1]], map[tri[2]]))
+    assert(type(map[tri[0]]) is int)
+    assert(type(map[tri[1]]) is int)
+    assert(type(map[tri[2]]) is int)
 #   import matplotlib
 #   matplotlib.use('tkagg')
 #   from matplotlib import pyplot as plt

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import numpy as np
 import matviz_vtk
 import vtk
@@ -21,6 +20,7 @@ import basecell
   
 try:
   import basecell
+  from draw_profile_functions import Face_Name
   import draw_profile_functions
 except:
   print("Warning: Could not load basecell and draw_profile_functions!")
@@ -74,8 +74,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
 #   print("samples:",samples)  
 #   print("delta:",delta)
-  print("bounds:",bounds)  
-  print("dx,dy,dz:",dx,dy,dz)
+#   print("bounds:",bounds)  
+#   print("dx,dy,dz:",dx,dy,dz)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
@@ -132,7 +132,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input,id,(i,j,k))
+    cell_obj = basecell.Basecell(bc_input,id)
     cell_obj.scale(dx, dy, dz)
     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
     cell_obj.update()
@@ -141,13 +141,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
     cell_obj.center = cell_center
     
-    basecells.append(cell_obj)
+    basecells.append((cell_obj,(i,j,k)))
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
 
   # broadcast all data to master and exit script
   if rank != 0:
     sys.stdout.flush()
-    result = local_basecells
+    result = basecells
     comm.send(result,dest=0,tag=1)
     status = MPI.Status()
     tmp = comm.recv(source=0,status=status)
@@ -160,12 +160,16 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     finished_workers = 0
     # a status object containing source, tag and size of a message
     status = MPI.Status()
+    pos = [c[1] for c in basecells ]
+    basecells = [c[0] for c in basecells]
 #     basecells = [None] * nx*ny*nz
     while finished_workers != commSize-1:
       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-      print("data:",data)
+      cells = [d[0] for d in data ]
+      p = [d[1] for d in data ]
       # we store the result
-      basecells.extend(data)
+      basecells.extend(cells)
+      pos.extend(p)
       #get the message tag
       tag = status.Get_tag()
       source = status.Get_source()
@@ -174,38 +178,74 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     print("finished_workers ",finished_workers," commsize: ",commSize)
     sys.stdout.flush()
-    
+
+    # store base cells in a 3d array to have info about connectivity
+    basecell_grid = np.empty((nx,ny,nz), dtype=object)
+     
+    for i,p in enumerate(pos):
+      basecell_grid[p[0],p[1],p[2]] = basecells[i]
+      
+    for i in range(nx):
+      for j in range(ny):
+        for k in range(nz):
+          this = basecell_grid[i,j,k]
+          assert(len(this.boundary_points) > 0)
+          assert(this is not None)
+          if i < nx-1:
+            this_bp = [len(l) for l in this.boundary_points]
+            right = basecell_grid[i+1,j,k]
+            right_bp = [len(l) for l in right.boundary_points]
+            assert(len(this.boundary_points[Face_Name.XMAX.value]) == len(right.boundary_points[Face_Name.XMIN.value]))
+            right.replace_boundary_points(this.boundary_points[Face_Name.XMAX.value],Face_Name.XMIN.value)
+#             right.boundary_points = this.boundary_points
+          if j < ny-1:  
+            top = basecell_grid[i,j+1,k]
+            assert(len(this.boundary_points[Face_Name.YMAX.value]) == len(top.boundary_points[Face_Name.YMIN.value]))
+#             top.boundary_points = this.boundary_points
+            top.replace_boundary_points(this.boundary_points[Face_Name.YMAX.value],Face_Name.YMIN.value)
+          if k < nz-1:
+            front = basecell_grid[i,j,k+1]
+            assert(len(this.boundary_points[Face_Name.ZMAX.value]) == len(front.boundary_points[Face_Name.ZMIN.value]))
+            front.replace_boundary_points(this.boundary_points[Face_Name.ZMAX.value],Face_Name.ZMIN.value)
+            front.boundary_points = this.boundary_points 
+      
     import time   
     start = time.time()
     # length of shortest edge
     short = 99999 
-    short_e = 99999   
-    print(basecells)
+    short_e = 99999
+    # for appending base cells
+    offset = 0 
+    vertices = []   
+    faces = []
     # each bc (entry of basecells list) stores the basecell object and lists with boundary circle meshes      
     for i,cell in enumerate(basecells):
       if (i%100==0):
         end_vtk_iteration=time.time()
         print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
-        
-      vtk_points = vtk.vtkPoints()
-      coords = [p.coords for p in cell.points]
-      pd, short_e = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
+      
+      verts, cells, short_e = add_offset(cell.points, cell.cells, offset)
+      
+      vertices.extend(verts)
+      faces.extend(cells)
+      offset = len(vertices)
+      
+      for f in faces:
+        assert(type(f[0]) is int)
+        assert(type(f[1]) is int)
+        assert(type(f[2]) is int)
       if short_e < short:
         short = short_e
-      appends.AddInputData(pd)
-      # meshed boundary circles
-  
-    appends.Update() # not sure if we have to do this in each loop iteration
-    
-    # merge duplicated points etc.
-#     cleanFilter = vtk.vtkCleanPolyData()
-#     cleanFilter.SetInputConnection(appends.GetOutputPort())
-#     cleanFilter.Update()
-    
+
     assert(short > -1 and short < 99999)
 #     points, cells = matviz_vtk.vtk_polydata_to_numpy(cleanFilter.GetOutput())
-    points, cells = matviz_vtk.vtk_polydata_to_numpy(appends.GetOutput())
-    points, cells = merge_duplicated_points(points,cells,short)
+    coords = [ v.coords for v in vertices]
+#     points, cells = matviz_vtk.vtk_polydata_to_numpy(coords,faces)
+    print("shortest edge:",short)
+    for i, v in enumerate(vertices):
+      assert(v.idx == i)
+    
+#     vertices, faces = merge_duplicated_points(vertices,faces,short)
     
 #     points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
     
@@ -214,7 +254,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
 #     cleanFilter.Update()
 #     pd = cleanFilter.GetOutput()
-    pd, _ = matviz_vtk.fill_vtk_polydata(points,cells)
+    pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
     
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(pd)
@@ -410,134 +450,75 @@ def fill_boundary_loops(points,loops):
 
 # merge duplicated points (with given tolerance)
 # at interface of two base cells
-def merge_duplicated_points(points,cells,short):
+def merge_duplicated_points(verts,faces,short):
   from scipy import spatial
-  tol = 0.8 * short
-  tree = spatial.KDTree(points)
+  tol = 0.5 * short
+  coords = [v.coords for v in verts]
+  tree = spatial.KDTree(coords)
   #find all pairs of points within a distance
   # gives indices with tuples of points indices
   idx = tree.query_pairs(tol)
-  
-  # stores tuples of point ids
-  # first tuple entry gives point id that should be replaced with second tuple entry
-  replace = []
+#   print("duplicated ids:",idx)
+  # stores new point ids
+  # list idx gives point id that should be replaced with value of element idx
+  # max id of first tuple entry
+  replace = [-1] * len(verts)
 #   print("\nnumber of duplicated points:",len(idx))
-  new_points = []
   for i in idx:
 #     print("pair:",points[i[0]],points[i[1]])
-    replace.append((i[0],i[1]))
+    replace[i[0]]=i[1]
+#     replace.append((i[0],i[1]))
   
   
-  return rearrange_points_cells(points,cells,replace)
+  return rearrange_points_cells(verts,faces,replace)
 
 # @param replace: list with 2-element-tuples storing info which id should be replaced with which one
 # returns points and cells list with 0-based and consecutive ids 
-def rearrange_points_cells(points,cells,replace):   
+def rearrange_points_cells(verts,faces,replace):   
   # create new points list with ordered and unique point ids (no gaps)
   # store old valid ids                                    
   old_ids = set()
   
-  print("found ", len(replace), " duplicates")
   # for each cell
-  for i in range(len(cells)):
-    cell = cells[i]
-    assert(len(cell) == 3)
-    # for each replacement
-    for r in replace:
-      assert(len(r) == 2)
-      # for each cell vertex
-      for i in range(len(cell)):
-        if cell[i] == r[0]:
-#           print("replaced id ", cell[i], " with ", r[1]) 
-          cell[i] = r[1]
-           
-    old_ids.add(cell[0])    
-    old_ids.add(cell[1])
-    old_ids.add(cell[2])
+  for i in range(len(faces)):
+    new_face = [None] * 3
+    for j in range(3):
+      if replace[faces[i][j]] > -1:
+        # if there is something to correct
+        new_face[j] = replace[faces[i][j]]
+#         print("replace ",faces[i][j]," with ",replace[faces[i][j]])
+#         print("replace ",verts[faces[i][j]].coords," with ",verts[replace[faces[i][j]]].coords)
+      else:
+        new_face[j] = faces[i][j]   
+      old_ids.add(new_face[j])
+      
+    faces[i] = new_face  
   
   # set does not support indexing
-  old_ids = list(old_ids)
-  # create map to connect old valids ids with new ones (0-based)
-  map = len(points) * [-1]
-  for i in range(len(old_ids)):
-    map[old_ids[i]] = i
+#   old_ids = list(old_ids)
+#   # create map to connect old valids ids with new ones (0-based)
+#   map = len(verts) * [-1]
+#   for i in range(len(old_ids)):
+#     map[old_ids[i]] = i
+#      
+#   # now correct node ids
+#   new_verts = len(old_ids) * [None]
+#   for oi in old_ids:
+#     new_verts[map[oi]] = draw_profile_functions.Vertex(verts[oi].coords,map[oi])
+# #     print("verts[oi].idx:",verts[oi].idx," oi:",oi)
+#     assert(verts[oi].idx == oi)
+#    
+#   for n in new_verts:
+#     assert(n is not None)
+#   
+#   # correct element vertices
+#   new_faces = []
+#   for f in faces:
+#     new_faces.append((map[f[0]],map[f[1]],map[f[2]]))
     
-  # now correct node ids
-  newpoints = len(old_ids) * [None]
-  for oi in old_ids:
-    newpoints[map[oi]] = points[oi]
-  
-  for n in newpoints:
-    assert(n is not None)
-  
-  # correct element vertices
-  newcells = []
-  for i in range(len(cells)):
-    newcells.append((map[cells[i][0]],map[cells[i][1]],map[cells[i][2]]))
-    
-  return newpoints, newcells
+  return verts,faces  
+#   return new_verts, new_faces
 
-def get_interface_points(points,cells,dx,nx):
-  from scipy import spatial
-  # kd tree for efficient neighbor search
-  tree = spatial.KDTree(points)
-
-  r = np.max([dx[0],dx[1],dx[2]])
-  tol = 3 * [0.0]
-  tol[0] = dx[0] /20.0
-  tol[1] = dx[1] /20.0
-  tol[2] = dx[2] /20.0
-  
-#   print("tol x,y,z", tol)  
-  
-  lists = []
-  # store a point list for each cell interface
-  # each list entry is a tuple with (id,coords)
-  check_lists = [] 
-  for i in range(1,nx[0]+1):
-    for j in range(1,nx[1]+1):
-      for k in range(1,nx[2]+1):
-
-        print("i,j,k:",i,j,k)
-        
-        # midpoint of an interface
-        midpoint = None
-        new_points = []
-        for count in range(0,3):
-          if count == 0: #x
-            major = i
-            midpoint = [i*dx[0],j*dx[1]/2,k*dx[2]/2]
-          elif count == 1: #y
-            major = j
-            midpoint = [i*dx[0]/2,j*dx[1],k*dx[2]/2]
-          else: #z
-            major = k
-            midpoint = [i*dx[0]/2,j*dx[1]/2,k*dx[2]]
-            
-          # neglect boundary circles  
-          if major >= nx[count]:
-            continue
-          
-          assert(midpoint is not None)
-          ids = tree.query_ball_point(midpoint,r)
-          assert(len(ids) > 0)
-          cands = [points[id] for id in ids]
-          
-          for idx,cand in enumerate(cands):
-            if midpoint[count]-tol[count] <= cand[count] <= midpoint[count]+tol[count]:
-              # store id and coords of vertex
-              new_points.append(draw_profile_functions.Vertex(cand,ids[idx]))   
-          
-          assert(new_points is not None)
-          assert(len(new_points) > 0)    
-          lists.append(new_points)    
-
-  print("number of interfaces:",len(lists))
-#   for l in lists:
-#     print("\nnew_points:\n",l)
-#   sys.exit()
-    
-  return lists      
 # detect hanging node and resolve them by adding additional triangles;
 # look only at points and triangles at interfaces between two base cells:
 # a hanging node is a vertex with distance ~0 to another triangle edge
@@ -550,11 +531,9 @@ def resolve_hanging_nodes(points,cells,dx,nx):
   assert(dx[1] > 0)
   assert(dx[2] > 0)
   
-  # each entry is a list
-  # each list has entries of type Vertes()
-  lists = get_interface_points(points,cells,dx,nx)
   # store all neighbors for all points
-  connectivity = basecell.getConnectivity(points, cells)
+  coords = [p.coords for p in points]
+  connectivity = basecell.getConnectivity(coords, cells)
 #   print("connectivity of node 4871=",points[4871],": ")
 #   for id in connectivity[4871]:
 #     print(id,points[id])
@@ -568,9 +547,9 @@ def resolve_hanging_nodes(points,cells,dx,nx):
   for l,list in enumerate(lists):
     print("interface ",l)
     for vertex in list:
-      p1 = np.asarray(vertex.coords)
+      p = np.asarray(vertex.coords)
       # get all connected neighbors
-      neighbors = connectivity[vertex.id]
+      neighbors = connectivity[vertex.idx]
       # for each neighbor, form an edge and compare
       # if any vertex in the surroundings has distance 0 (hanging node)
       for neighbor in neighbors:
@@ -579,21 +558,23 @@ def resolve_hanging_nodes(points,cells,dx,nx):
         p2 = np.asarray(points[neighbor])
         for other in list:
           # prevent self-comparison
-          if other.id == neighbor or other.id == vertex.id:
+          if other.idx == neighbor or other.idx == vertex.idx:
             continue
           
           p = np.asarray(other.coords)
           if np.linalg.norm(p2-p) > np.max(dx):
             continue
-          # vertices p1 and p2, point to test p
-          # distance between P and edge v1v2
-          # d = 2 * triangle area ABC / length of vector AB
+          
+          # check if projection of point A lies between 2 points P and S
+          # defining the edge
+          
+          
           d = np.linalg.norm(np.cross(p-p1, p-p2))
           d /= np.linalg.norm(p2-p1)
           
           if np.isclose(d,0,1e-6):
             print("\ndetect hanging node: edge=",p1,p2," point:",p)
-            print("ids:",vertex.id,neighbor,other.id)
+            print("ids:",vertex.idx,neighbor,other.idx)
             count += 1
   
   print("found ",count," hanging nodes")
@@ -602,3 +583,28 @@ def resolve_hanging_nodes(points,cells,dx,nx):
 #     # each list contains triangle vertices for one cell interface
             
   return points, cells
+
+# @param verts: list of objects of type Vertex
+# @param cells: list of triangles
+# @param offset: value to shift vertex ids
+def add_offset(verts,cells,offset):
+  assert(offset >=0)
+  coords = [None] * len(verts)
+  # length of shortest edge 
+  short = 999999
+  # add offset to all triangle vertices
+  for i in range(len(verts)):
+    assert(type(verts[i]) is draw_profile_functions.Vertex)
+    verts[i].idx += offset
+  
+  for i in range(len(cells)):
+    cell = cells[i]
+    e01 = np.linalg.norm(np.asarray(verts[cell[1]].coords) - np.asarray(verts[cell[0]].coords))
+    e12 = np.linalg.norm(np.asarray(verts[cell[2]].coords) - np.asarray(verts[cell[1]].coords))
+    e02 = np.linalg.norm(np.asarray(verts[cell[2]].coords) - np.asarray(verts[cell[0]].coords))
+    if np.min([e01,e12,e02]) < short:
+      short = np.min([e01,e12,e02])
+      
+    cells[i]= (int(cells[i][0])+offset,int(cells[i][1]+offset),int(cells[i][2]+offset))  
+  
+  return verts, cells, short

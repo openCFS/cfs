@@ -57,7 +57,7 @@ def laplacian_smoothing(points,connectivity,lamb):
     p = vertex.coords
     # calculate gradient   
     if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
-      new_points[i] = Vertex(p,id)
+      new_points[i] = Vertex(p,vertex.idx)
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
@@ -72,7 +72,7 @@ def laplacian_smoothing(points,connectivity,lamb):
         # distance between neighbor and this node
         w = 1.0 / np.linalg.norm(len(neighborhood))
         L = L + w * (n-p)
-      new_points[i] = Vertex(p + lamb * L,vertex.id)   
+      new_points[i] = Vertex(p + lamb * L,vertex.idx)   
   
   for p in new_points:
     assert(type(p) is Vertex)
@@ -402,11 +402,12 @@ class Basecell_Data():
 class Basecell():
   # data is an object of type Basecell_Data()
   # idx = (i,j,k)
-  def __init__(self,data,id=None,idx=None):
+  def __init__(self,data,idx=None):
     assert(type(data) is Basecell_Data)
     self.data = data
-    self.id = id
+    self.idx = idx
     _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None)
+    assert(len(self.boundary_points) > 0)
     assert(self.points is not None)
     assert(self.cells is not None)
     for p in self.points:
@@ -428,23 +429,25 @@ class Basecell():
     
   def scale(self,scalex,scaley,scalez):
     scale = np.asarray([scalex,scaley,scalez])
-    self.points = [Vertex(p.coords*scale,p.id) for p in self.points]
+    self.points = [Vertex(p.coords*scale,p.idx) for p in self.points]
     new_bp = []
     for list in self.boundary_points:
-      new_list = [Vertex(p.coords*scale,p.id) for p in list]
+      new_list = [Vertex(p.coords*scale,p.idx) for p in list]
       new_bp.append(new_list)
       
     self.boundary_points = new_bp 
+    assert(len(self.boundary_points) > 0)
     self.center = self.center * np.asarray([scalex,scaley,scalez])
   def translate(self,x,y,z):
     shift = np.asarray([x,y,z])
-    self.points = [Vertex(p.coords+shift,p.id) for p in self.points]
+    self.points = [Vertex(p.coords+shift,p.idx) for p in self.points]
     new_bp = []
     for list in self.boundary_points:
-      new_list = [Vertex(p.coords+shift,p.id) for p in list]
+      new_list = [Vertex(p.coords+shift,p.idx) for p in list]
       new_bp.append(new_list)
       
     self.boundary_points = new_bp 
+    assert(len(self.boundary_points) > 0)
     self.center += shift
     
   # recalculate bounds after rescaling and translating
@@ -457,7 +460,23 @@ class Basecell():
     self.bounds[4] = np.max(coords[:,1])
     self.bounds[5] = np.max(coords[:,2])
     
-  
+  def replace_boundary_points(self,new,list_idx):
+    old_ids = [p.idx for p in self.boundary_points[list_idx]]
+    self.boundary_points[list_idx] = new
+    new_points = []
+    for i,p in enumerate(self.points):
+      if id in old_ids:
+        new_points.append(self.boundary_points[id])
+      else:
+         new_points.append(p)
+
+    assert(len(self.points) == len(new_points))
+    for i in range(len(new_points)):
+      if np.linalg.norm(np.asarray(self.points[i].coords) - np.asarray(new_points[i].coords) > 1e-6):
+        print("replace point ", self.points[i].coords, " with point ", new_points[i].coords)         
+    self.points = new_points
+    
+#     print("replaced ", len(old_ids), " points with ", len(new))      
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>
