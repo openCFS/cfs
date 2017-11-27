@@ -18,6 +18,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "General/defs.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/LocalElementCache.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -54,7 +55,6 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, De
   needs_mass_ = ctxt->IsComplex() || em->IsTransient() || ctxt->IsEigenvalue();
 
   transient_ = em->IsTransient();
-  structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
 
 OptimizationMaterial::~OptimizationMaterial()
@@ -93,17 +93,12 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
 
 shared_ptr<CoefFunctionOpt> OptimizationMaterial::GetMatCoef(const std::string& integrator, BiLinFormContext* context, RegionIdType reg_id)
 {
-  if(context != NULL)
-  {
-    BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
-    if(bdb != NULL)
-    {
-      assert(bdb->GetCoef());
-      // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
-      return dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
-    }
-  }
-  EXCEPTION("not implemented");
+  assert(context != NULL);
+  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
+  assert(bdb != NULL);
+  assert(bdb->GetCoef());
+  // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
+  return dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
 }
 
 
@@ -117,7 +112,6 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
 
   SinglePDE* pde = ctxt_->pde;
   assert(pde != NULL);
-
 
   BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, elem->regionId, pde, pde, false);
 
@@ -175,6 +169,26 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
 }
 
 
+template <class T>
+const Matrix<T>& OptimizationMaterial::GetCachedElementMatrix(const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction)
+{
+  assert(!(lower_bimat && direction != DesignElement::NO_DERIVATIVE)); // what is with NO_MULTIMATERIAL?!
+
+  LocalElementCache::Type state = lower_bimat ? LocalElementCache::SHADOW : LocalElementCache::ORG;
+  if(direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)
+    state = LocalElementCache::DIRECTION;
+
+  return space->elementCache->CachedElement<T>(integrator, state, elem, direction);
+}
+
+const DenseMatrix& OptimizationMaterial::GetCachedElementMatrixDM(const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction)
+{
+  if(ComplexElementMatrix(elem->regionId))
+    return GetCachedElementMatrix<complex<double> >(integrator, elem, lower_bimat, direction);
+  else
+    return GetCachedElementMatrix<double>(integrator, elem, lower_bimat, direction);
+}
+
 void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, BaseMaterial* bimaterial, const Vector<double>* ts)
 {
   assert(false);
@@ -184,8 +198,8 @@ void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& ou
 }
 
 
-
-Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
+/*
+const Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
                                                        DesignElement::Type direction, double factor, bool transposed)
 {
   unsigned int index = de->multimaterial != NULL ? de->multimaterial->index : 0;
@@ -236,6 +250,9 @@ Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, St
   return mat;
 }
 
+*/
+
+
 bool OptimizationMaterial::ComplexElementMatrix(RegionIdType reg) const
 {
   if(ctxt_->DoBloch())
@@ -263,124 +280,33 @@ MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, Optimization::
 void MechMat::Init()
 {
   system_ = MECH;
-
-  StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
-
-  for(unsigned int r=0; r < regionIds.GetSize(); r++)
-  {
-    RegionIdType reg_id = regionIds[r];
-    bool bimat = space->GetRegion(reg_id)->HasBiMaterial();
-    Elem* elem = dynamic_cast<GridCFS*>(domain->GetGrid())->SearchFistRegionElement(reg_id);
-
-    // 1 for normal, 2 for bimaterial, n for multimaterial
-    unsigned int max = space->HasMultiMaterial() ? mm.GetSize() : (bimat ? 2 : 1);
-
-    // first the bloch case
-    if(ctxt_->DoBloch())
-      current_wave_vector_[reg_id].Resize(max, -1.0);
-
-    if(ComplexElementMatrix(reg_id)) {
-      mechStiffness_mapC[reg_id].Resize(max);
-      if(needs_mass_)
-        mechMass_mapC[reg_id].Resize(max);
-    }
-    else {
-      mechStiffness_map[reg_id].Resize(max);
-      if(needs_mass_)
-        mechMass_map[reg_id].Resize(max);
-    }
-
-    // this check is for Virginie's mapping with a ghost region not being part of the simulation
-    // can be removed if we use nodal design elements
-    if(ctxt_->pde->GetAssemble()->UseRegion(reg_id))
-    {
-      // the normal and multimaterial case, not the bimaterial case
-      for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++) {
-        MechStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
-        if(needs_mass_)
-          MechMass(elem, false, m, DesignElement::NO_DERIVATIVE, true);
-    }
-
-    // now the bimaterial case
-    if(bimat) {
-      MechStiffness(elem, true, -1, DesignElement::NO_DERIVATIVE, true);
-      if(needs_mass_)
-        MechMass(elem, true, -1, DesignElement::NO_DERIVATIVE, true);
-    }
-  }
-  }
 }
 
 
-DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
-  RegionIdType reg_id = elem->regionId;
 
   // index is 0 for standard material, 1 for bimaterial and anything >= 0 for a real multimaterial index
-  unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
-  bool complexMaterial = ComplexElementMatrix(reg_id);
+  //unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
 
   // in the multimaterial case we do not want the form to obtain the multimaterial tensor but only the one of the currently material
   if(space->HasMultiMaterial()) // ??? and why not in mass??
     direction = DesignElement::NO_MULTIMATERIAL;
 
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
-  bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
+  //bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
 
-  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index << " es=" << enforce_unstructured << " s=" << structured_ << " nwv=" << new_wave_vector;
+  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction; // << " index=" << index;
 
-  StdVector<Matrix<double> >&  K =  mechStiffness_map[reg_id];
-  StdVector<Matrix<Complex> >& KC = mechStiffness_mapC[reg_id];
-
-  // we need to get the data on request
-  if(new_wave_vector || enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
-  {
-   if(ComplexElementMatrix(reg_id))
-      GetElementMatrix<complex<double> >(KC[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
-    else
-      GetElementMatrix<double>(K[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
-
-   if(ctxt_->DoBloch())
-     current_wave_vector_[reg_id][index] = ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2();
-  }
-
-  // e.g. structured case
-
-  if(complexMaterial)  {
-    LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << KC[index].ToString();
-    return dynamic_cast<DenseMatrix& >(KC[index]); // no multimaterial is frst material
-  }
-  else {
-    LOG_DBG3(om) << "MS: direction= " << direction << " el=" << elem->elemNum << " -> " << K[index].ToString();
-    return dynamic_cast<DenseMatrix& >(K[index]);
-  }
+  return GetCachedElementMatrixDM("LinElastInt", elem, bimaterial, direction);
 }
 
-DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+const DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
   // see MechStiffness, almost copy & paste :(
-  unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
-  bool complexMaterial = ComplexElementMatrix(elem->regionId);
+  // unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
 
-  StdVector<Matrix<double> >&  M =  mechMass_map[elem->regionId];
-  StdVector<Matrix<Complex> >& MC = mechMass_mapC[elem->regionId];
-
-  if(enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
-  {
-    if(complexMaterial)
-      GetElementMatrix<complex<double> >(MC[index], "MassInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
-    else
-      GetElementMatrix<double>(M[index], "MassInt", elem, bimaterial, direction);
-  }
-
-  if(complexMaterial) {
-    LOG_DBG3(om) << "MM el=" << elem->elemNum << " c=" << complexMaterial << " es=" << enforce_unstructured << " s=" << structured_<< " bm=" << bimaterial << " d=" << direction << " i=" << index << " -> " << MC[index].ToString();
-    return dynamic_cast<DenseMatrix& >(MC[index]);
-  }
-  else {
-    LOG_DBG3(om) << "MM el=" << elem->elemNum << " c=" << complexMaterial << " es=" << enforce_unstructured << " s=" << structured_ << " bm=" << bimaterial << " d=" << direction << " i=" << index << " -> " << M[index].ToString();
-    return dynamic_cast<DenseMatrix& >(M[index]);
-  }
+  return GetCachedElementMatrixDM("MassInt", elem, bimaterial, direction);
 }
 
 const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
@@ -408,82 +334,18 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 AcouMat::AcouMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = ACOUSTIC;
-
-  for(unsigned int r=0; r < regionIds.GetSize(); r++)
-  {
-    RegionIdType reg_id = regionIds[r];
-    DesignSpace::DesignRegion* dr = space->GetRegion(reg_id);
-    // BaseMaterial* bm = dr->HasBiMaterial() ? dr->GetBiMaterial(FLUID) : NULL;
-
-    assert(false);
-    // GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].first, NULL, NULL);
-
-    if(dr->HasBiMaterial())
-    {
-      assert(false);
-      // GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
-    }
-
-    if(ctxt_->IsComplex())
-    {
-      assert(false);
-      //GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
-
-      if(dr->HasBiMaterial())
-      {
-        assert(false);
-        // GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].second, NULL, bm);
-      }
-    }
-  }
 }
 
 
 
-Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
+const Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
 {
-  RegionIdType reg_id = elem->regionId;
-
-  if(!structured_)
-  {
-    if(!bimaterial)
-    {
-      assert(false);
-      //GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].first, elem, NULL);
-    }
-    else
-    {
-      assert(false);
-      // BaseMaterial* bm = space->GetRegion(reg_id)->GetBiMaterial(FLUID);
-      // GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].second, elem, bm);
-    }
-  }
-
-  return !bimaterial ? acouStiffness_map[reg_id].first : acouStiffness_map[reg_id].second;
+  return GetCachedElementMatrix<double>("LaplaceInt", elem, bimaterial);
 }
 
 const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 {
-  RegionIdType reg_id = elem->regionId;
-
-  // FIXME assert(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
-
-  if(!structured_)
-  {
-    if(!bimaterial)
-    {
-      assert(false);
-      // GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].first, elem, NULL);
-    }
-    else
-    {
-      assert(false);
-      // BaseMaterial* bm = space->GetRegion(reg_id)->GetBiMaterial(FLUID);
-      // GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].second, elem, bm);
-    }
-  }
-
-  return !bimaterial ? acouMass_map[reg_id].first : acouMass_map[reg_id].second;
+  return GetCachedElementMatrix<double>("MassInt", elem, bimaterial);
 }
 
 
@@ -491,7 +353,7 @@ const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 PiezoElecMat::PiezoElecMat(ErsatzMaterial* em, Context* ctxt) : MechMat(em, ctxt)
 {
   system_ = PIEZOCOUPLING;
-
+/*
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
     Elem elem;
@@ -510,89 +372,65 @@ PiezoElecMat::PiezoElecMat(ErsatzMaterial* em, Context* ctxt) : MechMat(em, ctxt
       CoupledStiffnessTransposed(&de, DesignElement::NO_DERIVATIVE);
     }
   }
+  */
 }
 
 
 
 const Matrix<double>& PiezoElecMat::ElecStiffnessPos(const DesignElement* de, DesignElement::Type direction)
 {
+  /*
   Matrix<double>& mat = GeneralStiffness(elecStiffness_map, de, ELECTROSTATIC, direction, -1.0 , false); // piezo form already negates
   mat *= -1.0;
   assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() >= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
   return mat;
+  */
+  assert(false);
+  return GetCachedElementMatrix<double>("killme", NULL, false);
 }
 
 const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, DesignElement::Type direction)
 {
+/*
   Matrix<double>& mat = GeneralStiffness(elecStiffness_neg_map, de, ELECTROSTATIC, direction, 1.0, false); // piezo form already negates
   //   type.Add(NO_MULTIMATERIAL, "no_multimaterial");LOG_DBG3(om) << "PEM:ESN de=" << de->ToString() << " dt=" << DesignElement::type.ToString(direction) << " -> " << mat.ToString();
   assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() <= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
   return mat;
+  */
+  assert(false);
+  return GetCachedElementMatrix<double>("killme", NULL, false);
 }
 
 
 const Matrix<double>& PiezoElecMat::CoupledStiffness(const DesignElement* de, DesignElement::Type direction)
 {
-  return GeneralStiffness(coupledStiffness_map, de, PIEZO, direction, 1.0, false);
+  //return GeneralStiffness(coupledStiffness_map, de, PIEZO, direction, 1.0, false);
+  assert(false);
+  return GetCachedElementMatrix<double>("killme", NULL, false);
 }
 
 
 const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction)
 {
-  return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, direction, 1.0, true);
+  //return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, direction, 1.0, true);
+  assert(false);
+  return GetCachedElementMatrix<double>("killme", NULL, false);
 }
 
-HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) :
-  OptimizationMaterial(em, ctxt)
+HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = HEAT;
-
-  for(unsigned int r=0; r < regionIds.GetSize(); r++)
-  {
-    RegionIdType reg_id = regionIds[r];
-    Elem* elem = dynamic_cast<GridCFS*>(domain->GetGrid())->SearchFistRegionElement(reg_id);
-
-    // assume standard material
-    unsigned int max = 1;
-
-    heatStiffness_map[reg_id].Resize(max);
-    if(needs_mass_)
-      EXCEPTION("Heat mass matrix not implemented yet!");
-
-    if(ctxt_->pde->GetAssemble()->UseRegion(reg_id))
-    {
-      for(unsigned int m = 0; m < 1; m++) {
-        HeatStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
-      }
-    }
-  }
 }
 
-DenseMatrix& HeatMat::HeatStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+const DenseMatrix& HeatMat::HeatStiffness(const Elem* elem, bool bimaterial, int multimaterial)
 {
-  // from MechMat:MechStiffness
-  RegionIdType reg_id = elem->regionId;
-
-  // assume we just jave standard material
-  unsigned int index = 0;
-
-  StdVector<Matrix<double> >&  K =  heatStiffness_map[reg_id];
-
-  // we need to get the data on request
-  if(enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
-  {
-      GetElementMatrix<double>(K[index], "HeatConductivity", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
-  }
-
-  // e.g. structured case
-  LOG_DBG3(om) << "HS: direction= " << direction << " el=" << elem->elemNum << " -> " << K[index].ToString();
-  return dynamic_cast<DenseMatrix& >(K[index]);
+  return GetCachedElementMatrixDM("HeatConductivity", elem, bimaterial);
 }
 
 ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = ELEC;
-
+/*
   SinglePDE* elec = ctxt_->ToPDE(App::ELEC);
   assert(elec != NULL);
 
@@ -630,12 +468,14 @@ ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, c
     }
 
   }
+  */
 }
 
 
 
 void ElecMat::ReInit()
 {
+  /*
   SinglePDE* elec = ctxt_->ToPDE(App::ELEC);
   assert(elec != NULL);
 
@@ -672,11 +512,13 @@ void ElecMat::ReInit()
           << std::endl << elecStiffness_map[reg_id].second.ToString(0,true);
     }
   }
+  */
 }
 
 
-Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+const Matrix<complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
+  /*
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
   {
     Matrix<double> tmp_mat;
@@ -709,6 +551,9 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
   }
 
   return !bimaterial ? elecStiffness_map[elem->regionId].first : elecStiffness_map[elem->regionId].second;
+  */
+  assert(false);
+  return GetCachedElementMatrix<complex<double> >("killme", NULL, false);
 }
 
 LBMMat::LBMMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)

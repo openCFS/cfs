@@ -99,10 +99,10 @@ void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type typ
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<Matrix<double> &>(mech_mat->MechStiffness(de->elem, false, mm, t));
+    out = dynamic_cast<const Matrix<double> &>(mech_mat->MechStiffness(de->elem, false, mm, t));
     break;
   case App::MASS:
-    out = dynamic_cast<Matrix<double> &>(mech_mat->MechMass(de->elem, false, mm, t));
+    out = dynamic_cast<const Matrix<double> &>(mech_mat->MechMass(de->elem, false, mm, t));
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

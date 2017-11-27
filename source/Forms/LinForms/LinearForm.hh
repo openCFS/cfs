@@ -77,7 +77,7 @@ namespace CoupledField{
         return name_;
       }
 
-      virtual bool IsComplex()=0;
+      virtual bool IsComplex() const =0;
 
       virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
         ptFeSpace_ = feSpace;

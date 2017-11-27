@@ -31,7 +31,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
   // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
   if(res->GetResultInfo()->fromOptimization)
   {
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
       domain->GetDesign()->ExtractResults<TYPE>(res);
     else {
       Vector<TYPE>* data = dynamic_cast<Vector<TYPE>* >(res->GetSingleVector());

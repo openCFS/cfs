@@ -894,7 +894,6 @@ namespace CoupledField
     /** To be set from FinishInit() */
     StdVector<RegionData> regionData;
 
-
   protected:
     
    

@@ -73,7 +73,7 @@ public:
 
   void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
 
-  bool IsComplex(){
+  bool IsComplex() const {
     return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
   }
 

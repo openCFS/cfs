@@ -28,6 +28,7 @@ namespace CoupledField {
 template <class TYPE> class StdVector;
 
 class ErsatzMaterial;
+class DesignSpace;
 class TransferFunction;
 
   class DesignMaterial
@@ -61,7 +62,7 @@ class TransferFunction;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
     
     /** reset the parameter space */
     void ClearParameter() { params_.clear(); }
@@ -117,8 +118,6 @@ class TransferFunction;
     Type GetType() const { return type_; };
 
     void SetType(Type type) {type_ = type;};
-
-    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -445,8 +444,7 @@ class TransferFunction;
     //Contains the infomation about the parameters for the corrector problem in the greedy case
     StdVector<Matrix<double> > matrices_param_;
 
-    /** only for ROTATION to get OptimizationMaterial */
-    ErsatzMaterial* em_;
+    DesignSpace* space_;
 
     Interpolation interpolation_;
     unsigned int level_;

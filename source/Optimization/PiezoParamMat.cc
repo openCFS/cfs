@@ -86,7 +86,7 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<Matrix<double> &>(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+    out = dynamic_cast<const Matrix<double> &>(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
   case App::ELEC:
