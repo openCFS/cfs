@@ -187,7 +187,7 @@ namespace CoupledField
        matTypeNotAllowed( matType, dim );
      }
     
-    
+    isSet_.insert( matType ); // enables printing to info.xml
     // switch depending on dimType of coefficient function
     switch(coef->GetDimType()) {
       case CoefFunction::SCALAR:
@@ -316,6 +316,18 @@ namespace CoupledField
 
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
+
+      std::vector<CoefMap*> Coefs; // vector for iteration
+      Coefs.push_back( &scalarCoef_ );Coefs.push_back( &vectorCoef_ );Coefs.push_back( &tensorCoef_ ); // fill it with pointers
+      // iterate over all types of coef functions
+      for(std::vector<CoefMap*>::iterator it=Coefs.begin();it!=Coefs.end();++it)
+      {
+          CoefMap::const_iterator posIt = (*it)->find(mt); // check if it is set
+          if (posIt != (*it)->end() ) {
+              PtrCoefFct coef = posIt->second;
+              in_->Get("value")->SetValue( coef->ToString() ); // print to xml
+          }
+      }
 
       if(rot != NULL && rot->NormMax() > 0)
       {
