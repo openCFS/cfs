@@ -1351,7 +1351,7 @@ namespace CoupledField
       // get integrator
       BiLinFormContext & context = **it;
 
-      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
+      PtrParamNode form = list->Get("bilinearForm", ParamNode::INSERT);
       // integrator name
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
       BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context.GetIntegrator());
