@@ -42,7 +42,7 @@ Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space)
 #ifdef USE_SGPP
   :
   alpha1_(sgpp::base::DataVector(0)),
@@ -68,7 +68,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
-  em_ = em;
+  space_ = space;
 
   // initialize, maybe overwritten later
   interpolation_ = DesignMaterial::NOTYPE;
@@ -663,7 +663,12 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     EXCEPTION("CFS is compiled without SGpp toolbox! Please recompile with SGpp or choose another interpolation method.")
 #endif //USE_SGPP
     }
-  } else if (type_ == MSFEM_C1) {
+  }
+  else if (type_ == MSFEM_C1)
+  {
+    if(!space_->IsRegular())
+      throw Exception("MSFEM requires regular design");
+
     // Read interpolation coefficients of MSFEM element stiffness matrices from material catalogue
         PtrParamNode hr = pn->Get("MSFEMC1");
         std::string file = hr->Get("file")->As<std::string>();
@@ -1425,7 +1430,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) && notation != HILL_MANDEL_NO_DENSITY)
     {
       dens = params_[DesignElement::DENSITY];
-      TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+      TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
       factor = (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
     } else {
       if(direction == DesignElement::DENSITY)
@@ -1535,7 +1540,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double dens = 1.0, factor = 1.0;
   if((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY){
     dens = params_[DesignElement::DENSITY];
-    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+    TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     factor = (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   } else {
     if(direction == DesignElement::DENSITY)
@@ -1738,7 +1743,7 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
 
 double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
   double dens = params_[DesignElement::DENSITY];
-  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+  TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
   switch (direction){
   case DesignElement::NO_DERIVATIVE:
   {
@@ -1764,7 +1769,7 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
   if((type_ == DENSITY_TIMES_ORTHOTROPIC) && (notation != HILL_MANDEL_NO_DENSITY)){
     dens = params_[DesignElement::DENSITY];
   }
-  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH); // Identity TransferFunction if not defined
+  TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH); // Identity TransferFunction if not defined
   factor = tf->Transform(dens); // true in most cases, otherwise set again
 
   if(subTensor == PLANE_STRESS){ //This is the only implemented case for now
@@ -1897,7 +1902,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 //    count++;
   }
   double dens = params_[DesignElement::DENSITY];
-  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+  TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
   t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
 }
 
@@ -2075,7 +2080,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   if (type_ == D_HOM_RECT)
   {
     double dens = params_[DesignElement::DENSITY];
-    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+    TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     E *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
   /*   for(double y = 0; y <= 0.5; y += 0.25)
@@ -4211,7 +4216,7 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
     assert((type_ == MSFEM_C1));
 
     // collect all parameters
-    if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    if(!CollectMaterialParametersForElement(space_, elem))
       throw Exception("no elem data for MSFEM defined");
 
     // read design variables
@@ -4588,7 +4593,7 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
   if (type_ == D_INTERP_TENSOR || type_ == D_INTERP_TENSOR_ROT)
   {
     double dens = params_[DesignElement::DENSITY];
-    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+    TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
   if(type_ == D_INTERP_TENSOR_ROT){
@@ -4712,7 +4717,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   if (type_ == D_LAMINATES)
   {
     double dens = params_[DesignElement::DENSITY];
-    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
+    TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
 
@@ -5324,7 +5329,7 @@ double DesignMaterial::GetIsoMass(double D, double G) {
 
 bool DesignMaterial::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
 {
-  if(CollectMaterialParametersForElement(em_->GetDesign(), elem)) {
+  if(CollectMaterialParametersForElement(space_, elem)) {
     GetModRedGTensor(T, DesignElement::NO_DERIVATIVE, true);
     return true;
   }
@@ -5381,7 +5386,7 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   // make the code save and remove the lock in calling DesingSpace!
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
   // make the code save and remove the lock in calling DesingSpace!
-  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+  if(!CollectMaterialParametersForElement(space_, elem))
     return false;
 
   switch (type_) {
@@ -5451,7 +5456,7 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
 bool DesignMaterial::GetElecTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
-  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+  if(!CollectMaterialParametersForElement(space_, elem))
     return false;
 
   // only 2D!
@@ -5497,7 +5502,7 @@ bool DesignMaterial::GetElecTensor(Matrix<double>& E, const Elem* elem, DesignEl
 
 bool DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
-  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+  if(!CollectMaterialParametersForElement(space_, elem))
     return false;
 
   // only 2D!
@@ -5552,7 +5557,7 @@ bool DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, const Elem* elem,
 
 double DesignMaterial::GetMechMass(const Elem* elem, DesignElement::Type direction)
 {
-  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+  if(!CollectMaterialParametersForElement(space_, elem))
     throw Exception("no mass data found");
 
   if(massIsDesign_)

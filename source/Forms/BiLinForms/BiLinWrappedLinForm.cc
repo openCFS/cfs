@@ -71,7 +71,7 @@ bool BiLinWrappedLinForm::IsSolDependent(){
 
 }
 
-bool BiLinWrappedLinForm::IsComplex(){
+bool BiLinWrappedLinForm::IsComplex() const {
 
   return linForm_->IsComplex();
 

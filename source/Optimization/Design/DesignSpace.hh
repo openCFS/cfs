@@ -33,6 +33,7 @@ namespace CoupledField
   class SinglePDE;
   struct MultiMaterial;
   class Context;
+  class LocalElementCache;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -55,20 +56,14 @@ namespace CoupledField
 
      /** Consist all regions of the design of a regular grid?.
       * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT
-      * Regular means: All elements have same size but not filled cube*/
-     virtual bool IsRegular() const
-     {
-       return all_regions_regular_;
-     }
+      * Regular means: All elements have same size but not necessarily that the domain is square.
+      * @param check_enforce_unstructured also consider the 'enforce_unstructured' attribute in ersatzMaterial if applicable */
+     virtual bool IsRegular(bool check_enforce_unstructured = false);
 
      /**
       * Is the design the whole mesh consisting of regular elements and completely filled by elements?
-      * Is not true for a sparse mesh?
-      */
-     bool IsCubic() const
-     {
-       return is_cubic_;
-     }
+      * Is not true for a sparse mesh? */
+     bool IsCubic() const { return is_cubic_; }
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML
@@ -78,8 +73,12 @@ namespace CoupledField
      /** returns the type of the DesignMaterial of the Ersatzmaterial **/
      DesignMaterial::Type getDesignMaterialType()
      {
+       assert(designMaterial != NULL);
        return designMaterial->GetType();
      }
+
+     /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
+     bool DoMSFEM() const { return designMaterial != NULL && designMaterial->GetType() == DesignMaterial::MSFEM_C1; }
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -88,7 +87,13 @@ namespace CoupledField
      /** Check if a region is subject to optimization (in principle, might be more complicated for piezo, ... */
      int FindRegion(RegionIdType regionId) const;
 
-     /** Performs the optimization for the matrix case. This
+     /** Is based on LocalElementCache and applies optimization if indicated by the coef function of the form.
+      * Does only work for SIMP type calls
+      * @return true if we could set retMat, even if no optimization (application of design) was applied */
+     template <class T>
+     bool ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>& retMat, const Elem* elem);
+
+     /** Handles ParamMat, including MS-FEM and fallback for SIMP for ApplyPhysicalDesignElementMatrix() if disabled
       * @return true if design and retMat is set */
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm);
@@ -317,7 +322,8 @@ namespace CoupledField
        EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
      }
 
-
+     /** helper class to for form tpye depending on material. Exception if nothing known.  */
+     static const string ToForm(MaterialClass mc, MaterialType mt);
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
@@ -346,6 +352,9 @@ namespace CoupledField
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
 
      PtrParamNode GetInfo() { return info_; }
+
+     /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
+     LocalElementCache* elementCache = NULL;
 
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements
@@ -445,6 +454,18 @@ namespace CoupledField
         * easy to be also simple for load ersatz material */
        PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
 
+       struct BiMatData
+       {
+         BiMatData() {}; // for StdVector
+         BiMatData(MaterialClass mc, MaterialType mt, PtrCoefFct coef);
+         MaterialClass mc = NO_CLASS;
+         MaterialType  mt = NO_MATERIAL;
+         PtrCoefFct    coef;
+       };
+
+       /** returns the stored bimaterial data */
+       StdVector<BiMatData> GetBiMaterials();
+
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
@@ -462,9 +483,6 @@ namespace CoupledField
      DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
 
      DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
-
-     /** try to identify the design by the coefficient function */
-     DesignRegion* GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg);
 
      /** This now is a vector of design and region regions[design][region].
       Design is here the unique design. */
@@ -519,6 +537,8 @@ namespace CoupledField
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Function* f, bool scaling = true) const;
 
+     /** Initialized the LocalElementCache. Has special handling for ParamMat. Called by PostInit() */
+     virtual void SetupLocalElementCache();
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */

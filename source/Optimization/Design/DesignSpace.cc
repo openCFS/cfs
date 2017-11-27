@@ -13,12 +13,15 @@
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "Driver/BaseDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/LocalElementCache.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
@@ -354,6 +357,8 @@ DesignSpace::~DesignSpace(){
     delete designMaterial;
     designMaterial = NULL;
   }
+  delete elementCache;
+  elementCache = NULL;
 }
 
 double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
@@ -445,11 +450,40 @@ void DesignSpace::PostInit(int objectives, int constraints)
     }
   }
 
-
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
     totalElements_[i]->PostInit(objectives, constraints);
+
+  // this is a virtual Function.
+  // set the hole LocalElementCache to do SIMP element base and cache also ParamMat gradients
+  elementCache = new LocalElementCache(this); // not yet activated
+
+  SetupLocalElementCache();
+}
+
+void DesignSpace::SetupLocalElementCache()
+{
+  // load elements FIXME: handle context
+  elementCache->InitOrg();
+  // handle bimaterial and multimaterial.
+  // regions is a vector of design with vectors of regions.
+  // Example: first density with elasticity-tensor for BDBInt and then mass for MassInt
+  for(unsigned int d = 0; d < regions.GetSize(); d++) { // design
+    for(unsigned int r = 0; r < regions[0].GetSize(); r++) { // region
+      assert(regions[d][r].regionId == regions[0][r].regionId);
+      assert(regions[d][r].HasBiMaterial() == regions[0][r].HasBiMaterial());
+
+      DesignRegion& dr = regions[d][r];
+      StdVector<DesignRegion::BiMatData> bm = dr.GetBiMaterials();
+      for(unsigned int b = 0; b < bm.GetSize(); b++) {
+        DesignRegion::BiMatData& bmd = bm[b];
+        elementCache->InitShadow(ToForm(bmd.mc, bmd.mt), dr.regionId, bmd.coef);
+      }
+    }
+  }
+  // TODO add Multimaterial
+
 }
 
 bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
@@ -518,6 +552,20 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   return added;
 }
 
+bool DesignSpace::IsRegular(bool check_enforce_unstructured)
+{
+  if(!all_regions_regular_)
+    return false;
+  if(check_enforce_unstructured && domain->GetOptimization())
+  {
+    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
+    if(em != NULL)
+      return em->IsDomainStructured();
+  }
+  return true;
+}
+
+
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
@@ -528,7 +576,7 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
 
 void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
 {
-  designMaterial = new DesignMaterial(dm, material, design, em);
+  designMaterial = new DesignMaterial(dm, material, design, this);
 }
 
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
@@ -750,6 +798,58 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   return base;
 }
 
+template <class T>
+bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>& retMat, const Elem* elem)
+{
+  // We can do this only for SIMP type optimization.
+  // ParamMat modifies the tensor which needs to be applied to the BDB form and MS-FEM has also nothing to do
+  // with local element caching. For these call ApplyPhysicalDesign()
+  if(designMaterial != NULL)
+    return false;
+
+  // load the element matrix to apply optimization to it.
+  if(!elementCache->CachedOrgElement<T>(retMat, form, elem))
+    return false;
+
+  // now we have the element matrix set. It is not necessarily a design element but then it helps to
+  // speed up assembly over the iterations
+  assert(retMat.GetNumRows() >= 3);
+
+  // we cannot check for the region here, if form is a linear form (e.g.
+  // pressure) but the design variable comes from elements one dimension higher
+  int idx = Find(elem->elemNum, false); // This is very fast, just a lookup in an array
+  if(idx == -1)
+    return true; // we have the material but cannot proceed
+
+  // just validate that we have indeed the optimization case
+  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
+  assert(bdb != NULL);
+  assert(bdb->GetCoef());
+  shared_ptr<CoefFunctionOpt> coef = dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
+  assert(coef);
+  assert(coef->GetState() == CoefFunctionOpt::OPT);
+
+  App::Type app = (App::Type) applicationForm.Parse(form->GetName());
+  double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
+  retMat *= factor;
+
+  // check bimat : TODO handle multimaterial
+  DesignRegion* dr = GetRegion(elem->regionId);
+  double bimat_factor = -1.0;
+  if(dr->HasBiMaterial())
+  {
+    const Matrix<T>& other = elementCache->CachedElement<T>(form->GetName(), LocalElementCache::SHADOW, elem);
+    bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
+    retMat.Add(bimat_factor, other); // rho^p * E_l + (1-rho)^p * E_u
+  }
+
+
+  LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " f=" << factor << " bf=" << bimat_factor;
+  LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
+  return true;
+}
+
+
 /** Performs the optimization.
  * @return true if design and coefMat is set */
 template <class T>
@@ -761,54 +861,28 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   if(idx == -1)
     return false;
 
-  /* TODO it will make sense to transform lpm itself
-   *
-   *
-  LocPointMapped lp;
-  const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; i++  ) {
-
-    // Calculate for each integration point the LocPointMapped
-    lp.Set( intPoints[i], esm, weights[i] );
-
-  */
-
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
   if(designMaterial != NULL) // easy to extend to piezo and other stuff!
   {
-    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1)
+    if(DoMSFEM())
     {
-      if (this->IsRegular())
-      {
-        /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
-        double dx = ptCoord_[0][0]-ptCoord_[0][1];
-        double dy = ptCoord_[1][0]-ptCoord_[1][1];
-        elemMatrix *= 0.25*dx*dy;*/
-        //elemMatrix *= 1.;
-      } else {
-        EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
-      }
-      //if (retMat.GetNumCols() > 0) {
-      //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
-      //}
+      assert(IsRegular());
       return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
     }
-    //if (retMat.GetNumCols() > 0) {
-    //  assert(TestTensorPosDef(retMat , lpm, coef->GetMaterialDerivative()));
-    //}
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
+  // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
+  assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
+
   double bimat_factor = -1.0;
-
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
-
   double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
   coef->orgMat->GetTensor(retMat, *lpm);
   retMat *= factor;
 
-  DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
+  DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
   {
     Matrix<T> tmp;
@@ -819,9 +893,6 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
-  //if (retMat.GetNumCols() > 0) {
-  //  assert(TestTensorPosDef(retMat, lpm,coef->GetMaterialDerivative()));
-  //}
   return true;
 }
 
@@ -840,6 +911,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   // check for param mat -> e.g. scalar mass
   if(designMaterial != NULL)
   {
+    assert(!DoMSFEM());
     retScal = designMaterial->GetMechMass(lpm->ptEl, coef->GetMaterialDerivative());
     LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " d=" << DesignElement::type.ToString(coef->GetMaterialDerivative()) << " -> " << retScal;
     return true; // note that we have no plausibility check in GetMechMass()
@@ -853,7 +925,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   coef->orgMat->GetScalar(retScal, *lpm);
   retScal *= factor;
 
-  DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
+  DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
   {
     T bimat;
@@ -1738,32 +1810,13 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
   return NULL;
 }
 
-DesignSpace::DesignRegion* DesignSpace::GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg)
-{
-  assert(coef);
-
-  assert(regions.GetSize() == 1); // handle only single design up to now! FIXE
-
-  for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
-  {
-    StdVector<DesignRegion>& regs = regions[d];
-
-    for(unsigned r = 0, rn = regs.GetSize(); r < rn; r++)
-    {
-      if(regs[r].regionId == reg)
-        return &regs[r];
-    }
-  }
-
-  EXCEPTION("cannot find design region for coef=" << coef->ToString() << " and region " << reg);
-
-}
 
 DesignSpace::DesignRegion::DesignRegion()
 {
   regionId = -1;
   multimaterial = NULL;
 }
+
 std::string DesignSpace::DesignRegion::ToString() const
 {
   std::stringstream ss;
@@ -1772,6 +1825,7 @@ std::string DesignSpace::DesignRegion::ToString() const
   //ss << " dc=" << DesignSpace::designConstant.ToString(constant);
   return ss.str();
 }
+
 bool DesignSpace::DesignRegion::HasBiMaterial() const
 {
   return bimaterial_ != "";
@@ -1846,11 +1900,61 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialTy
   return bimaterials_[mc][mt];
 }
 
+DesignSpace::DesignRegion::BiMatData::BiMatData(MaterialClass mc, MaterialType mt, PtrCoefFct coef)
+{
+  this->mc = mc;
+  this->mt = mt;
+  this->coef = coef;
+}
+
+StdVector<DesignSpace::DesignRegion::BiMatData> DesignSpace::DesignRegion::GetBiMaterials()
+{
+  StdVector<BiMatData> res;
+  res.Reserve(bimaterial_.size());
+
+  for(auto const &mc_it : bimaterials_)
+    for(auto const &mt_it : mc_it.second)
+      res.Push_back(BiMatData(mc_it.first, mt_it.first, mt_it.second));
+
+  return res;
+}
+
+
 void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
 {
   node->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regionId));
   node->Get("elements")->SetValue(elements);
   node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
+}
+
+const string DesignSpace::ToForm(MaterialClass mc, MaterialType mt)
+{
+  switch(mc)
+  {
+  case MECHANIC:
+    switch(mt)
+    {
+    case MECH_STIFFNESS_TENSOR:
+      return "LinElastInt";
+    case DENSITY:
+      return "MassInt";
+    default:
+      assert(false);
+    }
+    break;
+  case THERMIC:
+    switch(mt)
+    {
+    case HEAT_CONDUCTIVITY:
+      return "HeatConductivity";
+    default:
+      assert(false);
+    }
+    break;
+  default:
+    assert(false);
+  }
+  return ""; // shall not happen
 }
 
 void MultiMaterial::ToInfo(PtrParamNode in)
@@ -1913,6 +2017,8 @@ template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOp
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesignElementMatrix<double>(BiLinearForm* form, Matrix<double>& retMat, const Elem* elem);
+template bool DesignSpace::ApplyPhysicalDesignElementMatrix<complex<double> >(BiLinearForm* form, Matrix<complex<double> >& retMat, const Elem* elem);
 template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
 template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
 
