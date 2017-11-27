@@ -461,14 +461,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
           stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
         }
-        
+
         assemble_->AddBiLinearForm( stiffIntDescr );
-        
+
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
-        //std::cout << "Add Lin BDB" << std::endl;
-        
+
+        // write to info-xml
+        PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
+        PtrParamNode coef = form->Get("coef", ParamNode::APPEND);
+        coef->Get("value")->SetValue(stiffInt->GetCoef()->ToString());
       }
       
       // ====================================================================
@@ -1864,7 +1867,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       else
         integ = new BDBInt<Double, Double>(bOp, curCoefScl, 1.0, updatedGeo_);
     }
-    
+
 
     return integ;
   }
