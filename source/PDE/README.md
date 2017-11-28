@@ -17,3 +17,5 @@ Please not that for each PDE we generate an own class being derived from {{{Sing
 * BasePDE: Abstract base class 
 * StdPDE: Base class for all single-field and direct-coupled field problems
 * SinglePDE: Base class for all kinds of single field problems (PDEs)
+
+Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
