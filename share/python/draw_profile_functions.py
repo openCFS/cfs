@@ -934,7 +934,7 @@ def generate_basecell(args,info):
     # each entry contains a list representing one boundary face of the base cell
     # points: list with objects of type Vertex
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
-    points, cells = mesh_boundary_circles(points, faces, bp_lists)
+    points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
     
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1386,7 +1386,6 @@ def mesh_boundary_circles(points,cells,bpoints,flags=None):
     flags = [True] * 6
   # give basecell boundary circles to be meshed
   bounds_to_mesh = np.where(flags)[0]
-  
   for b in bounds_to_mesh:
     bcoords_2d = extract_2d_bc_boundary_coords(bpoints,b)
     points, cells = mesh_basecell_boundary(points,cells,bcoords_2d,b)

@@ -325,17 +325,7 @@ if __name__ == "__main__":
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
     
     mesh_tool.validate_periodicity(mesh)
-  elif args.target.startswith("surface") or args.target.startswith("surface"):
-    stlName = fileNameBase + ".stl"
-    if args.tets: # create tetrahedralized volume mesh from surface description
-      mesh = mesh_tool.create_volume_mesh_with_gmsh(stlName)    
   
-  if args.target == "volume_mesh" or args.target == "surface_mesh" and args.tets:   
-    file = fileNameBase + '.mesh'
-    assert(file.endswith('.mesh'))
-    
-    assert(mesh is not None)
-    mesh_tool.write_gid_mesh(mesh, file)
   
   ################ take care of stl and vtp files ##############  
   if args.target.startswith("volume"):
@@ -352,7 +342,17 @@ if __name__ == "__main__":
     matviz_vtk.write_stl(normals.GetOutput(),stlName)
     if args.save_vtp:
       matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
-  else:
+  elif args.target.startswith("surface") or args.target.startswith("volume"):
+    stlName = fileNameBase + ".stl"
+    print("args.tets:",args.tets)
+    if args.tets: # create tetrahedralized volume mesh from surface description
+      print("here")
+      mesh = mesh_tool.create_volume_mesh_with_gmsh(stlName)
+      file = fileNameBase + '.mesh'
+      assert(file.endswith('.mesh'))
+      assert(mesh is not None)
+      mesh_tool.write_gid_mesh(mesh, file)
+  else:    
     print("Ohohohoh....")
     sys.exit()
               
