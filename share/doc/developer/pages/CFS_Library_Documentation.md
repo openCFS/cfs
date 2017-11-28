@@ -1,7 +1,7 @@
 Many of the classes in CFS++ are grouped into modules. These modules define the building blocks of any finite element program: 
 
 * Computational Domain (CoefFunction, ElemMapping, Mesh, Results, ...) 
-* [[PDEs|PDEs]] (StdPDE, SinglePDE, AcousticPDE, ElecPDE, MechPDE, ...)
+* [PDEs](/share/doc/developer/pages/CFS_Library_Documentation.md#pde-) (StdPDE, SinglePDE, AcousticPDE, ElecPDE, MechPDE, ...)
 * CoupledPDEs (DirectCoupledPDEs, IterCoupledPDEs, ...)
 * [[Driver|Driver]] (MultiSequence, Static, Transient, Harmonic, EigenFrequency, ...)
 * !FeBasis (FeSpace for H1, Hcirl, Hdiv, L2; FeFunction, ...)
@@ -17,3 +17,10 @@ Many of the classes in CFS++ are grouped into modules. These modules define the 
 * Algebraic Solver OLAS (!AlgSys, Solver, !PreCond, Graph, ...)
 * Optimization (Condition, Ersazmaterial, !LevelSet, ...)
 * Utils (Approxdata, !AutoDiff, ...)
+* 
+
+
+PDE 
+===
+
+The PDE class is resonsible to connect numerics with physics. It defines
