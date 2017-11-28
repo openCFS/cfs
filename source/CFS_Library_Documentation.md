@@ -11,3 +11,9 @@ Many of the classes in CFS++ are grouped into modules. These modules define the 
 * Algebraic Solver OLAS (AlgSys, Solver, PreCond, Graph, ...)
 * Optimization (Condition, Ersazmaterial, LevelSet, ...)
 * Utils (Approxdata, AutoDiff, ...)
+
+>
+
+The directory structure of the source looks as follows (e.g., **eclips project**)
+
+![](/share/doc/developer/pages/pics/Src_Directory.png)
