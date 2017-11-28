@@ -8,6 +8,9 @@ Integration ws done accoding to the [gitlab-guide](https://docs.gitlab.com/ce/us
 
 It should be used for testing, i.e. for writing developer docu in the branch `devel_docu`.
 
+[Developer Documentation](/share/doc/developer/README.md)
+---------------
+
 Working locally
 ---------------
 
