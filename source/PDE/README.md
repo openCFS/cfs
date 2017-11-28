@@ -13,6 +13,9 @@ The PDE class is resonsible to connect numerics with physics. It defines
 * DefinePostProcResults: define post-processing results (e.g., mechanical stress)
 
 
+![alt text](/share/doc/developer/pages/pics/Src_Directory.png)
+
+
 Please not that for each PDE we generate an own class being derived from {{{SinglePDE}}} and it has to be stored in an own .hh and .cc file. Thereby, we have the following hierarchy:
 * BasePDE: Abstract base class 
 * StdPDE: Base class for all single-field and direct-coupled field problems
