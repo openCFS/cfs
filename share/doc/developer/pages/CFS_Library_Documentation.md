@@ -18,9 +18,3 @@ Many of the classes in CFS++ are grouped into modules. These modules define the 
 * Optimization (Condition, Ersazmaterial, !LevelSet, ...)
 * Utils (Approxdata, !AutoDiff, ...)
 * 
-
-
-PDE 
-===
-
-The PDE class is resonsible to connect numerics with physics. It defines
