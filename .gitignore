@@ -141,6 +141,7 @@ share/doc/developer/develManual/sources/.*.swp
 share/doc/developer/doxygen/.*.swp
 share/doc/developer/doxygen/config/.*.swp
 share/doc/developer/doxygen/pages/.*.swp
+share/doc/developer/pages/.*.swp
 share/doc/tutorial/.*.swp
 share/doc/tutorial/ExampleAcoustic/.*.swp
 share/doc/tutorial/ExampleMechanics/.*.swp

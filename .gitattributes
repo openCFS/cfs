@@ -828,6 +828,7 @@ share/doc/developer/doxygen/config/latexHeader.tex.in -text
 share/doc/developer/doxygen/config/sm-core-css.css -text
 share/doc/developer/doxygen/pages/main.md -text
 share/doc/developer/doxygen/pages/markdownSyntax.md -text
+share/doc/developer/pages/Src_Directory.png -text
 share/doc/doc-common.cmake.in -text
 share/doc/tutorial/CFS++_NewPDE.pptx -text
 share/doc/tutorial/CFS++_OverviewAndSimulation.pptx -text
