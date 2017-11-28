@@ -179,35 +179,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     print("finished_workers ",finished_workers," commsize: ",commSize)
     sys.stdout.flush()
 
-    # store base cells in a 3d array to have info about connectivity
-    basecell_grid = np.empty((nx,ny,nz), dtype=object)
-     
-    for i,p in enumerate(pos):
-      basecell_grid[p[0],p[1],p[2]] = basecells[i]
-      
-    for i in range(nx):
-      for j in range(ny):
-        for k in range(nz):
-          this = basecell_grid[i,j,k]
-          assert(len(this.boundary_points) > 0)
-          assert(this is not None)
-          if i < nx-1:
-            this_bp = [len(l) for l in this.boundary_points]
-            right = basecell_grid[i+1,j,k]
-            right_bp = [len(l) for l in right.boundary_points]
-            assert(len(this.boundary_points[Face_Name.XMAX.value]) == len(right.boundary_points[Face_Name.XMIN.value]))
-            right.replace_boundary_points(this.boundary_points[Face_Name.XMAX.value],Face_Name.XMIN.value)
-#             right.boundary_points = this.boundary_points
-          if j < ny-1:  
-            top = basecell_grid[i,j+1,k]
-            assert(len(this.boundary_points[Face_Name.YMAX.value]) == len(top.boundary_points[Face_Name.YMIN.value]))
-#             top.boundary_points = this.boundary_points
-            top.replace_boundary_points(this.boundary_points[Face_Name.YMAX.value],Face_Name.YMIN.value)
-          if k < nz-1:
-            front = basecell_grid[i,j,k+1]
-            assert(len(this.boundary_points[Face_Name.ZMAX.value]) == len(front.boundary_points[Face_Name.ZMIN.value]))
-            front.replace_boundary_points(this.boundary_points[Face_Name.ZMAX.value],Face_Name.ZMIN.value)
-            front.boundary_points = this.boundary_points 
+#     basecells = align_cell_interfaces(nx,ny,nz,basecells,pos)
+    resolve_hanging_nodes(nx,ny,nz,basecells,pos)
       
     import time   
     start = time.time()
@@ -254,10 +227,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
 #     cleanFilter.Update()
 #     pd = cleanFilter.GetOutput()
+
     pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
     
+    print("before cleaning:",pd.GetNumberOfCells())
+    # clean coinciden points
+    clean = vtk.vtkCleanPolyData()
+    clean.SetInputData(pd)
+    clean.Update()
+    
+    print("after cleaning:",clean.GetOutput().GetNumberOfCells())
+
     normals = vtk.vtkPolyDataNormals()
-    normals.SetInputData(pd)
+    normals.SetInputData(clean.GetOutput())
     normals.SetConsistency(1)
     normals.SetAutoOrientNormals(1)
     normals.Update()
@@ -519,71 +501,49 @@ def rearrange_points_cells(verts,faces,replace):
   return verts,faces  
 #   return new_verts, new_faces
 
-# detect hanging node and resolve them by adding additional triangles;
-# look only at points and triangles at interfaces between two base cells:
-# a hanging node is a vertex with distance ~0 to another triangle edge
-# distance from a vertex P to edge AB:
-# d = 2 * triangle area ABC / length of vector AB
-# @param dx: three lattice spacings dx,dy,dz in a tuple/list
-# @param nx: number of cells in 3 directions nx,ny,nz in a tuple/list
-def resolve_hanging_nodes(points,cells,dx,nx):
-  assert(dx[0] > 0)
-  assert(dx[1] > 0)
-  assert(dx[2] > 0)
+def resolve_hanging_nodes(nx,ny,nz,basecells,pos):
+  assert(len(pos) == len(basecells))
+  # store base cells in a 3d array to have info about connectivity
+  basecell_grid = np.empty((nx,ny,nz), dtype=object)
   
-  # store all neighbors for all points
-  coords = [p.coords for p in points]
-  connectivity = basecell.getConnectivity(coords, cells)
-#   print("connectivity of node 4871=",points[4871],": ")
-#   for id in connectivity[4871]:
-#     print(id,points[id])
-#   print("connectivity of node 2420=",points[2420],": ")
-#   for id in connectivity[2420]:
-#     print(id,points[id])
-#   sys.exit()
-  assert(len(connectivity) == len(points))
+  for i,p in enumerate(pos):
+    basecell_grid[p[0],p[1],p[2]] = basecells[i]
   
-  count = 0
-  for l,list in enumerate(lists):
-    print("interface ",l)
-    for vertex in list:
-      p = np.asarray(vertex.coords)
-      # get all connected neighbors
-      neighbors = connectivity[vertex.idx]
-      # for each neighbor, form an edge and compare
-      # if any vertex in the surroundings has distance 0 (hanging node)
-      for neighbor in neighbors:
-#         print("\nneighbor of ",p1," is ",neighbor,points[neighbor])
-        # edge is defined by p1 and p2
-        p2 = np.asarray(points[neighbor])
-        for other in list:
-          # prevent self-comparison
-          if other.idx == neighbor or other.idx == vertex.idx:
-            continue
+  for i in range(nx):
+    for j in range(ny):
+      for k in range(nz):
+        this = basecell_grid[i,j,k]
+        assert(this is not None)
+        assert(len(this.boundary_points) > 0)
+        if i < nx-1:
+          right = basecell_grid[i+1,j,k]
+          # sorted in cyclic order
+          this_bp = this.boundary_points[Face_Name.XMAX.value]
+          right_bp = right.boundary_points[Face_Name.XMIN.value]
+          for id in range(len(this_bp)):
+            # edge defined py p0 and p1
+            p0 = np.asarray(this_bp[id].coords)
+            p1 = None
+            if id+1 < len(this_bp):
+              p1 = np.asarray(this_bp[id+1].coords)
+            else:
+              # make a whole circle
+              p1 = np.asarray(this_bp[0].coords)
+            assert(p1 is not None)  
+            u = p1 - p0
+            for r in right_bp:
+              other = np.asarray(r.coords)
+        	    # avoid self comparison
+              if np.isclose(np.linalg.norm(p1-other),0,1e-6) or np.isclose(np.linalg.norm(p0-other),0,1e-6):
+                continue
+              # check if r lies on edge p0p1
+              k = np.dot((other-p0),u) / np.linalg.norm(u)**2
+              # projected point
+              f = p0 + k * u
+              # k within [0,1]? does f lies on line?
+              if k > 0-1e-6 and k < 1+1e-6 and np.isclose(np.linalg.norm(other-f),0,1e-6):
+                print(r.coords," lies on line", p0,",",p1," k:", " f:",f)
           
-          p = np.asarray(other.coords)
-          if np.linalg.norm(p2-p) > np.max(dx):
-            continue
-          
-          # check if projection of point A lies between 2 points P and S
-          # defining the edge
-          
-          
-          d = np.linalg.norm(np.cross(p-p1, p-p2))
-          d /= np.linalg.norm(p2-p1)
-          
-          if np.isclose(d,0,1e-6):
-            print("\ndetect hanging node: edge=",p1,p2," point:",p)
-            print("ids:",vertex.idx,neighbor,other.idx)
-            count += 1
-  
-  print("found ",count," hanging nodes")
-#   # detect hanging nodes
-#   for list in lists:
-#     # each list contains triangle vertices for one cell interface
-            
-  return points, cells
-
 # @param verts: list of objects of type Vertex
 # @param cells: list of triangles
 # @param offset: value to shift vertex ids
@@ -608,3 +568,52 @@ def add_offset(verts,cells,offset):
     cells[i]= (int(cells[i][0])+offset,int(cells[i][1]+offset),int(cells[i][2]+offset))  
   
   return verts, cells, short
+
+# for a given list of basecells, make sure that all points
+# at interfaces between two cells coincide
+# @param basecells: list of Basecell() objects
+# @param pos: list with respective (i,j,k) position in the grid
+def align_cell_interfaces(nx,ny,nz,basecells,pos):
+  # store base cells in a 3d array to have info about connectivity
+  basecell_grid = np.empty((nx,ny,nz), dtype=object)
+  
+  for i,p in enumerate(pos):
+    basecell_grid[p[0],p[1],p[2]] = basecells[i]
+  
+  new = []    
+  for i in range(nx):
+    for j in range(ny):
+      for k in range(nz):
+        this = basecell_grid[i,j,k]
+        assert(len(this.boundary_points) > 0)
+        assert(this is not None)
+        if i < nx-1:
+          this_bp = [len(l) for l in this.boundary_points]
+          right = basecell_grid[i+1,j,k]
+          if len(this.boundary_points[Face_Name.XMAX.value]) != len(right.boundary_points[Face_Name.XMIN.value]):
+            print("\nlen(this):",len(this.boundary_points[Face_Name.XMAX.value]))
+            for p in this.boundary_points[Face_Name.XMAX.value]:
+              print(p.coords)
+              
+            print("\nlen(right):",len(right.boundary_points[Face_Name.XMIN.value]))
+            for p in right.boundary_points[Face_Name.XMIN.value]:
+              print(p.coords)  
+          assert(len(this.boundary_points[Face_Name.XMAX.value]) == len(right.boundary_points[Face_Name.XMIN.value]))
+#           right.replace_boundary_points(this.boundary_points[Face_Name.XMAX.value],Face_Name.XMIN.value)
+#           right.boundary_points = this.boundary_points
+#         if j < ny-1:
+#           top = basecell_grid[i,j+1,k]
+#           assert(len(this.boundary_points[Face_Name.YMAX.value]) == len(top.boundary_points[Face_Name.YMIN.value]))
+# #           top.boundary_points = this.boundary_points
+#           top.replace_boundary_points(this.boundary_points[Face_Name.YMAX.value],Face_Name.YMIN.value)
+#         if k < nz-1:
+#           front = basecell_grid[i,j,k+1]
+#           assert(len(this.boundary_points[Face_Name.ZMAX.value]) == len(front.boundary_points[Face_Name.ZMIN.value]))
+#           front.replace_boundary_points(this.boundary_points[Face_Name.ZMAX.value],Face_Name.ZMIN.value)
+#           front.boundary_points = this.boundary_points
+  
+        new.append(this)  
+  
+  assert(len(new) == len(basecells))
+  
+  return basecells      

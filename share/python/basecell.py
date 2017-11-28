@@ -308,7 +308,11 @@ if __name__ == "__main__":
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
-  coords = [p.coords for p in points]
+  # --volume_mesh gives list of points with only coordinate entries
+  # --surface_mesh gives list of Vertex() objects
+  coords = points
+  if args.target.startswith("surface"):
+    coords = [p.coords for p in points]
   polydata, _ = matviz_vtk.fill_vtk_polydata(coords,cells)
   if args.show: # show it only
     print("starting visualization...")
