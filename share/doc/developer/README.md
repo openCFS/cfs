@@ -1,7 +1,10 @@
 Developer Docu
 ==============
 
-This is the CFS++ developer docu created as a set of markdown files. Thereby, we have the following convecntion:
+General information
+-------------------
+
+This is the CFS++ developer docu created as a set of markdown files. Thereby, we have the following rules:
 
 * The main file is 'CFS_Library_Documentation.md' located at '/sources'
 * All general files are located in `/share/doc/developer/pages` directory
@@ -9,8 +12,9 @@ This is the CFS++ developer docu created as a set of markdown files. Thereby, we
 
 For info about the markdown syntax see 
 
-* [our syntax of markdown](/share/doc/developer/doxygen/pages/markdownSyntax.md)
+* Quickstart for [markdown syntax](/share/doc/developer/doxygen/pages/markdownSyntax.md)
 * [gitlab-markdown](http://git.mdmt.tuwien.ac.at/help/user/markdown).
 
 
-Here, you come to the [developer documentation](/source/CFS_Library_Documentation.md)
+Go to the [developer documentation](/source/CFS_Library_Documentation.md)
+-----------------------------------
