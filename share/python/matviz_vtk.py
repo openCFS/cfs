@@ -1123,7 +1123,9 @@ def fill_vtk_polydata(points,cells):
   return polydata, short
 
 def add_triangle(id1,id2,id3,cells):
-  assert(id1 != id2 and id2 != id3)
+  if id1 == id2 or id1 == id3:
+    return
+#   assert(id1 != id2 and id2 != id3)
     
   i1 = id1
   i2 = id2

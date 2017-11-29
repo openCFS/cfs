@@ -1867,7 +1867,9 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
-  write_gid_mesh(mesh, meshfile+".mesh") 
+  mesh = add_nodes_for_periodic_bc(mesh)
+
+  write_gid_mesh(mesh, meshfile[:-4]+".mesh") 
   
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   # force names and support name has to be set manually, default force1, force2, force3, support, support2, support3

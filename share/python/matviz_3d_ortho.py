@@ -117,7 +117,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     # flags for meshing circles on the boundary
     flags = [None] * 6
-#     grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
     grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
     grid_coords = [i,j,k]
 #     flags[0] = True if i == 0 else False
@@ -178,8 +177,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     print("finished_workers ",finished_workers," commsize: ",commSize)
     sys.stdout.flush()
-
-#     basecells = align_cell_interfaces(nx,ny,nz,basecells,pos)
+ 
+    basecells = align_cell_interfaces(nx,ny,nz,basecells,pos)
 #     resolve_hanging_nodes(nx,ny,nz,basecells,pos)
       
     import time   
@@ -217,34 +216,28 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 # 
 #     assert(short > -1 and short < 99999)
 #     points, cells = matviz_vtk.vtk_polydata_to_numpy(cleanFilter.GetOutput())
-    coords = [ v.coords for v in vertices]
-#     points, cells = matviz_vtk.vtk_polydata_to_numpy(coords,faces)
+#     vertices, faces = matviz_vtk.vtk_polydata_to_numpy(pd)
 #     print("shortest edge:",short)
-    for i, v in enumerate(vertices):
-      assert(v.idx == i)
+#     for i, v in enumerate(vertices):
+#       assert(v.idx == i)
     
 #     vertices, faces = merge_duplicated_points(vertices,faces,short)
     
 #     points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
     
-#     boundaryPts,loops = detect_boundary_edges(cleanFilter.GetOutput())
-#     appends.AddInputData(fill_boundary_loops(boundaryPts,loops))
-
-#     cleanFilter.Update()
-#     pd = cleanFilter.GetOutput()
-
-    pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
+#     coords = [ v.coords for v in vertices]
+#     pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
     
     appends.Update()
     
-    print("before cleaning:",pd.GetNumberOfCells())
+#     print("before cleaning:",pd.GetNumberOfCells())
     # clean coinciden points
     clean = vtk.vtkCleanPolyData()
 #     clean.SetInputData(pd)
     clean.SetInputConnection(appends.GetOutputPort())
     clean.Update()
     
-    print("after cleaning:",clean.GetOutput().GetNumberOfCells())
+#     print("after cleaning:",clean.GetOutput().GetNumberOfCells())
 
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(clean.GetOutput())
@@ -355,164 +348,6 @@ def detect_boundary_edges(polydata):
     
   return boundaryPts,edgeLoops 
 
-def fill_boundary_loops(points,loops):
-  appendPd = vtk.vtkAppendPolyData()
-  # each loop consists of a chain of polygons, e.g. (0,1),(1,3),(3,0)
-  for i,l in enumerate(loops):
-    major = -1 # coordinate component that we can omit
-    this = points[l[0][0]]
-    next = points[l[0][1]]
-    nnext = points[l[1][1]]
-    nnnext = points[l[2][1]]
-    comp = None
-    eps = 1e-12
-    flag_x = True
-    flag_y = True
-    flag_z = True
-    # find out which component we can remove for 2d triangulation
-    # assume check first three points is sufficient
-    for id in range(len(l)):
-      next = points[l[id][1]]
-      if not np.isclose(this[0],next[0],eps):
-        flag_x = False
-      if not np.isclose(this[1],next[1],eps):
-        flag_y = False 
-      if not np.isclose(this[2],next[2],eps):
-        flag_z = False
-        
-    if flag_x:
-      major = 0
-      comp = this[0]
-    elif flag_y:
-      major = 1
-      comp = this[1]
-    else:
-      assert(flag_z)
-      major = 2
-      comp = this[2]
-        
-    assert(major > -1)
-    minor_1, minor_2 = draw_profile_functions.give_normal_plane_axes(major)
-    
-#     print("major:",major)
-    coords_2d = []
-    for t in l:
-      p = points[t[0]]
-      assert(len(p) == 3)
-      coords_2d.append([p[minor_1],p[minor_2]])
-    
-    assert(len(coords_2d) == len(l))  
-    info = triangle.MeshInfo()
-    
-    test = [ [np.float64(elem[0]),np.float64(elem[1])] for elem in coords_2d]
-    info.set_points(test)
-    info.set_facets((draw_profile_functions.round_trip_connect(0,len(test)-1)))
-    mesh = triangle.build(info,generate_faces=True)
-    mesh_points = np.array(mesh.points)
-    mesh_tris = np.array(mesh.elements)
-    
-#     import matplotlib
-#     from matplotlib import pyplot as plt
-#     matplotlib.use('tagg')
-#     plt.plot(mesh_points[:,0],mesh_points[:,1],'o')
-#     plt.triplot(mesh_points[:,0],mesh_points[:,1],mesh_tris)
-#     plt.show()
-    
-    if len(mesh_tris) == 0:
-      print("\ncould not mesh hole:")
-      print(test)
-      sys.exit()
-    
-    new_points = []
-    # map from 2d point to 3d point
-    for p in mesh_points:
-      new_p = np.zeros(3)
-      new_p[major] = comp
-      new_p[minor_1] = p[0]
-      new_p[minor_2] = p[1]
-      new_points.append(new_p)
-    
-    appendPd.AddInputData(matviz_vtk.fill_vtk_polydata(new_points, mesh_tris)[0])
-    appendPd.Update()
-    
-  print("closed ",len(loops), " holes")  
-  return  appendPd.GetOutput()
-
-def resolve_hanging_nodes(nx,ny,nz,basecells,pos):
-  assert(len(pos) == len(basecells))
-  # store base cells in a 3d array to have info about connectivity
-  basecell_grid = np.empty((nx,ny,nz), dtype=object)
-  
-  for i,p in enumerate(pos):
-    basecell_grid[p[0],p[1],p[2]] = basecells[i]
-  
-  for i in range(nx):
-    for j in range(ny):
-      for k in range(nz):
-        this = basecell_grid[i,j,k]
-        assert(this is not None)
-        assert(len(this.boundary_points) > 0)
-        if i < nx-1:
-          right = basecell_grid[i+1,j,k]
-          # sorted in cyclic order
-          this_bp = this.boundary_points[Face_Name.XMAX.value]
-          right_bp = right.boundary_points[Face_Name.XMIN.value]
-          for id in range(len(this_bp)):
-            # edge defined py p0 and p1
-            p0 = np.asarray(this_bp[id].coords)
-            p1 = None
-            if id+1 < len(this_bp):
-              p1 = np.asarray(this_bp[id+1].coords)
-            else:
-              # make a whole circle
-              p1 = np.asarray(this_bp[0].coords)
-            assert(p1 is not None)  
-            u = p1 - p0
-            for r in right_bp:
-              other = np.asarray(r.coords)
-        	    # avoid self comparison
-              if np.isclose(np.linalg.norm(p1-other),0,1e-6) or np.isclose(np.linalg.norm(p0-other),0,1e-6):
-                continue
-              # check if r lies on edge p0p1
-              k = np.dot((other-p0),u) / np.linalg.norm(u)**2
-              # projected point
-              f = p0 + k * u
-              # k within [0,1]? does f lies on line?
-              if k > 0-1e-6 and k < 1+1e-6 and np.isclose(np.linalg.norm(other-f),0,1e-6):
-                print(r.coords," lies on line", p0,",",p1," k:", " f:",f)
-                p = this_bp[id+1] if id+1 < len(this_bp) else this_bp[0] 
-                matches = get_cell(this.cells,this_bp[id],p)
-                assert(len(matches) == 1)
-                this.points.append(Vertex(f,len(this.points)))
-                this.cells.pop(matches[0][1])# [1] gives entry id in this.cells
-                this.cells.append((matches[0][0][0],len(this.points)-1,matches[0][0][2]))
-                this.cells.append((len(this.points)-1,matches[0][0][1],matches[0][0][2]))
-          
-# @param verts: list of objects of type Vertex
-# @param cells: list of triangles
-# @param offset: value to shift vertex ids
-def add_offset(verts,cells,offset):
-  assert(offset >=0)
-  coords = [None] * len(verts)
-  # length of shortest edge 
-  short = 999999
-  # add offset to all triangle vertices
-  for i in range(len(verts)):
-    assert(type(verts[i]) is draw_profile_functions.Vertex)
-    verts[i].idx += offset
-  
-  for i in range(len(cells)):
-    cell = cells[i]
-    e01 = np.linalg.norm(np.asarray(verts[cell[1]].coords) - np.asarray(verts[cell[0]].coords))
-    e12 = np.linalg.norm(np.asarray(verts[cell[2]].coords) - np.asarray(verts[cell[1]].coords))
-    e02 = np.linalg.norm(np.asarray(verts[cell[2]].coords) - np.asarray(verts[cell[0]].coords))
-    if np.min([e01,e12,e02]) < short:
-      short = np.min([e01,e12,e02])
-      
-    cells[i]= (int(cells[i][0])+offset,int(cells[i][1]+offset),int(cells[i][2]+offset))  
-  
-  return verts, cells, short
-
 # for a given list of basecells, make sure that all points
 # at interfaces between two cells coincide
 # @param basecells: list of Basecell() objects
@@ -524,37 +359,42 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
   for i,p in enumerate(pos):
     basecell_grid[p[0],p[1],p[2]] = basecells[i]
   
-  new = []    
+  new = []
   for i in range(nx):
     for j in range(ny):
       for k in range(nz):
+        print("i,j,k:",i,j,k)
         this = basecell_grid[i,j,k]
         assert(len(this.boundary_points) > 0)
         assert(this is not None)
         if i < nx-1:
-          this_bp = [len(l) for l in this.boundary_points]
           right = basecell_grid[i+1,j,k]
-          if len(this.boundary_points[Face_Name.XMAX.value]) != len(right.boundary_points[Face_Name.XMIN.value]):
-            print("\nlen(this):",len(this.boundary_points[Face_Name.XMAX.value]))
-            for p in this.boundary_points[Face_Name.XMAX.value]:
+          this_bp = this.boundary_points[Face_Name.XMAX.value]
+          right_bp = right.boundary_points[Face_Name.XMIN.value]
+          if len(this_bp) != len(right_bp):
+            print("\nlen(this):",len(this_bp))
+            for p in this_bp:
               print(p.coords)
               
-            print("\nlen(right):",len(right.boundary_points[Face_Name.XMIN.value]))
-            for p in right.boundary_points[Face_Name.XMIN.value]:
-              print(p.coords)  
-          assert(len(this.boundary_points[Face_Name.XMAX.value]) == len(right.boundary_points[Face_Name.XMIN.value]))
-#           right.replace_boundary_points(this.boundary_points[Face_Name.XMAX.value],Face_Name.XMIN.value)
-#           right.boundary_points = this.boundary_points
-#         if j < ny-1:
-#           top = basecell_grid[i,j+1,k]
-#           assert(len(this.boundary_points[Face_Name.YMAX.value]) == len(top.boundary_points[Face_Name.YMIN.value]))
-# #           top.boundary_points = this.boundary_points
-#           top.replace_boundary_points(this.boundary_points[Face_Name.YMAX.value],Face_Name.YMIN.value)
-#         if k < nz-1:
-#           front = basecell_grid[i,j,k+1]
-#           assert(len(this.boundary_points[Face_Name.ZMAX.value]) == len(front.boundary_points[Face_Name.ZMIN.value]))
-#           front.replace_boundary_points(this.boundary_points[Face_Name.ZMAX.value],Face_Name.ZMIN.value)
-#           front.boundary_points = this.boundary_points
+            print("\nlen(right):",len(right_bp))
+            for p in right_bp:
+              print(p.coords)
+
+          assert(len(this_bp) == len(right_bp))
+          right.replace_boundary_points(this_bp,Face_Name.XMIN.value)
+        if j < ny-1:
+          top = basecell_grid[i,j+1,k]
+          this_bp = this.boundary_points[Face_Name.YMAX.value]
+          top_bp = top.boundary_points[Face_Name.YMIN.value]
+          assert(len(this_bp) == len(top_bp))
+#           top.boundary_points = this.boundary_points
+          top.replace_boundary_points(this_bp,Face_Name.YMIN.value)
+        if k < nz-1:
+          front = basecell_grid[i,j,k+1]
+          this_bp = this.boundary_points[Face_Name.ZMAX.value]
+          front_bp = front.boundary_points[Face_Name.ZMIN.value]
+          assert(len(this_bp) == len(front_bp))
+          front.replace_boundary_points(this_bp,Face_Name.ZMIN.value)
   
         new.append(this)  
   
@@ -562,13 +402,3 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
   
   return basecells      
 
-#return cells with edge p0p1
-def get_cells(cells,p0,p1):
-  assert(type(p0) is Vertex)
-  assert(type(p1) is Vertex)
-  find = []
-  for i,c in enumerate(cells):
-    if p0.idx in c and p1.idx in c:
-      find.append((c,i))
-  
-  return find  

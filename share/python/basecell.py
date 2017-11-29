@@ -55,7 +55,7 @@ def laplacian_smoothing(points,connectivity,lamb):
   new_points = [None] * len(points) 
   for i,vertex in enumerate(points):
     p = vertex.coords
-    # calculate gradient   
+    # don't smooth at the boundary
     if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
       new_points[i] = Vertex(p,vertex.idx)
     else:
@@ -294,6 +294,7 @@ if __name__ == "__main__":
   
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
+  args.bc_flags = None
   array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml)
   volume = calc_volume(array, infoXml)
   
@@ -342,16 +343,9 @@ if __name__ == "__main__":
     matviz_vtk.write_stl(normals.GetOutput(),stlName)
     if args.save_vtp:
       matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
-  elif args.target.startswith("surface") or args.target.startswith("volume"):
-    stlName = fileNameBase + ".stl"
-    print("args.tets:",args.tets)
     if args.tets: # create tetrahedralized volume mesh from surface description
       print("here")
-      mesh = mesh_tool.create_volume_mesh_with_gmsh(stlName)
-      file = fileNameBase + '.mesh'
-      assert(file.endswith('.mesh'))
-      assert(mesh is not None)
-      mesh_tool.write_gid_mesh(mesh, file)
+      mesh_tool.create_volume_mesh_with_gmsh(stlName)
   else:    
     print("Ohohohoh....")
     sys.exit()
@@ -463,21 +457,35 @@ class Basecell():
     self.bounds[3] = np.max(coords[:,0])
     self.bounds[4] = np.max(coords[:,1])
     self.bounds[5] = np.max(coords[:,2])
-    
+  
+  # take list with 'new' coords and replace mylist at entry list_idx  
   def replace_boundary_points(self,new,list_idx):
-    old_ids = [p.idx for p in self.boundary_points[list_idx]]
-    self.boundary_points[list_idx] = new
+    assert(len(new) == len(self.boundary_points[list_idx]))
+    bp = self.boundary_points[list_idx]
+    # remember point ids that we replace
+    old_ids = [p.idx for p in bp]
+    # replace coords, keep ids
+    for i,p in enumerate(new):
+      print("replace ",self.boundary_points[list_idx][i].coords, " with ", p.coords)
+      self.boundary_points[list_idx][i].coords = p.coords
     new_points = []
+    # changing has also to be done in global points list
     for i,p in enumerate(self.points):
-      if id in old_ids:
-        new_points.append(self.boundary_points[id])
+      # identify boundary point by id
+      if p.idx in old_ids:
+        # give new coords
+        # find correct entry (index) in boundary list
+        bp_id = old_ids.index(p.idx)
+        new_points.append(new[bp_id])
       else:
-         new_points.append(p)
+        # keep point if not replacing
+        new_points.append(p)
 
     assert(len(self.points) == len(new_points))
     for i in range(len(new_points)):
       if np.linalg.norm(np.asarray(self.points[i].coords) - np.asarray(new_points[i].coords) > 1e-6):
-        print("replace point ", self.points[i].coords, " with point ", new_points[i].coords)         
+        print("replace point ", self.points[i].coords, " with point ", new_points[i].coords)
+                 
     self.points = new_points
     
 #     print("replaced ", len(old_ids), " points with ", len(new))      

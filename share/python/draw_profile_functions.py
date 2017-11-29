@@ -45,8 +45,13 @@ class Vertex():
     assert(type(id) is int)
     self.idx = id
     
+  def __str__(self):  
+    return "id:" + str(self.idx) + " coords:" + str(self.coords)
+  
 # the 6 faces of a bounding box, need it for identifying boundary circles
 class Face_Name(Enum):
+  # define order to allow for f in Face_Name
+  __order__ = 'XMIN YMIN ZMIN XMAX YMAX ZMAX'
   XMIN = 0
   YMIN = 1
   ZMIN = 2
@@ -1331,12 +1336,19 @@ def adjust_and_extract_boundary_points(profiles,points):
     phi = angle_to_center((p[minor1],p[minor2]))
     vertices[id] = Vertex(radius_to_3d_coords(profiles[major_dir], p[major_dir], phi) ,id)
   
-  for l in lists:
+  # after adjusting, also update new locations in boundary lists
+  for f in Face_Name:
+    for i,vert in enumerate(lists[f.value]):
+      vert.coords = vertices[vert.idx].coords
+    
+  for i,l in enumerate(lists):
+    major = i%3
+    minor_1, minor_2 = give_normal_plane_axes(major)
     assert(len(l) > 0)
     # sort points in cyclic order
     # here we live in [0,1]^3
     cell_center = np.asarray([0.5,0.5,0.5])
-    l.sort(key=lambda c:math.atan2(np.asarray(c.coords[minor1])-cell_center[0], np.asarray(c.coords[minor2])-cell_center[1]))
+    l.sort(key=lambda c:math.atan2(np.asarray(c.coords[minor_1])-cell_center[0], np.asarray(c.coords[minor_2])-cell_center[1]))
     
   for v in vertices:
     assert(type(v) is Vertex)
