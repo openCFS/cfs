@@ -1343,12 +1343,16 @@ def adjust_and_extract_boundary_points(profiles,points):
     
   for i,l in enumerate(lists):
     major = i%3
-    minor_1, minor_2 = give_normal_plane_axes(major)
+    minor1, minor2 = give_normal_plane_axes(major)
     assert(len(l) > 0)
     # sort points in cyclic order
     # here we live in [0,1]^3
     cell_center = np.asarray([0.5,0.5,0.5])
-    l.sort(key=lambda c:math.atan2(np.asarray(c.coords[minor_1])-cell_center[0], np.asarray(c.coords[minor_2])-cell_center[1]))
+    l.sort(key=lambda c:math.atan2(np.asarray(c.coords[minor1])-cell_center[0], np.asarray(c.coords[minor2])-cell_center[1]))
+    for p in l:
+      if major == 3 or major == 4 or major == 5:
+        print('major:',major)
+        assert(np.isclose(p.coords[major],1.0))
     
   for v in vertices:
     assert(type(v) is Vertex)

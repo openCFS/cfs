@@ -368,6 +368,7 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
         assert(len(this.boundary_points) > 0)
         assert(this is not None)
         if i < nx-1:
+          print("x")
           right = basecell_grid[i+1,j,k]
           this_bp = this.boundary_points[Face_Name.XMAX.value]
           right_bp = right.boundary_points[Face_Name.XMIN.value]
@@ -383,6 +384,7 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
           assert(len(this_bp) == len(right_bp))
           right.replace_boundary_points(this_bp,Face_Name.XMIN.value)
         if j < ny-1:
+          print("y")
           top = basecell_grid[i,j+1,k]
           this_bp = this.boundary_points[Face_Name.YMAX.value]
           top_bp = top.boundary_points[Face_Name.YMIN.value]
@@ -390,6 +392,7 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
 #           top.boundary_points = this.boundary_points
           top.replace_boundary_points(this_bp,Face_Name.YMIN.value)
         if k < nz-1:
+          print("z")
           front = basecell_grid[i,j,k+1]
           this_bp = this.boundary_points[Face_Name.ZMAX.value]
           front_bp = front.boundary_points[Face_Name.ZMIN.value]

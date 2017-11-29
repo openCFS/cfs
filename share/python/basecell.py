@@ -326,6 +326,9 @@ if __name__ == "__main__":
       mesh = mesh_tool.create_3d_mesh_from_array(array,args.multiple_regions)
     
     mesh_tool.validate_periodicity(mesh)
+    
+    mesh_tool.write_gid_mesh(mesh, fileNameBase+".mesh") 
+    
   
   
   ################ take care of stl and vtp files ##############  
@@ -460,13 +463,16 @@ class Basecell():
   
   # take list with 'new' coords and replace mylist at entry list_idx  
   def replace_boundary_points(self,new,list_idx):
+    print("\nlist_idx:",list_idx)
+    for p in self.points:
+      print(p.coords)
     assert(len(new) == len(self.boundary_points[list_idx]))
     bp = self.boundary_points[list_idx]
     # remember point ids that we replace
     old_ids = [p.idx for p in bp]
     # replace coords, keep ids
     for i,p in enumerate(new):
-      print("replace ",self.boundary_points[list_idx][i].coords, " with ", p.coords)
+#       print("replace ",self.boundary_points[list_idx][i].coords, " with ", p.coords)
       self.boundary_points[list_idx][i].coords = p.coords
     new_points = []
     # changing has also to be done in global points list
@@ -482,6 +488,7 @@ class Basecell():
         new_points.append(p)
 
     assert(len(self.points) == len(new_points))
+     
     for i in range(len(new_points)):
       if np.linalg.norm(np.asarray(self.points[i].coords) - np.asarray(new_points[i].coords) > 1e-6):
         print("replace point ", self.points[i].coords, " with point ", new_points[i].coords)
