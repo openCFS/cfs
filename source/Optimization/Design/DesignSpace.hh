@@ -451,38 +451,33 @@ namespace CoupledField
        bool HasBiMaterial() const;
 
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
-        * easy to be also simple for load ersatz material */
+        * easy to be also simple for load ersatz material. Shall be thread-save */
        PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
 
-       struct BiMatData
-       {
-         BiMatData() {}; // for StdVector
-         BiMatData(MaterialClass mc, MaterialType mt, PtrCoefFct coef);
-         MaterialClass mc = NO_CLASS;
-         MaterialType  mt = NO_MATERIAL;
-         PtrCoefFct    coef;
-       };
+       /** returns existing data, As the other GetBiMaterial() is called, data may be created on the fly. */
+       PtrCoefFct GetBiMaterial(const string& integrator);
 
-       /** returns the stored bimaterial data */
-       StdVector<BiMatData> GetBiMaterials();
+       PtrCoefFct GetBiMaterial(BiLinearForm* form) { return GetBiMaterial(form->GetName()); }
 
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
 
+       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
+       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials;
+
      private:
 
        /** the label for the info.xml */
        std::string bimaterial_;
-
-       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
-       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials_;
      };
      
      /** Get DesignRegion.  */
      DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
 
      DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
+
+     DesignRegion* GetRegion(RegionIdType id, MaterialClass mc, MaterialType mt, bool throw_exception = true);
 
      /** This now is a vector of design and region regions[design][region].
       Design is here the unique design. */
@@ -537,8 +532,8 @@ namespace CoupledField
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Function* f, bool scaling = true) const;
 
-     /** Initialized the LocalElementCache. Has special handling for ParamMat. Called by PostInit() */
-     virtual void SetupLocalElementCache();
+     /** Initialized the LocalElementCache. Called by PostInit() */
+     void SetupLocalElementCache();
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */

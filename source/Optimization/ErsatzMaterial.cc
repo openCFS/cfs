@@ -1315,6 +1315,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(ctxt->mat->ComplexElementMatrix(de->elem->regionId))
     {
       // only accessed as derivative in ParamMat case
+      assert(this->method_ != ErsatzMaterial::PARAM_MAT);
       const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(ctxt->mat->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
       assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
       Add<Complex, Complex>(S, damp_mass, M);

@@ -53,7 +53,7 @@ void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunct
   {
   case App::MECH:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->Stiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
     if(context->IsComplex())
     {
@@ -73,7 +73,7 @@ void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunct
   }
   case App::MASS:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->Mass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
     break;
   }
@@ -99,10 +99,10 @@ void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type typ
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<const Matrix<double> &>(mech_mat->MechStiffness(de->elem, false, mm, t));
+    out = dynamic_cast<const Matrix<double> &>(mech_mat->Stiffness(de->elem, false, mm, t));
     break;
   case App::MASS:
-    out = dynamic_cast<const Matrix<double> &>(mech_mat->MechMass(de->elem, false, mm, t));
+    out = dynamic_cast<const Matrix<double> &>(mech_mat->Mass(de->elem, false, mm, t));
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

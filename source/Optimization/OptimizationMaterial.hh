@@ -59,13 +59,15 @@ public:
 
   System GetSystem() const { return system_; }
 
-  /** works fine for standard single pde SIMP stuff */
-  virtual const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
-    EXCEPTION("overload!");
+  /** works fine for standard single pde SIMP stuff. We have a complex stiffness matrix for bloch.
+   * The direction (param mat derivatives are only for MechMat::MechStiffness() */
+  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(stiff_, elem, bimaterial, multimaterial, mat_deriv);
   }
 
-  virtual const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE) {
-    EXCEPTION("overload!");
+  /** we have a dense mass matrix for bloch */
+  const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE) {
+    return GetElementMatrix(mass_, elem, bimaterial, multimaterial, mat_deriv);
   }
 
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
@@ -75,35 +77,38 @@ public:
 
 protected:
 
-
   /** @param em for the standard constructor to be used in ErsatzMaterial.
    * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
   OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, DesignSpace* space = NULL);
 
+  /** this structure describes a material form. Most systems have a stiffness and a mass variant. */
+  struct FormID
+  {
+    /** form name */
+    std::string   integrator;
+    /** not same for stiff and mass but to have it all together */
+    MaterialClass mc = NO_CLASS;
+    /** specific material type */
+    MaterialType  mt = NO_MATERIAL;
+    /** here store the matrix we return by Stiffness() or Mass when we need to compute it and cannot return a cached one.
+     * ThreadLocalStorage to allow parallelization */
+    CfsTLS<Matrix<double> >  calc_real;
+    CfsTLS<Matrix<Complex> > calc_cplx;
+  };
 
-  /** This is actually legacy code - the data shall always come from DesignSpace::localElementCace */
+  /** This is the common function for Stiffness() and Mass(). It either calls ComputeElementMatrix() or gets the stuff from LocalElementCache */
+  const DenseMatrix& GetElementMatrix(FormID& id, const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE);
+
+  /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
+   * @return this is out, just a convenience funciton. */
   template <class T>
-  void GetElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
+  const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
-
-
-  /** retrieves the data from LocalElementCache */
-  template <class T>
-  const Matrix<T>& GetCachedElementMatrix(const std::string& integrator, const Elem* elem, bool lower_bimat = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
-  const DenseMatrix& GetCachedElementMatrixDM(const std::string& integrator, const Elem* elem, bool lower_bimat = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                           BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
-
-  /** service function handling multimaterial
-   * @param de we need elem->region, multimaterial might be NULL otherwise we check for index */
-  /*Matrix<double>& GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map,
-      const DesignElement* de, MaterialClass mc, DesignElement::Type direction, double factor, bool transposed); */
-
-  DesignElement* FirstDesignByRegion(RegionIdType reg);
 
   StdVector<RegionIdType> regionIds;
 
@@ -120,8 +125,12 @@ protected:
   // harmonic, eigenvalue, transient
   bool needs_mass_;
 
-  // what we are;
-  System system_;
+  /** needs to be replaced by derived classes */
+  System system_ = NO_SYSTEM;
+
+
+  FormID stiff_;
+  FormID mass_;
 };
 
 class MechMat : public OptimizationMaterial
@@ -131,29 +140,11 @@ public:
   MechMat(ErsatzMaterial* em, Context* ctxt);
   MechMat(DesignSpace* space);
   
-  /** Get the ElementStiffness Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @param bimaterial if true gets the material from the design space by the element's region
-   * @param multimaterial index or negative
-   * @param direction if given, calculate derivative of Stiffness Matrix instead
-   * @return a pointer to the Element Stiffness Matrix*/
-  const DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
- /** overwrites OptimizationMaterial::Stiffness */
-  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
-    return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
-  }
-
-  /** Get the ElementMass Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @param direction if given, calculate derivative of mass Matrix instead
-   * @return a pointer to the Element Mass Matrix*/
-  const DenseMatrix& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
-  /** overwrites OptimizationMaterial::Mass */
-  const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE) {
-    return MechMass(elem, bimaterial, multimaterial, direction);
-  }
+  /** specific version for piezo */
+  const Matrix<double>& MechStiffness(const DesignElement* de, bool lower_bimat = false, int multi_material = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE) {
+     return dynamic_cast<const Matrix<double>&>(Stiffness(de->elem, lower_bimat, multi_material, direction));
+   }
 
   /** The the rhs-contribution for full material for the current test strain. There is no caching!
    * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
@@ -175,21 +166,6 @@ class AcouMat : public OptimizationMaterial
 {
 public:
   AcouMat(ErsatzMaterial* em, Context* ctxt);
-
-  const Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
-
-  /** overwrites OptimizationMaterial::Stiffness */
-  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false) {
-    return AcouStiffness(elem, bimaterial);
-  }
-
-  const Matrix<double>& AcouMass(const Elem* elem,  bool bimaterial);
-
-  /** overwrites OptimizationMaterial::Mass */
-  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
-    return AcouMass(elem, bimaterial);
-  }
-
 };
 
 
@@ -262,28 +238,6 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
-
-  /** Get the ElementStiffness Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @param bimaterial if true gets the material from the design space by the element's region
-   * @param multimaterial index or negative
-   * @param direction if given, calculate derivative of Stiffness Matrix instead
-   * @return a pointer to the Element Stiffness Matrix*/
-  const DenseMatrix& HeatStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1);
-
-  /** overwrites OptimizationMaterial::Stiffness */
-  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
-    return HeatStiffness(elem, bimaterial, multimaterial);
-  }
-
-  /** Get the ElementMass Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @param direction if given, calculate derivative of mass Matrix instead
-   * @return a pointer to the Element Mass Matrix*/
-  const DenseMatrix& HeatMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1);
-
-protected:
-  SinglePDE* GetPDE();
 };
 
 

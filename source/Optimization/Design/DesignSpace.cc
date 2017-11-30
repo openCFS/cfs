@@ -16,6 +16,7 @@
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Driver/BaseDriver.hh"
+#include "Driver/Assemble.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -455,34 +456,96 @@ void DesignSpace::PostInit(int objectives, int constraints)
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
     totalElements_[i]->PostInit(objectives, constraints);
 
-  // this is a virtual Function.
-  // set the hole LocalElementCache to do SIMP element base and cache also ParamMat gradients
-  elementCache = new LocalElementCache(this); // not yet activated
 
-  SetupLocalElementCache();
+  // we don't do caching for pure loar ersatz material
+  if(domain->GetOptimization() != NULL)
+  {
+    // set the whole LocalElementCache to do SIMP element based and cache also ParamMat gradients
+    elementCache = new LocalElementCache(this); // not yet activated
+
+    // this is a virtual Function.
+    SetupLocalElementCache();
+  }
 }
 
 void DesignSpace::SetupLocalElementCache()
 {
-  // load elements FIXME: handle context
-  elementCache->InitOrg();
-  // handle bimaterial and multimaterial.
-  // regions is a vector of design with vectors of regions.
-  // Example: first density with elasticity-tensor for BDBInt and then mass for MassInt
-  for(unsigned int d = 0; d < regions.GetSize(); d++) { // design
-    for(unsigned int r = 0; r < regions[0].GetSize(); r++) { // region
-      assert(regions[d][r].regionId == regions[0][r].regionId);
-      assert(regions[d][r].HasBiMaterial() == regions[0][r].HasBiMaterial());
+  // DesignRegion::bimaterials_ is not filled yet, this is intended to be done on the fly
+  assert(Optimization::manager.context.GetSize() == 1);
+  Context* context = Optimization::context;   // load elements FIXME: handle context
 
-      DesignRegion& dr = regions[d][r];
-      StdVector<DesignRegion::BiMatData> bm = dr.GetBiMaterials();
-      for(unsigned int b = 0; b < bm.GetSize(); b++) {
-        DesignRegion::BiMatData& bmd = bm[b];
-        elementCache->InitShadow(ToForm(bmd.mc, bmd.mt), dr.regionId, bmd.coef);
+  // we can cache material derivatives only for FMO which is also used by SGP
+  if(designMaterial)
+  {
+    // no init org!
+
+    if(designMaterial->GetType() == DesignMaterial::FMO)
+      for(unsigned int i = 0; i < regionIds_.GetSize(); i++)
+      {
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_11);
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_12);
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_13);
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_22);
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_23);
+        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_33);
+        assert(domain->GetGrid()->GetDim() == 2); // add 3D stuff once we have it
+      }
+    // simply no caching for other param mat types
+  }
+  else
+  {
+    // The SIMP case with bimat and, when implemented, multimaterial
+    elementCache->InitOrg();
+
+    // regions is a vector of design with vectors of regions.
+    // Example: first density with elasticity-tensor for BDBInt and then mass for MassInt
+    for(unsigned int d = 0; d < regions.GetSize(); d++) { // design
+      for(unsigned int r = 0; r < regions[0].GetSize(); r++) { // region
+        assert(regions[d][r].regionId == regions[0][r].regionId);
+        assert(regions[d][r].HasBiMaterial() == regions[0][r].HasBiMaterial());
+
+        DesignRegion& dr = regions[d][r];
+
+        if(dr.HasBiMaterial())
+        {
+          MaterialClass mc = NO_CLASS;
+          MaterialType  mt = NO_MATERIAL;
+
+          switch(context->mat->GetSystem())
+          {
+          case OptimizationMaterial::MECH:
+          {
+            mc = MECHANIC;
+            mt = MECH_STIFFNESS_TENSOR;
+            elementCache->InitShadow(ToForm(mc, mt), dr.regionId, dr.GetBiMaterial(mc, mt));
+            if(context->pde->GetAssemble()->HasBiLinForm("MassInt", dr.regionId))
+              elementCache->InitShadow(ToForm(mc, DENSITY), dr.regionId, dr.GetBiMaterial(mc, DENSITY));
+            break;
+          }
+          case OptimizationMaterial::HEAT:
+          {
+            mc = THERMIC;
+            mt = HEAT_CONDUCTIVITY;
+            elementCache->InitShadow(ToForm(mc, mt), dr.regionId, dr.GetBiMaterial(mc, mt));
+            break;
+          }
+          case OptimizationMaterial::PIEZOCOUPLING:
+          case OptimizationMaterial::ACOUSTIC:
+          case OptimizationMaterial::ELEC:
+            assert(false);
+            // implement. You might want to switch of element cache!
+            break;
+          case OptimizationMaterial::LBM:
+          case OptimizationMaterial::NO_SYSTEM:
+            assert(false);
+            // there shall not be LBM bimaterial!
+            break;
+          }
+        }
       }
     }
-  }
-  // TODO add Multimaterial
+    // TODO add Multimaterial
+  } // end of non-designMaterial case
 
 }
 
@@ -807,6 +870,9 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   if(designMaterial != NULL)
     return false;
 
+  if(elementCache == NULL)
+    return false;
+
   // load the element matrix to apply optimization to it.
   if(!elementCache->CachedOrgElement<T>(retMat, form, elem))
     return false;
@@ -838,7 +904,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   double bimat_factor = -1.0;
   if(dr->HasBiMaterial())
   {
-    const Matrix<T>& other = elementCache->CachedElement<T>(form->GetName(), LocalElementCache::SHADOW, elem);
+    const Matrix<T>& other = elementCache->CachedShadowElement<T>(form->GetName(), elem, dr->GetBiMaterial(form));
     bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
     retMat.Add(bimat_factor, other); // rho^p * E_l + (1-rho)^p * E_u
   }
@@ -1553,7 +1619,8 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 
   in->Get("pamping")->SetValue(pamping_);
-  in->Get("structured")->SetValue(em->IsDomainStructured());
+  if(em)
+    in->Get("structured")->SetValue(em->IsDomainStructured());
 
   if(regions.GetSize() > 0)
   {
@@ -1783,6 +1850,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception)
 {
+  assert(mm != NULL);
   return GetRegion(id, DesignElement::MULTIMATERIAL, mm->index, throw_exception);
 }
 
@@ -1809,6 +1877,24 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
     EXCEPTION("cannot find design region");
   return NULL;
 }
+
+
+DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MaterialClass mc, MaterialType mt, bool throw_exception)
+{
+  for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
+    for(unsigned r = 0, rn = regions[d].GetSize(); r < rn; r++)
+    {
+      DesignRegion& dr = regions[d][r];
+      if(dr.regionId == id)
+        if(dr.bimaterials.count(mc) > 0 && dr.bimaterials[mc].count(mt) > 0)
+          return &dr;
+    }
+
+  if(throw_exception)
+    EXCEPTION("cannot find design region");
+  return NULL;
+}
+
 
 
 DesignSpace::DesignRegion::DesignRegion()
@@ -1870,53 +1956,49 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialTy
 {
   assert(bimaterial_ != ""); // check with HasBiMaterial()!
 
-  if(bimaterials_.count(mc) == 0 || bimaterials_[mc].count(mt) == 0)
+  if(bimaterials.count(mc) == 0 || bimaterials[mc].count(mt) == 0)
   {
-    // apparently first run
-    MaterialHandler* matLoader = domain->GetMaterialHandler();
-    BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
-
-    switch(mt)
+    #pragma omp critical (DR_GMB)
     {
-    case MECH_STIFFNESS_TENSOR:
-    {
-      SinglePDE* mech = domain->GetSinglePDE("mechanic");
-      if(Optimization::context->DoBloch() || mech->HasComplexMatData(regionId))
-        bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::COMPLEX);
-      else
-        bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::REAL);
-      break;
-    }
+      // apparently first run
+      MaterialHandler* matLoader = domain->GetMaterialHandler();
+      BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
 
-    case DENSITY:
-      bimaterials_[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
-      break;
+      switch(mt)
+      {
+      case MECH_STIFFNESS_TENSOR:
+      {
+        SinglePDE* mech = domain->GetSinglePDE("mechanic");
+        if(Optimization::context->DoBloch() || mech->HasComplexMatData(regionId))
+          bimaterials[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::COMPLEX);
+        else
+          bimaterials[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::REAL);
+        break;
+      }
 
-    default:
-      assert(false);
-    }
+      case DENSITY:
+        bimaterials[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
+        break;
+
+      default:
+        assert(false);
+      }
+    } // omp critical
   }
-  LOG_DBG3(designSpace) << "DS:DR:GBM: mc=" << mc << " mt=" << mt << " -> " << bimaterials_[mc][mt]->ToString();
-  return bimaterials_[mc][mt];
+  LOG_DBG3(designSpace) << "DS:DR:GBM: mc=" << mc << " mt=" << mt << " -> " << bimaterials[mc][mt]->ToString();
+  return bimaterials[mc][mt];
 }
 
-DesignSpace::DesignRegion::BiMatData::BiMatData(MaterialClass mc, MaterialType mt, PtrCoefFct coef)
+PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(const string& integrator)
 {
-  this->mc = mc;
-  this->mt = mt;
-  this->coef = coef;
-}
-
-StdVector<DesignSpace::DesignRegion::BiMatData> DesignSpace::DesignRegion::GetBiMaterials()
-{
-  StdVector<BiMatData> res;
-  res.Reserve(bimaterial_.size());
-
-  for(auto const &mc_it : bimaterials_)
-    for(auto const &mt_it : mc_it.second)
-      res.Push_back(BiMatData(mc_it.first, mt_it.first, mt_it.second));
-
-  return res;
+  if(integrator == "LinElastInt")
+    return GetBiMaterial(MECHANIC, MECH_STIFFNESS_TENSOR);
+  if(integrator == "MassInt")
+    return GetBiMaterial(MECHANIC, DENSITY);
+  if(integrator == "HeatConductivity")
+    return GetBiMaterial(THERMIC, HEAT_CONDUCTIVITY);
+  assert(false);
+  return PtrCoefFct();
 }
 
 
