@@ -2186,6 +2186,8 @@ source/Optimization/Design/DesignStructure.hh -text
 source/Optimization/Design/DesignTypes.hh -text
 source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
+source/Optimization/Design/LocalElementCache.cc -text
+source/Optimization/Design/LocalElementCache.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
 source/Optimization/Design/ShapeMapDesign.cc -text

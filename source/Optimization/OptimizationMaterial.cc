@@ -46,7 +46,6 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, De
   this->ctxt_ = ctxt;
   this->opt = em;
   this->space = space != NULL ? space : em->GetDesign();
-  this->system_ = NO_SYSTEM;
 
   regionIds = this->space->GetRegionIds();
 
@@ -103,7 +102,7 @@ shared_ptr<CoefFunctionOpt> OptimizationMaterial::GetMatCoef(const std::string& 
 
 
 template <class T>
-void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType)
+const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType)
 {
   LOG_DBG3(om) << "GEM int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711) << " lb=" << lower_bimat << " d=" << direction << " et=" << entryType;
 
@@ -166,28 +165,79 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
 
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
   coef->SetToOptimization(); // removes the shadow material and direction
+
+  return out;
 }
 
-
-template <class T>
-const Matrix<T>& OptimizationMaterial::GetCachedElementMatrix(const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction)
+const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::FormID& id, const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type mat_deriv)
 {
-  assert(!(lower_bimat && direction != DesignElement::NO_DERIVATIVE)); // what is with NO_MULTIMATERIAL?!
 
-  LocalElementCache::Type state = lower_bimat ? LocalElementCache::SHADOW : LocalElementCache::ORG;
-  if(direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)
-    state = LocalElementCache::DIRECTION;
+  // index is 0 for standard material, 1 for bimaterial and anything >= 0 for a real multimaterial index
+  //unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
 
-  return space->elementCache->CachedElement<T>(integrator, state, elem, direction);
-}
 
-const DenseMatrix& OptimizationMaterial::GetCachedElementMatrixDM(const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction)
-{
-  if(ComplexElementMatrix(elem->regionId))
-    return GetCachedElementMatrix<complex<double> >(integrator, elem, lower_bimat, direction);
+  // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
+  //bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
+
+  LOG_DBG3(om) << "OM:S: sys=" << system_ << " el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial; // << " index=" << index;
+
+  LocalElementCache* lec = space->elementCache;
+  bool is_complex = ComplexElementMatrix(elem->regionId);
+
+  if(bimaterial)
+  {
+    DesignSpace::DesignRegion* dr = space->GetRegion(elem->regionId, id.mc, id.mt);
+    assert(dr != NULL);
+
+    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(id.mc, id.mt)))
+    {
+      if(is_complex)
+        return ComputeElementMatrix(id.calc_cplx.Mine(), id.integrator, elem, true);
+      else
+        return ComputeElementMatrix(id.calc_real.Mine(), id.integrator, elem, true);
+    }
+    else
+    {
+      if(is_complex)
+        return lec->CachedShadowElement<Complex>(id.integrator, elem, dr->GetBiMaterial(id.mc, id.mt));
+      else
+        return lec->CachedShadowElement<double>(id.integrator, elem, dr->GetBiMaterial(id.mc, id.mt));
+    }
+  }
+
+  if(mat_deriv != DesignElement::NO_DERIVATIVE && mat_deriv != DesignElement::NO_MULTIMATERIAL)
+  {
+    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->DIRECTION, mat_deriv))
+    {
+      if(is_complex)
+        return ComputeElementMatrix(id.calc_cplx.Mine(), id.integrator, elem, false, mat_deriv);
+      else
+        return ComputeElementMatrix(id.calc_real.Mine(), id.integrator, elem, false, mat_deriv);
+    }
+    else
+    {
+      if(is_complex)
+        return lec->CachedMatDerivElement<Complex>(id.integrator, elem, mat_deriv);
+      else
+        return lec->CachedMatDerivElement<double>(id.integrator, elem, mat_deriv);
+    }
+  }
+
+  // the standard simp case with org
+  if(lec == NULL || !lec->HasCachedData(id.integrator, lec->ORG))
+  {
+    if(is_complex)
+      return ComputeElementMatrix(id.calc_cplx.Mine(), id.integrator, elem);
+    else
+      return ComputeElementMatrix(id.calc_real.Mine(), id.integrator, elem);
+  }
+
+  if(is_complex)
+    return lec->CachedOrgElement<Complex>(id.integrator, elem);
   else
-    return GetCachedElementMatrix<double>(integrator, elem, lower_bimat, direction);
+    return lec->CachedOrgElement<double>(id.integrator, elem);
 }
+
 
 void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, BaseMaterial* bimaterial, const Vector<double>* ts)
 {
@@ -279,34 +329,14 @@ MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, Optimization::
 
 void MechMat::Init()
 {
-  system_ = MECH;
-}
+  system_   = MECH;
+  stiff_.integrator = "LinElastInt";
+  stiff_.mc = MECHANIC;
+  stiff_.mt = MECH_STIFFNESS_TENSOR;
 
-
-const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
-{
-
-  // index is 0 for standard material, 1 for bimaterial and anything >= 0 for a real multimaterial index
-  //unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
-
-  // in the multimaterial case we do not want the form to obtain the multimaterial tensor but only the one of the currently material
-  if(space->HasMultiMaterial()) // ??? and why not in mass??
-    direction = DesignElement::NO_MULTIMATERIAL;
-
-  // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
-  //bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
-
-  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction; // << " index=" << index;
-
-  return GetCachedElementMatrixDM("LinElastInt", elem, bimaterial, direction);
-}
-
-const DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
-{
-  // see MechStiffness, almost copy & paste :(
-  // unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;
-
-  return GetCachedElementMatrixDM("MassInt", elem, bimaterial, direction);
+  mass_.integrator = "MassInt";
+  mass_.mc = MECHANIC;
+  mass_.mt = DENSITY;
 }
 
 const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
@@ -333,20 +363,17 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 
 AcouMat::AcouMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
-  system_ = ACOUSTIC;
+  system_   = ACOUSTIC;
+  assert(false); // mc_!
+  stiff_.integrator = "LaplaceInt";
+  stiff_.mc = MECHANIC; // What could match better?!
+  stiff_.mt = MECH_STIFFNESS_TENSOR;
+
+  mass_.integrator = "MassInt";
+  mass_.mc = stiff_.mc;
+  mass_.mt = DENSITY;
 }
 
-
-
-const Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
-{
-  return GetCachedElementMatrix<double>("LaplaceInt", elem, bimaterial);
-}
-
-const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
-{
-  return GetCachedElementMatrix<double>("MassInt", elem, bimaterial);
-}
 
 
 
@@ -386,7 +413,7 @@ const Matrix<double>& PiezoElecMat::ElecStiffnessPos(const DesignElement* de, De
   return mat;
   */
   assert(false);
-  return GetCachedElementMatrix<double>("killme", NULL, false);
+  return ComputeElementMatrix<double>(stiff_.calc_real.Mine(), "killme", de->elem);
 }
 
 const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, DesignElement::Type direction)
@@ -398,7 +425,7 @@ const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, De
   return mat;
   */
   assert(false);
-  return GetCachedElementMatrix<double>("killme", NULL, false);
+  return ComputeElementMatrix<double>(stiff_.calc_real.Mine(), "killme", de->elem);
 }
 
 
@@ -406,7 +433,7 @@ const Matrix<double>& PiezoElecMat::CoupledStiffness(const DesignElement* de, De
 {
   //return GeneralStiffness(coupledStiffness_map, de, PIEZO, direction, 1.0, false);
   assert(false);
-  return GetCachedElementMatrix<double>("killme", NULL, false);
+  return ComputeElementMatrix<double>(stiff_.calc_real.Mine(), "killme", de->elem);
 }
 
 
@@ -414,17 +441,17 @@ const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignEleme
 {
   //return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, direction, 1.0, true);
   assert(false);
-  return GetCachedElementMatrix<double>("killme", NULL, false);
+  return ComputeElementMatrix<double>(stiff_.calc_real.Mine(), "killme", de->elem);
 }
 
 HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = HEAT;
-}
 
-const DenseMatrix& HeatMat::HeatStiffness(const Elem* elem, bool bimaterial, int multimaterial)
-{
-  return GetCachedElementMatrixDM("HeatConductivity", elem, bimaterial);
+  stiff_.integrator = "HeatConductivity";
+  stiff_.mc = THERMIC;
+  stiff_.mt = HEAT_CONDUCTIVITY;
+  // mass does not apply yet
 }
 
 ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
@@ -553,19 +580,20 @@ const Matrix<complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bi
   return !bimaterial ? elecStiffness_map[elem->regionId].first : elecStiffness_map[elem->regionId].second;
   */
   assert(false);
-  return GetCachedElementMatrix<complex<double> >("killme", NULL, false);
+  return ComputeElementMatrix<Complex>(stiff_.calc_cplx.Mine(), "killme", elem, bimaterial, direction);
 }
 
 LBMMat::LBMMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = LBM;
+  // this is a just a fake system. LBM ist not FE-based, hence no element matrices are required
 }
 
 
 // explicit template instantiation for GCC compiler
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template void OptimizationMaterial::GetElementMatrix<double>(Matrix<double>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
-template void OptimizationMaterial::GetElementMatrix<Complex>(Matrix<Complex>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
+template const Matrix<double>&  OptimizationMaterial::ComputeElementMatrix<double>(Matrix<double>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
+template const Matrix<Complex>& OptimizationMaterial::ComputeElementMatrix<Complex>(Matrix<Complex>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType);
 #endif
 
 
