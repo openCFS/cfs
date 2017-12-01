@@ -465,16 +465,7 @@ class Basecell():
       if self.points[i].idx != i:
         print("self.points[i].idx != i  idx:",self.points[i].idx,"  i:",i)
       assert(self.points[i].idx == i)
-    print("\nlist_idx:",list_idx)
-    for p in self.boundary_points[list_idx]:
-      print(p)
     
-    if len(new) != len(self.boundary_points[list_idx]):  
-      out = open("cells.txt","w")
-      for c in self.cells:
-        out.write(str(c) + "\n")
-      out.close()    
-
     # if number of nodes on both sides differ, we have hanging nodes
     while len(new) != len(self.boundary_points[list_idx]):
       assert(np.abs(len(new)-len(self.boundary_points[list_idx])) < 10)
