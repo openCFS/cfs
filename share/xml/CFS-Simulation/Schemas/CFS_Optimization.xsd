@@ -1287,6 +1287,12 @@
             <!-- Optional parameters for the design space -->
             <xsd:element name="designSpace" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
+                <!-- Do not assume the elements as regular even if the grid thinks it is so. -->
+                <xsd:attribute name="enforce_unstructured" type="xsd:boolean" default="false" use="optional"/>
+              
+                <!-- disable local fem element matrix caching. -->
+                <xsd:attribute name="local_element_cache" type="xsd:boolean" default="true" use="optional"/>
+              
                 <!-- Activate when density filter and slopes shall see non-design regions. -->
                 <xsd:attribute name="non_design_vicinity" type="xsd:boolean" default="false" use="optional"/>
               </xsd:complexType>
@@ -1498,13 +1504,11 @@
             </xsd:simpleType>
           </xsd:attribute>               
 
-          <!-- In special cases gid does not mesh all elements with the same local node positions such
-               that there is no commom element matrix even for regular grids. -->
-          <xsd:attribute name="enforce_unstructured" default="false" type="xsd:boolean" use="optional"/>                                     
 
                                    
         </xsd:complexType>
       </xsd:element>
+      
       
       <!-- We can control the comit for forward and/or adjoint solution --> 
       <xsd:element name="commit" minOccurs="0" maxOccurs="1">

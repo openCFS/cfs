@@ -78,12 +78,6 @@ public:
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
 
-  /** Have all design elements the same size? -> same local element matrices */
-  bool IsDomainStructured()
-  {
-    return assume_constant_element_matrices_;
-  }
-
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
@@ -397,9 +391,6 @@ protected:
 
   /** do we do SIMP or FreeMat or ... */
   Method method_;
-
-  /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
-  bool assume_constant_element_matrices_;
 
   /** cache the 1.0 / complete volume of the domain */
   double volume_fraction_;

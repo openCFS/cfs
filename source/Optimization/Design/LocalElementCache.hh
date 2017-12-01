@@ -1,8 +1,10 @@
 #ifndef OPTIMIZATION_DESIGN_LOCALELEMENTCACHE_HH_
 #define OPTIMIZATION_DESIGN_LOCALELEMENTCACHE_HH_
 
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "General/Enum.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Matrix.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -16,7 +18,6 @@ namespace CoupledField
 {
 
 class BiLinearForm;
-class DesignSpace;
 
 /** This class holds precomputed local element matrices in cache. This is to returned e.g. by
  * BDBInt::CalcElementMatrix(). It speeds up Assemble::AssembleMatrices*() and ErsatzMaterial::CalcUKU()
@@ -32,16 +33,11 @@ public:
   /** initialize the org data. FIXME: add context! */
   void InitOrg();
 
-  /** Initialize (additional) shadow data. To be called repeatedly for varying paramtgers */
-  void InitShadow(const string& integrator, RegionIdType reg, PtrCoefFct coef) {
-    Init(integrator, reg, SHADOW, DesignElement::NO_DERIVATIVE, coef);
-  }
+  /** initialize bimaterial for org and for shadow */
+  void InitShadow(DesignSpace::DesignRegion* dr);
 
-  /** Initialize (additional) material derivatives. This is always the tensor coefficients, even if the
-   * design variables are different (e.g. Young's modulus)
-   * @param dir only MECH_11, MECH_12, ... material derivative local element matrices can be cached!
-   * @return false if dir was not feasible */
-  bool InitMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir);
+  /** Initialize mechanic material derivatives by checking if MECH_11 is in space */
+  void InitMechMatDeriv(StdVector<RegionIdType>& reg);
 
   /** This is essentially a replicate of CoefFunctionOpt::State which we cannot easily use
    * due to cyclic dependencies */
@@ -76,7 +72,15 @@ public:
     return CachedElement<T>(integrator, DIRECTION, elem, dir);
   }
 
+  void ToInfo(PtrParamNode info);
+
 private:
+
+  /** Initialize (additional) material derivatives. This is always the tensor coefficients, even if the
+   * design variables are different (e.g. Young's modulus)
+   * @param dir only MECH_11, MECH_12, ... material derivative local element matrices can be cached!
+   * @return false if dir was not feasible */
+  bool InitMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir);
 
   Type GetType(bool lower_bimat,  DesignElement::Type direction) const;
 
@@ -85,6 +89,21 @@ private:
   {
     /** the constructor which resizes the elements */
     void Init(const BiLinearForm* form, bool structured);
+
+    /** Checks if context id and wave number do match with the current context */
+    bool CheckContext() const
+    {
+      Context* curr = Optimization::context;
+      if((int) curr->context_idx != this->contex)
+        return false;
+
+      assert((curr->DoBloch() && curr->num_bloch_wave_vectors > 0) || (!curr->DoBloch() && curr->num_bloch_wave_vectors == 0));
+      if(curr->num_bloch_wave_vectors > 0)
+        if(curr->GetEigenFrequencyDriver()->GetCurrentWaveVector() != this->wave)
+          return false;
+
+      return true;
+    }
 
     /** index within data_real_ or data_cplx_ */
     int    idx = -1;
@@ -99,8 +118,11 @@ private:
     /** the shadow coef for bimat and multimaterial */
     PtrCoefFct shadow;
 
-    // FIXME: Add context
-    // FIXME: Add wave number
+    /** The wave vector for the bloch case. Taken from current context */
+    Vector<double> wave;
+
+    /** The context number. Always the current context is relevant, no option */
+    int contex = -1;
 
     /** element data, indexed by elemNum. Only filled for regions which are not regular or when unregular is enforced  */
     StdVector<Matrix<double> > elem_real;
@@ -138,21 +160,21 @@ private:
       assert(dir == DesignElement::NO_DERIVATIVE);
       assert(!shadow_coef);
       for(unsigned int i = 0; res_idx == -1 && i < org_end_; i++)
-        if(data_[i].integrator == integrator)
+        if(data_[i].CheckContext() && data_[i].integrator == integrator)
           res_idx = i;
       break;
     case SHADOW:
       assert(dir == DesignElement::NO_DERIVATIVE);
       assert(shadow_coef);
       for(unsigned int i = org_end_; res_idx == -1 && i < shadow_end_; i++)
-        if(data_[i].integrator == integrator && data_[i].shadow == shadow_coef)
+        if(data_[i].CheckContext() && data_[i].integrator == integrator && data_[i].shadow == shadow_coef)
           res_idx = i;
       break;
     case DIRECTION:
       assert(dir != DesignElement::NO_DERIVATIVE);
       assert(!shadow_coef);
       for(unsigned int i= shadow_end_; res_idx == -1 && i < dir_end_; i++)
-        if(data_[i].dir == dir && data_[i].integrator == integrator)
+        if(data_[i].CheckContext() && data_[i].dir == dir && data_[i].integrator == integrator)
           res_idx = i;
       break;
     default:
@@ -163,6 +185,7 @@ private:
 
     assert(data_[res_idx].integrator == integrator);
     assert(data_[res_idx].type == type);
+    assert(data_[res_idx].contex == (int) Optimization::context->context_idx);
     return &data_[res_idx];
   }
 
