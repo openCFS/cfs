@@ -83,8 +83,17 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   tolRel_(1e-4),
   region_(NO_REGION_ID),
   isReset_(false),
-  translationVector_()
+  translationVector_(),
+  hasNodeNums_(false),
+  hasMoveInterfaceCoords_(false),
+  hasSurfElems_(false)
 {
+#ifdef USE_OPENMP
+  omp_init_lock(&gridLock_);
+  omp_init_lock(&newNodesLock_);
+  omp_init_lock(&elemListLock_);
+#endif
+
   name_ = nciNode->Get("name")->As<std::string>();
   elemList_->SetName(name_);
   
@@ -253,6 +262,12 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 }
 
 MortarInterface::~MortarInterface() {
+#ifdef USE_OPENMP
+  omp_destroy_lock(&gridLock_);
+  omp_destroy_lock(&newNodesLock_);
+  omp_destroy_lock(&elemListLock_);
+#endif
+
   ptGrid_ = NULL;
   coordSys_ = NULL;
   
@@ -342,20 +357,23 @@ void MortarInterface::MoveInterface() {
   
   const bool useGlobalCoords = (coordSysId_ == "default");
   UInt dim = coordSys_->GetDim(), numNodes;
-  StdVector<UInt> nodeNums;
   Vector<Double> coordOrig, coordTmp, coordNew, nodeOffsets;
 
-  if (moveMaster_) {
-    ptGrid_->GetNodesByRegion(nodeNums, masterVolRegion_);
-  }
-  else {
-    ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
+  if (!hasNodeNums_) {
+    if (moveMaster_) {
+      ptGrid_->GetNodesByRegion(nodeNums_, masterVolRegion_);
+    }
+    else {
+      ptGrid_->GetNodesByRegion(nodeNums_, slaveVolRegion_);
+    }
+    hasNodeNums_ = true;
   }
 
-  numNodes = nodeNums.GetSize();
+  numNodes = nodeNums_.GetSize();
   nodeOffsets.Resize(numNodes * dim);
 
   if ( useGlobalCoords ) {
+    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for (UInt i = 0; i < numNodes; ++i) {
       for (UInt j = 0; j < dim; ++j) {
         nodeOffsets[i*dim+j] = mParser_->Eval(mphOffset_[j]);
@@ -363,24 +381,39 @@ void MortarInterface::MoveInterface() {
     }
   }
   else {
-    for (UInt i = 0; i < numNodes; ++i) {
-      ptGrid_->GetNodeCoordinate(coordOrig, nodeNums[i], false);
+    Vector<Double> thismphOffset;
+    thismphOffset.Resize(dim);
+    for (UInt j = 0; j < dim; ++j) {
+      thismphOffset[j] = mParser_->Eval(mphOffset_[j]);
+    }
+    if (!hasMoveInterfaceCoords_) {
+      moveInterfaceOrigCoords_.Resize(numNodes);
+      moveInterfaceLocalCoords_.Resize(numNodes);
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < numNodes; ++i) {
+        ptGrid_->GetNodeCoordinate(moveInterfaceOrigCoords_[i], nodeNums_[i], false);
+        coordSys_->Global2LocalCoord(moveInterfaceLocalCoords_[i], moveInterfaceOrigCoords_[i]);
+      }
+      hasMoveInterfaceCoords_ = true;
+    }
 
-      coordSys_->Global2LocalCoord(coordTmp, coordOrig);
+    #pragma omp parallel for private (coordNew,coordTmp) num_threads(NUM_CFS_THREADS)
+    for (UInt i = 0; i < numNodes; ++i) {
+      coordNew.Resize(dim);
+      coordTmp.Resize(dim);
       for (UInt j = 0; j < dim; ++j) {
-        coordTmp[j] += mParser_->Eval(mphOffset_[j]);
+        coordTmp[j] = moveInterfaceLocalCoords_[i][j] + thismphOffset[j];
       }
       coordSys_->Local2GlobalCoord(coordNew, coordTmp);
 
-      nodeOffsets[i * dim    ] = coordNew[0] - coordOrig[0];
-      nodeOffsets[i * dim + 1] = coordNew[1] - coordOrig[1];
+      nodeOffsets[i * dim    ] = coordNew[0] - moveInterfaceOrigCoords_[i][0];
+      nodeOffsets[i * dim + 1] = coordNew[1] - moveInterfaceOrigCoords_[i][1];
       if (dim == 3)
-        nodeOffsets[i*dim + 2] = coordNew[2] - coordOrig[2];
+        nodeOffsets[i*dim + 2] = coordNew[2] - moveInterfaceOrigCoords_[i][2];
     }
   }
 
-  ptGrid_->SetNodeOffset(nodeNums, nodeOffsets);
-
+  ptGrid_->SetNodeOffset(nodeNums_, nodeOffsets);
 }
 
 void MortarInterface::ResetInterface(){
@@ -406,8 +439,6 @@ void MortarInterface::UpdateInterface() {
   if ( !isMoving_ && (elemList_->GetSize() > 0 || isReset_) ) return;
   
   isReset_ = false;
-  StdVector<SurfElem*> masterElems;
-  StdVector<SurfElem*> slaveElems;
   //This is additional memory, but in case of CGAL
   //the runtime should be better
   //boost::shared_ptr<Timer> myTimer(new Timer);
@@ -423,25 +454,28 @@ void MortarInterface::UpdateInterface() {
   if(useMeshSmoothing_ == false){
 	MoveInterface();
   }
-  ptGrid_->GetSurfElems(masterElems, masterSurfRegion_);
-  ptGrid_->GetSurfElems(slaveElems, slaveSurfRegion_);
+  if (!hasSurfElems_) {
+    ptGrid_->GetSurfElems(masterElems_, masterSurfRegion_);
+    ptGrid_->GetSurfElems(slaveElems_, slaveSurfRegion_);
+    hasSurfElems_ = true;
+  }
 
   // check if interface is coplanar
   if ( isMoving_ && coordSys_ && coordSys_->GetDofName(2) == "phi" ) {
     // rotational motion cannot create coplanar interfaces
     isCoplanar_ = false;
   } else {
-    UInt numMasterElems = masterElems.GetSize(),
-         numSlaveElems = slaveElems.GetSize();
+    UInt numMasterElems = masterElems_.GetSize(),
+         numSlaveElems = slaveElems_.GetSize();
 
     ifaceElems.Reserve(numMasterElems + numSlaveElems);
 
     for (UInt i = 0; i < numMasterElems; ++i) {
-      ifaceElems.Push_back(masterElems[i]);
+      ifaceElems.Push_back(masterElems_[i]);
     }
 
     for (UInt i = 0; i < numSlaveElems; ++i) {
-      ifaceElems.Push_back(slaveElems[i]);
+      ifaceElems.Push_back(slaveElems_[i]);
     }
 
     isCoplanar_ = ptGrid_->IsSurfacePlanar(ifaceElems);
@@ -451,22 +485,22 @@ void MortarInterface::UpdateInterface() {
   //currently only standard procedure
   if(precomputeIntersectionCandiates_){
 #ifdef USE_CGAL
-    PreComputeIntersectionCandidatesCGAL(masterElems,slaveElems);
+    PreComputeIntersectionCandidatesCGAL(masterElems_,slaveElems_);
 #else
     EXCEPTION("Enable CGAL Library for the precomputeIntersection feature.")
 #endif
   }else{
-    intersectionCandiatesIdx_.resize(masterElems.GetSize()*slaveElems.GetSize());
+    intersectionCandiatesIdx_.resize(masterElems_.GetSize()*slaveElems_.GetSize());
     UInt position=0;
-    for (UInt i = 0; i < masterElems.GetSize(); ++i) {
-      for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
+    for (UInt i = 0; i < masterElems_.GetSize(); ++i) {
+      for (UInt j = 0; j < slaveElems_.GetSize(); ++j) {
         intersectionCandiatesIdx_[position].first = i;
         intersectionCandiatesIdx_[position].second = j;
         position++;
       }
     }
   }
-
+  
   //std::cout << "Computing Interface intersections for " << name_ << std::endl;
  // myTimer->Start();
   switch (intersectAlgo_) {
@@ -474,7 +508,7 @@ void MortarInterface::UpdateInterface() {
       for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
         UInt mIdx = intersectionCandiatesIdx_[i].first;
         UInt sIdx = intersectionCandiatesIdx_[i].second;
-        IntersectLines(masterElems[mIdx], slaveElems[sIdx], newNodes );
+        IntersectLines(masterElems_[mIdx], slaveElems_[sIdx], newNodes );
       }
       break;
     case NCI_INTERSECT_RECT:
@@ -486,15 +520,15 @@ void MortarInterface::UpdateInterface() {
       for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
         UInt mIdx = intersectionCandiatesIdx_[i].first;
         UInt sIdx = intersectionCandiatesIdx_[i].second;
-        SurfElem* m_el = masterElems[mIdx];
-        SurfElem* s_el = slaveElems[sIdx];
+        SurfElem* m_el = masterElems_[mIdx];
+        SurfElem* s_el = slaveElems_[sIdx];
         if(   (m_el->type != Elem::ET_QUAD4 )
             || s_el->type != Elem::ET_QUAD4 ){
             EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                 << "rectangle algorithm.");
         }
 
-        if(IntersectRects( masterElems[mIdx], slaveElems[sIdx], newNodes)){
+        if(IntersectRects( masterElems_[mIdx], slaveElems_[sIdx], newNodes)){
             /*LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
                 << slaveElems[j]->elemNum << std::endl;*/
@@ -503,29 +537,53 @@ void MortarInterface::UpdateInterface() {
 
       break;
     case NCI_INTERSECT_POLYGON:
-      for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
-        UInt mIdx = intersectionCandiatesIdx_[i].first;
-        UInt sIdx = intersectionCandiatesIdx_[i].second;
-        SurfElem* m_el = masterElems[mIdx];
-        SurfElem* s_el = slaveElems[sIdx];
-        if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
-              && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
-              && m_el->type != Elem::ET_TRIA6)
-            || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
-                && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
-                && s_el->type != Elem::ET_TRIA6) )
-        {
-          EXCEPTION("Only triangles and quadrilaterals can be intersected"
-              << " with polygon algorithm.");
+      #pragma omp parallel num_threads(NUM_CFS_THREADS)
+      {
+        // caching of data for each thread separatly
+        StdVector<UInt> tNewNodes;
+        StdVector< Vector<Double> > p1;
+        StdVector< Vector<Double> > p2;
+        StdVector< Vector<Double> > r;
+        Vector<Double> temp1;
+        Vector<Double> temp2;
+        Vector<Double> ez;
+        Vector<Double> v;
+        Vector<Double> e;
+        Matrix<Double> rMat;
+        Matrix<Double> rMatTrans;
+        StdVector< Vector<Double> > p1Rot;
+        StdVector< Vector<Double> > p2Rot;
+        #pragma omp for
+        for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
+          UInt mIdx = intersectionCandiatesIdx_[i].first;
+          UInt sIdx = intersectionCandiatesIdx_[i].second;
+          SurfElem* m_el = masterElems_[mIdx];
+          SurfElem* s_el = slaveElems_[sIdx];
+          if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
+                && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
+                && m_el->type != Elem::ET_TRIA6)
+              || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
+                  && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
+                  && s_el->type != Elem::ET_TRIA6) )
+          {
+            EXCEPTION("Only triangles and quadrilaterals can be intersected"
+                << " with polygon algorithm.");
+          }
+  
+          if (IntersectPolygons( masterElems_[mIdx], slaveElems_[sIdx], tNewNodes, p1, p2, r,
+          temp1, temp2, ez, v, e, rMat, rMatTrans, p1Rot, p2Rot ))
+          {
+            /*LOG_DBG3(grid) << "Intersection between "
+                << masterElems[i]->elemNum << " and "
+                << slaveElems[j]->elemNum << std::endl;*/
+          }
+  
         }
-
-        if (IntersectPolygons( masterElems[mIdx], slaveElems[sIdx], newNodes ))
-        {
-          /*LOG_DBG3(grid) << "Intersection between "
-              << masterElems[i]->elemNum << " and "
-              << slaveElems[j]->elemNum << std::endl;*/
+        omp_set_lock(&newNodesLock_);
+        for (UInt i = 0; i < tNewNodes.GetSize(); i++) {
+          newNodes.Push_back(tNewNodes[i]);
         }
-
+        omp_unset_lock(&newNodesLock_);
       }
       break;
     default:
@@ -587,7 +645,6 @@ void MortarInterface::UpdateInterface() {
 
  // myTimer->Stop();
  // myTimer->PrintTime(std::cout);
-
 }
 #ifdef USE_CGAL
 void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,
@@ -600,10 +657,10 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
   if(masterBoxes_.size() != numMasterElems || moveMaster_ ){
     masterBoxes_.resize(numMasterElems);
     uniqueIdxMaster_.Resize(numMasterElems);
-
+    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for(UInt aBox = 0; aBox < numMasterElems; aBox++){
       boost::array<Double,6> bbox;
-      ptGrid_->CreateBBoxFromElement(masterElems[aBox], 0.0, &bbox[0],isMoving_);
+      ptGrid_->CreateBBoxFromElement(masterElems[aBox], tolRel_, &bbox[0],isMoving_);
       uniqueIdxMaster_[aBox] = aBox;
       // kirill: translational p.b.c.
       // a transformation must be applied to the bounding box
@@ -624,11 +681,11 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
   if(slaveBoxes_.size() != numSlaveElems || !moveMaster_){
     slaveBoxes_.resize(numSlaveElems);
     uniqueIdxSlave_.Resize(numSlaveElems);
-
+    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for(UInt aBox = 0; aBox < numSlaveElems; aBox++){
       boost::array<Double,6> bbox;
       uniqueIdxSlave_[aBox] = aBox;
-      ptGrid_->CreateBBoxFromElement(slaveElems[aBox], 0.0, &bbox[0],isMoving_);
+      ptGrid_->CreateBBoxFromElement(slaveElems[aBox], tolRel_, &bbox[0],isMoving_);
       Grid::HandleBox hbox(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
                             bbox[3], bbox[4], bbox[5]),
                             &uniqueIdxSlave_[aBox]);
@@ -1390,85 +1447,46 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
   return true;
 }
 
-bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                                        StdVector<UInt> &newNodes )
+bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2, StdVector<UInt> &newNodes,
+    StdVector< Vector<Double> >& p1, StdVector< Vector<Double> >& p2, StdVector< Vector<Double> >& r,
+    Vector<Double>& temp1, Vector<Double>& temp2,
+    Vector<Double>& ez, Vector<Double>& v,
+    Vector<Double>& e,
+    Matrix<Double>& rMat, Matrix<Double>& rMatTrans,
+    StdVector< Vector<Double> >& p1Rot, StdVector< Vector<Double> >& p2Rot)
 {
-  UInt i, j, n, p1Size, p2Size;
+  UInt i, j, n;
 
-  StdVector< Vector<Double> > & p1 = p1Poly_;
-  StdVector< Vector<Double> > & p2 = p2Poly_;
-  StdVector< Vector<Double> > & r = rPoly_;
+  UInt p1Size = ifElem1->connect.GetSize();
+  p1.Resize(p1Size);
+#ifdef USE_OPENMP
+  omp_set_lock(&gridLock_);
+#endif
+  for (UInt i = 0; i < p1Size; i++) {
+    ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
+  }
+#ifdef USE_OPENMP
+  omp_unset_lock(&gridLock_);
+#endif
 
+  UInt p2Size = ifElem2->connect.GetSize();
+  p2.Resize(p2Size);
+#ifdef USE_OPENMP
+  omp_set_lock(&gridLock_);
+#endif
+  for (UInt i = 0; i < p2Size; i++) {
+    ptGrid_->GetNodeCoordinate(p2[i], ifElem2->connect[i], isMoving_);
+  }
+#ifdef USE_OPENMP
+  omp_unset_lock(&gridLock_);
+#endif
   r.Clear(true);
-
-  if(oldPoly1_ != ifElem1->elemNum){
-    switch(ifElem1->type) {
-      case Elem::ET_TRIA3:
-      case Elem::ET_TRIA6:
-        p1Size = 3;
-        break;
-
-      case Elem::ET_QUAD4:
-      case Elem::ET_QUAD8:
-      case Elem::ET_QUAD9:
-        p1Size = 4;
-        break;
-
-      default:
-        EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
-                  << Elem::feType.ToString(ifElem1->type) << "!");
-        break;
-    }
-
-    p1.Resize(p1Size);
-
-    for (i = 0; i < p1Size; ++i)
-      ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
-
-    // if the interface is created for p.b.c., tansform the coordinates of the master element
-    if (mutualProjection_) {
-      for (UInt np = 0; np < p1.GetSize(); ++np)
-        p1[np] -= translationVector_;
-    }
-
-    oldPoly1_ = ifElem1->elemNum;
-  }else{
-    p1Size = p1.GetSize();
-  }
-
-  if(oldPoly2_ != ifElem2->elemNum){
-    switch(ifElem2->type) {
-      case Elem::ET_TRIA3:
-      case Elem::ET_TRIA6:
-        p2Size = 3;
-        break;
-
-      case Elem::ET_QUAD4:
-      case Elem::ET_QUAD8:
-      case Elem::ET_QUAD9:
-        p2Size = 4;
-        break;
-
-      default:
-        EXCEPTION("Second argument to PolygonOnPolygon may not be of type '"
-            << Elem::feType.ToString(ifElem2->type) << "'!");
-        break;
-    }
-
-    p2.Resize(p2Size);
-    for (i = 0; i < p2Size; ++i)
-      ptGrid_->GetNodeCoordinate(p2[i], ifElem2->connect[i], isMoving_);
-
-    oldPoly2_ = ifElem2->elemNum;
-  }else{
-    p2Size = p2.GetSize();
-  }
 
   bool b;
 #ifdef USE_CGAL
-  b = CutPolysCGAL(p1, p2, isCoplanar_, r);
+  b = CutPolysCGAL(p1, p2, isCoplanar_, r, temp1, temp2, ez, v, e, rMat, rMatTrans, p1Rot, p2Rot);
 #else
-  b = CutPolys(p1, p2, isCoplanar_, r);
+  b = CutPolys(p1, p2, isCoplanar_, r, ez, v, e, temp1, temp2);
 #endif
 
   if (b) {
@@ -1493,15 +1511,24 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
 
     if (!isCoplanar_) {
       Vector<Double> nodeCoord;
+#ifdef USE_OPENMP
+      omp_set_lock(&gridLock_);
+#endif
       projMaster.reset(new SurfElem());
       // TODO: it was previously ifElem1->type that could have also been ET_TRIA6, ET_QUAD9, etc.
       // for some reason it worked only with the first order elements...
       projMaster->type = projMasterType;
       projMaster->connect.Resize(p1Size);
+#ifdef USE_OPENMP
+      omp_unset_lock(&gridLock_);
+#endif
       
       n = newNodes.GetSize();
       for ( i = 0; i < p1Size; ++i ) {
         Vector<Double> & p1Coord = p1[i];
+#ifdef USE_OPENMP
+        omp_set_lock(&gridLock_);
+#endif
         for ( j = nodeStart; j < n; ++j ) {
           ptGrid_->GetNodeCoordinate( nodeCoord, newNodes[j], isMoving_ );
           if ( nodeCoord == p1Coord ) {
@@ -1513,6 +1540,9 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
           ptGrid_->AddNode(p1[i], projMaster->connect[i]);
           newNodes.Push_back(projMaster->connect[i]);
         }
+#ifdef USE_OPENMP
+        omp_unset_lock(&gridLock_);
+#endif
       }
       
       if ( newElems.GetSize() - elemStart == 1 ) { // there is only 1 element
@@ -1531,7 +1561,13 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
       newElem->ptSlave = ifElem2;
       newElem->projectedMaster = projMaster;
       newElem->transVect = translationVector_;
+#ifdef USE_OPENMP
+      omp_set_lock(&elemListLock_);
+#endif
       elemList_->AddElement(newElem);
+#ifdef USE_OPENMP
+      omp_unset_lock(&elemListLock_);
+#endif
     }
 
     return true;
@@ -1716,16 +1752,12 @@ MortarInterface::LineIntersectType MortarInterface::CutLines(const Vector<Double
 
 bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
                     StdVector< Vector<Double> > &p2, const bool coplanar,
-                    StdVector< Vector<Double> > &r)
+                    StdVector< Vector<Double> > &r,
+                    Vector<Double> & c1, Vector<Double> & c2, Vector<Double> & e,
+                    Vector<Double> & temp1, Vector<Double> & temp2)
 {
   Double r1, r2;
   UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
-
-  Vector<Double> & c1 = c1_;
-  Vector<Double> & c2 = c2_;
-  Vector<Double> & e = e_;
-  Vector<Double> & temp1 = temp1_;
-  Vector<Double> & temp2 = temp2_;
 
   struct Intersection {
     UInt index;
@@ -2008,10 +2040,14 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
 #ifdef USE_CGAL
 bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
     StdVector<Vector<Double> > &p2, const bool coplanar,
-    StdVector<Vector<Double> > &r) {
+    StdVector<Vector<Double> > &r,
+    Vector<Double>& temp1, Vector<Double>& temp2, 
+    Vector<Double>& e,
+    Vector<Double>& ez, Vector<Double>& v,
+    Matrix<Double>& rMat, Matrix<Double>& rMatTrans,
+    StdVector< Vector<Double> >& p1Rot, StdVector< Vector<Double> >& p2Rot)
+{
   UInt i;
-  Vector<Double>& temp1 = temp1_;
-  Vector<Double>& temp2 = temp2_;
 
 #ifdef CHECK_INDEX
   // check that we have actually polygons
@@ -2022,7 +2058,7 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
 #endif
 
   // compute surface normal of p2
-  Vector<Double>& n = e_;
+  Vector<Double>& n = e;
   temp1 = p2[1] - p2[0];
   temp2 = p2[2] - p2[0];
   temp1.CrossProduct(temp2, n);
@@ -2044,8 +2080,6 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   // with the rotation of the polygons, in order to make them
   // lying parallel to the XY-plane. After that, CGAL 2D procedures can
   // be used to calculate intersections of the polygons.
-  Vector<Double>& ez = c1_;
-  Vector<Double>& v = c2_;
   ez.Resize(3);
   v.Resize(3);
   ez[2] = 1.0;
@@ -2058,7 +2092,6 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   Double sa = sqrt(n[0] * n[0] + n[1] * n[1]); // sin(n ^ ez) = sqrt(n_x^2 + n_y^2)/|n| = sqrt(n_x^2 + n_y^2)
   Double ci = 1 - ca; // 1 - cos(n ^ ez)
   // rotation matrix
-  Matrix<Double>& rMat = rMat_;
   rMat.Resize(3, 3);
   rMat[0][0] = ca + v[0] * v[0] * ci;
   rMat[1][0] = v[0] * v[1] * ci + v[2] * sa;
@@ -2072,8 +2105,6 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   // Perform rotations and create CGAL 2D polygons.
   // We do not change the initial polygons, because, for
   // example, p1 is used further to create a projected master element.
-  StdVector<Vector<Double> >& p1Rot = p1Rot_;
-  StdVector<Vector<Double> >& p2Rot = p2Rot_;
   p1Rot.Resize(p1.GetSize());
   p2Rot.Resize(p2.GetSize());
   CGALPolygon2 plgn1, plgn2;
@@ -2115,7 +2146,6 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   // must be omitted. Therefore, we iterate over the edges, check their
   // lengths, and take the starting points of those having considerable
   // lengths. The reason why such intersections take place is still unknown.
-  Matrix<Double>& rMatTrans = rMatTrans_;
   rMat.Transpose(rMatTrans);
 
   for (CGALPolygon2::Edge_const_iterator edgeIt =
@@ -2218,6 +2248,17 @@ void MortarInterface::PolyCentroid(const StdVector< Vector<Double> > &p,
     c[i] /= (Double) n;
 }
 
+void MortarInterface::AddNodeToGrid(const Vector<Double>& coordinate, UInt& nodeNo, StdVector<UInt>& newNodes) {
+#ifdef USE_OPENMP
+  omp_set_lock(&gridLock_);
+#endif
+  ptGrid_->AddNode(coordinate, nodeNo);
+#ifdef USE_OPENMP
+  omp_unset_lock(&gridLock_);
+#endif
+  newNodes.Push_back(nodeNo);
+}
+
 UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
                            StdVector<MortarNcSurfElem*> &tri,
                            StdVector<UInt> &newNodes )
@@ -2227,82 +2268,43 @@ UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
   UInt numPoints = p.GetSize();
   Vector<Double> temp1, temp2;
 
-  switch (numPoints) {
-    case 3:
+  if (numPoints > 4) {
+    UInt i, centerNode, firstNode;
+    Vector<Double> c;
+
+    PolyCentroid(p, c);
+    AddNodeToGrid(c, centerNode, newNodes);
+    AddNodeToGrid(p[0], nodeNo, newNodes);
+    firstNode = nodeNo;
+    for (i = 1; i < p.GetSize(); ++i) {
       ncElem = new MortarNcSurfElem;
       ncElem->type = Elem::ET_TRIA3;
       ncElem->connect.Resize(3);
-
-      ptGrid_->AddNode(p[0], nodeNo);
-      newNodes.Push_back(nodeNo);
       ncElem->connect[0] = nodeNo;
-      ptGrid_->AddNode(p[1], nodeNo);
-      newNodes.Push_back(nodeNo);
+      AddNodeToGrid(p[i], nodeNo, newNodes);
       ncElem->connect[1] = nodeNo;
-      ptGrid_->AddNode(p[2], nodeNo);
-      newNodes.Push_back(nodeNo);
-      ncElem->connect[2] = nodeNo;
-
-      tri.Push_back(ncElem);
-      break;
-    case 4:
-      ncElem = new MortarNcSurfElem;
-      ncElem->type = Elem::ET_QUAD4;
-      ncElem->connect.Resize(4);
-
-      ptGrid_->AddNode(p[0], nodeNo);
-      newNodes.Push_back(nodeNo);
-      ncElem->connect[0] = nodeNo;
-      ptGrid_->AddNode(p[1], nodeNo);
-      newNodes.Push_back(nodeNo);
-      ncElem->connect[1] = nodeNo;
-      ptGrid_->AddNode(p[2], nodeNo);
-      newNodes.Push_back(nodeNo);
-      ncElem->connect[2] = nodeNo;
-      ptGrid_->AddNode(p[3], nodeNo);
-      newNodes.Push_back(nodeNo);
-      ncElem->connect[3] = nodeNo;
-
-      tri.Push_back(ncElem);
-
-      break;
-    default:
-      UInt i, centerNode, firstNode;
-      Vector<Double> c;
-
-      PolyCentroid(p, c);
-      ptGrid_->AddNode(c, centerNode);
-      newNodes.Push_back(centerNode);
-      ptGrid_->AddNode(p[0], nodeNo);
-      newNodes.Push_back(nodeNo);
-      firstNode = nodeNo;
-
-      for (i = 1; i < p.GetSize(); ++i)
-      {
-        ncElem = new MortarNcSurfElem;
-        ncElem->type = Elem::ET_TRIA3;
-        ncElem->connect.Resize(3);
-
-        ncElem->connect[0] = nodeNo;
-        ptGrid_->AddNode(p[i], nodeNo);
-        newNodes.Push_back(nodeNo);
-        ncElem->connect[1] = nodeNo;
-        ncElem->connect[2] = centerNode;
-
-        tri.Push_back(ncElem);
-      }
-
-      ncElem = new MortarNcSurfElem;
-      ncElem->type = Elem::ET_TRIA3;
-      ncElem->connect.Resize(3);
-
-      ncElem->connect[0] = nodeNo;
-      ncElem->connect[1] = firstNode;
       ncElem->connect[2] = centerNode;
-
       tri.Push_back(ncElem);
-      break;
+    }
+
+    ncElem = new MortarNcSurfElem;
+    ncElem->type = Elem::ET_TRIA3;
+    ncElem->connect.Resize(3);
+    ncElem->connect[0] = nodeNo;
+    ncElem->connect[1] = firstNode;
+    ncElem->connect[2] = centerNode;
+    tri.Push_back(ncElem);
+  } else {
+    ncElem = new MortarNcSurfElem;
+    ncElem->type = numPoints == 3 ? Elem::ET_TRIA3 : Elem::ET_QUAD4;
+    ncElem->connect.Resize(numPoints);
+    for (UInt i = 0; i < numPoints; i++) {
+      AddNodeToGrid(p[i], nodeNo, newNodes);
+      ncElem->connect[i] = nodeNo;
+    }
+    tri.Push_back(ncElem);
   }
+
   return firstNo;
 }
 
