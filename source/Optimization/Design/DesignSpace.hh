@@ -56,9 +56,11 @@ namespace CoupledField
 
      /** Consist all regions of the design of a regular grid?.
       * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT
-      * Regular means: All elements have same size but not necessarily that the domain is square.
-      * @param check_enforce_unstructured also consider the 'enforce_unstructured' attribute in ersatzMaterial if applicable */
-     virtual bool IsRegular(bool check_enforce_unstructured = false);
+      * the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
+      * element nodes, such that one cannot use the same element matrix, even if the grid is regular
+      * therefore the attribute designSpace/enforce_unstructured
+      * Regular means: All elements have same size but not necessarily that the domain is square. */
+     bool IsRegular() const { return is_regular_; }
 
      /**
       * Is the design the whole mesh consisting of regular elements and completely filled by elements?
@@ -588,10 +590,14 @@ namespace CoupledField
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
 
-     /** are all regions regular.
+     /** are all regions regular and also not designSpace/enforce_unstructured is set.
       * Note, that in the derived design space a irregular grid is assumed! */
-     bool all_regions_regular_;
+     bool is_regular_;
 
+     /** generally we want local element caching but for debug purpose we might want to switch it off */
+     bool local_element_caching_;
+
+     /** if the full regular space is filled with design */
      bool is_cubic_;
 
      /** just a cache from regions */

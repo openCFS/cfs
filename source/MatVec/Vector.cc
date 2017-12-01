@@ -1072,12 +1072,9 @@ namespace CoupledField {
     return false;
   }
 
-  //*********************
-  //  Equality operator
-  //*********************
   template<typename T>
   bool Vector<T>::operator==(const Vector<T> &x) const {
-    if ( this == &x ) return true;
+    if ( this == &x ) return true; // we compare pointers, not references, therefore not recusively
     if ( size_ != x.size_ ) return false;
     
     for ( UInt i = 0; i < size_; ++i ) {
@@ -1086,6 +1083,20 @@ namespace CoupledField {
     }
     return true;
   }
+
+  template<typename T>
+  bool Vector<T>::operator!=( const Vector<T>& x) const
+  {
+    if(this == &x) // we compare pointers, not references, therefore not recusively
+      return false;
+    if(size_ != x.size_)
+      return true;
+
+    // we assume memcmp is compiler optimized and not based on a function call
+    return memcmp(data_, x.data_, size_ * sizeof(T)) == 0 ? false : true;
+  }
+
+
 
   // ********************************
   //   Overload Assignment Operator

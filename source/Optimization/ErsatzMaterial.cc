@@ -142,11 +142,6 @@ ErsatzMaterial::ErsatzMaterial() :
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
   // element nodes, such that one cannot use the same element matrix, even if the grid is regular
   // therefore the attribute enforce_unstructured
-  // it is important not to call design->IsRegular(true), this would result in an recursive loop
-  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT && !pn->Get("enforce_unstructured")->As<bool>();
-
-  LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
-                     << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
   // optionally write the densities to a density.xml file
   if(pn->Has("export"))

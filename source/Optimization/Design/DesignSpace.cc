@@ -15,8 +15,9 @@
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
-#include "Driver/BaseDriver.hh"
 #include "Driver/Assemble.hh"
+#include "Driver/BaseDriver.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -59,8 +60,6 @@ DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
-  all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
-
 
   method_ = method;
   pn_ = pn;
@@ -68,6 +67,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   write_gradient_timer_ = boost::shared_ptr<Timer>(new Timer("gradient_chain_rule", true)); // sub-timer
   info_->Get("gradient_chain_rule/timer")->SetValue(write_gradient_timer_);
+
+  // check not only for pn->Has("designSpace") to hande the load_ersatzmatrial case
+  non_design_vicinity_ = pn->Has("designSpace/non_design_vicinity") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
+  is_regular_ = (pn->Has("designSpace/enforce_unstructured") && pn->Get("designSpace/enforce_unstructured")->As<bool>()) ? false : domain->GetGrid()->IsRegionRegular(reg_data);
+  local_element_caching_ = pn->Has("designSpace/local_element_cache") ? pn->Get("designSpace/local_element_cache")->As<bool>() : true;
 
   // make sure we have a context, even when we have no optimization
   if(!Optimization::manager.IsInitialized())
@@ -95,8 +99,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
-  // check for non-design-vicinity
-  non_design_vicinity_ = pn->Has("designSpace") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
+
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
   elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
@@ -138,7 +141,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // tolerate non unique designs - e.g. for different regions
   }
 
-  is_cubic_ = all_regions_regular_ && design.GetSize() == Product(domain->GetGrid()->CalcRegulardGridDiscretization());
+  is_cubic_ = is_regular_ && design.GetSize() == Product(domain->GetGrid()->CalcRegulardGridDiscretization());
 
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
@@ -457,8 +460,8 @@ void DesignSpace::PostInit(int objectives, int constraints)
     totalElements_[i]->PostInit(objectives, constraints);
 
 
-  // we don't do caching for pure loar ersatz material
-  if(domain->GetOptimization() != NULL)
+  // we don't do caching for pure load ersatz material
+  if(local_element_caching_ && domain->GetOptimization() != NULL)
   {
     // set the whole LocalElementCache to do SIMP element based and cache also ParamMat gradients
     elementCache = new LocalElementCache(this); // not yet activated
@@ -471,83 +474,48 @@ void DesignSpace::PostInit(int objectives, int constraints)
 void DesignSpace::SetupLocalElementCache()
 {
   // DesignRegion::bimaterials_ is not filled yet, this is intended to be done on the fly
-  assert(Optimization::manager.context.GetSize() == 1);
-  Context* context = Optimization::context;   // load elements FIXME: handle context
 
-  // we can cache material derivatives only for FMO which is also used by SGP
-  if(designMaterial)
+  // iterate over all context. LocalElementCache sees only the current context
+  for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++)
   {
-    // no init org!
+    Optimization::manager.SwitchContext(i);
+    Context* ctxt = Optimization::context;   // load elements FIXME: handle context
+    assert((ctxt->DoBloch() && ctxt->num_bloch_wave_vectors > 0) || (!ctxt->DoBloch() && ctxt->num_bloch_wave_vectors == 0));
+    assert(!ctxt->DoBloch() || (ctxt->GetEigenFrequencyDriver()->GetCurrentWaveVectorIndex() == 0)); // to switch back
 
-    if(designMaterial->GetType() == DesignMaterial::FMO)
-      for(unsigned int i = 0; i < regionIds_.GetSize(); i++)
+    // loop over the bloch wave numbers of we have them otherwise at least once w/o bloch but standard
+    for(unsigned int w = 0; w < std::max((unsigned int) 1, ctxt->num_bloch_wave_vectors); w++)
+    {
+      if(ctxt->DoBloch())
+        ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(w);
+
+      // we can cache material derivatives only for FMO which is also used by SGP
+      if(designMaterial)
+        elementCache->InitMechMatDeriv(regionIds_); // no init org! and no piezo stuff
+      else
       {
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_11);
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_12);
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_13);
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_22);
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_23);
-        elementCache->InitMatDeriv("LinElastInt", regionIds_[i], DesignElement::MECH_33);
-        assert(domain->GetGrid()->GetDim() == 2); // add 3D stuff once we have it
-      }
-    // simply no caching for other param mat types
-  }
-  else
-  {
-    // The SIMP case with bimat and, when implemented, multimaterial
-    elementCache->InitOrg();
+        // The SIMP case with bimat and, when implemented, multimaterial
+        elementCache->InitOrg();
 
-    // regions is a vector of design with vectors of regions.
-    // Example: first density with elasticity-tensor for BDBInt and then mass for MassInt
-    for(unsigned int d = 0; d < regions.GetSize(); d++) { // design
-      for(unsigned int r = 0; r < regions[0].GetSize(); r++) { // region
-        assert(regions[d][r].regionId == regions[0][r].regionId);
-        assert(regions[d][r].HasBiMaterial() == regions[0][r].HasBiMaterial());
+        // regions is a vector of design with vectors of regions.
+        // Example: first density with elasticity-tensor for BDBInt and then mass for MassInt
+        for(unsigned int d = 0; d < regions.GetSize(); d++) // design
+          for(unsigned int r = 0; r < regions[0].GetSize(); r++) // region
+            if(regions[d][r].HasBiMaterial())
+              elementCache->InitShadow(&regions[d][r]);
 
-        DesignRegion& dr = regions[d][r];
+        // TODO add Multimaterial
+      } // end of non-designMaterial case
+    } // end of wave vector loop
+    // reset wave vector to the first one
+    if(ctxt->DoBloch())
+      ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(0);
+  } // end of context loop
 
-        if(dr.HasBiMaterial())
-        {
-          MaterialClass mc = NO_CLASS;
-          MaterialType  mt = NO_MATERIAL;
-
-          switch(context->mat->GetSystem())
-          {
-          case OptimizationMaterial::MECH:
-          {
-            mc = MECHANIC;
-            mt = MECH_STIFFNESS_TENSOR;
-            elementCache->InitShadow(ToForm(mc, mt), dr.regionId, dr.GetBiMaterial(mc, mt));
-            if(context->pde->GetAssemble()->HasBiLinForm("MassInt", dr.regionId))
-              elementCache->InitShadow(ToForm(mc, DENSITY), dr.regionId, dr.GetBiMaterial(mc, DENSITY));
-            break;
-          }
-          case OptimizationMaterial::HEAT:
-          {
-            mc = THERMIC;
-            mt = HEAT_CONDUCTIVITY;
-            elementCache->InitShadow(ToForm(mc, mt), dr.regionId, dr.GetBiMaterial(mc, mt));
-            break;
-          }
-          case OptimizationMaterial::PIEZOCOUPLING:
-          case OptimizationMaterial::ACOUSTIC:
-          case OptimizationMaterial::ELEC:
-            assert(false);
-            // implement. You might want to switch of element cache!
-            break;
-          case OptimizationMaterial::LBM:
-          case OptimizationMaterial::NO_SYSTEM:
-            assert(false);
-            // there shall not be LBM bimaterial!
-            break;
-          }
-        }
-      }
-    }
-    // TODO add Multimaterial
-  } // end of non-designMaterial case
-
+  Optimization::manager.SwitchContext(0); // go back to first which is what we expect.
 }
+
+
 
 bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
 {
@@ -614,20 +582,6 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   }
   return added;
 }
-
-bool DesignSpace::IsRegular(bool check_enforce_unstructured)
-{
-  if(!all_regions_regular_)
-    return false;
-  if(check_enforce_unstructured && domain->GetOptimization())
-  {
-    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
-    if(em != NULL)
-      return em->IsDomainStructured();
-  }
-  return true;
-}
-
 
 unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
@@ -1619,8 +1573,12 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 
   in->Get("pamping")->SetValue(pamping_);
-  if(em)
-    in->Get("structured")->SetValue(em->IsDomainStructured());
+  in->Get("regular")->SetValue(IsRegular());
+
+  if(elementCache != NULL)
+    elementCache->ToInfo(in->Get("localElementCache"));
+  else
+    in->Get("localElementCache")->SetValue("disabled");
 
   if(regions.GetSize() > 0)
   {

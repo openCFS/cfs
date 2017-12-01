@@ -5,6 +5,7 @@
 #include "Domain/Mesh/Grid.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/FormsContexts.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
@@ -17,7 +18,7 @@ LocalElementCache::LocalElementCache(DesignSpace* space)
 {
   /** reserve sufficient space to prevent expensive copying of full vectors on resize */
   this->space_ = space;
-  this->regular_ = space->IsRegular(true); // also check "enforce_unstrucutred"
+  this->regular_ = space->IsRegular();
   data_.Reserve(100); // we might have quite some wave vektors for bloch
 }
 
@@ -28,9 +29,8 @@ void LocalElementCache::InitOrg()
   bool next_state = active_;
   active_ = false;
 
-  assert(Optimization::manager.context.GetSize() == 1);
-  assert(Optimization::manager.context[0].pdes.size() == 1);
-  Assemble* assemble = Optimization::manager.context[0].pde->GetAssemble();
+  assert(Optimization::context->pdes.size() == 1);
+  Assemble* assemble = Optimization::context->pde->GetAssemble();
 
   LOG_DBG(lec) << "IO: #forms=" << assemble->GetBiLinForms().size();
 
@@ -58,6 +58,72 @@ void LocalElementCache::InitOrg()
 }
 
 
+void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
+{
+  assert(dr != NULL);
+  assert(dr->HasBiMaterial());
+
+  MaterialClass mc = NO_CLASS;
+  MaterialType  mt = NO_MATERIAL;
+  Context* ctxt = Optimization::context;
+
+  switch(ctxt->mat->GetSystem())
+  {
+  case OptimizationMaterial::MECH:
+  {
+    mc = MECHANIC;
+    mt = MECH_STIFFNESS_TENSOR;
+
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+
+    if(ctxt->pde->GetAssemble()->HasBiLinForm("MassInt", dr->regionId))
+      Init(space_->ToForm(mc, DENSITY), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, DENSITY));
+    break;
+  }
+  case OptimizationMaterial::HEAT:
+  {
+    mc = THERMIC;
+    mt = HEAT_CONDUCTIVITY;
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    break;
+  }
+  case OptimizationMaterial::PIEZOCOUPLING:
+  case OptimizationMaterial::ACOUSTIC:
+  case OptimizationMaterial::ELEC:
+    assert(false);
+    // implement. You might want to switch of element cache!
+    break;
+  case OptimizationMaterial::LBM:
+  case OptimizationMaterial::NO_SYSTEM:
+    assert(false);
+    // there shall not be LBM bimaterial!
+    break;
+  } // end switch
+}
+
+void LocalElementCache::InitMechMatDeriv(StdVector<RegionIdType>& reg)
+{
+  // the design we test for. Note that FMO might be only for the diagonal entries, ...
+  StdVector<DesignElement::Type> des;
+  des.Push_back(DesignElement::MECH_11);
+  des.Push_back(DesignElement::MECH_12);
+  des.Push_back(DesignElement::MECH_13);
+  des.Push_back(DesignElement::MECH_22);
+  des.Push_back(DesignElement::MECH_23);
+  des.Push_back(DesignElement::MECH_33);
+
+  // when we have other param mat variables we cannot use LocalElementCache as these variables
+  // are the only linear ones
+
+  for(unsigned int d = 0; d < des.GetSize(); d++)
+    for(unsigned int r = 0; r < reg.GetSize(); r++)
+      if(space_->GetRegion(reg[r], des[r], -1, false) != NULL) // no exception to throw
+        InitMatDeriv("LinElastInt", reg[r], des[d]);
+
+  // TODO add Piezo ParamMat stuff with other integrators
+
+}
+
 bool LocalElementCache::InitMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir)
 {
   switch(dir)
@@ -82,9 +148,7 @@ void LocalElementCache::Init(const string& integrator, RegionIdType reg, Type ty
 
   assert(type == SHADOW || type == DIRECTION);
 
-  assert(Optimization::manager.context.GetSize() == 1);
-  assert(Optimization::manager.context[0].pdes.size() == 1); // implement!
-  SinglePDE* pde = Optimization::manager.context[0].pde;
+  SinglePDE* pde = Optimization::context->pde;
   assert(pde != NULL);
 
   BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, reg, pde, pde, false); // not silent
@@ -217,6 +281,9 @@ LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearFor
 
   data_.Last().Init(form, this->regular_);
   data_.Last().type = type;
+  data_.Last().contex = Optimization::context->context_idx;
+  if(Optimization::context->DoBloch())
+    data_.Last().wave = Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector();
 
   assert(data_.Last().integrator == form->GetName());
   assert(data_.Last().isComplex == form->IsComplex());
@@ -264,12 +331,12 @@ inline void LocalElementCache::FormData::CalcElementMatrix(BiLinearForm* form, E
   else
   {
     unsigned int elem_num = entity.GetElem()->elemNum;
-    assert(!(isComplex && region_cplx[elem_num].GetNumCols() != 0));
-    assert(!(!isComplex && region_real[elem_num].GetNumCols() != 0));
+    assert(!(isComplex && elem_cplx[elem_num].GetNumCols() != 0));
+    assert(!(!isComplex && elem_real[elem_num].GetNumCols() != 0));
     if(isComplex)
       form->CalcElementMatrix(elem_cplx[elem_num], entity, entity); // no 0-based conversion!
     else
-      form->CalcElementMatrix(region_real[elem_num], entity, entity);
+      form->CalcElementMatrix(elem_real[elem_num], entity, entity);
   }
 }
 
@@ -362,6 +429,12 @@ bool LocalElementCache::CheckFormState(BiLinearForm* form, Type type)
   return true;
 }
 
+void LocalElementCache::ToInfo(PtrParamNode info)
+{
+  info->Get("org")->SetValue(org_end_);
+  info->Get("shadow")->SetValue(shadow_end_ - org_end_);
+  info->Get("mat_deriv")->SetValue(dir_end_ - shadow_end_);
+}
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template bool LocalElementCache::CachedOrgElement<double>(Matrix<double>& out, BiLinearForm* form, const Elem* elem);
