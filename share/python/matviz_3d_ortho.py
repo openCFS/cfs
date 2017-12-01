@@ -368,12 +368,12 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
         assert(len(this.boundary_points) > 0)
         assert(this is not None)
         if i < nx-1:
-          print("x")
+#           print("x")
           right = basecell_grid[i+1,j,k]
           this_bp = this.boundary_points[Face_Name.XMAX.value]
           right_bp = right.boundary_points[Face_Name.XMIN.value]
           if len(this_bp) != len(right_bp):
-            print("\nlen(this):",len(this_bp))
+#             print("\nlen(this):",len(this_bp))
             for p in this_bp:
               print(p.coords)
               
@@ -382,23 +382,38 @@ def align_cell_interfaces(nx,ny,nz,basecells,pos):
               print(p.coords)
 
           assert(len(this_bp) == len(right_bp))
-          right.replace_boundary_points(this_bp,Face_Name.XMIN.value)
+          if len(this_bp) == len(right_bp) or len(this_bp) > len(right_bp):
+            right.replace_boundary_points(this_bp,Face_Name.XMIN.value)
+          else:
+            this.replace_boundary_points(right_bp,Face_Name.XMAX.value)
         if j < ny-1:
           print("y")
           top = basecell_grid[i,j+1,k]
           this_bp = this.boundary_points[Face_Name.YMAX.value]
           top_bp = top.boundary_points[Face_Name.YMIN.value]
-          assert(len(this_bp) == len(top_bp))
-#           top.boundary_points = this.boundary_points
-          top.replace_boundary_points(this_bp,Face_Name.YMIN.value)
+          if len(this_bp) != len(top_bp):
+            print("len(this_bp):",len(this_bp)," len(top_bp):",len(top_bp))
+            print("\nthis_bp:")
+            for p in this_bp:
+              print(p)
+            print("\ntop_bp:")
+            for p in top_bp:
+              print(p)  
+#           assert(len(this_bp) == len(top_bp))
+          if len(this_bp) == len(top_bp) or len(this_bp) > len(top_bp):
+            top.replace_boundary_points(this_bp,Face_Name.YMIN.value)
+          else:
+            this.replace_boundary_points(top_bp,Face_Name.YMAX.value) 
         if k < nz-1:
           print("z")
           front = basecell_grid[i,j,k+1]
           this_bp = this.boundary_points[Face_Name.ZMAX.value]
           front_bp = front.boundary_points[Face_Name.ZMIN.value]
-          assert(len(this_bp) == len(front_bp))
-          front.replace_boundary_points(this_bp,Face_Name.ZMIN.value)
-  
+#           assert(len(this_bp) == len(front_bp))
+          if len(this_bp) == len(front_bp) or len(this_bp) < len(front_bp):
+            front.replace_boundary_points(this_bp,Face_Name.ZMIN.value)
+          else:
+            this.replace_boundary_points(front_bp,Face_Name.ZMAX.value)
         new.append(this)  
   
   assert(len(new) == len(basecells))
