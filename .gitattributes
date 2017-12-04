@@ -2437,3 +2437,5 @@ source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text
 source/main/CMakeLists.txt svneol=native#text/plain
+source/unittests/CMakeLists.txt -text
+source/unittests/unittests.cc -text
