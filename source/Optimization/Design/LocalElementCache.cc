@@ -279,16 +279,21 @@ LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearFor
     assert(false);
   }
 
-  data_.Last().Init(form, this->regular_);
-  data_.Last().type = type;
-  data_.Last().contex = Optimization::context->context_idx;
+  FormData& fd = data_.Last();
+
+  fd.Init(form, this->regular_);
+  fd.idx = data_.GetSize()-1;
+  fd.type = type;
+  fd.contex = Optimization::context->context_idx;
   if(Optimization::context->DoBloch())
-    data_.Last().wave = Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector();
+    fd.wave = Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector();
 
-  assert(data_.Last().integrator == form->GetName());
-  assert(data_.Last().isComplex == form->IsComplex());
+  assert(fd.integrator == form->GetName());
+  assert(fd.isComplex == form->IsComplex());
 
-  return &data_.Last();
+  LOG_DBG(lec) << "ADF: " << fd.ToString();
+
+  return &fd;
 }
 
 void LocalElementCache::FormData::Init(const BiLinearForm* form, bool structured)
@@ -349,6 +354,30 @@ bool LocalElementCache::FormData::Validate(const BiLinearForm* form, Type type, 
   return true;
 }
 
+double LocalElementCache::FormData::CalcMemory()
+{
+  int size = 0;
+
+  for(unsigned int i = 0; i < region_real.GetSize(); i++)
+    size += region_real[i].GetNumEntries() * sizeof(double);
+  for(unsigned int i = 0; i < region_cplx.GetSize(); i++)
+    size += region_cplx[i].GetNumEntries() * sizeof(Complex);
+  for(unsigned int i = 0; i < elem_real.GetSize(); i++)
+    size += elem_real[i].GetNumEntries() * sizeof(double);
+  for(unsigned int i = 0; i < elem_cplx.GetSize(); i++)
+    size += elem_cplx[i].GetNumEntries() * sizeof(Complex);
+
+  return size / (1024*1024);
+}
+
+string LocalElementCache::FormData::ToString()
+{
+  std::stringstream ss;
+  ss << "idx=" << idx << " form=" << integrator << " type=" << type
+      << " cplx=" << this->isComplex << " ctxt=" << contex << " wv=" << wave.ToString();
+  return ss.str();
+}
+
 template <>
 const Matrix<double>& LocalElementCache::CachedElement<double>(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir, PtrCoefFct shadow_coef)
 {
@@ -369,6 +398,7 @@ const Matrix<complex<double> >& LocalElementCache::CachedElement<complex<double>
   FormData* data = GetFormData(integrator, type, dir, shadow_coef);
   assert(data != NULL);
   assert(data->type == type);
+  assert(data->contex == (int) Optimization::context->context_idx);
   assert(data->isComplex);
 
   if(regular_)
@@ -434,6 +464,13 @@ void LocalElementCache::ToInfo(PtrParamNode info)
   info->Get("org")->SetValue(org_end_);
   info->Get("shadow")->SetValue(shadow_end_ - org_end_);
   info->Get("mat_deriv")->SetValue(dir_end_ - shadow_end_);
+
+  double mem = 0;
+  for(unsigned int i = 0; i < data_.GetSize(); i++)
+    mem += data_[i].CalcMemory();
+
+  info->Get("megabytes")->SetValue(mem);
+
 }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

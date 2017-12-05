@@ -208,7 +208,7 @@ void ErsatzMaterial::PostInit()
   for(unsigned int i = 0; i < manager.context.GetSize(); i++)
     me->PrepareMultipleExcitations(this, &(manager.context[i]));
   me->FinalizeMultipleExcitations(this, &manager, optimizer_ == EVALUATE_INITIAL_DESIGN);
-  me->excitations.First().Apply(); // this sets the
+  me->excitations.First().Apply(false); // this sets the first excitation but does not switch context. This is done below
 
   // add optimization results to the pde
   for(unsigned int c = 0; c < manager.context.GetSize(); c++) {
@@ -588,7 +588,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       assert(ex != NULL);
       Context& ctxt = manager.GetContext(ex);
       assert(ex->sequence == ctxt.sequence);
-      ex->Apply(); // we read the design. When we do robust, this must match the filter associated to the tensor
+      ex->Apply(false); // we read the design. When we do robust, this must match the filter associated to the tensor
 
       BaseMaterial* bm = NULL;
       // this happens when doing shape optimization with homTracking!
@@ -3849,7 +3849,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(eval_timer)
       eval_timer->Stop();
 
-    excite->Apply(); // the context shall be already switched
+    excite->Apply(false); // the context shall be already switched
     assert(excite->sequence == context->sequence);
     assert(context->pde != NULL);
     assert(f->ctxt == context);
