@@ -142,6 +142,12 @@ private:
 
     /** to be called by assert. Contains a lot of asserts */
     bool Validate(const BiLinearForm* form, Type type, DesignElement::Type dir);
+
+    /** computes the memory in MBytes */
+    double CalcMemory();
+
+    /** for debugging purpos */
+    std::string ToString();
   };
 
   /** searches the data and conditioanlly creates it */

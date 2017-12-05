@@ -476,10 +476,12 @@ void DesignSpace::SetupLocalElementCache()
   // DesignRegion::bimaterials_ is not filled yet, this is intended to be done on the fly
 
   // iterate over all context. LocalElementCache sees only the current context
+  assert(Optimization::manager.IsInitialized());
+  assert(Optimization::context->context_idx == 0);
   for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++)
   {
     Optimization::manager.SwitchContext(i);
-    Context* ctxt = Optimization::context;   // load elements FIXME: handle context
+    Context* ctxt = Optimization::context;   // load elements
     assert((ctxt->DoBloch() && ctxt->num_bloch_wave_vectors > 0) || (!ctxt->DoBloch() && ctxt->num_bloch_wave_vectors == 0));
     assert(!ctxt->DoBloch() || (ctxt->GetEigenFrequencyDriver()->GetCurrentWaveVectorIndex() == 0)); // to switch back
 
@@ -1432,7 +1434,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
 
-  f->GetExcitation()->Apply(); // this takes the proper gradient for robustness and transformation
+  f->GetExcitation()->Apply(false); // this takes the proper gradient for robustness and transformation
 
   for(unsigned int des = 0; des < nd; des++)
   {
@@ -1704,7 +1706,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     if(def.excitation >= (int) mex.GetSize())
       EXCEPTION("'result' has too large 'excitation' index " << def.excitation << " for only " << mex.GetSize() << " excitations");
 
-    mex[def.excitation].Apply();
+    mex[def.excitation].Apply(false);
     LOG_DBG(designSpace) << "ER: apply excitation " << mex[def.excitation].GetFullLabel();
   }
 
