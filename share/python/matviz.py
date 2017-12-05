@@ -182,6 +182,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   coords = (centers, min_bb, max_bb, elem_dim)
   
+  print("h5_read:",h5_read," dim_2D:",dim_2D)
   # perform 2D and 3D from file
   if h5_read or dim_2D:
     # either Image or polydata  
@@ -344,6 +345,44 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
+                
+                # order: min_x,min_y,min_z,max_x,max_y,max_z
+                bounds = np.ones(6) * (-1)
+                bounds[0:3] = min_bb[0:3]
+                bounds[3:6] = max_bb[0:3]
+                # get nondes_points temporarily from .csv file
+                import csv
+                csv_points = []
+                files = ['nondes_centers_skin.csv','nondes_centers_cylinder_small.csv','nondes_centers_cylinder_big.csv']
+                for fi in files:
+                  with open(fi,'r') as fo:
+                    reader = csv.reader(fo,delimiter=',')
+                    for i,row in enumerate(reader):
+                      # skip header
+                      if i == 0:
+                        continue
+                      csv_points.append((float(row[0]),float(row[1]),float(row[2])))
+                      
+                # for non-design regions we work on the voxel level and set non-design voxels with a flag 
+                # create grid with voxels
+                # voxel_res = numpy.asarray(nx*args.bc_res,ny*args.bc_res,nz*args.bc_res)
+                nx = 10
+                voxel_res = numpy.asarray([nx*args.bc_res,nx*args.bc_res,nx*args.bc_res])
+                nondes_voxels = numpy.full(voxel_res,False,dtype=bool)
+                print(nondes_voxels.shape)
+                from draw_profile_functions import cartesian_to_grid_coords, voxels_to_points_and_cells
+                for p in csv_points:
+                  set_array_point(nondes_voxels, p, (bounds[3]-bounds[0])/nx, (bounds[4]-bounds[1])/nx, (bounds[5]-bounds[2])/nx, bounds[0], bounds[1], bounds[2], True)
+#                   print("p[0]:",p[0],"voxel_res[0]:",voxel_res[0])
+#                   i = cartesian_to_grid_coords(p[0], voxel_res[0])
+#                   j = cartesian_to_grid_coords(p[1], voxel_res[1])
+#                   k = cartesian_to_grid_coords(p[2], voxel_res[2])
+#                   nondes_voxels[i,j,k] = True
+                  
+                pts, cs = voxels_to_points_and_cells(nondes_voxels)
+                polydata, _ = matviz_vtk.fill_vtk_polydata(pts,cs)            
+                matviz_vtk.show_write_vtk(polydata,1000,"nodes_voxels.vtp")
+                sys.exit()      
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
                 me = None
                 if args.save:
@@ -620,10 +659,6 @@ else:
   validate_region(f, args.h5_region)
   if len(args.unstructured) != 0:
     nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions, False, 'load', 'support')
-    if len(nondes_centers) == 1:
-      nondes_centers = nondes_centers[0]
-    else:
-      print("WARNING:nondes_centers might have wrong dimensions!")
         
     nondes_support = nondes_centers['support']
     nondes_force = nondes_centers['load']
@@ -631,18 +666,13 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
   
-  centers, min_bb, max_bb, elem_dim = centered_elements(f, [args.h5_region])
-  centers = centers[args.h5_region]
+  centers, min_bb, max_bb, elem_dim = centered_elements(f, args.h5_region)
   
   if args.mesh:
     if args.h5_nondes != "None":
       nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions)
-      if nondes_regions is not None and len(nondes_regions) == 1:
-        nondes_centers = nondes_centers[nondes_regions[0]]
   
-  np.savetxt("nondes_centers.csv",nondes_centers,delimiter=",")
-  sys.exit()
-        
+  print("min_bb:",min_bb," max_bb:",max_bb)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 

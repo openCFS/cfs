@@ -50,7 +50,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   if scale <= 0:
     scale = 1.0
 
-  # assume we always start at (0,0,0)
   # order: min_x,min_y,min_z,max_x,max_y,max_z
   bounds = np.ones(6) * (-1)
   bounds[0:3] = min_bb[0:3]

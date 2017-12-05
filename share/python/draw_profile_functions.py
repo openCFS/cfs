@@ -203,7 +203,7 @@ def degree_to_rad_quadrant(degree):
   else:
     return 2*np.pi-rad
   
-def cartesian_to_grid_coords(x,res,eps):
+def cartesian_to_grid_coords(x,res,eps=1e-6):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
   return int(round((x-h/2.0) / h+eps)) 
 

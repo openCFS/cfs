@@ -37,8 +37,14 @@ def num_nodes_by_type(type_id):
 
 # # give back elements with barycenters
 # works 2D and 3D
+# @param regions: can be a string if only one region, or list of string for multiple regions
 # @return list (for each region) of lists: barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
 def centered_elements(hdf5_file, regions, all_elem_dim=False, region_force=None, region_support=None,centered = True):
+  assert(type(regions) is list or type(regions) is str)
+  #convert to list for convenience
+  if type(regions) is str:
+    regions = [regions]
+    
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
@@ -66,8 +72,8 @@ def centered_elements(hdf5_file, regions, all_elem_dim=False, region_force=None,
   else:
     elem_dim = element_dimensions(reg_elements[0][0] - 1, all_elements, all_nodes)
   
-  min_dim = [9999999,9999999,9999999]
-  max_dim = [-1,-1,-1]
+  min_dim = [[9999999,9999999,9999999]] * len(regions)
+  max_dim = [[-1,-1,-1]] * len(regions)
   # create dict with region names, each dict key has a list with respective region nodes
   # last two dict entries correspond to load and support, appended manually
   nodes_by_region = dict.fromkeys(regions,None)
@@ -89,11 +95,11 @@ def centered_elements(hdf5_file, regions, all_elem_dim=False, region_force=None,
       
     min = [numpy.min(nodes[:, 0]), numpy.min(nodes[:, 1]), numpy.min(nodes[:, 2])]
     max = [numpy.max(nodes[:, 0]), numpy.max(nodes[:, 1]), numpy.max(nodes[:, 2])]
-    for i in range(3):
-      if min[i] < min_dim[i]:
-        min_dim[i] = min[i]
-      if max[i] > max_dim[i]:
-        max_dim[i] = max[i]  
+    for j in range(3):
+      if min[j] < min_dim[i][j]:
+        min_dim[i][j] = min[j]
+      if max[j] > max_dim[i][j]:
+        max_dim[i][j] = max[j]  
       
     nodes_by_region[r] = nodes
   
@@ -117,12 +123,12 @@ def centered_elements(hdf5_file, regions, all_elem_dim=False, region_force=None,
       centers_by_region[r] = result
         
   result = centers_by_region if centered else nodes_by_region    
-  # TODO: Not sure if this reshape is really necessary!!     
-#   else:
-#     # append nodes to result instead of element centers
-#     for i in range(len(nodes[:,0])):
-#       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
-      
+  
+  if len(regions) == 1:
+    result = result[regions[0]]
+    min_dim = min_dim[0]
+    max_dim = max_dim[0]
+    
   return result, min_dim, max_dim, elem_dim 
                 
 # # find minimal and maximal coordinate

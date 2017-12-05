@@ -33,23 +33,16 @@ WEDGE6 = 14
 LINE = 100
 
 def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
-  i = int((point[0] - minx)/hx)
-  j = int((point[1] - miny)/hy)
-  k = int((point[2] - minz)/hz)
+  nx, ny, nz = array.shape
+  i = (point[0]-minx) * 2.0/hx
+  j = (point[1]-miny) * 2.0/hy
+  k = (point[2]-minz) * 2.0/hz
+  print("p:",point)
+  print("i,j,k:",i,j,k)
+  print("hx,hy,hz:",hx,hy,hz)
+  print("minx,miny,minz:",minx,miny,minz)
   array[i,j,k] = val
 
-# checks whether point p is inside cube
-# @param tetra: list with 4 vertices of tetrahedron
-def inside_cube(p,tetra):
-  d0 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
-  d1 = numpy.linalg.det(numpy.array([[p[0],p[1],p[2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
-  d2 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [p[0],p[1],p[2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
-  d3 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [p[0],p[1],p[2],1], [tetra[3][0],tetra[3][1],tetra[3][2],1]]))
-  d4 = numpy.linalg.det(numpy.array([[tetra[0][0],tetra[0][1],tetra[0][2],1], [tetra[1][0],tetra[1][1],tetra[1][2],1], [tetra[2][0],tetra[2][1],tetra[2][2],1], [p[0],p[1],p[2],1]]))
-  
-  det = [d0,d1,d2,d3,d4]
-  # point is inside cube if all determinats have same sign
-  return all(item >= 0 for item in det) or all(item < 0 for item in det)
 # calculates barycenter of element e
 def calc_barycenter(mesh,e):
   center = numpy.array([0.0, 0.0, 0.0])
