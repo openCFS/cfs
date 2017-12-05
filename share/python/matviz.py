@@ -345,7 +345,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
-                me = None                
+                me = None
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
@@ -452,7 +452,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
-parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
+parser.add_argument("--h5_nondes", help="non-design region names, can be list of names (default 'non-design')", default=None)
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
@@ -609,22 +609,40 @@ else:
   if not os.path.exists(args.input):
     print('Error: file does not exist: ' + args.input)
     sys.exit(1)
+  # allow multiple non-design regions  
+  nondes_regions = None
+  if args.h5_nondes != None:
+    nondes_regions = args.h5_nondes.split(",")
   f = h5py.File(args.input, 'r')
   if args.h5_info:
     dump_h5_meta(f)
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes, False, 'load', 'support')
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions, False, 'load', 'support')
+    if len(nondes_centers) == 1:
+      nondes_centers = nondes_centers[0]
+    else:
+      print("WARNING:nondes_centers might have wrong dimensions!")
+        
+    nondes_support = nondes_centers['support']
+    nondes_force = nondes_centers['load']
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
   
-  centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  centers, min_bb, max_bb, elem_dim = centered_elements(f, [args.h5_region])
+  centers = centers[args.h5_region]
   
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions)
+      if nondes_regions is not None and len(nondes_regions) == 1:
+        nondes_centers = nondes_centers[nondes_regions[0]]
+  
+  np.savetxt("nondes_centers.csv",nondes_centers,delimiter=",")
+  sys.exit()
+        
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 

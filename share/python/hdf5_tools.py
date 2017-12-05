@@ -37,70 +37,93 @@ def num_nodes_by_type(type_id):
 
 # # give back elements with barycenters
 # works 2D and 3D
-# @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
-def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
+# @return list (for each region) of lists: barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
+def centered_elements(hdf5_file, regions, all_elem_dim=False, region_force=None, region_support=None,centered = True):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
-  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
-  reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
+  reg_nodes = []
+  reg_elements = []
+  for r in regions:
+    print("region:",r)
+    reg_nodes.append(hdf5_file['/Mesh/Regions/' + r + '/Nodes'])
+    reg_elements.append(hdf5_file['/Mesh/Regions/' + r + '/Elements'].value)
+  
+  # last two list entries are always reserved force and support if needed  
   if region_force != None:
-    reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
+    reg_nodes.append(hdf5_file['/Mesh/Groups/' + region_force + '/Nodes'])
   if region_support != None:
-    reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
+    reg_nodes.append(hdf5_file['/Mesh/Groups/' + region_support + '/Nodes'])
   
   # determine elem_dim from first region element dimensions or from all
   elem_dim = None
   if all_elem_dim:
-    elem_dim = [0.0] * len(reg_elements)
-    for i in range(len(reg_elements)):
-      elem_dim[i] = element_dimensions(reg_elements[i] - 1, all_elements, all_nodes)
+    print('Not implemented for this case')
+    sys.exit()
+#     elem_dim = [0.0] * len(reg_elements)
+#     for i in range(len(reg_elements)):
+#       elem_dim[i] = element_dimensions(reg_elements[i] - 1, all_elements, all_nodes)
   else:
-    elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)
-    
-  # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
-  nodes = numpy.zeros((len(reg_nodes), 3))
-  for e in range(len(reg_nodes)):
-    nodes[e] = all_nodes[reg_nodes[e] - 1]
-  # extract boundary force nodes from region_force if available
-  if region_force != None:
-    nodes_force = numpy.zeros((len(reg_force_nodes), 3))
-    for e in range(len(reg_force_nodes)):
-      nodes_force[e] = all_nodes[reg_force_nodes[e] - 1]
-  else:
-    nodes_force = None
+    elem_dim = element_dimensions(reg_elements[0][0] - 1, all_elements, all_nodes)
   
-  # extract boundary support nodes from region_support if available
+  min_dim = [9999999,9999999,9999999]
+  max_dim = [-1,-1,-1]
+  # create dict with region names, each dict key has a list with respective region nodes
+  # last two dict entries correspond to load and support, appended manually
+  nodes_by_region = dict.fromkeys(regions,None)
+  
+  if region_force != None:
+    regions.append(region_force)
+    nodes_by_region[region_force] = None
   if region_support != None:
-    # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
-    nodes_support = numpy.zeros((len(reg_support_nodes), 3))
-    for e in range(len(reg_support_nodes)):
-      nodes_support[e] = all_nodes[reg_support_nodes[e] - 1]
-  else:
-    nodes_support = None
-    
-  min_dim = min(nodes[:, 0]), min(nodes[:, 1]), min(nodes[:, 2])  
-  max_dim = max(nodes[:, 0]), max(nodes[:, 1]), max(nodes[:, 2])   
-    
-  result = []
-  if centered:
-    for e in range(len(reg_elements)):
-      idx = reg_elements[e] - 1  # cfs writes one based
-      nod = all_elements[idx]
-      center = numpy.array([0.0, 0.0, 0.0])
-      len_nod = num_nodes_by_type(types[idx])
-      for n in range(len_nod):
-        center += all_nodes[nod[n] - 1]  # numbers are one-based
-        # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
-      center *= 1.0 / len_nod
-      result.append(center)
-      # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center)
-  else:
-    # append nodes to result instead of element centers
-    for i in range(len(nodes[:,0])):
-      result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
+    regions.append(region_support)
+    nodes_by_region[region_support] = None
       
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support 
+  for i,r in enumerate(regions):
+    tmp_reg_nodes = reg_nodes[i]
+    # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
+    nodes = numpy.zeros((len(tmp_reg_nodes), 3))
+    
+    for e in range(len(tmp_reg_nodes)):
+      nodes[e] = all_nodes[tmp_reg_nodes[e] - 1]
+      
+    min = [numpy.min(nodes[:, 0]), numpy.min(nodes[:, 1]), numpy.min(nodes[:, 2])]
+    max = [numpy.max(nodes[:, 0]), numpy.max(nodes[:, 1]), numpy.max(nodes[:, 2])]
+    for i in range(3):
+      if min[i] < min_dim[i]:
+        min_dim[i] = min[i]
+      if max[i] > max_dim[i]:
+        max_dim[i] = max[i]  
+      
+    nodes_by_region[r] = nodes
+  
+  # same as for nodes_by_region
+  centers_by_region = dict.fromkeys(regions,None)
+  if centered:
+    for i,r in enumerate(regions):
+      result = []
+      tmp_reg_elems = reg_elements[i]
+      for e in tmp_reg_elems:
+        idx = e - 1  # cfs writes one based
+        nod = all_elements[idx]
+        center = numpy.array([0.0, 0.0, 0.0])
+        len_nod = num_nodes_by_type(types[idx])
+        for n in range(len_nod):
+          center += all_nodes[nod[n] - 1]  # numbers are one-based
+        # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
+        center *= 1.0 / len_nod
+        result.append(center)
+        # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center)
+      centers_by_region[r] = result
+        
+  result = centers_by_region if centered else nodes_by_region    
+  # TODO: Not sure if this reshape is really necessary!!     
+#   else:
+#     # append nodes to result instead of element centers
+#     for i in range(len(nodes[:,0])):
+#       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
+      
+  return result, min_dim, max_dim, elem_dim 
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements
