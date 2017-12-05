@@ -182,7 +182,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   coords = (centers, min_bb, max_bb, elem_dim)
   
-  print("h5_read:",h5_read," dim_2D:",dim_2D)
   # perform 2D and 3D from file
   if h5_read or dim_2D:
     # either Image or polydata  
@@ -345,46 +344,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                
-                # order: min_x,min_y,min_z,max_x,max_y,max_z
-                bounds = np.ones(6) * (-1)
-                bounds[0:3] = min_bb[0:3]
-                bounds[3:6] = max_bb[0:3]
-                # get nondes_points temporarily from .csv file
-                import csv
-                csv_points = []
-                files = ['nondes_centers_skin.csv','nondes_centers_cylinder_small.csv','nondes_centers_cylinder_big.csv']
-                for fi in files:
-                  with open(fi,'r') as fo:
-                    reader = csv.reader(fo,delimiter=',')
-                    for i,row in enumerate(reader):
-                      # skip header
-                      if i == 0:
-                        continue
-                      csv_points.append((float(row[0]),float(row[1]),float(row[2])))
-                      
-                # for non-design regions we work on the voxel level and set non-design voxels with a flag 
-                # create grid with voxels
-                # voxel_res = numpy.asarray(nx*args.bc_res,ny*args.bc_res,nz*args.bc_res)
-                nx = 10
-                voxel_res = numpy.asarray([nx*args.bc_res,nx*args.bc_res,nx*args.bc_res])
-                nondes_voxels = numpy.full(voxel_res,False,dtype=bool)
-                print(nondes_voxels.shape)
-                from draw_profile_functions import cartesian_to_grid_coords, voxels_to_points_and_cells
-                for p in csv_points:
-                  set_array_point(nondes_voxels, p, (bounds[3]-bounds[0])/nx, (bounds[4]-bounds[1])/nx, (bounds[5]-bounds[2])/nx, bounds[0], bounds[1], bounds[2], True)
-#                   print("p[0]:",p[0],"voxel_res[0]:",voxel_res[0])
-#                   i = cartesian_to_grid_coords(p[0], voxel_res[0])
-#                   j = cartesian_to_grid_coords(p[1], voxel_res[1])
-#                   k = cartesian_to_grid_coords(p[2], voxel_res[2])
-#                   nondes_voxels[i,j,k] = True
-                  
-                pts, cs = voxels_to_points_and_cells(nondes_voxels)
-                polydata, _ = matviz_vtk.fill_vtk_polydata(pts,cs)            
-                matviz_vtk.show_write_vtk(polydata,1000,"nodes_voxels.vtp")
-                sys.exit()      
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
-                me = None
+
+                me = None                
                 if args.save:
                   if args.save.endswith(".vtp"):
                     name = args.save[:-4]+".stl"
@@ -491,7 +453,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
-parser.add_argument("--h5_nondes", help="non-design region names, can be list of names (default 'non-design')", default=None)
+parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
@@ -543,6 +505,7 @@ parser.add_argument("--bc_volume_thresh", help="lower bound threshold (default 0
 # print sys.argv
 
 args = parser.parse_args()
+
 # check ans postproc arguments
 if not args.symmetries == "default" and not args.show == None and not args.symmetries == args.show:
   print("'show' and 'symmetries' do not match")
@@ -576,6 +539,7 @@ if args.info is not None:
     cmd += ' ' + sys.argv[i]
   doc = xml.etree.ElementTree.SubElement(info, "commandLine")
   doc.text = cmd  
+    
 # check for tensor input
 tensor = []  # becomes a single tensor or a tensor array
 centers = []
@@ -648,31 +612,22 @@ else:
   if not os.path.exists(args.input):
     print('Error: file does not exist: ' + args.input)
     sys.exit(1)
-  # allow multiple non-design regions  
-  nondes_regions = None
-  if args.h5_nondes != None:
-    nondes_regions = args.h5_nondes.split(",")
   f = h5py.File(args.input, 'r')
   if args.h5_info:
     dump_h5_meta(f)
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions, False, 'load', 'support')
-        
-    nondes_support = nondes_centers['support']
-    nondes_force = nondes_centers['load']
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes, False, 'load', 'support')
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
-  
-  centers, min_bb, max_bb, elem_dim = centered_elements(f, args.h5_region)
+    
+  centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
   
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim = centered_elements(f, nondes_regions)
-  
-  print("min_bb:",min_bb," max_bb:",max_bb)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 
