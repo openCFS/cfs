@@ -385,11 +385,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
-  Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
-  Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
-  Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");

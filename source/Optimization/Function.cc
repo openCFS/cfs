@@ -165,16 +165,6 @@ Function::Function(PtrParamNode pn) {
 
     break;
 
-  case DETERMINANT_MATRIX:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
-    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL && design_ != DesignElement::ALL_DESIGNS)
-          throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
-        break;
-    break;
-
   case OVERHANG_VERT:
   case OVERHANG_HOR:
     if(!BaseDesignElement::IsShapeMapType(design_))
@@ -205,13 +195,6 @@ Function::Function(PtrParamNode pn) {
 //    else
 //      linear_ = true; // rarely true, has to be set in xml now
 //    break;
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-    if(design_ == DesignElement::G_ALL)
-      linear_ = true;
-    else
-      linear_ = false;
-    break;
   default:
     linear_ = false;
     break;
@@ -457,11 +440,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
   case POS_DEF_DET_MINOR_3:
-  case DETERMINANT_MATRIX:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
@@ -678,11 +656,6 @@ bool Function::IsLocal(Type t) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MATRIX:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
     return true;
@@ -804,11 +777,6 @@ bool Function::ForSensitivityFiltering() const {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MATRIX:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case TEMP_TRACKING_AT_INTERFACE:
@@ -859,8 +827,6 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       nd = 2;
     if(design_ == DesignElement::PIEZO_ALL)
       nd = 6;
-    if(design_ == DesignElement::G_ALL)
-      nd = 4; // TODO why no 3?
     //assert((int) space->design.GetSize() >= nd);
 
     elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
@@ -970,11 +936,6 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_TENSOR_TRACE:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MATRIX:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
   case DESIGN:
   case GLOBAL_DESIGN:
   case MULTIMATERIAL_SUM:
@@ -1127,12 +1088,6 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   bool db_opt = domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch (ftype) {
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-    if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE && locality_ != DEFAULT)
-      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
-    locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
-    break;
 
   case SLOPE:
     if(user == DEFAULT)
@@ -1235,19 +1190,11 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-  case DETERMINANT_MATRIX:
   case MULTIMATERIAL_SUM:
     if (locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
     break;
-
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
-    if(locality_ != NEXT_DIAG && locality_ != DEFAULT)
-          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
-        locality_ = NEXT_DIAG;
-        break;
 
   case BUMP:
     if (locality_ != PREV_NEXT && locality_ != DEFAULT)
@@ -1421,10 +1368,8 @@ void Function::Local::SetupVirtualStarLocalElementMap(const Function* f)
   virtual_elem_map.Reserve(element_dimension_ * elems);
 
   assert(space->design.GetSize()== 2);
-  if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
-    throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
-       if( (space->design[0].design != DesignElement::G_MAP_X))
-         throw Exception("'Expect first design to be 'G_MAP_X");
+  if(f->GetDesignType() != DesignElement::ALL_DESIGNS)
+    throw Exception("'tensor_norm' only defined 'ALL_DESIGNS' design");
 
   for(unsigned int e = 0; e < elems; e++)
    {
@@ -1719,32 +1664,6 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
     des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_23));
     break;
 
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MATRIX:
-    assert(space->design.GetSize() >= 4);
-    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
-          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
-       if( (space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE) )
-         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE' or 'G_MAP_X");
-    //assert(space->design.GetSize() >= 4);
-    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
-       if (space->design[0].design == DesignElement::G11)
-       {
-           des_idx.Push_back(space->FindDesign(DesignElement::G12));
-           des_idx.Push_back(space->FindDesign(DesignElement::G21));
-           des_idx.Push_back(space->FindDesign(DesignElement::G22));
-
-       }
-       else if (space->design[0].design == DesignElement::ROTANGLE)
-       {
-             des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
-             des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
-             des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
-
-       }
-  break;
-
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
     assert(space->design.GetSize() >= 6);
@@ -1832,38 +1751,11 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
   StdVector<BaseDesignElement*> neighbours;
 
   StdVector<unsigned int> des_idx; // the design indices we consider here
-  switch(f->GetType())
-  {
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-    assert(space->design.GetSize() >= 4);
-    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
-      throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
-    if((space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE))
-      throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
-    //assert(space->design.GetSize() >= 4);
-    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
-    if (space->design[0].design == DesignElement::G11)
-    {
-      des_idx.Push_back(space->FindDesign(DesignElement::G12));
-      des_idx.Push_back(space->FindDesign(DesignElement::G21));
-      des_idx.Push_back(space->FindDesign(DesignElement::G22));
-    }
-    else if (space->design[0].design == DesignElement::ROTANGLE)
-    {
-      des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
-      des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
-      des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
-    }
-    break;
 
-  default:
-    // all designs but the first one
-    des_idx.Reserve(space->design.GetSize()-1);
-    for(unsigned int i = 1; i < space->design.GetSize(); i++)
-      des_idx.Push_back(i);
-    break;
-  }
+  // all designs but the first one
+  des_idx.Reserve(space->design.GetSize()-1);
+  for(unsigned int i = 1; i < space->design.GetSize(); i++)
+    des_idx.Push_back(i);
 
   // LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
@@ -2262,24 +2154,6 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case BENSON_VANDERBEI_3:
     fv = CalcBensonVanderbei(-1, local, false, f->type_);
     break;
-  case DETERMINANT_MATRIX:
-    fv = CalcDetGTensor(-1, local, false);
-  break;
-
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-    fv = CalcRotGTensor(-1, local, false, f->type_);
-  break;
-
-  //We need to add the constraints on all the detrminants of the neighbouring elements of the node
-  //So there is ne, nw, sw, amd se
-  case DETERMINANT_MAPPING:
-    fv = CalcDetGMappingTensor(-1, local, false);
-  break;
-
-  case TRACE_MAPPING:
-    fv = CalcTraceGMappingTensor(-1, local, false);
-  break;
 
   case ORTHOTROPIC_TENSOR_TRACE:
     fv = CalcOrthotropicTensorTrace(local, access);
@@ -2469,22 +2343,6 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
       gv = CalcBensonVanderbei(n, local, true, ft);
-      break;
-    case ROTATIONAL_MATRIX_1:
-    case ROTATIONAL_MATRIX_2:
-      gv = CalcRotGTensor(n, local, true, ft);
-      break;
-
-    case DETERMINANT_MATRIX:
-      gv = CalcDetGTensor(n, local, true);
-    break;
-
-    case DETERMINANT_MAPPING:
-      gv = CalcDetGMappingTensor(n, local, true);
-      break;
-
-    case TRACE_MAPPING:
-      gv = CalcTraceGMappingTensor(n, local, true);
       break;
 
     case ORTHOTROPIC_TENSOR_TRACE:
@@ -3458,666 +3316,6 @@ double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, Design
 
 
 /* Condition: det(G-vId) >= eps*/
-double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const
-{
-  const Condition* g = dynamic_cast<const Condition*>(local->func_);
-
-  double v = g->GetParameter();
-  double eps = 1.0 * g->GetBoundValue();
-
-  Matrix<double> G(2,2);
-
-  bool ok = local->space->designMaterial->GetModRedGTensor(G, dynamic_cast<DesignElement*>(element)->elem);
-  assert(ok);
-
-  double ret = -12345678.0 * (ok ? 1.0 : 1.0);
-
-  //element->GetDesignSpace()->designMaterial->GetModRedGTensor(G, DesignElement::NO_DERIVATIVE);
-
-  ret = 0;
-
-  if (!derivative)
-  {
-    ret =(G(0,0)-v)*(G(1,1)-v) - G(0,1)*G(1,0) -eps;
-  }
-  else
-  {
-    switch(GetElement(neigh_idx)->GetType())
-       {
-
-       case DesignElement::G11:
-         ret = G(1,1)-v;
-         break;
-       case DesignElement::G12:
-         ret = -G(1,0);
-         break;
-       case DesignElement::G21:
-         ret = -G(0,1);
-         break;
-       case DesignElement::G22:
-         ret = G(0,0)-v;
-         break;
-       default: assert(false); return 0.0;
-       break;
-       }
-     }
-     assert(ret != 12345678.0);
-     LOG_DBG3(func) << "Local::Local e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << ", det=" << ret;
-     return ret;
-
-}
-
-
-double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
-{
-  assert((local->locality_ == MULT_DESIGNS_NEXT_AND_REVERSE));
-  //This means that in neighbor, we have
-  //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
-  //So, normally (2d case), neighbor has size 11.
-  //int  dim     = domain->GetGrid()->GetDim();
-  //assert(dim==2);
-  assert(this->neighbor.GetSize() == 11);
-
-  Function* f = local->func_;
-
-  double s = this->sign == -1 ? -1.0 : 1.0;
-
- double ret=0.0;
-
- double g110 =element->GetDesign(DesignElement::SMART);
- double g11y =neighbor[1]->GetDesign(DesignElement::SMART);
- double g120 =neighbor[2]->GetDesign(DesignElement::SMART);
- double g12x = neighbor[3]->GetDesign(DesignElement::SMART);
-
- double g210 =neighbor[5]->GetDesign(DesignElement::SMART);
- double g21y =neighbor[7]->GetDesign(DesignElement::SMART);
- double g220 =neighbor[8]->GetDesign(DesignElement::SMART);
- double g22x =neighbor[9]->GetDesign(DesignElement::SMART);
-
-
- double theta0  = element->GetDesign(DesignElement::SMART);
-  double thetax = neighbor[0]->GetDesign(DesignElement::SMART);
-  double thetay = neighbor[1]->GetDesign(DesignElement::SMART);
-
-double phi0 = neighbor[2]->GetDesign(DesignElement::SMART);
-double phix = neighbor[3]->GetDesign(DesignElement::SMART);
-double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
-
- double l10 = neighbor[5]->GetDesign(DesignElement::SMART);
- double l1x = neighbor[6]->GetDesign(DesignElement::SMART);
- double l1y = neighbor[7]->GetDesign(DesignElement::SMART);
- double l20 = neighbor[8]->GetDesign(DesignElement::SMART);
- double l2x = neighbor[9]->GetDesign(DesignElement::SMART);
- double l2y = neighbor[10]->GetDesign(DesignElement::SMART);
-
-          if (!derivative)
-          {
-            switch(type)
-            {
-                    case ROTATIONAL_MATRIX_1:
-                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
-                       {
-                        g110 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
-                        g11y = l1y*cos(thetay)*cos(phiy) -l2y*sin(thetay)*sin(phiy);
-                        g120 = l10*cos(theta0)*sin(phi0) +l20*sin(theta0)*cos(phi0);
-                         g12x = l1x*cos(thetax)*sin(phix) +l2x*sin(thetax)*cos(phix);
-                       }
-                    ret = g110 - g11y - (g120-g12x);
-                    return s*ret;
-                    break;
-
-                    case ROTATIONAL_MATRIX_2:
-                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
-                       {
-                        g220 = -l10*sin(theta0)*sin(phi0) + l20*cos(theta0)*cos(phi0);
-                        g22x = -l1x*sin(thetax)*sin(phix) + l2x*cos(thetax)*cos(phix);
-                        g210 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
-                        g21y = -l1y*sin(thetay)*cos(phiy) -l2y*cos(thetay)*sin(phiy);
-                       }
-                    ret = g210 - g21y -(g220 -g22x);
-                    return s*ret;
-                    break;
-                    default: assert(false); return 0.0;
-                    break;
-            }
-          }
-
-          else
-          {
-            switch(GetElement(neigh_idx)->GetType())
-                  {
-
-                  case DesignElement::G11:
-                    switch(type)
-                        {
-                            case ROTATIONAL_MATRIX_1:
-                                return sign == -1 ? -1.0 : 1.0;
-                                break;
-
-                                case ROTATIONAL_MATRIX_2:
-                                return 0.0;
-                                break;
-                                default:
-                                  assert(false);return 0.0;
-                                break;
-                        }
-                  break;
-                  case DesignElement::G12:
-                    switch(type)
-                        {
-                            case ROTATIONAL_MATRIX_1:
-                                return sign == -1 ? 1.0 : -1.0;
-                                break;
-
-                                case ROTATIONAL_MATRIX_2:
-                                return 0.0;
-                                break;
-                                default:
-                                  assert(false);return 0.0;
-                                break;
-                        }
-                  break;
-                  case DesignElement::G21:
-                    switch(type)
-                      {
-                        case ROTATIONAL_MATRIX_1:
-                        return 0.0;
-                        break;
-
-                        case ROTATIONAL_MATRIX_2:
-                          return sign == -1 ? -1.0 : 1.0;
-                        break;
-                        default:
-                          assert(false);return 0.0;
-                        break;
-                     }
-                    break;
-                  case DesignElement::G22:
-                    switch(type)
-                                {
-                                  case ROTATIONAL_MATRIX_1:
-                                  return 0.0;
-                                  break;
-
-                                  case ROTATIONAL_MATRIX_2:
-                                    return sign == -1 ? 1.0 : -1.0;
-                                  break;
-                                  default:
-                                    assert(false); return 0.0;
-                                  break;
-                               }
-                  break;
-
-                    case DesignElement::ROTANGLE:
-                      switch(type)
-                       {
-                           case ROTATIONAL_MATRIX_1:
-                             g110 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
-                             g11y = 0.0;
-                             g120 = -l10*sin(theta0)*sin(phi0) +l20*cos(theta0)*cos(phi0);
-                             g12x = 0.0;
-                             ret = g110 - g11y - (g120-g12x);
-                             return s*ret;
-                             break;
-
-                             case ROTATIONAL_MATRIX_2:
-                             g220 = -l10*cos(theta0)*sin(phi0) - l20*sin(theta0)*cos(phi0);
-                             g22x = 0.0;
-                             g210 = -l10*cos(theta0)*cos(phi0) +l20*sin(theta0)*sin(phi0);
-                             g21y = 0.0;
-                             ret = g210 - g21y -(g220 -g22x);
-                             return s*ret;
-                             break;
-                            default:
-                             assert(false);return 0.0;
-                            break;
-                      }
-                  break;
-
-                      case DesignElement::ROTANGLE2:
-                        switch(type)
-                        {
-                            case ROTATIONAL_MATRIX_1:
-                             g110 = -l10*cos(theta0)*sin(phi0) -l20*sin(theta0)*cos(phi0);
-                             g11y = 0.0;
-                             g120 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
-                             g12x = 0.0;
-                             ret = g110 - g11y - (g120-g12x);
-                            return s*ret;
-                           break;
-
-                            case ROTATIONAL_MATRIX_2:
-                               g220 = -l10*sin(theta0)*cos(phi0) - l20*cos(theta0)*sin(phi0);
-                               g22x = 0.0;
-                               g210 = l10*sin(theta0)*sin(phi0) -l20*cos(theta0)*cos(phi0);
-                               g21y = 0.0;
-                               ret = g210 - g21y -(g220 -g22x);
-                             return s*ret;
-                             break;
-                             default:
-                             assert(false);return 0.0;
-                             break;
-                         }
-                     break;
-
-                        case DesignElement::SCALING1:
-                         switch(type)
-                          {
-                            case ROTATIONAL_MATRIX_1:
-                               g110 = cos(theta0)*cos(phi0);
-                               g11y = 0.0;
-                               g120 = cos(theta0)*sin(phi0);
-                               g12x =0.0;
-                               ret = g110 - g11y - (g120-g12x);
-                               return s*ret;
-                             break;
-
-                           case ROTATIONAL_MATRIX_2:
-                              g220 = -sin(theta0)*sin(phi0);
-                              g22x = 0.0;
-                              g210 = -sin(theta0)*cos(phi0);
-                              g21y = 0.0;
-                              ret = g210 - g21y -(g220 -g22x);
-                              return s*ret;
-                            break;
-                          default:
-                             assert(false);return 0.0;
-                             break;
-                         }
-                         break;
-
-                         case DesignElement::SCALING2:
-                           switch(type)
-                           {
-                               case ROTATIONAL_MATRIX_1:
-                                g110 = -sin(theta0)*sin(phi0);
-                                g11y = 0.0;
-                                g120 = sin(theta0)*cos(phi0);
-                                g12x = 0.0;
-                                ret = g110 - g11y - (g120-g12x);
-                                return s*ret;
-                                break;
-
-                              case ROTATIONAL_MATRIX_2:
-                              g220 = cos(theta0)*cos(phi0);
-                              g22x = 0.0;
-                              g210 = -cos(theta0)*sin(phi0);
-                              g21y = 0.0;
-                              ret = g210 - g21y -(g220 -g22x);
-                              return s*ret;
-                              break;
-                              default:
-                              assert(false); return 0.0;
-                              break;
-
-                          }
-                         break;
-
-                  default:
-                      assert(false);return 0.0;
-                  break;
-                  }
-          }
-
-
- }
-
-double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
-{
-  assert((local->locality_ == NEXT_DIAG));
-    //This means that in neighbor, we have
-    //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
-    //So, normally (2d case), neighbor has size 11.
-    //int  dim     = domain->GetGrid()->GetDim();
-    //assert(dim==2);
-
-    assert(this->neighbor.GetSize() == 7);
-
-    assert(this->sign==1);
-
-
-    //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
-
-    //    4____________3
-    //    |            |
-    //    |            |
-    //    |            |
-    //    |            |
-    //    |____________|
-    //    1            2
-    //
-    //
-    //An element contains the value of the mappings gx and gy on its south_west node
-
-
-    Matrix<double> G(2,2);
-    G.Init();
-
-    int south_west = 0;
-    int south_east = 1;
-    int north_east = 2;
-    int north_west = 3;
-
-   double ret=0.0;
-
-   double gx_0 =element->GetDesign(DesignElement::SMART);
-   double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
-   double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
-   double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
-
-   double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
-   double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
-   double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
-   double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
-
-    //I need to know the coordinates of the nodes of the cells I am working with
-    Matrix<double>  coords; // we ignore the n times constructs
-
-    StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
-    // do not use updated coordinates up to now!!
-    domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
-
-    double x_0 = coords(0,south_west);
-    double y_0 = coords(1,south_west);
-
-    double x_px = coords(0,south_east);
-    double y_px = coords(1,south_east);
-
-    double x_pxy = coords(0,north_east);
-    double y_pxy = coords(1,north_east);
-
-    double x_py = coords(0,north_west);
-    double y_py = coords(1,north_west);
-
-    G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-    G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-    G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-    G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-
-
-
-   if (!derivative)
-     {
-           ret = G(0,0)*G(1,1) - G(0,1)*G(1,0);
-           return ret;
-     }
-   else
-   {
-     Matrix<double> Gd(2,2);
-     Gd.Init();
-
-     switch(neigh_idx)
-     {
-
-           case (-1): //Derivative with respect to GX_0
-
-                   Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   Gd(1,0) = 0;
-                   Gd(1,1) = 0;
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-
-             break;
-
-           case (0): //Derivative with respect to GX_PX
-
-
-
-                   Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   Gd(1,0) = 0;
-                   Gd(1,1) = 0;
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-
-              break;
-
-           case (1): //Derivative with respect to GX_PY
-
-                   Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   Gd(1,0) = 0;
-                   Gd(1,1) = 0;
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-            break;
-
-           case (2): //Derivative with respect to GX_PXY
-
-                   Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   Gd(1,0) = 0;
-                   Gd(1,1) = 0;
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-              break;
-
-           case (3): //Derivative with respect to GY_0
-
-                   Gd(0,0) = 0;
-                   Gd(0,1) = 0;
-                   Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-             break;
-
-           case (4): //Derivative with respect to GY_PX
-
-
-                   Gd(0,0) = 0;
-                   Gd(0,1) = 0;
-                   Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-
-              break;
-
-           case (5): //Derivative with respect to GY_PY
-
-
-                   Gd(0,0) = 0;
-                   Gd(0,1) = 0;
-                   Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-
-              break;
-
-           case (6): //Derivative with respect to GY_PXY
-
-
-                   Gd(0,0) = 0;
-                   Gd(0,1) = 0;
-                   Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                   Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
-                   return ret;
-              break;
-
-           default:
-             return 5;
-             break;
-       }
-   }
-
-   return 5;
-}
-
-
-double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
-{
-  assert((local->locality_ == NEXT_DIAG));
-   //This means that in neighbor, we have
-   //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
-   //So, normally (2d case), neighbor has size 11.
-   //int  dim     = domain->GetGrid()->GetDim();
-   //assert(dim==2);
-   assert(this->neighbor.GetSize() == 7);
-
-   assert(this->sign==1);
-
-
-   //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
-
-   //    4____________3
-   //    |            |
-   //    |            |
-   //    |            |
-   //    |            |
-   //    |____________|
-   //    1            2
-   //
-   //
-   //An element contains the value of the mappings gx and gy on its south_west node
-
-
-   Matrix<double> G(2,2);
-   G.Init();
-
-   int south_west = 0;
-   int south_east = 1;
-   int north_east = 2;
-   int north_west = 3;
-
-  double ret=0.0;
-
-  double gx_0 =element->GetDesign(DesignElement::SMART);
-  double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
-  double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
-  double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
-
-  double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
-  double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
-  double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
-  double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
-
-   //I need to know the coordinates of the nodes of the cells I am working with
-   Matrix<double>  coords; // we ignore the n times constructs
-
-   StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
-   // do not use updated coordinates up to now!!
-   domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
-
-   double x_0 = coords(0,south_west);
-   double y_0 = coords(1,south_west);
-
-   double x_px = coords(0,south_east);
-   double y_px = coords(1,south_east);
-
-   double x_pxy = coords(0,north_east);
-   double y_pxy = coords(1,north_east);
-
-   double x_py = coords(0,north_west);
-   double y_py = coords(1,north_west);
-
-   G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-   G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-   G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-   G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-
-
-
-  if (!derivative)
-    {
-          ret = G(0,0) + G(1,1);
-          return ret;
-    }
-  else
-  {
-    Matrix<double> Gd(2,2);
-    Gd.Init();
-
-    switch(neigh_idx)
-    {
-          case (-1): //Derivative with respect to GX_0
-                  Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  Gd(1,0) = 0;
-                  Gd(1,1) = 0;
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-
-            break;
-
-          case (0): //Derivative with respect to GX_PX
-                  Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  Gd(1,0) = 0;
-                  Gd(1,1) = 0;
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-
-             break;
-
-          case (1): //Derivative with respect to GX_PY
-                  Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  Gd(1,0) = 0;
-                  Gd(1,1) = 0;
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-           break;
-
-          case (2): //Derivative with respect to GX_PXY
-                  Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  Gd(1,0) = 0;
-                  Gd(1,1) = 0;
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-             break;
-
-          case (3): //Derivative with respect to GY_0
-                  Gd(0,0) = 0;
-                  Gd(0,1) = 0;
-                  Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-            break;
-
-          case (4): //Derivative with respect to GY_PX
-                  Gd(0,0) = 0;
-                  Gd(0,1) = 0;
-                  Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-
-             break;
-
-          case (5): //Derivative with respect to GY_PY
-                  Gd(0,0) = 0;
-                  Gd(0,1) = 0;
-                  Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-
-             break;
-
-          case (6): //Derivative with respect to GY_PXY
-                  Gd(0,0) = 0;
-                  Gd(0,1) = 0;
-                  Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
-                  Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
-                  ret = Gd(0,0) + Gd(1,1);
-                  return ret;
-             break;
-
-          default:
-            return 0;
-            break;
-      }
-  }
-
-  return 5;
-}
-
 
 double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const {
   const Condition* g = dynamic_cast<const Condition*>(local->func_);
