@@ -90,6 +90,7 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case POISSONISO:
     case EMODUL:
     case EMODULISO:
+      return true;
     default:
       return false;
     }
