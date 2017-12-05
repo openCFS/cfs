@@ -177,10 +177,16 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     print("finished_workers ",finished_workers," commsize: ",commSize)
     sys.stdout.flush()
  
-    basecells = resolve_hanging_nodes(nx,ny,nz,basecells,pos)
+    basecells = align_cell_interfaces(nx,ny,nz,basecells,pos)
+#     resolve_hanging_nodes(nx,ny,nz,basecells,pos)
       
     import time   
     start = time.time()
+    # length of shortest edge
+    short = 99999 
+    short_e = 99999
+    # for appending base cells
+    offset = 0 
     vertices = []   
     faces = []
     # appending cells
@@ -191,17 +197,47 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         end_vtk_iteration=time.time()
         print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
       
+#       verts, cells, short_e = add_offset(cell.points, cell.cells, offset)
+      
       coords = [ v.coords for v in cell.points]
       pd, _ = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
       appends.AddInputData(pd)
+#       vertices.extend(verts)
+#       faces.extend(cells)
+#       offset = len(vertices)
       
+#       for f in faces:
+#         assert(type(f[0]) is int)
+#         assert(type(f[1]) is int)
+#         assert(type(f[2]) is int)
+#       if short_e < short:
+#         short = short_e
+# 
+#     assert(short > -1 and short < 99999)
+#     points, cells = matviz_vtk.vtk_polydata_to_numpy(cleanFilter.GetOutput())
+#     vertices, faces = matviz_vtk.vtk_polydata_to_numpy(pd)
+#     print("shortest edge:",short)
+#     for i, v in enumerate(vertices):
+#       assert(v.idx == i)
+    
+#     vertices, faces = merge_duplicated_points(vertices,faces,short)
+    
+#     points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
+    
+#     coords = [ v.coords for v in vertices]
+#     pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
+    
     appends.Update()
     
+#     print("before cleaning:",pd.GetNumberOfCells())
+    # clean coinciden points
     clean = vtk.vtkCleanPolyData()
+#     clean.SetInputData(pd)
     clean.SetInputConnection(appends.GetOutputPort())
     clean.Update()
     
-    # orientate normals consistently
+#     print("after cleaning:",clean.GetOutput().GetNumberOfCells())
+
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(clean.GetOutput())
     normals.SetConsistency(1)
@@ -209,6 +245,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     normals.Update()
   
     return normals.GetOutput()
+#   return cleanFilter.GetOutput()
     
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -314,7 +351,7 @@ def detect_boundary_edges(polydata):
 # at interfaces between two cells coincide
 # @param basecells: list of Basecell() objects
 # @param pos: list with respective (i,j,k) position in the grid
-def resolve_hanging_nodes(nx,ny,nz,basecells,pos):
+def align_cell_interfaces(nx,ny,nz,basecells,pos):
   # store base cells in a 3d array to have info about connectivity
   basecell_grid = np.empty((nx,ny,nz), dtype=object)
   
@@ -325,13 +362,23 @@ def resolve_hanging_nodes(nx,ny,nz,basecells,pos):
   for i in range(nx):
     for j in range(ny):
       for k in range(nz):
+        print("i,j,k:",i,j,k)
         this = basecell_grid[i,j,k]
         assert(len(this.boundary_points) > 0)
         assert(this is not None)
         if i < nx-1:
+#           print("x")
           right = basecell_grid[i+1,j,k]
           this_bp = this.boundary_points[Face_Name.XMAX.value]
           right_bp = right.boundary_points[Face_Name.XMIN.value]
+          if len(this_bp) != len(right_bp):
+#             print("\nlen(this):",len(this_bp))
+            for p in this_bp:
+              print(p.coords)
+              
+            print("\nlen(right):",len(right_bp))
+            for p in right_bp:
+              print(p.coords)
 
           assert(len(this_bp) == len(right_bp))
           if len(this_bp) == len(right_bp) or len(this_bp) > len(right_bp):
@@ -339,17 +386,29 @@ def resolve_hanging_nodes(nx,ny,nz,basecells,pos):
           else:
             this.replace_boundary_points(right_bp,Face_Name.XMAX.value)
         if j < ny-1:
+          print("y")
           top = basecell_grid[i,j+1,k]
           this_bp = this.boundary_points[Face_Name.YMAX.value]
           top_bp = top.boundary_points[Face_Name.YMIN.value]
+          if len(this_bp) != len(top_bp):
+            print("len(this_bp):",len(this_bp)," len(top_bp):",len(top_bp))
+            print("\nthis_bp:")
+            for p in this_bp:
+              print(p)
+            print("\ntop_bp:")
+            for p in top_bp:
+              print(p)  
+#           assert(len(this_bp) == len(top_bp))
           if len(this_bp) == len(top_bp) or len(this_bp) > len(top_bp):
             top.replace_boundary_points(this_bp,Face_Name.YMIN.value)
           else:
             this.replace_boundary_points(top_bp,Face_Name.YMAX.value) 
         if k < nz-1:
+          print("z")
           front = basecell_grid[i,j,k+1]
           this_bp = this.boundary_points[Face_Name.ZMAX.value]
           front_bp = front.boundary_points[Face_Name.ZMIN.value]
+#           assert(len(this_bp) == len(front_bp))
           if len(this_bp) == len(front_bp) or len(this_bp) < len(front_bp):
             front.replace_boundary_points(this_bp,Face_Name.ZMIN.value)
           else:

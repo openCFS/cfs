@@ -1860,7 +1860,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
-#   mesh = add_nodes_for_periodic_bc(mesh)
+  mesh = add_nodes_for_periodic_bc(mesh)
 
   write_gid_mesh(mesh, meshfile[:-4]+".mesh") 
   
