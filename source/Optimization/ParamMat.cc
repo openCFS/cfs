@@ -85,32 +85,6 @@ void ParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunct
 }
 
 
-void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
-{
-  // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
-  // therefore we always return a derivative, de indicating which
-  // for transient problems, this does also need to return the derivative of the mass matrix
-  Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
-  int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
-  MechMat* mech_mat = dynamic_cast<MechMat*>(context->mat); // don't cache
-
-  DesignElement::Type t = derivative ? type : DesignElement::NO_DERIVATIVE;
-
-  switch(app)
-  {
-  case App::MECH:
-    out = dynamic_cast<const Matrix<double> &>(mech_mat->Stiffness(de->elem, false, mm, t));
-    break;
-  case App::MASS:
-    out = dynamic_cast<const Matrix<double> &>(mech_mat->Mass(de->elem, false, mm, t));
-    break;
-  default:
-    Exception("Only mech and mass matrix are available for paramMat");
-    break;
-  }
-  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
-}
-
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void ParamMat::SetElementK<double, double>(Context*, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);

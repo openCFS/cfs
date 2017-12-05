@@ -12,29 +12,6 @@
     </xsd:documentation>
   </xsd:annotation>
   
-  <!-- ******************************************************************* -->
-  <!--   Definition of a reduced basis matrix                     -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_RBMatrix">
-    <xsd:sequence>
-      <xsd:element name="real">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="1000"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-      <xsd:element name="imag" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="1000"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
-    </xsd:sequence>
-    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
-    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
-  </xsd:complexType>
   
     <!-- works with eclips but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
     
@@ -426,13 +403,6 @@
                 <xsd:enumeration value="bensonVanderbeiMinor1"/>
                 <xsd:enumeration value="bensonVanderbeiMinor2"/>
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
-                <!--  In case of model reduction, ensures that the determinant of the matrix is positive -->
-                <xsd:enumeration value="determinantMatrix"/>
-               <!--  In case of model reduction, ensures that the rotational of the matrix is small enough -->
-                <xsd:enumeration value="rotationalMatrix1"/>
-                <xsd:enumeration value="rotationalMatrix2"/>
-                <!--  For the mapping case of model reduction techniques -->
-                <xsd:enumeration value="determinantMapping"/>
                 <xsd:enumeration value="traceMapping"/>
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
@@ -1396,8 +1366,6 @@
                       <xsd:enumeration value="penalizedStress"/>
                       <!-- This is (rho - rho^*)^2 (rho is physical) without 1/N -->
                       <xsd:enumeration value="designTracking"/>
-                     <!-- This is the gradient matrix -->
-                      <xsd:enumeration value="transfoMatrix"/>
                       <!--  for shape mapping the max of dtanh_da for a rho element -->
                       <xsd:enumeration value="shapeMapGrad"/>
                       <!--  for shape mapping the order for numerical integration--> 
@@ -1641,7 +1609,6 @@
       <xsd:enumeration value="dielec_all"/>
       <!-- all piezoc coupling tensor coefficients for piezo FMO -->
       <xsd:enumeration value="piezo_all"/>
-      <xsd:enumeration value="G_all"/>
       <!-- Constraint is defined per element and uses all designs on that element -->
       <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
@@ -1677,27 +1644,9 @@
       <!-- for shape map -->
       <xsd:enumeration value="node"/>
       <xsd:enumeration value="profile"/>
-      <!-- Model reduction design variables -->
-      <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
       <xsd:enumeration value="shear1"/> 
-      <xsd:enumeration value="scaling1"/>
-      <xsd:enumeration value="scaling2"/>
-      <xsd:enumeration value="G11"/>
-      <xsd:enumeration value="G12"/>
-      <xsd:enumeration value="G21"/>
-      <xsd:enumeration value="G22"/>
-      <xsd:enumeration value="G_MAP_X"/>
-      <xsd:enumeration value="G_MAP_Y"/>
-      <xsd:enumeration value="GX_0"/>
-      <xsd:enumeration value="GY_0"/>
-      <xsd:enumeration value="GX_PX"/>
-      <xsd:enumeration value="GY_PX"/>
-      <xsd:enumeration value="GX_PY"/>
-      <xsd:enumeration value="GY_PY"/>
-      <xsd:enumeration value="GX_PXY"/>
-      <xsd:enumeration value="GY_PXY"/>
       <xsd:enumeration value="stiff3"/>
       <xsd:enumeration value="rotAngleX"/>
       <xsd:enumeration value="rotAngleY"/>
@@ -1965,11 +1914,6 @@
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="globalDesign"/>
       <xsd:enumeration value="stress"/>
-      <!-- Value of the G matrix -->
-      <xsd:enumeration value="transfoMatrix11"/>
-      <xsd:enumeration value="transfoMatrix12"/>
-      <xsd:enumeration value="transfoMatrix21"/>
-      <xsd:enumeration value="transfoMatrix22"/>
       <!-- Shape mapping -->
       <!-- for 2D -->
       <xsd:enumeration value="node"/>
@@ -2542,13 +2486,6 @@
           <xsd:enumeration value="hom-iso-C1" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
-          <!-- model reduction -->
-          <xsd:enumeration value="reducedBasis-param" />
-          <xsd:enumeration value="reducedBasis-free" />
-          <xsd:enumeration value="reducedBasis-mapping" />
-          <xsd:enumeration value="greedy-param" />
-          <xsd:enumeration value="greedy-free" />
-          <xsd:enumeration value="greedy-mapping" />
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
