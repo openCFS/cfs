@@ -2050,12 +2050,12 @@ const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignEle
   return NULL;
 }
 
-double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, const bool getParameter) const
+double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, bool get_parameter) const
 {
   const BaseDesignElement* de = GetElementByType(type);
-  if (de != NULL)
+  if(de != NULL)
     return de->GetDesign(access);
-  if (getParameter)
+  if(get_parameter)
     return local->space->designMaterial->GetParameter(type);
   throw Exception("Designtype not found! If it is a ParamMat parameter make sure to query for parameters.");
 }
