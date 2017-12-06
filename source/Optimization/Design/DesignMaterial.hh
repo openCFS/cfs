@@ -60,18 +60,6 @@ class TransferFunction;
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
     
-    /** reset the parameter space */
-    void ClearParameter() { params_.clear(); }
-
-    /** Set a parameter for the parametric material optimization */
-    void SetParameter(const DesignElement::Type p, const double value);
-
-    /** Get a parameter of the parametric material optimization */
-    double GetParameter(const DesignElement::Type p) { assert(HasParameter(p)); return params_[p]; }
-
-    /** checks for a parameter */
-    bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
-
     /** the general material tensor function */
     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation);
 
@@ -102,6 +90,10 @@ class TransferFunction;
 
     /** retrieve damping parameters for element or derivative */
     bool GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+
+    /** Get a parameter of the parametric material optimization. Takes if from the thread local storage. */
+    double GetParameter(const DesignElement::Type p);
+
 
     void static SetEnums();
 
@@ -143,15 +135,36 @@ class TransferFunction;
 
   protected:
 
-    /** for debugging */
-    void DumpParams();
+    /** Set a parameter for the parametric material optimization.
+     * @param global set the value only thread local (element values) or global (as in constructor) on all thread versions */
+    void SetParameter(const DesignElement::Type p, const double value, bool global);
+
+    /** to access the the local copy of the map but have the checks in debug mode */
+    double GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p);
+
+    /** checks for a parameter. Checks the thread local storage. */
+    bool HasParameter(const DesignElement::Type p) const;
 
     /** Sets all Material Parameters in designMaterial for given element in the current context */
     bool CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem);
 
-    /** this are the design variables for the current element! It is filled with default and optimization
-     * variables. */
-    std::map<DesignElement::Type, double> params_;
+    /** Return a local thread local data set to ease access within a function. Don't store!! */
+    const std::map<DesignElement::Type, double>& GetParameters() const;
+
+    /** for debugging */
+    void DumpParams();
+
+
+    /** service function for debug mode to validadate that the parameter maps for all threads have
+     * the same number of values. If this is not the case a SetParameter() was not called as global */
+    bool ValidateParameters();
+
+    /** this are the design variables for the current element!
+     * It is filled with default and optimization variables.
+     * Set by CollectMaterialParametersForElement().
+     * To be thread save this needs to be in a thread local storage with CFS_NUM_THREADS.
+     * Better don't access the map manually!! */
+    CfsTLS<std::map<DesignElement::Type, double> > params_;
 
     /** mass is considered an independent design */
     bool massIsDesign_;

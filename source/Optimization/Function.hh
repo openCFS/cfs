@@ -458,8 +458,9 @@ class Function
         const BaseDesignElement* GetElementByType(BaseDesignElement::Type type) const;
 
 
-        /** returns design value by the design type. getParameter == true works for ParamMat parameters. Works only for special neighborhoods! */
-        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
+        /** returns design value by the design type.
+         * @param get_parameter == true works for ParamMat parameters. Works only for special neighborhoods! */
+        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool get_parameter = true) const;
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
