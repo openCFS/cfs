@@ -519,11 +519,11 @@ namespace CoupledField
 
 
 #ifdef USE_OPENMP
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 
 
-      UInt numT = NUM_CFS_THREADS;
+      UInt numT = CFS_NUM_THREADS;
       UInt aThread = omp_get_thread_num();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
 

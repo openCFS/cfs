@@ -1668,7 +1668,7 @@ namespace CoupledField {
 
 
   void SetNumberOfThreads(UInt numThreads){
-    NUM_CFS_THREADS = numThreads;
+    CFS_NUM_THREADS = numThreads;
   }
 
   Enum<SolutionType> SolutionTypeEnum;
@@ -1678,7 +1678,7 @@ namespace CoupledField {
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
   //give default value of 1 for the OMP threads
-  UInt NUM_CFS_THREADS = 1;
+  UInt CFS_NUM_THREADS = 1;
 }
 
 
