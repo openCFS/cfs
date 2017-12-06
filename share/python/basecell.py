@@ -461,6 +461,7 @@ class Basecell():
   
   # take list with 'new' coords and replace mylist at entry list_idx  
   def replace_boundary_points(self,new,list_idx):
+    print("\n start replacing")
     for i in range(len(self.points)):
       if self.points[i].idx != i:
         print("self.points[i].idx != i  idx:",self.points[i].idx,"  i:",i)
@@ -469,11 +470,11 @@ class Basecell():
     for p in self.boundary_points[list_idx]:
       print(p)
     
-    if len(new) != len(self.boundary_points[list_idx]):  
-      out = open("cells.txt","w")
-      for c in self.cells:
-        out.write(str(c) + "\n")
-      out.close()    
+#     if len(new) != len(self.boundary_points[list_idx]):  
+#       out = open("cells.txt","w")
+#       for c in self.cells:
+#         out.write(str(c) + "\n")
+#       out.close()    
 
     # if number of nodes on both sides differ, we have hanging nodes
     while len(new) != len(self.boundary_points[list_idx]):
@@ -496,7 +497,8 @@ class Basecell():
           long_first_id = i-1
           # store idx of last short_list element with match in long_list
           short_first_id = i-1
-          print("long_first_id:",long_first_id," short_first_id:",short_first_id)
+          print("long_first_id:",long_first_id," coords:",long_list[i-1].coords)
+          print("short_first_id:",short_first_id," coords:",short_list[i-1].coords)
           break
       
       assert(short_first_id is not None)
@@ -508,7 +510,8 @@ class Basecell():
             # found points where both lists match again
             short_last_id = i
             long_last_id = j
-            print("long_last_id:",long_last_id, " short_last_id:",short_last_id)
+            print("long_last_id:",long_last_id," coords:",long_list[i].coords)
+            print("short_last_id:",short_last_id," coords:",short_list[j].coords)
             break       
         if short_last_id is not None:
           break
@@ -600,6 +603,7 @@ class Basecell():
     for i,p in enumerate(new):
 #       print("replace ",self.boundary_points[list_idx][i].coords, " with ", p.coords)
       self.boundary_points[list_idx][i].coords = p.coords
+      
     new_points = [None] * len(self.points)
     # changing has also to be done in global points list
     for i,p in enumerate(self.points):
@@ -608,8 +612,8 @@ class Basecell():
         # give new coords
         # find correct entry (index) in boundary list
         bp_id = old_ids.index(p.idx)
-        new[bp_id].idx = p.idx
-        new_points[p.idx] = new[bp_id] 
+        new_points[p.idx] = new[bp_id]
+        new_points[p.idx].idx = p.idx 
       else:
         # keep point if not replacing
         new_points[i] = p

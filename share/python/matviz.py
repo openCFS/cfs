@@ -343,6 +343,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               if args.show == "hom_ortho_3d" or args.mesh:
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
+                print(nondes_coords)
+                sys.exit()
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
 
@@ -627,7 +629,9 @@ else:
   
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+#       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+      nondes_coords, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes, False)
+      print("nondes_coords:",nondes_coords)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 
