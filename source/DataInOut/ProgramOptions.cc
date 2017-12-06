@@ -188,7 +188,7 @@ namespace CoupledField {
         "history of revisions" )
 
       ( "numThreads,t", po::value<UInt>()->default_value(1),
-        "number of threads used in CFS run. Default 1." )
+        "number of threads used in CFS run, default = 1 (env CFS_NUM_THREADS)" )
 
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
@@ -341,6 +341,7 @@ namespace CoupledField {
     if(var == "CFS_SCHEMA_ROOT") ret = "schemaRoot";
     if(var == "CFS_NO_COLOR")    ret = "noColor";
     if(var == "CFS_QUIET")       ret = "quiet";
+    if(var == "CFS_NUM_THREADS") ret = "numThreads";
     
     return ret;
   }
@@ -570,7 +571,7 @@ namespace CoupledField {
     // openmp information
     PtrParamNode in_omp = in->Get("openmp");
     #ifdef USE_OPENMP
-      in_omp->Get("CFS_threads")->SetValue(NUM_CFS_THREADS);
+      in_omp->Get("CFS_NUM_THREADS")->SetValue(CFS_NUM_THREADS);
       in_omp->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
       in_omp->Get("OMP_NUM_THREADS")->SetValue(getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-");
     #endif
@@ -1090,7 +1091,7 @@ namespace CoupledField {
           << " Compiled: '" << __DATE__ << "'"
           << " Build: '" << CMAKE_BUILD_TYPE << "'" << endl;
       #ifdef USE_OPENMP
-        out << ">> OpenMP Threads: CFS=" << NUM_CFS_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
+        out << ">> OpenMP *_NUM_THREADS: CFS=" << CFS_NUM_THREADS  << ", OMP=" << omp << ", MKL=" << mkl << endl;
       #endif
     }
     else
@@ -1104,7 +1105,7 @@ namespace CoupledField {
           << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
           << " as " << CMAKE_BUILD_TYPE << endl
-          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run."
+          << " CFS++ routines use " << CFS_NUM_THREADS << " threads for this run."
           << " OMP/ MKL threads: " << omp << "/ " << mkl << endl;
       out << "============================================================"
           << "==========="

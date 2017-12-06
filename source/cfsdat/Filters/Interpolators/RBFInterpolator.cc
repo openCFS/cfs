@@ -110,7 +110,7 @@ bool RBFInterpolator::Run(){
 CF::UInt RBFInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -138,7 +138,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -520,7 +520,7 @@ void RBFInterpolator::PrepareCGAL(){
   }
 
 
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     StdVector<CF::Double> srcDist;
     srcDist.Resize(numNN_);

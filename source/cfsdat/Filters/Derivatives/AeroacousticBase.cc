@@ -44,7 +44,7 @@ void AeroacousticBase::OmegaVectorProductU(const Vector<Double>& inVecVel,
 if(dim == 3){
   omega.Resize(inVecVel.GetSize() / dim, dim);
   omega.Init();
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     for(CF::UInt k = 0; k < dim; ++k){
       vel[j][k] = inVecVel[dim * j + k];
@@ -60,14 +60,14 @@ if(dim == 3){
   // 2D case
   omega.Resize(inVecVel.GetSize() / dim, 1);
   omega.Init();
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     for(CF::UInt k = 0; k < dim; ++k){
       vel[j][k] = inVecVel[dim * j + k];
     }
     omega[j][0] = inVecOmega[j];
    }
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     retVec[j * dim] =     -vel[j][1] * omega[j][0];
     retVec[j * dim + 1] =  vel[j][0] * omega[j][0];
@@ -115,7 +115,7 @@ void AeroacousticBase::Node2Cell(Vector<Double>& returnVec,
   returnVec.Init();
 
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i = 0; i < maxNumTrgEntities; ++i){
     UInt patchSize = targetSourceIndex[i].GetSize();
     StdVector<UInt> sM = targetSourceIndex[i];
