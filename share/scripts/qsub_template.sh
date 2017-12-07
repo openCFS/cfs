@@ -7,8 +7,8 @@
 #PBS -l nodes=1:ppn=4,walltime=23:50:00
 #
 # send mail for start (b), end (e), abort (a), e.g. -m bea
-## PBS -m e
-## PBS -M fabian.wein@fau.de
+#// PBS -m e
+#// PBS -M fabian.wein@fau.de
 #
 # job name wold be -N my_nme
 # stdout and stderr files would be -o job33.out -e job33.err
