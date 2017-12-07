@@ -45,7 +45,8 @@
 #define DATA 6
 #define GET_SOL 7
 #define SOLVER_STRING 8
-
+#define SETUP_MG 9
+#define ISSYMMETRIC 10
 namespace CoupledField
 {
   class BaseMatrix;
@@ -95,6 +96,9 @@ namespace CoupledField
     Vec x_;
     ///stores the current RHS
     Vec b_;
+
+    // Create DM which are grid management
+    DM da_nodes;
     ///pointer to xml node
     PtrParamNode xml_;
     ///internal status flag for updated matrix computations
@@ -116,21 +120,27 @@ namespace CoupledField
 		//find which is my rank
     
 
-    // Coarsegrid solver
-    PetscScalar coarse_rtol = 1.0e-8;
-    PetscScalar coarse_atol = 1.0e-50;
-    
-    PetscInt coarse_maxits = 30;
-    
+	//Coarsegrid solver parameters
+	PetscScalar coarse_rtol = 1.0e-8;
+	PetscScalar coarse_atol = 1.0e-50;
+	PetscScalar coarse_dtol = 1e3;
+	PetscInt coarse_maxits = 30;
 
+	//Number of levels
+	PetscInt nlvls=2;
+
+	// Number of smoothening iterations per up/down smooth_sweeps
+	PetscInt smooth_sweeps = 4;
     
     std::string solverstring_;
-		std::string precondstring_;
+	std::string precondstring_;
 		
 
     std::string CreateSolverString(PtrParamNode);
     std::string CreatePrecondString(PtrParamNode);
-    
+    void setupMultiGrid();
+    bool MG_FLAG =false;
+    bool symmetric=false;
 
   };
   
@@ -149,7 +159,7 @@ namespace CoupledField
     void InitPetscWorker();
     void SetupPetscWorker();
     void GetSol();
-
+    void setupMultiGrid();
     
     //PETSC Error Code
     PetscErrorCode ierr=0;
@@ -166,7 +176,8 @@ namespace CoupledField
 
     ///stores the current RHS
     Vec b_;
-
+    // Create DM which are grid management
+    DM da_nodes;
     /** with throw exception when exceeded */
     PetscInt maxIter_ = 10000;
 
@@ -179,18 +190,27 @@ namespace CoupledField
     //Dimension of global matrix
     PetscInt dim=0;
 
-    // Coarsegrid solver
-    PetscScalar coarse_rtol = 1.0e-8;
-    PetscScalar coarse_atol = 1.0e-50;
-    
-    PetscInt coarse_maxits = 30;
+    //Coarsegrid solver parameters
+	PetscScalar coarse_rtol = 1.0e-8;
+	PetscScalar coarse_atol = 1.0e-50;
+	PetscScalar coarse_dtol = 1e3;
+	PetscInt coarse_maxits = 30;
+
+	//Number of levels
+	PetscInt nlvls=2;
+
+	// Number of smoothening iterations per up/down smooth_sweeps
+	PetscInt smooth_sweeps = 4;
+
    
     ///pointer to xml node
     PtrParamNode xml_;
 
+    bool MG_FLAG=false;
+    bool symmetric=false;
     //Strings for setting Solver and Preconditioner
     std::string solverstring_;
-		std::string precondstring_;
+	std::string precondstring_;
 
 
     std::string CreateSolverString(PtrParamNode);

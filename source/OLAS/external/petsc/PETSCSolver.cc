@@ -26,7 +26,7 @@ namespace CoupledField{
 		A_ =NULL;
 		b_=NULL;
 		solver_=NULL;
-
+		da_nodes=NULL;
 		
 		// petsc is mandatory
 		infoNode_ =  olasInfo->Get("petsc");
@@ -34,7 +34,7 @@ namespace CoupledField{
 		xml_ = pn;
 		firstSetup_ = true;
 		
-		
+
 
 		maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
 		// maxIter_    = pn->Get("maxIter")->As<int>();
@@ -44,8 +44,8 @@ namespace CoupledField{
 	
 		PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
 		hdr->Get("maxIter")->SetValue(maxIter_);
-		hdr->Get("tolerance")->SetValue(tolerance_);
-		hdr->Get("minimalTolerance")->SetValue(minTol_);
+		hdr->Get("tolerance")->SetValue(double(tolerance_));
+		hdr->Get("minimalTolerance")->SetValue(double(minTol_));
 		
 		// Solve() also sets solver and precond as attributes to xml_ but w/o arguments and also when the elements here are not given
 		if(xml_->Has("solver"))
@@ -58,6 +58,8 @@ namespace CoupledField{
 
 		solverstring_=CreateSolverString(xml_);
 		precondstring_=CreatePrecondString(xml_);
+
+		if (precondstring_=="mg"){MG_FLAG=true;}
 		
 		
 	}
@@ -77,111 +79,219 @@ namespace CoupledField{
 	void PETSCSolver::Setup(BaseMatrix &sysmat){
 
 		//create petsc matrix form the sysmatrix
-		// const StdMatrix& stdmat = static_cast<const StdMatrix&>(sysmat);
+	  const StdMatrix& stdmat = static_cast<const StdMatrix&>(sysmat);
 
-		// BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
-		// BaseMatrix::StorageType stype = stdmat.GetStorageType();
+	  BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
+	  assert(etype==BaseMatrix::DOUBLE);
 
-		
+	  BaseMatrix::StorageType stype = stdmat.GetStorageType();
 
-		const SCRS_Matrix<Double>& crs = static_cast<const SCRS_Matrix<Double>&>(sysmat);
-		
-		if(crs.GetNumCols() != crs.GetNumRows()){
-      EXCEPTION("PETSC solver only tested for quadratic matrices");
-    }
+	  if (stype==BaseMatrix::SPARSE_SYM){symmetric=true;}
+
+	  //Requires the grid information ie dimension of the mesh, global_coordinates, boundary_type,stencil_type,ndof,stencil_width
+
+	  const SCRS_Matrix<Double>& crs = static_cast<const SCRS_Matrix<Double>&>(sysmat);
+	  if(crs.GetNumCols() != crs.GetNumRows()){
+		EXCEPTION("PETSC solver only tested for quadratic matrices");
+	  }
+
 		//gather info
-    UInt dim = crs.GetNumRows();
+	  UInt dim = crs.GetNumRows();
 
-		PetscInt* rowPtr = (PetscInt*) crs.GetRowPointer();
-    PetscInt* colPtr = (PetscInt*) crs.GetColPointer();
-		PetscScalar * dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
-			
-		UInt * nnzr = new UInt[dim];
-		for (UInt ii=0;ii<dim;ii++){
-			//100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel 
-			nnzr[ii]=crs.GetRowSize(ii)+100;
-		}
-		//Create Matrix and solver objects only during the first setup 
-		if (firstSetup_){
+	  PetscInt* rowPtr = (PetscInt*) crs.GetRowPointer();
+	  PetscInt* colPtr = (PetscInt*) crs.GetColPointer();
+	  PetscScalar * dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
 
-			SendWorkerCommand(INIT_MAT_STRUCT);
-			
-			//only time where data is sent using mpi(can be implemented better)
-			for (int rank=1;rank<size_;rank++){	
-				ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-			}
-			
-			//Create PETSC matrix structure
+	  //To preallocate without grid info we require info about number of non-zero per row
+	  UInt * nnzr = new UInt[dim];
+	  for (UInt ii=0;ii<dim;ii++){
+		//100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel
+		  nnzr[ii]=crs.GetRowSize(ii)+100;
+	  }
 
-			  ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+
+
+	  SendWorkerCommand(INIT_MAT_STRUCT);
+
+		//only time where data is sent using mpi(can be implemented better)
+	  for (int rank=1;rank<size_;rank++){
+		ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+		ierr=MPI_Send(&symmetric,sizeof(bool),MPIU_BOOL,rank,ISSYMMETRIC,PETSC_COMM_WORLD);
+	  }
+
+	  if (firstSetup_){
+		  if (MG_FLAG){
+			  // Boundary types: DMDA_BOUNDARY_NONE, DMDA_BOUNDARY_GHOSTED, DMDA_BOUNDARY_PERIODIC
+			  DMBoundaryType bx = DM_BOUNDARY_NONE;
+			  DMBoundaryType by = DM_BOUNDARY_NONE;
+			  DMBoundaryType bz = DM_BOUNDARY_NONE;
+
+			  // Stencil type - box since this is closest to FEM (i.e. STAR is FV/FD)
+			  DMDAStencilType  stype = DMDA_STENCIL_BOX;
+
+
+			  //Set the global dimension from the mesh info
+			  PetscInt nx = 11;
+			  PetscInt ny = 11;
+			  PetscInt nz =	11;
+
+			  // number of nodal dofs
+			  PetscInt numnodaldof = 3;
+
+			  // Stencil width: each node connects to a box around it - linear elements
+			  PetscInt stencilwidth = 1;
+
+
+
+
+			  ierr = DMDACreate3d(PETSC_COMM_WORLD,bx,by,bz,stype,nx,ny,nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,
+				  numnodaldof,stencilwidth,0,0,0,&(da_nodes));
+
+			  DMSetUp(da_nodes);
+			  DMCreateMatrix(da_nodes,&A_);
 			  ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
-//			ierr=MatCreate(PETSC_COMM_WORLD,&A_); CHKERRXX(ierr);
-//			ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));CHKERRXX(ierr);
-//			ierr=MatSetFromOptions(A_);CHKERRXX(ierr);
-//			ierr=MatSetUp(A_);CHKERRXX(ierr);
-//			ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-//			ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+
+		  }
+		  else {
+			//Create PETSC matrix structure
+			if (symmetric){
+				ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,
+						PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+				ierr=MatSetUp(A_);
+				ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+			}
+			else {
+				//USE THESE WHEN MATRIX IS OF TYPE SPARSE NON SYM
+					ierr=MatCreate(PETSC_COMM_WORLD,&A_); CHKERRXX(ierr);
+					ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));CHKERRXX(ierr);
+					ierr=MatSetFromOptions(A_);CHKERRXX(ierr);
+					ierr=MatSetUp(A_);CHKERRXX(ierr);
+					ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+					ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+					ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+			}
+		  }
+
+	  }
+	  //setting values only using the proc 0 while others wait and then asemble is called in all procs so t
+	  // the matix can be distributed
+	  //Set each matrix value one by one (highly inefficient there are better ways to do this which requires some tweakng to
+	  //the data structure we receive from the matrix class	)
+	  for (int i=0;i<int(dim);i++){
+		for (int j=rowPtr[i];j<rowPtr[i+1];j++){
+			ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
 		}
-			
-		//setting values only using the proc 0 while others wait and then asemble is called in all procs so the matix can be distributed
-		for (int i=0;i<int(dim);i++){
-			for (int j=rowPtr[i];j<rowPtr[i+1];j++){
-				ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
+	  }
+
+	  //Distribute the assembeled matrix accross all process
+	  SendWorkerCommand(ASSEMBLE_MAT);
+	  ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+	  ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+
+	if (firstSetup_){
+
+
+		SendWorkerCommand(SETUP_MATRIX);
+
+		//Create Vector and solver objects and set parameters
+
+		//create rhs and sol vector and allocate size in setup step
+		//Allocate size for rhs vec assuming the size is equal to dim of sysmat
+
+		//creates rhs and lhs vector from Matrix with appropriate size
+		ierr=MatCreateVecs(A_,&b_,&x_);CHKERRXX(ierr);
+
+		//setup linear solver context with preconditioner for petsc ksp methods //now hard coded
+		ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));CHKERRXX(ierr);
+
+		ierr = KSPSetTolerances(solver_,tolerance_,minTol_,PETSC_DEFAULT,maxIter_);CHKERRXX(ierr);
+
+		ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);CHKERRXX(ierr);
+
+		ierr = KSPSetType(solver_,solverstring_.c_str());CHKERRXX(ierr);
+
+		// The preconditinoer
+		ierr=KSPGetPC(solver_,&precond_);
+
+		// Set the preconditioner
+		PCSetType(precond_,precondstring_.c_str());
+
+		if(MG_FLAG){
+
+			DM  *da_list,*daclist;
+			Mat R;
+
+			PetscMalloc(sizeof(DM)*nlvls,&da_list);
+			PetscMalloc(sizeof(DM)*nlvls,&daclist);
+			for (PetscInt k=0; k<nlvls; k++){
+			  da_list[k] = NULL;
+			  daclist[k] = NULL;
+			}
+
+			//Set the finest nodal mesh as the first item in the da list
+			daclist[0]=da_nodes;
+			// petsc constructs DM structures for all other grid level
+			DMCoarsenHierarchy(da_nodes,nlvls-1,&daclist[1]);
+			for (PetscInt k=0; k<nlvls; k++) {
+			  // NOTE: finest grid is nlevels - 1: PCMG MUST USE THIS ORDER ???
+			  da_list[k] = daclist[nlvls-1-k];
+
+			}
+
+			PCMGSetLevels(precond_,nlvls,NULL);
+			PCMGSetType(precond_,PC_MG_MULTIPLICATIVE); // Default
+			ierr = PCMGSetCycleType(precond_,PC_MG_CYCLE_V);
+//			PCMGSetGalerkin(precond_,PC_MG_GALERKIN_BOTH);
+
+			for (PetscInt k=1; k<nlvls; k++) {
+			  DMCreateInterpolation(da_list[k-1],da_list[k],&R,NULL);
+			  PCMGSetInterpolation(precond_,k,R);
+			  MatDestroy(&R);
+			}
+			// Now all DM data structure other than the finest level can be destroyed
+			for (PetscInt k=1; k<nlvls; k++) { // DO NOT DESTROY LEVEL 0
+			  DMDestroy(&daclist[k]);
+			}
+
+			PetscFree(da_list);
+			PetscFree(daclist);
+
+			KSP cksp;
+			PCMGGetCoarseSolve(precond_,&cksp);
+		  // The solver
+			ierr = KSPSetType(cksp,KSPGMRES);
+
+			ierr=KSPSetTolerances(cksp,coarse_rtol,coarse_atol,coarse_dtol,coarse_maxits);
+
+			PC cpc;
+			KSPGetPC(cksp,&cpc);
+			PCSetType(cpc,PCSOR);
+
+			for (PetscInt k=1;k<nlvls;k++){
+			  KSP dksp;
+			  PCMGGetSmoother(precond_,k,&dksp);
+			  PC dpc;
+			  KSPGetPC(dksp,&dpc);
+			  ierr = KSPSetType(dksp,KSPGMRES); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
+
+			  ierr = KSPSetTolerances(dksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,smooth_sweeps); // NOTE in the above maxitr=restart;
+			  PCSetType(dpc,PCSOR);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
 			}
 		}
-			//Deprecated Version of setting petsc matrix for sequential jobs. Not recommended to use it.
-			// ierr=MatCreateSeqAIJWithArrays(PETSC_COMM_WORLD,PetscInt(dim),PetscInt(dim),rowPtr,colPtr,dataPtr,&A_);
-		
-		//Distribute the assembeled matrix accross all process	
-		SendWorkerCommand(ASSEMBLE_MAT);	
-		ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
-		ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
-		
-		
-				
-	
-		if (firstSetup_){
 
-			
-			SendWorkerCommand(SETUP_MATRIX);
-			
-			//Create Vector and solver objects and set parameters 
-			
-			//create rhs and sol vector and allocate size in setup step
-			//Allocate size for rhs vec assuming the size is equal to dim of sysmat
+		PetscOptionsInsert(NULL,NULL,NULL,NULL);
 
-			//creates rhs and lhs vector from Matrix with appropriate size
-			ierr=MatCreateVecs(A_,&b_,&x_);CHKERRXX(ierr);
-			
-			//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
-			ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));CHKERRXX(ierr);
-			
-			// Set up the solver
-			ierr = KSPSetType(solver_,solverstring_.c_str()); CHKERRXX(ierr);// KSPCG - CG SOLVER 
-			
-			ierr = KSPSetTolerances(solver_,tolerance_,minTol_,PETSC_DEFAULT,maxIter_);CHKERRXX(ierr);
-			
-			ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);CHKERRXX(ierr);
-			
-			ierr = KSPSetOperators(solver_,A_,A_);CHKERRXX(ierr);
-			
-		
-			
-			// The preconditinoer
-			KSPGetPC(solver_,&precond_);CHKERRXX(ierr);
-			// Make jacobi the default preconditioner
-			PCSetType(precond_,precondstring_.c_str());CHKERRXX(ierr);
-			
-			PetscOptionsInsert(NULL,NULL,NULL,NULL);
-		
-			// // Set solver from options
-			KSPSetFromOptions(solver_);CHKERRXX(ierr);
-			
-			// Get the prec again - check if it has changed
-			KSPGetPC(solver_,&precond_);CHKERRXX(ierr);
-			
-		}		
-		firstSetup_=false;
+		// Set solver from options
+		KSPSetFromOptions(solver_);
+
+		// Get the prec again - check if it has changed
+		KSPGetPC(solver_,&precond_);
+
+		ierr = KSPSetOperators(solver_,A_,A_);CHKERRXX(ierr);
+
+
+	}
+	firstSetup_=false;
 			
 	}
 
@@ -204,7 +314,6 @@ namespace CoupledField{
 				ierr=VecSetValue(b_,i,PetscScalar(myEnt),INSERT_VALUES);
 			}
 		} 
-
 		//Distribute the vector after values are set
 		SendWorkerCommand(ASSEMBLE_VEC_RHS);
 		ierr=	VecAssemblyBegin(b_);CHKERRXX(ierr);
@@ -217,7 +326,6 @@ namespace CoupledField{
 		SendWorkerCommand(SOLVE);
 		ierr = KSPSolve(solver_,b_,x_);CHKERRXX(ierr);
 		t2 = MPI_Wtime();
-
 		// Log the the norm and max iter 
 		PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND); 
 		PetscInt niter=0;
@@ -278,19 +386,18 @@ namespace CoupledField{
 		string schema = progOpts->GetSchemaPathStr();
 
 		schema += "/CFS-Simulation/CFS.xsd";
-		xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList")->Get("petsc");
-		
-		
 
-		maxIter_    = xml_->Has("maxIter") ? xml_->Get("maxIter")->As<int>() : 10000;		
-		tolerance_  = xml_->Has("tolerance") ? xml_->Get("tolerance")->As<double>() : 1e-12;
-		minTol_     = xml_->Has("minimalTolerance") ? xml_->Get("minimalTolerance")->As<double>() : 1e-11;
-		
+		xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList");
+		if(xml_->GetChild()->GetName()=="petsc"){
 
-		solverstring_=CreateSolverString(xml_);
-		precondstring_=CreatePrecondString(xml_);
-		
-
+			xml_=xml_->Get("petsc");
+			maxIter_    = xml_->Has("maxIter") ? xml_->Get("maxIter")->As<int>() : 10000;
+			tolerance_  = xml_->Has("tolerance") ? xml_->Get("tolerance")->As<double>() : 1e-12;
+			minTol_     = xml_->Has("minimalTolerance") ? xml_->Get("minimalTolerance")->As<double>() : 1e-11;
+			solverstring_=CreateSolverString(xml_);
+			precondstring_=CreatePrecondString(xml_);
+			if (precondstring_=="mg"){MG_FLAG=true;}
+		}
 	
 	}
 
@@ -354,6 +461,7 @@ namespace CoupledField{
 				case GET_SOL:
 					GetSol();
 					break;
+
 			}
 		}
   }		 
@@ -361,6 +469,8 @@ namespace CoupledField{
 
 	void PETSCWorker::InitPetscWorker(){
 		
+
+
 		MPI_Status status;
 		int size;		
 		
@@ -370,66 +480,96 @@ namespace CoupledField{
 		UInt *nnzr = new UInt[dim];
 		//Receive the nnzr array 
 		MPI_Recv(nnzr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-	
+		MPI_Recv(&symmetric,1,MPIU_BOOL,0,ISSYMMETRIC,PETSC_COMM_WORLD,&status);
 		
-	
-		
-		//Same as master class but all workers also needs to call the petsc commands since most petsc commands are collective
+	    if (MG_FLAG){
+		  // Boundary types: DMDA_BOUNDARY_NONE, DMDA_BOUNDARY_GHOSTED, DMDA_BOUNDARY_PERIODIC
+		  DMBoundaryType bx = DM_BOUNDARY_NONE;
+		  DMBoundaryType by = DM_BOUNDARY_NONE;
+		  DMBoundaryType bz = DM_BOUNDARY_NONE;
 
-		  ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+		  // Stencil type - box since this is closest to FEM (i.e. STAR is FV/FD)
+		  DMDAStencilType  stype = DMDA_STENCIL_BOX;
+
+
+		  //Set the global dimension from the mesh info
+		  PetscInt nx = 11;
+		  PetscInt ny = 11;
+		  PetscInt nz =	11;
+
+		  // number of nodal dofs
+		  PetscInt numnodaldof = 3;
+
+		  // Stencil width: each node connects to a box around it - linear elements
+		  PetscInt stencilwidth = 1;
+
+
+
+
+		  ierr = DMDACreate3d(PETSC_COMM_WORLD,bx,by,bz,stype,nx,ny,nz,PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,
+			  numnodaldof,stencilwidth,0,0,0,&(da_nodes));
+
+		  DMSetUp(da_nodes);
+		  DMCreateMatrix(da_nodes,&A_);
 		  ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
 
-//		ierr=MatCreate(PETSC_COMM_WORLD,&A_);
-//		ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));
-//		ierr=MatSetFromOptions(A_);
-//		ierr=MatSetUp(A_);
-//		ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);
-//		ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
+	  }
+	  else {
+		  //Create PETSC matrix structure
+		if (symmetric){
+			ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,
+					PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&A_);
+			ierr=MatSetUp(A_);
+			ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+		}
+		else{
+			//USE THESE WHEN MATRIX IS OF TYPE SPARSE NON SYM
+				ierr=MatCreate(PETSC_COMM_WORLD,&A_); CHKERRXX(ierr);
+				ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));CHKERRXX(ierr);
+				ierr=MatSetFromOptions(A_);CHKERRXX(ierr);
+				ierr=MatSetUp(A_);CHKERRXX(ierr);
+				ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+				ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
+				ierr=MatSetOption (A_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+		}
+	  }
 
 	}
+
+
+
+
 
 	void PETSCWorker::SetupPetscWorker(){
 		
 		
-		//Create Vector and solver objects and set parameters 
-		
-		//create rhs and sol vector and allocate size in setup step
-		//Allocate size for rhs vec assuming the size is equal to dim of sysmat
+	//creates rhs and lhs vector from Matrix with appropriate size
 		ierr=MatCreateVecs(A_,&b_,&x_);CHKERRXX(ierr);
-		// ierr=VecCreate(PETSC_COMM_WORLD,&b_);
-		// ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));
-		// ierr=VecSetFromOptions(b_);
-		
-		
-		// //Allocate sol vec 
-		// ierr=VecDuplicate(b_,&x_);
-		
-		//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
-		ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));
-		
-		// Set up the solver
-		ierr = KSPSetType(solver_,solverstring_.c_str()); // KSPCG - CG SOLVER 
 
-		ierr = KSPSetTolerances(solver_,tolerance_,minTol_,PETSC_DEFAULT,maxIter_);
+		//setup linear solver context with preconditioner for petsc ksp methods //now hard coded
+		ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));CHKERRXX(ierr);
 
-		ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);
-	
-		ierr = KSPSetOperators(solver_,A_,A_);
+		ierr = KSPSetTolerances(solver_,tolerance_,minTol_,PETSC_DEFAULT,maxIter_);CHKERRXX(ierr);
+
+		ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);CHKERRXX(ierr);
+
+		ierr = KSPSetType(solver_,solverstring_.c_str());CHKERRXX(ierr);
 
 		// The preconditinoer
-		KSPGetPC(solver_,&precond_);CHKERRXX(ierr);
-		// Make jacobi the default preconditioner
-		PCSetType(precond_,precondstring_.c_str());CHKERRXX(ierr);
-		
+		ierr=KSPGetPC(solver_,&precond_);
+
+		// Set the preconditioner
+		PCSetType(precond_,precondstring_.c_str());
+
 		PetscOptionsInsert(NULL,NULL,NULL,NULL);
-		
+
 		// Set solver from options
-		KSPSetFromOptions(solver_);
+		KSPSetFromOptions(solver_);CHKERRXX(ierr);
 
 		// Get the prec again - check if it has changed
-		KSPGetPC(solver_,&precond_);
-	
-		
+		KSPGetPC(solver_,&precond_);CHKERRXX(ierr);
+
+		ierr = KSPSetOperators(solver_,A_,A_);CHKERRXX(ierr);
 	}
 
 	void PETSCWorker::GetSol(){
@@ -510,6 +650,8 @@ namespace CoupledField{
 		}
 		return output;
 	}
+
+
 
 }	
 

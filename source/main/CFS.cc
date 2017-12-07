@@ -72,42 +72,42 @@ extern "C" void _allmul() {
 PtrParamNode infoNode;
 
 
-
+#ifdef USE_PETSC
 int main(int argc, const char **argv){
-  
-  #ifdef USE_PETSC
-  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL); 
+
+
+  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL);
   int rank;
   int size;
+  int ret =0;
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
   if (rank==0){ 
-  #endif
     CFS cfs(argc, argv);   
-    int ret = cfs.Run();
-    
-  #ifdef USE_PETSC
+    ret = cfs.Run();
     //Send a Kill Tag to all workers before exiting the code
     if (size>1){
       for (rank = 1; rank < size; ++rank) {
         MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
       }	
     }
-  #endif
-    return ret; 
-  #ifdef USE_PETSC
+
   }
   else {
       PETSCWorker w(argc, argv);
       w.run();
   }
-
   PetscFinalize();
-  #endif
- 
-  
+  return ret;
 }
+#else
+int main(int argc, const char **argv){
+  CFS cfs(argc, argv);
+  int ret = cfs.Run();
+  return ret;
+}
+#endif
 
 void PrintWarning(CoupledField::Exception& ex ) {
   
