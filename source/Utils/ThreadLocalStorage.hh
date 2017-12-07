@@ -56,7 +56,7 @@ public:
   }
 protected:
   BaseTLS(){
-     numSlots_ = NUM_CFS_THREADS;
+     numSlots_ = CFS_NUM_THREADS;
   }
   UInt numSlots_;
 };
@@ -84,8 +84,8 @@ public:
    inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
     // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
-    assert(omp_get_thread_num() < numSlots_);
-    assert(omp_get_thread_num() < tlsContainer_.GetSize());
+    assert((int) omp_get_thread_num() < (int) numSlots_);
+    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
@@ -95,8 +95,8 @@ public:
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
     // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
-    assert(omp_get_thread_num() < numSlots_);
-    assert(omp_get_thread_num() < tlsContainer_.GetSize());
+    assert((int) omp_get_thread_num() < (int) numSlots_);
+    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];

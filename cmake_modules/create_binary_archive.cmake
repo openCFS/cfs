@@ -1,6 +1,6 @@
 # this script can be used to create an archive of the binary directory suitable for distribution of CFS.
 #
-# Run this script by: cmake -P create_binary_archive.cmake
+# Run this script by from your bild directory: cmake -P ../cmake_modules/create_binary_archive.cmake
 
 if(NOT CTEST_BINARY_DIRECTORY)
   message("CTEST_BINARY_DIRECTORY not defined: set to current dir '${CMAKE_CURRENT_SOURCE_DIR}'")

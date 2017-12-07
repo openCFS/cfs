@@ -246,48 +246,32 @@ public:
   //@{ \name Access Methods
 
   //! Return real-valued tensor at integration point
-  virtual void GetTensor(Matrix<Double>& tensor, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
-  }
-
-  //! Return real-valued Msfem Element Matrix at integration point
-  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
-      const LocPointMapped& lpm) {
-    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued vector at integration point
-  virtual void GetVector(Vector<Double>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued element averaged value
-  virtual void GetAvgElemValue(Double & vec, 
-                         const Elem* elem) {
+  virtual void GetAvgElemValue(Double & vec, const Elem* elem) {
     EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
   }
 
 
   //! Return real-valued scalar at integration point
-  virtual void GetScalar(Double& scal, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetScalar(Double& scal, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetScalar<Double> called: This may not happen. " 
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
 
   //! Return complex-valued tensor at integration point
-  virtual void GetTensor(Matrix<Complex>& tensor, 
-                         const LocPointMapped& lpm ) {
-    
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
     // just the double values as real-valued complex matrix
     Matrix<Double> temp;
@@ -297,8 +281,7 @@ public:
   }
 
   //! Return complex-valued vector at integration point
-  virtual void GetVector(Vector<Complex>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
      // just the double values as real-valued complex vector
      Vector<Double> temp;

@@ -49,7 +49,7 @@ namespace CoupledField{
     }
     
     //! Return if linearform is complex
-    bool IsComplex(){
+    bool IsComplex() const {
       return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
     }
 

@@ -131,7 +131,7 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
   InterpolationMatrix->Init();
   UInt negativeCounter = 0;
   UInt nanInfCounter = 0;
-#pragma omp parallel reduction(+ : negativeCounter , nanInfCounter) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel reduction(+ : negativeCounter , nanInfCounter) num_threads(CFS_NUM_THREADS)
 {
   StdVector<UInt> sElemEq;
   StdVector<UInt> tNodeEq;

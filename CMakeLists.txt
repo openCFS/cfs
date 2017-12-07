@@ -99,7 +99,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "17")
-SET(CFS_VERSION_MONTH "10")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -372,6 +372,7 @@ OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAU
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
+OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
@@ -806,6 +807,10 @@ ENDIF(CFSTOOL)
 IF(CFSDAT)
   ADD_SUBDIRECTORY(source/cfsdat)
 ENDIF(CFSDAT)
+
+if(UNIT_TESTS)
+  add_subdirectory(source/unittests)
+endif(UNIT_TESTS)
 
 #-----------------------------------------------------------------------------
 # Build the actual headers with defines from templates.

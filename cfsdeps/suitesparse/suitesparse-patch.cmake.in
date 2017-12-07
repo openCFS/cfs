@@ -26,15 +26,6 @@ IF(CMAKE_CROSSCOMPILING)
       "${suitesparse_source}/blas_lapack.h"
       )    
   ENDIF()
-ELSE()
-  IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
-    EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND}
-      -E copy_if_different
-      "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/blas_lapack_gfortran.h"
-      "${suitesparse_source}/blas_lapack.h"
-      )
-  ENDIF()
 ENDIF()
 
 #=============================================================================

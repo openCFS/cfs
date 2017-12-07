@@ -2186,6 +2186,8 @@ source/Optimization/Design/DesignStructure.hh -text
 source/Optimization/Design/DesignTypes.hh -text
 source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
+source/Optimization/Design/LocalElementCache.cc -text
+source/Optimization/Design/LocalElementCache.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
 source/Optimization/Design/ShapeMapDesign.cc -text
@@ -2435,3 +2437,5 @@ source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text
 source/main/CMakeLists.txt svneol=native#text/plain
+source/unittests/CMakeLists.txt -text
+source/unittests/unittests.cc -text

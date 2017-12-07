@@ -77,7 +77,7 @@ for input in args.input:
         ret[y-i-1][j] = 255 - int(255 * out[j][i])
       
     img = Image.fromarray(ret)
-    img = img.resize((800, y * 800/x))
+    img = img.resize((800, int(y * 800/x)))
     img.show()
     
   

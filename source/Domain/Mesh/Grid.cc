@@ -50,7 +50,7 @@ namespace CoupledField
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < NUM_CFS_THREADS; aT++){
+    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
       lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
       lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
       elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
@@ -1066,7 +1066,7 @@ namespace CoupledField
 
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for( UInt iM = 0; iM < numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;

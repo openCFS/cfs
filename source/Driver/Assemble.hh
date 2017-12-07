@@ -117,6 +117,10 @@ namespace CoupledField {
      * @exception if not silent and nothing found */
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
+    bool HasBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL) {
+      return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
+    }
+
     /** @see GetBiLinForm() */
     LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
