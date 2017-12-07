@@ -116,6 +116,17 @@ public:
 
   static Enum<IntStrategy> intStrategy;
 
+  /** this describes the continuation of a strucuture in 1D. Either tanh as in Wein, Stingl; 2017 or piecewise linear for cheaper numerical integration. */
+  typedef enum { TANH, LINEAR } ShapeFunc;
+
+  Enum<ShapeFunc> shapeFunc;
+
+  ShapeFunc GetShapeFunc() const { return shapeFunc_; }
+
+  const Vector<unsigned int>& GetDiscretization() const { return n_; }
+
+  double GetBeta() const { return beta_; }
+
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
 
@@ -242,7 +253,7 @@ public:
   struct NumInt
   {
     /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
-    void Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info);
+    void Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParamNode info);
 
     /** standard output, does not print warning here */
     void ToInfo(PtrParamNode info) const;
@@ -262,11 +273,22 @@ public:
     Vector<double> tailored_bounds; // 1e-10, 1e-9, ..., 0.1, 1
     Vector<int>    tailored_order;
 
+    /** for statistics: cells which need integration */
+    unsigned int int_cells_cnt = 0;
+
+    /** for statistics: sum of 1D integration on cells we integrate (-> avg. order)  */
+    unsigned int int_cells_order_sum = 0;
+
   private:
     /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
      * based on the tanh(beta) max - min bounds per element
      * @param info will add warnings there when max_order is too small or the max newtwon-cotes order is not sufficient */
-    void SetTailored(const Vector<unsigned int>& n, PtrParamNode info);
+    void SetTailoredTanh(PtrParamNode info);
+
+    /** For LINEAR shape function we integrate first order. In the grayness we do full integration. The order is determined
+     * here based on sensitivity.
+     * @see linear_int_order_ */
+    void SetLinearIntOrder(PtrParamNode info);
 
     /** tanh function */
     double Func(double x, double pos) const;
@@ -284,6 +306,17 @@ public:
     int FindOrder(double x1, double x2, double pos, double accuracy) const;
 
     double beta = -1.0;
+
+    /** product of n */
+    unsigned int cells_;
+
+    ShapeMapDesign::ShapeFunc sf_;
+
+    /** what GetTailoredOrder() returns in the LINEAR case with 1st order integration */
+    int linear_int_order_ = -1;
+
+    /** the element spacing */
+    double h = -1.0;
   };
 
 private:
@@ -380,6 +413,8 @@ private:
 
   /* @return num_node_shape_ or shape_.GetSize() */
   unsigned int GetEndShapeIdx(const Function* f) const;
+
+  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
@@ -497,7 +532,7 @@ private:
      * @param ip result: vector [0...1]^dim
      * @param ip_x, ip_y, ip_y index of integration < max_order
      * @return closed Newton-Cotes weight for the 2D/3D point */
-    static double SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
+    static double SetIPGetWeight(const ShapeMapDesign* smd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
 
     /** maximal diff max_corner_value and min_corner_value for all shapes */
     double MaxDiffCornerValue() const;
@@ -515,7 +550,8 @@ private:
     /** Empty constructor for vector reason. Call Init()! */
     EvalAtIp() { };
 
-    /** call Init() first in the object lifetime */
+    /** call Init() first in the object lifetime.
+     * @param n is ShapeMapDesign::n_ */
     void Init(ShapeMapDesign* smd);
 
     /** gives the coordinates for evaluation directly.
@@ -524,15 +560,14 @@ private:
     double Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 
     /** no gradient */
-    double Tanh() const { return dim == 2 ? EvalTanh2d() : EvalTanh3d(); }
+    double ShapeFunc() const;
     /** use order information! 0 = void, 1 = solid, 2 = eval */
-    double SmartTanh(int order) const;
+    double SmartShapeFunc(int order) const;
 
-    double GradTanh(bool grad_a, bool grad_b, bool grad_w) const {
-      return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
-    }
+    double GradShapeFunc(bool grad_a, bool grad_b, bool grad_w) const;
+
     /** user order information. See SmartTanh() */
-    double SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const;
+    double SmartGradShapeFunc(int order, bool grad_a, bool grad_b, bool grad_w) const;
 
   private:
     double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
@@ -543,6 +578,12 @@ private:
     double EvalTanhGrad2d(bool grad_a, bool grad_w) const;
     double EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
 
+    double EvalLinear2d() const;
+    double EvalLinear3d() const;
+    double EvalLinearGrad2d(bool grad_a, bool grad_w) const;
+    double EvalLinearGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
+
+    // 2D and 3D common
     double a = -1;
     double w = -1;
     /** normalized. x is dof variable in 2D */
@@ -550,17 +591,23 @@ private:
     /** this is the interpolation variable a = (1-t) * a1 + t * a2 with t = 0 ... 1 */
     double t = -1;
 
-    double beta = -1;
-
+    // extension for 3D
     /** normalized. x is a dof in 3D center nodes and y is b dof */
     double b = -1; // 3D
     double y = -1;
     double r = -1; // 3D: distance (x,y) -> (a,b)
 
+    // shapeFunc == TANH
+    double beta = -1;
     double exapw = -1;
     double examw = -1;
     double erw = -1;
 
+    // shapeFunc == LINEAR
+    /** linear spacing = 1/element size. The maximal for all directions */
+    double h = -1;
+
+    // technical
     int dim = -1;
     ShapeMapDesign* smd_ = NULL;
     /** helper for Setup */
@@ -569,6 +616,8 @@ private:
 
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
+
+  ShapeFunc shapeFunc_;
 
   /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
   double beta_;
@@ -583,6 +632,10 @@ private:
 
   /** no need for static */
   Enum<Overlap> overlap;
+
+  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
+  Overlap overlap_;
+
 
   /** small helper for tanh_sum */
   struct TanhSum
@@ -607,8 +660,6 @@ private:
     double scale = -1.0;  // works with offset
   } tanh_sum_;
 
-  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
-  Overlap overlap_;
 
   /** number of elements of rho in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;
@@ -639,9 +690,13 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-  NumInt numInt_;
+  /** Measure MapShapeToDensity() */
+  shared_ptr<Timer> mapping_timer_;
 
-  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+  /** Measure MapShapeGradient() */
+  shared_ptr<Timer> gradient_timer_;
+
+  NumInt numInt;
 };
 
 

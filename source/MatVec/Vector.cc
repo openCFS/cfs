@@ -315,6 +315,16 @@ namespace CoupledField {
     return s;
   }
 
+  template <typename T>
+  inline T Vector<T>::Product() const
+  {
+    T s(1);
+    for(unsigned int i = 0; i < size_; ++i)
+      s*=data_[i];
+
+    return s;
+  }
+
 
   template <typename T>
   inline T Vector<T>::Avg() const
@@ -1062,20 +1072,36 @@ namespace CoupledField {
     return false;
   }
 
-  //*********************
-  //  Equality operator
-  //*********************
   template<typename T>
-  bool Vector<T>::operator==(const Vector<T> &x) const {
-    if ( this == &x ) return true;
+  inline bool Vector<T>::operator==(const Vector<T> &x) const {
+    if ( this == &x ) return true; // we compare pointers, not references, therefore not recusively
     if ( size_ != x.size_ ) return false;
+
+    // memcmp is significantly faster than looping manually:
     
-    for ( UInt i = 0; i < size_; ++i ) {
-      if ( data_[i] != x.data_[i])
-        return false;
-    }
-    return true;
+    // vector compare: size=3 n=333333 opt=loop dt=00:00:00.008847
+    // vector compare: size=3 n=333333 opt=memcmp dt=00:00:00.005975
+    // vector compare: size=300 n=3333 opt=loop dt=00:00:00.002672
+    // vector compare: size=300 n=3333 opt=memcmp dt=00:00:00.000158
+    // vector compare: size=30000 n=33 opt=loop dt=00:00:00.002576
+    // vector compare: size=30000 n=33 opt=memcmp dt=00:00:00.000252
+
+    return memcmp(data_, x.data_, size_ * sizeof(T)) == 0 ? true : false;
   }
+
+  template<typename T>
+  inline bool Vector<T>::operator!=( const Vector<T>& x) const
+  {
+    if(this == &x) // we compare pointers, not references, therefore not recusively
+      return false;
+    if(size_ != x.size_)
+      return true;
+
+    // we assume memcmp is compiler optimized and not based on a function call
+    return memcmp(data_, x.data_, size_ * sizeof(T)) == 0 ? false : true;
+  }
+
+
 
   // ********************************
   //   Overload Assignment Operator

@@ -97,7 +97,7 @@ void MeshFilter::CreateDummyCfsParamNode(){
 CF::UInt MeshFilter::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-//#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -125,7 +125,7 @@ void MeshFilter::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -221,7 +221,7 @@ void MeshFilter::NearestNeighbourInterpolation(Vector<Double>& returnVec,
   returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
   if (numNN > 1) {
     if (numEquPerEnt == 1) {
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < maxNumTrgEntities; i++) {
         CF::Double sum = 0.0;
         const CF::UInt jEnd = targetSourceIndex[i + 1];
@@ -231,7 +231,7 @@ void MeshFilter::NearestNeighbourInterpolation(Vector<Double>& returnVec,
         returnVec[i] = sum;
       }
     } else {
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < maxNumTrgEntities; i++) {
         CF::UInt targetIndex = i * numEquPerEnt;
         for (UInt k = 0; k < numEquPerEnt; k++) {
@@ -249,7 +249,7 @@ void MeshFilter::NearestNeighbourInterpolation(Vector<Double>& returnVec,
     }
   } else {
     if (numEquPerEnt == 1) {
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < maxNumTrgEntities; i++) {
         CF::UInt sourceIndex = targetSourceIndex[i];
         if (sourceIndex != UnusedEntityNumber) {
@@ -259,7 +259,7 @@ void MeshFilter::NearestNeighbourInterpolation(Vector<Double>& returnVec,
         }
       }
     } else {
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < maxNumTrgEntities; i++) {
         CF::UInt targetIndex = i * numEquPerEnt;
         CF::UInt sourceIndex = targetSourceIndex[i];
@@ -293,7 +293,7 @@ void MeshFilter::NearestNeighbourLight(Vector<Double>& returnVec,
   returnVec.Init();
 
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < maxNumTrgEntities; i++) {
     CF::UInt targetIndex = i * tDim;
     for (UInt k = 0; k < tDim; k++) {
@@ -340,7 +340,7 @@ void MeshFilter::RBFInterpolation(Vector<Double>& returnVec,
 
   if (numEquPerEnt == 1) {
     /***************** SCALAR DATA ****************/
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < maxNumTrgEntities; i++) {
       CF::Matrix<Double> m = targetRBFInv[i];
       UInt numNN = m.GetNumRows();
@@ -378,7 +378,7 @@ void MeshFilter::RBFInterpolation(Vector<Double>& returnVec,
     }
   } else {
     /***************** 2/3D VECTOR DATA ****************/
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < maxNumTrgEntities; i++) {
       CF::Vector<Double> R_k;
       R_k.Resize(numEquPerEnt);
@@ -788,7 +788,7 @@ void MeshFilter::CalcCurl(Vector<Double>& returnVec,
   returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
   returnVec.Init();
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < maxNumTrgEntities; i++) {
     CF::UInt targetIndex = i * numEquPerEnt;
     for (UInt k = 0; k < numEquPerEnt; k++) {
@@ -845,7 +845,7 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
   returnVec.Resize(maxNumTrgEntities);
   returnVec.Init();
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < maxNumTrgEntities; i++) {
     CF::UInt targetIndex = i;
     returnVec[targetIndex] = 0.0;
@@ -886,7 +886,7 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
   returnVec.Init();
 
 
-//#pragma  omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma  omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < maxNumTrgEntities; i++) {
     CF::UInt targetIndex = i * tDim;
     for (UInt k = 0; k < tDim; k++) {

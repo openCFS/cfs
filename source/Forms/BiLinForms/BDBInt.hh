@@ -243,7 +243,7 @@ public:
       //@}
 
 
-      bool IsComplex(){
+      bool IsComplex() const {
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
       }
       

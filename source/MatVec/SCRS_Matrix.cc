@@ -787,9 +787,8 @@ namespace CoupledField {
   // *******************************
 
   template<typename T>
-  void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v ) {
-
-
+inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
+  {
     // If the entry lies in the lower triangular part, we simply ignore it
     if ( j < i ) {
       return;
@@ -821,14 +820,6 @@ namespace CoupledField {
       }
     }
   }
-
-
-  /*template<>
-  void SCRS_Matrix<Complex>::AddToMatrixEntry( UInt i, UInt j, const double& v)
-  {
-  }
-*/
-
 
 
   // *****************************
