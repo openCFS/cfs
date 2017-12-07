@@ -1160,8 +1160,24 @@
                 <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
              </xsd:complexType>
           </xsd:element>
-          <!--    <xsd:element name="gamg"/> --> <!-- causes seg fault have to mail petsc mailing list with the input matrix and find why -->
-          <xsd:element name="mg"/>
+     	  <xsd:element name="gamg">
+     	   <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                "Algebraic Multigrid Only Works for sparseNonSym Matrix. 
+                It also requires  much more tuning to achieve a good speed to solution(these options will be added later)
+                For now one can use .petscrc file which should be in the running directory to add options
+                refer this for options that can be configured for this gamg preconditioner
+                http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html"
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="mg">
+          <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                "Not yet implemented completely dont use this"
+              </xsd:documentation>
+            </xsd:annotation>
+           </xsd:element>
           <xsd:element name="asm"/>
           <xsd:element name="bjacobi"/>
           <xsd:element name="icc"> 
