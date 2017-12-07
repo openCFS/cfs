@@ -58,7 +58,7 @@ namespace CoupledField {
   static const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
 
   //! number of threads for parallel CFS loops
-  extern UInt NUM_CFS_THREADS;
+  extern UInt CFS_NUM_THREADS;
 
   //! specifications of Lapack routines for different types of system matrices in
   //! matrix.solveWithLapack

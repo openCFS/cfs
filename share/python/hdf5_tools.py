@@ -56,7 +56,8 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     for i in range(len(reg_elements)):
       elem_dim[i] = element_dimensions(reg_elements[i] - 1, all_elements, all_nodes)
   else:
-    elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)        
+    elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)
+  print(elem_dim)        
     
   # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
   nodes = numpy.zeros((len(reg_nodes), 3))
@@ -143,8 +144,8 @@ def last_h5_step(hdf5_file,multistep=1):
 
   return int(last[5:])
 
-def read_displacement(hdf5_file,nr,region = 'mech'):
-  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_'+str(nr)+'/mechDisplacement/'+region+'/Nodes/Real'].value
+def read_displacement(hdf5_file,region = 'mech'):
+  u = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(last_h5_step(hdf5_file)) + '/mechDisplacement/'+region+'/Nodes/Real'].value
   return u
 
 # dumps meta data    

@@ -253,7 +253,7 @@ namespace CoupledField{
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_impFct() {
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionImpedanceModel_Complex)
       {

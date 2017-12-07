@@ -385,11 +385,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
-  Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
-  Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
-  Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
@@ -893,7 +888,7 @@ double Optimization::CalcObjective()
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
-    excite.Apply(); // sets the corresponding context
+    excite.Apply(true); // sets the corresponding context
     excite.cost = 0.0;
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
@@ -948,7 +943,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
       // some objectives are only to be evaluated for the last excitation
       if(!cost->DoEvaluate(excite))
         continue;
-      excite->Apply(); // set the correct context
+      excite->Apply(true); // set the correct context
 
       CalcFunction(*excite, cost, true);
     }
@@ -982,7 +977,7 @@ double Optimization::CalcConstraint(Condition* g)
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
-    excite.Apply(); // for stuff like robust
+    excite.Apply(true); // switch context too for stuff like robust
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
     double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
@@ -1015,7 +1010,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     Excitation* ex = g->ctxt->excitations[i];
     if(g->DoEvaluate(ex))
     {
-      ex->Apply();
+      ex->Apply(true); // switch context if necessary
       CalcFunction(*ex, g, true);
     }
   }

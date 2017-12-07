@@ -169,6 +169,9 @@ namespace CoupledField
       return size_col_;
     }
 
+    /** rows time columns */
+    unsigned int GetNumEntries() const { return size_row_ * size_col_; }
+
     //@}
 
     // =======================================================================
