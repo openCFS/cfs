@@ -144,7 +144,6 @@ LatticeBoltzmannPDE* Context::GetLatticeBoltzmannPDE()
   return dynamic_cast<LatticeBoltzmannPDE*>(pde);
 }
 
-
 bool Context::DoMultiSequence() const
 {
   return manager_->context.GetSize() > 1;

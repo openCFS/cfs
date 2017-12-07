@@ -40,7 +40,6 @@ for input in args.input:
   des = dens if args.attribute == 'design' else read_density(input, 'design', set=args.set)
   
   nr = read_density(input, "nr", set=args.set) if dens.ndim == 1 else None
-    
   if args.attribute != 'design':
     print("original 'design' min=" + str(numpy.amin(des)) + " max=" + str(numpy.amax(des)) + " vol=" + str(numpy.sum(des) / dens.size))
   print("original '" + args.attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens)) + " vol=" + str(numpy.sum(dens) / dens.size))
@@ -78,7 +77,7 @@ for input in args.input:
         ret[y-i-1][j] = 255 - int(255 * out[j][i])
       
     img = Image.fromarray(ret)
-    img = img.resize((800, y * 800/x))
+    img = img.resize((800, int(y * 800/x)))
     img.show()
     
   

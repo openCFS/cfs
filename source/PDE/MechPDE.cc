@@ -601,7 +601,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrCoefFct densCoeffScaled;
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-      if(domain->GetDesign(false) != NULL)
+      if(domain->HasDesign())
       {
         CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), densCoeff, this);
         densCoeff.reset(tmpFnc);
@@ -637,7 +637,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       massInt->SetFeSpace( mySpace );
 
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-      if(domain->GetDesign(false) != NULL)
+      if(domain->HasDesign())
         dynamic_pointer_cast<CoefFunctionOpt>(densCoeff)->SetForm(massInt);
 
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
@@ -1755,7 +1755,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
     
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
     {
       CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
       curCoef.reset(tmpFnc);
@@ -1792,7 +1792,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
 
     // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
       dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(integ);
 
     return integ;

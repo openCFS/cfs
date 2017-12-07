@@ -108,6 +108,10 @@ IF(CFSDAT)
   ENDIF()
 ENDIF(CFSDAT)
 
+# we skip to copy UNIT_TEST cfstests here, I usually directly link to the bin directory
+# whoever needs it might add it :)
+
+
 #-------------------------------------------------------------------------------
 # Custom target for copying h5tool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------

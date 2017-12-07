@@ -555,7 +555,7 @@ void Lighthill::PrepareCalculation(){
   // share a common node, therefore we use a nn-search
   if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 4/4 Creating interpolation matrices for interpolators " << std::endl;
-//#pragma omp parallel num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel num_threads(CFS_NUM_THREADS)
 //  {
   std::vector<Point_3> pointsEtN; //EtN...elements to nodes
   std::vector<CF::UInt> indicesEtN;

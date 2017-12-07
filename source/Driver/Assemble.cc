@@ -519,11 +519,11 @@ namespace CoupledField
 
 
 #ifdef USE_OPENMP
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 
 
-      UInt numT = NUM_CFS_THREADS;
+      UInt numT = CFS_NUM_THREADS;
       UInt aThread = omp_get_thread_num();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
 
@@ -1342,14 +1342,17 @@ namespace CoupledField
     for ( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
     {
       // get integrator
-      BiLinFormContext & context = **it;
+      BiLinFormContext& context = **it;
+      BiLinearForm*     form    = context.GetIntegrator();
 
-      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
+      PtrParamNode inf = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
-      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
-      BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context.GetIntegrator());
+      inf->Get("integrator")->SetValue(form->GetName());
+      inf->Get("complex")->SetValue(form->IsComplex());
+
+      BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
       if(bdb != NULL && bdb->GetBOp() != NULL && bdb->GetBOp()->GetName() != "")
-        form->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
+        inf->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
 
       // region name of entity list
       std::string regionName;
@@ -1367,11 +1370,11 @@ namespace CoupledField
           (context.GetFirstEntities());
         regionName = list->GetName();
       }
-      form->Get("region")->SetValue(regionName);
+      inf->Get("region")->SetValue(regionName);
 
       // add information about row / column coordinate
-      PtrParamNode row = form->Get("row", ParamNode::APPEND);
-      PtrParamNode col = form->Get("column", ParamNode::APPEND);
+      PtrParamNode row = inf->Get("row", ParamNode::APPEND);
+      PtrParamNode col = inf->Get("column", ParamNode::APPEND);
       
      // associated PDEs
       row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
@@ -1394,7 +1397,7 @@ namespace CoupledField
 
       
       // matrix destination
-      PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
+      PtrParamNode dest = inf->Get("destination", ParamNode::APPEND);
       
       // original destination matrix
       Enum2String(context.GetDestMat(), tmp );
@@ -1410,7 +1413,7 @@ namespace CoupledField
       dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
       
       // additional attributes
-      PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
+      PtrParamNode attr = inf->Get("attributes", ParamNode::APPEND);
       
       // entry Type (real / imag)
       tmp = Global::complexPart.ToString(context.GetEntryType());
