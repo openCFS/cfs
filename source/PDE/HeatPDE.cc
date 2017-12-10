@@ -357,7 +357,7 @@ void HeatPDE::DefineIntegrators() {
       massNLContext->SetFeFunctions( feFunc, feFunc );
 
       assemble_->AddBiLinearForm( massNLContext );
-      bdbInts_[actRegion] = massIntNL;
+      //bdbInts_[actRegion] = massIntNL;
     }
     else {
       // ====================================================================
@@ -374,11 +374,11 @@ void HeatPDE::DefineIntegrators() {
         massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), massFactor,1.0, updatedGeo_ );
 
       massInt->SetName("MassIntegrator");
-      massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
+      massInt->SetFeSpace( feFunc->GetFeSpace() );
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
       massContext->SetEntities( actSDList, actSDList );
-      massContext->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      massContext->SetFeFunctions( feFunc,feFunc);
       assemble_->AddBiLinearForm( massContext );
 
     }
@@ -409,7 +409,13 @@ void HeatPDE::DefineIntegrators() {
 
       // Factor for convective matrix: density * heatCapacity
       PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      PtrCoefFct heatCapacity = NULL;
+      if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+        PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
+        heatCapacity = actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
+      }else{
+        heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      }
       PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT ) );
 
       // Create the integrators
@@ -427,12 +433,16 @@ void HeatPDE::DefineIntegrators() {
       }
 
       convectiveStiff->SetBCoefFunctionOpB(convecVelCoef_);
-      convectiveStiff->SetName("convectiveStiff");
+      if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+        convectiveStiff->SetName("convectiveStiffInt-NL");
+      }else{
+        convectiveStiff->SetName("convectiveStiffInt");
+      }
       convectiveInts_[actRegion] = convectiveStiff;
 
       BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
       convectiveContextStiff->SetEntities( actSDList, actSDList );
-      convectiveContextStiff->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      convectiveContextStiff->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunc);
       assemble_->AddBiLinearForm( convectiveContextStiff );
     } //end convective term
   } //end loop over materials_
