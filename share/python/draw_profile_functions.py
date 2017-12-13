@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 #coding=utf-8
-import numpy as np
-from numpy import outer
-import sympy.solvers
-from sympy import Symbol, symbols
-import sys
-import math
-
-import matplotlib
-#matplotlib.use('tkagg')
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy import interpolate
 from enum import Enum
+import math
+import sys
 
+from matplotlib import pyplot as plt
+import matplotlib
+from numpy import outer
+from scipy import interpolate
+from sympy import Symbol, symbols
+import sympy.solvers
+
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
+
+#matplotlib.use('tkagg')
 try:
   import meshpy.triangle as triangle
   from meshpy.tet import MeshInfo, build
@@ -831,7 +833,7 @@ def calc_distance(p1,p2):
   return np.linalg.norm(np.asarray(p1)-np.asarray(p2))
 
 # returns points and cells describing basecell 
-def generate_basecell(args,info):
+def generate_basecell(args,info,nondes,global_grid_coords=None):
   global res, res_surf_lines, interpolation
   res = args.res
   res_surf_lines = args.res_surf_lines
@@ -911,6 +913,23 @@ def generate_basecell(args,info):
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
 
   if args.target == "surface_mesh":
+    # draw non-design points into array
+    if nondes:
+      assert(global_grid_coords is not None)
+      min_bb = global_grid_coords[0]
+      max_bb = global_grid_coords[1]
+      assert(len(min_bb) == 3 and len(max_bb) == 3)
+      hx = (max_bb[0] - min_bb[0]) / res
+      hy = (max_bb[0] - min_bb[0]) / res
+      hz = (max_bb[0] - min_bb[0]) / res 
+      from matviz import cartesian_to_voxel_coords
+      for p in nondes:
+#         print("min_bb[0],min_bb[1],min_bb[2]:",min_bb[0],min_bb[1],min_bb[2])
+#         print("hx,hy,hz:",hx,hy,hz) 
+        i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
+        if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
+          array[i,j,k] = -1
+      
     ############################ new surface mesh approach ####################
     # binary helper array
     helper = np.zeros(array.shape[0:3],dtype=int)
@@ -1431,32 +1450,42 @@ def radius_to_3d_coords(profile,x,phi):
  
   return point
 
-def voxels_to_points_and_cells(array):
-  res, res, res = array.shape
+def voxels_to_points_and_cells(array,cell_data=None,wx=1.0,wy=1.0,wz=1.0):
+  resx, resy, resz = array.shape
   
-  h = 1.0 / res
+  hx = wx / resx
+  hy = wy / resx
+  hz = wz / resx
   
   centers = []
   
-  for i in range(0,res):
-    for j in range(0,res):
-      for k in range(0,res):
-        x = i * h + h/2.0
-        y = j * h + h/2.0 
-        z = k * h + h/2.0
+  for i in range(0,resx):
+    for j in range(0,resy):
+      for k in range(0,resz):
+        x = i * hx + hx/2.0
+        y = j * hy + hy/2.0 
+        z = k * hz + hz/2.0
         
-        if array[i,j,k] >= 0:
-          if i > 0 and j > 0 and k > 0 and i < res-1 and j < res-1 and k < res - 1:   
-            if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-              centers.append([x,y,z])
-          else:
-            centers.append([x,y,z]) 
-  
+#         if array[i,j,k] >= 0:
+#            if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:   
+#              if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+#                centers.append([x,y,z])
+#            else:
+#              centers.append([x,y,z])
+        
+        centers.append([x,y,z])
+        if cell_data:
+          assert(array[i,j,k] == 1 or array[i,j,k] == -1)
+          cell_data.InsertNextValue(array[i,j,k])
+        
+          
   # dummy objects, create_centered_bars needs them
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   # simple python lists
-  points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[h,h,h])
+  points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[hx,hy,hz])
+  print("len(cells):",len(cells))
+  print("cell_data.GetNumberOfValues()",cell_data.GetNumberOfValues())
   
   return points, cells
 

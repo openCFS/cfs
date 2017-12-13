@@ -33,14 +33,8 @@ WEDGE6 = 14
 LINE = 100
 
 def set_array_point(array,point,hx,hy,hz,minx,miny,minz,val):
-  nx, ny, nz = array.shape
-  i = (point[0]-minx) * 2.0/hx
-  j = (point[1]-miny) * 2.0/hy
-  k = (point[2]-minz) * 2.0/hz
-  print("p:",point)
-  print("i,j,k:",i,j,k)
-  print("hx,hy,hz:",hx,hy,hz)
-  print("minx,miny,minz:",minx,miny,minz)
+  from matviz import cartesian_to_voxel_coords
+  i,j,k = cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz)
   array[i,j,k] = val
 
 # calculates barycenter of element e

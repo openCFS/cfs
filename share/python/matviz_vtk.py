@@ -1091,7 +1091,6 @@ def fill_vtk_polydata(points,cells):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
-  short = 999999
   
   for p in points:
     vtk_points.InsertNextPoint(p)
@@ -1099,11 +1098,6 @@ def fill_vtk_polydata(points,cells):
   for ce in cells:
     if len(ce) == 3: # triangle
       add_triangle(ce[0],ce[1],ce[2],vtk_cells)
-#       e01 = numpy.linalg.norm(numpy.asarray(points[ce[1]]) - numpy.asarray(points[ce[0]]))
-#       e12 = numpy.linalg.norm(numpy.asarray(points[ce[2]]) - numpy.asarray(points[ce[1]]))
-#       e02 = numpy.linalg.norm(numpy.asarray(points[ce[2]]) - numpy.asarray(points[ce[0]]))
-#       if numpy.min([e01,e12,e02]) < short:
-#         short = numpy.min([e01,e12,e02])
     elif len(ce) == 4: # quad
       add_triangle(ce[0],ce[1],ce[2],vtk_cells)
       add_triangle(ce[2],ce[3],ce[0],vtk_cells)
@@ -1120,7 +1114,7 @@ def fill_vtk_polydata(points,cells):
   polydata.SetPoints(vtk_points)
   polydata.SetPolys(vtk_cells)
   
-  return polydata, short
+  return polydata
 
 def add_triangle(id1,id2,id3,cells):
   if id1 == id2 or id1 == id3:

@@ -297,7 +297,7 @@ if __name__ == "__main__":
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
-  array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml)
+  array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml,None)
   volume = calc_volume(array, infoXml)
   
   if args.target.startswith("surface"):
@@ -401,11 +401,17 @@ class Basecell_Data():
 class Basecell():
   # data is an object of type Basecell_Data()
   # idx = (i,j,k)
-  def __init__(self,data,idx=None):
+  # nondes: list of non-design elements' barycenters
+  # need global_grid_coords for nondes: base cell is embedded in global uniform grid - store left lower and right upper corner (i,j,k) for this cell
+  # e.g. global_grid_coords[0] = (0,0,0) and global_grid_coords[1] = (40,40,40) if base cell voxel resolution is 40
+  def __init__(self,data,idx=None,nondes=None,global_grid_coords=None):
     assert(type(data) is Basecell_Data)
+    if global_grid_coords:
+      assert(len(global_grid_coords) == 2)
+      assert(len(global_grid_coords[0]) == 3)
     self.data = data
     self.idx = idx
-    _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None)
+    _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
     assert(len(self.boundary_points) > 0)
     assert(self.points is not None)
     assert(self.cells is not None)
@@ -564,7 +570,9 @@ class Basecell():
         right_id = short_list[short_first_id+2].idx
         new_id = new_p.idx
         cell = None
-        print("left_id:",left_id," right_id:",right_id," new_id:",new_id)
+        print("left_id:",left_id," coords:",short_list[short_first_id].coords)
+        print("right_id:",right_id, " coords:", short_list[short_first_id+2].coords)
+        print("new_id:",new_id, " coords:",new_p.coords)
         # get cell with edge left-right
         for i,c in enumerate(self.cells):
           if left_id in c and right_id in c:

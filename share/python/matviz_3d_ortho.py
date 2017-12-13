@@ -27,13 +27,13 @@ except:
   
     
 # similar to create_3d_cross_ip; # without rotation and shearing
-def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
+def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,nondes=None):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
   # grad: type of interpolation ('linear', 'nearest')
   # scale: parameter for scaling the cell size if necessary
-  # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  # nondes: list of elements (corner vertices) that define non-design regions
   
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
@@ -113,7 +113,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     # translate cell to correct position
     left_front_corner  = np.asarray(sample_coords[i,j,k])
-    
+    right_back_corner = left_front_corner + np.asarray([dx,dy,dz])
+    print("left_front_corner:",left_front_corner)
+    print("right_back_corner:",right_back_corner)
     # flags for meshing circles on the boundary
     flags = [None] * 6
     grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
@@ -130,7 +132,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input,id)
+    cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
     cell_obj.scale(dx, dy, dz)
     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
     cell_obj.update()
@@ -200,7 +202,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #       verts, cells, short_e = add_offset(cell.points, cell.cells, offset)
       
       coords = [ v.coords for v in cell.points]
-      pd, _ = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
+      pd = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
       appends.AddInputData(pd)
 #       vertices.extend(verts)
 #       faces.extend(cells)
