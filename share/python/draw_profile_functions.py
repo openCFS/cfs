@@ -922,14 +922,14 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       hx = (max_bb[0] - min_bb[0]) / res
       hy = (max_bb[0] - min_bb[0]) / res
       hz = (max_bb[0] - min_bb[0]) / res 
-      from matviz import cartesian_to_voxel_coords
       for p in nondes:
 #         print("min_bb[0],min_bb[1],min_bb[2]:",min_bb[0],min_bb[1],min_bb[2])
 #         print("hx,hy,hz:",hx,hy,hz) 
         i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
         if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
           array[i,j,k] = -1
-      
+          print("point ",p," with i,j,k: ",i,j,k," in base cell")
+        print("skip point ",p," with i,j,k: ",i,j,k)  
     ############################ new surface mesh approach ####################
     # binary helper array
     helper = np.zeros(array.shape[0:3],dtype=int)
@@ -951,7 +951,6 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
-    
     verts += (h/2.0,h/2.0,h/2.0)
     # moves structure to [0,1]^3
     # extract points on the boundary circles
@@ -1484,8 +1483,6 @@ def voxels_to_points_and_cells(array,cell_data=None,wx=1.0,wy=1.0,wz=1.0):
   vtk_cells = vtk.vtkCellArray()
   # simple python lists
   points, cells = matviz_vtk.create_centered_bars(vtk_cells,vtk_points,centers,[hx,hy,hz])
-  print("len(cells):",len(cells))
-  print("cell_data.GetNumberOfValues()",cell_data.GetNumberOfValues())
   
   return points, cells
 
@@ -1568,3 +1565,26 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
 #   plt.show()
     
   return points,cells
+
+# returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
+# @param point described in cartesian coords
+# @param minx: smallest x value of domain
+# @param miny: smallest y value of domain
+# @param minz: smallest z value of domain
+# @param hx,hy,hz: lattice spacing
+def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
+  i = int((point[0]-hx/2-minx) / hx)
+  j = int((point[1]-hy/2-miny) / hy)
+  k = int((point[2]-hz/2-minz) / hz)
+  
+#   if i < 0 or j < 0 or k < 0:
+  print("\np:",point)
+  print("i,j,k:",i,j,k)
+  print("hx,hy,hz:",hx,hy,hz)
+  print("minx,miny,minz:",minx,miny,minz)
+#   sys.exit()
+  
+#   assert(i >= 0 and j >= 0 and k >= 0)
+#   assert( i < array.shape[0] and j < array.shape[1] and k < array.shape[2])  
+  
+  return i,j,k

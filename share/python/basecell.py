@@ -38,26 +38,30 @@ def getConnectivity(points,cells):
   
   return connectivity
 
-def taubin_smoothing(points,connectivity,niter):
+def taubin_smoothing(points,connectivity,niter,bounds=None):
   assert(niter > 0)
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
   lamb = 0.8
   new_points = points
   for i in range(niter):
-    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04)
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04,bounds)
     
 #   print("Taubin smoothing with ", niter, " iterations")
     
   return new_points
 
 # laplacian smoothing: p_i = p_i + \lambda * L(p_i)
-# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k   
-def laplacian_smoothing(points,connectivity,lamb):
+# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k
+# bounds: tuple/list with 6 entries - points on these boundaries are not smoothed   
+# bounds order: xmin,ymin,zmin,xmax,ymax,zmax
+def laplacian_smoothing(points,connectivity,lamb,bounds=None):
   new_points = [None] * len(points) 
+  if bounds is None:
+    bounds = [0.0,0.0,0.0,1.0,1.0,1.0] # default unit cube
   for i,vertex in enumerate(points):
     p = vertex.coords
     # don't smooth at the boundary
-    if np.isclose(p[0], 0) or np.isclose(p[1], 0) or np.isclose(p[2], 0) or np.isclose(p[0], 1.0) or np.isclose(p[1], 1.0) or np.isclose(p[2], 1.0):
+    if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
       assert(i == vertex.idx)
       new_points[i] = Vertex(p,vertex.idx)
     else:
@@ -294,6 +298,22 @@ if __name__ == "__main__":
     assert(infoStr)
     infoXml.write(infoStr + "/>\n\n")  
   
+  
+  ############# debugging ###########################
+  #read non-design coords from csv file
+#   import csv
+#   nondes = []
+#   with open("nondes.csv","r") as f:
+#     reader = csv.reader(f,delimiter=',')
+#     for i,row in enumerate(reader):
+#       # skip header
+#       if i == 0:
+#         continue
+#       nondes.append((float(row[0]),float(row[1]),float(row[2])))
+#   
+#   left_front_corner = [0, -163, 110.5]
+#   right_back_corner = [290,163,206.5]
+      
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
@@ -312,7 +332,7 @@ if __name__ == "__main__":
   coords = points
   if args.target.startswith("surface"):
     coords = [p.coords for p in points]
-  polydata, _ = matviz_vtk.fill_vtk_polydata(coords,cells)
+  polydaFta = matviz_vtk.fill_vtk_polydata(coords,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
@@ -411,7 +431,7 @@ class Basecell():
       assert(len(global_grid_coords[0]) == 3)
     self.data = data
     self.idx = idx
-    _, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
+    self.voxels, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
     assert(len(self.boundary_points) > 0)
     assert(self.points is not None)
     assert(self.cells is not None)
@@ -421,7 +441,7 @@ class Basecell():
       for p in list:
         assert(type(p) is Vertex)  
 #     print("self.points:",self.points,"\n")
-    
+
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
     if data.target != "volume_mesh":

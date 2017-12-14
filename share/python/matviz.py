@@ -341,63 +341,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               else:
                 samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
-                tmp = args.hom_samples.split(',')
-#                 nx = 10
-                resolution = numpy.asarray([args.bc_res*samples[0],args.bc_res*samples[1],args.bc_res*samples[2]])
-                bounds = np.ones(6) * (-1)
-                bounds[0:3] = min_bb[0:3]
-                bounds[3:6] = max_bb[0:3]
-                nondes_grid = numpy.full(resolution,0,dtype=int)
-                width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
-                # -1 to make array indices 0-based
-                hx = width[0] / float(resolution[0])
-                hy = width[1] / float(resolution[1])
-                hz = width[2] / float(resolution[2])
                 
-#                 import csv
-#                 with open("nondes.csv", 'w') as file:
-#                   writer = csv.writer(file, delimiter=',')
-#                   writer.writerow("xyz")
-#                   for c in nondes_centers:
-#                     writer.writerow(c)
-                
-                # for each element from nondes_centers, store the respective voxel coords   
-#                 tets_corner_coords = [] 
-#                 for tet in nondes_elements:
-#                   assert(len(tet) == 4) # assume tetrahedra
-#                   corners = []
-#                   for v in tet:
-#                     i,j,k = cartesian_to_voxel_coords(v, bounds[0], bounds[1], bounds[2], hx, hy, hz)
-#                     corners.append((i,j,k))
-#                     nondes_grid[i,j,k] = 1
-#                     print("i,j,k:",i,j,k)
-#                   tets_corner_coords.append(corners)
-#                 for c in nondes_coords[0]:
-#                   i,j,k = cartesian_to_voxel_coords(c, bounds[0], bounds[1], bounds[2], hx, hy, hz)
-#                   nondes_grid[i,j,k] = 1
-#                   print("i,j,k:",i,j,k)
-
-#                 cell_data = vtk.vtkFloatArray()
-#                 for z in range(resolution[2]):
-#                   for y in range(resolution[1]):
-#                     for x in range(resolution[0]):
-#                       cell_data.InsertNextValue(nondes_grid[x,y,z])
-                      
-#                 uni = vtk.vtkUniformGrid()
-# #                 uni.SetExtent(bounds[0],bounds[1],bounds[2],bounds[3],bounds[4],bounds[5])
-#                 uni.SetDimensions(resolution[0]+1,resolution[1]+1,resolution[2]+1)
-#                 uni.SetOrigin(bounds[0], bounds[1], bounds[2])
-#                 uni.SetSpacing(hx,hy,hz)
-#                 uni.GetCellData().SetScalars(cell_data)
-#                  
-#                 writer = vtk.vtkXMLImageDataWriter()
-#                 writer.SetFileName("uniform_grid.vti")
-#                 writer.SetInputData(uni)
-#                 writer.Write()
-#                 sys.exit()        
-                     
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes_coords[0])
+                viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes_coords)
 
                 me = None                
                 if args.save:
@@ -500,29 +446,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   return volume
 
-# returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
-# @param point described in cartesian coords
-# @param minx: smallest x value of domain
-# @param miny: smallest y value of domain
-# @param minz: smallest z value of domain
-# @param hx,hy,hz: lattice spacing
-def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
-  i = int((point[0]-hx/2-minx) / hx)
-  j = int((point[1]-hy/2-miny) / hy)
-  k = int((point[2]-hz/2-minz) / hz)
-  
-#   if i < 0 or j < 0 or k < 0:
-#     print("p:",point)
-#     print("i,j,k:",i,j,k)
-#     print("hx,hy,hz:",hx,hy,hz)
-#     print("minx,miny,minz:",minx,miny,minz)
-#   sys.exit()
-  
-#   assert(i >= 0 and j >= 0 and k >= 0)
-#   assert( i < array.shape[0] and j < array.shape[1] and k < array.shape[2])  
-  
-  return i,j,k
-  
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
