@@ -64,13 +64,6 @@ IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
 ENDIF(UNIX AND USE_ANSYSRST)
 
-
-# This is dirty stuff and shall be removed! - Fabian 
-# copy & paste in cfstoolbin
-IF(USE_PHIST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -pthread -Wl,-rpath -Wl,/usr/lib64/mpi/gcc/openmpi/lib64 -Wl,--enable-new-dtags -L/usr/lib64/mpi/gcc/openmpi/lib64 -lmpi_cxx -lmpi")
-ENDIF()
-
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
