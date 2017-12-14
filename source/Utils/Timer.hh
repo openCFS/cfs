@@ -3,7 +3,8 @@
 
 #include <ctime>
 #include <string>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/chrono.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace CoupledField
 {
@@ -78,10 +79,15 @@ class Timer
   /** The number of Start() calls since construction or the last ResetStart()+1 */
   int    calls_;
   bool   running;
+
+  /** clock is cpu time */
   clock_t start_clock;
-  time_t  start_time;
-  double sum_time;
   clock_t sum_clock;
+
+  /** wall time: boost time, as time_t is only in seconds */
+  boost::posix_time::ptime start_time_;
+  double sum_time_ = 0;
+
   std::string label_;
   bool sub_;
 

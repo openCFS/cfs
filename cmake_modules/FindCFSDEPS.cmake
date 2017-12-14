@@ -84,9 +84,17 @@ which can be reused for other CFS++ builds.
 This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
-FILE(TO_CMAKE_PATH
-  "${CFS_DEPS_CACHE_DIR}"
-  CFS_DEPS_CACHE_DIR)
+FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
+
+# for configure projectes we may not use ninja but need make
+if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  message("CMAKE_GENERATOR = ${CMAKE_GENERATOR}")
+  find_program(CONFIGURE_MAKE_PROGRAM make)
+else()
+  set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
+endif()
+mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
+
 
 #-------------------------------------------------------------------------------
 # Build zlib library
@@ -546,14 +554,31 @@ IF(BUILD_HDFVIEW)
 ENDIF(BUILD_HDFVIEW)
 
 #-------------------------------------
-# External anaconda 3
+# External anaconda 3 as a service for test machines at TU-Wien
 #-------------------------------------
-if(USE_ANACONDA3)
+if(BUILD_ANACONDA3)
   SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
   SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
   SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
   INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
-endif(USE_ANACONDA3)
+endif(BUILD_ANACONDA3)
+
+# hwloc is used for PETSc and ghost/phist
+if(BUILD_HWLOC)
+  SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
+  SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
+  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
+  
+  INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
+endif(BUILD_HWLOC)
+
+# ghost is required for petsc
+if(USE_GHOST)
+  # ghost is from git repository accessed via a github mirror via svn.
+  # we set here manally the revision, no chance for md5 sum though 
+  SET(GHOST_REV "4266") # the svn revision from github
+#  INCLUDE("${CFSDEPS_DIR}/hwloc/External_GHOST.cmake")
+endif(USE_GHOST)
 
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.
