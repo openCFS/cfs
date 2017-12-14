@@ -1512,7 +1512,7 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
   info.set_points(test)
   info.set_facets(round_trip_connect(0,len(coords_2d)-1))
   
-  mesh = triangle.build(info,generate_faces=True)
+  mesh = triangle.build(info,generate_faces=True,min_angle=30,max_volume=1e-3)
   mesh_points = np.array(mesh.points)
   mesh_tris = np.array(mesh.elements)
   
