@@ -572,6 +572,14 @@ if(BUILD_HWLOC)
   INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
 endif(BUILD_HWLOC)
 
+if(USE_PETSC)
+  SET(PETSC_VER "3.8.3")
+  SET(PETSC_TGZ "petsc-${PETSC_VER}.tar.gz")
+  SET(PETSC_MD5 "322cbcf2a0f7b7bad562643b05d66f11")
+  
+  INCLUDE("${CFSDEPS_DIR}/petsc/External_PETSC.cmake")
+endif(USE_PETSC)
+
 # ghost is required for petsc
 if(USE_GHOST)
   # ghost is from git repository accessed via a github mirror via svn.

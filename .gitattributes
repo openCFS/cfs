@@ -140,6 +140,8 @@ cfsdeps/flann/flann-any.patch -text
 cfsdeps/flann/flann-extra-commas-at-end-of-enum-lists.patch -text
 cfsdeps/flann/flann-for-cfs.patch -text
 cfsdeps/flann/flann-patch.cmake.in -text
+cfsdeps/ghost/External_GHOST.cmake -text
+cfsdeps/ghost/ghost-post_install.cmake.in -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-file-append.patch -text
 cfsdeps/gidpost/gidpost-fortran.patch -text
@@ -167,6 +169,8 @@ cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-mingw.patch -text
 cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
 cfsdeps/hdf5/hdf5-patch.cmake.in -text
+cfsdeps/hwloc/External_HWLOC.cmake -text
+cfsdeps/hwloc/hwloc-post_install.cmake.in -text
 cfsdeps/ilupack/CMakeLists.txt -text
 cfsdeps/ilupack/External_ILUPACK.cmake -text
 cfsdeps/ilupack/README -text
@@ -224,6 +228,8 @@ cfsdeps/muparser/muparser-strfun45.patch -text
 cfsdeps/openblas/External_OpenBLAS.cmake -text
 cfsdeps/openblas/openblas-patch.cmake.in -text
 cfsdeps/openblas/openblas_install_cfs.patch -text
+cfsdeps/petsc/External_PETSC.cmake -text
+cfsdeps/petsc/petsc-post_install.cmake.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
 cfsdeps/scpip/license.txt -text
@@ -296,6 +302,7 @@ cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/create_binary_archive.cmake -text
 cmake_modules/distro.cmake -text
+cmake_modules/mpi.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
@@ -522,6 +529,7 @@ include/def_use_libxml2.hh.in -text
 include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
+include/def_use_mpi.hh.in -text
 include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_petsc.hh.in -text
