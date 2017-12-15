@@ -571,7 +571,7 @@ void DesignMaterial::SetParameter(const DesignElement::Type key, const double va
       params_.Mine(i)[key] = value;
 }
 
-inline double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
+double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
 {
   assert(map.size() == params_.Mine().size());
   assert(HasParameter(p));
