@@ -571,15 +571,7 @@ void DesignMaterial::SetParameter(const DesignElement::Type key, const double va
       params_.Mine(i)[key] = value;
 }
 
-
- double DesignMaterial::GetParameter(const DesignElement::Type p)
-{
-  assert(HasParameter(p));
-  assert(ValidateParameters());
-  return params_.Mine()[p];
-}
-
- double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
+double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
 {
   assert(map.size() == params_.Mine().size());
   assert(HasParameter(p));
@@ -601,7 +593,7 @@ const std::map<DesignElement::Type, double>& DesignMaterial::GetParameters() con
   return params_.ConstMine();
 }
 
-bool DesignMaterial::ValidateParameters()
+bool DesignMaterial::ValidateParameters() const
 {
   for(unsigned int i = 1; i < params_.GetNumSlots(); i++)
     assert(params_.Mine(i).size() == params_.Mine(0).size());

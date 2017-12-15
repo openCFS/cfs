@@ -586,7 +586,6 @@ Integer Topology<T>::GetNumInterpolatingPoints() const
             if( CoarseIndex_[i] >= COARSE ) {
                 nPoints++;
             } else {
-                      Integer        size   = 0;
                 const Integer* const edges  = S_.GetEdges( i );
                 const Integer        nedges = S_.GetNumEdges( i );
                 // inkrement size for each edge to a coarse node
