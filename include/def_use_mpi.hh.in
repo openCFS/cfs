@@ -1,0 +1,8 @@
+// Define used to check if PETSC  used
+
+#cmakedefine USE_MPI @USE_MPI@
+
+// see mpi.cmake
+#define CFS_MPI_BASE "@MPI_BASE@"
+#define CFS_MPI_BIN  "@MPI_BIN@"
+

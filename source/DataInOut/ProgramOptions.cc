@@ -26,6 +26,8 @@
 #include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 #include <def_use_openmp.hh>
+#include <def_use_mpi.hh>
+#include <def_use_petsc.hh>
 #include <def_disable_optimization.hh>
 
 
@@ -787,30 +789,23 @@ namespace CoupledField {
         << UMFPACK_SUBSUB_VERSION << " (" << UMFPACK_DATE << ") "
         << fg_reset << endl;
  #else
-    out << "USE_SUITESPARSE:       "
-        << fg_blue  << "NO" << fg_reset << endl;
+    out << "USE_SUITESPARSE:       " << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
     out << endl;
  #ifdef USE_PARDISO
-    out << "USE_PARDISO:           "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "PARDISO_IMPL:          "
-        << fg_blue  << CFS_PARDISO << fg_reset << endl;
+    out << "USE_PARDISO:           " << fg_blue << "YES" << fg_reset << endl;
+    out << "PARDISO_IMPL:          " << fg_blue  << CFS_PARDISO << fg_reset << endl;
  #else
-    out << "USE_PARDISO:           "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_PARDISO:           " << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_LIS
     out << endl;
-    out << "USE_LIS:               "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "LIS_VERSION:           "
-        << fg_blue  << LIS_VERSION << fg_reset << endl;
+    out << "USE_LIS:               " << fg_blue << "YES" << fg_reset << endl;
+    out << "LIS_VERSION:           " << fg_blue  << LIS_VERSION << fg_reset << endl;
  #else
-    out << "USE_LIS:               "
-        << fg_blue  << "NO" << fg_reset << endl;
+    out << "USE_LIS:               " << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_METIS
@@ -832,37 +827,28 @@ namespace CoupledField {
 
 
 #ifdef USE_ANSYSRST
-    out << "USE_ANSYSRST:          "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_ANSYSRST:          " << fg_blue << "YES" << fg_reset << endl;
 #else
-    out << "USE_ANSYSRST:          "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_ANSYSRST:          " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef USE_GIDPOST
-    out << "USE_GIDPOST:           "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "GIDPOST_VERSION:       "
-        << fg_blue << GIDPOST_VERSION << fg_reset << endl;
+    out << "USE_GIDPOST:           " << fg_blue << "YES" << fg_reset << endl;
+    out << "GIDPOST_VERSION:       " << fg_blue << GIDPOST_VERSION << fg_reset << endl;
  #else
-    out << "USE_GIDPOST:           "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GIDPOST:           " << fg_blue << "NO" << fg_reset << endl;
  #endif
 
 #ifdef USE_GMSH
-    out << "USE_GMSH:              "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_GMSH:              " << fg_blue << "YES" << fg_reset << endl;
 #else
-    out << "USE_GMSH:              "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GMSH:              " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef USE_GMV
-    out << "USE_GMV:               "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_GMV:               " << fg_blue << "YES" << fg_reset << endl;
  #else
-    out << "USE_GMV:               "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GMV:               " << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_HDF5
@@ -874,24 +860,19 @@ namespace CoupledField {
         << H5_VERS_MINOR << "."
         << H5_VERS_RELEASE << fg_reset << endl;
  #else
-    out << "USE_HDF5:              "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_HDF5:              " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_MESH
-    out << "USE_MESH:              "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_MESH:              " << fg_blue << "YES" << fg_reset << endl;
  #else
-    out << "USE_MESH:              "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_MESH:              " << fg_blue << "NO" << fg_reset << endl;
  #endif
 
 #ifdef USE_UNV
-    out << "USE_UNV:               "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_UNV:               " << fg_blue << "YES" << fg_reset << endl;
 #else
-    out << "USE_UNV:               "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_UNV:               " << fg_blue << "NO" << fg_reset << endl;
 #endif
 #ifdef USE_COMSOL
     out << "USE_COMSOL:            "
@@ -901,8 +882,7 @@ namespace CoupledField {
         << " (for reading zipped .mph file)"
         << fg_reset << endl;
 #else
-    out << "USE_COMSOL:            "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_COMSOL:            " << fg_blue << "NO" << fg_reset << endl;
 #endif
 #ifdef USE_CGNS
     out << "USE_CGNS:              "
@@ -922,84 +902,81 @@ namespace CoupledField {
     char version[1024];
     int error_return = 0;
     ADF_Library_Version(version, &error_return ) ;
-    out << "ADF_VERSION:           "
-        << fg_blue << version << fg_reset << endl;
+    out << "ADF_VERSION:           " << fg_blue << version << fg_reset << endl;
     ADFH_Library_Version(version, &error_return ) ;
-    out << "ADFH_VERSION:          "
-        << fg_blue << version << fg_reset << endl;
+    out << "ADFH_VERSION:          " << fg_blue << version << fg_reset << endl;
 #else
-    out << "USE_CGNS:              "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_CGNS:              " << fg_blue << "NO" << fg_reset << endl;
 #endif
 #ifdef USE_CCMIO
-    out << "USE_CCMIO:             "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "CCMIO_VERSION:         "
-        << fg_blue << kCCMIOVersionStr << fg_reset << endl;
+    out << "USE_CCMIO:             " << fg_blue << "YES" << fg_reset << endl;
+    out << "CCMIO_VERSION:         " << fg_blue << kCCMIOVersionStr << fg_reset << endl;
 #else
-    out << "USE_CCMIO:             "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_CCMIO:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
     out << endl;
 
 #ifdef USE_XERCES
-    out << "CFS_XERCES_VERSION:    "
-        << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
+    out << "CFS_XERCES_VERSION:    " << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
     out << "XMLSCHEMA:             ";
     if(progOpts)
       out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
     else
       out << fg_blue << XMLSCHEMA << fg_reset << endl;
 #else
-      out << "USE_XERCES:            "
-          << fg_blue << "NO" << fg_reset << endl;
+      out << "USE_XERCES:            "  << fg_blue << "NO" << fg_reset << endl;
 #endif
 
     out << endl;
 
 #ifdef USE_CGAL
-    out << "USE_CGAL:              "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_CGAL:              " << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_CGAL_VERSION:      "
         << fg_blue << QUOTEME(CGAL_VERSION)
         << " (" << CGAL_VERSION_NR
         << ", SVN rev. " << CGAL_SVN_REVISION << ")"
         << fg_reset << endl;
 #else
-    out << "USE_CGAL:              "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_CGAL:              " << fg_blue << "NO" << fg_reset << endl;
 #endif
+
 #ifdef USE_LIBFBI
-    out << "USE_LIBFBI:            "
-        << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_LIBFBI:            " << fg_blue << "YES" << fg_reset << endl;
 #else
-    out << "USE_LIBFBI:            "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_LIBFBI:            " << fg_blue << "NO" << fg_reset << endl;
 #endif
+
 #ifdef USE_FLANN
-    out << "USE_FLANN:             "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "FLANN_VERSION:         "
-        << fg_blue << FLANN_VERSION_
-        << fg_reset << endl;
+    out << "USE_FLANN:             " << fg_blue << "YES" << fg_reset << endl;
+    out << "FLANN_VERSION:         " << fg_blue << FLANN_VERSION_ << fg_reset << endl;
 #else
-    out << "USE_FLANN:             "
-        << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_FLANN:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
-    
+
+#ifdef USE_MPI
     out << endl;
-    out << "CFS_BOOST_VERSION:     "
-        << fg_blue << 
-      (BOOST_VERSION / 100000) << "." <<
-      (BOOST_VERSION / 100 % 1000) << "." <<
-      (BOOST_VERSION % 100) << fg_reset << endl;
-    out << "CFS_ZLIB_VERSION:      "
-        << fg_blue << zlibVersion() << fg_reset << endl;
-    out << "CFS_BZIP2_VERSION:     "
-        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
-    out << "CFS_MUPARSER_VERSION:  "
-        << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
+    out << "USE_MPI:               " << fg_blue << "YES" << fg_reset << endl;
+    out << "MPI_BASE:              " << fg_blue << CFS_MPI_BASE << fg_reset << endl;
+    out << "mpiexec:               " << fg_blue << CFS_MPI_BIN << "/mpiexec" << fg_reset << endl;
+#else
+    out << "USE_MPI:               " << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+#ifdef USE_PETSC
+    out << endl;
+    out << "USE_PETSC:             " << fg_blue << "YES" << fg_reset << endl;
+    out << "PETSC_VERSION          " << fg_blue << CFS_PETSC_VERSION << fg_reset << endl;
+#else
+    out << "USE_PETSC:              " << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+
+    out << endl;
+    out << "CFS_BOOST_VERSION:     " << fg_blue << (BOOST_VERSION / 100000) << "." << (BOOST_VERSION / 100 % 1000) << "." << (BOOST_VERSION % 100) << fg_reset << endl;
+    out << "CFS_ZLIB_VERSION:      " << fg_blue << zlibVersion() << fg_reset << endl;
+    out << "CFS_BZIP2_VERSION:     " << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
+    out << "CFS_MUPARSER_VERSION:  " << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 
     out << endl;
     out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;

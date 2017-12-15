@@ -26,6 +26,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpi.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_mpi.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")
 
