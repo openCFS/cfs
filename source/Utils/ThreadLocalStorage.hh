@@ -92,6 +92,18 @@ public:
 #endif
   }
 
+   inline const T& Mine(Integer tNum = -1) const {
+#ifdef USE_OPENMP
+    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
+    assert((int) omp_get_thread_num() < (int) numSlots_);
+    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
+    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+#else
+    return tlsContainer_[0];
+#endif
+  }
+
+
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
     // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
