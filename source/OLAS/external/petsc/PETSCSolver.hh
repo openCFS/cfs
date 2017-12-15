@@ -120,21 +120,21 @@ namespace CoupledField
 		//find which is my rank
     
 
-	//Coarsegrid solver parameters
-	PetscScalar coarse_rtol = 1.0e-8;
-	PetscScalar coarse_atol = 1.0e-50;
-	PetscScalar coarse_dtol = 1e3;
-	PetscInt coarse_maxits = 30;
+    //Coarsegrid solver parameters
+    PetscScalar coarse_rtol = 1.0e-8;
+    PetscScalar coarse_atol = 1.0e-50;
+    PetscScalar coarse_dtol = 1e3;
+    PetscInt coarse_maxits = 30;
 
-	//Number of levels
-	PetscInt nlvls=2;
-
-	// Number of smoothening iterations per up/down smooth_sweeps
-	PetscInt smooth_sweeps = 4;
+    //Number of levels
+    PetscInt nlvls=2;
     
+    // Number of smoothening iterations per up/down smooth_sweeps
+    PetscInt smooth_sweeps = 4;
+
     std::string solverstring_;
-	std::string precondstring_;
-		
+    std::string precondstring_;
+
 
     std::string CreateSolverString(PtrParamNode);
     std::string CreatePrecondString(PtrParamNode);
@@ -190,31 +190,31 @@ namespace CoupledField
     //Dimension of global matrix
     PetscInt dim=0;
 
-    //Coarsegrid solver parameters
-	PetscScalar coarse_rtol = 1.0e-8;
-	PetscScalar coarse_atol = 1.0e-50;
-	PetscScalar coarse_dtol = 1e3;
-	PetscInt coarse_maxits = 30;
+      //Coarsegrid solver parameters
+    PetscScalar coarse_rtol = 1.0e-8;
+    PetscScalar coarse_atol = 1.0e-50;
+    PetscScalar coarse_dtol = 1e3;
+    PetscInt coarse_maxits = 30;
 
-	//Number of levels
-	PetscInt nlvls=2;
+    //Number of levels
+    PetscInt nlvls=2;
 
-	// Number of smoothening iterations per up/down smooth_sweeps
-	PetscInt smooth_sweeps = 4;
-
-   
-    ///pointer to xml node
-    PtrParamNode xml_;
-
-    bool MG_FLAG=false;
-    bool symmetric=false;
-    //Strings for setting Solver and Preconditioner
-    std::string solverstring_;
-	std::string precondstring_;
+    // Number of smoothening iterations per up/down smooth_sweeps
+    PetscInt smooth_sweeps = 4;
 
 
-    std::string CreateSolverString(PtrParamNode);
-    std::string CreatePrecondString(PtrParamNode);
+      ///pointer to xml node
+      PtrParamNode xml_;
+
+      bool MG_FLAG=false;
+      bool symmetric=false;
+      //Strings for setting Solver and Preconditioner
+      std::string solverstring_;
+      std::string precondstring_;
+
+
+      std::string CreateSolverString(PtrParamNode);
+      std::string CreatePrecondString(PtrParamNode);
   };
   
 }
