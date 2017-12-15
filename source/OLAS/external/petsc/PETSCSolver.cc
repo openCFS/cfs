@@ -111,15 +111,13 @@ namespace CoupledField{
 
 
 
-	  SendWorkerCommand(INIT_MAT_STRUCT);
-
-		//only time where data is sent using mpi(can be implemented better)
-	  for (int rank=1;rank<size_;rank++){
-		ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-		ierr=MPI_Send(&symmetric,sizeof(bool),MPIU_BOOL,rank,ISSYMMETRIC,PETSC_COMM_WORLD);
-	  }
-
 	  if (firstSetup_){
+		  SendWorkerCommand(INIT_MAT_STRUCT);
+		  //only time where data is sent using mpi(can be implemented better)
+		  for (int rank=1;rank<size_;rank++){
+			ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+			ierr=MPI_Send(&symmetric,sizeof(bool),MPIU_BOOL,rank,ISSYMMETRIC,PETSC_COMM_WORLD);
+		  }
 		  if (MG_FLAG){
 			  // Boundary types: DMDA_BOUNDARY_NONE, DMDA_BOUNDARY_GHOSTED, DMDA_BOUNDARY_PERIODIC
 			  DMBoundaryType bx = DM_BOUNDARY_NONE;
@@ -153,6 +151,8 @@ namespace CoupledField{
 
 		  }
 		  else {
+
+
 			//Create PETSC matrix structure
 			if (symmetric){
 				ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,
@@ -173,20 +173,20 @@ namespace CoupledField{
 		  }
 
 	  }
-	  //setting values only using the proc 0 while others wait and then asemble is called in all procs so t
-	  // the matix can be distributed
-	  //Set each matrix value one by one (highly inefficient there are better ways to do this which requires some tweakng to
-	  //the data structure we receive from the matrix class	)
-	  for (int i=0;i<int(dim);i++){
-		for (int j=rowPtr[i];j<rowPtr[i+1];j++){
-			ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
-		}
+	//setting values only using the proc 0 while others wait and then asemble is called in all procs so t
+	// the matix can be distributed
+	//Set each matrix value one by one (highly inefficient there are better ways to do this which requires some tweakng to
+	//the data structure we receive from the matrix class	)
+	for (int i=0;i<int(dim);i++){
+	  for (int j=rowPtr[i];j<rowPtr[i+1];j++){
+	    ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
 	  }
+	}
 
-	  //Distribute the assembeled matrix accross all process
-	  SendWorkerCommand(ASSEMBLE_MAT);
-	  ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
-	  ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+	//Distribute the assembeled matrix accross all process
+	SendWorkerCommand(ASSEMBLE_MAT);
+	ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+	ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
 
 	if (firstSetup_){
 
