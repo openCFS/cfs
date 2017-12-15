@@ -91,8 +91,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz)
   
-  # thread local data, each entry is a tuple with Basecell object and its boundary circle meshes
-  tl_data = list()
   basecells = []
   nProblem = nx*ny*nz
 
@@ -104,48 +102,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   start = int(np.sum(nRuns[0:rank]))
   end = int(start + nRuns[rank])
   
-  assert(len(min_bb) == 3)
-  assert(len(max_bb) == 3)
-
-#   print("min_bb:",min_bb)
-#   print("nondes_min:",nondes_min)
-#   print("max_bb:",max_bb)
-#   print("nondes_max:",nondes_max)
-  # if any non-design bound exceeds design domain, we need additional ghost layers for non-design  
-  if np.any(np.less(np.asarray(nondes_min),np.asarray(min_bb))) or np.any(np.greater(np.asarray(nondes_max),np.asarray(max_bb))):
-    diff_min = np.abs(np.asarray(nondes_min) - np.asarray(min_bb))
-    diff_max = np.abs(np.asarray(nondes_max) - np.asarray(max_bb))
-    
-#     print("diff_min:",diff_min)
-#     print("diff_max:",diff_max)
-    
-    # how many ghost cells to add for non-design shell?
-    add_left = diff_min / np.asarray(dx,dy,dz)
-    add_right = diff_max / np.asarray(dx,dy,dz)
-    add_sum = add_left + add_right
-    
-    add_left = [int(v) for v in add_left]
-    add_right = [int(v) for v in add_right]
-    
-    print("add_left:",add_left)
-    print("add_right:",add_right)
-
-  # np.minimum gives elementwise min value
-  bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
-  bounds[3:6] = np.minimum(np.asarray(max_bb),np.asarray(nondes_max))
-  
-  print("min_dim:",bounds[0:3])
-  print("max_dim:",bounds[4:6])
-  
-  resolution = (int(samples[0]*args.bc_res+add_sum[0]),int(samples[1]*args.bc_res+add_sum[1]),int(samples[2]*args.bc_res+add_sum[2]))
-  print("resolution:",resolution)
-  voxel_grid  = np.full(resolution,-1,dtype=int)
-  
-  width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
-  
-  hx = width[0] / float(resolution[0])
-  hy = width[1] / float(resolution[1])
-  hz = width[2] / float(resolution[2])
+  print("rank:",rank," start:",start," end:",end)
+  sys.stdout.flush()
   
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
@@ -184,80 +142,24 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     for c in range(len(flags)):      
       flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
     
+    print("rank:",rank," i,j,k:",i,j,k, " before basecell")
+    
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
-#     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input,id,None,(left_front_corner,right_back_corner))
-#     cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
-#     cell_obj.scale(dx, dy, dz)
-#     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
-#     cell_obj.update()
-#     if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-#       continue
-#     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
-#     cell_obj.center = cell_center
-    voxel_grid[add_left[0]+i*args.bc_res:(i+1)*args.bc_res,add_left[1]+j*args.bc_res:(j+1)*args.bc_res,add_left[2]+k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
+    cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
+    cell_obj.scale(dx, dy, dz)
+    cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
+    cell_obj.update()
+    if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+      continue
+    cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
+    cell_obj.center = cell_center
+    
+    print("rank:",rank," after base cell")
     
     basecells.append((cell_obj,(i,j,k)))
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
-  
-  width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
-  
-  x = np.arange(bounds[0],bounds[3]+hx,hx)
-  y = np.arange(bounds[1],bounds[4]+hy,hy)
-  z = np.arange(bounds[2],bounds[5]+hz,hz)
-  
-  for p in nondes_coords:
-    i,j,k = draw_profile_functions.cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],hx,hy,hz)
-    voxel_grid[i,j,k] = -2
-  
-  from pyevtk.hl import gridToVTK
-  gridToVTK("voxels",x,y,z,cellData={"voxels":voxel_grid})
-  
-  # binary helper array
-  helper = np.zeros(voxel_grid.shape[0:3],dtype=int)
-  # use voxel info for Marching cubes algorithm
-  # set voxels on boundary wit value 0
-  # set voxels inside structure with value 1
-  # voxels outside structure have value -1
-  for i in range(0,resolution[0]):
-    for j in range(0,resolution[1]):
-      for k in range(0,resolution[2]):
-        if voxel_grid[i,j,k] != -1: # valid voxel
-          helper[i,j,k] = 1
-  
-  from skimage import measure
-  # coords of vertices lie in [0,1-h]
-  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(hx),np.float32(hy),np.float32(hz)),allow_degenerate=False)
-  verts = np.asarray(verts)
-  verts += (hx/2.0,hy/2.0,hz/2.0)
-  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-  translation = vtk.vtkTransform()
-  translation.Translate(bounds[0],bounds[1],bounds[2])
-  transformFilter = vtk.vtkTransformPolyDataFilter()
-  transformFilter.SetInputData(pd)
-  transformFilter.SetTransform(translation)
-  transformFilter.Update()
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching.vtp")
-  
-  connectivity = basecell.getConnectivity(verts,faces)
-  points = []
-  for i,v in enumerate(verts):
-    points.append(draw_profile_functions.Vertex(v,i))
-  points = basecell.taubin_smoothing(points,connectivity,30,design_bounds)
-  verts = [p.coords for p in points]  
-  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-  translation = vtk.vtkTransform()
-  translation.Translate(bounds[0],bounds[1],bounds[2])
-  transformFilter = vtk.vtkTransformPolyDataFilter()
-  transformFilter.SetInputData(pd)
-  transformFilter.SetTransform(translation)
-  transformFilter.Update()
-  
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "smooothed_marching.vtp")
-    
-  sys.exit()
   
   # broadcast all data to master and exit script
   if rank != 0:
@@ -295,15 +197,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     sys.stdout.flush()
  
 #     basecells = align_cell_interfaces(nx,ny,nz,basecells,pos)
-#     resolve_hanging_nodes(nx,ny,nz,basecells,pos)
       
     import time   
     start = time.time()
-    # length of shortest edge
-    short = 99999 
-    short_e = 99999
     # for appending base cells
-    offset = 0 
     vertices = []   
     faces = []
     # appending cells
@@ -314,39 +211,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         end_vtk_iteration=time.time()
         print ("Time for vtk "+str(i)+" iterations" ,end_vtk_iteration-start ," s "   )
       
-#       verts, cells, short_e = add_offset(cell.points, cell.cells, offset)
-      
       coords = [ v.coords for v in cell.points]
       pd = matviz_vtk.fill_vtk_polydata(coords, cell.cells)
       appends.AddInputData(pd)
-#       vertices.extend(verts)
-#       faces.extend(cells)
-#       offset = len(vertices)
-      
-#       for f in faces:
-#         assert(type(f[0]) is int)
-#         assert(type(f[1]) is int)
-#         assert(type(f[2]) is int)
-#       if short_e < short:
-#         short = short_e
-# 
-#     assert(short > -1 and short < 99999)
-#     points, cells = matviz_vtk.vtk_polydata_to_numpy(cleanFilter.GetOutput())
-#     vertices, faces = matviz_vtk.vtk_polydata_to_numpy(pd)
-#     print("shortest edge:",short)
-#     for i, v in enumerate(vertices):
-#       assert(v.idx == i)
-    
-#     vertices, faces = merge_duplicated_points(vertices,faces,short)
-    
-#     points, cells = resolve_hanging_nodes(points,cells,(dx,dy,dz),(nx,ny,nz))
-    
-#     coords = [ v.coords for v in vertices]
-#     pd, _ = matviz_vtk.fill_vtk_polydata(coords,faces)
     
     appends.Update()
     
-#     print("before cleaning:",pd.GetNumberOfCells())
     # clean coinciden points
     clean = vtk.vtkCleanPolyData()
 #     clean.SetInputData(pd)

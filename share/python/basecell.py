@@ -332,7 +332,7 @@ if __name__ == "__main__":
   coords = points
   if args.target.startswith("surface"):
     coords = [p.coords for p in points]
-  polydaFta = matviz_vtk.fill_vtk_polydata(coords,cells)
+  polydata = matviz_vtk.fill_vtk_polydata(coords,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
