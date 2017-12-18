@@ -116,7 +116,6 @@ class Cubic_spline():
   
   def calc_d_spline_d_t(self,t):
     return outer(3*(1-t)**2,self.CP[:,1]-self.CP[:,0]) + outer(6.0*t*(1-t), self.CP[:,2] - self.CP[:,1]) + outer(3*t**2 ,self.CP[:,3]-self.CP[:,2])
-#     return outer(3*(1-t)**2,self.CP[:,0]-self.CP[:,1]) + outer(6.0*t*(1-t), self.CP[:,1] - self.CP[:,2]) + outer(3*t**2 ,self.CP[:,2]-self.CP[:,3])
   
   def calc_param_grad_1(self):
     if self.t_1 is not None:
@@ -915,7 +914,7 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
   if args.target == "surface_mesh" or args.target == "volume_mesh":
     # draw non-design points into array
     if nondes:
-      tmp_points = []        
+#       tmp_points = []        
       assert(global_grid_coords is not None)
       min_bb = global_grid_coords[0]
       max_bb = global_grid_coords[1]
@@ -930,10 +929,10 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
 #       print(cartesian_to_voxel_coords(max_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
 #       print("hx,hy,hz:",hx,hy,hz)
        
-#       for p in nondes:
-#         i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
-#         if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
-#           array[i,j,k] = -1
+      for p in nondes:
+        i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
+        if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
+          array[i,j,k] = -1
 #           tmp_points.append(p)
 #           print("point ",p," with i,j,k: ",i,j,k," in base cell")
 #         print("skip point ",p," with i,j,k: ",i,j,k)
@@ -949,7 +948,7 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     ############################ new surface mesh approach ####################
     # binary helper array
     shape = array.shape[0:3]
-    shape = [v+2 for v in shape]
+#     shape = [v+2 for v in shape]
     helper = np.zeros(shape,dtype=int)
     # use voxel info for Marching cubes algorithm
     # set voxels on boundary wit value 0
@@ -959,16 +958,16 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       for j in range(0,args.res):
         for k in range(0,args.res):
           if array[i,j,k] > -1: # valid voxel
-            helper[i+1,j+1,k+1] = 1
-#             helper[i,j,k] = 1
+#             helper[i+1,j+1,k+1] = 1
+            helper[i,j,k] = 1
             
-    helper[0,:,:] = helper[1,:,:]
-    helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
-    helper[:,0,:] = helper[:,1,:]
-    helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
-    helper[:,:,0] = helper[:,:,1]
-    helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
-        
+#     helper[0,:,:] = helper[1,:,:]
+#     helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
+#     helper[:,0,:] = helper[:,1,:]
+#     helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
+#     helper[:,:,0] = helper[:,:,1]
+#     helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
+#         
     # Use marching cubes to obtain the surface mesh of voxelized structure
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
@@ -978,8 +977,8 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     # marching_cubes returns float values
     verts = np.asarray(verts)
     # scale structure to [0,1]^3
-    verts *= 1/1.025
-#     verts += (h/2.0,h/2.0,h/2.0)
+#     verts *= 1/1.025
+    verts += (h/2.0,h/2.0,h/2.0)
     # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
@@ -1532,24 +1531,19 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
   # sort points in circle order
   coords_2d.sort(key=lambda c:math.atan2(np.asarray(c[0][0])-cell_center[0], np.asarray(c[0][1])-cell_center[1]))
 
-  info = triangle.MeshInfo()
-#   import matplotlib
-#   from matplotlib import pyplot as plt
-#   coords_2d = np.asarray(coords_2d)
-#   plot_coords_x = [p[0][0] for p in coords_2d]
-#   plot_coords_y = [p[0][1] for p in coords_2d]
-#   plt.plot(plot_coords_x,plot_coords_y,'o')
-#   plt.show()
-  # elem[0] is tuple of 2d coords, elem[1] is id
   test = [ [np.float64(elem[0][0]),np.float64(elem[0][1])] for elem in coords_2d]
-  info.set_points(test)
-  info.set_facets(round_trip_connect(0,len(coords_2d)-1))
+
+  import triangle
+
+  tri = dict(vertices=np.asarray(test))
+  mesh = triangle.triangulate(tri, 'q32.5a0.1C')
+#   import triangle.plot as plot
+#   import matplotlib.pyplot as plt  
+#   triangle.plot.compare(plt, tri, mesh)
+#   plt.show()
+  mesh_points = mesh['vertices']
+  mesh_tris = mesh['triangles']
   
-  mesh = triangle.build(info,generate_faces=True,min_angle=30,max_volume=1e-3)
-  mesh_points = np.array(mesh.points)
-  mesh_tris = np.array(mesh.elements)
-  
-  assert (len(mesh_points) > len(coords_2d))
   # up to len(l), l and mesh_points have the same ordering of points
   # map from local mesh_points point ids to global ones
   map = [-1] * len(mesh_points)
@@ -1559,6 +1553,7 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
 #     print(map[i])
     map[i] = int(coords_2d[i][1])
     assert(type(coords_2d[i][1]) is int)
+    
   ######### mapping back to 3d ########################
   # 0,1,2 -> 0.0  3,4,5 -> 1.0
   comp = 0.0 if 0 <= bound <= 2 else 1.0

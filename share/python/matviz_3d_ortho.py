@@ -48,12 +48,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
   
-  nondes_coords = nondes[0]
-  nondes_min = nondes[1]
-  nondes_max = nondes[2]
-  assert(len(nondes_min) == 3)
-  assert(len(nondes_max) == 3) 
-  
   # appending cells
   appends = vtk.vtkAppendPolyData()
   
@@ -159,7 +153,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     for c in range(len(flags)):      
       flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
     
-    print("rank:",rank," i,j,k:",i,j,k, " before basecell")
+    print("rank:",rank," i,j,k:",i,j,k, " before basecell;",x1,x2,y1,y2,z1,z2)
     sys.stdout.flush()
     
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
