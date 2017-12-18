@@ -322,7 +322,7 @@ if __name__ == "__main__":
   
   if args.target.startswith("surface"):
     connectivity = getConnectivity(points,cells)
-    points = taubin_smoothing(points,connectivity,args.smooth_iter)
+    points = taubin_smoothing(points,connectivity,20) 
   
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)

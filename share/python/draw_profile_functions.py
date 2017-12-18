@@ -923,16 +923,18 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       hx = (max_bb[0] - min_bb[0]) / res
       hy = (max_bb[1] - min_bb[1]) / res
       hz = (max_bb[2] - min_bb[2]) / res
-      print("min_bb[0],min_bb[1],min_bb[2]:",min_bb[0],min_bb[1],min_bb[2])
-      print("max_bb[0],max_bb[1],max_bb[2]:",max_bb[0],max_bb[1],max_bb[2])
-      print(cartesian_to_voxel_coords(min_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
-      print(cartesian_to_voxel_coords(max_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
-      print("hx,hy,hz:",hx,hy,hz) 
-      for p in nondes:
-        i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
-        if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
-          array[i,j,k] = -1
-          tmp_points.append(p)
+      
+#       print("min_bb[0],min_bb[1],min_bb[2]:",min_bb[0],min_bb[1],min_bb[2])
+#       print("max_bb[0],max_bb[1],max_bb[2]:",max_bb[0],max_bb[1],max_bb[2])
+#       print(cartesian_to_voxel_coords(min_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
+#       print(cartesian_to_voxel_coords(max_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
+#       print("hx,hy,hz:",hx,hy,hz)
+       
+#       for p in nondes:
+#         i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
+#         if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
+#           array[i,j,k] = -1
+#           tmp_points.append(p)
 #           print("point ",p," with i,j,k: ",i,j,k," in base cell")
 #         print("skip point ",p," with i,j,k: ",i,j,k)
 
@@ -947,7 +949,7 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     ############################ new surface mesh approach ####################
     # binary helper array
     shape = array.shape[0:3]
-#     shape = [v+1 for v in shape]
+    shape = [v+2 for v in shape]
     helper = np.zeros(shape,dtype=int)
     # use voxel info for Marching cubes algorithm
     # set voxels on boundary wit value 0
@@ -957,15 +959,15 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       for j in range(0,args.res):
         for k in range(0,args.res):
           if array[i,j,k] > -1: # valid voxel
-#             helper[i+1,j+1,k+1] = 1
-            helper[i,j,k] = 1
+            helper[i+1,j+1,k+1] = 1
+#             helper[i,j,k] = 1
             
-#     helper[0,:,:] = helper[1,:,:]
-#     helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
-#     helper[:,0,:] = helper[:,1,:]
-#     helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
-#     helper[:,:,0] = helper[:,:,1]
-#     helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
+    helper[0,:,:] = helper[1,:,:]
+    helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
+    helper[:,0,:] = helper[:,1,:]
+    helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
+    helper[:,:,0] = helper[:,:,1]
+    helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
         
     # Use marching cubes to obtain the surface mesh of voxelized structure
     # marching_cubes expect float values (not double)
@@ -975,13 +977,16 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
-    verts += (h/2.0,h/2.0,h/2.0)
+    # scale structure to [0,1]^3
+    verts *= 1/1.025
+#     verts += (h/2.0,h/2.0,h/2.0)
     # moves structure to [0,1]^3
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     # points: list with objects of type Vertex
     points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
     points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
+    
 
 #   points = [Vertex(v,i) for i,v in enumerate(verts) ]
 #   cells = faces  
@@ -1325,6 +1330,8 @@ def adjust_and_extract_boundary_points(profiles,points):
   ymax = max(points, key=lambda t: t[1])[1]
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
+  
+  print("dimensions:",xmin,ymin,zmin,xmax,ymax,zmax)
   
 #   assert(np.isclose(xmin,0.0,1e-6))
 #   assert(np.isclose(ymin,0.0,1e-6))

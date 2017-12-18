@@ -124,6 +124,23 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     z1 = min(max(this[2],min_thresh),max_thresh)
     z2 = min(max(front[2],min_thresh),max_thresh)
     
+#     if id == 1:
+#       x1 = 0.5231
+#       x2 = 0.5163
+#       y1 = 0.4752
+#       y2 = 0.5008 
+#       z1 = 0.16
+#       z2 = 0.1588
+#     elif id == 0:
+#       x1 =   0.5129 
+#       x2 = 0.5427
+#       y1 = 0.4873
+#       y2 = 0.4873
+#       z1 = 0.1402
+#       z2 = 0.16
+#     else:
+#       break
+
     # translate cell to correct position
     left_front_corner  = np.asarray(sample_coords[i,j,k])
     right_back_corner = left_front_corner + np.asarray([dx,dy,dz])
@@ -143,12 +160,15 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
     
     print("rank:",rank," i,j,k:",i,j,k, " before basecell")
+    sys.stdout.flush()
     
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
     cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
+    print("rank:",rank," scaling bc")
     cell_obj.scale(dx, dy, dz)
+    print("rank:",rank," translating bc")
     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
     cell_obj.update()
     if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
