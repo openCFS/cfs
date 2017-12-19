@@ -96,6 +96,7 @@ parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
 parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
+parser.add_argument('--tileborder', help="show tile borders when repeating patches. works only in combination with --tile", action='store_true')
 parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default="0.0")
 
 args = parser.parse_args()
@@ -139,10 +140,11 @@ else:
         for i in range(args.tile):
           for j in range(args.tile):
             tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
-            if i > 0:
-              tiled[i*nx,:] = 0
-            if j > 0:  
-              tiled[:,j*nx] = 0
+            if args.tileborder:
+                if i > 0:
+                  tiled[i*nx,:] = 0
+                if j > 0:  
+                  tiled[:,j*nx] = 0
         img = Image.fromarray(tiled)
     if args.save:
       print("saving image to file " + args.save)
