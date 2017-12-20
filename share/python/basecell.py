@@ -10,7 +10,6 @@ import mesh_tool
 import cfs_utils
 import argparse
 import draw_profile_functions
-from draw_profile_functions import Vertex
 from draw_profile_functions import calc_distance
 import numpy as np
 from scipy import interpolate
@@ -59,11 +58,10 @@ def laplacian_smoothing(points,connectivity,lamb,bounds=None):
   if bounds is None:
     bounds = [0.0,0.0,0.0,1.0,1.0,1.0] # default unit cube
   for i,vertex in enumerate(points):
-    p = vertex.coords
+    p = vertex
     # don't smooth at the boundary
     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
-      assert(i == vertex.idx)
-      new_points[i] = Vertex(p,vertex.idx)
+      new_points[i] = p
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
@@ -74,14 +72,12 @@ def laplacian_smoothing(points,connectivity,lamb,bounds=None):
       neighborhood = connectivity[i] 
       for nid in neighborhood:
         # n are coords of neighbor with id nid
-        n = points[nid].coords
+        n = points[nid]
         # distance between neighbor and this node
         w = 1.0 / np.linalg.norm(len(neighborhood))
         L = L + w * (n-p)
-      new_points[i] = Vertex(p + lamb * L,vertex.idx)   
+      new_points[i] = p + lamb * L   
   
-  for p in new_points:
-    assert(type(p) is Vertex)
   return new_points  
 
 def calc_volume(array,infoXml=None):
@@ -317,7 +313,7 @@ if __name__ == "__main__":
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
-  array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml,None)
+  array, points, cells = draw_profile_functions.generate_basecell(args,infoXml,None)
   volume = calc_volume(array, infoXml)
   
   if args.target == "surface_mesh":
@@ -327,12 +323,8 @@ if __name__ == "__main__":
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
-  # --volume_mesh gives list of points with only coordinate entries
-  # --surface_mesh gives list of Vertex() objects
-  coords = points
-  if args.target == "surface_mesh" or args.target == "marching_cubes":
-    coords = [p.coords for p in points]
-  polydata = matviz_vtk.fill_vtk_polydata(coords,cells)
+  # gives list of points with only coordinate entries
+  polydata = matviz_vtk.fill_vtk_polydata(points,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
@@ -429,16 +421,9 @@ class Basecell():
       assert(len(global_grid_coords[0]) == 3)
     self.data = data
     self.idx = idx
-    self.voxels, self.points, self.cells, self.boundary_points = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
-    assert(len(self.boundary_points) > 0)
+    self.voxels, self.points, self.cells = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
     assert(self.points is not None)
     assert(self.cells is not None)
-    for p in self.points:
-      assert(type(p) is Vertex)
-    for list in self.boundary_points:
-      for p in list:
-        assert(type(p) is Vertex)  
-#     print("self.points:",self.points,"\n")
 
     # xmin, ymin, zmin, xmax, ymax, zmax
     self.bounds = np.zeros(6)
@@ -452,207 +437,22 @@ class Basecell():
     
   def scale(self,scalex,scaley,scalez):
     scale = np.asarray([scalex,scaley,scalez])
-    self.points = [Vertex(p.coords*scale,p.idx) for p in self.points]
-    new_bp = []
-    for list in self.boundary_points:
-      new_list = [Vertex(p.coords*scale,p.idx) for p in list]
-      new_bp.append(new_list)
-      
-    self.boundary_points = new_bp 
-    assert(len(self.boundary_points) > 0)
+    self.points = [p*scale for p in self.points]
     self.center = self.center * np.asarray([scalex,scaley,scalez])
   def translate(self,x,y,z):
     shift = np.asarray([x,y,z])
-    self.points = [Vertex(p.coords+shift,p.idx) for p in self.points]
-    new_bp = []
-    for list in self.boundary_points:
-      new_list = [Vertex(p.coords+shift,p.idx) for p in list]
-      new_bp.append(new_list)
-      
-    self.boundary_points = new_bp 
-    assert(len(self.boundary_points) > 0)
+    self.points = [p+shift for p in self.points]
     self.center += shift
     
   # recalculate bounds after rescaling and translating
   def update(self):
-    coords = np.asarray([p.coords for p in self.points])
-    self.bounds[0] = np.min(coords[:,0])
-    self.bounds[1] = np.min(coords[:,1])
-    self.bounds[2] = np.min(coords[:,2])
-    self.bounds[3] = np.max(coords[:,0])
-    self.bounds[4] = np.max(coords[:,1])
-    self.bounds[5] = np.max(coords[:,2])
+    self.bounds[0] = np.min(np.asarray(self.points)[:,0])
+    self.bounds[0] = np.min(np.asarray(self.points)[:,1])
+    self.bounds[0] = np.min(np.asarray(self.points)[:,2])
+    self.bounds[0] = np.max(np.asarray(self.points)[:,0])
+    self.bounds[0] = np.max(np.asarray(self.points)[:,1])
+    self.bounds[0] = np.max(np.asarray(self.points)[:,2])
   
-  # take list with 'new' coords and replace mylist at entry list_idx  
-  def replace_boundary_points(self,new,list_idx):
-    print("\n start replacing")
-    for i in range(len(self.points)):
-      if self.points[i].idx != i:
-        print("self.points[i].idx != i  idx:",self.points[i].idx,"  i:",i)
-      assert(self.points[i].idx == i)
-    print("\nlist_idx:",list_idx)
-    for p in self.boundary_points[list_idx]:
-      print(p)
-    
-#     if len(new) != len(self.boundary_points[list_idx]):  
-#       out = open("cells.txt","w")
-#       for c in self.cells:
-#         out.write(str(c) + "\n")
-#       out.close()    
-
-    # if number of nodes on both sides differ, we have hanging nodes
-    while len(new) != len(self.boundary_points[list_idx]):
-      assert(np.abs(len(new)-len(self.boundary_points[list_idx])) < 10)
-      # detect gap by finding first and last point (indices) of difference
-      long_first_id = None
-      long_last_id = None
-      long_list = new if len(new) > len(self.boundary_points[list_idx]) else self.boundary_points[list_idx]
-      short_list = new if len(new) < len(self.boundary_points[list_idx]) else self.boundary_points[list_idx]
-      assert(long_list is not short_list)
-      
-      short_first_id = None
-      short_last_id = None
-      for i in range(len(long_list)):
-    #     print("\nlong_list[i]:",long_list[i])
-    #     print("short_list[i]:",short_list[i])
-        if i < len(short_list) and calc_distance(long_list[i].coords,short_list[i].coords) > 1e-6:
-          # set only once
-          assert(long_first_id is None)
-          long_first_id = i-1
-          # store idx of last short_list element with match in long_list
-          short_first_id = i-1
-          print("long_first_id:",long_first_id," coords:",long_list[i-1].coords)
-          print("short_first_id:",short_first_id," coords:",short_list[i-1].coords)
-          break
-      
-      assert(short_first_id is not None)
-      for i in range(short_first_id+1,len(short_list)):
-        for j,p in enumerate(long_list):
-    #       print("short_list[i]:",short_list[i])
-    #       print("p:",p)
-          if np.isclose(calc_distance(short_list[i].coords,p.coords),0):
-            # found points where both lists match again
-            short_last_id = i
-            long_last_id = j
-            print("long_last_id:",long_last_id," coords:",long_list[i].coords)
-            print("short_last_id:",short_last_id," coords:",short_list[j].coords)
-            break       
-        if short_last_id is not None:
-          break
-      
-      short_point_ids = []
-      long_point_ids = []
-      print("\n short_point_ids:")
-      for p in range(short_first_id,short_last_id+1):
-        short_point_ids.append(p)
-        print(short_point_ids[-1],short_list[short_point_ids[-1]].idx)
-      
-      print("\n long_point_ids:")  
-      for p in range(long_first_id,long_last_id+1):
-        long_point_ids.append(p)
-        print(long_point_ids[-1],long_list[long_point_ids[-1]].idx)
-      
-      assert(len(long_point_ids) > len(short_point_ids))
-      # assert first and last points match
-      assert(np.isclose(calc_distance(short_list[short_point_ids[0]].coords,long_list[long_point_ids[0]].coords),0))
-      assert(np.isclose(calc_distance(short_list[short_point_ids[-1]].coords,long_list[long_point_ids[-1]].coords),0))
-      
-      merged = False
-      for i in range(1,len(long_point_ids)-1):
-        for j in range(1,len(short_point_ids)-1):
-          # merge point if too close
-          dist = calc_distance(long_list[long_point_ids[i]].coords,short_list[short_point_ids[j]].coords)
-          if dist < 1e-3:
-            print("point ",short_list[short_first_id+j], " close to ",long_list[long_first_id+i]," dist: ",dist)
-            # don't replace ids to ensure connectivity of cells
-            short_list[short_first_id+j].coords = long_list[long_first_id+i].coords
-            merged = True
-      
-      # real hanging nodes
-      if not merged:    
-        assert(len(long_point_ids)-1 == len(short_point_ids))
-#         print("\nlong list:")
-#         for p in long_list:
-#           print(p)
-#         print("\nshort list:")
-#         for p in short_list:
-#           print(p)  
-        
-        print("insert ", long_list[long_first_id+1], " in short list at pos ", short_first_id+1)
-        new_p = long_list[long_first_id+1]
-        new_p.idx = len(self.points)   
-        self.points.append(new_p)
-        short_list.insert(short_first_id+1,new_p)
-        # added additional point to shorter list, now create new cells
-        left_id = short_list[short_first_id].idx
-        right_id = short_list[short_first_id+2].idx
-        new_id = new_p.idx
-        cell = None
-        print("left_id:",left_id," coords:",short_list[short_first_id].coords)
-        print("right_id:",right_id, " coords:", short_list[short_first_id+2].coords)
-        print("new_id:",new_id, " coords:",new_p.coords)
-        # get cell with edge left-right
-        for i,c in enumerate(self.cells):
-          if left_id in c and right_id in c:
-            # get cell and delete it directly
-            cell = self.cells.pop(i)
-            break
-        
-        assert(cell is not None)
-        print("cell:",cell,self.points[cell[0]],self.points[cell[1]],self.points[cell[2]])
-        for i,p in enumerate(self.points):
-          if p.idx == cell[0]:
-            print("cell[0] points list id:",id," point:",p)
-            break
-        for i,p in enumerate(self.points):
-          if p.idx == cell[1]:
-            print("cell[1] points list id:",id," point:",p)
-            break
-        for i,p in enumerate(self.points):
-          if p.idx == cell[2]:
-            print("cell[2] points list id:",id," point:",p)
-            break    
-        mid_id = [ vert for vert in cell if vert not in [left_id,right_id]][0]
-        print("mid_id:",mid_id)
-        assert(mid_id != left_id)
-        assert(mid_id != right_id)
-        # split cell into two cells
-        self.cells.append((left_id,new_id,mid_id))
-        self.cells.append((new_id,right_id,mid_id))
-        print("appending cell ",(left_id,new_id,mid_id))
-        print("appending cell ",(new_id,right_id,mid_id))
-        
-    bp = self.boundary_points[list_idx]
-    # remember point ids that we replace
-    old_ids = [p.idx for p in bp]
-    # replace coords, keep ids
-    for i,p in enumerate(new):
-#       print("replace ",self.boundary_points[list_idx][i].coords, " with ", p.coords)
-      self.boundary_points[list_idx][i].coords = p.coords
-      
-    new_points = [None] * len(self.points)
-    # changing has also to be done in global points list
-    for i,p in enumerate(self.points):
-      # identify boundary point by id
-      if p.idx in old_ids:
-        # give new coords
-        # find correct entry (index) in boundary list
-        bp_id = old_ids.index(p.idx)
-        new_points[p.idx] = new[bp_id]
-        new_points[p.idx].idx = p.idx 
-      else:
-        # keep point if not replacing
-        new_points[i] = p
-
-    assert(len(self.points) == len(new_points))
-     
-    for i in range(len(new_points)):
-      if np.linalg.norm(np.asarray(self.points[i].coords) - np.asarray(new_points[i].coords) > 1e-6):
-        print("replace point ", self.points[i], " with point ", new_points[i].coords)
-                 
-    self.points = new_points
-    
-#     print("replaced ", len(old_ids), " points with ", len(new))      
 ############## info xml scheme #####################
 # <basecell>
 # <input x1="" x2="" y1="" y2="" z1="" z2=""/>

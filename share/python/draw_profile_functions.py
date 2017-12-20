@@ -41,26 +41,6 @@ infoXml = None
 interpolation = None
 symmetric = False # basecell symmetric(x1=x2=y1=y2=z1=z2)?
 
-class Vertex():
-  def __init__(self,coords,id):
-    self.coords = coords
-    assert(type(id) is int)
-    self.idx = id
-    
-  def __str__(self):  
-    return "id:" + str(self.idx) + " coords:" + str(self.coords)
-  
-# the 6 faces of a bounding box, need it for identifying boundary circles
-class Face_Name(Enum):
-  # define order to allow for f in Face_Name
-  __order__ = 'XMIN YMIN ZMIN XMAX YMAX ZMAX'
-  XMIN = 0
-  YMIN = 1
-  ZMIN = 2
-  XMAX = 3
-  YMAX = 4
-  ZMAX = 5
-  
 class Cubic_spline():
   # assume we have u_0=u_1=u_2=u_3=0 and u_4=u_5=u_6=u_7=13
   # a cubic spline is defined by its base functions and control polygon
@@ -923,12 +903,6 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       hy = (max_bb[1] - min_bb[1]) / res
       hz = (max_bb[2] - min_bb[2]) / res
       
-#       print("min_bb[0],min_bb[1],min_bb[2]:",min_bb[0],min_bb[1],min_bb[2])
-#       print("max_bb[0],max_bb[1],max_bb[2]:",max_bb[0],max_bb[1],max_bb[2])
-#       print(cartesian_to_voxel_coords(min_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
-#       print(cartesian_to_voxel_coords(max_bb,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz))
-#       print("hx,hy,hz:",hx,hy,hz)
-       
       for p in nondes:
         i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
         if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
@@ -962,18 +936,18 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     verts += (h/2.0,h/2.0,h/2.0)
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
-    # points: list with objects of type Vertex
+    # points: list with 3d coords
     if args.target == "surface_mesh":
       points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
       points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
     else:
-      points = [Vertex(v,i) for i,v in enumerate(verts) ]
+      points = verts
       cells = faces  
       
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
-  return array, points, cells, bp_lists
+  return array, points, cells
 
 # creates map with info on profile depending on radius
 # Profile contains list of tuples with vector,angle and idx where constant part begins (bisec: res/2, orthogonal: grad is 1)
@@ -1313,13 +1287,6 @@ def adjust_and_extract_boundary_points(profiles,points):
   
 #   print("dimensions:",xmin,ymin,zmin,xmax,ymax,zmax)
   
-#   assert(np.isclose(xmin,0.0,1e-6))
-#   assert(np.isclose(ymin,0.0,1e-6))
-#   assert(np.isclose(zmin,0.0,1e-6))
-#   assert(np.isclose(xmax,1.0,1e-6))
-#   assert(np.isclose(ymax,1.0,1e-6))
-#   assert(np.isclose(zmax,1.0,1e-6))
-  
   vertices = [None] * len(points)
   lists = [[] for i in range(6)]
   major_dir = -1
@@ -1329,49 +1296,49 @@ def adjust_and_extract_boundary_points(profiles,points):
     if np.isclose(p[0],xmin,1e-6):
       # move x to 0
       points[id][0] = 0
-      lists[Face_Name.XMIN.value].append(Vertex(points[id],id))
+      lists[0].append((points[id],id))
       major_dir = 0
     elif np.isclose(p[0],xmax,1e-6):
       # move x to 1
       points[id][0] = 1.0
-      lists[Face_Name.XMAX.value].append(Vertex(points[id],id))
+      lists[3].append((points[id],id))
       major_dir = 0
     # y
     elif np.isclose(p[1],ymin,1e-6):
       # move y to 0
       points[id][1] = 0
-      lists[Face_Name.YMIN.value].append(Vertex(points[id],id))
+      lists[1].append((points[id],id))
       major_dir = 1
     elif np.isclose(p[1],ymax,1e-6):
       # move y to 1
       points[id][1] = 1.0
-      lists[Face_Name.YMAX.value].append(Vertex(points[id],id))
+      lists[4].append((points[id],id))
       major_dir = 1  
     # z
     elif np.isclose(p[2],zmin,1e-6):
       # move z to 0
       points[id][2] = 0
-      lists[Face_Name.ZMIN.value].append(Vertex(points[id],id))
+      lists[2].append((points[id],id))
       major_dir = 2
     elif np.isclose(p[2],zmax,1e-6):
       # move z to 1
       points[id][2] = 1.0
-      lists[Face_Name.ZMAX.value].append(Vertex(points[id],id))
+      lists[5].append((points[id],id))
       major_dir = 2
     else:
-      vertices[id] = Vertex(points[id],id)
+      vertices[id] = points[id]
       continue
     
     assert(major_dir > -1 and major_dir < 3)
     minor1, minor2 = give_normal_plane_axes(major_dir)
     phi = angle_to_center((p[minor1],p[minor2]))
-    vertices[id] = Vertex(radius_to_3d_coords(profiles[major_dir], p[major_dir], phi) ,id)
+    vertices[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
   
-  # after adjusting, also update new locations in boundary lists
-  for f in Face_Name:
-    for i,vert in enumerate(lists[f.value]):
-      vert.coords = vertices[vert.idx].coords
     
+  for l in lists:
+    for i in range(len(l)):
+      l[i] = (vertices[l[i][1]],l[i][1])
+  
   for i,l in enumerate(lists):
     major = i%3
     minor1, minor2 = give_normal_plane_axes(major)
@@ -1379,24 +1346,10 @@ def adjust_and_extract_boundary_points(profiles,points):
     # sort points in cyclic order
     # here we live in [0,1]^3
     cell_center = np.asarray([0.5,0.5,0.5])
-    l.sort(key=lambda c:math.atan2(np.asarray(c.coords[minor1])-cell_center[0], np.asarray(c.coords[minor2])-cell_center[1]))
-    for p in l:
-      if major == 3 or major == 4 or major == 5:
-        print('major:',major)
-        assert(np.isclose(p.coords[major],1.0))
+    l.sort(key=lambda c:math.atan2(np.asarray(c[0][minor1])-cell_center[0], np.asarray(c[0][minor2])-cell_center[1]))
     
-  for v in vertices:
-    assert(type(v) is Vertex)
-      
   return vertices, lists
  
-def round_trip_connect(start, end):
-  result = []
-  for i in range(start, end):
-    result.append((i, i+1))
-  result.append((end, start))
-  return result
-
 # returns list of coordinates for given boundary 'bound'
 # using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
 # @param bpoints: six lists with boundary points for each face of the bounding box
@@ -1411,16 +1364,15 @@ def extract_2d_bc_boundary_coords(bpoints,bound):
   minor_1, minor_2 = give_normal_plane_axes(major_dir)
   
   for p in bpoints[bound]:
-    assert(type(p) is Vertex)
 #     print("bc_bounds[bound]:",bc_bounds,bound,bc_bounds[bound])
-    result.append( ((p.coords[minor_1],p.coords[minor_2]),p.idx) )
+    result.append( ((p[0][minor_1],p[0][minor_2]),p[1]) )
   
   return result  
 
 # @param flags: 6 flags indicating which boundary circle to mesh and which not
 # order of flags: xmin,xmax,ymin,ymax,zmin,zmax
 # @param bp_lists: 6 lists with boundary points for each bounding box face
-# @param points: list with objects of type Vertex
+# @param points: list with 3d coords
 def mesh_boundary_circles(points,cells,bpoints,flags=None):
   assert(len(bpoints) == 6)
    
@@ -1437,14 +1389,6 @@ def mesh_boundary_circles(points,cells,bpoints,flags=None):
     bcoords_2d = extract_2d_bc_boundary_coords(bpoints,b)
     points, cells = mesh_basecell_boundary(points,cells,bcoords_2d,b)
   
-  for p in points:
-    assert(type(p) is Vertex)
-#   for c in cells:
-#     print("type(c[0]):",type(c[0]))
-#     assert(type(c[0]) is int)
-#     assert(type(c[1]) is int)
-#     assert(type(c[2]) is int)  
-    
   return points, cells    
 
 # @returns 3d cartesian coordinates
@@ -1494,7 +1438,7 @@ def voxels_to_points_and_cells(array,wx=1.0,wy=1.0,wz=1.0):
   return points, cells
 
 # here we only deal with 3 dimensions
-# @param points: list of all created points of type Vertex
+# @param points: list of all created 3d point coords
 # @param bound: which of the 6 boundary faces to mesh
 # order: xmin,xmax,ymin,ymax,zmin,zmax
 def mesh_basecell_boundary(points,cells,coords_2d,bound):
@@ -1541,7 +1485,7 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
     new_p[minor_dir_1] = mesh_points[i][0]
     new_p[minor_dir_2] = mesh_points[i][1]
     # id of new pointcoords_2d
-    new_points.append(Vertex(new_p,next_id))
+    new_points.append(new_p)
     assert(type(next_id) is int)
     map[i] = next_id
     next_id +=1
