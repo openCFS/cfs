@@ -888,7 +888,7 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       
       plt.show()
       
-    if args.target == "volume_mesh" or args.target == "surface_mesh":
+    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "marching_cubes":
       global symmetric
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
@@ -911,7 +911,7 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
-  if args.target == "surface_mesh" or args.target == "volume_mesh":
+  if args.target == "surface_mesh" or args.target == "marching_cubes":
     # draw non-design points into array
     if nondes:
 #       tmp_points = []        
@@ -933,17 +933,6 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
         i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
         if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
           array[i,j,k] = -1
-#           tmp_points.append(p)
-#           print("point ",p," with i,j,k: ",i,j,k," in base cell")
-#         print("skip point ",p," with i,j,k: ",i,j,k)
-
-#       import csv
-#       out = open('points.csv', 'w')
-#       with out:
-#         csvwriter = csv.writer(out)
-#         csvwriter.writerow("xyz")
-#         csvwriter.writerows(tmp_points)
-      
   
     ############################ new surface mesh approach ####################
     # binary helper array
@@ -958,16 +947,8 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
       for j in range(0,args.res):
         for k in range(0,args.res):
           if array[i,j,k] > -1: # valid voxel
-#             helper[i+1,j+1,k+1] = 1
             helper[i,j,k] = 1
             
-#     helper[0,:,:] = helper[1,:,:]
-#     helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
-#     helper[:,0,:] = helper[:,1,:]
-#     helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
-#     helper[:,:,0] = helper[:,:,1]
-#     helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
-#         
     # Use marching cubes to obtain the surface mesh of voxelized structure
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
@@ -977,18 +958,18 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
     # marching_cubes returns float values
     verts = np.asarray(verts)
     # scale structure to [0,1]^3
-#     verts *= 1/1.025
-    verts += (h/2.0,h/2.0,h/2.0)
     # moves structure to [0,1]^3
+    verts += (h/2.0,h/2.0,h/2.0)
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     # points: list with objects of type Vertex
-    points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
-    points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
-    
-
-#   points = [Vertex(v,i) for i,v in enumerate(verts) ]
-#   cells = faces  
+    if args.target == "surface_mesh":
+      points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
+      points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
+    else:
+      points = [Vertex(v,i) for i,v in enumerate(verts) ]
+      cells = faces  
+      
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
   
@@ -1330,7 +1311,7 @@ def adjust_and_extract_boundary_points(profiles,points):
   zmin = min(points, key=lambda t: t[2])[2]
   zmax = max(points, key=lambda t: t[2])[2]
   
-  print("dimensions:",xmin,ymin,zmin,xmax,ymax,zmax)
+#   print("dimensions:",xmin,ymin,zmin,xmax,ymax,zmax)
   
 #   assert(np.isclose(xmin,0.0,1e-6))
 #   assert(np.isclose(ymin,0.0,1e-6))
@@ -1481,7 +1462,7 @@ def radius_to_3d_coords(profile,x,phi):
  
   return point
 
-def voxels_to_points_and_cells(array,cell_data=None,wx=1.0,wy=1.0,wz=1.0):
+def voxels_to_points_and_cells(array,wx=1.0,wy=1.0,wz=1.0):
   resx, resy, resz = array.shape
   
   hx = wx / resx
@@ -1497,19 +1478,13 @@ def voxels_to_points_and_cells(array,cell_data=None,wx=1.0,wy=1.0,wz=1.0):
         y = j * hy + hy/2.0 
         z = k * hz + hz/2.0
         
-#         if array[i,j,k] >= 0:
-#            if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:   
-#              if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-#                centers.append([x,y,z])
-#            else:
-#              centers.append([x,y,z])
+        if array[i,j,k] >= 0:
+           if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:   
+             if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+               centers.append([x,y,z])
+           else:
+             centers.append([x,y,z])
         
-        centers.append([x,y,z])
-        if cell_data:
-          assert(array[i,j,k] == 1 or array[i,j,k] == -1)
-          cell_data.InsertNextValue(array[i,j,k])
-        
-          
   # dummy objects, create_centered_bars needs them
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()

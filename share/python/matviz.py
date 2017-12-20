@@ -344,7 +344,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
                 if nondes_coords:
-                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes_coords[0])
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes_coords)
                 else:
                   viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=None)
                 me = None                
@@ -625,7 +625,7 @@ else:
   centers, min_bb, max_bb, elem_dim, _, _, _ = centered_elements(f, args.h5_region)
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
       
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))

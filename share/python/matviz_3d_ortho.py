@@ -99,6 +99,29 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("rank:",rank," start:",start," end:",end)
   sys.stdout.flush()
   
+  
+  ################# voxel world #########################################
+  nondes_coords = nondes[0]
+  nondes_min = nondes[1]
+  nondes_max = nondes[2]
+  assert(len(nondes_min) == 3)
+  assert(len(nondes_max) == 3) 
+  # np.minimum gives elementwise min value
+  bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
+  bounds[3:6] = np.maximum(np.asarray(max_bb),np.asarray(nondes_max))
+  print("min_bb:",min_bb)
+  print("max_bb:",max_bb)
+  print("min_dim:",bounds[0:3])
+  print("max_dim:",bounds[3:6])
+  resolution = (int(samples[0]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
+  print("resolution:",resolution)
+  voxel_grid  = np.full(resolution,-1,dtype=int)
+  width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
+  
+  hx_old = width[0] / float(resolution[0])
+  hy_old = width[1] / float(resolution[1])
+  hz_old = width[2] / float(resolution[2])
+  
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
     
@@ -118,23 +141,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     z1 = min(max(this[2],min_thresh),max_thresh)
     z2 = min(max(front[2],min_thresh),max_thresh)
     
-#     if id == 1:
-#       x1 = 0.5231
-#       x2 = 0.5163
-#       y1 = 0.4752
-#       y2 = 0.5008 
-#       z1 = 0.16
-#       z2 = 0.1588
-#     elif id == 0:
-#       x1 =   0.5129 
-#       x2 = 0.5427
-#       y1 = 0.4873
-#       y2 = 0.4873
-#       z1 = 0.1402
-#       z2 = 0.16
-#     else:
-#       break
-
     # translate cell to correct position
     left_front_corner  = np.asarray(sample_coords[i,j,k])
     right_back_corner = left_front_corner + np.asarray([dx,dy,dz])
@@ -159,22 +165,96 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="surface_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
-    print("rank:",rank," scaling bc")
-    cell_obj.scale(dx, dy, dz)
-    print("rank:",rank," translating bc")
-    cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
-    cell_obj.update()
-    if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-      continue
-    cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
-    cell_obj.center = cell_center
-    
-    print("rank:",rank," after base cell")
+    cell_obj = basecell.Basecell(bc_input,id,None,(left_front_corner,right_back_corner))
+#     cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
+#     cell_obj.scale(dx, dy, dz)
+#     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
+#     cell_obj.update()
+#     if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
+#       continue
+#     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
+#     cell_obj.center = cell_center
+    voxel_grid[i*args.bc_res:(i+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
     
     basecells.append((cell_obj,(i,j,k)))
     print("appended ",i,j,k,left_front_corner,x1,x2,y1,y2,z1,z2)
   
+  eps = 1e-6
+  x = np.arange(bounds[0],bounds[3]+hx_old-eps,hx_old)
+  y = np.arange(bounds[1],bounds[4]+hy_old-eps,hy_old)
+  z = np.arange(bounds[2],bounds[5]+hz_old-eps,hz_old)
+  
+  for p in nondes_coords:
+    i,j,k = draw_profile_functions.cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old)
+    voxel_grid[i,j,k] = -2
+  
+  from pyevtk.hl import gridToVTK  
+  gridToVTK("voxels",x,y,z,cellData={"voxels":voxel_grid})
+  
+  # binary helper array
+  shape = np.asarray(voxel_grid.shape[0:3]) + np.array((2,2,2)) 
+  helper = np.zeros(shape,dtype=int)
+  # use voxel info for Marching cubes algorithm
+  # set voxels on boundary wit value 0
+  # set voxels inside structure with value 1
+  # voxels outside structure have value -1
+  for i in range(shape[0]-2):
+    for j in range(shape[1]-2):
+      for k in range(shape[2]-2):
+        if voxel_grid[i,j,k] != -1: # valid voxel
+          helper[i+1,j+1,k+1] = 1
+          
+#   helper[0,:,:] = helper[1,:,:]
+#   helper[:,0,:] = helper[:,1,:]
+#   helper[:,:,0] = helper[:,:,1]
+#   helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
+#   helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
+#   helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
+  
+  hx = width[0] / float(shape[0])
+  hy = width[1] / float(shape[1])
+  hz = width[2] / float(shape[2])
+  
+  print("hx,hy,hz:",hx,hy,hz)
+  print("old hx,hy,hz:",hx_old,hy_old,hz_old)
+  
+  x = np.arange(bounds[0],bounds[3]+1*hx,hx)
+  y = np.arange(bounds[1],bounds[4]+1*hy,hy)
+  z = np.arange(bounds[2],bounds[5]+1*hz,hz)
+  from pyevtk.hl import gridToVTK  
+  gridToVTK("helper",x,y,z,cellData={"helper":helper}) 
+ 
+  from skimage import measure
+  # coords of vertices lie in [0,1-h]
+  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(hx_old),np.float32(hy_old),np.float32(hz_old)),allow_degenerate=False)
+  verts = np.asarray(verts) + (hx/2.0,hy/2.0,hz/2.0)
+  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+  translation = vtk.vtkTransform()
+  translation.Translate(bounds[0],bounds[1],bounds[2])
+  transformFilter = vtk.vtkTransformPolyDataFilter()
+  transformFilter.SetInputData(pd)
+  transformFilter.SetTransform(translation)
+  transformFilter.Update()
+  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching.vtp")
+ 
+  connectivity = basecell.getConnectivity(verts,faces)
+  points = []
+  for i,v in enumerate(verts):
+    points.append(draw_profile_functions.Vertex(v,i))
+  points = basecell.taubin_smoothing(points,connectivity,30,design_bounds)
+  verts = [p.coords for p in points] 
+  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+  translation = vtk.vtkTransform()
+  translation.Translate(bounds[0],bounds[1],bounds[2])
+  transformFilter = vtk.vtkTransformPolyDataFilter()
+  transformFilter.SetInputData(pd)
+  transformFilter.SetTransform(translation)
+  transformFilter.Update()
+ 
+  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "smooothed_marching.vtp")
+   
+  sys.exit()
+    
   # broadcast all data to master and exit script
   if rank != 0:
     sys.stdout.flush()

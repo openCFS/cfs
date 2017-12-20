@@ -157,7 +157,7 @@ if __name__ == "__main__":
   parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
   parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
   parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","None","surface_mesh"], required=True)
+  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","marching_cubes","surface_mesh"], required=True)
   parser.add_argument('--save', help="overwrite default target name")
   parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
   parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
@@ -320,7 +320,7 @@ if __name__ == "__main__":
   array, points, cells, _ = draw_profile_functions.generate_basecell(args,infoXml,None)
   volume = calc_volume(array, infoXml)
   
-  if args.target.startswith("surface"):
+  if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
     points = taubin_smoothing(points,connectivity,20) 
   
@@ -330,14 +330,14 @@ if __name__ == "__main__":
   # --volume_mesh gives list of points with only coordinate entries
   # --surface_mesh gives list of Vertex() objects
   coords = points
-  if args.target.startswith("surface"):
+  if args.target == "surface_mesh" or args.target == "marching_cubes":
     coords = [p.coords for p in points]
   polydata = matviz_vtk.fill_vtk_polydata(coords,cells)
   if args.show: # show it only
     print("starting visualization...")
     show_vtk(polydata, 1000, [], True)
   ################### take care of gid mesh ##############
-  if args.target.startswith("volume"):
+  if args.target == "volume_mesh":
     if args.z1 == 0.0 and args.z2 == 0.0:
       mesh = create_2d_mesh_from_array(array)
     else:
@@ -346,14 +346,12 @@ if __name__ == "__main__":
     mesh_tool.validate_periodicity(mesh)
     
     mesh_tool.write_gid_mesh(mesh, fileNameBase+".mesh") 
-    
-  
   
   ################ take care of stl and vtp files ##############  
-  if args.target.startswith("volume"):
+  if args.target == "volume_mesh":
     vtpName = fileNameBase + ".vtp"
     matviz_vtk.show_write_vtk(polydata,1000,vtpName)
-  elif args.target.startswith("surface"):
+  elif args.target == "surface_mesh" or args.target == "marching_cubes":
     stlName = fileNameBase + ".stl"
     # make sure normals are oriented consistently
     normals = vtk.vtkPolyDataNormals()
@@ -368,7 +366,7 @@ if __name__ == "__main__":
       print("here")
       mesh_tool.create_volume_mesh_with_gmsh(stlName)
   else:    
-    print("Ohohohoh....")
+    print("Error: Missing if branch for writing output!")
     sys.exit()
               
   if infoXml != None:
