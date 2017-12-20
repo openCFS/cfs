@@ -1334,7 +1334,6 @@ def adjust_and_extract_boundary_points(profiles,points):
     phi = angle_to_center((p[minor1],p[minor2]))
     vertices[id] = radius_to_3d_coords(profiles[major_dir], p[major_dir], phi)
   
-    
   for l in lists:
     for i in range(len(l)):
       l[i] = (vertices[l[i][1]],l[i][1])

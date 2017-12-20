@@ -625,18 +625,11 @@ else:
   centers, min_bb, max_bb, elem_dim, _, _, _ = centered_elements(f, args.h5_region)
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
       
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
   
-#   if not dim_2D:
-#     for i in range(3):
-#       if nondes_min[i] < min_bb[i]:
-#         min_bb[i] = nondes_min[i]
-#       if nondes_max[i] > max_bb[i]:
-#         max_bb[i] = nondes_max[i]  
-
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":

@@ -235,7 +235,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching.vtp")
  
   connectivity = basecell.getConnectivity(verts,faces)
-  points = basecell.taubin_smoothing(verts,connectivity,30,design_bounds)
+  verts = basecell.taubin_smoothing(verts,connectivity,30)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
   translation.Translate(bounds[0],bounds[1],bounds[2])
