@@ -240,15 +240,15 @@ CoefFunctionSurfMaxwell::CoefFunctionSurfMaxwell( bool mapNormal,
 
 void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
                                  const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
+  assert(this->dimType_ == VECTOR);// Richtungsvektor
 
   // create local point for surface
-  LocPointMapped surfLpm(lpm);
+  LocPointMapped surfLpm(lpm);//Permeabilitätsänderung
   surfLpm.SetSurfInfo( regions_, neighborRegionId_);
 
-//  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-//  std::string regionName = ptGrid_->GetRegion().ToString(region);
-//  std::cout << "RegName: " << regionName << std::endl;
+  //RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+  //std::string regionName = ptGrid_->GetRegion().ToString(region);
+  //std::cout << "RegName: " << regionName << std::endl;
 
   //get magnetic flux density
   Vector<Double> Bvec;

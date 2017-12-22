@@ -279,6 +279,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of surface element result types of magneticedge PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magForceMaxwellDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- Definition of region result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeRegionResult">
     <xsd:restriction base="xsd:token">
@@ -294,6 +301,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
       <xsd:enumeration value="magFlux"/>
+      <xsd:enumeration value="magForceMaxwell"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -373,6 +381,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
                 <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
