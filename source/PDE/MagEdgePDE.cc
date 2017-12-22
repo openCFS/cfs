@@ -173,6 +173,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         PtrCoefFct nuNl = 
             actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
                                           magFluxCoef  );
+        //compute permeability
+        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
+         	            CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
+        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
         BaseBDBInt* stiff1 = NULL;
         stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
         stiff1->SetName("CurlCurlIntegrator-NL");
@@ -241,6 +247,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         PtrCoefFct curCoef = 
             //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
             actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+        //compute permeability
+        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
+        					      	            CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
         BaseBDBInt* curlcurl;
         //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
         curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0, updatedGeo_) ;
@@ -830,6 +842,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     hdbcSolNameMap_[MAG_POTENTIAL] = "fluxParallel";
     idbcSolNameMap_[MAG_POTENTIAL] = "potential";
 
+    // === PERMEABILITY ===
+    shared_ptr<ResultInfo> permeability ( new ResultInfo );
+    permeability->resultType = MAG_ELEM_PERMEABILITY;
+    permeability->dofNames = "";
+    permeability->unit = "Vs/Am";
+    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+    DefineFieldResult(permFct, permeability);
   }
   
   void MagEdgePDE::DefinePostProcResults() {
@@ -1047,7 +1069,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     }
 
-
     // === COIL CURRENT DENSITY ===
     shared_ptr<ResultInfo> ccd(new ResultInfo);
     ccd->resultType = MAG_COIL_CURRENT_DENSITY;
@@ -1133,6 +1154,42 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<CoefFunctionMulti> hFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
                                                                 isComplex_));
     DefineFieldResult( hFunc, magIntens );
+
+    if( analysistype_ != HARMONIC ) {
+                        	// === MAXWELL FORCE DENSITY ===
+                        	shared_ptr<ResultInfo> mfd(new ResultInfo);
+                        	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
+                        	mfd->dofNames = vecComponents;
+                        	mfd->unit = "N/m^3";
+                        	mfd->definedOn = ResultInfo::SURF_ELEM;
+                        	mfd->entryType = ResultInfo::VECTOR;
+                        	availResults_.insert( mfd );
+
+
+                        	// Note: The positive normal direction in this case is defined as the
+                        	//       inward facing one.
+                        	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
+                        	DefineFieldResult( maxForceDens, mfd);
+                        	surfCoefFcts_[maxForceDens] = bFunc;
+
+                        	// === MAXWELL FORCE (TOTAL) ===
+                        	shared_ptr<ResultInfo> mf(new ResultInfo);
+                        	mf->resultType = MAG_FORCE_MAXWELL;
+                        	mf->dofNames = vecComponents;
+                        	mf->unit = "N";
+                        	mf->definedOn = ResultInfo::SURF_REGION;
+                        	mf->entryType = ResultInfo::VECTOR;
+                        	availResults_.insert( mf );
+
+                        	// build result functor for integration
+                        	shared_ptr<ResultFunctor> mfFunc;
+                        	if( isComplex_ ) {
+                        		mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
+                        	} else {
+                        		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
+                        	}
+                        	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
+                    }
 
 
     // === MAGNETIC ENERGY ===
