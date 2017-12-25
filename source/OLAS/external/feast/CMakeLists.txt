@@ -1,0 +1,11 @@
+SET(FEAST_SRCS FeastEigenSolver.cc)
+
+ADD_LIBRARY(feast-olas STATIC ${FEAST_SRCS})
+# as long as not the academic FEAST implementation is used we need MKL which contains FEAST
+SET(TARGET_LL ${FEAST_LIBRARY} ${LAPACK_LIBRARY} ${BLAS_LIBRARY} ${CFS_FORTRAN_LIBS})
+
+TARGET_LINK_LIBRARIES(feast-olas ${TARGET_LL})
+
+IF(MKL_INCLUDE_DIR)
+  INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+ENDIF(MKL_INCLUDE_DIR)

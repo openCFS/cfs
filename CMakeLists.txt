@@ -239,6 +239,8 @@ OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SC
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
+OPTION(USE_FEAST "Use the FEAST eigenvalue solver."
+  ${USE_FEAST_DEFAULT})
 OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
   ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
@@ -256,6 +258,9 @@ ELSE()
   OPTION(USE_BLAS "Use the Basic Linear Algebra Subroutines library." ${USE_BLAS_DEFAULT})
 ENDIF()
 
+if(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
+  MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
+endif()
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
@@ -688,6 +693,10 @@ ENDIF(USE_LAPACK)
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
+
+if(USE_FEAST)
+  ADD_SUBDIRECTORY(source/OLAS/external/feast)
+endif(USE_FEAST)
 
 IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/umfpack)
