@@ -12,6 +12,9 @@
 #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
 
+// TODO: should check for MKL here
+#include "OLAS/external/feast/FeastEigenSolver.hh"
+
 namespace CoupledField {
 
   // *********************************
@@ -75,6 +78,13 @@ namespace CoupledField {
       #endif
       break;
 
+    case BaseEigenSolver::FEAST:
+      #ifdef USE_FEAST
+        retSolver = new FeastEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
+      #else
+        EXCEPTION( "compiled without FEAST: set USE_FEAST=ON to use the FEAST solver!" );
+      #endif
+        break;
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }
