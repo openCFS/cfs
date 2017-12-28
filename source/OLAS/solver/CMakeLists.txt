@@ -52,6 +52,8 @@ IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)
 ENDIF(USE_ARPACK)
 
-SET(TARGET_LL ${TARGET_LL} feast-olas) # should check for mkl
+IF(USE_FEAST)
+  SET(TARGET_LL ${TARGET_LL} feast-olas)
+ENDIF(USE_FEAST)
 
 TARGET_LINK_LIBRARIES(solver-olas ${TARGET_LL})
