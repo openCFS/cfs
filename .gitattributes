@@ -131,6 +131,8 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
+cfsdeps/feast/External_FEAST.cmake -text
+cfsdeps/feast/make.inc.in -text
 cfsdeps/fftw/External_FFTW.cmake -text
 cfsdeps/fftw/fftw-configure.cmake.in -text
 cfsdeps/fftw/lis-configure.cmake.in -text
@@ -565,6 +567,7 @@ include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
 include/def_use_comsol.hh.in -text
 include/def_use_ensight.hh.in -text
+include/def_use_feast.hh.in -text
 include/def_use_fftw.hh.in -text
 include/def_use_flann.hh.in -text
 include/def_use_gidpost.hh.in -text

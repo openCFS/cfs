@@ -459,6 +459,18 @@ ENDIF(USE_LIBFBI)
 INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 
 #-----------------------------------------------------------------------------
+# FEAST - FEAST Eigenvalue Solver
+#-----------------------------------------------------------------------------
+IF(USE_FEAST_COMMUNITY)
+  SET(FEAST_URL "${CFS_DS_SOURCES_DIR}/feast")
+  SET(FEAST_BASE "feast")
+  SET(FEAST_VER "3.0")
+  SET(FEAST_GZ "${FEAST_BASE}_${FEAST_VER}.tgz")
+  SET(FEAST_MD5 "f03819c19a8724d0095dd24eae7ba43a")
+  INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
+ENDIF()
+
+#-----------------------------------------------------------------------------
 # FLANN - Fast Library for Approximate Nearest Neighbors
 #-----------------------------------------------------------------------------
 IF(USE_FLANN)

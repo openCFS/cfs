@@ -1,7 +1,14 @@
 #include <string.h>
-// you might want to alternatively allow the academic FEAST package instead the implementation from MKL
-//#include <mkl.h>
-#include <mkl_solvers_ee.h>
+#include <def_use_feast.hh>
+#ifdef USE_FEAST_COMMUNITY
+  // include the needed community FEAST libraries (which are C)
+  extern "C"{
+    #include "feast.h"
+    #include "feast_sparse.h"
+  }
+#else
+  #include <mkl_solvers_ee.h>
+#endif
 
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
@@ -48,7 +55,8 @@ void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, d
   bloch_ = false;
 
   // initialize feastinit fpm according to "Extended Eigensolver Input Parameters" in the MKL manual
-  // see: https://software.intel.com/en-us/mkl-developer-reference-c-extended-eigensolver-input-parameters`
+  // see: https://software.intel.com/en-us/mkl-developer-reference-c-extended-eigensolver-input-parameters
+  //int feastparam[64];
   feastinit(fpm_.GetPointer());
   // now get values from the <feast> section of the XML
   bool logging = false; xml_->GetValue("logging", logging, ParamNode::INSERT); if (logging == true) fpm_[0] = 1; // runtime messages to the screen
@@ -149,7 +157,9 @@ void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
 
     // Matrix A
     assert(a_->GetNumRows() == a_->GetNumCols());
-    const SCRS_Matrix<double>* a = dynamic_cast<const SCRS_Matrix<double>*>(a_);
+
+    const SCRS_Matrix<double>* a_const = dynamic_cast<const SCRS_Matrix<double>*>(a_);
+    SCRS_Matrix<double>* a = const_cast<SCRS_Matrix<double>*>(a_const);
     LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
     LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
     LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
@@ -175,7 +185,8 @@ void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
       // jb, MKL_INT * fpm, double * epsout, MKL_INT * loop, const double * emin, const double
       // * emax, MKL_INT * m0, double * e, double * x, MKL_INT * m, double * res, MKL_INT * info);
 
-      const SCRS_Matrix<double>* b = dynamic_cast<const SCRS_Matrix<double>*>(b_);
+      const SCRS_Matrix<double>* bc = dynamic_cast<const SCRS_Matrix<double>*>(b_);
+      SCRS_Matrix<double>* b = const_cast<SCRS_Matrix<double>*>(bc);
       assert((int) ib_.GetSize() == n_ + 1);
 
       assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
