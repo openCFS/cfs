@@ -1,8 +1,9 @@
+# make sure the variables MIRRORS, LOCAL_FILE and MD5_SUM are set for your project!!!
+
 INCLUDE("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
 
 SET(MIRRORS
-  @MIRRORS@
-)
+  @MIRRORS@ )
 
 SET(MD5_SUM "@MD5_SUM@")
 SET(LOCAL_FILE "@LOCAL_FILE@")

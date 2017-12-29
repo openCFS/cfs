@@ -214,6 +214,7 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
 ENDMACRO (APPLY_PATCHES)
 
 
+# dowloads a file if the local file does not already exist
 MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(PERFORM_DOWNLOAD 0)                             
   SET(DOWNLOAD_OKAY 0)                             
@@ -276,6 +277,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
           SET(DOWNLOAD_OKAY 1)
           BREAK()
         ELSE()
+          message("md5sum ${ACTUAL_MD5} != expected ${MD5_SUM} -> remove local file and continue")
           FILE(REMOVE ${LOCAL_FILE})
         ENDIF()
 

@@ -18,7 +18,6 @@
 
 #include "PhistEigenSolver.hh"
 
-#include <mpi.h>
 #include <phist_kernels.h>
 #include "phist_subspacejada.h"
 #include "phist_schur_decomp.h"
@@ -124,7 +123,7 @@ namespace CoupledField {
     phist_comm_create(&comm, &err);
     assert(err == 0);
     LOG_DBG(pes) << "phist_comm_create -> " << comm;
-    MPI_Init(NULL, NULL);
+    //MPI_Init(NULL, NULL);
     int argc = 0;
     char* v = NULL;
     char** argv = &v;

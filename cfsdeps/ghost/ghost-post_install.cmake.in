@@ -1,8 +1,18 @@
-#=============================================================================
-# * copy the files to the cfs bin dir
-#=============================================================================
+# clean up ghost installation
 
-# hwloc builds a lot of stuff which might be removable
+# copy the static lib
+# message("copy @GHOST_INSTALL@/lib/ghost/libghost.a to @GHOST_INSTALL@/lib64/@CFS_ARCH_STR@")
+FILE(COPY "@GHOST_INSTALL@/lib/ghost/libghost.a" DESTINATION "@GHOST_INSTALL@/lib64/@CFS_ARCH_STR@")
 
-# copy data from install dir to the target.
-FILE(COPY "@HWLOC_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
+# copy the ghost-config.stuff to share
+# ghost-config-version.cmake is required
+FILE(COPY "@GHOST_INSTALL@/lib/ghost/ghost-config-version.cmake" DESTINATION "@GHOST_INSTALL@/share/ghost/")
+# ghost-config.cmake contains has fixed path stuff. We gerenate the proper one on the fly when building phist!
+FILE(RENAME "@GHOST_INSTALL@/lib/ghost/ghost-config.cmake" "@GHOST_INSTALL@/share/ghost/ghost-config.cmake.org")
+
+# remove the lib directory with the pgconfig stuff
+FILE(REMOVE_RECURSE "@GHOST_INSTALL@/lib")
+
+# copy data from install dir to the target (share, lib64 and include)
+# message("copy @GHOST_INSTALL@/ to @CMAKE_CURRENT_BINARY_DIR@/")
+FILE(COPY "@GHOST_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

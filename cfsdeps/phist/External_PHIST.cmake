@@ -1,73 +1,66 @@
 #-------------------------------------------------------------------------------
-# ghost is a hpc kernel, similar to BLAS but on a higher level which
-# can use openmp, mpi and cuda.
-# ghost is part of the sppexa and developed from FAU.
-# ghost is a base for the phist eigenvalue solver but could also be used
-# for linear algebra.
-#
-# We use defined revisions.
-#
-# ghost requires hwloc. We use cfs-hwloc as the current ghost has a wrong lib location for
-# self downloaded hwloc.
+# phist by Jonas This (DLR) a HPC eigenvalue solver from the SPPEXA project.
+# The FAU is part of the SPPEXA and provides the kernel ghost for phist.
+# We use phist here without MPI and are fixed for ghost. 
+# 
+# phist needs a ghost-config.cmake. As there are full path names this interferes
+# with the precompiled packages. Therefore we construct a own ghost-config.cmake here!
 #-------------------------------------------------------------------------------
 
-set(GHOST_PREFIX  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/ghost")
-set(GHOST_SOURCE  "${GHOST_PREFIX}/src/ghost")
-set(GHOST_INSTALL  "${GHOST_PREFIX}/install")
+set(PHIST_PREFIX  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/phist")
+set(PHIST_SOURCE  "${PHIST_PREFIX}/src/phist")
+set(PHIST_INSTALL  "${PHIST_PREFIX}/install")
 
-# as ghost_REVISION.zip in cfsdeps/source
+# as phist_REVISION.zip in cfsdeps/source
 if(CFS_DEPS_PRECOMPILED)
-  set(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ghost/${GHOST_ZIP}")
+  set(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/phist/${PHIST_ZIP}")
 else()
-  set(LOCAL_FILE "${GHOST_SOURCE/${GHOST_ZIP}")
+  set(LOCAL_FILE "${PHIST_SOURCE/${PHIST_ZIP}")
 endif()  
 
-
 SET(MIRRORS
-  "https://bitbucket.org/${GHOST_BB_USER}/${GHOST_BB_PROJECT}/get/${GHOST_ZIP}"
-  "${CFS_DS_SOURCES_DIR}/ghost/${GHOST_ZIP}")
+  "https://bitbucket.org/${PHIST_BB_USER}/${PHIST_BB_PROJECT}/get/${PHIST_ZIP}"
+  "${CFS_DS_SOURCES_DIR}/phist/${PHIST_ZIP}")
 
-SET(MD5_SUM ${GHOST_MD5})
+SET(MD5_SUM ${PHIST_MD5})
 
-# ghost automatically builds for cuda if it finds it. Add this via CUDA_FOUND to the package name
-find_package(CUDA QUIET)
-
-SET(DLFN "${GHOST_PREFIX}/ghost-download.cmake") 
+SET(DLFN "${PHIST_PREFIX}/phist-download.cmake") 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
-# After the installation we copy to cfs
-set(PI "${GHOST_PREFIX}/ghost-post_install.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/ghost/ghost-post_install.cmake.in" "${PI}" @ONLY) 
+# configure the ghost-config.make file and copy it in phist-post_download.cmake
+set(GC "${PHIST_PREFIX}/ghost-config.cmake")
+configure_file("${CFS_SOURCE_DIR}/cfsdeps/phist/ghost-config.cmake.in" "${GC}" @ONLY)
 
-if(CUDA_FOUND)
-  set(GHOST_CUDA "cuda")
-  message(STATUS "ghost: cuda found on the system")
-else()
-  set(GHOST_CUDA "no-cuda")
-  message(STATUS "ghost: cuda not found on the system")
-endif()
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ghost_${GHOST_CUDA}" "${GHOST_REV}")
+# After download we fake ghost-config.cmake.
+set(PD "${PHIST_PREFIX}/phist-post_download.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_download.cmake.in" "${PD}" @ONLY) 
+
+# After the installation we copy to cfs
+set(PI "${PHIST_PREFIX}/phist-post_install.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_install.cmake.in" "${PI}" @ONLY) 
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "phist" "${PHIST_REV}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
-set(TMP_DIR "${GHOST_INSTALL}")
+set(TMP_DIR "${PHIST_INSTALL}")
 
-set(ZIPFROMCACHE "${GHOST_PREFIX}/ghost-zipFromCache.cmake")
+set(ZIPFROMCACHE "${PHIST_PREFIX}/phist-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-set(ZIPTOCACHE "${GHOST_PREFIX}/ghost-zipToCache.cmake")
+set(ZIPTOCACHE "${PHIST_PREFIX}/phist-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
-# Determine paths of ghost libraries.
+# Determine paths of phist libraries.
 set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-set(GHOST_LIBRARY  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}ghost${CMAKE_STATIC_LIBRARY_SUFFIX}" CACHE FILEPATH "ghost library.")
-set(GHOST_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+set(PHIST_LIBRARY  "${LD}/libphist_kernels_ghost.a;${LD}/libphist_solvers.a;${LD}/libphist_core.a;${LD}/libphist_tools.a;${LD}/libphist_precon.a" CACHE FILEPATH "phist libraries.")
+set(PHIST_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
-MARK_AS_ADVANCED(GHOST_LIBRARY)
-MARK_AS_ADVANCED(GHOST_INCLUDE_DIR)
+MARK_AS_ADVANCED(PHIST_LIBRARY)
+MARK_AS_ADVANCED(PHIST_INCLUDE_DIR)
 
 SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${GHOST_INSTALL}
+  -DCMAKE_INSTALL_PREFIX:PATH=${PHIST_INSTALL}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -77,25 +70,24 @@ SET(CMAKE_ARGS
   -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  # phist settings 
   -DBUILD_SHARED_LIBS:BOOL=OFF
-  # otherwise the linking of minimal, simple, would faild due to missing -lpciaccess
-  -DGHOST_BUILD_TEST:BOOL=OFF
-  -DGHOST_USE_MPI:BOOL=OFF
-  -DGHOST_USE_OPENMP:BOOL=${USE_OPENMP}
-  # we use or own built stuff, the implicit download via ghost as issues
-  -DHWLOC_INCLUDE_DIR=${HWLOC_INCLUDE_DIR}
-  -DHWLOC_LIBRARIES=${HWLOC_LIBRARY}
+  -DPHIST_ENABLE_MPI:BOOL=OFF
+  -DPHIST_ENABLE_OPENMP:BOOL=${USE_OPENMP}
+  -DPHIST_ENABLE_COMPLEX:BOOL=ON
+  -DPHIST_KERNEL_LIB:STRING=ghost
+  -DGHOST_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/share/ghost
 )
 
 #-------------------------------------------------------------------------------
-# The ghost external project
+# The phist external project
 #-------------------------------------------------------------------------------
 if("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
-  ExternalProject_Add(ghost
-    PREFIX "${GHOST_PREFIX}"
+  ExternalProject_Add(phist
+    PREFIX "${PHIST_PREFIX}"
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
@@ -106,30 +98,30 @@ else()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  ExternalProject_Add(ghost
-    PREFIX "${GHOST_PREFIX}"
-    SOURCE_DIR "${GHOST_SOURCE}"
+  ExternalProject_Add(phist
+    PREFIX "${PHIST_PREFIX}"
+    SOURCE_DIR "${PHIST_SOURCE}"
     URL ${LOCAL_FILE}
     BUILD_IN_SOURCE 1
-    PATCH_COMMAND ""
+    # somehow I cannot make the post_downlowad step work, hence we do it here.
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PD}"
     CMAKE_ARGS ${CMAKE_ARGS}
-    INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} -f Makefile install
-    BUILD_BYPRODUCTS ${GHOST_LIBRARY})
+    BUILD_COMMAND make libs
+    # INSTALL_COMMAND make install
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${PHIST_LIBRARY})
 
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
   # instead of just a single URL.
   #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(ghost cfsdeps_download
+  ExternalProject_Add_Step(phist cfsdeps_download
     COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
     DEPENDERS download
     DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${GHOST_PREFIX})
+    WORKING_DIRECTORY ${PHIST_PREFIX})
 
-  #-------------------------------------------------------------------------------
-  # Execute the stuff from ghost-post_install.cmake after installation
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(ghost post_install
+  ExternalProject_Add_Step(phist post_install
     COMMAND ${CMAKE_COMMAND} -P "${PI}"
     DEPENDEES install )
   
@@ -137,7 +129,7 @@ else()
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(ghost cfsdeps_zipToCache
+    ExternalProject_Add_Step(phist cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
       DEPENDEES post_install
       DEPENDS "${ZIPTOCACHE}"
@@ -145,5 +137,5 @@ else()
   endif()
 endif()
 
-# Add project to global list of CFSDEPS, this allows "make ghost"
-set(CFSDEPS ${CFSDEPS} ghost)
+# Add project to global list of CFSDEPS, this allows "make phist"
+set(CFSDEPS ${CFSDEPS} phist)

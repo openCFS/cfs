@@ -1,7 +1,7 @@
 # here we concentrate the check for the proper MPI installation
 # call it in the USE_MPI case!
 
-# We need MPI for phist and petsc. 
+# We need for petsc. 
 
 # We don't build MPI by cfsdeps but require it to set CC, CXX and FC to mpic, mpicxx and mpif90 version!
 # This we test here commonly.
@@ -9,7 +9,7 @@
 # There can be several MPI installations (e.g. openmpi, mpich, intel)
 # The current must be selected by setting the CC, CXX and FC environment variables!
 #
-# to make use of the mpi libs (petsc and phist), cfs needs to be called by mpirun. 
+# to make use of the mpi libs (petsc), cfs needs to be called by mpirun. 
 # If you have no scaling, try mpirun.hydra from mpic
 if(NOT CMAKE_C_COMPILER MATCHES "mpi")
   message(FATAL_ERROR "For MPI usage CC needs to be set to a mpicc compiler. Recreate the build directory!")

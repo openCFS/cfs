@@ -563,15 +563,7 @@ if(BUILD_ANACONDA3)
   INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
 endif(BUILD_ANACONDA3)
 
-# hwloc is used for PETSc and ghost/phist
-if(BUILD_HWLOC)
-  SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
-  SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
-  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
-  
-  INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
-endif(BUILD_HWLOC)
-
+# PETSc requires mpi
 if(USE_PETSC)
   SET(PETSC_VER "3.8.3")
   SET(PETSC_TGZ "petsc-${PETSC_VER}.tar.gz")
@@ -580,13 +572,40 @@ if(USE_PETSC)
   INCLUDE("${CFSDEPS_DIR}/petsc/External_PETSC.cmake")
 endif(USE_PETSC)
 
-# ghost is required for petsc
+# hwloc is a build dependency for ghost/phist but not explicitly used, therefore BUILD_HWLOC 
+if(BUILD_HWLOC)
+  SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
+  SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
+  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
+  
+  INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
+endif(BUILD_HWLOC)
+
+# ghost is required for phist or could be used standalone
 if(USE_GHOST)
-  # ghost is from git repository accessed via a github mirror via svn.
-  # we set here manally the revision, no chance for md5 sum though 
-  SET(GHOST_REV "4266") # the svn revision from github
-#  INCLUDE("${CFSDEPS_DIR}/hwloc/External_GHOST.cmake")
+  # we use the cfs-fork of ghost and download the stuff via bitbuket
+  # we could also use a subversion mirror on github but only for ghost, not for phist
+  # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
+  set(GHOST_REV "ddce0bc96f26") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "0ae20ce04a479d20d5056c71694a52de")
+  set(GHOST_ZIP "${GHOST_REV}.zip")
+  # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
+  # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
+  set(GHOST_BB_USER "fabian_wein")
+  set(GHOST_BB_PROJECT "cfs_ghost")
+  include("${CFSDEPS_DIR}/ghost/External_GHOST.cmake")
 endif(USE_GHOST)
+
+# phist provides a ghost (=cuda if available) based EV-solver
+if(USE_PHIST)
+  set(PHIST_REV "ec6984d02309") 
+  set(PHIST_MD5 "c3704fa2cf8614418a547a305aaf3f96")
+  set(PHIST_ZIP "${PHIST_REV}.zip")
+  set(PHIST_BB_USER "essex")
+  set(PHIST_BB_PROJECT "phist")
+  include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
+endif(USE_PHIST)
+
 
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.
