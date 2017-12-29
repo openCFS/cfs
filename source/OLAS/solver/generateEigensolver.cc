@@ -1,5 +1,6 @@
 #include <def_use_arpack.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_feast.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -12,8 +13,9 @@
 #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
 
-// TODO: should check for MKL here
+#ifdef USE_FEAST
 #include "OLAS/external/feast/FeastEigenSolver.hh"
+#endif
 
 namespace CoupledField {
 
