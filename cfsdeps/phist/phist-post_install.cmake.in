@@ -1,0 +1,23 @@
+# clean up phist installation
+
+# due to a bug with make install after soley make libs with python stuff, we omit make install
+# and collect the stuff manually
+
+# copy the static libs
+file(GLOB PHIST_STATIC_LIBS "@PHIST_SOURCE@/*.a")
+file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib64/@CFS_ARCH_STR@")
+
+# copy the header files as it would by done by phist make install
+file(GLOB PHIST_HEADERS 
+  @PHIST_SOURCE@/*.h 
+  @PHIST_SOURCE@/src/*/*.h 
+  @PHIST_SOURCE@/src/kernels/ghost/phist_typedefs.h 
+  @PHIST_SOURCE@/src/tools/*.hpp )
+file(COPY ${PHIST_HEADERS} DESTINATION "@PHIST_INSTALL@/include")
+
+# copy the doc stuff
+file(COPY @PHIST_SOURCE@/README.md DESTINATION "@PHIST_INSTALL@/share/doc/phist")
+file(COPY @PHIST_SOURCE@/LICENSE.txt DESTINATION "@PHIST_INSTALL@/share/doc/phist")
+
+# copy data from install dir to the target (share, lib64 and include)
+file(COPY "@PHIST_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

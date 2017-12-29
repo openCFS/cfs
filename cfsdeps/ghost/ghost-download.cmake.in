@@ -1,0 +1,28 @@
+# GHOST_VCS is either bitbucket or the github mirror complete command.
+
+message("execute @GHOST_VCS@")
+execute_process(
+  COMMAND @GHOST_VCS@
+  ERROR_FILE  ghost-download.err
+  OUTPUT_FILE ghost-download.out
+  RESULT_VARIABLE rv )
+  
+if(${rv})
+  message("checking out ghost failed:")
+  message("COMMAND:     @GHOST_VCS@")
+  message("ERROR_FILE:  ghost-download.err")
+  message("OUTPUT_FILE: ghost-download.out")
+else()
+  # local file is either in the source dir or it is in cfsdepschache/source/ghost
+  message("zip to @LOCAL_FILE@ within @GHOST_SOURCE@")  
+  # zip cannot create directories - hence if cfsdepscache/source/ghost does not exist, the zip file cannot be written
+  get_filename_component(GHOST_ZIP_DIR @LOCAL_FILE@ DIRECTORY)
+  file(MAKE_DIRECTORY ${GHOST_ZIP_DIR})
+  # we version only the source   
+  execute_process(
+    COMMAND zip -r @LOCAL_FILE@ . -x ".svn/*" ".git/*"
+    WORKING_DIRECTORY @GHOST_SOURCE@
+    RESULT_VARIABLE rv)
+endif()
+  
+  

@@ -14,9 +14,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
@@ -25,6 +22,15 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hwloc.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_hwloc.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ghost.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ghost.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpi.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mpi.hh")

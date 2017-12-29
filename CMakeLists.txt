@@ -229,7 +229,8 @@ OPTION(USE_SUITESPARSE "CholMod and UMFPACK direct solvers from SuiteSparse." ${
 OPTION(USE_LIS "Suite of OpenMP paralell solvers.." ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
-OPTION(USE_PHIST "MPI based PHIST eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_PHIST "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -243,22 +244,23 @@ endif(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 # Do we have mpi? There are multiple mpi installations, one should stick with one
 # but we don't build mpi by cfsdeps to allow usage of tuned hpc mpi instances.
-# As hwloc corresonds with mpi we set it concurrently. 
 # phist requires ghost, ghost requires hwloc. One can set hwloc also for petsc
-if(USE_PETSC OR USE_PHIST)
+if(USE_PETSC)
   set(USE_MPI "ON")
-  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PETSC and USE_PHIST" FORCE)
   INCLUDE("cmake_modules/mpi.cmake")
 else()
   set(USE_MPI "OFF") 
-  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PETSC and USE_PHIST" FORCE)
 endif()
 
 # phist requires ghost
 if(USE_PHIST)
-  SET(USE_GHOST ON CACHE BOOL "toggled by USE_PHIST" FORCE)
+  set(USE_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
+endif()
+
+if(USE_GHOST)
+  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
 else() 
-  SET(USE_GHOST ON CACHE BOOL "toggled by USE_PHIST" FORCE)
+  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
 endif()
 
 # Disables Optimization in CFS++. Optimization is (and shall) still compiled but
@@ -451,6 +453,7 @@ MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_LIBXML2)
+#MARK_AS_ADVANCED(USE_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 

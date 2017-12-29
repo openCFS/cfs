@@ -141,8 +141,12 @@ IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess")
+endif()
+
+
 
 SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
-
-# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfstool)

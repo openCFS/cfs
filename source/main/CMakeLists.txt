@@ -22,8 +22,7 @@ SET(TARGET_LL
   utils
   domain
   elemmapping
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
+  ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)
   LIST(APPEND TARGET_LL ${XERCES_LIBRARY})
@@ -69,5 +68,12 @@ ENDIF(UNIX AND USE_ANSYSRST)
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
+
+
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess")
+endif()
 
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

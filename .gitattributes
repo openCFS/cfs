@@ -141,6 +141,7 @@ cfsdeps/flann/flann-extra-commas-at-end-of-enum-lists.patch -text
 cfsdeps/flann/flann-for-cfs.patch -text
 cfsdeps/flann/flann-patch.cmake.in -text
 cfsdeps/ghost/External_GHOST.cmake -text
+cfsdeps/ghost/ghost-download.cmake.in -text
 cfsdeps/ghost/ghost-post_install.cmake.in -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-file-append.patch -text
@@ -230,6 +231,10 @@ cfsdeps/openblas/openblas-patch.cmake.in -text
 cfsdeps/openblas/openblas_install_cfs.patch -text
 cfsdeps/petsc/External_PETSC.cmake -text
 cfsdeps/petsc/petsc-post_install.cmake.in -text
+cfsdeps/phist/External_PHIST.cmake -text
+cfsdeps/phist/ghost-config.cmake.in -text
+cfsdeps/phist/phist-post_download.cmake.in -text
+cfsdeps/phist/phist-post_install.cmake.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
 cfsdeps/scpip/license.txt -text
@@ -516,10 +521,12 @@ include/def_use_comsol.hh.in -text
 include/def_use_ensight.hh.in -text
 include/def_use_fftw.hh.in -text
 include/def_use_flann.hh.in -text
+include/def_use_ghost.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
+include/def_use_hwloc.hh.in -text
 include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
