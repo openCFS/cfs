@@ -51,8 +51,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element Analysis Static -->
   <!-- ******************************************************************* -->
-  <xsd:element name="static" type="DT_AnalysisStatic"
-    substitutionGroup="AnalysisBasic"> 
+  <xsd:element name="static" type="DT_AnalysisStatic" substitutionGroup="AnalysisBasic"> 
   </xsd:element>
 
   <!-- Data type for static analysis -->
@@ -72,8 +71,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisTransient -->
   <!-- ******************************************************************* -->
-  <xsd:element name="transient" type="DT_AnalysisTransient"
-    substitutionGroup="AnalysisBasic"> 
+  <xsd:element name="transient" type="DT_AnalysisTransient" substitutionGroup="AnalysisBasic"> 
   </xsd:element>
 
   <!-- Data type for transient section, i.e. parameters required for
@@ -107,8 +105,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisHarmonic -->
   <!-- ******************************************************************* -->
-  <xsd:element name="harmonic" type="DT_AnalysisHarmonic"
-    substitutionGroup="AnalysisBasic"/>
+  <xsd:element name="harmonic" type="DT_AnalysisHarmonic" substitutionGroup="AnalysisBasic"/>
 
   <!-- Data type for harmonic section, i.e. parameters required for
        performing a harmonic analysis -->
@@ -146,6 +143,43 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisMultiHarmonic -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="multiharmonic" type="DT_AnalysisMultiHarmonic" substitutionGroup="AnalysisBasic"/>
+  
+  <!-- Data type for multiharmonic section, i.e. parameters required for
+       performing a multiharmonic analysis -->
+  <xsd:complexType name="DT_AnalysisMultiHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="baseFreq" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="numHarmonics_N" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Number of harmonics taken into account for describing the solution quantity
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numHarmonics_M" type="xsd:token" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                OPTIONAL, default is numHarmonics_M=numHarmonics_N
+                Number of harmonics taken into account for describing the nonlinear behaviour
+                of the system, e.g. nonlinear BH-curve in electromagnetics
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+  
+  
+  
   
   <!-- ******************************************************************* -->
   <!--   Definition of element eigenFrequency -->

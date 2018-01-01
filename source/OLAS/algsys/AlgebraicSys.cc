@@ -50,7 +50,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
+  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultHarm )
   {
     size_ = 0;
     myParam_ = param;
@@ -92,10 +92,16 @@ namespace CoupledField {
     // Default is to always use a system matrix
     matrixTypes_.insert( SYSTEM );
     
+    isMultHarm_ = false;
+    isMultHarm_ = isMultHarm;
+
     // Setup solution strategy enum
     PtrParamNode stratNode = myParam_->Get("solutionStrategy",ParamNode::INSERT);
     solStrat_ = SolStrategy::Generate(stratNode);
     
+    // Inform solution strategy if we use multiharmonic approach
+    solStrat_->SetMultHarm(isMultHarm_);
+
     // Set flag for insertion of penalty terms into matrix
     usingPenalty_ = solStrat_->UseDirichletPenalty();
     std::string aux = usingPenalty_ ? "penalty" : "elimination";

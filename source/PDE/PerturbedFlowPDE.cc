@@ -77,7 +77,6 @@ namespace CoupledField {
  
     nonLin_    = false;
     nonLinMaterial_ = false;
-    isAlwaysStatic_ = false;
 
     //! Always use total Lagrangian formulation 
     updatedGeo_        = true;

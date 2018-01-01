@@ -44,6 +44,7 @@
 #include "Driver/SingleDriver.hh"
 #include "Driver/TransientDriver.hh"
 #include "Driver/HarmonicDriver.hh"
+#include "Driver/MultiHarmonicDriver.hh"
 
 // header for resultHandling
 #include "DataInOut/ResultHandler.hh"
@@ -194,12 +195,7 @@ namespace CoupledField {
     LOG_TRACE(singlepde) << pdename_ << ": Obtaining analysis type";
     analysistype_ = domain_->GetSingleDriver()->GetAnalysisType();
 
-    // TODO: The concept of isAlwaysStatic bites with Direct Coupling
-    //       and must be re-designed
-    if ( isAlwaysStatic_ == true &&
-         analysistype_ == TRANSIENT ) {
-      analysistype_ = STATIC;
-    }
+    if(analysistype_ == MULTIHARMONIC) isMultiHarm_ = true;
 
     isComplex_ = IsComplex();
 
@@ -243,11 +239,9 @@ namespace CoupledField {
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
     if( needsAlgsys_ == true || !simState_->HasInput()) {
-	    
       if ( isDirectCoupled_ == false) {
-		
         olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
-        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
+        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_, isMultiHarm_);
         solStrat_ = algsys_->GetSolStrategy();
       }
     }
@@ -385,7 +379,6 @@ namespace CoupledField {
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
     LOG_TRACE(singlepde) << "IS3: " << pdename_ << ": Mapping Equations";
-//    LOG_DBG(singlepde) << "IS3: has MECH_DISPLACEMENT fefunciton? " << (feFunctions_.find(MECH_DISPLACEMENT) != feFunctions_.end());
     // Finalize spaces and fefunctions
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     fncIt= feFunctions_.begin();

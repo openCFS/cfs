@@ -4,6 +4,7 @@
 #include <Driver/BaseDriver.hh>
 #include <Driver/SingleDriver.hh>
 #include <Driver/HarmonicDriver.hh>
+#include <Driver/MultiHarmonicDriver.hh>
 #include <Driver/InverseSourceDriver.hh>
 #include <Driver/EigenFrequencyDriver.hh>
 #include <Driver/TransientDriver.hh>

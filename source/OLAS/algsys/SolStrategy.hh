@@ -19,7 +19,7 @@ namespace CoupledField {
 //! getting the pointer to a specific <solutionStrategy> sub-element.
 //! 
 //! The AlgebraicSystem uses this class for querying parameters of
-//! SBM-Matrix blocks and also about the compound preconiditioners.
+//! SBM-Matrix blocks and also about the compound preconditioners.
 //! In complex setups with several SBM-blocks and a compound
 //! preconditioner, which acts differently on each block, the
 //! SolStrategy class encapsulates the specific layout of the 
@@ -112,6 +112,9 @@ public:
   
   PtrParamNode GetParamNode() { return param_; }
 
+  //! Set flag is multiharmonic analysis is used
+  void SetMultHarm(bool isMultHarm){ isMultHarm_ = isMultHarm;}
+
 protected:
   
   //! Paramnode for strategy element
@@ -128,12 +131,15 @@ protected:
   
   //! Special matrix element for static condensation
   PtrParamNode statCondMatNode_;
+
+  //! Flag if multiharmonic analysis is used
+  bool isMultHarm_;
 };
 
 
 //! Standard solution strategy
 
-//! This class represents the "stanard" solution strategy, i.e. we have a
+//! This class represents the "standard" solution strategy, i.e. we have a
 //! SBM-system with only one block and we use a standard solver / 
 //! preconditioner combination with optional static condensation.
 //! The FeSpace does not have to perform a specific numbering strategy 
@@ -318,6 +324,7 @@ protected:
   
   //! Timestepping nodes per solution step
   ParamNodeList timeStepNodes_;
+
 };
 
 } // end of namespace

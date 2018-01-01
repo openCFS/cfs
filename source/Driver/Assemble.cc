@@ -1695,6 +1695,18 @@ namespace CoupledField
       matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
+
+    case BasePDE::MULTIHARMONIC:
+      matrixMap_[SYSTEM]    = SYSTEM;
+      matrixMap_[STIFFNESS] = SYSTEM;
+      matrixMap_[DAMPING]   = SYSTEM;
+      matrixMap_[MASS]      = SYSTEM;
+      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+      matrixMap_[DAMPING_UPDATE]   = SYSTEM;
+      matrixMap_[MASS_UPDATE]      = SYSTEM;
+      break;
+
+
     case BasePDE::INVERSESOURCE:
        matrixMap_[SYSTEM]    = SYSTEM;
        matrixMap_[STIFFNESS] = SYSTEM;

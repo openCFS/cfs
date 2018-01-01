@@ -69,7 +69,6 @@ namespace CoupledField {
  
     nonLin_         = false;
     nonLinMaterial_ = false;
-//    isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     
     //! Always use updated Lagrangian formulation 

@@ -3,7 +3,7 @@
 
 #include <map>
 #include "SinglePDE.hh" 
-#include "Driver/SolveSteps/SolveStepMagEdge.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
 
 namespace CoupledField

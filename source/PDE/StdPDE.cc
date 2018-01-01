@@ -47,7 +47,6 @@ namespace CoupledField {
     diagMass_(false),
     needsAlgsys_(true),
     analysistype_(BasePDE::NO_ANALYSIS),
-    isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    

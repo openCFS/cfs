@@ -95,7 +95,7 @@ namespace CoupledField {
     //@}
 
     //! Default Constructor
-    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex );
+    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultiHarm = false );
 
     //! Default Destructor
     virtual ~AlgebraicSys();
@@ -1129,6 +1129,9 @@ namespace CoupledField {
     //! Flag indicating use of static condensation
     bool statCond_;
     
+    //! Flag indicating use of multiharmonic analysis
+    bool isMultHarm_;
+
     //! Flag indicating, if system matrix is complex
     bool isMatrixComplex_;
 

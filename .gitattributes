@@ -1849,6 +1849,8 @@ source/Driver/HarmonicDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/HarmonicDriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/InverseSourceDriver.cc -text
 source/Driver/InverseSourceDriver.hh -text
+source/Driver/MultiHarmonicDriver.cc -text
+source/Driver/MultiHarmonicDriver.hh -text
 source/Driver/MultiSequenceDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/MultiSequenceDriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SingleDriver.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1859,8 +1861,6 @@ source/Driver/SolveSteps/IterSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/IterSolveStep.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/SolveStepElec.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/SolveStepElec.hh svneol=native#text/x-c%2B%2Bhdr
-source/Driver/SolveSteps/SolveStepMagEdge.cc svneol=native#text/x-c%2B%2Bsrc
-source/Driver/SolveSteps/SolveStepMagEdge.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/StdSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/StdSolveStep.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/StaticDriver.cc svneol=native#text/x-c%2B%2Bsrc

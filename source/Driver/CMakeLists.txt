@@ -4,6 +4,7 @@ SET(DRIVER_SRCS
   EigenFrequencyDriver.cc
   FormsContexts.cc
   HarmonicDriver.cc
+  MultiHarmonicDriver.cc
   MultiSequenceDriver.cc
   SingleDriver.cc
   StaticDriver.cc
@@ -13,7 +14,6 @@ SET(DRIVER_SRCS
   SolveSteps/BaseSolveStep.cc
   SolveSteps/IterSolveStep.cc
   SolveSteps/SolveStepElec.cc
-  SolveSteps/SolveStepMagEdge.cc
   SolveSteps/StdSolveStep.cc
   )
 
