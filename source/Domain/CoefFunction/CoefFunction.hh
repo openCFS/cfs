@@ -441,11 +441,16 @@ public:
 	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not implemented");
   }
 
-  //! computes the L2 norm of error
-  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
+  //! set all parameters for inverse scheme
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata ) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
+
+  //! set all parameters for inverse scheme
+  virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
+   	  EXCEPTION("CoefFuncion::ChangeInverseParam not implemented");
+  }
 
   //! update the source values (amplitude and phase)
   virtual void UpdateSource(Double& stepLength, bool lineSearch) {
@@ -454,7 +459,7 @@ public:
 
   //! computes the L2 norm of error
   virtual void ComputeTikh(Double& funcVal, Double& resSquared,
-                           bool adjustAlpha, bool adjustBeta) {
+                           bool adjustAlpha, bool adjustBeta, bool adjustRho) {
 	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
   }
 
