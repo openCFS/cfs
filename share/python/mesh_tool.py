@@ -2368,7 +2368,6 @@ def voxelize_mesh_from_optistruct(filename,res):
         for y in numpy.arange(barycenter[1]-0.5*long_edge,barycenter[1]+0.51*long_edge,0.5*hy):
           for z in numpy.arange(barycenter[2]-0.5*long_edge,barycenter[2]+0.51*long_edge,0.5*hz):
             if tri.find_simplex((x,y,z)) >= 0:
-#               if inside_cube((x,y,z), points):
               set_array_point(array,(x,y,z), hx, hy, hz, minx, miny, minz, 2)
 #     else:
 #       print "long_edge:",long_edge
