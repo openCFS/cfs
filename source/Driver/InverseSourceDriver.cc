@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <math.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -64,6 +65,8 @@ namespace CoupledField
     adjustAlpha_ = param_->Get( "adjustAlpha")->As<bool>();
     beta_ = param_->Get( "betaPar")->MathParse<Double>();
     adjustBeta_ = param_->Get( "adjustBeta")->As<bool>();
+    rho_ = param_->Get( "rhoPar")->MathParse<Double>();
+    adjustRho_ = param_->Get( "adjustRho")->As<bool>();
     qExp_  = param_->Get( "expPar")->MathParse<Double>();
     resStopCritRel_ = param_->Get( "resStopCritRel")->MathParse<UInt>();
     maxOuterIter_   = param_->Get( "maxIterOuter")->MathParse<UInt>();
@@ -251,8 +254,8 @@ namespace CoupledField
     }
 
     //set the regularization parameters
-    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
-    rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
+    rhsMeas_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_);
+    rhsSource_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_);
 
     // Set current frequency value in the mathParser
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
@@ -268,7 +271,7 @@ namespace CoupledField
     	//solve adj: just for initiallization
     	rhsSource_->SetActive(false);
     	rhsMeas_->SetActive(true);
-    	std::cout << "Compute first time MEAS" << std::endl;
+    	std::cout << "Compute first time ADJ" << std::endl;
 
     	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
@@ -279,7 +282,7 @@ namespace CoupledField
     	//compute with RHS as the current identified sources
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
-    	std::cout << "Compute first time SRC" << std::endl;
+    	std::cout << "Compute first time STATE" << std::endl;
 
     	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
@@ -298,7 +301,7 @@ namespace CoupledField
     	rhsMeas_->ComputeMeasL2squared( measL2squared_ );
 
     	//compute Tikhonov functional
-    	rhsSource_->ComputeTikh(funcVal,res2,false,false);
+    	rhsSource_->ComputeTikh(funcVal,res2,false,false,false);
     	std::cout << "TikhonovVal start: " << funcVal << std::endl;
 
     	Double kappa = 0.5;
@@ -347,9 +350,9 @@ namespace CoupledField
     			rhsMeas_->ComputeDiff2Meas( res2 );
     			std::cout << "InnerIter: " << innerIter << " Res: " << res2 << std::endl;
     			if ( innerIter == 0  && outerIter == 0)
-    				rhsSource_->ComputeTikh( funcValNew, res2, adjustAlpha_, adjustBeta_ );
+    				rhsSource_->ComputeTikh( funcValNew, res2, adjustAlpha_, adjustBeta_, adjustRho_ );
     			else
-    				rhsSource_->ComputeTikh( funcValNew, res2, false, false);
+    				rhsSource_->ComputeTikh( funcValNew, res2, false, false, false);
 
     			std::cout << "InnerIter: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
 
@@ -360,6 +363,9 @@ namespace CoupledField
     			while ( funcValNew > funcVal - sigma*stepLength*normGrad2
     					&& iterLineSearch < maxNumLineSearch_ ) {
     				//update source data
+    				//Double exp = -1.0*(Double)iterLineSearch;
+    				//stepLength = std::exp2(exp);
+
     				stepLength *= kappa;
     				rhsSource_->UpdateSource( stepLength, true );
 
@@ -375,7 +381,7 @@ namespace CoupledField
     				rhsMeas_->ComputeDiff2Meas( res2 );
     				std::cout << "LineSearch: " <<  iterLineSearch << "  StepLenghth: " << stepLength
     						  << " Res: " << res2 << std::endl;
-    				rhsSource_->ComputeTikh(funcValNew,res2,false,false);
+    				rhsSource_->ComputeTikh(funcValNew,res2,false,false,false);
     				//std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
     				iterLineSearch++;
     				std::cout << std::endl;
@@ -413,7 +419,11 @@ namespace CoupledField
 
     		alpha_ *= 0.5;
     		beta_  *= 0.5;
-    		std::cout << "Try new alpha: " << alpha_ << "  beta: " << beta_ << std::endl;
+    		rho_   *= 0.5;
+    		rhsSource_->ChangeInverseParam(alpha_, beta_, rho_);
+    		rhsMeas_->ChangeInverseParam(alpha_, beta_, rho_);
+    		std::cout << "Do with new alpha: " << alpha_ << "  beta: " << beta_
+    				  << "  rho: " << rho_ << std::endl;
     		outerIter++;
     	}
 

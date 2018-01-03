@@ -155,6 +155,12 @@ protected:
   bool adjustBeta_;
 
   //! regularization parameter 3
+  Double rho_;
+
+  //! automatically adjust beta penalization
+  bool adjustRho_;
+
+  //! regularization parameter 4
   Double qExp_;
 
   //! relative stopping criterion for outer iteration

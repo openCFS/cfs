@@ -223,6 +223,8 @@
           <xsd:element name="adjustAlpha" type="DT_CFSBool" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="betaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="adjustBeta" type="DT_CFSBool" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="rhoPar" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="adjustRho" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="expPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="resStopCritRel" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="maxIterOuter" type="xsd:token" minOccurs="1" maxOccurs="1"/>
