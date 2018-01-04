@@ -7,7 +7,11 @@ A bilinear form, also called integrator, are the terms on the left hand side of 
 ![](/share/doc/developer/pages/pics/BiLinearForms.png)
 
 
-The computation of an element matrix according to a bilinear form can be formulated generically by introducing '''operators''' and '''coefficient functions'''
+Link to [BiLinearForm-doxygen](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1BiLinearForm.html); 
+
+>
+
+The computation of an element matrix according to a bilinear form can be formulated generically by introducing **operators** and **coefficient functions**
 
 
 ![](/share/doc/developer/pages/pics/BBoperator11.png)
