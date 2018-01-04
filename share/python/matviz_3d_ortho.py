@@ -84,17 +84,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   basecells = []
   nProblem = nx*ny*nz
-
-  # distribute loop evenly over number of processes and take care
-  # of remainder -> difference between work chunks can be 1
-  # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2] 
-  # number of loop runs per process:
-  nRuns = [int(nProblem/commSize) + (1 if p < nProblem%commSize else 0) for p in range(0,commSize)]
-  start = int(np.sum(nRuns[0:rank]))
-  end = int(start + nRuns[rank])
-  
-  print("rank:",rank," start:",start," end:",end)
-  sys.stdout.flush()
   
   
   ################# voxel world #########################################
@@ -118,6 +107,57 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hx_old = width[0] / float(resolution[0])
   hy_old = width[1] / float(resolution[1])
   hz_old = width[2] / float(resolution[2])
+  
+  # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
+  # distribute slices along x-axis evenly over number of processes and take care
+  # of remainder -> difference between work chunks can be 1
+  chunks = [int(resolution[0]/commSize) + (1 if p < resolution[0]%commSize else 0) for p in range(0,commSize)]
+  start = int(np.sum(chunks[0:rank]))
+  end = int(start + chunks[rank])
+  
+#   print("chunks:",chunks)
+#   print("rank:",rank," start:",start," end:",end)
+#   sys.stdout.flush()
+  
+  if rank == 0: 
+    eps = 1e-6
+    x = np.arange(0,resolution[0]+1,1)
+    y = np.arange(0,resolution[1]+1,1)
+    z = np.arange(0,resolution[2]+1,1)
+    decomp = np.full(resolution,-1,dtype=int)
+    decomp[start:end+1,:,:] = rank
+    sys.stdout.flush()
+    finished_workers = 0
+    from pyevtk.hl import gridToVTK  
+    while finished_workers != commSize-1:
+      # a status object containing source, tag and size of a message
+      status = MPI.Status()
+      data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+      
+      assert(data[0] >= 0 and data[1] <= resolution[0])
+      #get the message tag
+      tag = status.Get_tag()
+      source = status.Get_source()
+      decomp[data[0]:data[1],:,:] = source
+      comm.send(None,dest=source,tag=999)
+      
+      print(" source:",source, " data:",data)
+      sys.stdout.flush()
+      finished_workers += 1
+    
+    gridToVTK("decomp",x,y,z,cellData={"decomp":decomp})
+  else:
+    result = (start,end)
+    comm.send(result,dest=0,tag=1)
+    status = MPI.Status()
+    tmp = comm.recv(source=0,status=status)
+    # make sure communication wors
+    if status.Get_tag() == 999:
+      print("\n             rank ",rank," exiting now")
+      sys.stdout.flush()
+      sys.exit()
+      
+  sys.exit()
   
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
