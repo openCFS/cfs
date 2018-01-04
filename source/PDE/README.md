@@ -13,7 +13,7 @@ The PDE class is resonsible to connect numerics with physics. Please not that fo
 
 Each PDE class contains at least the following methods
 
-* CreateFeSpaces: FeSpace for the unknown physical quantity
+* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g. [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
 * DefineIntegrators: Bilinear forms (integrators)
 * DefineNcIntegrators: defines the handling of non-conforming interfaces
 * DefineSurfaceIntegrators: defines surface bilinear forms (e.g., absorbing boundary conditions)                               
@@ -25,4 +25,4 @@ Each PDE class contains at least the following methods
 
 >
 
-Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
+Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
