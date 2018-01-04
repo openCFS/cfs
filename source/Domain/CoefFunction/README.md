@@ -1,18 +1,16 @@
-PDE
+CoefFunction  ([back to main page](/source/CFS_Library_Documentation.md))
 ===
 
-The PDE class is resonsible 
+The CoefFunction concept is based on the idea, that it represents given data
 
-* BasePDE: Abstract base class 
+* It can depend on space and time 
 
-![](/share/doc/developer/pages/pics/PDEsHierarchy.png)
+* High level of abstraction 
 
->
+* It can represent materials, external fields or even as an interface to an FeFunction for non-linear and iteratively coupled PDEs 
 
-Each PDE class contains at least the following methods
-
-* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g., [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
+* Basic functionality: Return its scalar/vectorial/tensorial value at the given integration point 
 
 >
 
-Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
+Example link to [CoefFunction](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [CoefFunctionConst-Source](/source/Domain/CoefFunction/CoefFunctionConst.cc)
