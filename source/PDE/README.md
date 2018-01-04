@@ -1,7 +1,7 @@
 PDE    ([back to main page](/source/CFS_Library_Documentation.md))
 ===
 
-The PDE class is resonsible to connect numerics with physics. Please not that for each PDE we generate an own class being derived from **SinglePDE** and it has to be stored in an own .hh and .cc file. Thereby, we have the following hierarchy:
+The PDE class is responsible to connect numerics with physics. Please not that for each PDE we generate an own class being derived from **SinglePDE** and it is stored in an own .hh and .cc file. Thereby, we have the following hierarchy:
 
 * BasePDE: Abstract base class 
 * StdPDE: Base class for all single-field and direct-coupled field problems
