@@ -13,4 +13,4 @@ The CoefFunction concept is based on the idea, that it represents given data
 
 >
 
-Example link to [CoefFunction](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [CoefFunctionConst-Source](/source/Domain/CoefFunction/CoefFunctionConst.cc)
+Example link to [CoefFunction-doxygen](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1CoefFunction.html); for the methods see [CoefFunction-Source](/source/Domain/CoefFunction/CoefFunction.hh)
