@@ -1,18 +1,18 @@
-PDE
-===
+BiLinear Forms ([back to main page](/source/CFS_Library_Documentation.md))
+==============
 
-The PDE class is resonsible 
+A bilinear form, also called integrator, are the terms on the left hand side of a weak formulation; examples are
 
-* BasePDE: Abstract base class 
 
-![](/share/doc/developer/pages/pics/PDEsHierarchy.png)
+![](/share/doc/developer/pages/pics/BiLinearForms.png)
 
->
 
-Each PDE class contains at least the following methods
+The computation of an element matrix according to a bilinear form can be formulated generically by introducing '''operators''' and '''coefficient functions'''
 
-* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g., [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
 
->
+![](/share/doc/developer/pages/pics/BBoperator11.png)
 
-Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
+
+Thereby, a bilinear form is defined by plugging operators and coefficient functions to the generic integrators. Operators are classes, which return suiteable matrices according to the shape functions (FE basis functions) defined by the space.
+
+
