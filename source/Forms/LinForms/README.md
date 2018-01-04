@@ -5,4 +5,4 @@ Linear forms define the right hand side terms of a PDE in its weak formulation. 
 
 ![](/share/doc/developer/pages/pics/TypicalLinearForm.png)
 
-Link to [doxygen-documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1LinearForm.html); for the source see [AcousticPDE-Source](/source/Forms/LinForms/LinearForm.hh)
+Link to [doxygen-documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1LinearForm.html); for the source see [LinearForm-Source](/source/Forms/LinForms/LinearForm.hh)
