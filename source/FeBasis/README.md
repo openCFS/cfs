@@ -1,5 +1,15 @@
-PDE
+Finite Element Space  ([back to main page](/source/CFS_Library_Documentation.md))
 ===
+
+Capabilities of FESpace
+==
+
+* Manage equation numbers for the associated unknown
+* Hold and manage associated reference elements
+* Know how to incorporate boundary conditions
+
+![](/share/doc/developer/pages/pics/FeSpaceStruct.png)
+
 
 The PDE class is resonsible 
 
