@@ -1,8 +1,8 @@
-Finite Element Space  ([back to main page](/source/CFS_Library_Documentation.md))
+Finite Element Space and FE  ([back to main page](/source/CFS_Library_Documentation.md))
 ===
 
 Capabilities of FESpace
-==
+-----------------------
 
 * Manage equation numbers for the associated unknown
 * Hold and manage associated reference elements
@@ -10,19 +10,32 @@ Capabilities of FESpace
 
 ![](/share/doc/developer/pages/pics/FeSpaceStruct.png)
 
+>
 
-The PDE class is resonsible 
+Relation to geometric element
+-----------------------------
 
-* BasePDE: Abstract base class 
+* CFS++ distiguishes between geometric elements (usually linear and quadratic) as given by the preprocessor and computational element (the basis functions for approximating the unknown provided by the FESpace)
+* Possibility to calculate with arbitrary order on any given mesh
+* During element matrix computation both „types“ of elements are used
 
-![](/share/doc/developer/pages/pics/PDEsHierarchy.png)
+![](/share/doc/developer/pages/pics/GeometricVersCompElement.png)
 
 >
 
-Each PDE class contains at least the following methods
+[See doygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1FeSpace.html);
 
-* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g., [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
+FeFunction 
+----------
 
->
+This class represents a physical quantity used in the PDE
 
-Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
+* For time dependent problems, also time derivatives are represented as **FeFunctions**
+* Each (unknown) !FeFunction is associated to a unique !FeSpace,  which represents e.g. its equation numbers
+* This class has methods to give the solution on a specific element or on the complete domain
+* A **FeFunction** can also be passed to an integrator (e.g. for non-linear PDEs)
+
+![](/share/doc/developer/pages/pics/FeFunctionExample1.png)
+
+
+[See doygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1FeFunction.html);
