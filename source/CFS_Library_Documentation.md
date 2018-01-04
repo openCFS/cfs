@@ -14,6 +14,6 @@ Many of the classes in CFS++ are grouped into modules. These modules define the 
 
 >
 
-The directory structure of the source looks as follows (e.g., **eclips project**)
+The directory structure of the source looks as follows (e.g., **eclipse project**)
 
 ![](/share/doc/developer/pages/pics/Src_Directory.png)
