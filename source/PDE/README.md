@@ -13,16 +13,16 @@ The PDE class is resonsible to connect numerics with physics. Please not that fo
 
 Each PDE class contains at least the following methods
 
-* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g., [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L89)
-* DefineIntegrators: Bilinear forms (integrators),  see, e.g., [ElecPDE-Source](/source/PDE/ElecPDE.cc#L142)
-* DefineNcIntegrators: defines the handling of non-conforming interfaces, see, e.g., [HeatPDE-Source](/source/PDE/HeatPDE.cc#L655)
-* DefineSurfaceIntegrators: defines surface bilinear forms (e.g., absorbing boundary conditions), see, e.g., [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L994)
-* DefineRhsLoadIntegrators: right hand side loads (e.g., pressure load, surface traction), see, e.g., [MechPDE-Source](/source/PDE/MechPDE.cc#L1263)
-* InitTimeStepping: Time-Stepping scheme, see, e.g., [MechPDE-Source](/source/PDE/MechPDE.cc#L2131)
-* DefineSolveStep: defines the solve step for the analysis, see, e.g., [HeatPDE-Source](/source/PDE/HeatPDE.cc#L920)
+* CreateFeSpaces: FeSpace for the unknown physical quantity, see, e.g., [AcousticPDE](/source/PDE/AcousticPDE.cc#L89)
+* DefineIntegrators: Bilinear forms (integrators),  see, e.g., [ElecPDE](/source/PDE/ElecPDE.cc#L142)
+* DefineNcIntegrators: defines the handling of non-conforming interfaces, see, e.g., [HeatPDE](/source/PDE/HeatPDE.cc#L655)
+* DefineSurfaceIntegrators: defines surface bilinear forms (e.g., absorbing boundary conditions), see, e.g., [AcousticPDE](/source/PDE/AcousticPDE.cc#L994)
+* DefineRhsLoadIntegrators: right hand side loads (e.g., pressure load, surface traction), see, e.g., [MechPDE](/source/PDE/MechPDE.cc#L1263)
+* InitTimeStepping: Time-Stepping scheme, see, e.g., [MechPDE](/source/PDE/MechPDE.cc#L2131)
+* DefineSolveStep: defines the solve step for the analysis, see, e.g., [HeatPDE](/source/PDE/HeatPDE.cc#L920)
 * DefinePrimaryResults: Available primary results (physical quantity), see, e.g., [MechPDE-Source](/source/PDE/MechPDE.cc#L2141)
-* DefinePostProcResults: define post-processing results, see, e.g., [MechPDE-Source](/source/PDE/MechPDE.cc#L2183)
+* DefinePostProcResults: define post-processing results, see, e.g., [MechPDE](/source/PDE/MechPDE.cc#L2183)
 
 >
 
-Example link to [AcousticPDE](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
+Example link to [AcousticPDE-doxygen](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1AcousticPDE.html); for the source see [AcousticPDE-Source](/source/PDE/AcousticPDE.cc#L55)
