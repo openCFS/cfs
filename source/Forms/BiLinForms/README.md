@@ -2,11 +2,9 @@ BiLinear Forms ([back to main page](/source/CFS_Library_Documentation.md))
 ==============
 
 A bilinear form, also called integrator, are the terms on the left hand side of a weak formulation; examples are
-* [BBInt-Source](/source/Forms/BiLinForms/BBInt.hh)
-* [BDBInt-Source](/source/BiLinForms/BDBInt.hh)
-* [ABInt-Source](/source/BiLinForms/ABInt.hh)
-
-
+* Source [BBInt](/source/Forms/BiLinForms/BBInt.hh) and [doygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1BBInt.html)
+* Source [BDBInt](/source/BiLinForms/BDBInt.hh) and [doxygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1BDBInt.html)
+* Source [ABInt](/source/BiLinForms/ABInt.hh) and [doxygen documentation](https://cfs.mdmt.tuwien.ac.at/docu/doxygen/html/classCoupledField_1_1ADBInt.html)
 
 ![](/share/doc/developer/pages/pics/BiLinearForms.png)
 
