@@ -183,19 +183,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
   for e in nondes_coords:
     assert(len(e) == 4)
-    #     C
-    #   /   \
-    #  /     \ 
-    # A-------B
-    # triangle plane equation: A + u * (B-A) + v * (C - A), u,v \in [0,1] and u+v <= 1
-    # tetrahedron consists of 4 triangles: ABC, ABD, BCD, ADC
-    
     # A: (i,j,k)
     A = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[0],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
     B = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[1],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
     C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
     D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
-    voxel_grid[tuple(A)] = -2
+    # works only if A is a tuple
+    voxel_grid[tuple(A)] = -2 # 
     voxel_grid[tuple(B)] = -2
     voxel_grid[tuple(C)] = -2
     voxel_grid[tuple(D)] = -2
@@ -393,62 +387,43 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
   from pyevtk.hl import gridToVTK
   gridToVTK("nondesign",x,y,z,cellData={"nondes":nondes_grid})
 
+# draw 4 faces/triangles of a tetrahedron spanned by vertices A,B,C,D
+#     C
+#   /   \
+#  /     \ 
+# A-------B
+# triangle plane equation: A + u * (B-A) + v * (C - A), u,v \in [0,1] and u+v <= 1
+# tetrahedron consists of 4 triangles: ABC, ABD, BCD, ADC
 def draw_tetrahedron(A,B,C,D,grid):
-    # triangle ABC
-    diffBA = B[0]-A[0]
-    diffCA = C[1]-A[1]
-    BA = B-A
-    CA = C-A
-    for u in np.linspace(0,1,num=diffBA+10):
-      for v in np.linspace(0,1,num=diffCA+10):
+  triangles = []
+  
+  # triangle ABC
+  triangles.append((np.asarray(A),np.asarray(B),np.asarray(C)))
+  # triangle ABD
+  triangles.append((np.asarray(A),np.asarray(B),np.asarray(D)))
+  # triangle BCD
+  triangles.append((np.asarray(B),np.asarray(C),np.asarray(D)))
+  # triangle ADC
+  triangles.append((np.asarray(A),np.asarray(D),np.asarray(C)))
+  
+  for t in triangles:
+    v0 = t[0]
+    v1 = t[1]
+    v2 = t[2]
+    
+    # number of samples
+    samples10 = max(v1-v0)
+    samples20 = max(v2-v0)
+    
+    # directional vectors
+    v1v0 = v1 - v0
+    v2v0 = v2 - v0
+    
+    for u in np.linspace(0,1,num=samples10+10):
+      for v in np.linspace(0,1,num=samples20+10):
         if u + v > 1.0:
           continue
          
-        p = A + u * BA + v * CA 
+        p = v0 + u * v1v0 + v * v2v0 
         p = [int(v) for v in p]
         grid[tuple(p)] = -2
-        
-    # triangle ABD
-    diffBA = B[0]-A[0]
-    diffDA = D[1]-A[1]
-    BA = B-A
-    DA = D-A
-    for u in np.linspace(0,1,num=diffBA+10):
-      for v in np.linspace(0,1,num=diffDA+10):
-        if u + v > 1.0:
-          continue
-         
-        p = A + u * BA + v * DA 
-        p = [int(v) for v in p]
-          
-        grid[tuple(p)] = -2    
-    
-    # triangle BCD
-    diffCB = C[0]-B[0]
-    diffDB = D[1]-B[1]
-    CB = C-B
-    DB = D-B
-    for u in np.linspace(0,1,num=diffCB+10):
-      for v in np.linspace(0,1,num=diffDB+10):
-        if u + v > 1.0:
-          continue
-         
-        p = B + u * CB + v * DB 
-        p = [int(v) for v in p]
-          
-        grid[tuple(p)] = -2 
-    
-    # triangle ADC
-    diffDA = D[0]-A[0]
-    diffCA = C[1]-A[1]
-    DA = D-A
-    CA = C-A
-    for u in np.linspace(0,1,num=diffDA+10):
-      for v in np.linspace(0,1,num=diffCA+10):
-        if u + v > 1.0:
-          continue
-         
-        p = A + u * DA + v * CA 
-        p = [int(v) for v in p]
-          
-        grid[tuple(p)] = -2            
