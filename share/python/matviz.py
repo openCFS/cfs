@@ -627,7 +627,20 @@ else:
     if args.h5_nondes != "None":
 #       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
-      
+#       out = open("holes.txt","w")
+#       for i in range(1,8):
+#         nondes = "hole" + str(i)
+#         nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, nondes,centered=False)
+#         for e in nondes_elements:
+#           for c,p in enumerate(e):
+#             if c == len(e)-1:
+#               out.write(str(p[0]) + "," + str(p[1]) + "," + str(p[2]))
+#             else:
+#               out.write(str(p[0]) + "," + str(p[1]) + "," + str(p[2]) + ",")
+#           out.write("\n")
+#       out.close()
+#       sys.exit()
+         
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
   

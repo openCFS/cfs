@@ -108,56 +108,66 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hy_old = width[1] / float(resolution[1])
   hz_old = width[2] / float(resolution[2])
   
-  # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
-  # distribute slices along x-axis evenly over number of processes and take care
+  nProblem = nx*ny*nz
+  
+  # distribute loop evenly over number of processes and take care
   # of remainder -> difference between work chunks can be 1
-  chunks = [int(resolution[0]/commSize) + (1 if p < resolution[0]%commSize else 0) for p in range(0,commSize)]
-  start = int(np.sum(chunks[0:rank]))
-  end = int(start + chunks[rank])
+  # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2]
+  # number of loop runs per process:
+  nRuns = [int(nProblem/commSize) + (1 if p < nProblem%commSize else 0) for p in range(0,commSize)]
+  start = int(np.sum(nRuns[0:rank]))
+  end = int(start + nRuns[rank])
+  
+#   # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
+#   # distribute slices along x-axis evenly over number of processes and take care
+#   # of remainder -> difference between work chunks can be 1
+#   chunks = [int(resolution[0]/commSize) + (1 if p < resolution[0]%commSize else 0) for p in range(0,commSize)]
+#   start = int(np.sum(chunks[0:rank]))
+#   end = int(start + chunks[rank])
   
 #   print("chunks:",chunks)
 #   print("rank:",rank," start:",start," end:",end)
 #   sys.stdout.flush()
-  
-  if rank == 0: 
-    eps = 1e-6
-    x = np.arange(0,resolution[0]+1,1)
-    y = np.arange(0,resolution[1]+1,1)
-    z = np.arange(0,resolution[2]+1,1)
-    decomp = np.full(resolution,-1,dtype=int)
-    decomp[start:end+1,:,:] = rank
-    sys.stdout.flush()
-    finished_workers = 0
-    from pyevtk.hl import gridToVTK  
-    while finished_workers != commSize-1:
-      # a status object containing source, tag and size of a message
-      status = MPI.Status()
-      data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-      
-      assert(data[0] >= 0 and data[1] <= resolution[0])
-      #get the message tag
-      tag = status.Get_tag()
-      source = status.Get_source()
-      decomp[data[0]:data[1],:,:] = source
-      comm.send(None,dest=source,tag=999)
-      
-      print(" source:",source, " data:",data)
-      sys.stdout.flush()
-      finished_workers += 1
-    
-    gridToVTK("decomp",x,y,z,cellData={"decomp":decomp})
-  else:
-    result = (start,end)
-    comm.send(result,dest=0,tag=1)
-    status = MPI.Status()
-    tmp = comm.recv(source=0,status=status)
-    # make sure communication wors
-    if status.Get_tag() == 999:
-      print("\n             rank ",rank," exiting now")
-      sys.stdout.flush()
-      sys.exit()
-      
-  sys.exit()
+
+#   if rank == 0: 
+#     eps = 1e-6
+#     x = np.arange(0,resolution[0]+1,1)
+#     y = np.arange(0,resolution[1]+1,1)
+#     z = np.arange(0,resolution[2]+1,1)
+#     decomp = np.full(resolution,-1,dtype=int)
+#     decomp[start:end+1,:,:] = rank
+#     sys.stdout.flush()
+#     finished_workers = 0
+#     from pyevtk.hl import gridToVTK  
+#     while finished_workers != commSize-1:
+#       # a status object containing source, tag and size of a message
+#       status = MPI.Status()
+#       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+#       
+#       assert(data[0] >= 0 and data[1] <= resolution[0])
+#       #get the message tag
+#       tag = status.Get_tag()
+#       source = status.Get_source()
+#       decomp[data[0]:data[1],:,:] = source
+#       comm.send(None,dest=source,tag=999)
+#       
+#       print(" source:",source, " data:",data)
+#       sys.stdout.flush()
+#       finished_workers += 1
+#     
+#     gridToVTK("decomp",x,y,z,cellData={"decomp":decomp})
+#   else:
+#     result = (start,end)
+#     comm.send(result,dest=0,tag=1)
+#     status = MPI.Status()
+#     tmp = comm.recv(source=0,status=status)
+#     # make sure communication wors
+#     if status.Get_tag() == 999:
+#       print("\n             rank ",rank," exiting now")
+#       sys.stdout.flush()
+#       sys.exit()
+#       
+#   sys.exit()
   
   for id in range(start,end):
     i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
@@ -221,21 +231,20 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   y = np.arange(bounds[1],bounds[4]+hy_old-eps,hy_old)
   z = np.arange(bounds[2],bounds[5]+hz_old-eps,hz_old)
 
-  for e in nondes_coords:
-    assert(len(e) == 4)
-    # A: (i,j,k)
-    A = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[0],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
-    B = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[1],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
-    C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
-    D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],hx_old,hy_old,hz_old))
-    # works only if A is a tuple
-    voxel_grid[tuple(A)] = -2 # 
-    voxel_grid[tuple(B)] = -2
-    voxel_grid[tuple(C)] = -2
-    voxel_grid[tuple(D)] = -2
+  design_elems = []
+  # read void non-design manually  
+  import csv
+  with open('holes.txt') as csvfile:
+    readCSV = csv.reader(csvfile, delimiter=',')  
+    for row in readCSV:
+      # 4 elems with 3 coord components
+      assert(len(row) == 12)
+      design_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
     
-    draw_tetrahedron(A,B,C,D,voxel_grid)
-  
+    assert(len(design_elems) > 0)
+    
+  draw_non_design(nondes_coords, voxel_grid, bounds, (hx_old,hy_old,hz_old), 0)
+  draw_non_design(design_elems, voxel_grid, bounds, (hx_old,hy_old,hz_old), -1)    
   from pyevtk.hl import gridToVTK  
   gridToVTK("voxels",x,y,z,cellData={"voxels":voxel_grid})
   
@@ -434,7 +443,8 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
 # A-------B
 # triangle plane equation: A + u * (B-A) + v * (C - A), u,v \in [0,1] and u+v <= 1
 # tetrahedron consists of 4 triangles: ABC, ABD, BCD, ADC
-def draw_tetrahedron(A,B,C,D,grid):
+# @param value: value to draw with
+def draw_tetrahedron(A,B,C,D,grid,value=0):
   triangles = []
   
   # triangle ABC
@@ -466,4 +476,27 @@ def draw_tetrahedron(A,B,C,D,grid):
          
         p = v0 + u * v1v0 + v * v2v0 
         p = [int(v) for v in p]
-        grid[tuple(p)] = -2
+        grid[tuple(p)] = value
+
+# @param elem: list of lists, each entry contains 4 vertices (cartesian) of a tet
+# @param bounds: list of bounds of cartesian world
+# @param h: lattice spacings in 3 directions 
+# @param grid: where to draw        
+# @param value: value to draw with        
+def draw_non_design(elems,grid,bounds,h,value):
+  assert(len(bounds) >=3 and len(h) == 3)
+  for e in elems:
+    assert(len(e) == 4)
+    
+    # A: (i,j,k)
+    A = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[0],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
+    B = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[1],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
+    C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
+    D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
+    # works only if A is a tuple
+    grid[tuple(A)] = value 
+    grid[tuple(B)] = value
+    grid[tuple(C)] = value
+    grid[tuple(D)] = value
+    
+    draw_tetrahedron(A,B,C,D,grid,value)
