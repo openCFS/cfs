@@ -860,7 +860,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
 
     // === TIME DERIVATIVES OF PRIMARY RESULTS ===
-    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC  || analysistype_ == MULTIHARMONIC) {
       // === MAGNETIC VECTOR POTENTIAL - 1ST DERIVATIVE ===
       shared_ptr<ResultInfo> aDot(new ResultInfo);
       aDot->resultType = MAG_POTENTIAL_DERIV1;
@@ -1152,7 +1152,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                                                                 isComplex_));
     DefineFieldResult( hFunc, magIntens );
 
-    if( analysistype_ != HARMONIC ) {
+    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
                         	// === MAXWELL FORCE DENSITY ===
                         	shared_ptr<ResultInfo> mfd(new ResultInfo);
                         	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
@@ -1321,7 +1321,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         tcdCoef->AddRegion( actRegion, coilCurrentDens_[actRegion] );
       } else {
         // region is no coil
-        if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+        if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
           tcdCoef->AddRegion( actRegion, jEddy );
         }
       }
@@ -1358,7 +1358,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // why the coil regions are searched to find the corresponding part.
     // It is assumed implicitly that a part cannot contain a region contained by
     // another part. If that happens, the CoefFunctionMulti throws.
-    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       PtrCoefFct temp = GetCoefFct(COIL_INDUCED_VOLTAGE);
       shared_ptr<CoefFunctionMulti> psiDotDens =
           dynamic_pointer_cast<CoefFunctionMulti>(temp);
@@ -1402,7 +1402,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //TODO Core loss computation is disabled temporarily for harmonic analysis because otherwise we
 // get an error in AddRegion, due to the multiplication of a real- and a complex-valued
 // coefficient function. CHECK THIS !!!
-    if( analysistype_ != HARMONIC ) {
+    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
 		shared_ptr<CoefFunctionMulti> cldCoef =
 			dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
 		BaseMaterial* actMat = NULL;
@@ -1442,7 +1442,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
      * Q = \gamma \omega^2 ||\hat{A}||^2 + \omega Im{ \hat{J}_i \hat{\overbar{A}} }
      * \hat{\overbar{A}} is the conjugate complex of \hat{A}
      */
-    if( analysistype_ == HARMONIC){
+    if( analysistype_ == HARMONIC || MULTIHARMONIC){
 		shared_ptr<CoefFunctionMulti> eddyLossCoef =
 				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
 		regIt = regions_.Begin();

@@ -261,16 +261,44 @@ namespace CoupledField {
       sharePattern = true;
       patternPool_ = new PatternPool();
       
+
+
       // insert default pattern IDs in map
-      for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-        for( UInt iCol = 0; iCol < numBlocks_; ++iCol ) {
-          SubMatrixID id;
+      // for multiharmonic analysis, we have to hack a bit
+      if( isMultHarm_ ){
+        // ------------------------------
+        //  Multiharmonic Case
+        // ------------------------------
+        UInt N = solStrat_->GetNumHarmN();
+        UInt M = solStrat_->GetNumHarmM();
+
+        SubMatrixID id;
+        for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
           id.rowInd = iRow;
-          id.colInd = iCol;
+          id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
+          for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
+            if( iCol < 2 * N + 1){
+              id.rowInd = iRow;
+              id.colInd = iCol;
+              sbmPatternIds_[id] = NO_PATTERN_ID;
+            }
+          }
+        }
+      }else{
+        // ------------------------------
+        //  Classic Case
+        // ------------------------------
+        for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+          for( UInt iCol = 0; iCol < numBlocks_; ++iCol ) {
+            SubMatrixID id;
+            id.rowInd = iRow;
+            id.colInd = iCol;
+            sbmPatternIds_[id] = NO_PATTERN_ID;
+          }
         }
       }
-    }
+    } // endif sharedPatterPossible_
     
     // Obtain some info from parameter file
     BaseMatrix::EntryType entryType = isMatrixComplex_ ? 
@@ -948,6 +976,12 @@ namespace CoupledField {
           << "However for mech-acou problems it works as the coupling boundary contains no "
           << "inner degrees of freedom.");
     }
+
+    // Neither does it work with multiharmonic analysis
+    if(isMultHarm_ && statCond_){
+      EXCEPTION("Static condensation cannot be applied in a multiharmonic analysis!");
+    }
+
   }
 
   
@@ -1013,7 +1047,7 @@ namespace CoupledField {
   
   Integer AlgebraicSys::
   DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns,
-                        bool isInnerBlock ) {
+                        bool isInnerBlock) {
     
     LOG_TRACE(algSys) << "Defining new SBM block #" << numBlocks_;
 
@@ -1181,7 +1215,7 @@ namespace CoupledField {
       }
     } // if logging enabled
     
-    // return newly created block
+    // return index of newly created block
     return sbmIndex;
   }
 
@@ -1530,6 +1564,7 @@ namespace CoupledField {
     
     // create new graph manager object and initialize it
     graphManager_ = new GraphManager();
+
     graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
 
     // loop over all blocks and register them with the graph manager
@@ -2776,90 +2811,153 @@ namespace CoupledField {
 
     // STEP 1: Generate empty SBM_Matrix
     SBM_Matrix *retMat = NULL;
-    retMat = new SBM_Matrix( numBlocks_, numBlocks_, sbmSymm_ );
+
+
+    /* Strategy for multiharmonic system:
+     * Generate 2N+1 times 2N+1 sbm matrix but only populate the
+     * nonzero blocks, the sbm class should recognize that ...
+     */
+    if( isMultHarm_ ){
+      UInt s = 2 * solStrat_->GetNumHarmN() + 1; //size
+
+      // Multiharmonic system matrix has size [(2N+1),(2N+1)]
+      bool sysMatSym = false; //system matrix is not symmetric
+      retMat = new SBM_Matrix( s, s, sysMatSym );
+    }else{
+      retMat = new SBM_Matrix( numBlocks_, numBlocks_, sbmSymm_ );
+    }
+
+
     if ( retMat == NULL ) {
       EXCEPTION( "SBM_System::GenerateSBM_Matrix: "
           << "This is the end my friend!\n"
           << "Generation of empty SBM_Matrix failed!" );
     }
     
+
     // STEP 2: Populate with sub-matrices
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
     BaseGraph *graph = NULL;
-    for ( sIt = feSubMatricesByBlocks_[matType].begin();
-        sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
 
-      // Determine row / col
-      UInt sbmRow = (*sIt).rowInd;
-      UInt sbmCol = (*sIt).colInd;
+    // again differentiate between multiharmonic and classic case
+    if( isMultHarm_ ){
+      //if( feSubMatricesByBlocks_[matType].size() > 1 ){
+      //  EXCEPTION("AlgebraicSys::GenerateSBM_Matrix, only one block allowed")
+      //}
 
+      // we have only one graph, since all blocks consist of the same function
       // Determine number of matrix rows and columns
-      UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
-      UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+      UInt nrows = blockInfo_[0]->numLastFreeIndex;
+      UInt ncols = blockInfo_[0]->numLastFreeIndex;
 
-      // Check for necessity of generation
-      if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
+      UInt N = solStrat_->GetNumHarmN();
+      UInt M = solStrat_->GetNumHarmM();
 
-        graph = graphManager_->GetGraph( sbmRow, sbmCol );
-        //sbmSymm_ = false;
-        // Trigger generation of sub-matrix
-        if ( sbmRow == sbmCol && sbmSymm_ == true ) {
-          // for diagonal blocks we allow a variable
-          // matrix layout which we query at the
-          // sol-strategy object
-          
-          BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
-          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-              << ", " << sbmCol+1 << ") is " 
-              << BaseMatrix::storageType.ToString(sT);
-          
-          // If we perform static condensation and this is the 
-          // inner-inner block, we use the variable block row
-          // format to increase performance.
-          if( statCond_ && sbmRow == numBlocks_-1 ) {
-            sT = BaseMatrix::VAR_BLOCK_ROW;
+      for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+        // diagonal block
+        graph = graphManager_->GetGraph( sbmRow, sbmRow );
+        // we only allow nonsymmetric storage scheme
+        BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
+        LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+            << ", " << sbmRow+1 << ") is "
+            << BaseMatrix::storageType.ToString(sT);
+        retMat->SetSubMatrix ( sbmRow, sbmRow, entryType,
+                               sT,
+                               nrows, ncols, graph->GetNNE() );
+        for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+          if( sbmCol < 2 * N + 1){
+            // off-diagonal block
+            graph = graphManager_->GetGraph( sbmRow, sbmRow );
+            // we only allow nonsymmetric storage scheme
+            BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmRow+1 << ") is "
+                << BaseMatrix::storageType.ToString(sT);
+            retMat->SetSubMatrix ( sbmRow, sbmRow, entryType,
+                                   sT,
+                                   nrows, ncols, graph->GetNNE() );
           }
-          
-          retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
-                                 sT,
-                                 nrows, ncols, graph->GetNNE() );
-        } else {
-          // Off-diagonal entries are by nature rectangular and thus, only
-          // two possibilities remain: either sparse_nonsym crs format
-          // of the variable block row format. 
-          // CRS is the more general case and will be preferred.
-          retMat->SetSubMatrix ( sbmRow, sbmCol, 
-                                 entryType, BaseMatrix::SPARSE_NONSYM,
-                                 nrows, ncols, graph->GetNNE() );
-          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-                        << ", " << sbmCol+1 << ") is " 
-                        << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
         }
-
-        // check, if matrix pattern can be shared and 
-        // obtain matrix graph
-        if( sharePattern ) {
-          LOG_DBG(algSys) << "\tSharing pattern";
-          PatternIdType patternID = sbmPatternIds_[(*sIt)]; 
-          if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
-            LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
-            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
-          } else {
-            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
-            sbmPatternIds_[(*sIt)] = 
-                (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
-            LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
-          }
-        } else {
-          LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
-          // Set sparsity pattern of sub-matrix
-          (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );  
-        }
-        
-        
       }
-    }
 
+
+
+    }else{
+
+      for ( sIt = feSubMatricesByBlocks_[matType].begin();
+            sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
+
+          // Determine row / col
+          UInt sbmRow = (*sIt).rowInd;
+          UInt sbmCol = (*sIt).colInd;
+
+          // Determine number of matrix rows and columns
+          UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
+          UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+
+          // Check for necessity of generation
+          if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
+
+            graph = graphManager_->GetGraph( sbmRow, sbmCol );
+            //sbmSymm_ = false;
+            // Trigger generation of sub-matrix
+            if ( sbmRow == sbmCol && sbmSymm_ == true ) {
+              // for diagonal blocks we allow a variable
+              // matrix layout which we query at the
+              // sol-strategy object
+
+              BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
+              LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                  << ", " << sbmCol+1 << ") is "
+                  << BaseMatrix::storageType.ToString(sT);
+
+              // If we perform static condensation and this is the
+              // inner-inner block, we use the variable block row
+              // format to increase performance.
+              if( statCond_ && sbmRow == numBlocks_-1 ) {
+                sT = BaseMatrix::VAR_BLOCK_ROW;
+              }
+
+              retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
+                                     sT,
+                                     nrows, ncols, graph->GetNNE() );
+            } else {
+              // Off-diagonal entries are by nature rectangular and thus, only
+              // two possibilities remain: either sparse_nonsym crs format
+              // of the variable block row format.
+              // CRS is the more general case and will be preferred.
+              retMat->SetSubMatrix ( sbmRow, sbmCol,
+                                     entryType, BaseMatrix::SPARSE_NONSYM,
+                                     nrows, ncols, graph->GetNNE() );
+              LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                            << ", " << sbmCol+1 << ") is "
+                            << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
+            }
+
+            // check, if matrix pattern can be shared and
+            // obtain matrix graph
+            if( sharePattern ) {
+              LOG_DBG(algSys) << "\tSharing pattern";
+              PatternIdType patternID = sbmPatternIds_[(*sIt)];
+              if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
+                LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+                (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
+              } else {
+                (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+                sbmPatternIds_[(*sIt)] =
+                    (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
+                LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
+              }
+            } else {
+              LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+              // Set sparsity pattern of sub-matrix
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+            }
+
+
+          }
+        }
+    }
     return retMat;
   }
   
@@ -3133,16 +3231,181 @@ namespace CoupledField {
           SetValue(BaseOrdering::reorderingType.ToString(ot));
       
     } else {
-      // ======================
-      //  True SBM Case 
-      // ======================
-      WARN("This section is not yet implemented");
-    }
-    
-    // Dump tree in the end
-//    std::cerr << "Dump of parameter tree at the end of "
-//        << "AlgebraicSys::CheckConsistency():\n";
-//    myParam_->Dump();
+      // =========================================================================
+      //  True SBM Case, e.g. for multiharmonic analysis
+      // =========================================================================
+      WARN("The implementation of this section is not yet finished");
+
+
+
+      // --------------------------
+      //  Check Symmetry of Matrix
+      // --------------------------
+      PtrParamNode matNode = solStrat_->GetMatrixNode(0);
+      BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
+
+      // we only allow nonsymmetric storage format
+      std::string storageString = "sparseNonSym";
+      if( matNode->Has("storage")) {
+        if( matNode->Get("storage")->As<std::string>() != "sparseNonSym" ){
+         EXCEPTION(" You probably perform a multiharmonic analysis, therefore please set nonsymmetric storage type! ");
+        }
+      }
+
+      matNode->GetValue("storage",storageString, ParamNode::INSERT);
+      storType = BaseMatrix::storageType.Parse(storageString);
+
+
+      // -----------------------------------------------
+      //  Check of Eigenvalue Solver not yet implemented
+      // -----------------------------------------------
+
+
+
+
+      // ------------------------------------------------
+      //  Check Solver
+      // ------------------------------------------------
+      std::string solverId = solStrat_->GetSolverId();
+      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
+      ParamNodeList sNodes =  solverList->GetChildren();
+      PtrParamNode solverNode;
+      for( UInt i = 0; i < sNodes.GetSize(); ++i ){
+        if( sNodes[i]->Get("id")->As<std::string>() == solverId ){
+          solverNode = sNodes[i];
+        }
+      }
+      BaseSolver::SolverType st;
+      // set for allowed matrix types of the solver
+      std::set<BaseMatrix::StorageType> solverStorTypes;
+      if( !solverNode ) {
+        // ---------------------------------------------------
+        //  no solver set -> use default direct
+        // ---------------------------------------------------
+        st = BaseSolver::PARDISO_SOLVER;
+        solverList->Get("pardiso",ParamNode::INSERT)->
+          Get("id",ParamNode::INSERT)->SetValue(solverId);
+      }else{
+        // ---------------------------------------------------
+        //  solver set -> check for compatibility with matrix
+        // ---------------------------------------------------
+
+        // convert solver string to enum
+        st = BaseSolver::solverType.Parse(solverNode->GetName());
+
+        // obtain list of allowed matrix format
+        solverStorTypes = GetSolverCompatMatrixFormats(st);
+
+        // check, if current matrix format is in allowed list
+        if( solverStorTypes.find(storType) == solverStorTypes.end() &&
+            solverStorTypes.size() != 0 ) {
+          //  matrix format is not allowed
+          EXCEPTION("Solver '" << solverNode->GetName()
+                    << "' can not operate on matrix with storage type '"
+                    << storageString << "'. \nChange format to '"
+                    << BaseMatrix::storageType.ToString(storType)
+                    << "'.");
+        }
+      }
+
+      // -------------------------------------------------------
+      //  Check Precond
+      // -------------------------------------------------------
+      std::string precondId = solStrat_->GetPrecondId();
+      PtrParamNode precondList = myParam_->Get("precondList",
+                                               ParamNode::INSERT);
+      ParamNodeList pNodes =  precondList->GetChildren();
+      PtrParamNode precondNode;
+      for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+        if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+          precondNode = pNodes[i];
+        }
+      }
+
+
+      BaseSolver::PrecondType pt;
+      if( !precondNode ) {
+        // -------------------------------------------------------
+        //  no precond set -> use default ID
+        // -------------------------------------------------------
+        pt = BasePrecond::ID;
+        precondList->Get("Id",ParamNode::INSERT)->
+            Get("id",ParamNode::INSERT)->SetValue(precondId);
+      }else{
+        EXCEPTION("Preconditioning for true SBM case not yet implemented!");
+      }
+
+
+      // --------------------------------------------------------
+      //  Check for shared pattern
+      // --------------------------------------------------------
+      if( st == BaseSolver::DIAGSOLVER ) {
+        sharedPatternPossible_ = false;
+      }
+
+      // ---------------
+      //  Check Reordering
+      // ---------------
+      BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
+#ifdef USE_METIS
+      ot = BaseOrdering::METIS;
+#endif
+      bool canChangeReordering = true;
+      if (matNode->Has("reordering") &&
+          matNode->Get("reordering")->As<std::string>() != "_default_" ) {
+        ot = BaseOrdering::reorderingType.Parse(
+            matNode->Get("reordering")->As<std::string>());
+        canChangeReordering = false;
+      }
+
+
+      // a) for our own direct solvers we activate re-ordering
+      if( (st == BaseSolver::LU_SOLVER ||
+           st == BaseSolver::LDL_SOLVER ||
+           st == BaseSolver::LAPACK_LL ||
+           st == BaseSolver::LAPACK_LU ) &&
+           ot == BaseOrdering::NOREORDERING &&
+          canChangeReordering == true ) {
+#ifdef USE_METIS
+        ot = BaseOrdering::METIS;
+#else
+        ot = BaseOrdering::SLOAN;
+#endif
+      }
+
+      // b) pardiso and most external solvers need no reordering or have their own
+      if( st == BaseSolver::PARDISO_SOLVER &&
+          st == BaseSolver::UMFPACK &&
+          st == BaseSolver::ILUPACK &&
+//          st == BaseSolver::LIS &&
+          st == BaseSolver::SUPERLU &&
+          st == BaseSolver::SPOOLES &&
+          ot != BaseOrdering::NOREORDERING &&
+          canChangeReordering == true ) {
+        ot = BaseOrdering::NOREORDERING;
+      }
+
+      // c) ilu-based preconditioners prefer reordering
+      if( ( pt == BasePrecond::ILUK ||
+            pt == BasePrecond::ILUTP ||
+            pt == BasePrecond::ILDLK ||
+            pt == BasePrecond::ILDLTP ||
+            pt == BasePrecond::ILDLCN ) &&
+            ot == BaseOrdering::NOREORDERING &&
+            canChangeReordering == true ) {
+#ifdef USE_METIS
+        ot = BaseOrdering::METIS;
+#else
+        ot = BaseOrdering::SLOAN;
+#endif
+      }
+
+      // in the end store back the reordering type
+      matNode->Get("reordering",ParamNode::INSERT)->
+          SetValue(BaseOrdering::reorderingType.ToString(ot));
+
+    }// endif true sbm case
+
   }
   
   void AlgebraicSys::PrintFeMatrixInfo( ) {

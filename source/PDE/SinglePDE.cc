@@ -195,7 +195,7 @@ namespace CoupledField {
     LOG_TRACE(singlepde) << pdename_ << ": Obtaining analysis type";
     analysistype_ = domain_->GetSingleDriver()->GetAnalysisType();
 
-    if(analysistype_ == MULTIHARMONIC) isMultiHarm_ = true;
+    if(analysistype_ == MULTIHARMONIC) isMultHarm_ = true;
 
     isComplex_ = IsComplex();
 
@@ -241,10 +241,22 @@ namespace CoupledField {
     if( needsAlgsys_ == true || !simState_->HasInput()) {
       if ( isDirectCoupled_ == false) {
         olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
-        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_, isMultiHarm_);
+        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_, isMultHarm_);
         solStrat_ = algsys_->GetSolStrategy();
       }
     }
+
+    // =====================================================================
+    // inform algsys about possible multiharmonics
+    // =====================================================================
+    if( analysistype_ == MULTIHARMONIC){
+      UInt baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
+      UInt numHarm_N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
+      UInt numHarm_M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
+
+      solStrat_->SetMultHarm(baseFreq, numHarm_N, numHarm_M);
+    }
+
 
     // =====================================================================
     // create assemble class
@@ -343,7 +355,7 @@ namespace CoupledField {
     // trigger definition of available postprocessing results
     // =====================================================================
     DefinePostProcResults();
-    
+
     // Proceed with initialization stage 2 in the un-coupled case
   }
   
@@ -412,8 +424,7 @@ namespace CoupledField {
     
     if ( analysistype_ == TRANSIENT ) {
       Double dt;
-      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
-                ->GetDeltaT();
+      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT();
 
       // Call the init function of timescheme of each fefunction
       fncIt= feFunctions_.begin();
@@ -1185,7 +1196,7 @@ namespace CoupledField {
         derivFeFct->Finalize();
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
-        if( analysistype_ == HARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY) {
+        if( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY) {
           FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
           shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );

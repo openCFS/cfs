@@ -191,7 +191,7 @@ namespace CoupledField {
   //   RegisterBlock
   // ===============
   void GraphManager::RegisterBlock( const UInt blockNum,
-                                    SBMBlockInfo* blockInfo ) {
+                                    SBMBlockInfo* blockInfo) {
     
     LOG_TRACE(graphMan) << "Registering block " << blockNum;
     
@@ -210,8 +210,7 @@ namespace CoupledField {
     }
     
     
-    // Store SBM block information
-    blockInfo_[blockNum] = blockInfo; 
+
 
     // Step counter for the number of registered blocks and check number
     numRegisteredBlocks_++;
@@ -226,7 +225,10 @@ namespace CoupledField {
       registrationDone_ = true;
 
     // Generate graph object for this block
+    blockInfo_[blockNum] = blockInfo;
     UInt idx = ComputeIndex( blockNum, blockNum );
+
+
     graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex, 
                                  blockInfo->numLastFreeIndex );
     if ( graph_[idx] == NULL ) {
@@ -242,7 +244,7 @@ namespace CoupledField {
     
     // Generate IDBC graph object for this block
     GenerateIDBCGraph( blockNum, blockNum );
-    
+
   }
 
    

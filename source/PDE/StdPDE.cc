@@ -171,7 +171,12 @@ namespace CoupledField {
     // ---------------------------------------
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
-    UInt numBlocks = sbmBlocks.GetSize();
+    // for multiharmonic analysis we need 2M+1 independent blocks but they all
+    // have the same equations inside
+    UInt numBlocks = (solStrat_->IsMultHarm())? 2*solStrat_->GetNumHarmM() + 1 : sbmBlocks.GetSize();
+
+    if( solStrat_->IsMultHarm() && sbmBlocks.GetSize() > 1 )EXCEPTION("No submatrices allowed for multiharmonic analysis");
+
     // security check: ensure that at least one block is defined
     if (numBlocks == 0 ) {
       EXCEPTION( "There are no SBM blocks defined!" );
@@ -184,7 +189,9 @@ namespace CoupledField {
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
       bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
-      sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
+
+      UInt ind = ( solStrat_->IsMultHarm() )? 0 : i;
+      sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[ind], isInnerBlock );
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
@@ -221,7 +228,7 @@ namespace CoupledField {
       } // if block is defined at all
     } // loop over blocks
 
-    // Finalize registration of blocks
+    // Finalize registration of blocks, which includes the generation of the graph manager
     algsys_->FinishRegistration();
 
 

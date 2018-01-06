@@ -55,9 +55,6 @@ public:
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 
-
-protected:
-
   //! Base frequency for which a simulation is performed
   Double baseFreq_;
   
@@ -66,6 +63,8 @@ protected:
   
   //! Number of considered harmonics for the nonlinearity, e.g. nonlinear BH-curve in electromagnetics
   UInt numHarmonics_M_;
+
+protected:
 
   //! Timer for estimating remaining runtime
   boost::shared_ptr<Timer> timer_;

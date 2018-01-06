@@ -74,7 +74,7 @@ public:
   virtual UInt GetNumSBMBlocks() = 0;
   
   // ========================================================================
-  //  OLAS-PARAMEER HANDLING
+  //  OLAS-PARAMETER HANDLING
   // ========================================================================
   
   //! Return use of static condensation
@@ -115,6 +115,18 @@ public:
   //! Set flag is multiharmonic analysis is used
   void SetMultHarm(bool isMultHarm){ isMultHarm_ = isMultHarm;}
 
+  bool IsMultHarm(){ return isMultHarm_; }
+
+  void SetMultHarm(UInt bF, UInt nN, UInt nM){
+    baseFreq_ = bF;
+    numHarmN_ = nN;
+    numHarmM_ = nM;
+  }
+
+  UInt GetBaseFreq(){ return baseFreq_; }
+  UInt GetNumHarmN(){ return numHarmN_; }
+  UInt GetNumHarmM(){ return numHarmM_; }
+
 protected:
   
   //! Paramnode for strategy element
@@ -134,6 +146,15 @@ protected:
 
   //! Flag if multiharmonic analysis is used
   bool isMultHarm_;
+
+  //! Base frequency for multiharmonic excitation
+  UInt baseFreq_;
+  //! Number of harmonics for solution
+  UInt numHarmN_;
+  //! Number of harmonics for nonlinearity
+  UInt numHarmM_;
+
+
 };
 
 

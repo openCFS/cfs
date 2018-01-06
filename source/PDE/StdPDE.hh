@@ -408,7 +408,6 @@ namespace CoupledField {
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;                //!< true: axisymmetric problem
     bool isComplex_;            //!< true, if some part of PDE is complex (Material, solution)
-    bool isMultiHarm_;          //!< true, if analysistype is multiharmonic
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;

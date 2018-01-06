@@ -440,6 +440,9 @@ class BaseFieldFunctor;
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    //! true, if analysistype is multiharmonic
+    bool isMultHarm_;
+
     // -----------------------------------------------------------------------
     //  Result Handling
     // -----------------------------------------------------------------------
