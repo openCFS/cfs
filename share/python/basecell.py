@@ -295,21 +295,6 @@ if __name__ == "__main__":
     infoXml.write(infoStr + "/>\n\n")  
   
   
-  ############# debugging ###########################
-  #read non-design coords from csv file
-#   import csv
-#   nondes = []
-#   with open("nondes.csv","r") as f:
-#     reader = csv.reader(f,delimiter=',')
-#     for i,row in enumerate(reader):
-#       # skip header
-#       if i == 0:
-#         continue
-#       nondes.append((float(row[0]),float(row[1]),float(row[2])))
-#   
-#   left_front_corner = [0, -163, 110.5]
-#   right_back_corner = [290,163,206.5]
-      
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
@@ -411,17 +396,11 @@ class Basecell_Data():
 class Basecell():
   # data is an object of type Basecell_Data()
   # idx = (i,j,k)
-  # nondes: list of non-design elements' barycenters
-  # need global_grid_coords for nondes: base cell is embedded in global uniform grid - store left lower and right upper corner (i,j,k) for this cell
-  # e.g. global_grid_coords[0] = (0,0,0) and global_grid_coords[1] = (40,40,40) if base cell voxel resolution is 40
-  def __init__(self,data,idx=None,nondes=None,global_grid_coords=None):
+  def __init__(self,data,idx=None):
     assert(type(data) is Basecell_Data)
-    if global_grid_coords:
-      assert(len(global_grid_coords) == 2)
-      assert(len(global_grid_coords[0]) == 3)
     self.data = data
     self.idx = idx
-    self.voxels, self.points, self.cells = draw_profile_functions.generate_basecell(data,None,nondes,global_grid_coords)
+    self.voxels, self.points, self.cells = draw_profile_functions.generate_basecell(data,None)
     assert(self.points is not None)
     assert(self.cells is not None)
 

@@ -812,7 +812,7 @@ def calc_distance(p1,p2):
   return np.linalg.norm(np.asarray(p1)-np.asarray(p2))
 
 # returns points and cells describing basecell 
-def generate_basecell(args,info,nondes,global_grid_coords=None):
+def generate_basecell(args,info):
   global res, res_surf_lines, interpolation
   res = args.res
   res_surf_lines = args.res_surf_lines
@@ -892,22 +892,6 @@ def generate_basecell(args,info,nondes,global_grid_coords=None):
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
   if args.target == "surface_mesh" or args.target == "marching_cubes":
-    # draw non-design points into array
-    if nondes:
-#       tmp_points = []        
-      assert(global_grid_coords is not None)
-      min_bb = global_grid_coords[0]
-      max_bb = global_grid_coords[1]
-      assert(len(min_bb) == 3 and len(max_bb) == 3)
-      hx = (max_bb[0] - min_bb[0]) / res
-      hy = (max_bb[1] - min_bb[1]) / res
-      hz = (max_bb[2] - min_bb[2]) / res
-      
-      for p in nondes:
-        i,j,k = cartesian_to_voxel_coords(p,min_bb[0],min_bb[1],min_bb[2],hx,hy,hz)
-        if i < res and j < res and k < res and i > 0 and j > 0 and k > 0:
-          array[i,j,k] = -1
-  
     ############################ new surface mesh approach ####################
     # binary helper array
     shape = array.shape[0:3]
