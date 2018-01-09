@@ -101,7 +101,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("max_dim:",bounds[3:6])
   resolution = (int(samples[0]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
   print("resolution:",resolution)
-  voxel_grid  = np.full(resolution,-1,dtype=int)
+  voxel_grid  = np.full(resolution,999,dtype=int)
   width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
   
   hx_old = width[0] / float(resolution[0])
@@ -231,7 +231,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   y = np.arange(bounds[1],bounds[4]+hy_old-eps,hy_old)
   z = np.arange(bounds[2],bounds[5]+hz_old-eps,hz_old)
 
-  design_elems = []
+  void_elems = []
   # read void non-design manually  
   import csv
   with open('holes.txt') as csvfile:
@@ -239,12 +239,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     for row in readCSV:
       # 4 elems with 3 coord components
       assert(len(row) == 12)
-      design_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
+      void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
     
-    assert(len(design_elems) > 0)
-    
+    assert(len(void_elems) > 0)
+  
   draw_non_design(nondes_coords, voxel_grid, bounds, (hx_old,hy_old,hz_old), 0)
-  draw_non_design(design_elems, voxel_grid, bounds, (hx_old,hy_old,hz_old), -1)    
+  draw_non_design(void_elems, voxel_grid, bounds, (hx_old,hy_old,hz_old), -1)    
   from pyevtk.hl import gridToVTK  
   gridToVTK("voxels",x,y,z,cellData={"voxels":voxel_grid})
   
@@ -261,13 +261,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         if voxel_grid[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
           
-#   helper[0,:,:] = helper[1,:,:]
-#   helper[:,0,:] = helper[:,1,:]
-#   helper[:,:,0] = helper[:,:,1]
-#   helper[shape[0]-1,:,:] = helper[shape[0]-2,:,:]
-#   helper[:,shape[1]-1,:] = helper[:,shape[1]-2,:]
-#   helper[:,:,shape[2]-1] = helper[:,:,shape[2]-2]
-  
   hx = width[0] / float(shape[0])
   hy = width[1] / float(shape[1])
   hz = width[2] / float(shape[2])
@@ -456,26 +449,33 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
   # triangle ADC
   triangles.append((np.asarray(A),np.asarray(D),np.asarray(C)))
   
+  test = [66,3,0]
+  if np.isclose(A[0],test[0],1e-6) and np.isclose(A[1],test[1],1e-6) and np.isclose(A[2],test[2],1e-6):
+    print("here")
+  
+  eps = 1e-6
+  
   for t in triangles:
     v0 = t[0]
     v1 = t[1]
     v2 = t[2]
     
-    # number of samples
-    samples10 = max(v1-v0)
-    samples20 = max(v2-v0)
-    
     # directional vectors
     v1v0 = v1 - v0
     v2v0 = v2 - v0
+    
+    # number of samples
+    samples10 = abs(max(v1v0))
+    samples20 = abs(max(v1v0))
     
     for u in np.linspace(0,1,num=samples10+10):
       for v in np.linspace(0,1,num=samples20+10):
         if u + v > 1.0:
           continue
-         
-        p = v0 + u * v1v0 + v * v2v0 
-        p = [int(v) for v in p]
+        
+        p0 = v0 + u * v1v0 + v * v2v0 + eps
+        p = [int(v) for v in p0]
+        
         grid[tuple(p)] = value
 
 # @param elem: list of lists, each entry contains 4 vertices (cartesian) of a tet
@@ -483,9 +483,10 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
 # @param h: lattice spacings in 3 directions 
 # @param grid: where to draw        
 # @param value: value to draw with        
-def draw_non_design(elems,grid,bounds,h,value):
+def draw_non_design(tets,grid,bounds,h,value):
+  from scipy.ndimage import binary_fill_holes
   assert(len(bounds) >=3 and len(h) == 3)
-  for e in elems:
+  for e in tets:
     assert(len(e) == 4)
     
     # A: (i,j,k)
@@ -493,6 +494,13 @@ def draw_non_design(elems,grid,bounds,h,value):
     B = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[1],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
+    
+#     print("A:",A)
+#     print("B:",B)
+#     print("C:",C)
+#     print("D:",D)
+#       sys.exit()
+    
     # works only if A is a tuple
     grid[tuple(A)] = value 
     grid[tuple(B)] = value
@@ -500,3 +508,31 @@ def draw_non_design(elems,grid,bounds,h,value):
     grid[tuple(D)] = value
     
     draw_tetrahedron(A,B,C,D,grid,value)
+    
+    # get bounding box of this tet and fill holes inside 4 drawn triangles
+    mindim = [min(A[i],B[i],C[i],D[i]) for i in range(3)]
+    maxdim = [max(A[i],B[i],C[i],D[i]) for i in range(3)] 
+    
+    subgrid = grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1]
+    helper = np.ones(subgrid.shape) * 999
+    # convert to binary 3dimage, 0 is hole and 1 structure
+    for i in range(subgrid.shape[0]):
+      for j in range(subgrid.shape[1]):
+        for k in range(subgrid.shape[2]):
+          # solid
+          if subgrid[i,j,k] == value:
+            helper[i,j,k] = 1
+          else:
+            #void
+            assert(subgrid[i,j,k] != value)
+            helper[i,j,k] = 0
+     
+    helper = binary_fill_holes(helper).astype(int)
+     
+    for i in range(helper.shape[0]):
+      for j in range(helper.shape[1]):
+        for k in range(helper.shape[2]):
+          if helper[i,j,k] == 1:
+            subgrid[i,j,k] = value
+            
+    grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = subgrid           
