@@ -449,10 +449,6 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
   # triangle ADC
   triangles.append((np.asarray(A),np.asarray(D),np.asarray(C)))
   
-  test = [66,3,0]
-  if np.isclose(A[0],test[0],1e-6) and np.isclose(A[1],test[1],1e-6) and np.isclose(A[2],test[2],1e-6):
-    print("here")
-  
   eps = 1e-6
   
   for t in triangles:
@@ -466,7 +462,7 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
     
     # number of samples
     samples10 = abs(max(v1v0))
-    samples20 = abs(max(v1v0))
+    samples20 = abs(max(v2v0))
     
     for u in np.linspace(0,1,num=samples10+10):
       for v in np.linspace(0,1,num=samples20+10):
@@ -477,7 +473,7 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
         p = [int(v) for v in p0]
         
         grid[tuple(p)] = value
-
+        
 # @param elem: list of lists, each entry contains 4 vertices (cartesian) of a tet
 # @param bounds: list of bounds of cartesian world
 # @param h: lattice spacings in 3 directions 
