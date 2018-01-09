@@ -586,24 +586,28 @@ if(USE_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket
   # we could also use a subversion mirror on github but only for ghost, not for phist
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
-  set(GHOST_REV "ddce0bc96f26") # subversion revision numbers are are more easily handable :(
-  set(GHOST_MD5 "0ae20ce04a479d20d5056c71694a52de")
+  set(GHOST_REV "9937a9dc71d7") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "9939c6176c4e42d15133eab5e646e7a2")
   set(GHOST_ZIP "${GHOST_REV}.zip")
   # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
   # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
-  set(GHOST_BB_USER "fabian_wein")
-  set(GHOST_BB_PROJECT "cfs_ghost")
+  set(GHOST_BB_USER "essex")
+  set(GHOST_BB_PROJECT "ghost")
   include("${CFSDEPS_DIR}/ghost/External_GHOST.cmake")
+  
+  ADD_DEPENDENCIES(ghost hwloc)
 endif(USE_GHOST)
 
 # phist provides a ghost (=cuda if available) based EV-solver
 if(USE_PHIST)
-  set(PHIST_REV "ec6984d02309") 
-  set(PHIST_MD5 "c3704fa2cf8614418a547a305aaf3f96")
+  set(PHIST_REV "7b5a537f2dc7") 
+  set(PHIST_MD5 "0b935804f0829c88314aeb19c357e42a")
   set(PHIST_ZIP "${PHIST_REV}.zip")
   set(PHIST_BB_USER "essex")
   set(PHIST_BB_PROJECT "phist")
   include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
+  
+  ADD_DEPENDENCIES(phist ghost)
 endif(USE_PHIST)
 
 
