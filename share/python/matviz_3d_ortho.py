@@ -66,18 +66,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   min_thresh = 0.1
   max_thresh = 0.82
     
-  # where we want nodes
-  nx = int(h_des[0] / dx_des)
-  ny = int(h_des[1] / dy_des)
-  nz = int(h_des[2] / dz_des)
-
 #   print("samples:",samples)  
 #   print("h_des:",h_des)
 #   print("design_bounds:",design_bounds)  
 #   print("dx_des,dy_des,dz_des:",dx_des,dy_des,dz_des)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
-  data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, design_bounds, grad, s1, s2, s3, nx, ny, nz, dx_des, dy_des, dz_des)
+  data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
   
   ################# voxel world #########################################
   nondes_coords = nondes[0]
@@ -89,39 +84,49 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   bounds = [None] * 6
   bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
   bounds[3:6] = np.maximum(np.asarray(max_bb),np.asarray(nondes_max))
-  print("min_bb design:",min_bb)
+  print("\nmin_bb design:",min_bb)
   print("max_bb design:",max_bb)
   print("min:",bounds[0:3])
   print("max:",bounds[3:6])
   resolution = (int(samples[0]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
   print("voxel grid res:",resolution)
-  voxel_grid  = np.full(resolution,999,dtype=int)
+  
   width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
   
-  hx = width[0] / float(resolution[0])
-  hy = width[1] / float(resolution[1])
-  hz = width[2] / float(resolution[2])
+  hx = width[0] /  float(samples[0]*args.bc_res)
+  hy = width[1] / float(samples[1]*args.bc_res)
+  hz = width[2] / float(samples[2]*args.bc_res)
   
-  nCells = nx*ny*nz
-  # distribute loop evenly over number of processes and take care
-  # of remainder -> difference between work chunks can be 1
-  # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2]
-  # number of loop runs per process:
-  nRuns = [int(nCells/commSize) + (1 if p < nCells%commSize else 0) for p in range(0,commSize)]
-  start = int(np.sum(nRuns[0:rank]))
-  end = int(start + nRuns[rank])
-  
-#   # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
-#   # distribute slices along x-axis evenly over number of processes and take care
+#   nCells = nx*ny*nz
+#   # distribute loop evenly over number of processes and take care
 #   # of remainder -> difference between work chunks can be 1
-#   chunks = [int(resolution[0]/commSize) + (1 if p < resolution[0]%commSize else 0) for p in range(0,commSize)]
-#   start = int(np.sum(chunks[0:rank]))
-#   end = int(start + chunks[rank])
+#   # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2]
+#   # number of loop runs per process:
+#   nRuns = [int(nCells/commSize) + (1 if p < nCells%commSize else 0) for p in range(0,commSize)]
+#   start = int(np.sum(nRuns[0:rank]))
+#   end = int(start + nRuns[rank])
   
-#   print("chunks:",chunks)
-#   print("rank:",rank," start:",start," end:",end)
-#   sys.stdout.flush()
-
+  # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
+  # distribute number of cells along x-axis evenly over number of processes and take care
+  # of remainder -> difference between work chunks can be 1
+  chunks = [int(samples[0]/commSize) + (1 if p < samples[0]%commSize else 0) for p in range(0,commSize)]
+  local_resolution = (int(chunks[rank]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
+  start = int(np.sum(chunks[0:rank]))
+  end = int(start + chunks[rank])
+  
+  local_bounds = bounds[:]
+  # divide x-axis among workers
+  local_bounds[0] = start*(bounds[3]-bounds[0]) / np.sum(chunks) + bounds[0]
+  local_bounds[3] = end*(bounds[3]-bounds[0]) / np.sum(chunks) + bounds[0]
+  
+  print("chunks:",chunks)
+  print("local res:", local_resolution)
+  print("local bounds:",local_bounds)
+  print("rank:",rank," start:",start," end:",end)
+  print("hx,hy,hz:",hx,hy,hz)
+  sys.stdout.flush()
+  
+  voxel_grid  = np.full(local_resolution,999,dtype=int)
 #   if rank == 0: 
 #     eps = 1e-6
 #     x = np.arange(0,resolution[0]+1,1)
@@ -162,9 +167,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #       
 #   sys.exit()
   
-  for id in range(start,end):
-    i, j, k = get_3d_grid_coords(id,nx,ny,nz)   
-    
+  local_id = 0
+  for id in range(start*samples[1]*samples[2],end*samples[1]*samples[2]):
+    #global i,j,k
+    i, j, k = get_3d_grid_coords(id,samples[0],samples[1],samples[2])   
     this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
     east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
     top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
@@ -181,57 +187,41 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     z1 = min(max(this[2],min_thresh),max_thresh)
     z2 = min(max(front[2],min_thresh),max_thresh)
     
-    # flags for meshing circles on the boundary
-    flags = [None] * 6
-    grid_bounds = [0,0,0,nx-1,ny-1,nz-1]
-    grid_coords = [i,j,k]
-#     flags[0] = True if i == 0 else False
-#     flags[1] = True if j == 0 else False
-#     flags[2] = True if k == 0 else False
-#     flags[3] = True if i == nx-1 else False
-#     flags[4] = True if j == ny-1 else False
-#     flags[5] = True if k == nz-1 else False
-    for c in range(len(flags)):      
-      flags[c] = True if grid_coords[c%3] == grid_bounds[c] else False 
-    
-    print("rank:",rank," i,j,k:",i,j,k, " before basecell;",x1,x2,y1,y2,z1,z2)
-    sys.stdout.flush()
-    
+    flags = None
     bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
     bc_input.eta = 0.7
     bc_input.stiffness_as_diameter = True
     cell_obj = basecell.Basecell(bc_input,id)
-#     cell_obj = basecell.Basecell(bc_input,id,nondes,(left_front_corner,right_back_corner))
-#     cell_obj.scale(dx, dy, dz)
-#     cell_obj.translate(left_front_corner[0],left_front_corner[1],left_front_corner[2])
-#     cell_obj.update()
-#     if x1 <= 0.076 and x2 <= 0.076 and y1 <= 0.076 and y2 <= 0.076 and z1 <= 0.076 and z2 <= 0.076:
-#       continue
-#     cell_center = np.asarray(left_front_corner) + np.asarray([dx/2,dy/2,dz/2])
-#     cell_obj.center = cell_center
+    # local i,j,k
+    i,j,k = get_3d_grid_coords(local_id, chunks[rank], samples[1], samples[2])
+#     print("rank:",rank," local i,j,k:",i,j,k)
+#     sys.stdout.flush()
     voxel_grid[i*args.bc_res:(i+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
+
+    local_id += 1
     
   eps = 1e-6
-  x = np.arange(bounds[0],bounds[3]+hx-eps,hx)
-  y = np.arange(bounds[1],bounds[4]+hy-eps,hy)
-  z = np.arange(bounds[2],bounds[5]+hz-eps,hz)
 
-  void_elems = []
-  # read void non-design manually  
-  import csv
-  with open('holes.txt') as csvfile:
-    readCSV = csv.reader(csvfile, delimiter=',')  
-    for row in readCSV:
-      # 4 elems with 3 coord components
-      assert(len(row) == 12)
-      void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
+#   void_elems = []
+#   # read void non-design manually  
+#   import csv
+#   with open('holes.txt') as csvfile:
+#     readCSV = csv.reader(csvfile, delimiter=',')  
+#     for row in readCSV:
+#       # 4 elems with 3 coord components
+#       assert(len(row) == 12)
+#       void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
+#     
+#     assert(len(void_elems) > 0)
     
-    assert(len(void_elems) > 0)
+  x = np.arange(local_bounds[0],local_bounds[3]+hx-eps,hx)
+  y = np.arange(local_bounds[1],local_bounds[4]+hy-eps,hy)
+  z = np.arange(local_bounds[2],local_bounds[5]+hz-eps,hz)
   
-  draw_non_design(nondes_coords, voxel_grid, bounds, (hx,hy,hz), 0)
-  draw_non_design(void_elems, voxel_grid, bounds, (hx,hy,hz), -1)    
+  draw_non_design(nondes_coords, voxel_grid, local_bounds[0:3], (hx,hy,hz), 0)
+#   draw_non_design(void_elems, voxel_grid, local_bounds[0:3], (hx,hy,hz), -1)    
   from pyevtk.hl import gridToVTK  
-  gridToVTK("voxels",x,y,z,cellData={"voxels":voxel_grid})
+  gridToVTK("voxels"+str(rank),x,y,z,cellData={"voxels":voxel_grid})
   
   # binary helper array
   shape = np.asarray(voxel_grid.shape[0:3]) + np.array((2,2,2))
@@ -245,6 +235,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       for k in range(shape[2]-2):
         if voxel_grid[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
+  
+  helper[0,:,:] = -1        
+  helper[:,0,:] = -1
+  helper[:,:,0] = -1
+  helper[helper.shape[0]-1,:,:] = -1        
+  helper[:,helper.shape[1]-1,:] = -1
+  helper[:,:,helper.shape[2]-1] = -1
           
   hx_help = width[0] / float(shape[0])
   hy_help = width[1] / float(shape[1])
@@ -254,11 +251,11 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("hx,hy,hz:",hx,hy,hz)
   
   # vtk rectgrid is node based
-  x = np.arange(bounds[0],bounds[3]+1*hx_help,hx_help)
-  y = np.arange(bounds[1],bounds[4]+1*hy_help,hy_help)
-  z = np.arange(bounds[2],bounds[5]+1*hz_help,hz_help)
+  x = np.arange(local_bounds[0],local_bounds[3]+1*hx_help,hx_help)
+  y = np.arange(local_bounds[1],local_bounds[4]+1*hy_help,hy_help)
+  z = np.arange(local_bounds[2],local_bounds[5]+1*hz_help,hz_help)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("helper",x,y,z,cellData={"helper":helper}) 
+  gridToVTK("helper"+str(rank),x,y,z,cellData={"helper":helper}) 
  
   from skimage import measure
   # coords of vertices lie in [0,1-h]
@@ -266,12 +263,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   verts = np.asarray(verts) + (hx/2.0,hy/2.0,hz/2.0)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
-  translation.Translate(bounds[0],bounds[1],bounds[2])
+  translation.Translate(local_bounds[0],local_bounds[1],local_bounds[2])
   transformFilter = vtk.vtkTransformPolyDataFilter()
   transformFilter.SetInputData(pd)
   transformFilter.SetTransform(translation)
   transformFilter.Update()
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching.vtp")
+  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching"+str(rank)+".vtp")
   
   connectivity = basecell.getConnectivity(verts,faces)
   verts = basecell.taubin_smoothing(verts,connectivity,30)
@@ -282,16 +279,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   transformFilter.SetInputData(pd)
   transformFilter.SetTransform(translation)
   transformFilter.Update()
- 
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "smooothed_marching.vtp")
-   
+  
   normals = vtk.vtkPolyDataNormals()
   normals.SetInputData(transformFilter.GetOutput())
   normals.SetConsistency(1)
   normals.SetAutoOrientNormals(1)
   normals.Update()
   
-  return normals.GetOutput()
+  pd = normals.GetOutput()
+  
+  matviz_vtk.show_write_vtk(pd, 10, "smooothed_marching"+str(rank)+".vtp")
+
+  
+#   return pd
 
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -411,11 +411,22 @@ def draw_non_design(tets,grid,bounds,h,value):
     C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     
+    # check if whole tet lies outside local grid
+    if not (0 <= A[0] < grid.shape[0] and 0 <= B[0] < grid.shape[0] and 0 <= C[0] < grid.shape[0] and 0 <= D[0] < grid.shape[0] and \
+            0 <= A[1] < grid.shape[1] and 0 <= B[1] < grid.shape[1] and 0 <= C[1] < grid.shape[1] and 0 <= D[1] < grid.shape[1] and \
+            0 <= A[2] < grid.shape[2] and 0 <= B[2] < grid.shape[2] and 0 <= C[2] < grid.shape[1] and 0 <= D[2] < grid.shape[1]):
+      
+      # check parts of tet
+      
+      continue
+    
 #     print("A:",A)
 #     print("B:",B)
 #     print("C:",C)
 #     print("D:",D)
 #       sys.exit()
+    
+    assert(0 <= A[0] and A[0] < grid.shape[0] and 0 <= A[1] and A[1] < grid.shape[1] and 0 <= A[2] and A[2] < grid.shape[2])
     
     # works only if A is a tuple
     grid[tuple(A)] = value 
@@ -452,3 +463,13 @@ def draw_non_design(tets,grid,bounds,h,value):
             subgrid[i,j,k] = value
             
     grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = subgrid           
+
+# check if given point lies within given bounds
+# @param point (x,y,z)
+# @param bounds: list of 6 doubles (xmin,ymin,zmin,xmax,ymax,zmax)    
+def out_of_bounds(point,bounds):
+  eps = 1e-6
+  if bounds[0]-eps < point[0] < bounds[3] + eps and bounds[1]-eps < point[1] < bounds[4] + eps and bounds[2]-eps < point[2] < bounds[5] + eps:
+    return False
+  else:
+    return True
